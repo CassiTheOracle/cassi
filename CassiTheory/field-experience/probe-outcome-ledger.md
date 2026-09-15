@@ -818,8 +818,8 @@ The frozen first-target protocol
 `computations/yang-mills-exact-block-spectral-prereg.md` projects a truncated
 spin-network Ritz ground state of the seven-link two-plaquette graph onto a
 full-holonomy block and extracts the conditional Poincaré rate of
-$d\mu_J^{\mathrm{Ritz}}=|\Omega_J|^2dU$. The source-bound receipt
-`runs/yang_mills_exact_block_spectrum/verification.json` executes the
+$d\mu_J^{\mathrm{Ritz}}=|\Omega_J|^2dU$. The retained primary execution
+record `runs/yang_mills_exact_block_spectrum/verification.json` evaluates the
 schedule at doubled cutoffs $J=1,\ldots,5$ with the $J=6$ extension for the
 endpoint residual, couplings $x=1/4,1,4,16$ and nine boundary angles
 $\theta=k\pi/8$.
@@ -832,92 +832,74 @@ $\theta=k\pi/8$.
 | Frozen qualification | All 180 scheduled boundary rows classify **INCONCLUSIVE**: the restriction rank grows with the cutoff at every coupling, the literal embedded-minimizer and rate-stability tolerances fail, and the endpoint full-space residual is $7.4\times10^{-2}$ at $x=4$ and $3.12$ at $x=16$ against the $10^{-2}$ bound | **INCONCLUSIVE**: no `SUPPORTS_FINITE_BLOCK` row and no conditional-collapse witness |
 | Transport score and continuum target | The transport score lies outside the first implementation target, so no score or margin verdict is issued; conditional-rate cutoff removal, uniform interacting recovery, the thermodynamic limit and the continuum gap stay open | **UNRESOLVED** |
 
-The receipt binds the protocol, the source and the shared representation
-helper by SHA-256, with source digest
-`fcca48a2c2721f5c9068eff65245ba7752e7d659e27b37efeeca9f7cc47f24fd` and
-protocol digest
-`a2cf6db4c8a82d69982d2df3b9ebd5673c17705dd092969bb161d365a7285446`. The
-analytical statements are
+The primary receipt records protocol digest
+`a2cf6db4c8a82d69982d2df3b9ebd5673c17705dd092969bb161d365a7285446`, helper
+digest `83f6ed011fa467ddfe6cd506f71a1168d85326741c115ae72b3cd90e507a4628`
+and embedded primary-source digest
+`148461e21a4ff1fe5601a44d3de6c4069bc9012fa1a56d912c01e1c12fc15723`. The
+live working-tree verifier source hashes to
+`8940ec3bad4b55611e7afba70b5f582bb685c59dc589578fbfdfb87e5382a168`, and
+no retained source snapshot matches the embedded digest. The primary raw
+receipt hash is
+`e1ecf4d54d165dceb00a244de7b1c68b3a43dabb5dd345f63c8f846be9921147`.
+The finite payload is therefore an execution record with unresolved source
+provenance, not a current source-bound receipt.
+
+The independent output
+`runs/yang_mills_exact_block_spectrum/verification-independent.json` has raw
+SHA-256
+`f4a01fefe85ff195bd9d20e2c273291470a0c526d0b99b50812774184756558b`. It
+reconstructs the 20 cutoff rows and passes its self-checks, but its schema
+contains no source, protocol or primary-receipt hash fields. It is a
+standalone numerical reconstruction rather than a sealed independent
+verification. The analytical statements are
 `foundations/loop-to-bubble-projection-theorem.md` §9.23. The finite controls
 guard the algebra and the declared scope without establishing the interacting
-vacuum estimate.
+vacuum estimate or UFA32.
 
 
 ## 28. Schedule-wide confinement of the nodal Ritz obstruction
 
-The frozen protocol `computations/yang-mills-nodal-family-prereg.md` extends
-the §27 nodal control from one row to the twelve scheduled rows of the
-seven-link block. The source-bound receipt
-`runs/yang_mills_nodal_family/verification.json` evaluates the normalized
-Ritz wavefunction along two 49-point block paths that rotate one block link
-through $e^{i\varphi\sigma_3/2}$, with the other block links and the exterior
-at the identity, and counts resolved sign changes under the frozen
-$10^{-10}$ resolution rule.
+The protocol `computations/yang-mills-nodal-family-prereg.md` specifies a
+twelve-row extension of the §27 block-path nodal control. The executable
+`computations/verify_yang_mills_nodal_family.py` is retained, but
+`runs/yang_mills_nodal_family/verification.json` is absent. No receipt, source
+snapshot or current numerical classification is available for this schedule.
+The §27 control is an execution record with unresolved source provenance, so
+the extension has no independently audited conformance result.
 
-| Control or claim | Decisive result | Classification and scope |
-|---|---|---|
-|| Sealed-control reproduction | The path endpoints at $J=1$, $x=1$ reproduce $2.094120531213694$ and $-0.03437408376157869$ to $4.4\times10^{-16}$, and the path amplitudes are real to $8.5\times10^{-18}$ relative | **ADOPT** as the conformance control of the extension against the sealed analytic nodal control |
-|| Path sign changes | Seven of twelve rows carry a resolved sign change, five with odd parity and two at $J=2$, $x=4,16$ with even parity and negative excursions of resolved modulus $1.2\times10^{-2}$ and $4.8\times10^{-3}$; five rows carry none | **CONFINED** to the strong-coupling half of the schedule; the witness-free rows bound neither the surrogate's gap nor its sign constancy |
-|| Onset with cutoff | The obstruction appears at $x=1$ at $J=1$ and only at $x=4$ at $J=2,3$; the $x=1/4$ rows are witness-free at every cutoff with path minima $0.675$, $0.706$ and $0.704$ | measurement, not proof: a one-parameter path can miss a codimension-one nodal set |
-|| Frozen decision tree | The preregistered rules return **NODAL_CONFINED**: not every row shows an odd number of resolved sign changes and rows with zero resolved sign changes exist | **NODAL_CONFINED**; the raw count of nodal witnesses is not the verdict |
-|| Vacuum and continuum | The exact regulated vacuum measure remains strictly positive by the exact criterion, and no row of this extension constrains it | **UNRESOLVED**: the exact-vacuum fibre rate, conditional-rate cutoff removal, uniform interacting recovery, thermodynamic limit and continuum construction stay open |
-
-The receipt binds the protocol, the source, the §27 source and the shared
-helper by SHA-256, with source digest
-`908150965c6672a022aba4596b9515acaf839c91500a0698c8d6ff52894ced7c`. The
-analytical statements are
-`foundations/loop-to-bubble-projection-theorem.md` §9.23.
-
+The exact regulated vacuum measure, conditional-rate cutoff removal, uniform
+interacting recovery, thermodynamic limit and continuum construction remain
+open.
 
 ## 29. Two-parameter nodal surface search
 
-The frozen protocol `computations/yang-mills-nodal-surface-prereg.md`
-replaces the one-parameter block paths by a two-parameter torus family that
-rotates block links $0$ and $1$ independently on a $33\times33$ grid. Its
-source-bound receipt `runs/yang_mills_nodal_surface/verification.json`
-searches all 66 grid lines of each of the twelve scheduled rows for resolved
-sign changes and cross-checks the two one-parameter lines against the sealed
-one-parameter receipt on the seventeen common angles.
+The protocol `computations/yang-mills-nodal-surface-prereg.md` specifies a
+two-parameter torus search over the block links and a conformance check
+against the schedule-wide path family. The executable
+`computations/verify_yang_mills_nodal_surface.py` is retained, but
+`runs/yang_mills_nodal_surface/verification.json` is absent. No receipt or
+current numerical classification is available, and no witness-confinement
+statement is transferred from this unretained run.
 
-| Control or claim | Decisive result | Classification and scope |
-|---|---|---|
-|| Conformance to the one-parameter receipt | Both one-parameter lines reproduce the sealed path tables at the common angles to $7.1\times10^{-15}$ or better | **ADOPT** as the conformance control on the two-parameter family |
-|| Grid-line witnesses | Seven rows carry resolved sign changes on 12–62 of the 66 grid lines, with 16–162 total changes; the remaining five rows carry none on any line | **CONFINED**: the witness boundary of the one-parameter family is stable under the two-parameter family |
-|| Silent rows | The $x=1/4$ rows at every cutoff and the $x=1$ rows at $J=2,3$ keep grid minima $0.675$, $0.706$, $0.704$, $0.277$ and $0.201$ over 1089 grid points each | no positivity or sign-constancy proof: a finite grid cannot certify a sign |
-|| Frozen decision tree | At least one row shows no resolved sign change on any grid line | **WITNESS_CONFINED** |
-|| Vacuum and continuum | The exact regulated vacuum measure remains strictly positive and the conditional-rate cutoff-removal obligations are untouched | **UNRESOLVED** |
-
-The receipt binds the protocol, the source, the one-parameter protocol,
-source and receipt, the §27 source and the shared helper by SHA-256, with
-source digest
-`6f215f5961fad3b654830392d18b8ce33464660893a5f5ad346f218ad1d97f77`. The
-analytical statements are
-`foundations/loop-to-bubble-projection-theorem.md` §9.23.
+The exact regulated vacuum measure, conditional-rate cutoff removal, uniform
+interacting recovery, thermodynamic limit and continuum construction remain
+open.
 
 ## 30. Loop-carrying exterior bowtie fibre
 
-The frozen protocol `computations/yang-mills-bowtie-fibre-prereg.md` replaces
-the seven-link tree exterior with an eight-link exterior plaquette attached to
-the block at one vertex. It schedules doubled cutoffs $J=1,2,3$, couplings
-$x\in\{1/4,1,4,16\}$ and $\theta=k\pi/8$ for $k=0,\ldots,8$. The
-source-bound receipt `runs/yang_mills_bowtie_fibre/verification.json` contains
-108 rows and binds `computations/verify_yang_mills_bowtie_fibre.py`, the
-protocol, `computations/verify_yang_mills_exact_block_spectrum.py` and
-`computations/yang_mills_conditional_algebra.py` by SHA-256.
+The protocol `computations/yang-mills-bowtie-fibre-prereg.md` specifies an
+eight-link exterior plaquette and its finite boundary schedule. The executable
+`computations/verify_yang_mills_bowtie_fibre.py` imports the current
+`computations/verify_yang_mills_exact_block_spectrum.py` and
+`computations/yang_mills_conditional_algebra.py` at runtime; no frozen source
+snapshot accompanies it. The expected receipt
+`runs/yang_mills_bowtie_fibre/verification.json` is absent. No current
+boundary-sensitivity or retained-rate classification is therefore available.
 
-| Control or claim | Decisive result | Classification and scope |
-|---|---|---|
-| Analytic and receipt controls | State-space dimension, kinetic labels, normalization, gauge-orbit invariance, Hermiticity, positivity and exclusive receipt creation all pass | **PASS** for the declared finite contraction and receipt controls |
-| Loop-holonomy boundary response | Every one of the twelve $(J,x)$ blocks exceeds the orbit threshold, with $\min_{J,x}\max_\theta|\log Z(\theta)|=0.2995170783$; at $J=1$, $x=1$, $Z$ ranges from $0.9160251472$ to $2.3613249509$ | **SUPPORTS_BOUNDARY_SENSITIVITY** for the finite loop-carrying exterior |
-| Retained-rate qualification | All 108 rows classify **INCONCLUSIVE**: 36 fail only the full-space residual bound, 27 fail only the nested restriction-rank rule and 45 fail both; the maximum residual is $15.2349853487$ against the $10^{-2}$ bound | **INCONCLUSIVE**: the retained numbers supply no uniform fibre-rate estimate |
-| Exact vacuum and continuum target | The exact-vacuum fibre rate, transport score, cutoff removal, uniform interacting recovery, thermodynamic limit and continuum construction remain unsupplied | **UNRESOLVED** |
-
-The source digest is
-`19e3208831ce4af966cd6de8e0079e083ea55602e0d3fb1f132b71227bfb63ef` and the
-protocol digest is
-`b71f184c0c45c9eacb58e0756758baacca825bf18c951ffb651591dd76d714ae`. The
-analytical interpretation is `foundations/loop-to-bubble-projection-theorem.md`
-§9.24.
+The exact vacuum fibre rate, transport score, cutoff removal, uniform
+interacting recovery, thermodynamic limit and continuum construction remain
+open.
 
 
 ## 31. Finite-regulator SU(2) Schwinger-function bridge
