@@ -1581,6 +1581,145 @@ The fixed-regulator result (UFA59)–(UFA60) is the strongest gap statement curr
 
 This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $\Pi^{\mathrm{fib}}/Q^{\mathrm{fib}}$ forms.
 
+### 4.4.2 Partial fixed-regulator conditional-fibre realization
+
+The strict-positivity premise used below is a finite-regulator theorem, not an additional vacuum assumption. For fixed $a,L$, the unreduced configuration manifold $\mathcal X=SU(2)^{E_L}$ is compact and connected; its electric Laplacian is elliptic and its magnetic Wilson multiplier is bounded and smooth. The positivity-improving heat kernel therefore gives a simple normalized positive ground state. This is the finite-box argument in `foundations/loop-to-bubble-projection-theorem.md` §§9.7 and 9.13, and it is applied before Gauss reduction.
+
+Writing $h_{a,L}$ for the unreduced Hamiltonian and $G_{a,L}=SU(2)^{V_L}$ for the finite-dimensional lattice gauge group, simplicity and commutation with the gauge action give
+
+$$
+\ker(h_{a,L}-e_0(a,L))
+=\mathbb C\Omega_{a,L},
+\qquad
+\Omega_{a,L}\in C^\infty(\mathcal X),
+\qquad
+\Omega_{a,L}>0,
+\qquad
+U_g\Omega_{a,L}=\Omega_{a,L}
+\quad(g\in G_{a,L}).
+\tag{UFA76}
+$$
+
+Indeed, $U_g\Omega_{a,L}$ is another normalized positive ground state, so uniqueness forces equality. The Gauss projector consequently preserves the vacuum and the physical finite-box restriction. In particular,
+
+$$
+0<
+\omega_-:=\min_{U\in\mathcal X}\Omega_{a,L}(U)
+\le
+\omega_+:=\max_{U\in\mathcal X}\Omega_{a,L}(U)
+<\infty .
+\tag{UFA77}
+$$
+
+This discharges the positivity and bounded-density input at each fixed regulator. It does not make $\omega_-/\omega_+$ uniform in $a,L$, and it supplies no continuum or thermodynamic gap.
+
+The conditional generator in (UFA59) therefore supplies a concrete scalar fibre projection at each fixed finite regulator. For an exterior datum $\eta$ define
+
+$$
+d\mu_{a,L;B}^{\eta}(U_B)
+:=
+Z_{a,L;B}(\eta)^{-1}
+\Omega_{a,L}(U_B,\eta)^2\,dU_B .
+\tag{UFA70}
+$$
+
+On the conditional fibre set
+
+$$
+\begin{aligned}
+\mathfrak g_{a,L;B,\eta}[F,G]
+:={}&
+\sum_{e\in B,A}
+\int_{\mathcal X_B}
+\overline{X_e^AF}\,X_e^AG\,
+d\mu_{a,L;B}^{\eta},\\
+p_{a,L;B,\eta}F
+:={}&
+\left(\int_{\mathcal X_B}F\,d\mu_{a,L;B}^{\eta}\right)\mathbf 1,
+\qquad
+q_{a,L;B,\eta}:=I-p_{a,L;B,\eta}.
+\end{aligned}
+\tag{UFA71}
+$$
+
+the Friedrichs operator $\mathscr G_{a,L;B,\eta}$ has constants as its
+ground space. Since the conditional density is bounded above and below on
+the compact finite fibre, the weighted Sobolev embedding is compact and the
+Haar comparison in (UFA60) gives
+
+$$
+\mathscr G_{a,L;B,\eta}\big|_{\mathbf 1^\perp}
+\succeq
+\delta_{a,L,B}\,I,
+\qquad
+\delta_{a,L,B}
+:=
+\lambda_{\mathrm{Haar},B}
+\left(\frac{\omega_-}{\omega_+}\right)^2
+>0,
+\tag{UFA72}
+$$
+
+uniformly in $\eta$ at this fixed regulator. If the conditional data are
+disintegrated measurably, then
+
+$$
+\Pi_{a,L;B}^{\mathrm{cond}}
+:=
+\int^\oplus p_{a,L;B,\eta}\,d\kappa_{a,L;B}(\eta),
+\qquad
+Q_{a,L;B}^{\mathrm{cond}}
+:=
+I-\Pi_{a,L;B}^{\mathrm{cond}}
+\tag{UFA73}
+$$
+
+are measurable direct-integral projections. Gauge invariance of
+$\Omega_{a,L}$ and Haar covariance give
+
+$$
+p_{a,L;B,g\cdot\eta}
+:=
+\pi_{a,L;B}(g)\,
+p_{a,L;B,\eta}\,
+\pi_{a,L;B}(g)^* .
+\tag{UFA74}
+$$
+
+The constant-section map
+
+$$
+(J_{a,L;B}^{\mathrm{cond}}f)(\eta)
+:=
+f(\eta)\mathbf 1_\eta
+\tag{UFA75}
+$$
+
+is an isometry onto the direct-integral constant subbundle, and (UFA74)
+supplies its scalar boundary covariance. This is a partial
+fixed-regulator realization of the projection and covariance pieces of
+(UFA61)–(UFA69), not the full Hamiltonian fibre construction. It does not
+yet identify $\mathscr G_{a,L;B,\eta}$ with the declared vertical
+Hamiltonian form in (UFA64), tensor the map with a nontrivial boundary
+sector $V_\alpha$, prove the block/exterior contraction identity (UFA8), or
+control the horizontal and crossing terms in (UFA35)–(UFA36). The ratio
+$\omega_-/\omega_+$ is regulator-dependent, so (UFA72) supplies no
+$\nu$-uniform $\delta_{\mathrm{fib},*}$.
+
+This partial realization closes the fixed-regulator scalar projection
+subproblem and isolates the next analytic interface: prove the
+boundary-sector lift and the exact vertical-form identification before
+attempting a uniform spectral-fibre or Feshbach estimate.
+
+The residual-recovery receipt does not fill this interface. Its finite
+projection, quotient, Gaussian and score rows test the identities in
+YMRG1 and YMRG3–YMRG5, but do not evaluate the conditional expectations of
+the exact interacting vacuum along the regulator trajectory. In particular,
+they supply neither a trajectory-uniform $\gamma_R$ for (YM274) nor
+$\lambda_{\mathrm{loc},*}$, $A_{Q,*}$ or $\rho_{\mathrm{cov},*}$ for
+(UF-B.7)–(UF-B.10). The symbol $A_{Q,*}=\gamma_R^{-1}$ therefore remains a
+conditional target rather than a value extracted from that receipt.
+
 ### 4.5 Conditional consequences of a fibre gap
 
 If the fibre form is gauge-covariant and differentiable in the coarse variables, the spectral projection supplies two checkable consequences.
