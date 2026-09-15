@@ -2294,10 +2294,11 @@ with $c\ne0$, so the character recursion
 $\chi_{1/2}\chi_a=\chi_{a+1}+\chi_{a-1}$ puts $U_{L_1}$-content $a+1$ and
 $a-1$ into the slice image. A vector in sector $(a-1,a,a,a)$ alone carries
 $U_{L_1}$-content $a-1$, so the $a+1$ content excludes the single shifted
-sector, and the image of the trivial-spoke vector has a nonzero component in
-each existing neighbour sector. That step is a derivation at the declared
-conventions, not a computed matrix; the diagonal case of the compression
-matrix therefore rests on that derivation until (UFA105) is computed. For
+sector, and the slice image indicates a candidate nonzero component of the
+trivial-spoke vector in each existing neighbour sector. That step is a
+derivation at the declared conventions, not a computed matrix; the diagonal
+case of the compression matrix therefore remains a candidate pending the
+(UFA105) computation. For
 general sectors the compression is a
 linear map between multiplicity spaces,
 $$
@@ -2362,10 +2363,11 @@ $$
 \boxed{\ \text{Exactness forces closure along every nonzero shift compression, and shift-closed families are the full label cones.}\ }
 \tag{UFA107}
 $$
-The slice derivation puts nonzero compressions out of the diagonal sectors,
-the fundamental sector $(1,1,1,1)$ among them, into each existing neighbour;
-on that derivation, exactness there forces all eight neighbouring sectors into
-the family, and a family that reaches the full
+The slice derivation indicates candidate nonzero compressions out of the
+diagonal sectors, the fundamental sector $(1,1,1,1)$ among them, into each
+existing neighbour; conditional on verifying (UFA105) for those domains,
+exactness there would force all eight neighbouring sectors into the family, and
+a family that reaches the full
 cone is the full truncated space at cutoff $C$, which is no coarsening at all.
 Beyond the diagonal domains the forcing chain needs the compression matrix
 (UFA105), which is the recorded obligation; the exact branch must select
