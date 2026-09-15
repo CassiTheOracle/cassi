@@ -1157,6 +1157,7 @@ The following receipts are the current finite evidence inventory. Their classifi
 
 | Receipt | Observed result | Quantifier coverage |
 |---|---|---|
+| `runs/yang_mills_exact_block_spectrum/verification.json` | Execution `PASS`, scientific classification `INCONCLUSIVE`; 20 Ritz rows, 180 scheduled boundary rows and zero qualified boundary rows. The analytic nodal control has unrestricted conditional gap zero for its sign-changing Ritz density; the positive exact vacuum is outside that control. | This is finite cutoff spectral and conditional-rate evidence on the seven-link graph and nine-angle boundary slice. UFA32 still requires its own fibre operator, cluster, contour and all-trajectory/all-boundary quantifiers. |
 | `runs/yang_mills_4x2x2_c1_feshbach/verification-fresh.json` | `FAIL`, `INCONCLUSIVE`; 407/423 checks, 64/64 positive conditional roots | The 16 failed checks are `row_test_inequality_*_x1`, with $\phi_{\mathrm{test}}$ from $-2.0146598632$ to $-0.7508664577$ (the $xy/xz$ rows also take $-1.3481260325$ and $-1.6769411083$). The receipt scope marks cutoff removal, volume uniformity, lattice-spacing uniformity, continuum recovery and the mass gap `UNRESOLVED`. UF-A–UF-E are open. |
 | `runs/yang_mills_interacting_feshbach/verification.json` | `PASS`, `SUPPORTS_FINITE_FESHBACH`; 38/38 checks, 4/4 positive rows | Seven-link two-plaquette graph, finite cutoffs $C_P=1$ to $C_Q=3$, finite $Q$ sector. UF-B and UF-C hold only for the declared matrix rows; UF-A, UF-D and UF-E remain open. |
 | `runs/yang_mills_interacting_feshbach_cutoff/verification.json` | `PASS`, `NO_POSITIVE_FAMILY_CERTIFICATE`; 403/403 checks, 36/40 positive rows | Four zero-root rows occur at $x=16$. The finite cutoff family supplies no uniform $C$-exhaustion or trajectory bound. UF-A–UF-E remain open. |
@@ -1367,6 +1368,47 @@ Q_{\nu,B,\alpha}^{\mathrm{fib}}h_{x_\nu}Q_{\nu,B,\alpha}^{\mathrm{fib}}
 $$
 
 The fibre gap in (UFA32) does not imply (UFA36): horizontal connection, Born–Huang, boundary and crossing terms can lower the discarded form. The projection regularity, the off-diagonal estimate, the discarded lower bound and the retained Schur margin are separate proof obligations. Equations (UFA32)–(UFA36) are therefore a conditional construction target for UF-A–UF-C, not a claim that an interacting spectral subbundle exists.
+At a fixed finite regulator there is an exact positive-gap statement for the conditional vacuum-measure generator. Fix $a,L$ and a nonempty block $B$ in the finite link set $E_L$, let $\mathcal X:=SU(2)^{E_L}$, $\mathcal X_B:=SU(2)^B$ and $\mathcal X_{B^c}:=SU(2)^{E_L\setminus B}$, condition the exact positive ground-state density on $\eta\in\mathcal X_{B^c}$, and define
+
+$$
+\begin{aligned}
+\mathcal H_{a,L;B,\eta}&:=L^2(\mathcal X_B,\mu_B^\eta),\\
+D(\mathfrak e_{a,L;B,\eta})&:=
+\overline{C^\infty(\mathcal X_B)}^{\,\|\cdot\|_{\mathfrak e_{a,L;B,\eta}}},
+\qquad
+\|f\|_{\mathfrak e_{a,L;B,\eta}}^2:=
+\|f\|_{\mu_B^\eta}^2+\mathfrak e_{a,L;B,\eta}[f],\\
+\mathfrak e_{a,L;B,\eta}[f]&:=
+\sum_{e\in B,A}\int_{\mathcal X_B}|X_e^Af|^2\,d\mu_B^\eta,
+\qquad
+\mathscr G_{a,L;B,\eta}:=\text{the Friedrichs operator of }\mathfrak e_{a,L;B,\eta}.
+\end{aligned}
+\tag{UFA59}
+$$
+
+The fixed-regulator Haar comparison in `foundations/loop-to-bubble-projection-theorem.md` §9.14.1 then gives
+
+$$
+\inf_{\eta\in\mathcal X_{B^c}}
+\inf\operatorname{spec}\!\left(
+\mathscr G_{a,L;B,\eta}\big|_{\mathbf 1^\perp}
+\right)
+\ge
+\lambda_{\mathrm{Haar},B}
+\left(\frac{\omega_-}{\omega_+}\right)^2
+\ge
+\frac34\left(\frac{\omega_-}{\omega_+}\right)^2
+>0,
+\qquad
+\omega_-:=\min_{U\in\mathcal X}\Omega_{a,L}(U),\quad
+\omega_+:=\max_{U\in\mathcal X}\Omega_{a,L}(U).
+\tag{UFA60}
+$$
+
+If $\mathcal V_{B,\eta}\subseteq\mathcal H_{a,L;B,\eta}$ is a closed gauge-invariant subspace containing the constants and its form is the restriction of $\mathfrak e_{a,L;B,\eta}$, the same Poincare inequality holds on $\mathcal V_{B,\eta}\cap\mathbf1^\perp$. This proves uniformity over the exterior boundary at fixed $a,L,B$ for that declared subspace. The ratio $\omega_-/\omega_+$ is regulator-dependent, so (UFA60) supplies no $\nu$-uniform trajectory bound.
+
+The operator in (UFA59) is the conditional ground-state-measure generator. The exact-block spectral protocol supplies the finite matrix $P_Jh_xP_J$, its Ritz ground vector, and conditional Gramian/Dirichlet matrices on the slice $\eta(\theta)$ with $\theta=k\pi/8$. The Hamiltonian fibre operator $L_{\nu,B,\alpha,x_\nu}(v)$ in (UFA32), its form domain, cluster $\Sigma_{\nu,B,\alpha}(v)$, resolvent contour and uniform contour-length bound remain undefined in that source. Its recovered receipt therefore supplies bounded finite evidence while leaving UFA32 uninstantiated.
+The fixed-regulator result (UFA59)–(UFA60) is the strongest gap statement currently available for a defined conditional fibre operator. The Hamiltonian spectral-fibre target in (UFA32) still requires a separate definition and proof along $\mathfrak T$: its boundary-sector Hilbert spaces, common form core, selected cluster and rank, contour with $\sup_v\ell(\Gamma(v))<\infty$, and uniform continuation from the finite regulator must all be supplied before (UFA39)–(UFA42) can be evaluated.
 
 This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $\Pi^{\mathrm{fib}}/Q^{\mathrm{fib}}$ forms.
 
