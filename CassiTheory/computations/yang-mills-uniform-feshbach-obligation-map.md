@@ -1192,6 +1192,67 @@ existence/intertwining result for UF-A or produce a precise obstruction to
 such a result; it must not label the conditional boundary specification
 (UFA1)–(UFA22) as an already constructed coarse map.
 
+### 4.2 Scoped obstruction for coupling-independent finite-rank fibres
+
+This lemma rules out one exact-map class when an eliminated magnetic mode remains a genuine continuous fibre degree of freedom.
+
+At a fixed finite regulator, write the relative Hilbert space in disintegrated form
+
+$$
+\mathcal H_{\nu,B,\alpha}^{\mathrm f}
+\cong
+\int_{\mathcal V}^{\oplus}
+\mathcal R_v\,d\mu(v),
+\tag{UFA23}
+$$
+
+and suppose the fibre measures in $\mathcal R_v=L^2(R_v,\nu_v)$ are non-atomic. Let an isometric embedding have finite fibre rank $r>0$:
+
+$$
+(Jf)(v,r)
+:=
+\sum_{j=1}^{r} f_j(v)\,\omega_{j,v}(r),
+\qquad
+\mathcal S_v:=\operatorname{span}\{\omega_{1,v},\ldots,\omega_{r,v}\},
+\tag{UFA24}
+$$
+
+with the $\omega_{j,v}$ orthonormal for almost every $v$. Let the dimensionless Hamiltonian family be
+
+$$
+h_x=K+xV,
+\qquad
+V=M_{W(v,r)},
+\tag{UFA25}
+$$
+
+where a coarse-measurable scalar may be included in $W$. Assume that, on a positive-measure set of $v$, every level set of the real function $r\mapsto W(v,r)$ is $\nu_v$-null. If $J$ is independent of $x$ and $\operatorname{Ran}J$ is invariant under $h_x$ for every $x$ in a nonempty open interval, then such a nonzero finite-rank fibre cannot exist.
+
+Indeed, with $P=JJ^*$ and $Q=I-P$, exact invariance gives $Qh_xJ=0$. Subtracting this identity at two values of $x$ gives
+
+$$
+QVJ=0.
+\tag{UFA26}
+$$
+
+Thus $\mathcal S_v$ is invariant under the self-adjoint multiplication operator $M_{W(v,\cdot)}$ for almost every relevant $v$. A finite-dimensional invariant subspace of a self-adjoint operator is reducing and has an eigenvector. For such a vector,
+
+$$
+M_{W(v,\cdot)}\omega=\lambda\omega
+\quad\Longrightarrow\quad
+\operatorname{supp}\omega
+\subseteq
+\{r:W(v,r)=\lambda\}
+\quad\text{a.e.}
+\tag{UFA27}
+$$
+
+The level-set hypothesis forces $\omega=0$, contradicting the nonzero fibre rank. For Haar-derived non-atomic fibres, the level-set hypothesis holds whenever $W(v,\cdot)$ is a nonconstant real-analytic function.
+
+The result is scoped to a coupling-independent finite-rank invariant fibre and a coupling family containing an open interval. It does not apply to a single $x_\nu$, to coupling-dependent maps $J_\nu$, to infinite-rank fibres, or to an energy-dependent Feshbach operator. It also does not apply when the magnetic multiplier is already measurable in the coarse variables, as in pure graph subdivision. A genuine refinement with a nonconstant eliminated plaquette multiplier therefore forces the UF-A construction to declare one of these escape routes and prove its uniform estimates; it supplies no obstruction to gauge-compatible interacting fibres in general.
+
+The fixed $2\times2$ block receipt verifies a nonzero bare-map magnetic residual and the interior-link witness controls. It does not by itself certify the disintegration (UFA23) or the almost-everywhere level-set premise for an interacting fibre, so applying this lemma to that block remains a separate analytical step.
+
 ## 5. Decision rule and stopping rule
 
 A finite implementation may report one of the following:
