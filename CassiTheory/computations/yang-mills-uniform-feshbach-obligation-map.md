@@ -2365,8 +2365,8 @@ $$
 $$
 The slice derivation indicates candidate nonzero compressions out of the
 diagonal sectors, the fundamental sector $(1,1,1,1)$ among them, into each
-existing neighbour; conditional on verifying (UFA105) for those domains,
-exactness there would force all eight neighbouring sectors into the family, and
+existing neighbour; only if the (UFA105) computation confirms them does
+exactness there force all eight neighbouring sectors into the family, and
 a family that reaches the full
 cone is the full truncated space at cutoff $C$, which is no coarsening at all.
 Beyond the diagonal domains the forcing chain needs the compression matrix
