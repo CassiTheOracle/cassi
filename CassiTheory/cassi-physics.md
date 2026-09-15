@@ -1146,6 +1146,19 @@ recovery-only coefficient is unbounded over the uniformly bounded $H^3$ family;
 production-relative occupation control and arbitrary-data regularity remain
 **UNRESOLVED**.
 
+The helical stress test in
+`turbulence/navier-stokes-helical-dynamic-depletion.md` evolves coherent tube
+and mode families to test whether ordered spiral geometry preserves negative
+stretching production. The exact Beltrami control preserves $P=0$ at
+roundoff, while the wide, narrow, tight-pitch, two-scale and opposite-handed
+tube families all develop positive signed production by $t=1/8$; the
+opposite-handed pair does so with normalized helicity near $10^{-18}$, and
+the two mode families stay nonpositive over the finite horizon. The 24-run
+matrix passes every integrity and timestep-refinement check and classifies
+the universal sign statement `CONTRADICTS` for the declared families. The
+scale-uniform direction-strain estimate and arbitrary-data regularity remain
+**UNRESOLVED**.
+
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,

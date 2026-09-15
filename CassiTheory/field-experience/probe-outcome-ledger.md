@@ -2248,6 +2248,39 @@ receipts. The primary receipt SHA-256 is
 independent receipt SHA-256 is
 `52767905974b485a90de899b6965fb95118b28bb0a8bb9cf30f78eb274a98a3f`.
 
+## 60. Helical dynamic depletion stress test
+
+The frozen protocol
+`computations/navier-stokes-helical-dynamic-depletion-prereg.md` fixes eight
+initial-data families on the $2\pi$-periodic torus at $\nu=1/10$ and horizon
+$T=1/2$: the exact Beltrami control, four homochiral interacting modes,
+opposite-helicity equal-energy modes, and five helical-tube families (wide,
+narrow, tight-pitch, two-scale, opposite-handed). Each family runs at $N=16$
+and $N=32$ with 1024 equal RK4 steps in float64, plus a 2048-step $N=32$
+refinement: 24 declared executions with checkpoints at $t/T\in\{0,1/4,1/2,3/4,1\}$.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Exact control | The Beltrami field is a curl eigenmode, so the trajectory is the exact heat flow and $P(t)=0$ identically; the measured maximum absolute production over all accepted states is $1.04\times10^{-33}$ with $H/C=1$ at both ends | **PASS**, exact closed-form control |
+| Mode-family depletion | Homochiral modes reach $\max_tP=-1.16\times10^{-3}$ and opposite-helicity modes $-1.68\times10^{-2}$; both have $I_P(T)=0$ and stay nonpositive at every checkpoint | **PASS**, finite-horizon nonpositive families |
+| Helical-tube families | Wide, narrow, tight-pitch, two-scale and opposite-handed tubes all reach positive signed production by $t=1/8$ (from machine-level $P(0)\lesssim10^{-16}$) and end at $2.14\times10^{-3}$, $2.74\times10^{-3}$, $7.16\times10^{-3}$, $2.04\times10^{-3}$ and $6.40\times10^{-3}$ respectively | **CONTRADICTS**, declared finite families |
+| Helicity independence | The opposite-handed family produces positive stretching with $H/C$ between $-4.7\times10^{-18}$ and $-9.7\times10^{-18}$; the tight-pitch family crosses from $-2.4\times10^{-2}$ to $+4.5\times10^{-1}$ while producing at every checkpoint from $t=1/8$ | **CONTRADICTS** sign inheritance from helicity |
+| Stressor response | Local positive stretching rises from $7.82\times10^{-2}$ (wide) to $3.94\times10^{-1}$ (narrow) under radius reduction; the tight-pitch family carries the largest initial direction variation ($D_\xi(0)=3.88$) and the largest signed maximum ($2.37\times10^{-2}$) | **PASS** measured, finite viscosity and horizon |
+| Integrity | All $24/24$ executions complete: normalization $3.33\times10^{-16}$, divergence $2.86\times10^{-17}$, energy balance $3.55\times10^{-15}$, dissipation $0$, refinement $\le2.13\times10^{-8}$ and direct/spectral production $2.27\times10^{-13}$, against bounds $10^{-9}$ to $10^{-4}$ | **PASS**, declared truncations and step sizes |
+| Continuum boundary | The matrix measures one viscosity, one horizon, two cutoffs and eight declared families. It supplies no cutoff-uniform estimate, no blow-up construction and no regularity statement | **UNRESOLVED**, separate analytical obligations |
+
+The final classification is `CONTRADICTS`: coherent helical geometry,
+including vanishing signed helicity, does not preserve a negative dynamical
+stretching production in the declared families. The receipt
+`runs/navier_stokes_helical_dynamic_depletion_20260914/verification.json`
+binds protocol revision `A1` and source SHA-256 values
+`f79715e30dde6765ee2854cf50e1ba30e4c6aaf1d1248fa2be9f78a460c314c8`,
+`35779059e808acb791ce34294956003e4d18facc6d5d0676bf1673ec11624816`
+and
+`fc65487a5856ae3e4247ef7054ebce2201e9617c48bcf71e2ffaebe4c269e4b3`;
+the receipt SHA-256 is
+`5f04aa74490e32ca20ce101dafd634c38e6581e2ca3b62a3bb428bfcc21fc2bb`.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -2325,6 +2358,9 @@ independent receipt SHA-256 is
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check cumulative mixing receipt and independent spatial reconstruction.
 - `computations/navier-stokes-helical-spread-prereg.md`—fixed signed-moment, residual, flow-control and phase-concentration checks.
 - `computations/verify_navier_stokes_helical_spread.py`—84-check exact helical-spread and phase-coercivity verifier.
+- `computations/navier-stokes-helical-dynamic-depletion-prereg.md`—frozen eight-family helical stress-test schedule, observables and decision rules.
+- `computations/verify_navier_stokes_helical_dynamic_depletion.py`—24-run signed-production, alignment and direction-diagnostic verifier.
+- `turbulence/navier-stokes-helical-dynamic-depletion.md`—finite helical families and the contradicted universal sign depletion.
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.

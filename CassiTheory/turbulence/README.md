@@ -114,6 +114,14 @@ control enstrophy or the critical scalar-Beltrami residual. Microscopic
 material transport, whole-field dynamical concentration control,
 arbitrary-flow closure and global regularity remain open.
 
+The helical stress test evolves coherent tube and mode families in a finite
+Fourier–Galerkin matrix. Its exact Beltrami control preserves zero stretching
+production, while five non-Beltrami families—including opposite-handed tubes
+with vanishing net helicity—develop positive signed production by the first
+nonzero checkpoint. The matrix contradicts the universal sign statement for
+the declared families; a scale-uniform data-controlled direction-strain
+estimate remains open.
+
 ## 1. Document index
 
 | # | Document | Domain | Epistemic |
@@ -138,6 +146,7 @@ arbitrary-flow closure and global regularity remain open.
 | 18 | `turbulence/navier-stokes-rank-deficient-temporal-recovery.md` | Temporal covariance rank recovery from an active rank-deficient source | Derived local time-jet witness / Open uniform Gramian, compensation, and global regularity |
 | 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
+| 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
 
 
 ## 2. Document summaries
@@ -745,6 +754,18 @@ saved production integrals is $1.34\times10^{-15}$. The classification is
 cutoff-uniform Galerkin bound, production-relative compensation, and
 arbitrary-data regularity remain **UNRESOLVED**.
 
+### 2.25 Helical dynamic depletion stress test
+
+`turbulence/navier-stokes-helical-dynamic-depletion.md` tests whether
+coherent helical geometry preserves vortex-stretching depletion. The Beltrami
+control holds $P$ at roundoff, as its exact heat-flow solution requires,
+while the wide, narrow, tight-pitch, two-scale and opposite-handed tube
+families develop positive signed production by $t=1/8$; the opposite-handed
+family does so with normalized helicity near $10^{-18}$. The homochiral-mode
+and opposite-helicity-mode families stay nonpositive over the finite horizon.
+The 24-run matrix passes its integrity, refinement and source-binding checks,
+and the universal sign statement is classified `CONTRADICTS` for the declared
+families; the scale-uniform direction-strain estimate remains **UNRESOLVED**.
 
 ## References
 
@@ -804,6 +825,9 @@ arbitrary-data regularity remain **UNRESOLVED**.
 - `computations/navier-stokes-near-rank-recovery-obstruction-prereg.md`—fixed near-rank determinant-scale and recovery-only schedule
 - `computations/verify_navier_stokes_near_rank_recovery_obstruction.py`—7-check source-bound near-rank obstruction verifier
 - `turbulence/navier-stokes-near-rank-recovery-obstruction.md`—full-rank approximants and unbounded recovery-only coefficient
+- `computations/navier-stokes-helical-dynamic-depletion-prereg.md`—frozen eight-family helical stress-test schedule
+- `computations/verify_navier_stokes_helical_dynamic_depletion.py`—24-run signed-production, alignment and direction-diagnostic verifier
+- `turbulence/navier-stokes-helical-dynamic-depletion.md`—finite helical families and the contradicted universal sign depletion
 - `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
