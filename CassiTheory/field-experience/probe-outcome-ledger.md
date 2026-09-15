@@ -406,13 +406,12 @@ parameters and empirical prediction catalog are unchanged.
 
 ## 16. Pure Yang–Mills connected blocks
 
-The source-free $SU(2)$ lattice Hamiltonian has a volume-uniform
-vacuum-subtracted gap at sufficiently strong bare coupling by application
-of Yarotsky's stability theorem. A gauge-invariant finite-depth unitary
-removes first-order electric-vacuum loop creation while retaining full
-holonomies and an exact bounded local quadratic remainder.
-`foundations/loop-to-bubble-projection-theorem.md` §§9.10–9.12 supplies
-the theorem hypotheses, local form estimate and connected remainder proof.
+The source-free $SU(2)$ lattice Hamiltonian is tested here through fixed
+finite geometry, local operator and remainder controls. The proposed
+volume-uniform strong-coupling gap and gauge-invariant finite-depth dressing
+carry an unresolved analytical status pending the protocol-required reviews
+and reconciliation. The finite receipt records these controls; theorem
+constants and adoption remain open.
 
 The fixed schedule in `computations/yang-mills-connected-block-prereg.md`
 passes **79 primary checks**. The source-bound receipt is
