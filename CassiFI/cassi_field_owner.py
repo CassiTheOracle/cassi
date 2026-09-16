@@ -49,6 +49,10 @@ from cassi_field_cognition import (
 
 SOURCE_SCHEMA = "cassifi.exact-source.v1"
 EVIDENCE_EVENT_SCHEMA = "cassifi.field-evidence-event.v1"
+# The declared event kind of the opt-in evidence variant of the packet read: the
+# read's own recovered deposit admitted as an observation about the world, against
+# the `reasoning-work` kind a field intervention carries.
+PACKET_DEPOSIT_EVIDENCE_EVENT_KIND = "packet-deposit-observed"
 CHECKPOINT_SCHEMA = "cassifi.field-atlas-checkpoint.v2"
 ROOT_SCHEMA = "cassifi.field-atlas-root.v2"
 REVOCATION_SCHEMA = "cassifi.field-revocation-fence.v1"
@@ -5871,6 +5875,11 @@ class FieldIntelligenceOwner:
         path: str,
         component: str,
         flow_signal: Sequence[float],
+        as_evidence: bool = False,
+        operation_id: str | None = None,
+        observation_variable: str | None = None,
+        observation_context: Mapping[str, Any] | None = None,
+        observation_weight: float = 1.0,
     ) -> Mapping[str, Any]:
         """Recover a written direction's deposit from the canonical page.
 
@@ -5888,10 +5897,39 @@ class FieldIntelligenceOwner:
         generation, the logical tick and the evidence store unchanged. Declaring
         it as evidence instead would be a different operation, and that choice is
         left open; see the receipt's ``read_operation`` block.
+
+        The other declaration is available as an opt-in, default-off variant of
+        this same operation: with ``as_evidence`` true the same recovered deposit
+        is declared as evidence rather than as a prediction. It then enters the
+        evidence store through the owner's own observation-admission rule
+        (``admit_observation``) under the declared operation identity, addressing
+        the declared observation variable, so the value becomes an admitted
+        observation about the world instead of a prediction of the page: the
+        evidence clock and the checkpoint generation move, one successor is
+        published, and the operation identity is consumed. That declaration needs
+        a declared observation channel to exist already -- a variable holding the
+        deposit and an applicable chart over it -- and without one the owner's own
+        admission rule refuses it. The source identity of the admission is derived
+        from the declared direction and the recovered deposit, so the same read
+        retries under the same identity and bytes while a different direction or a
+        different deposit is a different source rather than a conflicting one.
+
+        The two halves keep separate identities, and the split is deliberate: the
+        readout's ``state_sha256``, ``manifest_sha256`` and ``generation`` describe
+        the canonical page as it stood when the read ran, while the admission's own
+        identity is its derived source identity and its operation identity. After
+        the first admission publishes a successor, a retry with the same operation
+        identity replays that admission -- ``evidence.replayed`` is true, the event
+        and source identities are unchanged and no second successor is published --
+        while the readout half still reports the page it actually read.
         """
 
         with self._lock:
             path, component, signal = _packet_direction(path, component, flow_signal)
+            if not isinstance(as_evidence, bool):
+                raise FieldIntelligenceError(
+                    "INVALID_REQUEST", "as_evidence must be boolean"
+                )
             try:
                 value = dict(
                     self.atlas.read_packet_deposit(
@@ -5906,6 +5944,69 @@ class FieldIntelligenceOwner:
             value["state_sha256"] = self.state.state_sha256
             value["manifest_sha256"] = self.checkpoints.current_manifest_sha256
             value["generation"] = self.state.generation
+            if not as_evidence:
+                return value
+            if operation_id is None or observation_variable is None:
+                raise FieldIntelligenceError(
+                    "INVALID_REQUEST",
+                    "declaring the read as evidence needs an operation identity and "
+                    "an observation variable",
+                )
+            operation_id = _identifier(operation_id, "operation_id")
+            variable = _identifier(observation_variable, "observation variable")
+            context = (
+                {} if observation_context is None else dict(observation_context)
+            )
+            deposit = _finite(value["recovered_deposit"], "recovered deposit")
+            content = canonical_json_bytes(
+                {
+                    "component": component,
+                    "direction_sha256": str(value["direction_sha256"]),
+                    "flow_signal": list(signal),
+                    "path": path,
+                    "read_frame_energy": float(value["read_frame_energy"]),
+                    "recovered_deposit": deposit,
+                }
+            )
+            source = SourceInput(
+                source_id=(
+                    "packet-deposit-read:"
+                    + hashlib.sha256(content).hexdigest()
+                ),
+                content=content,
+                media_type="application/json",
+                codec="cassifi.packet-deposit.v1",
+                observed_timestamp="field-clock",
+                scope=variable,
+                claim_category="measurement",
+                fidelity="exact",
+                labels=("packet-deposit-read",),
+            )
+            admitted = self.admit_observation(
+                operation_id=operation_id,
+                source=source,
+                values={variable: deposit},
+                context=context,
+                epistemic_type="observed",
+                weight=float(observation_weight),
+                event_kind=PACKET_DEPOSIT_EVIDENCE_EVENT_KIND,
+            )
+            value["evidence"] = {
+                "admitted": True,
+                "deposit_declared_as_evidence": deposit,
+                "event": dict(admitted["event"]),
+                "event_id": str(admitted["event"]["event_id"]),
+                "observation_variable": variable,
+                "receipt": dict(admitted["receipt"]),
+                "replayed": bool(admitted["receipt"].get("replayed", False)),
+                "source_revision_id": str(admitted["source"]["revision_id"]),
+                "state_sha256_after_the_admission": self.state.state_sha256,
+                "transition": (
+                    None
+                    if "transition" not in admitted
+                    else dict(admitted["transition"])
+                ),
+            }
             return value
 
     def _validate_temporal_replay_result(

@@ -434,6 +434,83 @@ def condense_workspace(workspace: ResonantWorkspace, problem: ResonantProblem, *
                    elapsed_seconds=time.perf_counter()-started)
     return kernel, working, receipt
 
+def input_problem(
+    variable_ids: Sequence[str],
+    *,
+    diagonal: float = 1.0,
+    coupling: float = 0.0,
+) -> ResonantProblem:
+    """The declared input relation of one input realization, as an explicit object.
+
+    What decides whether a boundary drive reaches the declared readout is the
+    relation the declared problem carries, not the input code path: with the
+    shipped declared input (``diagonal`` 1, ``coupling`` 0 -- the identity
+    precision) the input lift is supported on the input port's own coordinates
+    while the readout row sits on the output port's, so the drive is inert, and
+    the same construction carries a signal once the declared precision carries a
+    cross term between the declared variables. This helper builds that
+    construction as an opt-in object instead of a hand-built matrix: every
+    declared variable keeps ``diagonal`` on its own coordinate and every pair
+    gains ``coupling`` between them. It is additive and default-off: with no
+    coupling the returned problem is the shipped declared input, so no existing
+    caller changes.
+    """
+
+    ids = _ids(variable_ids, "variable_ids")
+    diagonal_value = _number(diagonal, "input diagonal")
+    coupling_value = _number(coupling, "input coupling")
+    if diagonal_value <= 0.0:
+        raise ResonantNumericalError("declared input diagonal must be positive")
+    if coupling_value < 0.0:
+        raise ResonantNumericalError("declared input coupling must be nonnegative")
+    count = len(ids)
+    precision = np.full((count, count), coupling_value, dtype=np.float64)
+    precision[np.diag_indices(count)] += diagonal_value
+    # A declared relation must be a coercive energy: a non-positive-definite
+    # precision would make the realization's own energy test meaningless.
+    if float(np.linalg.eigvalsh(precision).min()) <= 0.0:
+        raise ResonantNumericalError(
+            "declared input relation must be positive definite"
+        )
+    return ResonantProblem(variable_ids=ids, precision=precision)
+
+
+def condense_input(
+    workspace: ResonantWorkspace,
+    *,
+    input_ids: Sequence[str],
+    output_ids: Sequence[str],
+    diagonal: float = 1.0,
+    coupling: float = 0.0,
+    rank: int = 16,
+    error_allowance: float = 1e-3,
+    input_bound: float = 4.0,
+    horizon_ticks: int = 64,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Condense the declared input realization, optionally carrying a coupling.
+
+    This is :func:`condense_workspace` with the declared input relation named
+    explicitly by the same two numbers :func:`input_problem` builds it from, so a
+    caller can opt into the coupled boundary drive without changing what the
+    shipped declared input is. Default-off: ``coupling`` 0 with ``diagonal`` 1
+    declares the identity precision, which is exactly the shipped declared input,
+    and the realization returned is ``condense_workspace``'s for that problem --
+    this function adds a name for the relation, never a second condenser.
+    """
+
+    inputs, outputs = _ids(input_ids, "input_ids"), _ids(output_ids, "output_ids")
+    return condense_workspace(
+        workspace,
+        input_problem((*inputs, *outputs), diagonal=diagonal, coupling=coupling),
+        input_ids=inputs,
+        output_ids=outputs,
+        rank=rank,
+        error_allowance=error_allowance,
+        input_bound=input_bound,
+        horizon_ticks=horizon_ticks,
+    )
+
+
 def _initial_state_error(kernel: Mapping[str, Any]) -> float:
     rom = kernel["rom"]
     if rom is None:
