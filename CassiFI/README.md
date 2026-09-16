@@ -5,25 +5,340 @@ deliberation, action, and learning remain explicit parts of persistent field
 state. The canonical paths do not use a language model or a parallel learned
 sidecar as a fallback.
 
+## One computer, specialized regions
+
+[The regional-computer design (§32)](FIELD-INTELLIGENCE-DESIGN.md#32-one-universal-regional-field-computer)
+is implemented as the production computation path. One `RegionalMachineImage`
+owns the immutable regions, fixed instruction tape, program counter, logical
+clock, work ledger, event ledger, retained continuation, and result slot.
+`LearningComputer` persists that image inside the single owner checkpoint and
+all normal CLI and CassiPi computation requests enter it through `submit`,
+`advance`, `invoke`, `authorized-invoke`, or the bounded `call`/`cancel-call`
+surface. Calls retain caller and callee frontiers, typed arguments,
+dependencies, return bindings, allocation, and results in a protected field
+region, so an interrupted child reopens without a host-owned continuation.
+
+The closed catalog contains 20 stateless bounded kernels: scalar execution and
+promoted scalar procedures; atlas, cognition, computation-policy, variational,
+resonant, transceiver, temporal, and inquiry fields; clause, constraint, hybrid,
+cubic, implication, alias-cut, alias-exact-one, alias-obstruction,
+general-matched, and mixed-exact-one fields. A task names one kernel and carries
+its entire mutable family state in typed regions. Kernel code cannot retain
+adaptive state or dispatch to a legacy evaluator.
+
+The implementation includes deterministic scheduling, exact pause/reopen/resume,
+dynamic typed invocation arguments, sparse region paging and growth, reversible
+hypotheses, learned variable-span constructions over shared entity identities,
+effect authority, selective revision credit, work accounting, and parameterized
+straight-line procedure transfer across programs. The installed CassiPi runtime
+is `cassifi.cassipi-field-intelligence.v4`; its normal worker surface exposes
+the regional computer and does not package the legacy importer.
+
+The [world-model and lifelong-intelligence design (§33)](FIELD-INTELLIGENCE-DESIGN.md#33-field-native-world-modeling-and-lifelong-general-intelligence)
+is implemented as the bounded `cognition.field` semantic path in the same
+regional image. It provides shared uncertain and correlated belief, predictive
+state acquisition, causal and hybrid mechanisms, prospective parameter and
+representation learning, typed procedure transfer, contingent planning and
+action reconciliation, grounded constructions and attributed perspectives,
+support-tracked migration and consolidation, resident reasoning episodes, and
+bounded meditate, study, practice, investigate, reflect, teach, and consolidate
+self-development programs. The initial development-method selector is a
+disclosed fixed balanced strategy, not a learned policy.
+
+Its canonical substrate is the six extensible typed record families `Value`,
+`Binding`, `Event`, `Program`, `Assessment`, and `Obligation`. Records carry
+typed versioned references, scopes, dependencies, valid-time intervals,
+measurement context, and support lineage. Ordinary `submit`, `invoke`, and
+`advance` operations execute them through the regional automaton and persist
+their continuation and work in the one `LearningComputer` checkpoint.
+
+Representation queries can consume either explicit feature maps or an `inputs`
+map from program roles to exact current `Binding` references and optional
+coordinates. Binding-backed queries resolve both the `Binding` and its
+authoritative `Value`, accept active deterministic observed or corrected
+records, reject selected censoring, enforce observation masks and shared
+non-null frame/unit metadata, and expose authoritative metadata to program
+guards. Binding-backed successful construction or affine results carry both
+source references. Binding-backed affine queries additionally require
+coordinate-specific precision for every referenced input (including explicit
+zero), with canonical scalar precision serving as a whole-value fallback.
+They conservatively add `sum(abs(coefficient) * precision)` to each declared
+program-error interval and intersect the result with declared output clamps.
+Their values and uncertainty remain transient query output and are never
+written as records or cached state.
+
+The demonstrated scope remains finite, bounded, and explicitly observed. It
+does not establish open-ended general intelligence, raw sensory acquisition,
+live CassiCosmos competence, or interference-free learning at arbitrary scale;
+unidentified causes and exhausted resources remain explicit limitations.
+
+The [cumulative training and evaluation program (§34)](FIELD-INTELLIGENCE-DESIGN.md#34-cumulative-training-and-evaluation-program) is now an executed, retained measurement. The full run uses three continuing lifetimes, four training blocks, four external worlds, and 192 field-owned training events; its receipt is [`_diag/general_intelligence_program.json`](_diag/general_intelligence_program.json) with identity `bbffe584e917a9baac31da48834cc9715d2b8bbcde55e319230f768023b2f35f`.
+
+At the final frozen checkpoint, every family scores `48/48` across the three seeds (`16/16` per seed); the checkpoint curves are `0/48` at cold start and `48/48` after the first 16-event block through checkpoints 32, 48, and 64. Cold, structural-disabled, and irrelevant-pretraining controls remain `0/48` per family. The shared-belief challenge reaches `21/27` checks, recurrence reaches `64/64` at every trained checkpoint, and the six reduced-sensory modalities reach `18/18`. Permissioned reads of three repository sources reach `9/9`, while automatic task understanding is not claimed.
+
+The default regional sizing condition reaches its execution-resource boundary after 16 completed feedback events and 3 acquisitions; the continuation uses the explicit `393216`-mode, `524288`-word profile (a `128x` value-capacity increase). The complete run takes `7h24m0.6s`, peaks at `691,949,568` bytes of process working set, and retains `3,846,158,186` bytes in its data home. These are bounded measurements with supplied semantic grammar, acquisition schedule, and source alignments; they do not establish open-ended general intelligence, autonomous curriculum discovery, or arbitrary-scale interference-free learning.
+
+The independent verifier checks the receipt, manifest, splits, formulas, controls, curves, resources, and separation independently of the runner. It passes all `3,538` checks with zero failures; a receipt copy with one changed actual outcome and a recomputed top-level digest is rejected by its row-score, evaluation-correct, and learning-curve checks.
+
+The program retains the explicit negative results: all three intervention-after evaluations are `0/16` after revocation, and the shared-belief failures are the pre-correction measurement expectation and exact reopen/reuse. No language-model or teacher fallback is used.
+
+
+## General computation that learns through use
+
+CassiFI implements a **Turing-complete stored-program model with persistent
+field-owned execution observations and exact-method selection**. Turing
+completeness refers to the standard expandable-storage model: every real field
+allocation and run remains finite, with explicit program, stack, integer, and
+execution limits.
+
+The fixed interpreter keeps its program, control state, accumulator, two stacks,
+work counters, and per-program-counter observations in one exact float64 field.
+`run` applies the same transition function as `step`, but uses one bounded
+working copy and seals one immutable successor for the batch. Once an
+instruction boundary is observed often enough, the field may admit a derived
+straight-line block. A typed operation-shape guard permits the same block to
+transfer to a different program with new literal parameters; non-equivalent
+shapes remain on ordinary execution. Verification compares the complete
+successor field against ordinary stepping, not just the visible output.
+
+`cassi_field_program.py` compiles a strict JSON language into the existing six
+primitive instructions. It supports nonrecursive functions, conditionals,
+source-bounded `repeat`, step-budget-bounded `while_acc`, modulo-byte
+addition/subtraction, stack operations, and lexically scoped constants.
+`repeat` accepts at most 1,024 iterations; a nonterminating `while_acc` reaches
+the machine's explicit step exhaustion. Raw instruction arrays and deterministic
+Turing-machine tables remain accepted inputs.
+
+Raw programs can also execute `PROPAGATE` (`6, stack, next, 0, 0`).
+Its CNF, current assignment, and excitation/recovery/trace/delay lanes are bytes
+on that machine stack, covered by the same `ComputerState` digest. The existing
+automaton's shared, stateless lane kernel selects among ready unit clauses;
+one instruction applies at most one deduction. Ordinary `BRANCH` and
+`PUSH_ACC` instructions consume its accumulator result: `1` progress, `2`
+unresolved fixed point, `3` conflict under the current assignment, or `4` all
+clauses satisfied. This path calls no standalone solver.
+
+For example, this stored program loops over propagation and emits its result
+onto the right stack:
+
+```python
+from cassi_field_computer import (
+    ComputerProfile, FieldComputer, propagation_workspace,
+    PROPAGATE, BRANCH, PUSH_ACC, HALT, PROPAGATION_PROGRESS,
+)
+
+frame = propagation_workspace(((1,), (2,), (-1, 3)), variable_count=3)
+program = (
+    (PROPAGATE, 0, 1, 0, 0),
+    (BRANCH, PROPAGATION_PROGRESS, 0, 2, 0),
+    (PUSH_ACC, 1, 3, 0, 0),
+    (HALT, 0, 0, 0, 0),
+)
+machine = FieldComputer(ComputerProfile(program_capacity=16, stack_capacity=512))
+paused, receipt = machine.run(machine.initial(program, left=frame), steps=1)
+machine, paused = FieldComputer.from_descriptor(machine.descriptor(paused))
+finished, receipt = machine.run(paused)
+assert machine.inspect(finished)["right"] == [4]
+```
+
+The same `program` and `left` byte array are accepted by the CLI `load` action,
+which compiles them into a `scalar-computer` regional task. A program may construct
+the frame with `PUSH` instead of taking it as input.
+`inspect_propagation_workspace` decodes it without advancing time. Work is
+bounded by the resident frame plus at most four automaton ticks per deduction;
+an instruction count is not a scalar-operation count. This operation provides
+unit propagation, not complete SAT search or a speedup claim.
+
+Exact solving and empirical method selection use `exact.constraint` and
+`learning.computation-policy` tasks in the same regional machine. An unfinished
+solve retains its actual task state and resumes from the image rather than
+reconstructing search from statistics. The owner persists one image, one replay
+journal, and one operation identity boundary across process restart. No language
+model, learned host-side table, or external process executes submitted programs.
+Policy changes scheduling only; it cannot weaken SAT witness checks, UNSAT proof
+audits, or explicit exhaustion.
+
+### Run a persistent computer
+
+Choose a new data directory for `configure`; subsequent commands reopen it.
+Global options such as `--operation-id` precede the action.
+
+```powershell
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id configure-1 configure --program-capacity 8192 --stack-capacity 32 --max-steps 100000
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id load-1 load examples/field_computer/structured_counter.json
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id run-1 advance --steps 4096
+python run_cassi_computer.py --data-home _diag/my-computer inspect
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id restart-1 restart
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id run-2 advance --steps 4096
+python run_cassi_computer.py --data-home _diag/my-computer solve examples/field_computer/exact_parity.json
+python run_cassi_computer.py --data-home _diag/my-computer solve examples/field_computer/exact_parity.json --no-learn
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id solve-part-1 solve examples/field_computer/exact_parity.json --budget 1 --method conflict
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id solve-part-2 continue-solve examples/field_computer/exact_parity.json --budget 128
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id regional-1 submit temporal-memory temporal-state.json --arguments induce.json --steps 64
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id regional-2 invoke consume.json --steps 64
+python run_cassi_computer.py --data-home _diag/my-computer --operation-id effect-1 authorized-invoke acknowledgment.json grant.json target-id project --steps 64
+python run_cassi_computer.py --data-home _diag/my-input-computer --operation-id configure-input configure
+python run_cassi_computer.py --data-home _diag/my-input-computer --operation-id observe-notes input notes.txt --codec cassi.codec.utf8.v1 --media-type text/plain --page-size 128
+python run_cassi_computer.py --data-home _diag/my-input-computer --operation-id observe-tensor input field.f32 --codec cassi.codec.tensor-c.v1 --dtype f32le --shape 64 64 --unit amplitude --page-size 128
+```
+
+The structured example reaches `left=[5]`, accumulator `5`, and `halted` after
+44 primitive transitions. `restart` resets control, stacks, accumulator, and
+work counters while retaining the program and its execution observations;
+repeatable `--left` and `--right` options supply a fresh bottom-to-top input
+stack, and `--entry` selects a validated instruction boundary. `grow
+--stack-capacity N` expands the workspace without discarding the machine or
+policy fields.
+
+The `input` action is the general admission path into the resident
+`cognition.field` task. It first retains the exact source bytes and provenance,
+then emits a deterministic bounded page of typed observations. The fixed codec
+catalog covers strict JSON, UTF-8 text, Python syntax, row-major numeric tensors,
+raw interleaved raster bytes, little-endian float64 audio samples, and opaque
+byte chunks. `--cursor` continues a source without loading an unbounded view;
+`--shape`, `--dtype`, and `--unit` make scientific layouts explicit. Malformed
+or unknown codecs remain archived as exact evidence but do not mutate the
+resident cognition field. Codec projection is stateless: every learned
+representation and revision remains in the same field-owned task.
+
+Retrying an operation with the same `--operation-id` and identical arguments
+returns its retained receipt without executing or learning twice. A solve that
+reaches its per-operation allowance reports `reason="episode-budget"` and a
+continuable state digest. `continue-solve` accepts only the exact same source.
+The receipt and read-only inspection expose `minimum_resume_budget` for the
+next indivisible solver step; a smaller continuation episode is rejected
+without replacing the retained field or publishing owner state.
+The selected method and owner-bounded lifetime capacity remain frozen. The
+selector and terminal observation use that lifetime capacity's budget class,
+so splitting work into episodes does not relabel the evidence. Policy learning
+is deferred across pauses and applied once, when the solver decides or
+reaches its lifetime capacity. Starting a new `solve` deliberately replaces
+any older continuation and discloses that replacement in the receipt.
+`--no-learn` freezes the method policy. A forced `--method` still runs the same
+evidence auditors and budget ledger.
+
+### Repeated-workload measurement
+
+The retained 2026-09-13 evaluation used two seeded permutations of 20 circuit
+and transition sources. Each permutation had three separately labeled
+40-request cohorts: cold start, warm reuse, and reuse after an exact canonical
+policy-descriptor reload. A source received the same 64, 512, or 2,000
+operation budget in every cohort, and all eight strategies received the same
+request stream. Strategy execution order rotated per request to distribute
+host-order effects.
+
+Each timed wrapper includes a fresh source compile, method selection, bounded
+solve, result audit, optional field update, canonical policy serialization, and
+`PolicyState` reload. Completion is compared before latency. Times below are
+host-dependent observations from the retained report, not calibrated hardware
+benchmarks.
+
+| Strategy | Completed | Total | p50/request | p90/request | p99/request |
+|---|---:|---:|---:|---:|---:|
+| Adaptive field | 111/120 | 30.730 s | 0.113 s | 0.417 s | 2.456 s |
+| Structural selector | 108/120 | 28.069 s | 0.082 s | 0.258 s | 2.453 s |
+| Fixed conflict | 90/120 | 41.252 s | 0.099 s | 0.708 s | 1.908 s |
+| Fixed conflict + controller | 90/120 | 49.051 s | 0.128 s | 0.916 s | 2.388 s |
+| Fixed algebraic arity 1 | 114/120 | 31.104 s | 0.122 s | 0.414 s | 2.322 s |
+| Fixed algebraic arity 1 + controller | 96/120 | 30.353 s | 0.139 s | 0.297 s | 2.443 s |
+| Fixed algebraic arity 2 | 114/120 | 31.329 s | 0.131 s | 0.411 s | 2.364 s |
+| Fixed algebraic arity 2 + controller | 96/120 | 30.490 s | 0.147 s | 0.297 s | 2.459 s |
+
+The adaptive field completed 21 more requests than either conflict baseline
+while taking 10.522 s and 18.321 s less, and completed 15 more than either
+controller-enabled algebraic baseline while taking 0.377 s and 0.240 s more.
+It completed three more than the structural selector but took 2.661 s more. It
+completed three fewer than either non-controller algebraic baseline, while
+taking 0.374 s and 0.599 s less. Therefore this run does not demonstrate one
+overall winner: completion-first comparison favors different strategies
+against different baselines, and observed stable cumulative break-even appears
+only against the two conflict baselines.
+
+The adaptive strategy completed 38/40 cold requests, 38/40 warm requests, and
+35/40 requests after descriptor reload. Its 120 selections comprised 26
+cold-start choices, 38 scheduled explorations, and 56 empirical choices. The
+cohort split makes the restart behavior visible instead of pooling it into a
+single repeated-workload total.
+
+The current policy occupies 138,240 field bytes. Nine planes hold bounded
+long-window and recent-window evidence plus context epoch and last-observed
+epoch across 64 structural contexts, five budget slots, and six methods. The
+structural key separates coarse pinned density from a binary complexity
+refinement. When the local refined context is empty, same-budget sibling
+evidence can provide a visible prior; local observations then take precedence.
+Scheduled unseen exploration ranks candidates by related completion evidence,
+then measured elapsed and logical work. An unseen method is scheduled at
+context epoch 1 and then every fourth epoch; observed methods can be reevaluated
+after 24 epochs. Recent evidence decays synchronously every 16 epochs, while
+long support remains capped at 4,096. All cells remain exact integers
+represented in `float64`.
+
+The measured regional-runtime bottleneck was repeated whole-image validation
+and JSON-region decoding. On the same three owner-level procedure-transfer,
+language-composition, and revision/reload scenarios under `cProfile`, batching
+internal validation and named-value reads reduced calls from 152.0 million to
+63.5 million, validation invocations from 1,413 to 432, validation cumulative
+time from 30.520 s to 9.199 s, and profiled wall time from 52.944 s to 41.659 s.
+Public single-step operations still validate both boundaries, batched runs
+validate entry and publication, field geometry is unchanged, and atomic
+file/directory synchronization remains enabled.
+
+```powershell
+python verify_field_computer.py --json _diag/learning_computer/computer_verification-v2.json
+python run_computation_policy_scenario.py --output _diag/computation_policy_refinement_scenario.json
+python verify_computation_policy_scenario.py _diag/computation_policy_refinement_scenario.json
+```
+
+The report's `report_sha256` is
+`598bd6a18e732b9ac9a810b73de11c7043627c443df165bda13af6d2e8397180`:
+SHA-256 over UTF-8 JSON with sorted keys and compact separators after removing
+the `report_sha256` member. It is intentionally distinct from the hash of the
+pretty-printed file bytes.
+The independent verifier reconstructed all 960 solver rows, including each
+policy transition and the explicit reload boundaries, recomputed every cohort,
+budget, structural-context, and joint slice, and rejected five re-signed
+mutations of the retained report.
+
+The independent machine verifier passed 9/9 checks, including cold-path
+deferred specialization, hot-path complete-field and work-ledger equivalence,
+an explicit pause boundary, and actual execution-block invocation. See
+[design §31](FIELD-INTELLIGENCE-DESIGN.md#31-stored-program-computation-and-learning-execution-costs)
+for instruction semantics, the universality construction, and evidence limits.
+
 ## Active implementation
 
-The canonical runtime uses a CPU/float64 resonant field, with a separately
-identified GPU arithmetic path. This repository root contains:
+The canonical runtime is a CPU/float64 regional field computer. Individual
+field modules define immutable state codecs and stateless bounded kernels; they
+do not own a second adaptive runtime. This repository root contains:
 
 | Path | Role |
 |---|---|
-| [`FIELD-INTELLIGENCE-DESIGN.md`](FIELD-INTELLIGENCE-DESIGN.md) | Mathematical and systems specification |
-| [`cassi_field_atlas.py`](cassi_field_atlas.py) | Typed field atlas, evidence support, updates, inference, programs, and source retraction |
-| [`cassi_field_cognition.py`](cassi_field_cognition.py) | Decision certificates, inquiry, structure selection, constructions, explanations, and plan repair |
-| [`cassi_field_owner.py`](cassi_field_owner.py) | Single-owner persistence, immutable checkpoints, journals, authority, capacity, and exactly-once effects |
-| [`cassi_variational_field.py`](cassi_variational_field.py) | Learned variational relation primitive and standalone numerical reference |
-| [`cassi_resonant_field.py`](cassi_resonant_field.py) | Seven spatially resolved pools, two-strand transport, bounded heartbeat, breathing, numerical integration, dynamic reduction, energy-bounded temporal impulses, and read-only phase-space probe scoring |
-| [`cassi_field_transceiver.py`](cassi_field_transceiver.py) | Field-derived temporal input/output realizations, compact linear execution, full nonlinear execution, and propagated error bounds |
-| [`cassi_temporal_field.py`](cassi_temporal_field.py) | Bounded categorical predictive-state induction, carried temporal memory, prospective skill registration, evidence-triggered policy formation, safe-rank and admitted-episode pool projections, and multi-skill action records |
-| [`cassi_temporal_inquiry.py`](cassi_temporal_inquiry.py) | Bounded observation-contingent inquiry over field-derived candidate states and supported outcomes |
-| [`cassi_clause_field.py`](cassi_clause_field.py) | Uniform polynomial-space CNF, assignment trail, decision stack, unit propagation, resolution-derived conflict learning, proof-work counters, and chronological backtracking in one immutable nine-plane field tensor |
-| [`runtime/cassi_cassipi_worker.py`](runtime/cassi_cassipi_worker.py) | Serialized owner operations, optional real-time scheduling, migration, and private HTTP transport |
-| [`runtime/cassi_resonant_view.py`](runtime/cassi_resonant_view.py) | Read-only canonical field viewer and frozen-body response calibration |
+| [`FIELD-INTELLIGENCE-DESIGN.md`](FIELD-INTELLIGENCE-DESIGN.md) | Implemented one-computer architecture, mathematical mechanisms, migration inventory, and measured boundaries |
+| [`cassi_field_regions.py`](cassi_field_regions.py) | Regional image schema, typed regions, allocation, validation, sparse paging, scheduling, execution, ledgers, and fault receipts |
+| [`cassi_regional_catalog.py`](cassi_regional_catalog.py) | Closed 20-kernel production catalog with explicit per-transition work bounds |
+| [`cassi_field_atlas.py`](cassi_field_atlas.py) | Atlas state codec, evidence support, updates, inference, and source-retraction kernel |
+| [`cassi_field_cognition.py`](cassi_field_cognition.py) | Cognition, learned variable-span language, autonomous bounded representation induction and revision, planning, inquiry, authority-request, assessment, and sustained-episode kernel |
+| [`cassi_field_input.py`](cassi_field_input.py) | Stateless deterministic source codecs, bounded typed paging, exact source linkage, and cognition observation construction |
+| [`cassi_field_owner.py`](cassi_field_owner.py) | Single-owner persistence, immutable checkpoints, journals, authority, capacity, and exactly-once regional operations |
+| [`cassi_field_computer.py`](cassi_field_computer.py) | Scalar two-stack state and stateless primitive transition implementation |
+| [`cassi_field_program.py`](cassi_field_program.py) | Strict structured frontend, scalar regional compiler, exact-program specialization, and typed parameterized procedure transfer |
+| [`cassi_computation_policy.py`](cassi_computation_policy.py) | Refined regional method-selection task, related-evidence cost-aware exploration, checked evidence, and continuation state |
+| [`cassi_learning_computer.py`](cassi_learning_computer.py) | Persistent regional image wrapper, catalog dispatch, batched validated inspection, pause/resume/invoke, restart, growth, solve, and inspection |
+| [`run_cassi_computer.py`](run_cassi_computer.py) | Public general-input, regional submit/advance/invoke/authorized-invoke, and scalar/exact convenience CLI |
+| [`verify_field_computer.py`](verify_field_computer.py) | Independent primitive, tape-machine, allocation, executable-block, pause, restart, and field-equivalence checks |
+| [`run_computation_policy_scenario.py`](run_computation_policy_scenario.py) | V4 cold, warm, and descriptor-reload policy evaluator with full-wrapper timings and stratified aggregates |
+| [`run_general_intelligence_program.py`](run_general_intelligence_program.py) | Three-lifetime cumulative training/evaluation program with four worlds, controls, shared-belief, recurrence, sensory, and permissioned-source runs |
+| [`verify_general_intelligence_program.py`](verify_general_intelligence_program.py) | Independent standard-library receipt, formula, split, curve, control, resource, and separation verifier |
+| [`test_general_intelligence_program.py`](test_general_intelligence_program.py) | Focused public-owner regressions for program formulas, event roles, source boundaries, and resident-field learning |
+| [`verify_computation_policy_scenario.py`](verify_computation_policy_scenario.py) | Independent v4 context, selection, row, policy, reload, slice, aggregate, and mutation verifier |
+| [`cassi_variational_field.py`](cassi_variational_field.py) | Variational state codec, bounded regional transition, and standalone numerical reference |
+| [`cassi_resonant_field.py`](cassi_resonant_field.py) | Seven-pool state codec, reversible helical packet basis, bounded packet impulses, and regional wave transition |
+| [`cassi_field_transceiver.py`](cassi_field_transceiver.py) | Temporal-realization state codec, compact/full execution, error bounds, and regional transition |
+| [`cassi_temporal_field.py`](cassi_temporal_field.py) | Predictive-state, skill, evidence-revision, and policy regional transition |
+| [`cassi_temporal_inquiry.py`](cassi_temporal_inquiry.py) | Bounded observation-contingent inquiry regional transition |
+| [`cassi_clause_field.py`](cassi_clause_field.py) | Polynomial-space clause state and bounded regional search transition |
+| [`runtime/cassi_cassipi_worker.py`](runtime/cassi_cassipi_worker.py) | Serialized regional-computer operations, optional machine-transition scheduling, and private HTTP transport |
+| [`runtime/cassi_resonant_view.py`](runtime/cassi_resonant_view.py) | Read-only compatibility view over canonical owner state |
 | [`run_field_intelligence_scenario.py`](run_field_intelligence_scenario.py) | Controlled-world learning, recall, planning, action, restart, and forgetting scenario |
 | [`run_variational_field_scenario.py`](run_variational_field_scenario.py) | Numerical learning, inference, revision, intervention, and restart scenario |
 | [`run_resonant_field_scenario.py`](run_resonant_field_scenario.py) | Production owner, phase-learning controls, energy accounting, reduction, and CPU/GPU scenarios |
@@ -49,11 +364,62 @@ identified GPU arithmetic path. This repository root contains:
 | [`cassi_alias_exact_one_field.py`](cassi_alias_exact_one_field.py) | Immutable field-owned total decision for degree-two/degree-three monotone exact-one CNFs by branching on cubic variables and solving every residual by deterministic perfect matching |
 | [`run_alias_exact_one_decision.py`](run_alias_exact_one_decision.py) | Exhaustive small truth tables, mixed-incidence stress, scaling, persistence, public-step replay, and fail-closed alias-boundary scenarios |
 | [`verify_alias_exact_one_decision.py`](verify_alias_exact_one_decision.py) | Independent standard-library reconstruction of every cubic branch, matching or Tutte witness, SAT assignment, persisted tensor, digest, and receipt aggregate |
+| [`cassi_alias_obstruction.py`](cassi_alias_obstruction.py) | Proof-carrying overfill and Tutte obstruction cuts for alias assignments, with boundary-reopening witnesses and matching-work accounting |
+| [`cassi_alias_cut_field.py`](cassi_alias_cut_field.py) | Immutable field-owned alias-CNF search that retains verified obstruction cuts and returns SAT, UNSAT, or exhausted without a false verdict |
+| [`run_alias_cut_analysis.py`](run_alias_cut_analysis.py) | Connected growing-family comparison of projected cuts against the exhaustive alias solver, with restart and work receipts |
+| [`verify_alias_cut_field.py`](verify_alias_cut_field.py) | Independent structural and bounded-universal verification of cuts, SAT assignments, UNSAT proofs, checkpoints, and tamper controls |
+| [`run_alias_cut_complexity.py`](run_alias_cut_complexity.py) | Source-clause boundary receipt for fully cubic projected cuts, mixed-occurrence controls, bounded candidate scans, and explicit exhaustion |
+| [`verify_alias_cut_complexity.py`](verify_alias_cut_complexity.py) | Independent reconstruction of source CNF subsumption, residual matching cubes, source truth tables, restart digests, and malformed-certificate refusals |
 | [`run_alias_compression_analysis.py`](run_alias_compression_analysis.py) | Deterministic exact-cover state comparison, recurrence crossover accounting, and uniform-basis matchgate parity elimination for the alias boundary |
 | [`verify_alias_compression_analysis.py`](verify_alias_compression_analysis.py) | Independent reconstruction of all cover searches, exhaustive small formulas, recurrence constants, receipt binding, and eight Gröbner ideal eliminations |
 | [`cubic_kernel_decision.py`](cubic_kernel_decision.py) | Exact rational incidence-kernel analysis for cubic monotone one-in-three SAT, with rank/cardinality filters, caller-supplied basis coordinates, a bounded-support 2-SAT reduction, exact basis-width diagnostics, and an exact kernel-enumeration fallback |
 | [`run_cubic_kernel_analysis.py`](run_cubic_kernel_analysis.py) | Cubic source cases, rank and alphabet obstructions, canonical and invariant support-three boundaries, exact basis censuses, connected linear-nullity families, certificates, and relation closures |
 | [`verify_cubic_kernel_analysis.py`](verify_cubic_kernel_analysis.py) | Independent rational elimination, exhaustive basis-width reconstruction, kernel and 2-SAT certificate checking, relation closures, fixed-gauge formulas, and receipt verification |
+| [`run_planar_cubic_obstruction_probe.py`](run_planar_cubic_obstruction_probe.py) | Deterministic finite screen of planar, vertex-3-connected cubic incidence fixtures, including exhaustive internal basis-width censuses and a nonplanar control |
+| [`verify_planar_cubic_obstruction_probe.py`](verify_planar_cubic_obstruction_probe.py) | Independent standard-library reconstruction of the registered formulas, graph structure, rotation certificates, exact-one labels, and every column-basis census |
+| [`test_planar_cubic_obstruction_probe.py`](test_planar_cubic_obstruction_probe.py) | Runner/verifier round-trip plus tamper rejection for the planar cubic obstruction receipt |
+| [`run_width_two_constructor_probe.py`](run_width_two_constructor_probe.py) | Bounded falsification corpus for a deterministic coverage-greedy internal width-two basis constructor, with exact all-basis comparison |
+| [`verify_width_two_constructor_probe.py`](verify_width_two_constructor_probe.py) | Independent standard-library reconstruction of the cubic corpus, greedy constructor, exact rational basis census, and falsification receipt |
+| [`test_width_two_constructor_probe.py`](test_width_two_constructor_probe.py) | Constructor counterexample and receipt-tamper regression |
+| [`run_mandatory_class_obstruction_probe.py`](run_mandatory_class_obstruction_probe.py) | Bounded diagnostic of mandatory projective classes and NO-case local obstructions using original-column basis enumeration |
+| [`verify_mandatory_class_obstruction_probe.py`](verify_mandatory_class_obstruction_probe.py) | Independent reconstruction of original-column/class mappings, mandatory sets, NO-case census semantics, production candidates, and receipt aggregates |
+| [`test_mandatory_class_obstruction_probe.py`](test_mandatory_class_obstruction_probe.py) | Mandatory-class controls, positive-case `not_applicable` semantics, duplicate-column census, cap behavior, and receipt-tamper regression |
+| [`run_cubic_truth_state_cell_probe.py`](run_cubic_truth_state_cell_probe.py) | Bounded exact search for exclusive original-column width-two state pairs and degree-preserving two-switch composition relations, with parallel/duplicate-incidence rejection |
+| [`verify_cubic_truth_state_cell_probe.py`](verify_cubic_truth_state_cell_probe.py) | Independent standard-library reconstruction of the frozen cubic fixtures, rational kernel bases, state signatures, switched compositions, and receipt aggregates |
+| [`test_cubic_truth_state_cell_probe.py`](test_cubic_truth_state_cell_probe.py) | Focused state-pair, duplicate-incidence, cubic-switch, and receipt-tamper controls |
+| [`run_cubic_admissible_cell_probe.py`](run_cubic_admissible_cell_probe.py) | Complete width-two basis-exchange admissibility certificates, auxiliary-column shadows, alternate pair partitions, cross-component composition escapes, and bounded pair-work accounting |
+| [`verify_cubic_admissible_cell_probe.py`](verify_cubic_admissible_cell_probe.py) | Independent exact reconstruction of admissibility certificates, exchange graphs, witness partitions, frozen compositions, pair totals/attempted/checked work/cap status, and exact-negative refusal |
+| [`test_cubic_admissible_cell_probe.py`](test_cubic_admissible_cell_probe.py) | Fast exchange-graph, fibre-disconnection, alternate-partition, duplicate-column, not-applicable, cap-accounting, exact-negative, mutation, and CLI-path controls |
+| [`run_cubic_exchange_boundary_probe.py`](run_cubic_exchange_boundary_probe.py) | Exact exchange-boundary certificate for every 01-to-10 edge of the five frozen exclusive pairs, with common-basis kernel relations |
+| [`verify_cubic_exchange_boundary_probe.py`](verify_cubic_exchange_boundary_probe.py) | Independent reconstruction of the frozen formulas, width-two exchange graphs, exclusive pairs, boundary port swaps, and exact relations |
+| [`test_cubic_exchange_boundary_probe.py`](test_cubic_exchange_boundary_probe.py) | Boundary receipt round-trip, edge-orientation, witness/summary mutation, and explicit CLI-path controls |
+| [`run_cubic_exclusive_pair_neighborhood_probe.py`](run_cubic_exclusive_pair_neighborhood_probe.py) | Complete canonical distance-one incidence-switch neighborhoods of two frozen exclusive-pair near-misses, with exact basis and designated-pair accounting |
+| [`verify_cubic_exclusive_pair_neighborhood_probe.py`](verify_cubic_exclusive_pair_neighborhood_probe.py) | Standalone reconstruction of the frozen seeds, legal switches, rational kernels, width-two censuses, exchange graphs, pair classifications, and finite assessment |
+| [`test_cubic_exclusive_pair_neighborhood_probe.py`](test_cubic_exclusive_pair_neighborhood_probe.py) | Exhaustive receipt equality, full-neighborhood degeneracy and replay, positional CLI, plus focused seed, switch, no-width-two, and mutation controls |
+| [`run_cubic_exclusive_width_barrier_probe.py`](run_cubic_exclusive_width_barrier_probe.py) | All-pair exclusive width-barrier search over both frozen distance-one neighborhoods and a deterministic 20,000-draw simple cubic corpus, with positive and negative predicate controls |
+| [`verify_cubic_exclusive_width_barrier_probe.py`](verify_cubic_exclusive_width_barrier_probe.py) | Standalone standard-library reconstruction of both bounded domains, rational kernels, complete ground-basis censuses, pair classifications, synthetic controls, and aggregate assessment |
+| [`test_cubic_exclusive_width_barrier_probe.py`](test_cubic_exclusive_width_barrier_probe.py) | Fast runner/verifier cross-checks for the synthetic barriers, frozen all-pair seed censuses, complete switch population, and a deterministic random sample |
+| [`run_cubic_lift_realization_probe.py`](run_cubic_lift_realization_probe.py) | Complete symmetry-cover search for a connected simple cubic incidence realization of the two-sided width barrier through order nine, with modular rank screening and exact target censuses |
+| [`verify_cubic_lift_realization_probe.py`](verify_cubic_lift_realization_probe.py) | Independent standard-library reconstruction of the matching-factorization cover, quotient controls, rational kernels, complete bases, all-pair classifications, digests, and bounded assessment |
+| [`test_cubic_lift_realization_probe.py`](test_cubic_lift_realization_probe.py) | Fast quotient, fixed-profile, reduced-order receipt-equality, required-scope, and structural/summary tamper controls |
+| [`run_cubic_degeneracy_structure_probe.py`](run_cubic_degeneracy_structure_probe.py) | Exact pair-local degeneracy classification and canonical width-two basis-family reduction over every nullity-at-least-three target in the complete cubic lift cover |
+| [`verify_cubic_degeneracy_structure_probe.py`](verify_cubic_degeneracy_structure_probe.py) | Independent reconstruction from the lift verifier, with separate rational arithmetic, pair classification, canonicalization, synthetic controls, and receipt comparison |
+| [`test_cubic_degeneracy_structure_probe.py`](test_cubic_degeneracy_structure_probe.py) | Focused twin-mode, nonvacuity, relabeling-invariance, reduced-order receipt, and mutation controls |
+| [`run_cubic_degeneracy_quotient_probe.py`](run_cubic_degeneracy_quotient_probe.py) | Exact twin-sum and dual-affine quotients for every exclusive pair of the four canonical Result AA representatives, with complete Boolean projections and deterministic recursive reductions |
+| [`verify_cubic_degeneracy_quotient_probe.py`](verify_cubic_degeneracy_quotient_probe.py) | Independent rational reconstruction of representative selection, quotient relations, Boolean solution sets, kernel bases, reduction traces, terminals, digests, and aggregates |
+| [`test_cubic_degeneracy_quotient_probe.py`](test_cubic_degeneracy_quotient_probe.py) | Focused twin and dual quotient semantics, constructive-terminal, relation-tamper, and false-category refusal controls |
+| [`run_cubic_degeneracy_quotient_population_probe.py`](run_cubic_degeneracy_quotient_population_probe.py) | Compact exact quotient, Boolean projection, basis, and deterministic recursive-terminal audit over all 2,887 exclusive pairs in the complete Result AA population |
+| [`verify_cubic_degeneracy_quotient_population_probe.py`](verify_cubic_degeneracy_quotient_population_probe.py) | Independent reconstruction of all population substitutions, solution sets, basis families, recursive traces, compact digests, representative comparisons, and aggregates |
+| [`test_cubic_degeneracy_quotient_population_probe.py`](test_cubic_degeneracy_quotient_population_probe.py) | Embedded twin and dual population-record equivalence plus compact terminal-digest tamper rejection |
+| [`run_cubic_order10_targeted_probe.py`](run_cubic_order10_targeted_probe.py) | Exhaustive exact search over the declared order-ten extension domain from the four canonical Result AA representatives, with explicit candidate coverage and all-pair degeneracy classification |
+| [`verify_cubic_order10_targeted_probe.py`](verify_cubic_order10_targeted_probe.py) | Independent standard-library reconstruction of source joins, extension generation, exact bases, exclusive-pair records, digests, and aggregate denominators |
+| [`test_cubic_order10_targeted_probe.py`](test_cubic_order10_targeted_probe.py) | Receipt equality, full-denominator result controls, and formula/provenance/stream/source/assessment/pair tamper rejection |
+| [`run_cubic_order10_feasibility_screen.py`](run_cubic_order10_feasibility_screen.py) | Bounded-memory complete order-ten canonical-cover census with modular-target screening and measured SQLite storage |
+| [`verify_cubic_order10_feasibility_screen.py`](verify_cubic_order10_feasibility_screen.py) | Independent digest-only reconstruction of the order-ten feasibility census and storage/measurement checks |
+| [`test_cubic_order10_feasibility_screen.py`](test_cubic_order10_feasibility_screen.py) | Fast in-process cycle, factorization, hash-of-keys, SQLite ordering, and contract controls without reading `_diag` |
+| [`run_cubic_order10_exact_target_probe.py`](run_cubic_order10_exact_target_probe.py) | Exact rational basis and all-pair profiling for every modular target in the complete order-ten canonical cover |
+| [`verify_cubic_order10_exact_target_probe.py`](verify_cubic_order10_exact_target_probe.py) | Independent standard-library reconstruction of the complete order-ten target profiles and degeneracy aggregates |
+| [`test_cubic_order10_exact_target_probe.py`](test_cubic_order10_exact_target_probe.py) | Fast in-process exact-target and modular-false-positive controls comparing production and independent profiles without reading `_diag` |
 | [`growing_nullity_schaefer_probe.py`](growing_nullity_schaefer_probe.py) | Exact direct-sum and connected-bridge census of growing-nullity cubic bases, pivot width, and arity-at-most-three Schaefer closures |
 | [`verify_growing_nullity_schaefer_probe.py`](verify_growing_nullity_schaefer_probe.py) | Independent reconstruction of the growing-nullity formulas, rational basis censuses, product laws, connected bridge, and Schaefer relation profile |
 | [`run_mixed_schaefer_frame_obstruction.py`](run_mixed_schaefer_frame_obstruction.py) | Exact mixed SAT+UNSAT direct-sum census with all 32,232 bases, the 1,620 connected cross-component 2-switches, canonical widths, an exhaustive bound-two width screen, and an exact width-three witness for every switch |
@@ -67,7 +433,44 @@ identified GPU arithmetic path. This repository root contains:
 | [`run_switch_neighborhood_probe.py`](run_switch_neighborhood_probe.py) | Complete within-control incidence-switch neighborhoods with nullity-conditioned exact census/search results and seeded two-switch walks |
 | [`verify_switch_neighborhood_probe.py`](verify_switch_neighborhood_probe.py) | Independent standard-library reconstruction of both controls, every one-switch formula, every free-basis census, both seeded walk sequences, and all witnesses |
 | [`test_switch_neighborhood_probe.py`](test_switch_neighborhood_probe.py) | Fast switch-population, canonical-replay, search-agreement, synthetic-anchor, and seed-determinism regression checks |
+| [`cassi_cubic_reduction.py`](cassi_cubic_reduction.py) | Finite fail-closed exact reducer for cubic monotone one-in-three SAT, with canonical affine residuals, exact low-arity projection guards, bounded nonrecursive single-literal propagation, nonnegative row-bound and bounded-separator certificates, cap-five fixed-default scheduling, proof/resource accounting, invocation-local memoization, and an observation-only transient field |
+| [`run_cubic_reduction_discovery.py`](run_cubic_reduction_discovery.py) | Frozen controls, matched nullity-five SAT/UNSAT cases, deterministic adversarial and structurally held-out connected cubic families, exhaustive bounded truth, cap/probing and fixed/adaptive exact-resource ablations, exhaustive connected unswitch minimization, and a SHA-256-bound receipt |
+| [`verify_cubic_reduction_discovery.py`](verify_cubic_reduction_discovery.py) | Independent standard-library reconstruction of the complete corpus, both ablations, propagation/conflict certificates, every lift, exact-resource ledgers, exhaustive truth, connected minimization streams, and default-profile selection |
+| [`test_cubic_reduction_discovery.py`](test_cubic_reduction_discovery.py) | Canonicalization, propagation differential, cap-five terminal, literal-probe witness/forcing, row-bound, separator, projection, quotient, schedule, cache, minimization, receipt, coordinate tamper, progress, and refusal regressions |
 | [`run_yang_mills_gauge_fibre_probe.py`](run_yang_mills_gauge_fibre_probe.py) | Field-owned exact $SU(2)$ Gauss-constraint search for a fixed-boundary refined plaquette, with tensor-product multiplicity and cutoff controls |
+| [`run_yang_mills_finite_obligations.py`](run_yang_mills_finite_obligations.py) | Three finite statements of the uniform-Feshbach obligation map recomputed from their own formulas: the corner-shift support action (UFA104) and its cutoff counts, the fine multiplicity formula (UFA106) with its anchor table, relabelling invariance and never-zero claim, and the first-chaos rank inequality (UFA46) with its growth fit and a screen of where the boundary sits for the largest rank the map permits |
+| [`test_yang_mills_finite_obligations.py`](test_yang_mills_finite_obligations.py) | Direct can-fail margins for each of those three statements, with a corrupted anchor-table entry and a mutated measured value driving the receipt digest so neither firing control is vacuous |
+| [`run_yang_mills_compression_matrix.py`](run_yang_mills_compression_matrix.py) | The general adjacent-block compression matrix (UFA105) computed in a declared exact-rational realization: explicit $SU(2)$ intertwiner bases, per-shift blocks with rank, kernel dimension and support pattern, full-rank saturation, verified rank witnesses with their exact and undecided negatives, the three separated scopes and their excluded blocks with exact dimensions and cost units, and an opt-in complete family |
+| [`test_yang_mills_compression_matrix.py`](test_yang_mills_compression_matrix.py) | Direct can-fail margins: the document's own demand text hashed from its raw bytes, the anchor table and cutoff counts, basis independence, the nonzero forcing of every adjacent shift, the declared Hilbert form with its flat control, dihedral transport with the non-dihedral permutations refused, per-block witness certificates with tamper controls, the digest convention's stripped keys, and the three scopes' separation |
+| [`cassi_constraint_field.py`](cassi_constraint_field.py) | Canonical compilation of finite circuits and bounded transitions into exact Tseitin constraints, with propagation-only, complete learning, and algebraic-prepass configurations, witness and certificate evidence classes, journaled controller interventions, and exact checkpoint round-trip |
+| [`cassi_constraint_dynamics.py`](cassi_constraint_dynamics.py) | Deterministic excitable ring scheduler for legal solver decisions: four exact-integer float64 lanes plus counters, activity-primary scoring, bounded ticks, and site-local excitation interventions |
+| [`run_constraint_field_experiments.py`](run_constraint_field_experiments.py) | Compiled-circuit, relation-mix, pigeonhole, parity, and bounded-reachability matrix with independent labels, certificate audits, controller comparison, and a frozen receipt |
+| [`cassi_constraint_implication.py`](cassi_constraint_implication.py) | Query-level implication decisions over circuit and bounded-transition sources, with vacuity separation, replayed witnesses, and auditable UNSAT certificates |
+| [`run_implication_screen.py`](run_implication_screen.py) | Exhaustive small-source screening of exact-one, parity, cubic/Schaefer, and transition candidate rules with independent enumeration and certificate replay |
+| [`run_relation_augmentation_comparison.py`](run_relation_augmentation_comparison.py) | Matched arity-one/arity-two algebraic prepass comparison, baseline equivalence, reserve accounting, and independent augmentation entailment audit |
+| [`verify_implication_engine.py`](verify_implication_engine.py) | Independent public-API verifier for implication outcomes, certificates, transition clause routing, augmentation soundness, and refusal boundaries |
+| [`verify_constraint_field.py`](verify_constraint_field.py) | Independent gate, truth-table, transition, certificate, checkpoint, tamper, capacity, and controller reconstruction of the constraint field |
+| [`run_fractal_geometry_exploration.py`](run_fractal_geometry_exploration.py) | Eleven declared connection/metric scaffolds at 7 pools by 4 ports: linear spectrum and mode localization, 64-tick retention, access coverage and condensation bounds, rail-versus-mass separation, and which projected hooks drive the body |
+| [`run_fractal_memory_exploration.py`](run_fractal_memory_exploration.py) | Canonical-field packet measurements: per-rung retained projection and total energy, cross-channel transfer, repeated-drive ledger closure, disturbance recovery, profile dependence of the canonical page, and view integrity |
+| [`run_fractal_durability_exploration.py`](run_fractal_durability_exploration.py) | One declared item written through the canonical packet impulse and read back after nothing, bounded unrelated activity, an exact workspace round trip, and restart plus activity, with single-item controls and 2/4/8-item interference arms |
+| [`run_fractal_placement_exploration.py`](run_fractal_placement_exploration.py) | Per-port modal access on the declared `beta = 0` linearization of all eleven arrangements: write-pin and read-pick-off identity, effective modes and distinguishability, the exhaustive 784-pair write/read transfer table, and greedy-versus-declared binding-order selection at depth seven |
+| [`run_fractal_survival_exploration.py`](run_fractal_survival_exploration.py) | Scaffold and spacing contrasts on the durability harness's declared items: the headline single-item and `k = 4` activity arms on the canonical default, `nested-core-shell` and `recursive-paired-loops`, plus declared item pairs at declared scale distances compared on off-diagonal deposit share, per-item recovery and unwritten-direction fraction, each against a declared margin with a no-activity control |
+| [`run_fractal_ladder_exploration.py`](run_fractal_ladder_exploration.py) | Rung-width lifetime ladder on the canonical body: per-item first-crossing lifetime and occupancy across widths 28, 14 and 7 under the `helix7`, `mass-only` and `flat-inertia` profiles, a corroborated bilinear predictor over the frozen `beta = 0` generator with its divergence onsets, the algebraic-versus-realized concentration ceiling, a 56-candidate exhaustive single-position write surface, and a mode-selective specification for the slow band |
+| [`run_fractal_metric_exploration.py`](run_fractal_metric_exploration.py) | Inertia-metric search on one rail: the declared graded shell-contrast family and random controls ranked on the survival harness's imported `k = 4` arm with the `k = 2` and `k = 8` arms beside it, the scaling check, the eight declared ratio ladders and their phi null, flat-inertia confirmation with the cross-talk discriminator and equal-time comparison, the local-contrast family, and a second declared rail for generalization |
+| [`run_fractal_lattice_exploration.py`](run_fractal_lattice_exploration.py) | Declared lattice structures and spacing laws on the canonical body: the built-in double-helix motif and its derived rail, the phi station, coupling and inter-copy laws against uniform and matched-random controls, eight rung-law controls at one declared channel total, the rail-versus-mass interaction grid, the nested-depth and shell-law families against the cited single nest, the attribution decomposition with its additivity residual, and access and placement movement |
+| [`run_fractal_feedback_exploration.py`](run_fractal_feedback_exploration.py) | Closed transceiver loop on the canonical page: the declared phase grid and gain sweep over the sign of the read-back projection, the per-profile neutral gain with its bracket, the long-horizon hold against its own no-loop control, the flat-profile capacity curve over three declared schemes and four declared counts, the per-regime capacity picture with its shared two-item diagnosis and drive-split sweep, and the saturation and boundedness controls |
+| [`test_fractal_geometry_exploration.py`](test_fractal_geometry_exploration.py) | Fast regression for the geometry receipt: rail construction and strength budgets, topology-as-metadata under a projected rail, quartic-versus-linear separation, determinism, retention and localization separation, and receipt digest reproducibility |
+| [`test_fractal_memory_exploration.py`](test_fractal_memory_exploration.py) | Fast regression for the memory receipt: packet view round-trip, analysis-only state preservation, impulse energy bounds, damping-sensitive retention, and receipt digest determinism |
+| [`test_fractal_durability_exploration.py`](test_fractal_durability_exploration.py) | Fast regression for the durability receipt: workspace round-trip state and read-frame preservation, analysis-only read neutrality, impulse energy bounds, restart recovery, activity decay, control separation, multi-item shares, determinism, and receipt digest reproducibility |
+| [`test_fractal_placement_exploration.py`](test_fractal_placement_exploration.py) | Fast regression for the placement receipt: the declared pin and pick-off construction, per-port scores, eigenbasis gauge, selection comparison against the declared binding order, the exhaustive pair table, the declared separations, and receipt JSON and digest stability |
+| [`test_fractal_survival_exploration.py`](test_fractal_survival_exploration.py) | Fast regression for the survival receipt: the declared hooks drive the built profiles and move measured recovery, declared scale depth matches the measured packet supports, both contrast margins are exercised either side of their thresholds and shown able to fail under mutation, cross-item confusion and pairwise restart identity, control-margin reuse, full-figure determinism, and content-digest reproducibility and mutation sensitivity |
+| [`test_fractal_ladder_exploration.py`](test_fractal_ladder_exploration.py) | Fast regression for the ladder receipt: the declared write budget and read path, per-item crossing and occupancy, the corroborated predictor against the canonical walk with its two-budget control, the concentration ceiling and mode-selective specification, the exhaustive write surface, determinism, and content-digest reproducibility |
+| [`test_fractal_metric_exploration.py`](test_fractal_metric_exploration.py) | Fast regression for the metric receipt: imported-arm equivalence with the survival figures, the graded family's endpoint and its refusal at the widest arm, the eight ladder profiles against their band and lifetime claims, flat-inertia and cross-talk margins, the local-contrast family, the second rail, the cited external figure's pointer and value, determinism, and content-digest reproducibility |
+| [`test_fractal_lattice_exploration.py`](test_fractal_lattice_exploration.py) | Fast regression for the lattice receipt: the derived rail and motif reconstruction, every declared margin check with its firing control in both directions, the rung-law channel budget and positive order-parameter control, the interaction grid's declared-arm reproduction, the nested anchor against the cited single nest, the attribution residual, determinism, and receipt-hash reproducibility |
+| [`test_fractal_feedback_exploration.py`](test_fractal_feedback_exploration.py) | Fast regression for the feedback receipt: the declared loop's page-for-page identity with the durability harness's chunked stream, the phase readout and its quadrature and in-phase refusals, the per-field neutral-gain brackets, the hold and neutrality statistics against their control, per-item cross-reading under a multi-item tick, the capacity and split arms with their margins and firing controls, and receipt-digest reproducibility |
+| [`run_owner_write_path_exploration.py`](run_owner_write_path_exploration.py) | The canonical packet impulse lifted into a real owner transition: the measured inertness of the declared transceiver input and its coupled-relation firing control, the impulse arm against its zero-work control, the owner transition contract with exactly-once replay, conflict refusal and predecessor lineage, route identity against the existing aimed narrow-path write, the write -> hold -> read cycle at the profile's own neutral gain with its no-loop, unwritten-direction and skeleton-equivalence controls, the port-support table with the overlapping selection refused, the two-item work split, and the owner's own read operation with its controls and exposure scan |
+| [`test_owner_write_path_exploration.py`](test_owner_write_path_exploration.py) | Fast regression for the owner write path receipt: the transition contract, the route-identity digests, the inertness diagnosis with its firing control, the impulse and zero-work controls, the cycle and skeleton equivalence, the disjoint-support table, the read operation's recovery, controls and invariants, and receipt-digest reproducibility |
+| [`FRACTAL-MEMORY-EXPLORATION.md`](FRACTAL-MEMORY-EXPLORATION.md) | Exploration record for a fractal scaffold and transceiver placement as durable field memory, with the ten exploration harnesses' measured figures |
 
 Run the implemented paths from this directory:
 
@@ -76,6 +479,24 @@ python run_field_intelligence_scenario.py --horizon-episodes 24
 python -m unittest -v test_field_intelligence.py
 python run_variational_field_scenario.py --output _diag/variational-field-math/scenario.json
 python -m pytest test_variational_field.py -q
+python run_fractal_geometry_exploration.py --output _diag/fractal-geometry/exploration.json
+python run_fractal_memory_exploration.py --output _diag/fractal-memory/exploration.json
+python run_fractal_durability_exploration.py --output _diag/fractal-durability/exploration.json
+python run_fractal_placement_exploration.py --output _diag/fractal-placement/exploration.json
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py -q
+python -m pytest test_fractal_durability_exploration.py test_fractal_placement_exploration.py -q
+python run_fractal_survival_exploration.py --output _diag/fractal-survival/exploration.json
+python run_fractal_ladder_exploration.py --output _diag/fractal-ladder/exploration.json
+python run_fractal_metric_exploration.py --output _diag/fractal-metric/exploration.json
+python run_fractal_lattice_exploration.py --output _diag/fractal-lattice/exploration.json
+python run_fractal_feedback_exploration.py --output _diag/fractal-feedback/exploration.json
+python run_owner_write_path_exploration.py --output _diag/owner-write-path/exploration.json
+python -m pytest test_fractal_survival_exploration.py -q
+python -m pytest test_fractal_ladder_exploration.py -q
+python -m pytest test_fractal_metric_exploration.py -q
+python -m pytest test_fractal_lattice_exploration.py -q
+python -m pytest test_fractal_feedback_exploration.py -q
+python -m pytest test_owner_write_path_exploration.py -q
 ```
 
 The scenarios are controlled reference environments. They do not establish
@@ -93,6 +514,23 @@ Learned relations and provisional wave state share one canonical `AtlasState`.
 An inference advance changes the working state and generation while preserving
 learned chart bytes and evidence time.
 
+The paired Yang/Yin phase space also has a fixed composable multiscale view.
+`analyze_helical_packet` maps any balanced contiguous packet path into
+orthonormal position/momentum common/counterflow coefficients;
+`split_helical_packet` and `compose_helical_packets` reversibly regroup those
+coefficients within the declared roundoff allowance. Composition requires
+ordered siblings from the same profile and exact source state. Packet
+coefficients are disposable views: the canonical regional field remains the
+only adaptive state.
+
+`apply_helical_packet_impulse` writes a selected scale or detail mode as an
+energy-bounded momentum impulse. The same behavior is available through the
+regional `packet-impulse` operation, where work and evidence are recorded in
+the existing task image. This establishes a localized, smaller/larger
+composable packet representation; it does not establish compression, semantic
+agreement between branches, or an advantage for helical transport over a
+matched comparison graph.
+
 `think` prepares and advances a bounded query; `query(query_id=...)` and
 `explain_query(query_id=...)` read its persisted result. Action proposals freeze
 the relevant readout and dependencies so unrelated heartbeats do not cancel
@@ -103,7 +541,7 @@ Exercise the live implementation and the separate mathematical reference:
 ```powershell
 python run_resonant_field_design_math.py --output _diag/resonant-field-design/math.json
 python run_resonant_field_scenario.py --output _diag/resonant-field-production/scenario.json
-python -m pytest test_field_intelligence.py test_variational_field.py test_resonant_owner.py test_field_transceiver.py runtime/test_cassipi_worker.py runtime/test_cassipi_import.py runtime/test_cassipi_forget_generation.py runtime/test_cassipi_runtime_package.py -q
+python -m pytest test_field_intelligence.py test_variational_field.py test_resonant_owner.py test_field_transceiver.py test_learning_computer_owner.py runtime/test_cassipi_worker.py runtime/test_cassipi_forget_generation.py runtime/test_cassipi_runtime_package.py -q
 ```
 
 The production scenario measures seven localized transfer responses,
@@ -114,24 +552,26 @@ seven-pool advantage over the comparison layouts. GPU correctness is measured;
 a GPU speed or energy advantage is not established. Detailed measurements and
 their limits are in [§26.24](FIELD-INTELLIGENCE-DESIGN.md#2624-implemented-runtime-and-measured-boundaries).
 
-Build a private runtime into an unused output directory:
+Build the closed runtime into an unused output directory:
 
 ```powershell
-python runtime/build_cassipi_runtime.py --output _diag/cassipi-resonant-runtime
-python runtime/build_cassipi_runtime.py --output _diag/cassipi-resonant-runtime --verify-only
-python -I _diag/cassipi-resonant-runtime/cassi_cassipi_worker.py --data-home _diag/resonant-owner
+python runtime/build_cassipi_runtime.py --output _diag/cassipi-regional-runtime
+python runtime/build_cassipi_runtime.py --output _diag/cassipi-regional-runtime --verify-only
+python -I _diag/cassipi-regional-runtime/cassi_cassipi_worker.py --data-home _diag/regional-owner
 ```
 
-Logical mode advances only requested work. `--realtime` enables a bounded
-0.25-second scheduler; achieved cadence and backlog are reported in the runtime
-descriptor. A pause preserves the last committed wave. The last attached
-client's detach stops the worker unless `--keep-alive` was explicitly supplied.
-Shutdown joins the current bounded work and releases the owner lock.
+Logical mode advances only explicitly requested work. `--realtime` enables a
+bounded 0.25-second scheduler that advances at most one transition of a running
+`main` computer per heartbeat; achieved transition cadence and backlog are
+reported in the runtime descriptor. A pause preserves the last committed
+regional image. The last attached client's detach stops the worker unless
+`--keep-alive` was explicitly supplied. Shutdown joins current bounded work and
+releases the owner lock.
 
-An unmigrated v1 store is rejected by normal startup. With the owner stopped,
-run the explicit `--migrate-v1` command against that store's `--data-home` before
-starting the v2 owner. Migration validates the old head, source bytes, and
-revocation fence; it preserves learned memory and starts an empty wave.
+An unmigrated v1 owner store is rejected by normal startup. With the owner
+stopped, run the explicit `--migrate-v1` command against its `--data-home`.
+Migration validates the old head, source bytes, and revocation fence before the
+v4 adapter opens the migrated owner state.
 
 The worker serves `/view` and `/v1/view/snapshot` on its private loopback
 endpoint. The viewer requires the worker's bearer authentication and exchanges
@@ -140,6 +580,73 @@ bearer secret private. Displayed colors come from a declared frozen-rest
 transfer measurement; instantaneous local quadrature rates and spatial
 pair-phase coherence are labeled separately. Filters, rendering, and bounded
 snapshot polling do not advance the field or admit observations.
+
+### Packet-aware reasoning
+
+[`cassi_field_cognition.py`](cassi_field_cognition.py) runs the packet work loop
+through the resident `cognition.field` semantic state. A reasoning episode holds
+a bounded work frontier under one root allowance, publishes a reservation before
+dispatch, consumes each child return exactly once against the published request
+identity, keeps host-executed readout, branch, and refinement items under
+reservations derived from their own contracts, and reuses the result of a
+completed item that carries the same content identity. Readouts return an
+estimate with a certified omitted-norm enclosure, so a decisive comparison,
+a tolerance-bounded estimate, or a refusal to resolve all come from the same
+bound. A refinement splits one active support and rewrites the hierarchy record
+it came from.
+
+A work item that declares no reservation holds the remaining allowance rather
+than the whole limit, so a second unknown-cost item still fits after the first
+one is charged. A selection Program published through the ordinary register
+path scores eligible items with bounded inputs (`age`, `base_priority`,
+`dependency_count`, `support_count`, `activation`, `has_support`) and must
+return a whole-number priority; an unusable or fractional program is refused.
+
+A correction publishes an invalidation barrier with a retained repair frontier.
+Dependency-bearing reads are refused until every known cause is checked, the
+barrier advances in bounded quanta through `advance-invalidation`, and reopening
+an invalidated episode repairs its premise, assembly, and hierarchy references,
+releases the reservation that the changed dependency made ineligible, and
+re-dispatches the work.
+
+A work item may declare a `source_binding` naming an admitted evidence revision
+and a byte span inside it, and the runtime refuses a binding the episode cannot
+support: a revision never admitted to that episode, or a span outside the one
+it admitted, ends the move with `INVALID_REASONING_EPISODE`, while a revision
+the owner holds no evidence for is refused earlier as `SOURCE_NOT_FOUND`.
+Admission carries the same pair through `admit-reasoning-input`, so the
+admitted rows and the citing items refer to one identity. Every dispatch row
+then records `selected_source_binding` beside `selected_support` — the cited
+evidence span and the packet support spans the read actually touched — and both
+fall under the row's `snapshot_sha256`.
+
+```powershell
+python -m pytest test_cassi_packet_reasoning.py test_learning_computer_owner.py test_resonant_owner.py -q
+python run_cassi_reasoning_scenario.py --receipt _diag/reasoning-scenario.json
+```
+
+The scenario runs one continuing world through premise correction, repair, and
+supported completion with no repeated observation and an unchanged allowance,
+compares the declared work-selection methods (`baseline`, `hierarchy`,
+`static`, `live`, `shuffled`, `acquired`) on one live frontier, refuses a
+composition whose packets come from different source states, reads a coarse
+bound that stays unresolved, splits that support, and reads the refined child
+with a decisive interval. Eligible scores are reported for every method, so a
+tie is visible as a tie; an acquired selector that weights the packet cue
+reproduces the live ordering on the same frontier.
+
+A final arm renders one evidence revision through the owner, admits a byte span
+of it between two dispatches, and cites a narrower span inside it, so
+`_diag/reasoning-scenario.json` carries the admitted identity, the cited span,
+and the resolved packet support next to each other, together with the three
+refusals. `run_packet_trace_check.py` stages that arm with the selection arms
+and re-validates each dispatch row's digest against its body.
+
+The run establishes the mechanical behavior and the accounting. It does not
+establish that packet scheduling improves adequacy or cost at a matched
+allocation, and no such advantage is claimed. The refused-read path is
+exercised under a narrow work bound, because a correction at the default bound
+settles its invalidation inside the operation.
 
 ## Knowledge-bearing field transceivers
 
@@ -1018,12 +1525,16 @@ perfect matching and complete source assignment. A complete UNSAT certificate
 provides an ordered conflict, odd-residual, or Tutte-barrier witness for every
 cubic assignment.
 
-This is also the first continuation whose full source class is NP-complete.
-Cubic Planar Monotone 1-in-3 SAT is the special case in which every variable
-has degree three, so `k=n`; Moore and Robson prove that subfamily NP-complete.
-The field therefore reaches the bounded-occurrence hardness seam, but retains
-an exponential dependence on the unbounded parameter. Replacing that
-dependence by a polynomial for all recognized inputs would establish
+The recognized degree-two/degree-three source language is NP-complete: it
+contains Cubic Planar Monotone 1-in-3 SAT as the all-degree-three subfamily,
+and the decision language is in NP.  Moore and Robson prove that this cubic
+planar subfamily is NP-complete.  This hardness statement belongs to the
+occurrence-alias algorithm, not to the blossom class above: the blossom
+recognizer additionally requires a complete one-use parity pairing and a
+connected quotient, and no reduction identifying those classes has been
+claimed here.  On the all-degree-three subfamily `k = n`, so this field still
+has an exponential dependence on its unbounded parameter.  Replacing that
+dependence by a polynomial for all recognized alias inputs would establish
 `P = NP`.
 
 Run the scenario, independent checker, and behavioral suite with:
@@ -1046,6 +1557,158 @@ matching, odd-order obstruction, or Tutte barrier, evaluates all SAT
 assignments, truth-tables every enumerated input, decodes all tensor
 coordinates, verifies digests and counters, and rebuilds every aggregate. All
 65 certificates and four fail-closed controls pass.
+
+### Projected obstruction cuts at the alias boundary
+
+[`cassi_alias_obstruction.py`](cassi_alias_obstruction.py) derives a clause over
+the degree-three alias variables from an exact residual obstruction. An
+overfilled source clause yields a two-literal cut. A failed residual matching
+yields a Tutte barrier together with selected odd components and explicit
+boundary witnesses. The witnesses pin cubic variables so degree-two edges
+cannot reopen the certified components under a different alias completion.
+The returned cut is false at the triggering alias assignment and is checked
+against the source incidence rather than accepted as a full-assignment ban.
+
+[`cassi_alias_cut_field.py`](cassi_alias_cut_field.py) retains those cuts in
+the same immutable float64 field as the alias search and restarts the existing
+ClauseField over the retained cut CNF. The field owns the source, cuts,
+resolution journal, backend state, result assignment, and exact work
+counters. Cut, proof, journal, or transition capacity reports `exhausted`;
+neither a partial alias assignment nor a failed matching is promoted to SAT or
+UNSAT.
+
+The connected analysis receipt covers 11 sources from the matched control
+through 14 clauses and 10 cubic variables: six SAT and five UNSAT cases, all
+with connected incidence graphs and exact agreement with the exhaustive
+enumeration control. It retains 89 cuts, including 35 overfill and 54 Tutte
+cuts; 28 Tutte cuts carry boundary witnesses. The independent verifier checks
+all 89 cuts, all 11 small cases by exhaustive source enumeration, 36
+certificate tamper refusals, and every restart. These are finite-source
+correctness and work measurements. They do not remove the `2^k` dependence or
+establish a polynomial algorithm for the NP-complete cubic subfamily.
+The focused suite also relabels the same source so its cubic variables have
+non-contiguous IDs `(2, 4, 7, 10)`, then exhaustively checks every alias
+assignment and the complete field result. The full cut-guided solve must retain
+at least one cut before returning. Alias-bit positions are therefore not
+treated as source variable IDs.
+
+Run the analysis, independent verifier, and focused tests with:
+
+```powershell
+python run_alias_cut_analysis.py
+python verify_alias_cut_field.py
+python -m pytest test_alias_cut_field.py -q
+```
+
+### Source-clause boundary of projected cuts
+
+The cut field's exponential seam can be measured more precisely without
+mistaking a finite cut count for a complexity result.  On a fully cubic source
+with `c` clauses, every variable has degree three, so the alias cube has
+`k = c` coordinates.  The ordinary exact-one CNF expansion contains exactly
+four clauses per source triple: one positive three-literal clause and three
+negative pair clauses.  The complexity receipt compares every production cut
+with that finite source clause basis.
+
+The case receipt contains 13 connected sources: eight fully cubic cases and
+five mixed degree-two/degree-three cases.  The field returns `5 SAT`, `7 UNSAT`,
+and one explicit `exhausted` control.  It retains 114 cuts overall, including
+93 from fully cubic cases; the largest fully cubic case retains 21 cuts against
+the source-CNF basis size `4c = 48`.  A separate candidate scan covers the
+`2^k` cubes for every case source with at most ten variables, totaling 1,228
+candidate assignments and 137 distinct candidate cuts.
+
+The receipt also carries an explicit producer-path census with
+`min_clauses = 4`, `max_clauses = 6`, and `max_variables = 6`.  Its universe is
+every labelled simple canonical `c`-by-`c` incidence matrix in that range with
+three ones in every row and column; duplicate source triples are excluded.
+This is a labelled triple-set census, not an enumeration of unlabelled
+3-regular bipartite graphs modulo isomorphism: variable labels `1..c` remain
+fixed, clauses are identified by their selected triples, row permutations are
+not distinct, and no graph-isomorphism quotient is applied.  For each `c`,
+the exact pre-filter scale is
+`C(C(c,3), c)`: `c = 4` gives `1 -> 1` accepted source, `c = 5` gives
+`252 -> 12`, and `c = 6` gives `38,760 -> 330`.  Thus the complete cutoff
+at `c = 6` examines 39,013 labelled row subsets, rejects 38,670 on the
+degree-three filter, and retains 343 sources.  These counts pin the finite
+universe before any candidate-cube audit; they are not an asymptotic estimate
+for the number of unlabelled incidence graphs.
+The rejection count is taken from that actual lexicographic combinations
+pass: every raw row subset is examined once, and it is retained exactly when
+all variable degrees equal three after all `c` triples are selected.  It is
+an enumeration accounting identity, not a solver branching or complexity
+bound.
+A separate count-only c7 preflight uses an exact subset dynamic program; it is
+not part of the producer receipt and does not materialize c7 formulas or
+certificates.  Its state is `(i, r, d_1, ..., d_c)`, where `i` is the next
+triple index, `r` is the number selected, and `d_j` are current variable
+degrees.  The recurrence assigns each labelled triple subset one unique
+include/exclude path and counts it exactly once, although equivalent partial
+states are aggregated; a triple is included only when no degree exceeds
+three, and a terminal state counts only when `r = c` and every degree is
+three.  The c7 raw row-subset universe
+has `C(35, 7) = 6,724,520` subsets, and the count-only preflight finds 11,205
+accepted sources.
+For c4 through c6, both DP implementations agree with the single bounded
+direct-combinations reference.  At c7, the runner and verifier DPs agree on
+11,205; duplicate combinations loops are not treated as independent proof.
+The census contains 343 sources, all connected, and checks all 21,520 cubic
+assignments.  It observes 480 SAT and 21,040 UNSAT candidate branches,
+producing 18,653 overfill and 2,387 Tutte certificate emissions.
+The producer precedence audit found zero violations: an assignment with an
+overfilled clause emitted an `overfill` cut for its first overfilled clause,
+and no `overfill` cut was emitted when no clause was overfilled.  This is an
+observed property of the bounded producer path, not a general lemma about
+fully cubic assignments.
+
+The census keeps two counts separate.  Summed per source, its 5,807 distinct
+full certificate records and 5,807 distinct signed projected literal clauses
+are measured independently; the full record includes barrier, component, and
+boundary-witness payloads, while the projection is only the ordered signed
+literal tuple.  Every one of the 21,040 emitted producer cuts was classified
+as an exact source-CNF clause in this bounded census, and its counterexample
+list is empty.  A nonempty list would be retained and reported as a
+counterexample rather than forced into the exact relation.
+
+The bounded producer-path census therefore shows that every emitted fully
+cubic cut was an exact source-CNF clause, while generic caller-supplied
+`derive_obstruction_cut` barriers are outside that quantifier.  This finite
+observation is not a polynomial algorithm: the cubic family still has
+`k = c`, and the candidate census remains exponential.  It does not bound cut
+discovery, matching work, proof storage, or the number of records for
+arbitrary mixed occurrences.  Generic nonempty barriers can carry unions of
+several source triples; their full certificates must not be conflated with
+their signed projections.
+
+The mixed controls show why the source-clause comparison cannot be promoted to
+the recognized alias class as a whole.  Twelve scanned mixed cuts have no
+source-CNF subsumption witness, and one control is a strict weakening of a
+source clause.  Other controls carry nonempty Tutte barriers, boundary
+witnesses, and both positive and negative cubic pins.  Those pins are required
+to prevent degree-two boundary edges from reopening the selected residual
+components; they are not artifacts of a source-triple CNF expansion.
+
+`verify_alias_cut_complexity.py` reconstructs the bounded simple source
+universe without importing the runner or obstruction producer.  It checks
+every enumerated source, every producer emission and cube-to-record mapping,
+the exact signed source-CNF relation, all retained and control cuts, the
+fully cubic source-refutation ledgers, and the 13-case source truth tables.
+It also applies 51 malformed certificate mutations and requires refusal.  The
+run and verifier therefore establish finite cut-boundary evidence and
+preserve the explicit `SAT/UNSAT/exhausted` distinction; they do not establish
+`P = NP` or `P != NP`.
+
+Run the measurement and independent checker with:
+
+```powershell
+python run_alias_cut_complexity.py
+python verify_alias_cut_complexity.py
+```
+
+The receipt is `_diag/alias_cut_complexity.json`.  The next open obligation is
+uniform: either prove polynomial total cut generation and search for every
+recognized cubic source, or construct a family on which this cut language
+retains an exponential obstruction.
 
 ### Exact-cover and uniform-matchgate compression results
 
@@ -1184,6 +1847,1164 @@ The diagnostic `cubic_kernel_basis_width` finds the exact optimum by
 enumerating every rank-sized column subset. Its work is
 `binomial(n,rank) poly(n)`, so it is evidence and a certificate generator, not
 a polynomial basis-finding algorithm.
+
+### Planar cubic obstruction screen
+
+The next structural screen narrows the cubic exact-one boundary to the
+incidence graphs most relevant to the planar obstruction question: simple
+bipartite clause-variable graphs that are connected, planar, and
+vertex-3-connected. For every registered formula,
+`run_planar_cubic_obstruction_probe.py` enumerates every rank-sized column
+subset, retains every actual column basis, and minimizes the largest
+pivot-free support over that complete finite census. A basis with width at
+most two would put the residual alphabet constraints in the supplied
+polynomial 2-SAT regime; the screen does not assume that such a basis exists.
+
+The receipt contains four deterministic fixtures: the cube, a hexagonal prism,
+the Heawood/Fano incidence graph as a nonplanar control, and a six-piece
+hexagonal vertex-sum chain with 31 variables. The first two and the chain are
+planar and vertex-3-connected; the Heawood control is cubic and
+vertex-3-connected but fails the planar rotation-system search. Small cases
+carry direct truth-table labels. The 31-variable chain is labeled by an
+independent exact kernel-alphabet check.
+
+The measured screen checked `4,512` rank-sized column subsets and found `78`
+actual column bases. All four fixtures admit a basis of width at most two,
+including the planar chain; no registered fixture is an obstruction. The
+independent verifier rebuilds the formulas without importing either the
+runner or `cubic_kernel_decision.py`, checks the exhaustive rotation systems
+for the small controls, validates the supplied chain embedding by
+`V - E + F = 2`, checks deletion of every one- and two-vertex set, and
+recomputes the rational basis census.
+
+Run the finite screen and its independent verifier with:
+
+```powershell
+python run_planar_cubic_obstruction_probe.py
+python verify_planar_cubic_obstruction_probe.py
+python -m pytest test_planar_cubic_obstruction_probe.py -q
+```
+
+The receipt is `_diag/planar_cubic_obstruction_probe.json`. This is a
+finite-family negative result: it neither classifies all planar cubic
+incidence graphs nor supplies a polynomial SAT algorithm, and it does not
+resolve P versus NP. The useful boundary left open is an unbounded
+planar, internally 3-connected cubic family for which every internal column
+basis has width at least three, or a proof that such a family cannot exist.
+
+### Exclusive truth-state cell screen
+
+The next finite screen tests a narrower composition hypothesis. A width-two
+internal basis exposes each original column as a support-two kernel vector.
+For two selected columns, the diagnostic records the assignments on which each
+support vector is zero or nonzero. An `exclusive truth-state pair` is required
+to realize both `01` and `10` states, with nonzero kernel rank, distinct
+projective kernel directions, and distinct primal incidence columns. The last
+condition is essential: equal primal columns are not two independent truth
+ports even when their kernel signatures look complementary.
+
+[`run_cubic_truth_state_cell_probe.py`](run_cubic_truth_state_cell_probe.py)
+enumerates the complete width-two basis census for six frozen connected cubic
+fixtures: the planar prism, SAT and UNSAT support-three controls, the greedy
+exchange trap, and the two all-bases ternary controls. It then checks six
+degree-preserving two-switch compositions of the two support-three controls.
+The independent verifier rebuilds the formulas and rational kernel bases
+without importing the runner or `cubic_kernel_decision.py`.
+
+The receipt checked `1,313` rank-sized subsets, `600` independent ground
+bases, and `104` width-two bases. It found `5` exclusive-looking pairs but
+`0` eligible truth-state pairs: `2` were rejected because the primal
+incidence columns were identical. In the support-three SAT control, the
+diagnostic pair `(7, 9)` has state counts `01=12` and `10=12`, kernel pair
+rank `2`, and nonparallel kernel directions, but both primal columns have
+support `(5, 8, 9)`. This is a concrete escape from the unfiltered
+truth-state heuristic, not a hardness result.
+
+The six switched compositions checked `51,408` rank-sized subsets and
+contained `1,440` width-two bases. One composition had clean local states,
+but its full relation contains all four two-bit states
+(`01|01`, `01|10`, `10|01`, `10|10`, each with count `36`), so it is not a
+proper binary relation. The remaining five compositions either admit an
+escape basis or lose a local state. The useful-binary-relation count is
+therefore `0`.
+
+Run the screen and its independent verifier with:
+
+```powershell
+python run_cubic_truth_state_cell_probe.py
+python verify_cubic_truth_state_cell_probe.py
+python -m pytest test_cubic_truth_state_cell_probe.py test_cubic_kernel_decision.py -q
+```
+
+The receipt is `_diag/cubic_truth_state_cell_probe.json`. This is a bounded
+negative result: it rejects the unfiltered two-port composition idea on the
+registered controls, but it does not classify
+`CUBIC-INTERNAL-2-BASIS` and does not provide a SAT reduction. The next
+theorem-level step is now explicit: either prove that every valid exclusive
+pair must satisfy a stronger invariant that composes under a controlled
+gadget, or construct a direct SAT-to-cubic incidence reduction whose output
+width-two basis can be decoded without allowing duplicate-column or
+cross-gadget pair-span escapes.
+
+
+### Complete admissible-cell certificate screen
+
+The next screen turns the truth-state heuristic into a finite certificate over
+the complete width-two basis-exchange graph. A graph vertex is one
+lexicographically ordered width-two original-column basis. Two vertices are
+adjacent exactly when their basis symmetric difference has size two. For every
+original-column pair, the certificate records all `00/01/10/11` memberships,
+the full graph and `01`/`10` fibre components, every single-exchange
+truth-state flip, all auxiliary columns with identical membership signatures,
+and every alternate pair inducing the same partition up to orientation.
+
+An admissible pair is deliberately a sufficient finite certificate, not a
+claimed necessary characterization of every possible gadget. It requires
+exclusive `01`/`10` states, nonzero projectively independent kernel columns,
+distinct primal incidence supports, a connected full exchange graph, connected
+truth fibres, at least one cross-state exchange, no auxiliary-column shadow,
+and no alternate pair partition. Composition rows additionally audit
+cross-component shadows and alternate pair witnesses.
+
+The frozen domain is the same six connected cubic controls and six explicit
+two-switch compositions as the preceding truth-state screen. The complete
+screen checked `192` candidate pairs, with `5` exclusive pairs and `0`
+admissible pairs. Two pairs have identical primal incidence supports;
+`21` candidate classifications have auxiliary-column shadows, `21` have
+disconnected truth fibres, and `115` have no single-exchange truth flip.
+The two no-width-two controls are retained as exact `not_applicable` negative
+controls rather than silently omitted.
+
+The six compositions checked `51,408` rank-sized subsets and `1,440`
+width-two bases. They have `0` useful binary relations, `10` explicit
+cross-component column-shadow witnesses, `0` alternate cross-component pair
+partitions, and `0` escape-free compositions. The result is:
+
+```text
+no_admissible_cell_in_frozen_fixtures
+```
+
+This is stronger than the preceding duplicate-column rejection only on the
+registered finite domain. It does not prove that no admissible cell exists in
+another cubic formula or under another sufficient certificate, and it does
+not classify `CUBIC-INTERNAL-2-BASIS`. The next theorem target is now
+specific: either prove that every potential cell fails one of these escape
+conditions, or relax the certificate only with a mathematically justified
+condition that can support a direct SAT reduction.
+
+Run the producer, independent verifier, and focused controls with:
+
+```powershell
+python run_cubic_admissible_cell_probe.py
+python verify_cubic_admissible_cell_probe.py
+python -m pytest test_cubic_admissible_cell_probe.py test_cubic_truth_state_cell_probe.py test_cubic_kernel_decision.py -q
+```
+
+The receipt is `_diag/cubic_admissible_cell_probe.json`. It contains the
+frozen formula and composition digests, every width-two basis-exchange graph,
+all pair classifications and witnesses, cross-component composition escape
+records, aggregate rejection counts, and the bounded assessment. The
+independent verifier rebuilds the formulas, exact rational kernels, basis
+censuses, exchange graphs, partitions, and compositions without importing the
+producer or `cubic_kernel_decision.py`.
+
+### Exchange-boundary certificate screen
+
+The complete admissible-cell certificate leaves five exclusive `01`/`10`
+port pairs in the frozen connected cubic controls. The exchange-boundary probe
+measures the next local invariant instead of treating those pairs as gadgets.
+For every exchange-graph edge crossing from `01` to `10`, it orients the edge
+from `01` to `10`, identifies the common basis, and derives the exact
+one-dimensional kernel relation on the common columns plus the two exchanged
+ports. Each of the five retained pair records also stores its complete exchange
+graph, truth fibres, auxiliary-shadow and alternate-pair diagnostics, and
+rejection reasons.
+Ports use original variable-column numbers, one-based; exchange-graph vertices
+use zero-based indices into the lexicographically ordered basis list.
+
+The source reconstruction accounts for all `363` original-column pairs across
+the six fixtures: `192` pairs are attempted and checked in the four exact
+width-two fixtures, while `171` pairs belong to the two exact no-width-two
+fixtures and are explicitly `not_applicable`. No pair is classified against
+an empty basis family.
+
+The exact boundary screen found:
+
+| fixture | exclusive ports | crossing edges | remaining pair status |
+|---|---:|---:|---|
+| `support-three-sat` | `(7, 9)` | `12` | duplicate primal incidence |
+| `greedy-exchange-trap-sat` | `(1, 4)`, `(5, 7)`, `(6, 9)` | `4` each | projectively parallel kernel columns |
+| `support-three-unsat` | `(3, 10)` | `30` | duplicate primal incidence |
+
+All `54` crossing edges remove the right port and add the left port, and all
+`54` exact relations have nonzero coefficients on both exchanged ports. This
+is a finite local identity on the frozen exchange graphs. It does not prove a
+universal exchange-boundary theorem, make a rejected pair admissible, or show
+that a boundary edge causes an auxiliary shadow or alternate partition.
+
+Run the producer, independent verifier, and focused controls with:
+
+```powershell
+python run_cubic_exchange_boundary_probe.py
+python verify_cubic_exchange_boundary_probe.py _diag/cubic_exchange_boundary_probe.json
+python -m pytest test_cubic_exchange_boundary_probe.py -q
+```
+
+The receipt is `_diag/cubic_exchange_boundary_probe.json`. It stores the
+candidate-pair total plus attempted, checked, and `not_applicable` counts.
+The independent verifier imports neither the producer nor the admissible-cell
+probe; it rebuilds the frozen formulas, exact rational kernels, complete
+width-two censuses, candidate accounting, exchange graphs, exclusive pairs,
+boundary orientations, and common-basis relations.
+
+### Exclusive-pair distance-one neighborhood screen
+
+The exchange-boundary screen leaves two complementary one-defect seeds: one
+exclusive pair has independent kernel columns but duplicate primal incidence,
+while two pairs have distinct primal supports but projectively parallel kernel
+columns. The neighborhood probe freezes those two formulas and three
+designated pairs, generates every legal degree-preserving incidence
+two-switch, removes base-equivalent switches, canonicalizes and deduplicates
+the remaining formulas, and runs the complete width-two basis and pair
+certificates on every distinct neighbor.
+
+The exact distance-one accounting is:
+
+| quantity | count |
+|---|---:|
+| legal switch specifications | `860` |
+| base-equivalent specifications | `16` |
+| duplicate non-base specifications | `80` |
+| distinct non-base neighbors | `764` |
+| connected / exact-census neighbors | `764 / 764` |
+| neighbors with / without width-two bases | `754 / 10` |
+| designated pair cases | `1,136` |
+| checked / `not_applicable` / inconclusive pair cases | `1,116 / 20 / 0` |
+| exclusive pair cases | `236` |
+| eligible / admissible pair cases | `0 / 0` |
+
+All `128` exclusive neighbors of the independent-kernel seed retain identical
+primal incidence. All `108` exclusive pair cases from the distinct-support
+seed retain projectively parallel kernel columns. The result is
+`finite_distance_one_search_null`: no single legal switch removes the final
+degeneracy while preserving exclusivity in this frozen domain. This does not
+prove the exclusive-pair degeneracy conjecture, rule out a witness at distance
+two or in another formula, classify the width-two problem, or bear on
+`P = NP`. The frozen domain contains no genuine `admissible = true` case, so
+the tests do not fabricate one.
+
+Run the producer, standalone verifier, and exhaustive regression controls with:
+
+```powershell
+python run_cubic_exclusive_pair_neighborhood_probe.py
+python verify_cubic_exclusive_pair_neighborhood_probe.py _diag/cubic_exclusive_pair_neighborhood_probe.json
+python -m pytest test_cubic_exclusive_pair_neighborhood_probe.py -q
+```
+
+The receipt is
+`_diag/cubic_exclusive_pair_neighborhood_probe.json`, schema
+`cassifi.cubic-exclusive-pair-neighborhood-probe.v1`. The verifier imports no
+runner or production kernel, switch, or admissibility implementation. It
+independently reconstructs both seed formulas, all `860` switch
+specifications, all `764` canonical neighbor formulas, exact rational
+elimination and basis censuses, every designated-pair classification, both
+accounting identities, and the finite assessment.
+
+### Cubic exclusive width-barrier screen
+
+The distance-one result separates the remaining degeneracy question from the
+full admissibility predicate. Write `v_j` for original column `j` in the
+canonical RREF kernel coordinates recorded by the receipt. A different
+kernel-row basis applies one common invertible linear map to every `v_j`, so
+pair rank, projective dependence, and clause zero-sum relations are unchanged.
+Width is defined by re-expressing every column in each selected
+original-column ground basis; those coefficient supports are also unchanged
+under the common map. The barrier statement therefore concerns the represented
+dual matroid rather than raw support in an arbitrary ambient coordinate system.
+If `rank(v_p, v_q) = 2`, dual-matroid basis extension gives an
+ordinary ground basis containing both ports, with state `11`. If the two
+weight-three primal incidence columns are distinct, they are independent;
+primal basis extension and basis complementation give an ordinary dual ground
+basis containing neither port, with state `00`. An eligible pair is therefore
+a two-sided width barrier: ordinary `00` and `11` bases exist, while the
+complete width-two family realizes only `01` and `10`.
+
+This barrier is not forbidden for general rational vector configurations. A
+six-vector positive control has `16` ordinary bases and `4` width-two bases,
+with minimum state widths
+
+```text
+00 -> 3
+01 -> 2
+10 -> 2
+11 -> 3
+```
+
+so the predicate fires. A rank-two four-vector control whose every basis has
+width at most two rejects the predicate. The positive and negative branches
+make the zero-result check nonvacuous. Neither control is claimed to be a
+cubic incidence kernel.
+
+The durable screen then checks every original-column pair in two bounded cubic
+domains:
+
+| quantity | frozen seeds plus all distance-one neighbors | deterministic simple `n=12` corpus |
+|---|---:|---:|
+| formulas | `766` | `20,000` |
+| connected formulas | `766` | `19,993` |
+| exact ground-basis censuses | `766` | `2,853` |
+| with / without width-two bases | `756 / 10` | `2,842 / 11` |
+| checked pair cases | `49,896` | `187,572` |
+| exclusive pairs | `343` | `252` |
+| eligible / admissible pairs | `0 / 0` | `0 / 0` |
+
+The first domain accounts for all `50,556` pair opportunities: `49,896` are
+checked on formulas with width-two bases and `660` are `not_applicable`. Its
+exclusive pairs split into `181` rank-two pairs with identical primal
+incidence and `162` rank-below-two pairs with distinct incidence. The random
+stream uses seed `0xE11B1E`; it accepts `20,000` unique formulas after
+`490,819` configuration attempts and records the entire draw stream digest.
+The connected nullity histogram is
+`0:6202, 1:10938, 2:2714, 3:138, 4:1`. Rank dimension excludes `17,140`
+connected formulas before census. Nullity at most two cannot realize a
+two-sided width barrier because every ordinary basis then has width at most
+two, so only `139` random formulas reach the relevant nullity-three-or-higher
+target. The `252` random exclusive pairs split into `85` rank-two/identical,
+`49` rank-below-two/distinct, and `118` rank-below-two/identical cases.
+
+Across both domains the screen covers `20,766` cubic formulas, performs
+`237,468` applicable all-pair checks, finds `595` exclusive pairs, and finds
+no eligible or admissible pair. The
+finite result is:
+
+```text
+no_eligible_pair_in_two_bounded_cubic_domains
+```
+
+This does not establish the exclusive-pair degeneracy conjecture or a
+cubic-specific impossibility theorem, and it does not classify the width-two
+problem or bear on `P = NP`. The positive vector control also rules out a proof
+from abstract basis exchange alone. The sharp next target is the extra cubic
+incidence structure: kernel columns in every clause obey a zero-sum triple
+relation, every column participates in three such relations, and the complete
+configuration sums to zero. A targeted realization search or structural proof
+must decide whether a two-sided width barrier can coexist with that connected,
+simple, three-regular zero-sum presentation.
+
+Run the producer, independent verifier, and fast controls with:
+
+```powershell
+python run_cubic_exclusive_width_barrier_probe.py
+python verify_cubic_exclusive_width_barrier_probe.py _diag/cubic_exclusive_width_barrier_probe.json
+python -m pytest test_cubic_exclusive_width_barrier_probe.py -q
+```
+
+The receipt is `_diag/cubic_exclusive_width_barrier_probe.json`, schema
+`cassifi.cubic-exclusive-width-barrier-probe.v1`. It stores both synthetic
+controls, every formula row in both bounded domains, switch provenance, the
+random generation stream and digest, exact census opportunity accounting,
+every exclusive-pair classification, aggregate counts, and the scoped
+assessment. The verifier imports no producer or production kernel, switch, or
+admissibility implementation. It independently rebuilds the formulas,
+generator, rational elimination, complete basis censuses, exchange checks,
+pair decisions, controls, aggregates, and assessment.
+
+### Complete bounded cubic-lift realization cover
+
+The width-barrier screen leaves one cubic-specific realization question:
+whether the general-vector positive barrier can occur as the exact kernel of a
+connected simple cubic incidence matrix. The bounded realization probe answers
+that question completely through nine clauses and nine variables.
+
+Every three-regular bipartite incidence graph decomposes into three perfect
+matchings. Relabeling variables makes the first matching the identity. The
+second and third matchings are then fixed-point-free permutations that are
+edge-disjoint from each other and from the identity. Simultaneous row and
+variable relabeling conjugates the second permutation, so the runner chooses
+one canonical permutation for each fixed-point-free cycle partition and
+enumerates every legal third permutation. It row-sorts and deduplicates the
+resulting formulas, then checks every variable pair. This is a complete
+existence cover up to row and variable relabeling, not a labeled or unlabeled
+graph multiplicity census.
+
+An independent small-order control also enumerates both nonidentity
+permutations in full. At orders four, five, and six, the full and
+cycle-representative streams induce exactly the same `1`, `1`, and `4`
+variable-isomorphism classes. Their respective full / representative
+row-sorted formula counts are `1 / 1`, `12 / 10`, and `330 / 136`.
+
+Across orders three through nine, the cover contains `204,667` unique
+row-sorted simple cubic formulas:
+
+| order | unique formulas | exact nullity at least three |
+|---:|---:|---:|
+| 3 | `0` | `0` |
+| 4 | `1` | `0` |
+| 5 | `10` | `0` |
+| 6 | `136` | `0` |
+| 7 | `1,154` | `0` |
+| 8 | `15,502` | `0` |
+| 9 | `187,864` | `1,402` |
+
+The rank screen uses the prime `1,000,003`. For an integer matrix,
+rank over the finite field cannot exceed rational rank, so modular rank above
+`n - 3` safely excludes rational nullity at least three. Every retained row is
+reranked over exact fractions. There are no modular false positives. Nullity
+below three cannot contain the target: in dimension at most two every ground
+basis has width at most two, while an eligible pair has ordinary `00` and
+`11` bases by basis extension.
+
+All `1,402` exact targets occur at order nine and are connected; `1,399` have
+nullity three and `3` have nullity four. Every target receives a complete
+ground-basis census. Their width-two profiles are `640` formulas with eight
+width-two bases, `199` with twenty, `560` with twenty-four, and the three
+nullity-four formulas with twenty-four. The exhaustive all-pair screen checks
+`50,472` pairs and finds `2,887` exclusive pairs. Of these, `1,920` have
+distinct primal incidence columns but kernel-pair rank below two, while `967`
+have rank two but identical primal incidence columns. No pair is eligible, and
+therefore no two-sided cubic width barrier is realized.
+
+```text
+no_cubic_width_barrier_in_bounded_symmetry_cover
+```
+
+This proves only the bounded statement under the stated simple square cubic
+formula convention. It does not prove the exclusive-pair degeneracy lemma for
+all orders, classify width-two basis recognition, or bear on `P = NP`. It does
+show that any counterexample in this domain has order at least ten. The sharp
+theorem target is now:
+
+> In a connected simple cubic incidence kernel, if two ports are exclusive
+> across the complete width-two basis family, then their kernel vectors have
+> rank below two or their primal incidence columns are identical.
+
+A targeted order-ten canonical search is the computational falsifier for that
+implication; another unconditioned random corpus is not. Run the producer,
+independent verifier, and fast behavioral controls with:
+
+```powershell
+python run_cubic_lift_realization_probe.py
+python verify_cubic_lift_realization_probe.py _diag/cubic_lift_realization_probe.json
+python -m pytest test_cubic_lift_realization_probe.py -q
+```
+
+The receipt is `_diag/cubic_lift_realization_probe.json`, schema
+`cassifi.cubic-lift-realization-probe.v1`. It stores the bounded-domain
+definition, matching-factorization coverage proof, independent small-order
+quotient control, generation and formula-stream digests, compact exact target
+profiles, complete basis and exclusive-pair stream digests, aggregate counts,
+and bounded assessment. The verifier imports neither the producer nor a
+production kernel implementation and reconstructs the complete cover from
+standard-library arithmetic.
+
+### Exclusive-pair degeneracy structure
+
+The bounded lift cover determines more than the absence of an eligible pair.
+The structure probe independently reclassifies every one of the `50,472`
+variable-pair cases in all `1,402` nullity-at-least-three targets and retains
+the complete width-two basis family for each target. All `2,887` exclusive
+pairs satisfy the measured implication:
+
+```text
+exclusive -> dual-parallel or primal-incidence twins
+```
+
+Here `dual-parallel` means that the two exact rational kernel columns have rank
+below two, while primal-incidence twins are equal columns of the clause
+incidence matrix. The implication has zero violations in the complete
+order-nine target census. It is not a tautology: the six-vector rational
+barrier from the preceding screen has an explicitly reconstructed orthogonal
+primal representation, an exclusive pair, dual-pair rank two, and primal-pair
+rank two. The generalized implication therefore records one violation on that
+noncubic positive control. A second noncubic control realizes all four
+width-two states and is correctly nonexclusive.
+
+The converse is false even inside the bounded cubic census. There are `4,799`
+degenerate but nonexclusive pairs, all dual-parallel; no primal-incidence twin
+is nonexclusive. A stronger finite mode rule nevertheless holds without a
+mismatch:
+
+- the `640` formulas with no primal twins have exactly three exclusive pairs,
+  equal to their three dual-parallel pairs, for `1,920` pairs total;
+- the remaining `762` formulas have primal twins, and their exclusive pairs
+  are exactly those twins: `560` formulas have one, `199` have two, and `3`
+  have three, for `967` pairs total.
+
+The complete width-two basis hypergraphs reduce under variable relabeling to
+four canonical families. Their formula multiplicities are `640`, `199`, `560`,
+and `3`, matching four outcome-free structural profiles:
+
+| formulas | nullity | ordinary basis widths | width-two bases | dual projective class sizes | primal incidence class sizes |
+|---:|---:|---|---:|---|---|
+| `640` | `3` | `2:8, 3:43` | `8` | `2,2,2,1,1,1` | `1,1,1,1,1,1,1,1,1` |
+| `199` | `3` | `2:20, 3:4` | `20` | `5,1,1,1,1` | `2,2,1,1,1,1,1` |
+| `560` | `3` | `2:24, 3:12` | `24` | `3,2,2,1,1` | `2,1,1,1,1,1,1,1` |
+| `3` | `4` | `2:24, 3:12` | `24` | `3,1,1,1,1,1,1` | `2,2,2,1,1,1` |
+
+This is an exact finite classification, not an arbitrary-order degeneracy
+theorem. The next decisive fork is to prove that the two observed degeneracies
+admit size-decreasing substitutions whose residual constraint language stays
+tractable, while a targeted canonical order-ten search remains the
+falsification backstop for a new nondegenerate family. Run the producer,
+independent verifier, and focused controls with:
+
+```powershell
+python run_cubic_degeneracy_structure_probe.py
+python verify_cubic_degeneracy_structure_probe.py _diag/cubic_degeneracy_structure_probe.json
+python -m pytest test_cubic_degeneracy_structure_probe.py -q
+```
+
+The receipt is `_diag/cubic_degeneracy_structure_probe.json`, schema
+`cassifi.cubic-degeneracy-structure-probe.v1`. It binds the complete lift
+receipt and formula-cover digests, stores compact per-target classifications,
+the four canonical basis families and structural profiles, both noncubic
+controls, and all aggregates. The verifier does not import the audited
+structure runner or a production kernel implementation. It uses the
+independent lift reconstruction, separately redoes the rational pair analysis
+and degree-preserving canonicalization, and compares the full receipt.
+
+### Representative degeneracy quotients
+
+The next bounded experiment converts the two Result AA categories into exact
+substitutions on one formula representative of each canonical width-two
+family. The representative is the lexicographically first retained target in
+the family, and every one of its exclusive pairs is exercised. This gives nine
+quotient cases: six primal-incidence twins and three dual-parallel pairs.
+
+For twins, the quotient introduces the Boolean aggregate `y = x_p + x_q` and
+uses the canonical lift `x_p = y, x_q = 0`; the omitted `y = 1` lift is the
+symmetric assignment `x_p = 0, x_q = 1`. For the three dual-parallel cases,
+exact affine projection independently yields the equality relation
+`{00, 11}`. The quotient therefore identifies the pair through one Boolean
+parameter.
+
+Complete truth-table evaluation gives zero projected-solution-set mismatches
+in all nine cases. Every first quotient retains at least one width-two
+ground-set basis. Three quotients have nullity two and terminate immediately;
+six retain an exclusive pair. Deterministic reduction of the lexicographically
+first remaining pair reaches:
+
+- nullity at most two in six paths; and
+- a nullity-three residual with no exclusive pair and exactly one width-two
+  basis in the three dual-family paths.
+
+The latter paths take two additional equality quotients after the first. Their
+terminal systems each have six variables, four Boolean solutions, and three
+distinct three-variable exact-one rows, each repeated three times. All nine
+paths therefore reach a constructive width-two terminal, with at most two
+recursive steps after the first quotient.
+
+Result AC below extends the same exact quotient and certificate checks to all
+`2,887` exclusive pairs, closing this representative-level caveat for the
+complete retained order-nine population.
+
+Run the producer, independent verifier, and focused controls with:
+
+```powershell
+python run_cubic_degeneracy_quotient_probe.py
+python verify_cubic_degeneracy_quotient_probe.py _diag/cubic_degeneracy_quotient_probe.json
+python -m pytest test_cubic_degeneracy_quotient_probe.py -q
+```
+
+The receipt is `_diag/cubic_degeneracy_quotient_probe.json`, schema
+`cassifi.cubic-degeneracy-quotient-probe.v1`. It binds the Result AA and lift
+receipts, records every substitution matrix, affine offset, complete solution
+count, quotient basis census, recursive trace, and terminal matrix. The
+verifier imports neither the quotient runner nor the production kernel. It
+independently reconstructs the rational affine spaces, Boolean projections,
+bases, exclusive pairs, transformations, traces, and full receipt.
+
+### Population-wide degeneracy quotients
+
+The complete population audit applies the Result AB substitutions to every
+exclusive pair of all `1,402` retained order-nine targets. This covers `2,887`
+first quotients: `967` primal-twin sum quotients and `1,920` dual-parallel
+affine quotients. Every dual relation is `{00, 11}`; every twin relation is
+`{00, 10, 01}` with the canonical lift used by Result AB.
+
+Complete Boolean enumeration finds zero projected-solution-set mismatches.
+Every first quotient retains a width-two basis. The first-quotient nullities
+are:
+
+| nullity | cases |
+|---:|---:|
+| `2` | `958` |
+| `3` | `1,929` |
+
+Deterministic recursive reduction reaches exactly four terminal structures:
+
+| family cases | steps after first quotient | terminal structure |
+|---:|---:|---|
+| `560` | `0` | nullity two, eight variables, three solutions, 20 width-two bases |
+| `398` | `0` | nullity two, eight variables, two solutions, 13 width-two bases |
+| `9` | `1` | nullity two, seven variables, three solutions, 11 width-two bases |
+| `1,920` | `2` | nullity three, six variables, four solutions, one width-two basis, and no exclusive pair |
+
+Thus all `967` primal-twin paths reach nullity at most two, while all `1,920`
+dual-parallel paths reach the same six-variable terminal form measured on the
+representative. No path exceeds two recursive steps, loses its projected
+Boolean solution set, or loses all width-two bases.
+
+The audit also compares each case with the behavior signatures measured on the
+target with the smallest formula SHA-256 in its canonical family. The
+signature binds
+the pair category, relation kind, first-quotient nullity, presence of a
+width-two basis and another exclusive pair, recursive step count, terminal,
+final nullity, and final width-two status. All `2,887` cases match a signature
+from their representative; there are zero novel population behaviors under
+that definition.
+
+This establishes constructive quotient closure for the complete retained
+order-nine census. It is not an arbitrary-order theorem. The remaining
+structural fork is an arbitrary-order proof that every exclusive width-two
+pair in a connected cubic incidence dual has one of these two quotient forms
+and that recursive quotienting preserves the required structure. A targeted
+canonical order-ten search for a nondegenerate exclusive pair is the direct
+falsification control.
+
+Run the population producer, independent verifier, and focused controls with:
+
+```powershell
+python run_cubic_degeneracy_quotient_population_probe.py
+python verify_cubic_degeneracy_quotient_population_probe.py
+python -m pytest test_cubic_degeneracy_quotient_population_probe.py -q
+```
+
+The receipt is `_diag/cubic_degeneracy_quotient_population_probe.json`, schema
+`cassifi.cubic-degeneracy-quotient-population-probe.v1`. It binds the Result AA
+and lift receipts and stores one compact record per pair, including the exact
+Boolean relation, quotient and terminal measurements, behavior signature, and
+digests of the full affine relation, recursive trace, and final instance. The
+verifier imports neither the population runner nor the production kernel. It
+reconstructs all `2,887` cases using the separate rational implementation,
+checks every compact field and digest, and compares the complete receipt.
+
+### Targeted order-ten extension search
+
+The immediate falsification control exhaustively extends the four canonical
+Result AA representatives by one cubic vertex. For every representative, it
+selects every size-three matching of old incidence edges, replaces those
+edges by the new variable `10`, creates the new three-variable row from the
+selected old variables, retains simple row-sorted formulas, and deduplicates
+by formula SHA-256. This is a targeted extension domain, not the complete
+order-ten symmetry cover.
+
+The generator visits `6,876` matching extensions. `6,240` are simple and
+deduplicate to `6,230` unique candidates; all `6,230` are connected. The
+independent exact rational basis profile runs on every retained candidate,
+not only on the `12` candidates with nullity at least three. Their complete
+nullity histogram is:
+
+| nullity | candidates |
+|---:|---:|
+| `0` | `1,485` |
+| `1` | `3,926` |
+| `2` | `807` |
+| `3` | `12` |
+
+All `6,230` connected candidates receive a complete exclusive-pair check.
+The `3,474` exclusive-pair cases are all `rank_below_two_identical`; there
+are zero rank-two/distinct eligible pairs. The nullity-three subset contains
+`36` exclusive-pair cases, also all `rank_below_two_identical`. Thus this
+targeted order-ten extension domain supplies no nondegenerate falsifier.
+Here `rank_below_two_identical` is the intersection of the two known
+degeneracy predicates, not a new nondegenerate mechanism: both the kernel
+columns are dependent and the primal incidence columns coincide.
+
+This result strengthens the finite pattern but does not prove the arbitrary
+order degeneracy conjecture: other order-ten cubic formulas are outside the
+extension domain. The next decisive branch is either an arbitrary-order proof
+that exclusive width-two pairs force the two observed degeneracies and that
+their exact quotients preserve the class, or a complete order-ten symmetry
+cover if its generation cost is made tractable. The targeted extension search
+must not be promoted to a general `P = NP` or cubic impossibility claim.
+
+Run the producer, independent verifier, and tamper controls with:
+
+```powershell
+python run_cubic_order10_targeted_probe.py
+python verify_cubic_order10_targeted_probe.py
+python -m pytest test_cubic_order10_targeted_probe.py -q
+```
+
+The receipt is `_diag/cubic_order10_targeted_probe.json`, schema
+`cassifi.cubic-order10-targeted-probe.v1`. It binds the raw Result AA
+structure and lift receipts, records the complete extension stream and every
+candidate profile, and distinguishes the all-connected pair denominator from
+the nullity-three target subset. The verifier imports neither the targeted
+runner nor the production kernel; it reconstructs source joins, generation,
+exact bases, pair records, digests, aggregates, and assessment with the
+separate rational implementation.
+
+### Complete order-ten canonical-cover screen
+
+The complete canonical matching-factorization cover was then measured with a
+bounded-memory feasibility pass. It scans all `12` fixed-point-free cycle
+partitions and all `43,545,600` third-match permutations in total
+(`3,628,800` for each partition stream), for `5,278,724` legal factorizations
+and `4,767,774` distinct-clause factorizations. Deduplication yields
+`2,605,584` unique row-sorted formulas.
+The screen retains only formula SHA-256 keys and modular-rank flags in a
+temporary on-disk SQLite index; it does not retain the formula population or
+per-partition lists in Python memory. The measured feasibility run used
+`419,500,032` bytes of temporary storage and a `24,403,968`-byte peak working
+set.
+
+The modular filter is a sound superset for the exact target: rational nullity
+at least three implies rational rank at most seven, and every rank-eight
+minor then vanishes as an integer and modulo the declared prime. Exactly `64`
+unique formulas have modular rank `7`; the remaining rank histogram is
+`8:35,422`, `9:993,111`, and `10:1,576,987`.
+
+The exact pass replays the complete source domain and profiles all `64`
+modular targets with rational arithmetic. Every target is connected, has
+exact rank `7` and nullity `3`, and has the same basis census: `8`
+independent original-column ground bases, each with maximum coefficient
+support `1`. The complete pair census checks `2,880` variable pairs and finds
+`192` exclusive pairs. Every one is `rank_below_two_identical`; there are zero
+rank-two/distinct eligible pairs and zero two-sided width barriers. Thus:
+
+> No nondegenerate exclusive pair occurs in the complete order-ten canonical
+> matching-factorization cover.
+
+This closes the order-ten branch of the declared cover, not the arbitrary-order
+problem. The strongest next move is a proof of the observed degeneracy
+mechanism: show that an exclusive width-two pair in a connected cubic
+incidence dual must either have dependent kernel-coordinate columns or
+identical primal incidence columns, then show the corresponding twin-sum or
+dual-affine quotient preserves the exact-one class and terminates. The
+alternative empirical branch is an order-eleven modular-target screen, but it
+should use the same digest-only/on-disk design rather than retaining the
+hundreds of millions of candidate tuples.
+
+Run the complete-cover producer and independent reconstruction with:
+
+```powershell
+python run_cubic_order10_feasibility_screen.py
+python verify_cubic_order10_feasibility_screen.py
+python run_cubic_order10_exact_target_probe.py
+python verify_cubic_order10_exact_target_probe.py
+python -m pytest test_cubic_order10_feasibility_screen.py -q
+python -m pytest test_cubic_order10_exact_target_probe.py -q
+```
+
+The receipts are `_diag/cubic_order10_feasibility_screen.json` and
+`_diag/cubic_order10_exact_target_probe.json`, with schemas
+`cassifi.cubic-order10-feasibility-screen.v1` and
+`cassifi.cubic-order10-exact-target-probe.v1`. Both independent verifiers
+reconstruct the declared source domain without importing their corresponding
+runner.
+
+
+### A concrete theorem-fork falsification
+
+The remaining theorem-level fork is now tested through one explicit
+polynomial-construction hypothesis rather than a general claim. The
+`greedy-pair-cover` constructor builds a kernel-coordinate basis one column at
+a time. At each step it chooses an independent column maximizing the number
+of coordinate columns covered by the selected set and its pairwise spans,
+with original-column order as the deterministic tie-breaker.
+
+The executable falsification target is precise:
+
+> Does this constructor find a width-two internal basis whenever any
+> width-two internal basis exists?
+
+The probe generates the complete simple cubic formula corpus for four and six
+variables, adds a seeded corpus of 120 valid cubic formulas at each of
+8, 10, 12, and 14 variables, and applies the exact all-column-basis census to
+every case. Random generation has a recorded per-size cap of 2,000 total
+attempts; the receipt stores accepted counts, attempts, and completion flags
+instead of silently treating a partial corpus as complete. The independent
+verifier rebuilds the same seeded corpus and rational elimination without
+importing the runner or `cubic_kernel_decision.py`.
+
+The hypothesis is falsified. The receipt covers `811` exact cases and
+`7,452` rank-sized column subsets. It contains one 12-variable,
+rank-9/nullity-3 counterexample with digest
+`c26d0346c837aa4af28c0f4e687eff573ee441abbc3d340a3e7785e714bac37e`.
+The exact census finds width `2`, while the deterministic greedy constructor
+chooses kernel-coordinate basis `[1, 4, 2]` and has width `3`. The exact
+width-two free-coordinate witness is retained in the receipt, so this is a
+constructive failure of the algorithm rather than an absence of a certificate.
+
+The receipt also carries an operation audit for every candidate run:
+independent-candidate counts, rank checks, pair-span checks, coverage
+evaluations, per-step choices, and a fail-closed status when no independent
+extension exists. The verifier recomputes these fields and rejects a receipt
+whose candidate result or audit counters are changed. This is an execution
+audit for the finite experiment, not a polynomial bit-complexity proof.
+
+Run the branch probe and its independent verifier with:
+
+```powershell
+python run_width_two_constructor_probe.py
+python verify_width_two_constructor_probe.py
+python -m pytest test_width_two_constructor_probe.py -q
+```
+
+The result eliminates this greedy construction, not the possibility of a
+different polynomial basis-construction algorithm. The surviving alternatives
+are a stronger polynomial construction with a proof of completeness, or a
+reduction preserving the rational matrix, original-column, and width-two
+conventions.
+
+### Input encoding and internal width-two certificates
+
+The matrix-level recognition problem now has an explicit bit-model contract.
+The input is a row-major binary matrix
+`M in {0,1}^{n x n}` with `n >= 3`, exactly three ones in every row, and
+exactly three ones in every column.  `canonical_cubic_matrix` validates this
+domain and canonically orders the rows; column labels remain the original
+`1..n` labels.  A row with a repeated variable is impossible in this matrix
+encoding, while repeated rows remain valid unless a separate simplicity
+condition is imposed.
+
+Let `r = rank(M)` and `k = n-r`.  The canonical rational kernel basis uses the
+RREF pivot columns in their original order and the complementary free columns
+in increasing order, so its kernel-coordinate matrix `K` has `k` rows.  A
+width-two certificate is a sorted one-based set `F` of `k` original column
+indices.  The verifier checks that `K_F` is nonsingular and that every column
+of
+
+```text
+K_F^{-1} K
+```
+
+has support at most two.  Since `F` is a basis of kernel-coordinate columns,
+the complement `P = {1,...,n} \ F` is the primal column basis passed to
+`_system_for_pivot_basis`; passing `F` directly would test the wrong matroid.
+The public `verify_cubic_width_two_basis` API returns the exact normalized
+coordinates, support counts, zero kernel columns, parallel kernel classes, and
+the acceptance result.
+
+The arithmetic has a polynomial bit bound.  Every row of an `r`-rank minor of
+`M` has Euclidean norm at most `sqrt(3)`, so Hadamard gives
+`|det(A)| <= 3^(r/2) <= 3^r` for every nonsingular minor `A`.  RREF entries
+are ratios of such minors, so a common-denominator kernel basis can be scaled
+to integer entries bounded by `3^r`.  Cramer's rule for a `k`-column
+certificate then gives the conservative numerator/denominator bound
+
+```text
+B_K = 3^r
+B_C = (k_*^k_* * 3^(r*k_*))^2,  k_* = max(1, k)
+```
+
+and therefore `O(r + k*r + k*log(k))` bits.  The implementation reports these
+bounds and checks its observed exact fraction sizes against them.  Fraction-
+free or ordinary exact elimination consequently has polynomial arithmetic
+cost in the input bit length for a supplied certificate.
+
+The edge cases are part of the contract.  If `k = 0`, the empty `F` is the
+unique certificate and has width zero; this is a YES result for basis
+recognition even though a full-rank cubic exact-one matrix is UNSAT.  Zero
+kernel-coordinate columns are reported explicitly, and nonzero proportional
+columns are grouped as parallel classes.  A zero column of `M` or any
+non-binary, nonsquare, or non-cubic input is rejected before elimination.
+
+This proves that the existential internal width-two basis problem is in NP:
+given `F`, its exact certificate check is polynomial-time.  It does not
+provide a polynomial algorithm for finding `F`, a polynomial-size NO
+certificate, or an NP-hardness result for unrestricted internal recognition.
+The exhaustive analyzer still checks `binomial(n, rank)` candidate complements;
+the remaining theorem-level fork is to find a polynomial basis-construction
+algorithm or a reduction that preserves this exact matrix, original-column,
+and width convention.
+
+### Long-line structural screen
+
+The next search reduction is a sound geometric screen, implemented by
+`cubic_kernel_width_two_line_profile`.  Let `L = span(u,v)` be a rank-two
+subspace of the `k`-dimensional kernel-coordinate space.  Restrict the
+coordinate forms to `L` and group the nonzero forms by projective direction.
+If `m` coordinate forms are nonzero on `L`, a non-coordinate `L` has at most
+
+```text
+floor(m / (m - 2)) <= 3
+```
+
+distinct projective points of support at most two.  The bound is exact for
+`m=3`, `m=4`, and `m>=5` (three, two, and one points respectively).  Zero
+coordinate forms are excluded from `m`; they are not zero kernel columns.
+Therefore every observed rank-two flat containing at least four distinct
+nonzero kernel-coordinate classes must be a coordinate line in every
+width-two basis.  Such a line contains exactly two selected basis classes.
+
+The profile enumerates these long lines, computes their exact rank-one
+intersections, and records the resulting necessary constraints:
+
+* an unrepresented intersection class rules out an internal width-two basis;
+* more than `k` forced intersection classes rules it out;
+* dependent forced classes rule it out;
+* a long line containing more than two forced classes rules it out.
+
+When the forced classes already form a full basis, the profile constructs the
+only possible class basis and passes it through
+`verify_cubic_width_two_basis`.  When `k <= 2`, every ground-set basis has
+width at most two.  When `k = 3`, the profile is complete: it enumerates
+independent triples of projective classes and checks whether their three
+pairwise joins cover every observed class.  A successful triple is converted
+to original column representatives and reverified exactly.  For `k > 3`
+with unresolved constraints it returns `status = "unresolved"` and never
+silently labels the residual search UNSAT.
+
+The line condition is not a complete recognition criterion.  For example,
+the rational columns
+
+```text
+(1,0,0), (0,1,0), (1,1,0), (1,2,0), (0,0,1), (1,3,1)
+```
+
+contain one four-point line.  All twelve independent triples that select two
+points from that line satisfy the long-line endpoint condition, but every
+triple leaves one off-line point with coordinate support three.  Thus the
+line constraints are a genuine pruning theorem, not a substitute for the
+common-basis requirement.  This example is a representation-level
+counterexample to completeness; it is not asserted to be a cubic incidence
+matrix.
+
+The existing cubic controls remain the decisive boundary: the nullity-three
+SAT and UNSAT support-three controls are solved exactly by the class-triple
+branch, the all-bases ternary SAT control is rejected after all `35` class
+triples fail, and the diagnostic line profile reports the direct sum of two
+SAT controls at nullity six as `unresolved`.  The complete recognizer below
+resolves that direct sum through the all-short-line branch, preserving the
+distinction between a diagnostic screen and a complete but potentially
+exponential recognition search.
+
+The all-short-line branch is now implemented separately as
+`cubic_kernel_short_line_basis`.  If `k` is the nullity and every observed
+rank-two flat contains at most three projective classes, a width-two basis
+can contribute at most one nonbasis class per basis pair: a support-one
+class is one of the `k` basis classes, and a support-two class lies on one of
+the `binomial(k,2)` pair spans.  Thus a necessary bound is
+
+```text
+m <= k + binomial(k, 2)
+```
+
+for the number `m` of distinct nonzero projective kernel classes.  When the
+bound holds, the implementation enumerates class bases, checks exact pair-span
+coverage, converts a successful class basis to original column
+representatives, and re-runs `verify_cubic_width_two_basis`.  The class search
+is fixed-parameter in `k` and polynomial for every fixed nullity.  When the
+bound fails it returns `no_width_two_basis` under the short-line hypothesis.
+Inputs with a four-or-more-point line return `unresolved` from this branch;
+they are not treated as negative instances.  Nullity at most two remains an
+immediate width-two case.
+
+The complete public recognizer is `cubic_kernel_width_two_basis`.  It keeps
+the short-line branch above and closes the long-line decision with a complete
+residual-basis search plus exact endpoint completion.  Let `U` be the union of
+the long-line classes, let `d = rank(U)`, let `t` be the number of distinct
+long lines, and let `R` be the classes outside `U`.  In any valid basis,
+exactly two selected classes lie on each long line.  Their union is an
+independent set spanning `U`, so it contains exactly `d` selected classes.
+Every class in `R` must then be either one of the remaining `k-d` basis
+classes or the sole possible extra class on one of the
+`binomial(k,2) - t` non-long basis pair spans.  Therefore
+
+```text
+|R| <= (k - d) + binomial(k, 2) - t
+```
+
+is a sound residual bound for `k > 2`.  Nullity at most two is handled
+directly because one pair span is the entire kernel space.
+
+After the exact intersection and rank checks, the recognizer enumerates only
+the residual basis classes from `R`.  For each supplied residual basis, the
+private completion routine:
+
+1. chooses a reference axis for every line with one forced endpoint;
+2. represents each such line endpoint by its finite observed projective
+   parameter domain;
+3. derives exact unary or binary affine constraints from **every** class in
+   `R`, not only from the selected residual basis;
+4. chooses the required projective directions on isolated long lines, filling
+   any unused endpoint with an arbitrary observed direction; and
+5. audits every class in the completed original-column basis by exact
+   rational coordinates before `verify_cubic_width_two_basis` receives it.
+
+The affine components use exact fraction propagation: one root-domain value is
+tried per connected component, and inconsistent cycles or empty domains are
+rejected without a Cartesian endpoint product.  Thus endpoint completion for
+a supplied residual basis is polynomial in the finite representation and
+its exact arithmetic bit size.  The residual bound makes the remaining
+residual search the only exponential factor.
+The polynomial factor is uniform in the number `m` of observed projective
+classes.  Line detection performs `O(m^3)` rank tests, long-line intersection
+and layout construction perform polynomially many additional rank and lookup
+operations, and one completion scans the `O(m)` residual classes and line
+domains.  Its affine graph has at most `k` variables and `O(m)` constraints;
+trying one value from each finite root domain and propagating each component
+is polynomial in `m`, `k`, and the exact rational bit size.  The final
+coordinate audit is also polynomial.  Since `m` is at most the number of
+input columns, these costs are absorbed into the `poly(input_size)` factor.
+
+Every surviving candidate is checked by exact coordinate support and then by
+`verify_cubic_width_two_basis`.  A `no_width_two_basis` result is therefore
+either a proved structural obstruction or the result of a complete finite
+search; there is no timeout-to-negative path.
+
+The residual search is bounded as a function of the nullity.  Writing
+`s = k - d`, the bound gives
+`|R| <= s + binomial(k, 2) - t`.  Set `S = k + binomial(k, 2)`.
+For `k >= 3`, both the short-line search and the long-line residual search
+visit at most
+
+```text
+binomial(S, k) <= (e * (k + 1) / 2)**k
+```
+
+subsets: the long-line branch selects `s <= k` classes from a universe of
+size at most `S`, and `k <= S/2`.  Geometry construction, exact rational
+arithmetic, and endpoint completion are polynomial in the input size per
+subset.  The complete recognizer therefore runs in
+`2**O(k * log(k)) * poly(input_size)` time.  It is fixed-parameter tractable
+in nullity; this bound is not polynomial when `k` grows arbitrarily with
+the input.  In the long-line branch, `s = 0` requires only one endpoint
+completion, and every fixed residual codimension `s` gives a polynomial
+search over at most `binomial(m, s)` choices, where `m` is the number of
+observed projective classes.
+
+The subset-count bound is attained in asymptotic order by the current
+private recognizer on general rational configurations.  For `q = k - 2 >= 3`,
+take the four long-line classes
+`e1, e2, e1+e2, e1+2e2`, and
+
+```text
+v(t) = (0, 0, 1, t, ..., t**(q-1)),  t = 1, ..., h
+h = q + binomial(k, 2) - 1
+```
+
+The only long line has rank two, and its residual class bound is met with
+equality.  Every `q` residual classes form a Vandermonde basis.  Relative
+to any such basis, every unselected `v(t)` has `q` nonzero Lagrange
+coefficients, so no width-two completion exists.  All
+`binomial(h, q) = 2**Theta(k * log(k))` residual subsets pass the quotient
+rank check and are visited.  The measured `q = 3, 4` cases visited
+`220` and `3,060` subsets, respectively; an independent Lagrange identity
+check covered every visited subset.  These configurations have not been
+realized as kernels of cubic incidence matrices.  The lower bound applies
+to this search procedure on general rational input, not to all recognition
+algorithms, the cubic input restriction, or P versus NP.
+
+This family also has a polynomially checkable obstruction: any observed
+class outside every projective line containing at least three observed
+classes must be selected in every internal width-two basis.  Otherwise it
+would be a nontrivial combination of two selected classes and hence lie
+on such a line.  More than `k` mandatory classes therefore rules out a
+basis.  Every residual class in the Vandermonde family is mandatory.
+The current production search has no corresponding forced-class prefilter.
+
+The support-three UNSAT control, which the short-line branch must leave
+unresolved, is recognized here with a verified width-two witness.  The
+all-bases ternary control remains a verified no-basis case through the
+short-line class bound.  Thus the implementation closes the decision
+procedure for this finite matrix input model without establishing `P = NP`
+or `P != NP`.
+
+The extended independent diagnostic
+[`_diag/short_line_basis_check.py`](_diag/short_line_basis_check.py) ran `4,562`
+class-basis comparisons across `16` rational representations, five increasing
+long-line families, five cubic controls, and eight relabeled/direct-sum
+recognizer controls. All reported branches passed, including the corrupted
+witness rejection audit. The focused production module contains the same
+edge, short-line, long-line, and decision-seam controls.
+
+The temporary
+[`_diag/endpoint_completion_probe.py`](_diag/endpoint_completion_probe.py)
+reimplements projective classes, rank, coordinates, line detection, affine
+domain products, and complete basis enumeration independently.  It agrees
+with the structured production search on the rational boundary cases and
+explicitly rejects the tempting but invalid reduction that checks only the
+selected residual basis.  `--scaling` reports residual-subset counts and
+affine root-domain attempts for increasing shared-long-line sizes.
+The independent residual-completion diagnostic
+[`_diag/residual_basis_probe.py`](_diag/residual_basis_probe.py) uses fresh
+rational elimination, exhaustive class-basis enumeration on its bounded
+fixtures, exhaustive endpoint subsets for every valid residual choice, and
+brute-force affine-domain products.  Its default run covered `11` geometry
+cases, `8,370` class subsets, and `44` residual comparisons (`9` positive
+and `35` negative); production and oracle outcomes agreed.  Only `8`
+positive comparisons and no negative comparisons exercised long-line
+endpoint completion.  All `35` negative comparisons came from the
+short-line general-position case.  The diagnostic's summary field
+`production_coordinate_witnesses` contains the exhaustive oracle's `1,113`
+witnesses; it is not a count of production-returned bases.  The actual
+production outputs comprise `7` whole-recognizer candidates and `9`
+positive completion candidates.
+The combined `--scaling --cubic` run passed the same comparison census, all
+`7` affine controls, and `9` cubic SAT seams, including `3` UNSAT formula
+cases whose kernel recognizer returned `width_two` and `1` satisfiable formula
+case rejected by width-two recognition.  Scaling kept full class-basis
+enumeration disabled and measured endpoint-subset totals from
+`84` through `2,300` as line lengths grew; the residual-slot fixtures
+reported one residual subset at each tested slot count.
+
+The reproducible follow-up
+[`residual_search_followup.py`](residual_search_followup.py) runs the growing
+residual families without relying on an ignored generated receipt.  It is an
+independent-oracle/white-box parity diagnostic: its rank, projective, line,
+and basis-width calculations are independent, while private production
+geometry and completion routines are called only for comparison.
+Its bounded default performs the production residual search, exhaustive
+class-basis enumeration, and exhaustive Lagrange-identity checks for
+`q = 3, 4`.  For `q = 5, 6, 7`, it uses the explicit Vandermonde
+nonzero-coefficient proof and independently audits a coordinate-basis witness
+for each positive path control.
+It also reconstructs a genuine long-line fixture whose three residual choices
+all pass rank/layout filtering.  Direct endpoint calls produce one positive
+completion and two negative completions, both with the explicit reason
+`isolated_projection_unrepresented`; the production search checks only `2/3`
+choices because it exits after the positive witness.  The endpoint branch
+therefore reports exactly `1` positive completion, `2` negative completions,
+and `3` quotient-independent choices.
+
+The default command is:
+
+```powershell
+python residual_search_followup.py
+```
+
+`--max-q 3` through `--max-q 7` cap the largest audited codimension without
+changing the certificate logic; for example,
+`python residual_search_followup.py --max-q 4` runs only the two fully
+enumerated rows at `q = 3, 4`.  The optional `--exhaustive` flag additionally
+enumerates every full class basis for `q >= 5`; it is intentionally not part
+of the bounded default and should be combined with an explicit `--max-q` when
+the intended finite search boundary matters.
+
+The follow-up runner is diagnostic-only; the production recognizer was not
+modified during this final audit.
+
+The growing residual families use codimensions `q = 3, ..., 7`.  A Vandermonde
+family with `2q` residual classes exhausts `20, 70, 252, 924, 3,432`
+residual choices.  Positive path-frame controls have `10, 35, 126, 462, 1,716`
+possible residual choices and have independently audited width-two bases.
+The `q = 3, 4` rows cross-check every full class basis, covering `252` and
+`924` negative class subsets and `126` and `462` positive class subsets.
+Their exhaustive Lagrange identity checks cover `220` and `3,060` residual
+subsets.  The larger negative rows use the exact Vandermonde argument, and the
+larger positive rows use the explicit coordinate basis.  The mandatory-class
+count rejects all five negative cases and leaves all five positive controls
+unrejected.
+
+
+
+The nearby frame-recognition literature does not close this gap.  The
+[Waterloo announcement](https://uwaterloo.ca/combinatorics-and-optimization/events/tutte-colloquium-jim-geelen)
+describes a polynomial algorithm for deciding whether a matrix is row-equivalent
+to an external frame matrix, whose coordinate axes need not be original
+columns.  The internal problem here requires the axes to come from `F`.
+Chen--Whittle's
+[Theorem 3.1](https://arxiv.org/abs/1601.01791) is a rank-oracle
+indistinguishability result, not explicit rational-matrix hardness.  Likewise,
+[Moore--Robson](https://arxiv.org/abs/math/0003039) supplies the
+NP-complete cubic planar monotone exact-one source family but no
+internal-width-two reduction.  Binary-only graphic-matroid lemmas and
+total-sparsity null-space hardness results do not preserve this rational,
+original-column, maximum-support-two problem.
 
 The exact census corrects the canonical-coordinate interpretation:
 
@@ -1455,6 +3276,13 @@ The 60-variable chain would need `C(60, 9) = 14,783,142,660` free subsets for a
 census and the search exhausts its subtree at 21,671 nodes; the same verdict
 holds for the star composition and for alternating SAT and UNSAT blocks.
 
+The public screen also has explicit low-nullity semantics.  A full-rank
+incidence matrix retains one empty dual-coordinate column per ground element
+and has exact frame width `omega = 0`; a nullity-one source is checked with
+singleton coverage rather than an impossible two-element subset.  Separate
+bounded regressions exercise both cases in the producer and independent
+search/verifier without adding them to the 43-case family receipt.
+
 Run the probe, its independent verifier, and the regression tests with:
 
 ```powershell
@@ -1472,6 +3300,58 @@ ground-element sieve over every `C(n, nullity)` free subset, and agrees with the
 exact coordinate width on all 787 sampled independent bases. This is a
 complete decision procedure with an exponential worst case plus measured
 connected witnesses; it does not give a polynomial recognition algorithm.
+
+
+### Mandatory projective-class obstructions
+
+[`run_mandatory_class_obstruction_probe.py`](run_mandatory_class_obstruction_probe.py)
+measures a bounded diagnostic for the existing internal width-two basis
+recognizer. In the projective class geometry of a kernel-coordinate matrix,
+every class outside every observed line containing at least three classes must
+occur in every internal width-two basis. If those mandatory classes are
+dependent or outnumber the kernel nullity, the production decision can reject
+immediately with `mandatory_class_obstruction`; it does not enumerate residual
+free subsets.
+
+For `no_width_two_basis` cases only, the diagnostic enumerates bases by
+original column indices. Projective duplicate columns remain distinct for
+basis counts and independence; only target coverage is deduplicated to
+projective classes. It then searches nonempty target subsets by increasing
+cardinality, so an exact missed subset is minimal against every smaller
+subset. A basis-enumeration cap makes the local result `inconclusive` and
+never produces a negative obstruction from partial coverage masks. For
+`width_two` cases the obstruction size is undefined: the receipt records
+`local_obstruction.status = not_applicable` and `minimum_size = null`.
+
+The registered finite screen contains 12 rational geometry families and five
+cubic controls. It reports six exact NO-case local censuses, two
+`inconclusive` NO-case censuses caused by the 5,000-basis cap, and nine
+positive cases with `not_applicable` local obstruction status. Six cases are
+rejected by the mandatory theorem, eight by the existing production path, and
+nine retain a width-two result. The negative moment families at `q = 3, 4, 5`
+have exact minimum missed subsets of sizes `4, 5, 6`; the `q = 6, 7` families
+remain locally capped but are still rejected because their mandatory sets have
+sizes `12 > k = 8` and `14 > k = 9`. Positive path families at the same sizes
+retain the width-two result without assigning an obstruction size. These are
+bounded rational and cubic fixtures, not a polynomial-time recognition
+theorem or a lower bound for all cubic incidence matrices.
+
+Run the producer, independent verifier, and focused controls with:
+
+```powershell
+python run_mandatory_class_obstruction_probe.py
+python verify_mandatory_class_obstruction_probe.py
+python -m pytest test_mandatory_class_obstruction_probe.py -q
+```
+
+The receipt is `_diag/mandatory_class_obstruction_probe.json`. The verifier
+reconstructs the original-column/class mapping, projective lines, mandatory
+sets, local basis census, production candidate bases, and aggregate counts
+independently; it treats a cap hit as `inconclusive`, never as a negative width
+decision. The final receipt has 17 verified cases, local statuses
+`exact = 6`, `inconclusive = 2`, and `not_applicable = 9`, six mandatory
+rejections, and production statuses split `8` no-width-two versus `9`
+width-two.
 
 
 ### Nullity-conditioned switch neighborhoods
@@ -1516,6 +3396,276 @@ free-basis censuses, class-search decisions, seeded walks, and frame witnesses.
 The two-switch walks are seeded samples, not an exhaustive radius-two
 neighborhood.
 
+### Fail-closed exact cubic reduction discovery
+
+[`cassi_cubic_reduction.py`](cassi_cubic_reduction.py) maps a square simple
+cubic monotone one-in-three formula to its exact canonical integer system
+$A x = \mathbf{1}$ over Boolean coordinates. Its finite rule descriptor
+contains unconstrained-coordinate deletion, disconnected-component splitting,
+direct sparse witnesses, exact one-coordinate forcing, exact two-coordinate
+functional quotients, bounded single-literal propagation, bounded nonnegative
+row combinations, bounded separator relations, and fixed-nullity enumeration.
+The measured default is terminal nullity five, fixed scheduling, and literal
+probing disabled.
+
+Literal probing remains an explicit comparison profile rather than hidden
+fallback behavior. When enabled, it tries each single Boolean literal once in
+deterministic column/value order, for at most $2n$ trials per residual. Each
+trial uses a nonrecursive affected-row work queue. Integer interval bounds
+either derive Boolean assignments, produce a complete source-checked witness,
+or identify a contradiction that forces the opposite literal. Certificates
+retain the assumption, row and column coordinates, assigned premises,
+residual right-hand side, admissible bounds, deduction sequence, and conflict.
+The independent verifier reconstructs every propagation step from the source
+system; witness and conflict coordinate tampers are regression-tested.
+
+The nonnegative row rule enumerates deterministic combinations of at most four
+source rows with multipliers in $\{-1,1\}$ and forces a Boolean variable only
+when every derived coefficient is nonnegative and one exceeds the nonnegative
+right-hand side. The separator rule accepts only one- or two-variable
+boundaries whose sides have bounded affine nullity, enumerates every feasible
+boundary state with a direct witness, and recurses only when the resulting
+relation has an exact affine representation. One- and two-coordinate
+projection guards use exact zero and proportionality tests on affine basis
+vectors. Production therefore avoids repeated elimination for each projected
+Boolean state, while the verifier deliberately reconstructs the decisions
+through independent per-state elimination.
+
+Every quotient records its integer affine offset and transform, target-system
+hash, exact guard states, child proof, and source-assignment lift. Row-bound
+certificates retain their signed source-row combination and derived equation;
+separator certificates retain the candidate stream, feasible relation, state
+witnesses, components, child proofs, and lifts. Canonical residual memoization
+is invocation-local. A fresh nine-plane float64 field observes exact
+per-invocation telemetry, but fixed mode prevents it from changing rule order.
+The explicit `adaptive` mode is retained only for measured comparison and is
+neither persisted nor used as truth authority. Every split, quotient, cache
+discharge, and terminal strictly decreases the sum of squared active residual
+variable counts.
+
+The canonical screen contains 49 unique legal cubic formulas: 14 fixed
+controls, 11 structurally held-out connected cases, and 24 seeded connected
+random cases. It includes a matched 24-variable, rank-19, nullity-five
+unsatisfiable control. Exhaustive truth checks all $2^{24}=16{,}777{,}216$
+source assignments for that control; the cap-five terminal independently
+enumerates all $2^5=32$ affine free-coordinate candidates before returning
+`unsat`.
+
+The full-corpus inference ablation compares three explicit fixed profiles:
+
+| Profile | Completed | Unresolved | Work units | Failed rule attempts | Proof bytes |
+|---|---:|---:|---:|---:|---:|
+| cap four, probing off | 47 | 2 | 5,252,987 | 188 | 236,809 |
+| cap five, probing off | 48 | 1 | 728,883 | 51 | 100,596 |
+| cap four, probing on | 48 | 1 | 825,760 | 187 | 246,243 |
+
+The frozen comparison order is
+`[unresolved_cases, work_units, failed_rule_attempts, proof_bytes]`, with any
+profile that loses a baseline completion excluded before lexicographic
+selection. Both upgrades uniquely complete
+`heldout-all-bases-sat-two-lift-seed15`, and neither loses a baseline
+completion. Cap five without probing then wins on exact work, failed attempts,
+and proof size. This evidence selects the production default; cap four and
+bounded probing remain explicit reproducible comparison profiles. The probing
+profile performs 114 literal trials, 1,924 propagated-row checks, 9,862 bound
+checks, and 316 derived assignments across the screen.
+
+Under the selected default the reducer returns 30 `sat`, 18 `unsat`, and one
+`unresolved`, against exact truth counts of 31 `sat` and 18 `unsat`, with zero
+truth-claim mismatches, progress failures, representation-bound failures, or
+persistent adaptive states. The remaining completeness counterexample is the
+satisfiable seed-11 support-three two-lift. Connected minimization starts from
+27 variables, checks 2,647 canonical single-unswitch candidates, and retains
+an 18-variable connected unresolved component. A terminal scan checks another
+1,029 candidates and finds no disconnecting candidate. This establishes local
+irreducibility under the recorded operation and component-selection rule, not
+global minimality over all cubic formulas.
+
+The fixed/adaptive ablation reruns all 11 structured held-out cases at cap
+five with probing disabled. Each schedule completes ten cases: eight `sat`,
+two `unsat`, and one `unresolved`. Fixed scores
+`[1, 689564, 39, 43596]`; adaptive scores
+`[1, 4641237, 19, 34222]` under the same completion-first metric order. With
+no completion unique to adaptive and substantially lower exact work, the
+receipt retains `fixed` and labels the field `observation_only`. Wall-clock
+timing does not participate in either selection.
+
+[`verify_cubic_reduction_discovery.py`](verify_cubic_reduction_discovery.py)
+imports neither the production reducer nor the producer. It rebuilds all 49
+main formulas, all three inference profiles, both schedule variants, structured
+provenance, every proof certificate and lift, and every minimization candidate
+stream. The verifier also recomputes the profile-selection scores and rejects
+a receipt whose selected algorithm does not equal the winning profile. The
+behavioral suite contains direct exhaustive propagation comparisons,
+profile-off negatives, cap-five unresolved-schedule replay, the 32-candidate
+UNSAT terminal, and independent witness/conflict tamper checks.
+
+Run the canonical producer, independent verifier, and focused behavioral suite
+with:
+
+```powershell
+python run_cubic_reduction_discovery.py
+python verify_cubic_reduction_discovery.py
+python -m pytest test_cubic_reduction_discovery.py -q
+```
+
+The SHA-256-bound receipt is `_diag/cubic_reduction_discovery.json`; its
+current receipt digest is
+`f5b8ebdf8ec944d419c90bd28f7fef88521930ae53a3a23e7b572163ebc3b3d7`.
+The current suite result is 33 passed. This remains a finite incomplete
+algorithm with a measured unresolved input. It establishes neither `P = NP`
+nor `P != NP`; totality on the legal cubic domain remains an open proof
+obligation.
+
+## Compiled constraint fields
+
+[`cassi_constraint_field.py`](cassi_constraint_field.py) compiles a finite
+combinational Boolean DAG, or a bounded synchronous transition system, into a
+checked Tseitin CNF with explicit provenance. Every gate contributes its
+complete clause set, so each encoding is exact rather than implicational. A
+parity relation becomes a Tseitin chain over its distinct support, where
+repeated arguments cancel in pairs. A cardinality bound becomes subset clauses
+under a combinatorial capacity check declared before any clause is
+materialized. Inputs, gates, and boundary assertions keep a deterministic
+numbering, and the compiled payload is bound to the SHA-256 of its canonical
+form, so encodings that differ only in irrelevant ordering share one identity.
+
+Three inference configurations share one interface. `local` propagates without
+branching and reports an unresolved stall as `exhausted` rather than making a
+satisfiability claim. `conflict` runs the complete bounded chronological search
+with persistent conflict learning. `algebraic` adds one exact parity/counting
+prepass: a root line there refutes the source without constructing a search
+field, and otherwise the prepass's derived facts, each carrying its line
+provenance, are admitted as clauses inside a reserve declared before
+allocation. The default `max_augmentation_arity=1` admits singleton facts;
+`max_augmentation_arity=2` additionally admits exact binary consequences of
+two-literal clauses, two-variable parity rows, and two-term counting rows.
+
+The search state stays in the existing clause-field tensor: assignments,
+implication reasons, trail, decision stack, learned decision clauses, proof
+state, and resource counters. The prepass runs in the hybrid-inference tensor.
+The one stateful element that is neither search nor proof state is the decision
+schedule, and it is not learned: an excitable ring in its own float64 tensor that scores eligible variables by solver activity
+first and its own excitation-minus-recovery field second,
+`(2*scale + 1) * (positive + negative) + E - R`, consumes the chosen site, and
+returns a legal decision literal in place of the field's default selection.
+An intervention writes one bounded excitation onto one site, is journaled, and
+cannot alter a verdict: it only changes which legal decision comes next, and
+every resulting verdict still carries the same evidence class.
+
+Every SAT verdict carries a witness over the declared unknowns, which an
+independent evaluator checks against the original source rather than the
+internal assignment. Every UNSAT verdict carries a certificate: a resolution
+DAG from the clause field, or a cutting-plane and GF(2) refutation from the
+prepass. An exhausted run claims neither and names the bound that stopped it,
+and a source that already contains the contradictory clause reports the search
+refutation with `prepass: skipped` instead of pretending the algebraic
+configuration ran.
+
+Run the matrix, its independent verifier, and the focused contracts with:
+
+```powershell
+python run_constraint_field_experiments.py
+python verify_constraint_field.py
+python -m pytest test_constraint_field.py test_constraint_dynamics.py -q
+```
+
+The frozen receipt covers 31 instances in five families: ten random
+combinational circuits, ten clause/parity/cardinality mixes, three pigeonhole
+systems, two parity systems, and six bounded transition systems. Each instance
+runs under all three configurations with one repeat, 266 runs in total. Labels
+come from exhaustive enumeration for 26 instances and from construction for
+five, four of which enumeration confirms independently; the fifth,
+`pigeonhole-5`, is declared because its 2^20 assignments exceed the
+enumeration bit limit. The instances stay small by design: the widest random
+circuit has 76 variables, the largest transition system 39, and the largest
+pigeonhole 20.
+
+Conflict and algebraic agreed on every one of the 102 runs they decided, and
+local decided 22 of its 62 runs while reporting `exhausted` on the other 40,
+including all three pigeonholes. No configuration returned a wrong verdict. All 84 UNSAT runs carry
+an audited certificate: 68 resolution refutations through the clause-field
+auditor and 102 hybrid proofs through the hybrid auditor, 16 of them with an
+UNSAT root, with no failed audit and 0.32 s of total audit time. All 142 SAT
+runs carry a witness that the runner replays through its own gate, relation,
+clause, and transition evaluators. Every repeat reproduced an identical state
+digest (266/266).
+
+The algebraic prepass refuted eight instances without search, admitted
+augmentations on fourteen, and left the search to decide the rest. Enabling the
+controller over 20 instances produced no verdict disagreement with the
+controller disabled, while changing the decision order: 190 selections against
+192 unassisted decisions and 760 controller ticks. The matrix takes 341 s wall
+time; its slowest case is the algebraic prepass on a 76-variable random circuit
+at 21.3 s (`circuit-06`/algebraic with the
+controller enabled), not a pigeonhole.
+
+`verify_constraint_field.py` imports only the constraint module and the two
+certificate auditors, drives the module exclusively through its public API, and
+rebuilds the semantics from the source vocabulary: its own gate truth tables,
+its own clause, relation, assertion, and transition evaluators, and its own
+exhaustive enumerator, with truth-table claims scoped to 2^16 free variables.
+It enumerates every assignment of 11 gate cases and all 32 circuits, replays 74
+witnesses through its own evaluators, audits the same 46 resolution
+certificates and 46 hybrid proofs, checks 141 mode runs for cross-mode
+agreement, interrupts four instances at every intermediate step for 42
+checkpoint resumes, refuses 39 capacity, arity, and boundary cases, and rejects
+nine independent descriptor tampers while accepting an unmodified control with
+an identical digest. It reports `ALL CHECKS PASSED` in about 10 s.
+
+Receipt: `_diag/constraint_field_results.json`.
+
+This subsystem decides the finite sources it compiles, and nothing wider. Gate,
+relation, boundary, and transition rows are exact encodings, so each verdict is
+a decision about the compiled source; each witness is evaluated against the
+declaration rather than an internal assignment, and each certificate is
+replayable by a verifier that never imports the runner. It is not a complexity
+result: the search is bounded chronological DPLL with learning, the prepass is
+an exact cutting-plane and GF(2) prover under declared line budgets, and the
+receipt's instances are small. The excitable ring reorders legal decisions
+inside that fixed machinery and cannot change a verdict; no claim is made that
+the continuous field performs the reasoning, or that these bounds improve on
+the clause and hybrid fields they are built from.
+
+### Implication rules and binary relation augmentation
+
+[`cassi_constraint_implication.py`](cassi_constraint_implication.py) exposes
+rule-level queries over the same finite sources. It decides
+`source ∧ assumptions ∧ ¬consequence`, routes witness pins through the
+declared boundary, routes gate or successor-state literals as timed clause
+rows, and re-evaluates every returned witness against the original source.
+`vacuous` is reserved for a declared boundary that contradicts an assumption;
+`holds` carries an auditable certificate even when a source relation directly
+forces the consequence.
+
+The algebraic profile defaults to `max_augmentation_arity=1`, retaining the
+singleton prepass. Arity two additionally admits only exact binary
+consequences of a two-literal clause, two-variable parity row, or two-term
+counting row. Every row carries its proof-line id and extraction kind, is
+deduplicated against the source clauses, and consumes the same predeclared
+reserve. The model set and verdict class therefore remain unchanged.
+
+[`run_implication_screen.py`](run_implication_screen.py) screens 298 rules over
+13 exact-one, parity, cubic/Schaefer, and transition sources. Independent
+enumeration and certificate replay report 124 `holds`, 159 `refuted`, 14
+`vacuous`, and one deliberately unresolved local-bound case, with zero
+disagreements and zero failures. [`run_relation_augmentation_comparison.py`](run_relation_augmentation_comparison.py)
+matches 124 arity-one/arity-two pairs: 34 pairs gain augmentations, 350 rows
+are added in total, and no verdict changes. Its 490 admitted rows are all
+independently entailed; its arity-one semantic/work fields and all 113
+profile, state, and checkpoint digests match the regenerated baseline. The
+arity-two profile, state, and checkpoint digests differ because the declared
+profile records the selected arity. [`verify_implication_engine.py`](verify_implication_engine.py)
+independently checks 148 rules, 47 certificates, 28 augmentation rows, four
+augmentation instances, four timed transition cases, and 14 refusal cases;
+the receipt verdict is `PASS`.
+
+Receipts: `_diag/implication_screen.json`,
+`_diag/relation_augmentation_comparison.json`, and
+`_diag/implication_engine_verify.json`. These measurements are finite-source
+screening and a soundness check for exact binary consequences, not a
+complexity result or a P-versus-NP result.
+
 ## Gauge-compatible Yang–Mills block fibre
 
 [`run_yang_mills_gauge_fibre_probe.py`](run_yang_mills_gauge_fibre_probe.py)
@@ -1550,6 +3700,93 @@ receipt has no source-independent reconstruction or global UNSAT-proof audit
 and does not provide the magnetic matrix elements or $6j$ amplitudes.
 Volume-uniform resolvent estimates, the thermodynamic limit, and the continuum
 mass gap remain open.
+
+[`run_yang_mills_finite_obligations.py`](run_yang_mills_finite_obligations.py)
+recomputes three finite statements of the obligation map in
+`CassiTheory/computations/yang-mills-uniform-feshbach-obligation-map.md` from
+their own formulas, with the document's values entering only as comparison
+targets and every comparison reported with its mismatch list: the corner-shift
+support action (UFA104), where the shift-closed family reaches the full label
+cone at every cutoff with counts $16$, $81$, $256$, $625$ and zero counter
+mismatches; the fine multiplicity formula (UFA106), whose seven anchor entries
+and the never-zero claim on the `0..3` table (minimum $1$ at exactly the
+thirteen single-nonzero-corner sectors, maximum $364$) all agree, and which is
+invariant under all $24$ corner-label permutations on the declared, extended and
+`0..8` domains, a stronger statement than the document's eight-element symmetry
+claim, with zero asymmetry found in the multiplicity itself; and the first-chaos
+rank inequality (UFA46), whose required rank grows linearly in $N$ against the
+$(2/\pi)\arcsin(d/4)$ asymptote, and whose rank screen is a boundary refinement
+rather than a correction. That screen quotes the map's own fixed-rank statement
+and reports that the largest rank the map permits, $r_N = N - 1$, holds exactly
+while $d \le \gamma_N = 4 \sin(\pi N / (2(N+1)))$ with $\gamma_N \to 4$ from
+below, so the admissible-rank window's upper edge sits just under the arcsine
+argument's domain edge rather than at it.
+
+Run it with:
+
+```powershell
+python run_yang_mills_finite_obligations.py --output _diag/yang_mills_finite_obligations.json
+python -m pytest test_yang_mills_finite_obligations.py -q
+```
+
+The receipt is `_diag/yang_mills_finite_obligations.json`, schema
+`cassifi.yang-mills-finite-obligations.v1`, binding its measured values with
+`receipt_sha256`. These are finite combinatorial checks of a document's finite
+statements: they say nothing about any uniform-in-cutoff or continuum
+obligation, the rank screen evaluates the declared Gaussian chain and margin
+rather than the interacting form, and (UFA105), the general compression matrix,
+requires explicit multiplicity-space bases and is out of scope.
+
+[`run_yang_mills_compression_matrix.py`](run_yang_mills_compression_matrix.py)
+computes that general adjacent-block compression matrix (UFA105), the obligation
+the map records as its next adjacent-block step. The map supplies the source and
+target spaces (UFA106), the sector-shift support action (UFA104) and a slice
+derivation; it does not fix the operator normalization, so the runner declares one
+exact-rational realization — model C1, the rim/fusion-tree realization, whose fine
+basis is the map's own labelings realized as exact invariant tensors of the
+interior fusion tree with the eight rim legs open and whose corner multiplier is
+the explicit fundamental insertion closed by the curl — and reports which pieces
+of the obligation that realization settles. The label-at-most-one cases reproduce
+the map's seven anchor-table entries and its cutoff counts; the adjacency forcing
+is nonzero for every shift of every smallest case (`96` blocks defined,
+`every_shift_nonzero` true); and on the computed family every block is saturated
+at rank `=` min(shape) with no zero block found (`420` nonzero of `420`), so the
+vanishing pattern that (UFA107) turns into exactness is closed on the computed
+family inside the declared model.
+
+Three scopes are reported separately and none hides another. The stored default
+scope is computed at multiplicity frontier `19` and holds `420` of the family's
+`540` blocks; a widened scope recomputes the same family at frontier `51` and
+holds `516`; and a complete family, entered only through the runner's `--complete`
+opt-in path, computes all `540` of `540` and declares its own measured cost
+against a stated bound rather than approximating anything. Every block a bounded
+scope leaves out is listed with its exact dimensions, cost units and the rule that
+excluded it. Each computed block additionally carries a rank witness — an explicit
+min(shape) minor, triangular under a declared ordering rule with a nonzero
+diagonal, verified against the block's own entries — whose negatives are
+separated into exact (`exhausted`) and undecided (`budget_limited`,
+`above_exact_search_size`) ones rather than reported as a proof that none exists.
+
+Run it with:
+
+```powershell
+python run_yang_mills_compression_matrix.py
+python run_yang_mills_compression_matrix.py --complete
+python -m pytest test_yang_mills_compression_matrix.py -q
+```
+
+The receipt is `_diag/yang_mills_compression_matrix.json`, schema
+`cassi.yang_mills.compression_matrix.v1`, binding its measured values with
+`receipt_sha256`, and it declares its own digest strip set inside the receipt
+(`digest_convention.stripped_keys`: `condensation_elapsed_seconds`,
+`elapsed_seconds`, `measured_seconds`, `receipt_sha256` and `runtime_seconds`,
+the clock keys the digest excludes) rather than beside the runner. These are exact
+finite computations on the smallest cases the map names, in a declared
+realization: the matrices are entries of that realization and not of an
+unspecified physical operator, the rank, kernel dimension and zero/nonzero
+pattern of each block are the basis-invariant readings the map's (UFA107) needs,
+and the asymptotic parts of the obligation — uniform sector ranks, form domains,
+off-diagonal bounds — remain open.
 
 ## Technical paper and reproducibility bundle
 

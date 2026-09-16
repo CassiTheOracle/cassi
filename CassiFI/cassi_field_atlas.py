@@ -13,17 +13,57 @@ import hashlib
 import itertools
 import json
 import math
+import struct
 from dataclasses import dataclass, field, replace
-from typing import Any, Final, Mapping, Never, Sequence
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final, Mapping, Never, Sequence
 
+import numpy as np
 import torch
 from torch import Tensor
 
 from cassi_variational_field import VariationalField
+from cassi_temporal_field import TemporalField, TemporalFieldError
+from cassi_resonant_field import (
+    ResonantProblem,
+    ResonantProfile,
+    ResonantWorkspace,
+    advance_workspace,
+    analyze_helical_packet,
+    apply_helical_packet_impulse,
+    apply_pool_impulse,
+    bind_workspace,
+    expand_resolution,
+    initial_workspace,
+    inspect_workspace,
+)
+from cassi_field_transceiver import (
+    advance_transceiver,
+    condense_workspace,
+    inspect_transceiver,
+    reset_transceiver as reset_transceiver_workspace,
+    validate_transceiver,
+)
+from cassi_field_regions import KernelResult
+
+if TYPE_CHECKING:
+    from cassi_learning_computer import LearningComputer
 
 
-ATLAS_SCHEMA: Final[str] = "cassifi.field-atlas.v1"
+ATLAS_SCHEMA: Final[str] = "cassifi.field-atlas.v2"
+ATLAS_LEGACY_SCHEMA: Final[str] = "cassifi.field-atlas.v1"
 ARITHMETIC_PROFILE: Final[str] = "cpu-float64-reference.v1"
+_TEMPORAL_ADMISSION_WORK: Final[float] = 1e-3
+# The declared event kind of a written packet impulse. It matches the event kind
+# the exploration harnesses declare for their own writes, so the same write
+# declaration produces the same ledger bookkeeping through either route, and it
+# is not an observation kind: a write is a field intervention, not evidence.
+PACKET_IMPULSE_EVENT_KIND: Final[str] = "reasoning-work"
+# The declared probe scale of a packet readout's direction. The read frame is a
+# linear analysis of the page, so the unit direction a declared packet impulse
+# deposits into is its own response at any positive amplitude; this fixed probe
+# budget measures that response on a scratch workspace and touches no state.
+_PACKET_READ_PROBE_BUDGET: Final[float] = 1e-3
 EPISTEMIC_TYPES: Final[frozenset[str]] = frozenset(
     {"observed", "asserted", "derived", "hypothetical", "desired", "permitted"}
 )
@@ -37,7 +77,21 @@ CHART_STATUSES: Final[frozenset[str]] = frozenset({"active", "stale", "revoked"}
 VARIABLE_KINDS: Final[frozenset[str]] = frozenset(
     {"scalar", "constant", "boolean", "symbol", "interval", "vector"}
 )
-
+_ATLAS_PAGE_NAMES: Final[tuple[str, ...]] = (
+    "variables",
+    "charts",
+    "programs",
+    "constructions",
+    "macros",
+    "predictions",
+    "plans",
+    "computation_records",
+    "transition_log",
+    "prepared_queries",
+    "transceivers",
+    "temporal_fields",
+    "computers",
+)
 
 class FieldIntelligenceError(RuntimeError):
     def __init__(
@@ -147,6 +201,22 @@ def _json_value(value: Any, label: str) -> Any:
             "INVALID_TYPED_VALUE", f"{label} exceeds the typed-value byte limit"
         )
     return _freeze_json(json.loads(encoded))
+
+def _canonical_diagnostics(value: Any, label: str) -> Any:
+    """Canonicalize receipts while representing unsupported nonfinite diagnostics as null."""
+    if isinstance(value, Mapping):
+        return _json_value(
+            {str(key): _canonical_diagnostics(item, label) for key, item in value.items()},
+            label,
+        )
+    if isinstance(value, (tuple, list)):
+        return _json_value(
+            [_canonical_diagnostics(item, label) for item in value],
+            label,
+        )
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def _tensor_payload(value: Tensor) -> Mapping[str, Any]:
@@ -1397,10 +1467,103 @@ class ComputationRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class FieldTransceiver:
+    """A derived computation and its provisional activity, owned by the field."""
+
+    transceiver_id: str
+    parent_chart_versions: tuple[tuple[str, int], ...]
+    source_revision_ids: tuple[str, ...]
+    context: Mapping[str, Any]
+    input_ids: tuple[str, ...]
+    output_ids: tuple[str, ...]
+    observed: Mapping[str, float]
+    kernel: Mapping[str, Any] | None
+    working_state: Mapping[str, Any] | None
+    status: str = "active"
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        _identifier(self.transceiver_id, "transceiver_id")
+        for name in ("input_ids", "output_ids"):
+            ids = tuple(getattr(self, name))
+            if not ids or len(ids) != len(set(ids)):
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", f"{name} must be nonempty and unique")
+            for item in ids:
+                _identifier(item, name)
+            object.__setattr__(self, name, ids)
+        if set(self.input_ids).intersection(self.output_ids):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "receiving and transmitting ports must be distinct")
+        parents = tuple((name, version) for name, version in self.parent_chart_versions)
+        if not parents or len(parents) != len({name for name, _ in parents}):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "parent charts must be nonempty and unique")
+        for name, version in parents:
+            _identifier(name, "transceiver parent")
+            if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "invalid parent version")
+        object.__setattr__(self, "parent_chart_versions", parents)
+        sources = tuple(self.source_revision_ids)
+        if not sources or len(sources) != len(set(sources)):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "source closure must be nonempty and unique")
+        for source in sources:
+            _digest(source, "transceiver source")
+        object.__setattr__(self, "source_revision_ids", sources)
+        object.__setattr__(self, "context", _json_value(dict(self.context), "transceiver context"))
+        object.__setattr__(self, "observed", _json_value(
+            {name: _finite(value, name) for name, value in self.observed.items()}, "transceiver observations"
+        ))
+        if self.status not in {"active", "stale"}:
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "invalid transceiver status")
+        if self.reason is not None:
+            _identifier(self.reason, "transceiver reason")
+        if self.status == "stale":
+            if self.kernel is not None or self.working_state is not None:
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "stale derived knowledge must be discarded")
+        else:
+            if not isinstance(self.kernel, Mapping) or not isinstance(self.working_state, Mapping):
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "active transceiver needs a realization")
+            try:
+                validate_transceiver(self.kernel, self.working_state)
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", str(exc)) from exc
+            # Numeric realizations are field pages, not 64 KiB typed symbols.
+            # Schema/dimension checks above and owner closure/workspace limits
+            # bound them; canonicalization still rejects nonfinite payloads.
+            if not isinstance(self.kernel, _FrozenDict):
+                object.__setattr__(self, "kernel", _freeze_json(_json_plain(self.kernel)))
+            if not isinstance(self.working_state, _FrozenDict):
+                object.__setattr__(self, "working_state", _freeze_json(_json_plain(self.working_state)))
+
+    def matches(self, context: Mapping[str, Any]) -> bool:
+        return self.status == "active" and all(
+            key in context and context[key] == value for key, value in self.context.items()
+        )
+
+    def as_dict(self) -> Mapping[str, Any]:
+        return {
+            "transceiver_id": self.transceiver_id,
+            "parent_chart_versions": [list(row) for row in self.parent_chart_versions],
+            "source_revision_ids": list(self.source_revision_ids),
+            "context": _json_plain(self.context),
+            "input_ids": list(self.input_ids),
+            "output_ids": list(self.output_ids),
+            "observed": _json_plain(self.observed),
+            "kernel": None if self.kernel is None else _json_plain(self.kernel),
+            "working_state": None if self.working_state is None else _json_plain(self.working_state),
+            "status": self.status,
+            "reason": self.reason,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> FieldTransceiver:
+        return cls(**dict(value))
+
+
+@dataclass(frozen=True, slots=True)
 class AtlasState:
     generation: int = 0
     logical_tick: int = 0
     revocation_generation: int = 0
+    transition_epoch_floor: int = 0
     variables: tuple[VariableSpec, ...] = ()
     charts: tuple[RelationChart, ...] = ()
     programs: tuple[FieldProgram, ...] = ()
@@ -1409,13 +1572,35 @@ class AtlasState:
     predictions: tuple[PredictionRecord, ...] = ()
     plans: tuple[PlanRecord, ...] = ()
     computation_records: tuple[ComputationRecord, ...] = ()
+    transceivers: tuple[FieldTransceiver, ...] = ()
+    temporal_fields: tuple[TemporalField, ...] = ()
+    computers: tuple[LearningComputer, ...] = field(default=(), kw_only=True)
     transition_log: tuple[Mapping[str, Any], ...] = ()
+    resonant_workspace: ResonantWorkspace | None = field(default_factory=initial_workspace)
+    prepared_queries: tuple[Mapping[str, Any], ...] = ()
+    frozen_query_ids: frozenset[str] = frozenset()
     _encoded: bytes = field(init=False, repr=False, compare=False)
     _state_sha256: str = field(init=False, repr=False, compare=False)
     schema: str = ATLAS_SCHEMA
     arithmetic_profile: str = ARITHMETIC_PROFILE
+    # Entries are (immutable owner, SHA-256 digest, canonical bytes).
+    # Owners are retained directly (never a whole AtlasState), so identity
+    # remains valid even if an unrelated predecessor is garbage-collected.
+    _page_cache: dict[str, tuple[Any, str, bytes]] = field(
+        default_factory=dict, init=True, repr=False, compare=False, kw_only=True
+    )
 
     def __post_init__(self) -> None:
+        inherited_cache = dict(self._page_cache)
+        workspace = self.resonant_workspace
+        if workspace is not None and not isinstance(workspace, ResonantWorkspace):
+            try:
+                workspace = ResonantWorkspace.from_dict(workspace)
+            except Exception as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_STATE", "resonant workspace is invalid"
+                ) from exc
+        object.__setattr__(self, "resonant_workspace", workspace)
         for name in (
             "variables",
             "charts",
@@ -1425,22 +1610,135 @@ class AtlasState:
             "predictions",
             "plans",
             "computation_records",
+            "transceivers",
+            "temporal_fields",
+            "computers",
         ):
             object.__setattr__(self, name, tuple(getattr(self, name)))
+        if any(not isinstance(row, TemporalField) for row in self.temporal_fields):
+            raise FieldIntelligenceError("INVALID_STATE", "temporal memory must be an immutable field")
+        if self.computers:
+            from cassi_learning_computer import LearningComputer
+            if any(not isinstance(row, LearningComputer) for row in self.computers):
+                raise FieldIntelligenceError("INVALID_STATE", "computer must be an immutable field record")
+        chart_index = {chart.chart_id: chart for chart in self.charts}
+        retained_transceivers: list[FieldTransceiver] = []
+        for transceiver in self.transceivers:
+            if not isinstance(transceiver, FieldTransceiver):
+                raise FieldIntelligenceError("INVALID_STATE", "transceiver must be an immutable field record")
+            if transceiver.status == "active" and any(
+                name not in chart_index
+                or chart_index[name].version != version
+                or chart_index[name].status != "active"
+                for name, version in transceiver.parent_chart_versions
+            ):
+                transceiver = replace(
+                    transceiver, status="stale", reason="parent-changed",
+                    kernel=None, working_state=None, observed={},
+                )
+            retained_transceivers.append(transceiver)
+        if any(old is not new for old, new in zip(self.transceivers, retained_transceivers)):
+            object.__setattr__(self, "transceivers", tuple(retained_transceivers))
         object.__setattr__(
             self,
             "transition_log",
-            tuple(
-                _json_value(dict(row), "transition record")
-                for row in self.transition_log
-            ),
+            tuple(_json_value(dict(row), "transition record") for row in self.transition_log),
         )
+        normalized_queries: list[Mapping[str, Any]] = []
+        query_ids: set[str] = set()
+        for raw_query in self.prepared_queries:
+            if not isinstance(raw_query, Mapping):
+                raise FieldIntelligenceError("INVALID_STATE", "prepared query must be a mapping")
+            query = dict(raw_query)
+            unknown = set(query) - {
+                "query_id", "status", "frozen", "result", "branch_workspaces",
+                "branch_receipts", "reason",
+            }
+            if unknown:
+                raise FieldIntelligenceError(
+                    "INVALID_STATE", "prepared query has unknown keys",
+                    details={"unknown": sorted(unknown)},
+                )
+            query_id = _identifier(query.get("query_id"), "prepared query_id")
+            if query_id in query_ids:
+                raise FieldIntelligenceError("INVALID_STATE", "prepared query identities must be unique")
+            query_ids.add(query_id)
+            status = query.get("status")
+            if status not in {"prepared", "invalidated"}:
+                raise FieldIntelligenceError("INVALID_STATE", "prepared query status is unsupported")
+            if status == "prepared" and "result" not in query:
+                raise FieldIntelligenceError("INVALID_STATE", "prepared query lacks result")
+            if "result" in query:
+                if not isinstance(query["result"], Mapping):
+                    raise FieldIntelligenceError("INVALID_STATE", "prepared query result must be a mapping")
+                query["result"] = _json_value(dict(query["result"]), "prepared query result")
+            branches = query.get("branch_workspaces", ())
+            if not isinstance(branches, (tuple, list)):
+                raise FieldIntelligenceError("INVALID_STATE", "prepared branch workspaces must be a sequence")
+            normalized_branches: list[Mapping[str, Any]] = []
+            for record in branches:
+                if not isinstance(record, Mapping) or set(record) != {
+                    "workspace", "state_sha256", "page_sha256"
+                }:
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE", "prepared branch workspace record is not canonical"
+                    )
+                try:
+                    branch_workspace = record["workspace"]
+                    if not isinstance(branch_workspace, ResonantWorkspace):
+                        branch_workspace = ResonantWorkspace.from_dict(branch_workspace)
+                    state_digest = _digest(record["state_sha256"], "workspace state digest")
+                    page_digest = _digest(record["page_sha256"], "workspace page digest")
+                    if branch_workspace.state_sha256 != state_digest:
+                        raise ValueError("workspace state digest mismatch")
+                    if hashlib.sha256(branch_workspace.page_bytes).hexdigest() != page_digest:
+                        raise ValueError("workspace page digest mismatch")
+                except Exception as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE", "prepared branch workspace is invalid"
+                    ) from exc
+                normalized_branches.append(
+                    _FrozenDict({
+                        "workspace": branch_workspace,
+                        "state_sha256": state_digest,
+                        "page_sha256": page_digest,
+                    })
+                )
+            query["branch_workspaces"] = tuple(normalized_branches)
+            if "branch_receipts" in query:
+                query["branch_receipts"] = _json_value(query["branch_receipts"], "branch receipts")
+            normalized_queries.append(_FrozenDict(query))
+        valid_page_names = set(_ATLAS_PAGE_NAMES) | {
+            "resonant_workspace", "resonant_workspace:field"
+        }
+        for name in tuple(inherited_cache):
+            if name not in valid_page_names:
+                inherited_cache.pop(name, None)
+        object.__setattr__(self, "prepared_queries", tuple(normalized_queries))
+        for name in _ATLAS_PAGE_NAMES:
+            owner = getattr(self, name)
+            entry = inherited_cache.get(name)
+            if entry is not None and entry[0] is not owner:
+                inherited_cache.pop(name, None)
+        workspace_owners: list[ResonantWorkspace] = []
+        if workspace is not None:
+            workspace_owners.append(workspace)
+        for query in self.prepared_queries:
+            for branch in query.get("branch_workspaces", ()):
+                workspace_owners.append(branch["workspace"])
+        for name in ("resonant_workspace", "resonant_workspace:field"):
+            entry = inherited_cache.get(name)
+            if entry is not None and not any(entry[0] is owner for owner in workspace_owners):
+                inherited_cache.pop(name, None)
+        object.__setattr__(self, "frozen_query_ids", frozenset(self.frozen_query_ids))
         if self.schema != ATLAS_SCHEMA or self.arithmetic_profile != ARITHMETIC_PROFILE:
             raise FieldIntelligenceError("INCOMPATIBLE_STATE", "field atlas schema is incompatible")
-        for name in ("generation", "logical_tick", "revocation_generation"):
+        for name in ("generation", "logical_tick", "revocation_generation", "transition_epoch_floor"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise FieldIntelligenceError("INVALID_STATE", f"{name} must be nonnegative")
+        if self.transition_epoch_floor > self.generation:
+            raise FieldIntelligenceError("INVALID_STATE", "transition epoch floor exceeds generation")
         collections = {
             "variable": [row.variable_id for row in self.variables],
             "chart": [row.chart_id for row in self.charts],
@@ -1450,13 +1748,44 @@ class AtlasState:
             "prediction": [row.prediction_id for row in self.predictions],
             "plan": [row.plan_id for row in self.plans],
             "computation": [row.record_id for row in self.computation_records],
+            "transceiver": [row.transceiver_id for row in self.transceivers],
+            "temporal": [row.memory_id for row in self.temporal_fields],
+            "computer": [row.computer_id for row in self.computers],
         }
         for label, values in collections.items():
             if len(values) != len(set(values)):
-                raise FieldIntelligenceError(
-                    "INVALID_STATE", f"{label} identities must be unique"
-                )
+                raise FieldIntelligenceError("INVALID_STATE", f"{label} identities must be unique")
         variable_ids = set(collections["variable"])
+        if workspace is not None:
+            occupied_ports: set[int] = set()
+            binding_ids: set[str] = set()
+            for variable_id, binding in workspace.bindings.items():
+                if variable_id not in variable_ids:
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE", "resonant binding names an unknown variable",
+                        details={"variable_id": variable_id},
+                    )
+                if not isinstance(binding, Mapping) or set(binding) != {
+                    "pool", "port", "component", "binding_id"
+                }:
+                    raise FieldIntelligenceError("INVALID_STATE", "resonant binding is not canonical")
+                pool = binding["pool"]
+                if isinstance(pool, bool) or not isinstance(pool, int) or not 0 <= pool < workspace.profile.pools:
+                    raise FieldIntelligenceError("INVALID_STATE", "resonant binding pool is invalid")
+                port = binding["port"]
+                if isinstance(port, bool) or not isinstance(port, int) or not 0 <= port < workspace.profile.port_count:
+                    raise FieldIntelligenceError("INVALID_STATE", "resonant binding port is invalid")
+                if port in occupied_ports:
+                    raise FieldIntelligenceError("INVALID_STATE", "resonant bindings reuse a port")
+                occupied_ports.add(port)
+                _identifier(binding["component"], "binding component")
+                binding_id = _identifier(binding["binding_id"], "binding_id")
+                if binding_id in binding_ids:
+                    raise FieldIntelligenceError("INVALID_STATE", "resonant binding identities must be unique")
+                binding_ids.add(binding_id)
+        for transceiver in self.transceivers:
+            if not set((*transceiver.input_ids, *transceiver.output_ids)).issubset(variable_ids):
+                raise FieldIntelligenceError("INVALID_STATE", "transceiver ports name unknown variables")
         for chart in self.charts:
             missing = set(chart.scope) - variable_ids
             if missing:
@@ -1471,13 +1800,10 @@ class AtlasState:
                 raise FieldIntelligenceError(
                     "INVALID_STATE", "construction names an unknown semantic program"
                 )
-        for row in self.transition_log:
-            _json_value(dict(row), "transition record")
-        encoded = canonical_json_bytes(self.as_dict())
+        object.__setattr__(self, "_page_cache", inherited_cache)
+        encoded = self.encode()
         object.__setattr__(self, "_encoded", encoded)
-        object.__setattr__(
-            self, "_state_sha256", hashlib.sha256(encoded).hexdigest()
-        )
+        object.__setattr__(self, "_state_sha256", hashlib.sha256(encoded).hexdigest())
 
     @property
     def state_sha256(self) -> str:
@@ -1496,6 +1822,22 @@ class AtlasState:
             return next(row for row in self.charts if row.chart_id == chart_id)
         except StopIteration as exc:
             raise FieldIntelligenceError("CHART_NOT_FOUND", f"unknown chart: {chart_id}") from exc
+
+    def transceiver(self, transceiver_id: str) -> FieldTransceiver:
+        try:
+            return next(row for row in self.transceivers if row.transceiver_id == transceiver_id)
+        except StopIteration as exc:
+            raise FieldIntelligenceError(
+                "TRANSCEIVER_NOT_FOUND", f"unknown transceiver: {transceiver_id}"
+            ) from exc
+    def temporal(self, memory_id: str) -> TemporalField:
+        try:
+            return next(row for row in self.temporal_fields if row.memory_id == memory_id)
+        except StopIteration as exc:
+            raise FieldIntelligenceError(
+                "TEMPORAL_NOT_FOUND", f"unknown temporal memory: {memory_id}"
+            ) from exc
+
 
     def program(self, program_id: str) -> FieldProgram:
         try:
@@ -1520,65 +1862,410 @@ class AtlasState:
             "logical_tick": changes.get("logical_tick", self.logical_tick),
             "payload": _json_value(dict(payload), "transition payload"),
             "predecessor_generation": self.generation,
+            "predecessor_state_sha256": self.state_sha256,
         }
+        history = (*self.transition_log, transition)
+        floor = self.transition_epoch_floor
+        if len(history) > 128:
+            drop = len(history) - 128
+            history = history[drop:]
+            floor += drop
         return replace(
             self,
             generation=self.generation + 1,
-            transition_log=(*self.transition_log, transition),
+            transition_epoch_floor=floor,
+            transition_log=history,
             **changes,
         )
 
-    def as_dict(self) -> Mapping[str, Any]:
-        return {
+    def _workspace_page(
+        self,
+        workspace: ResonantWorkspace,
+    ) -> tuple[str, bytes, str, bytes]:
+        owner = workspace
+        descriptor_entry = self._page_cache.get("resonant_workspace")
+        field_entry = self._page_cache.get("resonant_workspace:field")
+        if (
+            descriptor_entry is not None
+            and field_entry is not None
+            and descriptor_entry[0] is owner
+            and field_entry[0] is owner
+        ):
+            return descriptor_entry[1], descriptor_entry[2], field_entry[1], field_entry[2]
+        page_raw = workspace.page_bytes
+        page_digest = hashlib.sha256(page_raw).hexdigest()
+        descriptor = dict(workspace.as_dict())
+        descriptor.pop("field", None)
+        descriptor.pop("field_b64", None)
+        descriptor["page_sha256"] = page_digest
+        descriptor_raw = canonical_json_bytes(descriptor)
+        descriptor_digest = hashlib.sha256(descriptor_raw).hexdigest()
+        self._page_cache["resonant_workspace"] = (owner, descriptor_digest, descriptor_raw)
+        self._page_cache["resonant_workspace:field"] = (owner, page_digest, page_raw)
+        return descriptor_digest, descriptor_raw, page_digest, page_raw
+
+    def _page_payload(self, name: str) -> Any:
+        if name == "transition_log":
+            return [_json_plain(row) for row in self.transition_log]
+        if name == "prepared_queries":
+            prepared_queries: list[Mapping[str, Any]] = []
+            for raw_query in self.prepared_queries:
+                query = dict(raw_query)
+                branches: list[Mapping[str, Any]] = []
+                for raw_branch in query.get("branch_workspaces", ()):
+                    branch = dict(raw_branch)
+                    branch_workspace = branch.get("workspace")
+                    if not isinstance(branch_workspace, ResonantWorkspace):
+                        raise FieldIntelligenceError("INVALID_STATE", "prepared workspace is not hydrated")
+                    workspace_sha256, _, _, _ = self._workspace_page(branch_workspace)
+                    branches.append({
+                        "workspace_sha256": workspace_sha256,
+                        "state_sha256": branch["state_sha256"],
+                        "page_sha256": branch["page_sha256"],
+                    })
+                query["branch_workspaces"] = branches
+                prepared_queries.append(_json_plain(query))
+            return prepared_queries
+        rows = getattr(self, name)
+        return [row.as_dict() for row in rows]
+
+    def _page_bytes(self, name: str) -> tuple[str, bytes]:
+        owner = getattr(self, name)
+        entry = self._page_cache.get(name)
+        if entry is not None and entry[0] is owner:
+            return entry[1], entry[2]
+        raw = canonical_json_bytes(self._page_payload(name))
+        digest = hashlib.sha256(raw).hexdigest()
+        self._page_cache[name] = (owner, digest, raw)
+        return digest, raw
+
+    def _full_dict(self) -> Mapping[str, Any]:
+        workspace = self.resonant_workspace
+        full: dict[str, Any] = {
+            name: json.loads(self._page_bytes(name)[1].decode("utf-8"))
+            for name in _ATLAS_PAGE_NAMES
+        }
+        full.update({
             "arithmetic_profile": self.arithmetic_profile,
-            "charts": [row.as_dict() for row in self.charts],
-            "computation_records": [row.as_dict() for row in self.computation_records],
-            "constructions": [row.as_dict() for row in self.constructions],
+            "frozen_query_ids": sorted(self.frozen_query_ids),
             "generation": self.generation,
             "logical_tick": self.logical_tick,
-            "macros": [row.as_dict() for row in self.macros],
-            "plans": [row.as_dict() for row in self.plans],
-            "predictions": [row.as_dict() for row in self.predictions],
-            "programs": [row.as_dict() for row in self.programs],
+            "resonant_workspace": (
+                None if workspace is None
+                else {"workspace_sha256": self._workspace_page(workspace)[0]}
+            ),
             "revocation_generation": self.revocation_generation,
             "schema": self.schema,
-            "transition_log": [_json_plain(row) for row in self.transition_log],
-            "variables": [row.as_dict() for row in self.variables],
+            "transition_epoch_floor": self.transition_epoch_floor,
+        })
+        return full
+
+    def as_dict(self) -> Mapping[str, Any]:
+        return self._full_dict()
+
+    def object_pages(self) -> Mapping[str, bytes]:
+        pages: dict[str, bytes] = {}
+        for name in _ATLAS_PAGE_NAMES:
+            if name in {"transceivers", "temporal_fields", "computers"} and not getattr(self, name):
+                continue
+            digest, raw = self._page_bytes(name)
+            pages[digest] = raw
+        workspaces: list[ResonantWorkspace] = []
+        if self.resonant_workspace is not None:
+            workspaces.append(self.resonant_workspace)
+        for query in self.prepared_queries:
+            for branch in query.get("branch_workspaces", ()):
+                workspaces.append(branch["workspace"])
+        for workspace in workspaces:
+            descriptor_digest, descriptor_raw, page_digest, page_raw = self._workspace_page(workspace)
+            pages[descriptor_digest] = descriptor_raw
+            pages[page_digest] = page_raw
+        return MappingProxyType(pages)
+
+    def workspace_usage(self) -> Mapping[str, int]:
+        """Count the unique reachable body and retained branch workspace pages."""
+        seen_pages: set[str] = set()
+        workspace_bytes = 0
+        ports = 0
+        workspaces = itertools.chain(
+            (self.resonant_workspace,),
+            (
+                branch["workspace"]
+                for query in self.prepared_queries
+                for branch in query.get("branch_workspaces", ())
+            ),
+        )
+        for workspace in workspaces:
+            if workspace is None:
+                continue
+            descriptor_digest, descriptor_raw, page_digest, page_raw = self._workspace_page(workspace)
+            if page_digest not in seen_pages:
+                ports += workspace.profile.port_count
+            for digest, raw in ((descriptor_digest, descriptor_raw), (page_digest, page_raw)):
+                if digest not in seen_pages:
+                    seen_pages.add(digest)
+                    workspace_bytes += len(raw)
+        if self.transceivers:
+            workspace_bytes += len(self._page_bytes("transceivers")[1])
+            ports += sum(len(row.input_ids) + len(row.output_ids) for row in self.transceivers)
+        if self.temporal_fields:
+            workspace_bytes += len(self._page_bytes("temporal_fields")[1])
+            ports += sum(len(row.action_ids) + len(row.observation_ids) for row in self.temporal_fields)
+        if self.computers:
+            workspace_bytes += len(self._page_bytes("computers")[1])
+        return {
+            "workspace_bytes": workspace_bytes,
+            "ports": ports,
+            "prepared_branches": sum(
+                max(1, len(query.get("branch_workspaces", ())))
+                for query in self.prepared_queries
+            ),
         }
 
+    def _descriptor(self) -> Mapping[str, Any]:
+        page_names = {
+            name: self._page_bytes(name)[0]
+            for name in _ATLAS_PAGE_NAMES
+            if name not in {"transceivers", "temporal_fields", "computers"} or getattr(self, name)
+        }
+        page_names["resonant_workspace"] = (
+            None if self.resonant_workspace is None
+            else self._workspace_page(self.resonant_workspace)[0]
+        )
+        return {
+            "arithmetic_profile": self.arithmetic_profile,
+            "frozen_query_ids": sorted(self.frozen_query_ids),
+            "generation": self.generation,
+            "logical_tick": self.logical_tick,
+            "pages": page_names,
+            "revocation_generation": self.revocation_generation,
+            "schema": self.schema,
+            "transition_epoch_floor": self.transition_epoch_floor,
+        }
+
+    @property
+    def closure_bytes(self) -> int:
+        return len(self.encode()) + sum(len(raw) for raw in self.object_pages().values())
+
     def encode(self) -> bytes:
-        return self._encoded
+        encoded = getattr(self, "_encoded", None)
+        if encoded is None:
+            return canonical_json_bytes(self._descriptor())
+        return encoded
+
+    def encode_bundle(self) -> bytes:
+        objects = {
+            digest: base64.b64encode(raw).decode("ascii")
+            for digest, raw in self.object_pages().items()
+        }
+        return canonical_json_bytes({"descriptor": json.loads(self.encode()), "objects": objects})
 
     @classmethod
-    def decode(cls, encoded: bytes) -> AtlasState:
+    def _from_full_dict(cls, row: Mapping[str, Any]) -> AtlasState:
+        value = dict(row)
+        workspace = value.get("resonant_workspace")
+        if workspace is not None and not isinstance(workspace, ResonantWorkspace):
+            workspace = ResonantWorkspace.from_dict(workspace)
+        value["resonant_workspace"] = workspace
+        value["variables"] = tuple(VariableSpec.from_dict(item) for item in value.get("variables", ()))
+        value["charts"] = tuple(RelationChart.from_dict(item) for item in value.get("charts", ()))
+        value["programs"] = tuple(FieldProgram.from_dict(item) for item in value.get("programs", ()))
+        value["constructions"] = tuple(LanguageConstruction.from_dict(item) for item in value.get("constructions", ()))
+        value["macros"] = tuple(ExactReduction.from_dict(item) for item in value.get("macros", ()))
+        value["predictions"] = tuple(PredictionRecord.from_dict(item) for item in value.get("predictions", ()))
+        value["plans"] = tuple(PlanRecord.from_dict(item) for item in value.get("plans", ()))
+        value["computation_records"] = tuple(ComputationRecord.from_dict(item) for item in value.get("computation_records", ()))
+        value["transceivers"] = tuple(FieldTransceiver.from_dict(item) for item in value.get("transceivers", ()))
+        try:
+            value["temporal_fields"] = tuple(
+                TemporalField.from_dict(item) for item in value.get("temporal_fields", ())
+            )
+        except TemporalFieldError as exc:
+            raise FieldIntelligenceError("INVALID_STATE", str(exc)) from exc
+        try:
+            if value.get("computers"):
+                from cassi_learning_computer import LearningComputer
+                value["computers"] = tuple(LearningComputer.from_dict(item) for item in value["computers"])
+            else:
+                value["computers"] = ()
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError("INVALID_STATE", str(exc)) from exc
+        value["transition_log"] = tuple(value.get("transition_log", ()))
+        value["prepared_queries"] = tuple(value.get("prepared_queries", ()))
+        value["frozen_query_ids"] = frozenset(value.get("frozen_query_ids", ()))
+        value["schema"] = ATLAS_SCHEMA
+        return cls(**value)
+
+    @staticmethod
+    def _load_workspace_object(
+        objects: Mapping[str, bytes], descriptor_digest: str
+    ) -> tuple[ResonantWorkspace, str]:
+        raw = objects.get(descriptor_digest)
+        if raw is None or hashlib.sha256(raw).hexdigest() != descriptor_digest:
+            raise FieldIntelligenceError("INVALID_STATE_OBJECT", "missing or corrupt workspace descriptor")
+        try:
+            descriptor = json.loads(raw.decode("utf-8"))
+            if not isinstance(descriptor, Mapping) or set(descriptor) != {
+                "schema", "profile", "layout", "bindings", "field_ticks",
+                "heartbeat_phase", "heartbeat_cycles", "breath_phase", "breath_cycles",
+                "activity", "evidence_tick", "subdivision_ticks", "paused", "ledger",
+                "layout_transition", "state_sha256", "page_sha256",
+            }:
+                raise ValueError("workspace descriptor is not canonical")
+            page_digest = _digest(descriptor["page_sha256"], "workspace page digest")
+            page_raw = objects.get(page_digest)
+            if page_raw is None or hashlib.sha256(page_raw).hexdigest() != page_digest:
+                raise ValueError("workspace page is missing or corrupt")
+            payload = dict(descriptor)
+            payload.pop("page_sha256")
+            payload["field_b64"] = base64.b64encode(page_raw).decode("ascii")
+            workspace = ResonantWorkspace.from_dict(payload)
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError("INVALID_STATE_OBJECT", "workspace descriptor is invalid") from exc
+        return workspace, page_digest
+
+    @classmethod
+    def decode(cls, encoded: bytes, objects: Mapping[str, bytes] | None = None) -> AtlasState:
         try:
             value = json.loads(encoded.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise FieldIntelligenceError("INVALID_STATE", "field checkpoint is unreadable") from exc
-        if not isinstance(value, dict):
-            raise FieldIntelligenceError("INVALID_STATE", "field checkpoint root must be an object")
-        row = dict(value)
-        row["variables"] = tuple(VariableSpec.from_dict(item) for item in row["variables"])
-        row["charts"] = tuple(RelationChart.from_dict(item) for item in row["charts"])
-        row["programs"] = tuple(FieldProgram.from_dict(item) for item in row["programs"])
-        row["constructions"] = tuple(
-            LanguageConstruction.from_dict(item) for item in row["constructions"]
-        )
-        row["macros"] = tuple(ExactReduction.from_dict(item) for item in row["macros"])
-        row["predictions"] = tuple(
-            PredictionRecord.from_dict(item) for item in row["predictions"]
-        )
-        row["plans"] = tuple(PlanRecord.from_dict(item) for item in row["plans"])
-        row["computation_records"] = tuple(
-            ComputationRecord.from_dict(item) for item in row["computation_records"]
-        )
-        row["transition_log"] = tuple(row["transition_log"])
-        result = cls(**row)
-        if result.encode() != encoded:
-            raise FieldIntelligenceError(
-                "NONCANONICAL_STATE", "field checkpoint is not canonical or exact-roundtrip"
+        if not isinstance(value, dict) or value.get("schema") != ATLAS_SCHEMA:
+            raise FieldIntelligenceError("INCOMPATIBLE_STATE", "normal decode accepts v2 descriptors only")
+        if set(value) != {
+            "arithmetic_profile", "frozen_query_ids", "generation", "logical_tick",
+            "pages", "revocation_generation", "schema", "transition_epoch_floor",
+        }:
+            raise FieldIntelligenceError("NONCANONICAL_STATE", "field descriptor keys are not canonical")
+        pages = value.get("pages")
+        page_names = {
+            "variables", "charts", "programs", "constructions", "macros", "predictions",
+            "plans", "computation_records", "transition_log", "prepared_queries",
+            "resonant_workspace",
+        }
+        if isinstance(pages, dict) and "transceivers" in pages:
+            page_names.add("transceivers")
+        if isinstance(pages, dict) and "temporal_fields" in pages:
+            page_names.add("temporal_fields")
+        if isinstance(pages, dict) and "computers" in pages:
+            page_names.add("computers")
+        if not isinstance(pages, dict) or set(pages) != page_names:
+            raise FieldIntelligenceError("INVALID_STATE", "v2 descriptor pages are not canonical")
+        if objects is None:
+            raise FieldIntelligenceError("MISSING_STATE_OBJECTS", "descriptor requires content-addressed objects")
+        if not isinstance(objects, Mapping):
+            raise FieldIntelligenceError("INVALID_STATE_OBJECT", "state objects must be a mapping")
+        for digest, raw in objects.items():
+            _digest(digest, "state object digest")
+            if not isinstance(raw, bytes) or hashlib.sha256(raw).hexdigest() != digest:
+                raise FieldIntelligenceError("INVALID_STATE_OBJECT", "state object is missing or corrupt")
+        full: dict[str, Any] = {
+            key: value[key] for key in (
+                "arithmetic_profile", "frozen_query_ids", "generation", "logical_tick",
+                "revocation_generation", "transition_epoch_floor", "schema",
             )
+        }
+        expected_objects: set[str] = set()
+        for name in page_names:
+            digest = pages[name]
+            if digest is None:
+                if name != "resonant_workspace":
+                    raise FieldIntelligenceError("INVALID_STATE", f"{name} page cannot be null")
+                full[name] = None
+                continue
+            _digest(digest, f"{name} page digest")
+            raw = objects.get(digest)
+            if raw is None:
+                raise FieldIntelligenceError("INVALID_STATE_OBJECT", f"missing {name} page")
+            expected_objects.add(digest)
+            if name == "resonant_workspace":
+                full[name] = {"workspace_sha256": digest}
+                continue
+            try:
+                full[name] = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise FieldIntelligenceError("INVALID_STATE_OBJECT", f"{name} page is unreadable") from exc
+        prepared = full["prepared_queries"]
+        if not isinstance(prepared, list):
+            raise FieldIntelligenceError("INVALID_STATE_OBJECT", "prepared query page must be a list")
+        hydrated_queries: list[Mapping[str, Any]] = []
+        for raw_query in prepared:
+            if not isinstance(raw_query, Mapping):
+                raise FieldIntelligenceError("INVALID_STATE_OBJECT", "prepared query is not a mapping")
+            query = dict(raw_query)
+            branches = query.get("branch_workspaces", [])
+            if not isinstance(branches, list):
+                raise FieldIntelligenceError("INVALID_STATE_OBJECT", "prepared branch workspaces are not a list")
+            hydrated_branches: list[Mapping[str, Any]] = []
+            for raw_branch in branches:
+                if not isinstance(raw_branch, Mapping) or set(raw_branch) != {
+                    "workspace_sha256", "state_sha256", "page_sha256"
+                }:
+                    raise FieldIntelligenceError("INVALID_STATE_OBJECT", "prepared workspace reference is not canonical")
+                workspace_digest = _digest(raw_branch["workspace_sha256"], "workspace descriptor digest")
+                state_digest = _digest(raw_branch["state_sha256"], "workspace state digest")
+                page_digest = _digest(raw_branch["page_sha256"], "workspace page digest")
+                workspace, descriptor_page_digest = cls._load_workspace_object(
+                    objects, workspace_digest
+                )
+                expected_objects.update({workspace_digest, descriptor_page_digest})
+                if descriptor_page_digest != page_digest or workspace.state_sha256 != state_digest:
+                    raise FieldIntelligenceError("INVALID_STATE_OBJECT", "workspace reference digest mismatch")
+                hydrated_branches.append({
+                    "workspace": workspace,
+                    "state_sha256": state_digest,
+                    "page_sha256": page_digest,
+                })
+            query["branch_workspaces"] = hydrated_branches
+            hydrated_queries.append(query)
+        full["prepared_queries"] = hydrated_queries
+        root_workspace = full.get("resonant_workspace")
+        if root_workspace is not None:
+            if not isinstance(root_workspace, Mapping) or set(root_workspace) != {"workspace_sha256"}:
+                raise FieldIntelligenceError("INVALID_STATE_OBJECT", "resonant workspace reference is not canonical")
+            workspace_digest = _digest(root_workspace["workspace_sha256"], "workspace descriptor digest")
+            workspace, page_digest = cls._load_workspace_object(objects, workspace_digest)
+            expected_objects.update({workspace_digest, page_digest})
+            full["resonant_workspace"] = workspace
+        if set(objects) != expected_objects:
+            raise FieldIntelligenceError("NONCANONICAL_STATE", "state object closure contains unreachable objects")
+        result = cls._from_full_dict(full)
+        if result.encode() != encoded:
+            raise FieldIntelligenceError("NONCANONICAL_STATE", "field descriptor is not canonical")
         return result
+    @classmethod
+    def decode_bundle(cls, encoded: bytes) -> AtlasState:
+        try:
+            bundle = json.loads(encoded.decode("utf-8"))
+            if not isinstance(bundle, dict) or set(bundle) != {"descriptor", "objects"}:
+                raise ValueError("state bundle keys are not canonical")
+            if canonical_json_bytes(bundle) != encoded:
+                raise ValueError("state bundle is not canonical")
+            descriptor = canonical_json_bytes(bundle["descriptor"])
+            raw_objects = bundle["objects"]
+            if not isinstance(raw_objects, Mapping):
+                raise ValueError("state bundle objects are not a mapping")
+            objects = {
+                digest: base64.b64decode(raw.encode("ascii"), validate=True)
+                for digest, raw in raw_objects.items()
+            }
+        except (KeyError, TypeError, ValueError, UnicodeDecodeError, AttributeError, json.JSONDecodeError) as exc:
+            raise FieldIntelligenceError("INVALID_STATE", "state bundle is unreadable") from exc
+        return cls.decode(descriptor, objects)
+
+    @classmethod
+    def migrate_v1(cls, encoded: bytes) -> AtlasState:
+        try:
+            value = json.loads(encoded.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise FieldIntelligenceError("INVALID_STATE", "legacy checkpoint is unreadable") from exc
+        if not isinstance(value, dict) or value.get("schema") != ATLAS_LEGACY_SCHEMA:
+            raise FieldIntelligenceError("INCOMPATIBLE_STATE", "expected a v1 atlas checkpoint")
+        value["prepared_queries"] = ()
+        value["frozen_query_ids"] = ()
+        value["resonant_workspace"] = initial_workspace()
+        value["transition_epoch_floor"] = 0
+        return cls._from_full_dict(value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1615,8 +2302,8 @@ class BranchSolution:
     observed_order: tuple[str, ...]
     active_chart_versions: tuple[tuple[str, int], ...]
     source_revision_ids: tuple[str, ...]
-    residual_norm: float
-    constraint_residual: float
+    residual_norm: float | None
+    constraint_residual: float | None
     condition_number: float | None
     spectral_lower_bound: float | None
     solution_error_bound: float | None
@@ -1654,6 +2341,23 @@ class BranchSolution:
         _identifier(self.branch_id, "branch_id")
         if self.status not in {"settled", "underdetermined", "infeasible", "exhausted"}:
             raise FieldIntelligenceError("INVALID_QUERY_RESULT", "branch status is unsupported")
+        for name in (
+            "residual_norm", "constraint_residual", "condition_number",
+            "spectral_lower_bound", "solution_error_bound",
+        ):
+            value = getattr(self, name)
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value))
+            ):
+                object.__setattr__(self, name, None)
+                object.__setattr__(self, "numerical_settled", False)
+        if any(
+            getattr(self, name) is None
+            for name in ("residual_norm", "constraint_residual")
+        ) and "nonfinite-diagnostic" not in self.obligations:
+            object.__setattr__(
+                self, "obligations", (*self.obligations, "nonfinite-diagnostic")
+            )
 
     def as_dict(self) -> Mapping[str, Any]:
         return {
@@ -1686,6 +2390,9 @@ class QueryResult:
     observed: Mapping[str, float]
     context: Mapping[str, Any]
     memory_unchanged: bool
+    query_id: str | None = None
+    checkpoint_receipt: Mapping[str, Any] | None = None
+
     def __post_init__(self) -> None:
         object.__setattr__(self, "branches", tuple(self.branches))
         object.__setattr__(self, "requested", tuple(self.requested))
@@ -1694,29 +2401,104 @@ class QueryResult:
             "observed",
             _FrozenDict(
                 {
-                    _identifier(name, "observed variable"): _finite(
-                        value, "observed value"
-                    )
+                    _identifier(name, "observed variable"): _finite(value, "observed value")
                     for name, value in self.observed.items()
                 }
             ),
         )
-        object.__setattr__(
-            self, "context", _json_value(dict(self.context), "query context")
-        )
+        object.__setattr__(self, "context", _json_value(dict(self.context), "query context"))
+        if self.query_id is not None:
+            _identifier(self.query_id, "query_id")
+        if self.checkpoint_receipt is not None:
+            object.__setattr__(
+                self,
+                "checkpoint_receipt",
+                _json_value(dict(self.checkpoint_receipt), "checkpoint receipt"),
+            )
 
 
     def as_dict(self) -> Mapping[str, Any]:
         return {
             "branches": [row.as_dict() for row in self.branches],
+            "checkpoint_receipt": None if self.checkpoint_receipt is None else _json_plain(self.checkpoint_receipt),
             "context": _json_plain(self.context),
             "field_generation": self.field_generation,
             "memory_unchanged": self.memory_unchanged,
             "observed": _json_plain(self.observed),
+            "query_id": self.query_id,
             "requested": list(self.requested),
             "state_sha256": self.state_sha256,
             "status": self.status,
         }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> QueryResult:
+        row = dict(value)
+        row["branches"] = tuple(
+            BranchSolution(
+                branch_id=item["branch_id"],
+                status=item["status"],
+                variable_order=tuple(item["variable_order"]),
+                values=item["values"],
+                response=tuple(tuple(v) for v in item["response"]),
+                observed_order=tuple(item["observed_order"]),
+                active_chart_versions=tuple(tuple(v) for v in item["active_chart_versions"]),
+                source_revision_ids=tuple(item["source_revision_ids"]),
+                residual_norm=item["residual_norm"],
+                constraint_residual=item["constraint_residual"],
+                condition_number=item["condition_number"],
+                spectral_lower_bound=item["spectral_lower_bound"],
+                solution_error_bound=item["solution_error_bound"],
+                numerical_settled=item["numerical_settled"],
+                epistemically_supportable=item["epistemically_supportable"],
+                obligations=tuple(item["obligations"]),
+            )
+            for item in row["branches"]
+        )
+        row["requested"] = tuple(row["requested"])
+        return cls(**row)
+
+
+def _packet_read_frame(workspace: ResonantWorkspace) -> np.ndarray:
+    """The declared read frame: the canonical analyzer's whole-packet coefficients."""
+
+    packet = analyze_helical_packet(workspace)
+    return np.asarray(packet["coefficients"], dtype=np.float64).reshape(-1)
+
+
+def packet_read_direction(
+    profile: ResonantProfile,
+    *,
+    path: str,
+    component: str,
+    flow_signal: Sequence[float],
+) -> np.ndarray:
+    """The unit read-frame direction one declared packet impulse deposits into.
+
+    The direction is measured rather than assumed: the declared impulse is applied
+    to a scratch workspace of the same profile at the declared probe budget and the
+    resulting read frame is normalized. Nothing outside that scratch workspace is
+    touched, and any declared direction that deposits nothing in the read frame is
+    an explicit numerical error rather than a silent zero.
+    """
+
+    scratch, _ = apply_helical_packet_impulse(
+        initial_workspace(profile),
+        path=path,
+        component=component,
+        flow_signal=flow_signal,
+        work_budget=_PACKET_READ_PROBE_BUDGET,
+        evidence_tick=0,
+        event_kind=PACKET_IMPULSE_EVENT_KIND,
+    )
+    frame = _packet_read_frame(scratch)
+    norm = float(np.linalg.norm(frame))
+    if norm <= 0.0:
+        raise FieldIntelligenceError(
+            "RESONANT_NUMERICAL",
+            "a declared packet direction deposits nothing in the read frame",
+        )
+    return frame / norm
 
 
 class FieldAtlas:
@@ -1809,6 +2591,10 @@ class FieldAtlas:
             else row
             for row in state.plans
         )
+        prepared_queries = tuple(
+            {**row, "status": "invalidated", "reason": "chart-replaced"}
+            for row in state.prepared_queries
+        )
         return state.with_transition(
             "chart-replaced",
             {"chart_id": chart.chart_id, "previous_version": previous.version},
@@ -1816,6 +2602,8 @@ class FieldAtlas:
             macros=macros,
             predictions=predictions,
             plans=plans,
+            prepared_queries=prepared_queries,
+            frozen_query_ids=frozenset(),
         )
 
     def add_program(self, state: AtlasState, program: FieldProgram) -> AtlasState:
@@ -1862,6 +2650,10 @@ class FieldAtlas:
             else row
             for row in state.plans
         )
+        prepared_queries = tuple(
+            {**row, "status": "invalidated", "reason": "program-replaced"}
+            for row in state.prepared_queries
+        )
         return state.with_transition(
             "program-replaced",
             {"program_id": program.program_id, "previous_version": previous.version},
@@ -1869,6 +2661,8 @@ class FieldAtlas:
             constructions=constructions,
             predictions=predictions,
             plans=plans,
+            prepared_queries=prepared_queries,
+            frozen_query_ids=frozenset(),
         )
 
     def add_construction(self, state: AtlasState, construction: LanguageConstruction) -> AtlasState:
@@ -1898,6 +2692,10 @@ class FieldAtlas:
             construction,
             "construction_id",
         )
+        prepared_queries = tuple(
+            {**row, "status": "invalidated", "reason": "construction-replaced"}
+            for row in state.prepared_queries
+        )
         return state.with_transition(
             "construction-replaced",
             {
@@ -1905,8 +2703,9 @@ class FieldAtlas:
                 "previous_version": previous.version,
             },
             constructions=rows,
+            prepared_queries=prepared_queries,
+            frozen_query_ids=frozenset(),
         )
-
     def admit_observation(
         self,
         state: AtlasState,
@@ -1981,6 +2780,10 @@ class FieldAtlas:
                 "observation did not fully support any applicable chart",
                 details={"partial_chart_ids": partial},
             )
+        prepared_queries = tuple(
+            {**row, "status": "invalidated", "reason": "observation-admitted"}
+            for row in state.prepared_queries
+        )
         successor = state.with_transition(
             "observation-admitted",
             {
@@ -1991,6 +2794,8 @@ class FieldAtlas:
             },
             logical_tick=tick,
             charts=tuple(updated),
+            prepared_queries=prepared_queries,
+            frozen_query_ids=frozenset(),
         )
         return successor, {
             "event_id": event_id,
@@ -2086,11 +2891,38 @@ class FieldAtlas:
             else row
             for row in state.plans
         )
+        prepared_queries = tuple(
+            {
+                **row,
+                "status": "invalidated",
+                "reason": "source-revoked",
+            }
+            if targets.intersection(
+                source
+                for branch in QueryResult.from_dict(row["result"]).branches
+                for source in branch.source_revision_ids
+            )
+            else row
+            for row in state.prepared_queries
+        )
+        affected_temporal = [
+            row.memory_id for row in state.temporal_fields
+            if targets.intersection(row.source_revision_ids)
+        ]
+        temporal_fields = tuple(
+            TemporalField.initial(
+                row.memory_id, action_ids=row.action_ids,
+                observation_ids=row.observation_ids, max_states=row.max_states,
+                context=row.context,
+            ) if row.memory_id in affected_temporal else row
+            for row in state.temporal_fields
+        )
         successor = state.with_transition(
             "sources-revoked",
             {
                 "affected_chart_ids": affected_charts,
                 "source_revision_ids": sorted(targets),
+                "affected_temporal_ids": affected_temporal,
             },
             logical_tick=tick,
             revocation_generation=revocation_generation,
@@ -2100,9 +2932,17 @@ class FieldAtlas:
             macros=macros,
             predictions=predictions,
             plans=plans,
+            prepared_queries=prepared_queries,
+            temporal_fields=temporal_fields,
+            frozen_query_ids=frozenset(
+                query_id
+                for query_id in state.frozen_query_ids
+                if any(row.get("query_id") == query_id and row.get("status") == "prepared" for row in prepared_queries)
+            ),
         )
         return successor, {
             "affected_chart_ids": affected_charts,
+            "affected_temporal_ids": affected_temporal,
             "removed_event_ids": sorted(removed_events),
             "revocation_generation": revocation_generation,
         }
@@ -2187,471 +3027,65 @@ class FieldAtlas:
             positions = torch.tensor([index[name] for name in chart.scope], dtype=torch.long)
             result[positions[:, None], positions[None, :]] += local
         return result
-
     @staticmethod
-    def _apply_precision(
-        order: Sequence[str], charts: Sequence[RelationChart], vector: Tensor
-    ) -> Tensor:
-        index = {name: position for position, name in enumerate(order)}
-        result = torch.zeros_like(vector)
-        for chart in charts:
-            positions = torch.tensor([index[name] for name in chart.scope], dtype=torch.long)
-            local = vector[positions]
-            result[positions] += chart.factor_weight * torch.linalg.solve(
-                chart.covariance(), local
-            )
-        return result
-
-    @staticmethod
-    def _cg(
-        apply: Any,
-        rhs: Tensor,
+    def _inconsistent_constraint_residual(
+        problem: ResonantProblem | None,
         *,
         tolerance: float,
-        max_iterations: int,
-    ) -> tuple[Tensor, float, int]:
-        value = torch.zeros_like(rhs)
-        residual = rhs - apply(value)
-        direction = residual.clone()
-        rr = float(residual @ residual)
-        rhs_norm = float(torch.linalg.vector_norm(rhs))
-        target = tolerance * max(1.0, rhs_norm)
-        if math.sqrt(rr) <= target:
-            return value, math.sqrt(rr), 0
-        for iteration in range(1, max_iterations + 1):
-            applied = apply(direction)
-            curvature = float(direction @ applied)
-            if not math.isfinite(curvature) or curvature <= 0:
-                raise FieldIntelligenceError(
-                    "NUMERICAL_FAILURE", "matrix-free system is not positive definite"
-                )
-            alpha = rr / curvature
-            value = value + alpha * direction
-            residual = residual - alpha * applied
-            next_rr = float(residual @ residual)
-            if math.sqrt(next_rr) <= target:
-                return value, math.sqrt(next_rr), iteration
-            beta = next_rr / rr
-            direction = residual + beta * direction
-            rr = next_rr
-        return value, math.sqrt(rr), max_iterations
+    ) -> float | None:
+        """Return a finite contradiction witness before the wave solver runs."""
+        if problem is None or problem.affine_constraints is None:
+            return None
+        rows, targets = problem.affine_constraints
+        if len(rows) == 0:
+            return None
+        matrix = torch.tensor(rows, dtype=torch.float64)
+        target = torch.tensor(targets, dtype=torch.float64)
+        singular = torch.linalg.svdvals(matrix)
+        scale = float(singular.max()) if singular.numel() else 0.0
+        threshold = max(matrix.shape) * torch.finfo(torch.float64).eps * max(1.0, scale)
+        rank = int(torch.count_nonzero(singular > threshold))
+        inverse = torch.linalg.pinv(matrix)
+        residual = target - matrix @ (inverse @ target)
+        norm = float(torch.linalg.vector_norm(residual))
+        if rank < matrix.shape[0] and norm > tolerance * max(1.0, float(torch.linalg.vector_norm(target))):
+            return norm
+        return None
 
-    def _solve_branch(
-        self,
-        state: AtlasState,
-        charts: Sequence[RelationChart],
-        observed: Mapping[str, float],
-        requested: Sequence[str],
-        constraints: Sequence[AffineConstraint],
-        *,
-        method: str,
-        tolerance: float,
-        max_iterations: int,
-    ) -> BranchSolution:
-        order = self._variable_order(state, charts, observed, requested)
-        index = {name: position for position, name in enumerate(order)}
-        observed_all = dict(observed)
-        for variable_id in order:
-            spec = state.variable(variable_id)
-            if spec.kind == "constant":
-                assert spec.constant is not None
-                if variable_id in observed_all and observed_all[variable_id] != spec.constant:
-                    return self._failed_branch(
-                        charts, order, observed, "infeasible", ("constant-conflict",)
-                    )
-                observed_all[variable_id] = spec.constant
-        for variable_id, value in observed_all.items():
-            if variable_id not in index:
-                continue
-            if not state.variable(variable_id).contains(value):
-                return self._failed_branch(
-                    charts, order, observed, "infeasible", ("observation-domain",)
-                )
-        if constraints:
-            return self._solve_constrained(
-                state,
-                charts,
-                order,
-                observed,
-                observed_all,
-                constraints,
-                tolerance=tolerance,
-            )
-        fixed = tuple(name for name in order if name in observed_all)
-        free = tuple(name for name in order if name not in observed_all)
-        boundary = torch.zeros(len(order), dtype=torch.float64)
-        for name in fixed:
-            boundary[index[name]] = observed_all[name]
-        if not free:
-            values = {name: float(boundary[index[name]]) for name in order}
-            sources = sorted({source for chart in charts for source in chart.active_source_revisions()})
-            versions = tuple((chart.chart_id, chart.version) for chart in charts)
-            branch_id = sha256_value({"charts": versions, "modes": []})
-            response = tuple(
-                tuple(1.0 if name == observed_name else 0.0 for observed_name in observed)
-                for name in order
-            )
-            return BranchSolution(
-                branch_id=branch_id,
-                status="settled",
-                variable_order=order,
-                values=values,
-                response=response,
-                observed_order=tuple(observed),
-                active_chart_versions=versions,
-                source_revision_ids=tuple(sources),
-                residual_norm=0.0,
-                constraint_residual=0.0,
-                condition_number=1.0,
-                spectral_lower_bound=None,
-                solution_error_bound=0.0,
-                numerical_settled=True,
-                epistemically_supportable=all(
-                    any(name in chart.scope and chart.contributions for chart in charts)
-                    for name in requested
-                ),
-                obligations=(),
-            )
-        free_positions = torch.tensor([index[name] for name in free], dtype=torch.long)
-        if method == "auto":
-            method = "matrix-free" if len(order) > 32 else "direct"
-        if method not in {"direct", "matrix-free"}:
-            raise FieldIntelligenceError("INVALID_SOLVER", "solver method is unsupported")
-        hessian: Tensor | None = None
-        condition_number: float | None = None
-        lower_bound: float | None = None
-        iterations = 0
-        response_residual_norms: list[float] = []
-        response_rhs_norms: list[float] = []
-        if method == "direct":
-            hessian = self._assemble_precision(order, charts)
-            free_hessian = hessian[free_positions[:, None], free_positions[None, :]]
-            eigenvalues = torch.linalg.eigvalsh(free_hessian)
-            lower_bound = float(eigenvalues.min())
-            upper = float(eigenvalues.max())
-            guard = 128 * torch.finfo(torch.float64).eps * max(1.0, upper) * len(free)
-            if lower_bound <= guard:
-                return self._failed_branch(
-                    charts,
-                    order,
-                    observed,
-                    "underdetermined",
-                    ("numerical-nullspace",),
-                )
-            condition_number = upper / lower_bound
-            rhs = -(hessian @ boundary)[free_positions]
-            free_value = torch.linalg.solve(free_hessian, rhs)
-            response_columns: list[Tensor] = []
-            for observed_name in observed:
-                unit = torch.zeros(len(order), dtype=torch.float64)
-                unit[index[observed_name]] = 1.0
-                response_rhs = -(hessian @ unit)[free_positions]
-                column = torch.linalg.solve(free_hessian, response_rhs)
-                response_columns.append(column)
-                response_residual_norms.append(
-                    float(
-                        torch.linalg.vector_norm(
-                            free_hessian @ column - response_rhs
-                        )
-                    )
-                )
-                response_rhs_norms.append(
-                    float(torch.linalg.vector_norm(response_rhs))
-                )
-            residual = free_hessian @ free_value - rhs
-        else:
-            incidence: dict[str, float] = {name: 0.0 for name in free}
-            upper_candidates: dict[str, float] = {name: 0.0 for name in free}
-            for chart in charts:
-                for name in chart.scope:
-                    if name in incidence:
-                        incidence[name] += chart.factor_weight / (
-                            chart.ridge + chart.observation_norm_bound**2
-                        )
-                        upper_candidates[name] += chart.factor_weight / chart.ridge
-            lower_bound = min(incidence.values(), default=0.0)
-            if lower_bound <= 0:
-                return self._failed_branch(
-                    charts,
-                    order,
-                    observed,
-                    "underdetermined",
-                    ("numerical-nullspace",),
-                )
-            condition_number = max(upper_candidates.values()) / lower_bound
-
-            def free_apply(value: Tensor) -> Tensor:
-                full = torch.zeros(len(order), dtype=torch.float64)
-                full[free_positions] = value
-                return self._apply_precision(order, charts, full)[free_positions]
-
-            rhs = -self._apply_precision(order, charts, boundary)[free_positions]
-            free_value, _, iterations = self._cg(
-                free_apply, rhs, tolerance=tolerance, max_iterations=max_iterations
-            )
-            response_columns = []
-            for observed_name in observed:
-                unit = torch.zeros(len(order), dtype=torch.float64)
-                unit[index[observed_name]] = 1.0
-                response_rhs = -self._apply_precision(
-                    order, charts, unit
-                )[free_positions]
-                column, column_residual, used = self._cg(
-                    free_apply,
-                    response_rhs,
-                    tolerance=tolerance,
-                    max_iterations=max_iterations,
-                )
-                iterations = max(iterations, used)
-                response_columns.append(column)
-                response_residual_norms.append(column_residual)
-                response_rhs_norms.append(
-                    float(torch.linalg.vector_norm(response_rhs))
-                )
-            residual = free_apply(free_value) - rhs
-        value = boundary.clone()
-        value[free_positions] = free_value
-        residual_norm = float(torch.linalg.vector_norm(residual))
-        rhs_norm = float(torch.linalg.vector_norm(rhs))
-        primal_settled = residual_norm <= tolerance * max(1.0, rhs_norm)
-        responses_settled = all(
-            response_residual <= tolerance * max(1.0, response_rhs_norm)
-            for response_residual, response_rhs_norm in zip(
-                response_residual_norms, response_rhs_norms, strict=True
-            )
-        )
-        settled = primal_settled and responses_settled
-        worst_residual = max((residual_norm, *response_residual_norms))
-        error_bound = (
-            worst_residual / lower_bound
-            if lower_bound and lower_bound > 0
-            else None
-        )
-        response_tensor = torch.zeros((len(order), len(observed)), dtype=torch.float64)
-        for column_index, observed_name in enumerate(observed):
-            response_tensor[index[observed_name], column_index] = 1.0
-            if free:
-                response_tensor[free_positions, column_index] = response_columns[column_index]
-        values = {name: float(value[index[name]]) for name in order}
-        if any(not state.variable(name).contains(item) for name, item in values.items()):
-            return self._failed_branch(
-                charts,
-                order,
-                observed,
-                "infeasible",
-                ("inferred-domain",),
-            )
-        sources = sorted({source for chart in charts for source in chart.active_source_revisions()})
-        versions = tuple((chart.chart_id, chart.version) for chart in charts)
-        mode_rows = sorted(
-            (chart.mode_group, chart.mode)
-            for chart in charts
-            if chart.mode_group is not None
-        )
-        branch_id = sha256_value({"charts": versions, "modes": mode_rows})
-        epistemic = all(
-            any(name in chart.scope and chart.contributions for chart in charts)
-            for name in requested
-        )
-        obligations: list[str] = []
-        if not primal_settled:
-            obligations.append("numerical-residual")
-        if not responses_settled:
-            obligations.append("response-residual")
-        if not epistemic:
-            obligations.append("missing-evidence")
-        if method == "matrix-free" and iterations >= max_iterations and not settled:
-            obligations.append("search-exhausted")
-        return BranchSolution(
-            branch_id=branch_id,
-            status="settled" if settled else "exhausted",
-            variable_order=order,
-            values=values,
-            response=tuple(tuple(float(item) for item in row) for row in response_tensor),
-            observed_order=tuple(observed),
-            active_chart_versions=versions,
-            source_revision_ids=tuple(sources),
-            residual_norm=residual_norm,
-            constraint_residual=0.0,
-            condition_number=condition_number,
-            spectral_lower_bound=lower_bound,
-            solution_error_bound=error_bound,
-            numerical_settled=settled,
-            epistemically_supportable=epistemic,
-            obligations=tuple(obligations),
-        )
-
-    def _solve_constrained(
-        self,
-        state: AtlasState,
+    @staticmethod
+    def _inconsistent_branch(
         charts: Sequence[RelationChart],
         order: Sequence[str],
         observed: Mapping[str, float],
-        observed_all: Mapping[str, float],
-        constraints: Sequence[AffineConstraint],
-        *,
-        tolerance: float,
+        workspace: ResonantWorkspace,
+        constraint_residual: float,
     ) -> BranchSolution:
-        index = {name: position for position, name in enumerate(order)}
-        hessian = self._assemble_precision(order, charts)
-        rows: list[Tensor] = []
-        targets: list[float] = []
-        observed_row: dict[str, int] = {}
-        for name, value in observed_all.items():
-            if name not in index:
-                continue
-            row = torch.zeros(len(order), dtype=torch.float64)
-            row[index[name]] = 1.0
-            observed_row[name] = len(rows)
-            rows.append(row)
-            targets.append(value)
-        for constraint in constraints:
-            unknown = set(constraint.coefficients) - set(order)
-            if unknown:
-                raise FieldIntelligenceError(
-                    "INVALID_CONSTRAINT",
-                    "constraint references variables outside the active problem",
-                    details={"unknown": sorted(unknown)},
-                )
-            row = torch.zeros(len(order), dtype=torch.float64)
-            for name, coefficient in constraint.coefficients.items():
-                row[index[name]] = coefficient
-            rows.append(row)
-            targets.append(constraint.target)
-        matrix = torch.stack(rows)
-        target = torch.tensor(targets, dtype=torch.float64)
-        rank = int(torch.linalg.matrix_rank(matrix))
-        augmented = torch.cat((matrix, target[:, None]), dim=1)
-        if int(torch.linalg.matrix_rank(augmented)) > rank:
-            return self._failed_branch(
-                charts, order, observed, "infeasible", ("inconsistent-constraints",)
-            )
-        if rank < matrix.shape[0]:
-            keep: list[int] = []
-            current = torch.empty((0, len(order)), dtype=torch.float64)
-            current_rank = 0
-            for row_index, row in enumerate(matrix):
-                candidate = torch.cat((current, row[None, :]), dim=0)
-                candidate_rank = int(torch.linalg.matrix_rank(candidate))
-                if candidate_rank > current_rank:
-                    keep.append(row_index)
-                    current = candidate
-                    current_rank = candidate_rank
-            matrix = matrix[keep]
-            target = target[keep]
-            observed_row = {
-                name: keep.index(row_index)
-                for name, row_index in observed_row.items()
-                if row_index in keep
-            }
-        zeros = torch.zeros((matrix.shape[0], matrix.shape[0]), dtype=torch.float64)
-        kkt = torch.cat(
-            (
-                torch.cat((hessian, matrix.T), dim=1),
-                torch.cat((matrix, zeros), dim=1),
-            ),
-            dim=0,
-        )
-        rhs = torch.cat((torch.zeros(len(order), dtype=torch.float64), target))
-        try:
-            solution = torch.linalg.solve(kkt, rhs)
-        except RuntimeError:
-            return self._failed_branch(
-                charts, order, observed, "underdetermined", ("singular-constrained-system",)
-            )
-        value = solution[: len(order)]
-        multipliers = solution[len(order) :]
-        stationarity = hessian @ value + matrix.T @ multipliers
-        constraint_residual = matrix @ value - target
-        residual_norm = float(torch.linalg.vector_norm(stationarity))
-        constraint_norm = float(torch.linalg.vector_norm(constraint_residual))
-        scale = max(1.0, float(torch.linalg.vector_norm(rhs)))
-        settled = max(residual_norm, constraint_norm) <= tolerance * scale
-        response_tensor = torch.zeros((len(order), len(observed)), dtype=torch.float64)
-        response_residual_norms: list[float] = []
-        for column, name in enumerate(observed):
-            if name not in observed_row:
-                response_residual_norms.append(0.0)
-                continue
-            response_rhs = torch.zeros_like(rhs)
-            response_rhs[len(order) + observed_row[name]] = 1.0
-            response_solution = torch.linalg.solve(kkt, response_rhs)
-            response_tensor[:, column] = response_solution[: len(order)]
-            response_residual_norms.append(
-                float(
-                    torch.linalg.vector_norm(kkt @ response_solution - response_rhs)
-                )
-            )
-        singular_values = torch.linalg.svdvals(kkt)
-        minimum = float(singular_values.min())
-        maximum = float(singular_values.max())
-        condition = maximum / minimum if minimum > 0 else None
-        combined_residual = math.hypot(residual_norm, constraint_norm)
-        solution_error_bound = (
-            max((combined_residual, *response_residual_norms)) / minimum
-            if minimum > 0
-            else None
-        )
-        response_settled = all(
-            residual <= tolerance for residual in response_residual_norms
-        )
-        settled = settled and response_settled
-        values = {name: float(value[position]) for position, name in enumerate(order)}
-        if any(not state.variable(name).contains(item) for name, item in values.items()):
-            return self._failed_branch(
-                charts,
-                order,
-                observed,
-                "infeasible",
-                ("inferred-domain",),
-            )
-        sources = sorted({source for chart in charts for source in chart.active_source_revisions()})
         versions = tuple((chart.chart_id, chart.version) for chart in charts)
-        branch_id = sha256_value(
-            {
-                "charts": versions,
-                "constraints": [
-                    {"coefficients": dict(row.coefficients), "target": row.target}
-                    for row in constraints
-                ],
-                "modes": sorted(
-                    (chart.mode_group, chart.mode)
-                    for chart in charts
-                    if chart.mode_group is not None
-                ),
-            }
-        )
-        epistemic = all(
-            any(name in chart.scope and chart.contributions for chart in charts)
-            for name in set(order) - set(observed_all)
-        )
-        obligations = tuple(
-            item
-            for item, failed in (
-                ("numerical-residual", not settled),
-                ("response-residual", not response_settled),
-                ("missing-evidence", not epistemic),
-            )
-            if failed
-        )
+        sources = tuple(sorted({source for chart in charts for source in chart.active_source_revisions()}))
         return BranchSolution(
-            branch_id=branch_id,
-            status="settled" if settled else "exhausted",
+            branch_id=sha256_value({
+                "charts": versions,
+                "resonant": workspace.state_sha256,
+                "status": "infeasible",
+            }),
+            status="infeasible",
             variable_order=tuple(order),
-            values=values,
-            response=tuple(tuple(float(item) for item in row) for row in response_tensor),
+            values={},
+            response=tuple(tuple(0.0 for _ in observed) for _ in order),
             observed_order=tuple(observed),
             active_chart_versions=versions,
-            source_revision_ids=tuple(sources),
-            residual_norm=residual_norm,
-            constraint_residual=constraint_norm,
-            condition_number=condition,
+            source_revision_ids=sources,
+            residual_norm=0.0,
+            constraint_residual=constraint_residual,
+            condition_number=None,
             spectral_lower_bound=None,
-            solution_error_bound=solution_error_bound,
-            numerical_settled=settled,
-            epistemically_supportable=epistemic,
-            obligations=obligations,
+            solution_error_bound=constraint_residual,
+            numerical_settled=False,
+            epistemically_supportable=False,
+            obligations=("inconsistent-constraints",),
         )
+
+
 
     @staticmethod
     def _failed_branch(
@@ -2672,8 +3106,8 @@ class FieldAtlas:
             observed_order=tuple(observed),
             active_chart_versions=versions,
             source_revision_ids=tuple(sources),
-            residual_norm=math.inf,
-            constraint_residual=math.inf if status == "infeasible" else 0.0,
+            residual_norm=None,
+            constraint_residual=None,
             condition_number=None,
             spectral_lower_bound=None,
             solution_error_bound=None,
@@ -2682,7 +3116,774 @@ class FieldAtlas:
             obligations=obligations,
         )
 
-    def query(
+    @staticmethod
+    def _resonant_problem(
+        state: AtlasState,
+        charts: Sequence[RelationChart],
+        observed: Mapping[str, float],
+        constraints: Sequence[AffineConstraint],
+    ) -> ResonantProblem | None:
+        if not charts:
+            return None
+        order = FieldAtlas._variable_order(state, charts, observed, ())
+        if not order:
+            return None
+        precision = FieldAtlas._assemble_precision(order, charts)
+        dependency = sha256_value(
+            {
+                "charts": [(chart.chart_id, chart.version) for chart in charts],
+                "sources": sorted(
+                    {source for chart in charts for source in chart.active_source_revisions()}
+                ),
+            }
+        )
+        rows: list[tuple[tuple[float, ...], float]] = []
+        for constraint in constraints:
+            rows.append(
+                (
+                    tuple(float(constraint.coefficients.get(name, 0.0)) for name in order),
+                    float(constraint.target),
+                )
+            )
+        for name, value in observed.items():
+            if name in order:
+                rows.append(
+                    (
+                        tuple(1.0 if variable == name else 0.0 for variable in order),
+                        float(value),
+                    )
+                )
+        for spec in state.variables:
+            if spec.variable_id in order and spec.kind == "constant" and spec.constant is not None:
+                rows.append(
+                    (
+                        tuple(1.0 if variable == spec.variable_id else 0.0 for variable in order),
+                        float(spec.constant),
+                    )
+                )
+        affine = (tuple(row for row, _ in rows), tuple(target for _, target in rows)) if rows else None
+        return ResonantProblem(
+            variable_ids=tuple(order),
+            precision=precision,
+            linear_b=torch.zeros(len(order), dtype=torch.float64),
+            observed=dict(observed),
+            affine_constraints=affine,
+            dependency_sha256=dependency,
+        )
+
+    def condense_transceiver(
+        self,
+        state: AtlasState,
+        *,
+        transceiver_id: str,
+        chart_ids: Sequence[str],
+        input_ids: Sequence[str],
+        output_ids: Sequence[str],
+        context: Mapping[str, Any],
+        observed: Mapping[str, float] | None = None,
+        rank: int = 16,
+        error_allowance: float = 1e-3,
+        input_bound: float = 4.0,
+        horizon_ticks: int = 64,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Compile supported local work without adding evidence or another learner."""
+        _identifier(transceiver_id, "transceiver_id")
+        chart_ids, input_ids, output_ids = tuple(chart_ids), tuple(input_ids), tuple(output_ids)
+        if not chart_ids or len(chart_ids) != len(set(chart_ids)):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "chart_ids must be nonempty and unique")
+        for label, ids in (("input_ids", input_ids), ("output_ids", output_ids)):
+            if not ids or len(ids) != len(set(ids)):
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", f"{label} must be nonempty and unique")
+        if set(input_ids).intersection(output_ids):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "input and output ports must be distinct")
+        existing = next((row for row in state.transceivers if row.transceiver_id == transceiver_id), None)
+        if existing is not None and existing.status == "active":
+            raise FieldIntelligenceError("IDENTITY_CONFLICT", "active transceiver already exists")
+        normalized_context = _json_value(dict(context), "transceiver context")
+        charts = tuple(state.chart(name) for name in chart_ids)
+        if any(not chart.matches(normalized_context) or not chart.contributions for chart in charts):
+            raise FieldIntelligenceError("UNSUPPORTED_TRANSCEIVER", "condensation requires applicable observed support")
+        modes: dict[str, str] = {}
+        for chart in charts:
+            if chart.mode_group is not None:
+                if chart.mode_group in modes and modes[chart.mode_group] != chart.mode:
+                    raise FieldIntelligenceError("AMBIGUOUS_TRANSCEIVER", "alternative chart modes cannot be blended")
+                modes[chart.mode_group] = str(chart.mode)
+        scope = {name for chart in charts for name in chart.scope}
+        if not set((*input_ids, *output_ids)).issubset(scope):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "all ports must belong to the supported computation")
+        if len(scope) > 128:
+            raise FieldIntelligenceError("WORK_CAPACITY", "local transceiver scope exceeds 128 variables")
+        fixed: dict[str, float] = {}
+        for name, value in (observed or {}).items():
+            spec = state.variable(name)
+            number = _finite(value, name)
+            if name not in scope or name in (*input_ids, *output_ids):
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "fixed observations must be internal boundary variables")
+            if not spec.contains(number) or spec.kind == "constant" and number != spec.constant:
+                raise FieldIntelligenceError("OBSERVATION_OUT_OF_DOMAIN", "fixed boundary is outside its domain")
+            fixed[name] = number
+        for name in scope:
+            spec = state.variable(name)
+            if spec.kind == "constant":
+                if name in (*input_ids, *output_ids):
+                    raise FieldIntelligenceError("INVALID_TRANSCEIVER", "constant variables cannot be driven or emitted")
+                fixed[name] = float(spec.constant)
+        order = self._variable_order(state, charts, {}, ())
+        sources = tuple(sorted({source for chart in charts for source in chart.active_source_revisions()}))
+        versions = tuple((chart.chart_id, chart.version) for chart in charts)
+        problem = ResonantProblem(
+            variable_ids=order,
+            precision=self._assemble_precision(order, charts),
+            observed={**fixed, **{name: 0.0 for name in input_ids}},
+            dependency_sha256=sha256_value({"charts": versions, "sources": sources}),
+        )
+        root = state.resonant_workspace or initial_workspace()
+        workspace = initial_workspace(root.profile)._copy(
+            bindings={name: binding for name, binding in root.bindings.items() if name in scope},
+            evidence_tick=state.logical_tick,
+        )
+        try:
+            workspace = bind_workspace(workspace, problem)
+            kernel, working_state, receipt = condense_workspace(
+                workspace, problem, input_ids=input_ids, output_ids=output_ids,
+                rank=rank, error_allowance=error_allowance,
+                input_bound=input_bound, horizon_ticks=horizon_ticks,
+            )
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", str(exc)) from exc
+        transceiver = FieldTransceiver(
+            transceiver_id=transceiver_id, parent_chart_versions=versions,
+            source_revision_ids=sources, context=normalized_context,
+            input_ids=input_ids, output_ids=output_ids, observed=fixed,
+            kernel=kernel, working_state=working_state,
+        )
+        records = tuple(
+            transceiver if row.transceiver_id == transceiver_id else row for row in state.transceivers
+        )
+        if existing is None:
+            records = (*records, transceiver)
+        successor = state.with_transition(
+            "transceiver-condensed",
+            {"transceiver_id": transceiver_id, "parent_chart_versions": versions},
+            transceivers=records,
+        )
+        return successor, _json_value({
+            **receipt, "transceiver_id": transceiver_id,
+            "parent_chart_versions": versions, "source_revision_ids": sources,
+            "evidence_tick": state.logical_tick, "evidence_added": False,
+        }, "condensation receipt")
+
+    def advance_transceivers(
+        self,
+        state: AtlasState,
+        *,
+        stimuli: Mapping[str, Mapping[str, float]],
+        context: Mapping[str, Any],
+        ticks: int = 1,
+        connections: Sequence[Mapping[str, str]] = (),
+        force_full: bool = False,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Advance synchronous field-owned assemblies; connected ports have one tick delay."""
+        if isinstance(ticks, bool) or not isinstance(ticks, int) or not 1 <= ticks <= 64:
+            raise FieldIntelligenceError("WORK_CAPACITY", "transceiver ticks must be in 1..64")
+        if not isinstance(force_full, bool) or not isinstance(stimuli, Mapping) or not isinstance(context, Mapping):
+            raise FieldIntelligenceError("INVALID_TRANSCEIVER", "invalid stimulus, context, or full-mode flag")
+        normalized_context = _json_value(dict(context), "transceiver context")
+        if len(connections) > 512:
+            raise FieldIntelligenceError("WORK_CAPACITY", "transceiver connections exceed 512")
+        records = {row.transceiver_id: row for row in state.transceivers}
+        selected = set(stimuli)
+        links: list[tuple[str, str, str, str]] = []
+        driven: set[tuple[str, str]] = set()
+        for connection in connections:
+            if not isinstance(connection, Mapping) or set(connection) != {"source", "output", "target", "input"}:
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "connection keys are not canonical")
+            source, output, target, receiving = (
+                _identifier(connection[key], f"connection {key}") for key in ("source", "output", "target", "input")
+            )
+            source_row, target_row = state.transceiver(source), state.transceiver(target)
+            if output not in source_row.output_ids or receiving not in target_row.input_ids:
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "connection names a nonexistent port")
+            source_spec, target_spec = state.variable(output), state.variable(receiving)
+            if (source_spec.kind, source_spec.unit, source_spec.frame) != (
+                target_spec.kind, target_spec.unit, target_spec.frame
+            ):
+                raise FieldIntelligenceError("PORT_TYPE_MISMATCH", "connected variables have incompatible types, units, or frames")
+            if (target, receiving) in driven or receiving in stimuli.get(target, {}):
+                raise FieldIntelligenceError("AMBIGUOUS_TRANSCEIVER", "a receiving port must have exactly one driver")
+            driven.add((target, receiving))
+            selected.update((source, target))
+            links.append((source, output, target, receiving))
+        if not selected:
+            selected = {name for name, row in records.items() if row.matches(normalized_context)}
+        if len(selected) * ticks > 4096:
+            raise FieldIntelligenceError("WORK_CAPACITY", "transceiver tick work exceeds 4096 unit steps")
+        inputs: dict[str, dict[str, float]] = {}
+        for name in sorted(selected):
+            row = state.transceiver(name)
+            if not row.matches(normalized_context):
+                raise FieldIntelligenceError(
+                    "TRANSCEIVER_INAPPLICABLE", "transceiver is stale or its context does not match",
+                    details={"transceiver_id": name, "reason": row.reason},
+                )
+            payload = stimuli.get(name, {})
+            if not isinstance(payload, Mapping) or not set(payload).issubset(row.input_ids):
+                raise FieldIntelligenceError("INVALID_TRANSCEIVER", "stimulus names an unknown receiving port")
+            inputs[name] = {port: _finite(payload.get(port, 0.0), port) for port in row.input_ids}
+            for port, value in inputs[name].items():
+                if not state.variable(port).contains(value):
+                    raise FieldIntelligenceError("OBSERVATION_OUT_OF_DOMAIN", "transceiver stimulus is outside its domain")
+        if not selected:
+            raise FieldIntelligenceError("TRANSCEIVER_INAPPLICABLE", "no transceiver applies to this context")
+        steps: list[Mapping[str, Any]] = []
+        latest: dict[str, Mapping[str, Any]] = {}
+        for tick in range(ticks):
+            before = {
+                name: inspect_transceiver(records[name].kernel, records[name].working_state)
+                for name in selected
+            }
+            routed = {name: dict(values) for name, values in inputs.items()}
+            input_errors: dict[str, dict[str, float]] = {name: {} for name in selected}
+            for source, output, target, receiving in links:
+                source_receipt = before[source]
+                value = _finite(source_receipt["values"][output], output)
+                radius = _finite(source_receipt["error_bound"], "connected output error")
+                if radius < 0 or not state.variable(receiving).contains(value, radius=radius):
+                    raise FieldIntelligenceError("UNCERTIFIED_TRANSMISSION", "transmission leaves the receiving domain")
+                routed[target][receiving] = value
+                input_errors[target][receiving] = radius
+            successors: dict[str, FieldTransceiver] = {}
+            for name in sorted(selected):
+                row = records[name]
+                try:
+                    working, receipt = advance_transceiver(
+                        row.kernel, row.working_state, inputs=routed[name],
+                        input_errors=input_errors[name], ticks=1, force_full=force_full,
+                    )
+                except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                    raise FieldIntelligenceError(
+                        "TRANSCEIVER_NUMERICAL", str(exc), details={"transceiver_id": name}
+                    ) from exc
+                successors[name] = replace(row, working_state=working)
+                latest[name] = receipt
+                steps.append({"transceiver_id": name, "tick": tick + 1, **receipt})
+            records.update(successors)
+        successor = state.with_transition(
+            "transceivers-advanced",
+            {"transceiver_ids": sorted(selected), "ticks": ticks, "connections": links},
+            transceivers=tuple(records[row.transceiver_id] for row in state.transceivers),
+        )
+        return successor, _json_value({
+            "transceivers": latest, "steps": steps, "ticks": ticks,
+            "connection_delay_ticks": 1, "evidence_tick": state.logical_tick,
+            "evidence_added": False, "readout_kind": "temporal-prediction",
+        }, "transceiver advance receipt")
+
+    def reset_transceiver(
+        self, state: AtlasState, *, transceiver_id: str
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Start a new temporal episode without changing condensed knowledge."""
+        row = state.transceiver(transceiver_id)
+        if row.status != "active":
+            raise FieldIntelligenceError("TRANSCEIVER_INAPPLICABLE", "stale transceiver must be recondensed")
+        working_state = reset_transceiver_workspace(row.kernel)
+        updated = replace(row, working_state=working_state)
+        successor = state.with_transition(
+            "transceiver-reset", {"transceiver_id": transceiver_id},
+            transceivers=tuple(updated if old.transceiver_id == transceiver_id else old for old in state.transceivers),
+        )
+        return successor, _json_value({
+            "transceiver_id": transceiver_id,
+            **inspect_transceiver(updated.kernel, updated.working_state),
+            "evidence_tick": state.logical_tick, "evidence_added": False,
+        }, "transceiver reset receipt")
+
+    def inspect_transceivers(self, state: AtlasState) -> Mapping[str, Any]:
+        return _json_value({
+            "state_sha256": state.state_sha256, "evidence_tick": state.logical_tick,
+            "transceivers": {
+                row.transceiver_id: {
+                    "status": row.status, "reason": row.reason,
+                    "input_ids": row.input_ids, "output_ids": row.output_ids,
+                    "parent_chart_versions": row.parent_chart_versions,
+                    "source_revision_ids": row.source_revision_ids,
+                    "response": None if row.status != "active" else inspect_transceiver(row.kernel, row.working_state),
+                }
+                for row in state.transceivers
+            },
+        }, "transceiver inspection")
+
+    def couple_temporal_transition(
+        self,
+        state: AtlasState,
+        *,
+        previous: TemporalField,
+        current: TemporalField,
+        evidence_tick: int,
+        episode: Sequence[Mapping[str, str]] = (),
+        admitted_step_offset: int = 0,
+        evidence_event_id: str | None = None,
+    ) -> tuple[ResonantWorkspace | None, Mapping[str, Any]]:
+        """Couple admitted outcomes and categorical skill changes into the wave."""
+        if (
+            not isinstance(previous, TemporalField)
+            or not isinstance(current, TemporalField)
+            or previous.memory_id != current.memory_id
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TEMPORAL",
+                "temporal resonance coupling requires two revisions of one memory",
+            )
+        if (
+            isinstance(admitted_step_offset, bool)
+            or not isinstance(admitted_step_offset, int)
+            or not 0 <= admitted_step_offset <= len(episode)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TEMPORAL",
+                "admitted temporal step offset is out of range",
+            )
+        if len(episode) > admitted_step_offset and evidence_event_id is None:
+            raise FieldIntelligenceError(
+                "INVALID_TEMPORAL",
+                "admitted temporal outcomes require one evidence event identity",
+            )
+        try:
+            outcome_signals = (
+                current.episode_pool_signals(
+                    episode,
+                    previous=previous,
+                )[admitted_step_offset:]
+                if episode
+                else ()
+            )
+        except TemporalFieldError as exc:
+            raise FieldIntelligenceError(
+                "INVALID_TEMPORAL", str(exc)
+            ) from exc
+
+        formed = tuple(
+            sorted(
+                set(current.formed_skill_ids)
+                - set(previous.formed_skill_ids)
+            )
+        )
+        withdrawn = tuple(
+            sorted(
+                set(previous.formed_skill_ids)
+                - set(current.formed_skill_ids)
+            )
+        )
+        events: list[dict[str, Any]] = [
+            {
+                "event_kind": signal["event_kind"],
+                "evidence_event_id": evidence_event_id,
+                "step_index": signal["step_index"],
+                "action": signal["action"],
+                "observation": signal["observation"],
+                "expected_by_predecessor": signal[
+                    "expected_by_predecessor"
+                ],
+                "source_states": signal["source_states"],
+                "destination_states": signal["destination_states"],
+                "predecessor_source_states": signal[
+                    "predecessor_source_states"
+                ],
+                "predecessor_destination_states": signal[
+                    "predecessor_destination_states"
+                ],
+                "contributions": signal["contributions"],
+                "signal_norm_before_normalization": signal[
+                    "signal_norm_before_normalization"
+                ],
+                "pool_signal": signal["pool_signal"],
+            }
+            for signal in outcome_signals
+        ]
+        for event_kind, skill_id, source in sorted(
+            [
+                *[("formation", skill_id, current) for skill_id in formed],
+                *[
+                    ("withdrawal", skill_id, previous)
+                    for skill_id in withdrawn
+                ],
+            ],
+            key=lambda row: (row[1], row[0]),
+        ):
+            projection = dict(source.skill_pool_signal(skill_id))
+            signal = [
+                float(value) for value in projection["pool_signal"]
+            ]
+            if event_kind == "withdrawal":
+                signal = [-value for value in signal]
+            events.append({
+                "event_kind": event_kind,
+                "evidence_event_id": evidence_event_id,
+                "skill_id": skill_id,
+                "mapping": projection["mapping"],
+                "supported_states": projection["supported_states"],
+                "maximum_rank": projection["maximum_rank"],
+                "pool_signal": signal,
+            })
+
+        active_count = sum(
+            any(float(value) != 0.0 for value in event["pool_signal"])
+            for event in events
+        )
+        event_work_budget = (
+            _TEMPORAL_ADMISSION_WORK / active_count
+            if active_count
+            else 0.0
+        )
+        start_workspace = state.resonant_workspace
+        if not active_count:
+            for event in events:
+                event["impulse"] = None
+            return start_workspace, _json_value(
+                {
+                    "schema": "cassifi.temporal-resonance-coupling.v2",
+                    "applied": False,
+                    "memory_id": current.memory_id,
+                    "formed_skills": list(formed),
+                    "withdrawn_skills": list(withdrawn),
+                    "admitted_step_count": len(episode) - admitted_step_offset,
+                    "evidence_event_id": evidence_event_id,
+                    "admission_work_budget": _TEMPORAL_ADMISSION_WORK,
+                    "event_work_budget": 0.0,
+                    "active_event_count": 0,
+                    "total_applied_work": 0.0,
+                    "events": events,
+                    "start_workspace_state_sha256": (
+                        None
+                        if start_workspace is None
+                        else start_workspace.state_sha256
+                    ),
+                    "end_workspace_state_sha256": (
+                        None
+                        if start_workspace is None
+                        else start_workspace.state_sha256
+                    ),
+                    "evidence_tick": evidence_tick,
+                },
+                "temporal resonance coupling receipt",
+            )
+
+        workspace = start_workspace or initial_workspace()
+        start_sha256 = workspace.state_sha256
+        for event in events:
+            signal = [
+                float(value) for value in event["pool_signal"]
+            ]
+            if not any(value != 0.0 for value in signal):
+                event["impulse"] = None
+                continue
+            workspace, impulse = apply_pool_impulse(
+                workspace,
+                pool_signal=signal,
+                work_budget=event_work_budget,
+                evidence_tick=evidence_tick,
+                event_kind=event["event_kind"],
+            )
+            event["impulse"] = impulse
+        total_applied_work = math.fsum(
+            float(event["impulse"]["applied_work"])
+            for event in events
+            if event["impulse"] is not None
+        )
+        if total_applied_work > _TEMPORAL_ADMISSION_WORK + 1e-12:
+            raise FieldIntelligenceError(
+                "TEMPORAL_COUPLING_WORK",
+                "temporal event coupling exceeded its admission work budget",
+            )
+        return workspace, _json_value(
+            {
+                "schema": "cassifi.temporal-resonance-coupling.v2",
+                "applied": True,
+                "memory_id": current.memory_id,
+                "formed_skills": list(formed),
+                "withdrawn_skills": list(withdrawn),
+                "admitted_step_count": len(episode) - admitted_step_offset,
+                "evidence_event_id": evidence_event_id,
+                "admission_work_budget": _TEMPORAL_ADMISSION_WORK,
+                "event_work_budget": event_work_budget,
+                "active_event_count": active_count,
+                "total_applied_work": total_applied_work,
+                "events": events,
+                "start_workspace_state_sha256": start_sha256,
+                "end_workspace_state_sha256": workspace.state_sha256,
+                "evidence_tick": evidence_tick,
+            },
+            "temporal resonance coupling receipt",
+        )
+
+
+    def advance(
+        self,
+        state: AtlasState,
+        *,
+        ticks: int = 1,
+        source_enabled: bool = True,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        if isinstance(ticks, bool) or not isinstance(ticks, int) or ticks < 1:
+            raise FieldIntelligenceError("INVALID_RESONANCE", "ticks must be positive")
+        workspace = state.resonant_workspace or initial_workspace()
+        workspace, receipt = advance_workspace(
+            workspace,
+            ticks=ticks,
+            source_enabled=source_enabled,
+            quiet=False,
+        )
+        successor = state.with_transition(
+            "resonance-advanced",
+            {"ticks": ticks, "source_enabled": bool(source_enabled)},
+            resonant_workspace=workspace,
+        )
+        return successor, _json_value(dict(receipt), "resonance receipt")
+
+    def write_packet_impulse(
+        self,
+        state: AtlasState,
+        *,
+        path: str,
+        component: str,
+        flow_signal: Sequence[float],
+        work_budget: float,
+        event_kind: str = PACKET_IMPULSE_EVENT_KIND,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Write one declared packet impulse into the wave as a canonical transition.
+
+        This is the wave's own write route -- the canonical packet basis impulse
+        of :func:`cassi_resonant_field.apply_helical_packet_impulse`, the route
+        every exploration harness uses -- exposed as an atlas transition so the
+        owner can accept a written packet impulse as an operation. It is
+        additive: without a call, no state, page or receipt changes, and the
+        canonical advance is untouched. No evidence is consumed: the impulse
+        addresses the field at its own evidence clock, so the atlas logical tick
+        and the evidence store are unchanged, and the ledger records the applied
+        work as a field intervention.
+        """
+
+        workspace = state.resonant_workspace or initial_workspace()
+        workspace, receipt = apply_helical_packet_impulse(
+            workspace,
+            path=path,
+            component=component,
+            flow_signal=flow_signal,
+            work_budget=work_budget,
+            evidence_tick=workspace.evidence_tick,
+            event_kind=event_kind,
+        )
+        successor = state.with_transition(
+            "packet-impulse-written",
+            {
+                "path": str(receipt["path"]),
+                "component": str(receipt["component"]),
+                "requested_work": float(receipt["requested_work"]),
+                "applied_work": float(receipt["applied_work"]),
+                "accepted": bool(receipt["accepted"]),
+                "event_kind": str(receipt["event_kind"]),
+            },
+            resonant_workspace=workspace,
+        )
+        return successor, _json_value(dict(receipt), "packet impulse receipt")
+
+    def inspect_resonance(self, state: AtlasState) -> Mapping[str, Any]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            return {"status": "uninitialized", "state_sha256": state.state_sha256}
+        return _json_value(
+            {
+                **dict(inspect_workspace(workspace)),
+                "status": "ready",
+                "state_sha256": state.state_sha256,
+                "workspace_state_sha256": workspace.state_sha256,
+                "field_generation": state.generation,
+                "evidence_tick": state.logical_tick,
+                "field_time_step": workspace.profile.time_step,
+                "profile": workspace.profile.as_dict(),
+                "snapshot_age_seconds": 0.0,
+            },
+            "resonance inspection",
+        )
+
+    def read_packet_deposit(
+        self,
+        state: AtlasState,
+        *,
+        path: str,
+        component: str,
+        flow_signal: Sequence[float],
+    ) -> Mapping[str, Any]:
+        """Recover one written packet direction's deposit from the canonical page.
+
+        This is the read half of the packet write path, declared as the design
+        declares a readout (FIELD-INTELLIGENCE-DESIGN.md 27.3): the value is a
+        temporal prediction of the canonical page, carried by the write's own
+        declared direction, and the read adds no observed support and does not
+        advance the evidence clock. It is read-only on the field: no successor is
+        published, no page, generation, logical tick or ledger entry changes, and
+        the only workspace it computes on is the scratch probe of the direction.
+        """
+
+        workspace = state.resonant_workspace or initial_workspace()
+        direction = packet_read_direction(
+            workspace.profile,
+            path=path,
+            component=component,
+            flow_signal=flow_signal,
+        )
+        frame = _packet_read_frame(workspace)
+        projection = float(np.dot(frame, direction))
+        return _json_value(
+            {
+                "readout_kind": "temporal-prediction",
+                "path": str(path),
+                "component": str(component),
+                "flow_signal": [float(value) for value in flow_signal],
+                "direction_sha256": hashlib.sha256(
+                    np.ascontiguousarray(direction, dtype="<f8").tobytes()
+                ).hexdigest(),
+                "read_frame_coordinates": int(frame.size),
+                "recovered_deposit": projection * projection,
+                "read_frame_energy": float(np.dot(frame, frame)),
+                "evidence_tick": state.logical_tick,
+                "evidence_added": False,
+                "state_sha256": state.state_sha256,
+                "workspace_state_sha256": workspace.state_sha256,
+            },
+            "packet readout",
+        )
+
+    def _resonant_branch(
+        self,
+        state: AtlasState,
+        workspace: ResonantWorkspace,
+        charts: Sequence[RelationChart],
+        observed: Mapping[str, float],
+        requested: Sequence[str],
+        constraints: Sequence[AffineConstraint],
+        *,
+        tolerance: float,
+    ) -> BranchSolution:
+        """Certify the retained wave; never replace it with a solved target."""
+        order = self._variable_order(state, charts, observed, requested)
+        versions = tuple((chart.chart_id, chart.version) for chart in charts)
+        sources = tuple(sorted({source for chart in charts for source in chart.active_source_revisions()}))
+        index = {name: position for position, name in enumerate(order)}
+        common = workspace.common_coordinates()
+        q = torch.tensor(
+            [common[int(workspace.bindings[name]["port"])] for name in order],
+            dtype=torch.float64,
+        )
+        precision = self._assemble_precision(order, charts)
+        rows: list[list[float]] = []
+        targets: list[float] = []
+        boundary_response: list[list[float]] = []
+        observed_order = tuple(observed)
+        for name, value in observed.items():
+            row = [0.0] * len(order)
+            row[index[name]] = 1.0
+            rows.append(row)
+            targets.append(float(value))
+            boundary_response.append([float(name == item) for item in observed_order])
+        for name in order:
+            spec = state.variable(name)
+            if spec.kind == "constant":
+                row = [0.0] * len(order)
+                row[index[name]] = 1.0
+                rows.append(row)
+                targets.append(float(spec.constant))
+                boundary_response.append([0.0] * len(observed_order))
+        for constraint in constraints:
+            rows.append([float(constraint.coefficients.get(name, 0.0)) for name in order])
+            targets.append(float(constraint.target))
+            boundary_response.append([0.0] * len(observed_order))
+        correction = torch.zeros_like(q)
+        response = torch.zeros((len(order), len(observed)), dtype=torch.float64)
+        constraint_residual = 0.0
+        if rows:
+            matrix = torch.tensor(rows, dtype=torch.float64)
+            target = torch.tensor(targets, dtype=torch.float64)
+            _, singular, vh = torch.linalg.svd(matrix, full_matrices=True)
+            threshold = max(matrix.shape) * torch.finfo(torch.float64).eps * float(singular.max())
+            rank = int(torch.count_nonzero(singular > threshold))
+            tangent = vh[rank:].T
+            inverse = torch.linalg.pinv(matrix)
+            boundary_error = target - matrix @ q
+            correction = inverse @ boundary_error
+            constraint_residual = float(torch.linalg.vector_norm(boundary_error))
+            response = inverse @ torch.tensor(boundary_response, dtype=torch.float64)
+        else:
+            tangent = torch.eye(len(order), dtype=torch.float64)
+        feasible_q = q + correction
+        residual = tangent.T @ (precision @ feasible_q)
+        residual_norm = float(torch.linalg.vector_norm(residual))
+        error_bound = float(torch.linalg.vector_norm(correction))
+        lower: float | None = None
+        condition: float | None = None
+        if tangent.shape[1]:
+            reduced = tangent.T @ precision @ tangent
+            eigenvalues = torch.linalg.eigvalsh(reduced)
+            rounding = 64 * torch.finfo(torch.float64).eps * len(order) * float(eigenvalues.abs().max())
+            lower = float(eigenvalues.min()) - rounding
+            if lower <= 0:
+                return self._failed_branch(
+                    charts, order, observed, "underdetermined", ("uncertified-curvature",)
+                )
+            condition = float(eigenvalues.max()) / lower
+            error_bound += residual_norm / lower
+            # This solve is a boundary-sensitivity certificate, never a primal answer.
+            response -= tangent @ torch.linalg.solve(reduced, tangent.T @ precision @ response)
+        epistemic = all(
+            name in observed
+            or state.variable(name).kind == "constant"
+            or any(name in chart.scope and chart.contributions for chart in charts)
+            for name in order
+        )
+        finite = bool(torch.isfinite(q).all()) and math.isfinite(error_bound)
+        settled = finite and error_bound <= tolerance * max(1.0, float(torch.linalg.vector_norm(q)))
+        # Fixed inputs are boundary data, not inferred coordinates. Their
+        # deviation from the retained wave remains in the certificate above.
+        values = {}
+        for name in order:
+            spec = state.variable(name)
+            values[name] = (
+                float(observed[name]) if name in observed
+                else float(spec.constant) if spec.kind == "constant"
+                else float(q[index[name]])
+            )
+        in_domain = all(state.variable(name).contains(value) for name, value in values.items())
+        obligations = tuple(
+            reason
+            for reason, failed in (
+                ("numerical-residual", not settled),
+                ("missing-evidence", not epistemic),
+                ("constraint-residual", constraint_residual > tolerance),
+                ("solution-out-of-domain", not in_domain),
+            )
+            if failed
+        )
+        return BranchSolution(
+            branch_id=sha256_value({"charts": versions, "resonant": workspace.state_sha256}),
+            status="infeasible" if not in_domain or constraint_residual > tolerance else ("settled" if settled else "exhausted"),
+            variable_order=tuple(order),
+            values=values,
+            response=tuple(tuple(float(item) for item in row) for row in response),
+            observed_order=observed_order,
+            active_chart_versions=versions,
+            source_revision_ids=sources,
+            residual_norm=residual_norm,
+            constraint_residual=constraint_residual,
+            condition_number=condition,
+            spectral_lower_bound=lower,
+            solution_error_bound=error_bound,
+            numerical_settled=settled,
+            epistemically_supportable=epistemic,
+            obligations=obligations,
+        )
+
+    def think(
         self,
         state: AtlasState,
         *,
@@ -2691,87 +3892,317 @@ class FieldAtlas:
         context: Mapping[str, Any] | None = None,
         constraints: Sequence[AffineConstraint] = (),
         valid_source_revision_ids: frozenset[str] | None = None,
-        method: str = "auto",
-        tolerance: float = 1e-10,
+        tolerance: float = 1e-8,
         max_iterations: int = 512,
-        max_branches: int = 32,
-    ) -> QueryResult:
-        if not requested or len(set(requested)) != len(requested):
-            raise FieldIntelligenceError(
-                "INVALID_QUERY", "requested variables must be nonempty and unique"
-            )
-        for variable_id in (*observed.keys(), *requested):
-            state.variable(variable_id)
+        max_branches: int = 64,
+        ticks: int = 64,
+        query_id: str | None = None,
+    ) -> tuple[AtlasState, QueryResult, Mapping[str, Any]]:
+        if isinstance(ticks, bool) or not isinstance(ticks, int) or ticks < 1:
+            raise FieldIntelligenceError("INVALID_RESONANCE", "ticks must be positive")
         normalized_observed = {
-            name: _finite(value, name) for name, value in observed.items()
+            _identifier(name, "observed variable"): _finite(value, f"observed {name}")
+            for name, value in observed.items()
         }
-        for name, value in normalized_observed.items():
-            if not state.variable(name).contains(value):
+        normalized_requested = tuple(_identifier(name, "requested variable") for name in requested)
+        if len(normalized_requested) != len(set(normalized_requested)):
+            raise FieldIntelligenceError("INVALID_QUERY", "requested variables must be unique")
+        for name in (*normalized_observed, *normalized_requested):
+            state.variable(name)
+        known_variables = {row.variable_id for row in state.variables}
+        for constraint in constraints:
+            if not isinstance(constraint, AffineConstraint):
+                raise FieldIntelligenceError("INVALID_CONSTRAINT", "constraints must be affine constraints")
+            unknown = set(constraint.coefficients) - known_variables
+            if unknown:
                 raise FieldIntelligenceError(
-                    "OBSERVATION_OUT_OF_DOMAIN", f"{name} is outside its declared domain"
+                    "INVALID_CONSTRAINT", "constraint references unknown variables",
+                    details={"unknown": sorted(unknown)},
                 )
         normalized_context = _json_value(dict(context or {}), "query context")
-        tolerance = _finite(tolerance, "solver tolerance", positive=True)
-        if isinstance(max_iterations, bool) or not isinstance(max_iterations, int) or max_iterations < 1:
-            raise FieldIntelligenceError("INVALID_SOLVER", "max_iterations must be positive")
-        if isinstance(max_branches, bool) or not isinstance(max_branches, int) or max_branches < 1:
-            raise FieldIntelligenceError("INVALID_QUERY", "max_branches must be positive")
-        before = state.state_sha256
         charts = self._relevant_charts(
             state,
             frozenset(normalized_observed),
-            frozenset(requested),
+            frozenset(normalized_requested),
             normalized_context,
             valid_source_revision_ids,
         )
-        if not charts:
-            return QueryResult(
+        base_workspace = state.resonant_workspace or initial_workspace()
+        branch_charts = self._branches(charts, max_branches) if charts else ()
+        ready_demand = (
+            1.0
+            if branch_charts
+            and any(
+                all(chart.contributions and chart.active_source_revisions() for chart in selected)
+                for selected in branch_charts
+            )
+            else 0.0
+        )
+        try:
+            body_workspace, body_receipt = advance_workspace(
+                base_workspace,
+                ticks=ticks,
+                demand=ready_demand,
+                source_enabled=True,
+                quiet=False,
+                max_iterations=max_iterations,
+                tolerance=tolerance,
+            )
+            body_receipt_value = _canonical_diagnostics(dict(body_receipt), "resonance receipt")
+        except Exception as exc:
+            body_workspace = base_workspace
+            body_receipt_value = _json_value(
+                {
+                    "accepted": False,
+                    "error": type(exc).__name__,
+                    "ticks": ticks,
+                },
+                "resonance failure receipt",
+            )
+        branch_workspaces: list[ResonantWorkspace] = []
+        branch_receipts: list[Mapping[str, Any]] = []
+        branch_rows: list[BranchSolution] = []
+        resonance_receipts: list[Mapping[str, Any]] = [body_receipt_value]
+        for selected_charts in branch_charts:
+            try:
+                problem = self._resonant_problem(
+                    state, selected_charts, normalized_observed, constraints
+                )
+                inconsistent = self._inconsistent_constraint_residual(
+                    problem, tolerance=tolerance
+                )
+                if inconsistent is not None:
+                    branch = self._inconsistent_branch(
+                        selected_charts,
+                        self._variable_order(
+                            state,
+                            selected_charts,
+                            normalized_observed,
+                            normalized_requested,
+                        ),
+                        normalized_observed,
+                        base_workspace,
+                        inconsistent,
+                    )
+                    normalized_receipt = _json_value(
+                        {
+                            "accepted": False,
+                            "error": "InconsistentConstraints",
+                            "ticks": ticks,
+                        },
+                        "inconsistent constraint receipt",
+                    )
+                    branch_workspaces.append(base_workspace)
+                else:
+                    branch_workspace = base_workspace
+                    if problem is not None:
+                        required_ports = len(
+                            set(branch_workspace.bindings) | set(problem.variable_ids)
+                        )
+                        if required_ports > branch_workspace.profile.port_count:
+                            branch_workspace, _ = expand_resolution(
+                                branch_workspace,
+                                ports_per_pool=math.ceil(
+                                    required_ports / branch_workspace.profile.pools
+                                ),
+                            )
+                        branch_workspace = bind_workspace(branch_workspace, problem)
+                    evolved_workspace, branch_receipt = advance_workspace(
+                        branch_workspace,
+                        problem=problem,
+                        ticks=ticks,
+                        demand=1.0,
+                        source_enabled=True,
+                        quiet=True,
+                        max_iterations=max_iterations,
+                        tolerance=tolerance,
+                    )
+                    branch = self._resonant_branch(
+                        state,
+                        evolved_workspace,
+                        selected_charts,
+                        normalized_observed,
+                        normalized_requested,
+                        constraints,
+                        tolerance=tolerance,
+                    )
+                    normalized_receipt = _canonical_diagnostics(
+                        dict(branch_receipt), "resonance receipt"
+                    )
+                    branch_workspaces.append(evolved_workspace)
+            except Exception as exc:
+                status = "infeasible" if constraints else (
+                    "infeasible"
+                    if isinstance(exc, FieldIntelligenceError)
+                    and exc.code in {"INVALID_CONSTRAINT", "NUMERICAL_FAILURE"}
+                    else "exhausted"
+                )
+                branch = self._failed_branch(
+                    selected_charts,
+                    self._variable_order(state, selected_charts, normalized_observed, normalized_requested),
+                    normalized_observed,
+                    status,
+                    ("resonance-failure", type(exc).__name__),
+                )
+                normalized_receipt = _json_value(
+                    {"accepted": False, "error": type(exc).__name__, "ticks": ticks},
+                    "resonance failure receipt",
+                )
+                branch_workspaces.append(base_workspace)
+            branch_receipts.append(normalized_receipt)
+            resonance_receipts.append(normalized_receipt)
+            branch_rows.append(branch)
+        workspace = body_workspace
+        working = replace(state, resonant_workspace=workspace)
+        branches = tuple(branch_rows)
+        if not branches:
+            result = QueryResult(
                 status="unsupported",
-                state_sha256=before,
+                state_sha256=state.state_sha256,
                 field_generation=state.generation,
                 branches=(),
-                requested=tuple(requested),
+                requested=normalized_requested,
                 observed=normalized_observed,
                 context=normalized_context,
-                memory_unchanged=state.state_sha256 == before,
+                memory_unchanged=True,
             )
-        branches = tuple(
-            self._solve_branch(
-                state,
-                branch_charts,
-                normalized_observed,
-                requested,
-                constraints,
-                method=method,
-                tolerance=tolerance,
-                max_iterations=max_iterations,
-            )
-            for branch_charts in self._branches(charts, max_branches)
-        )
-        viable = tuple(
-            row
-            for row in branches
-            if row.numerical_settled and row.epistemically_supportable
-        )
-        if not viable:
-            status = "unresolved"
-        elif len(viable) == 1:
-            status = "supported"
         else:
-            projected = {
-                tuple(round(row.values[name], 14) for name in requested) for row in viable
+            viable = tuple(
+                row for row in branches
+                if row.numerical_settled and row.epistemically_supportable and row.status == "settled"
+            )
+            if not viable:
+                status = "unresolved"
+            elif len(viable) == 1:
+                status = "supported"
+            else:
+                projected = {
+                    tuple(round(row.values[name], 14) for name in normalized_requested)
+                    for row in viable
+                }
+                status = "supported" if len(projected) == 1 else "alternatives"
+            result = QueryResult(
+                status=status,
+                state_sha256=state.state_sha256,
+                field_generation=state.generation,
+                branches=branches,
+                requested=normalized_requested,
+                observed=normalized_observed,
+                context=normalized_context,
+                memory_unchanged=True,
+            )
+        effective_query_id = query_id or sha256_value(
+            {
+                "state_sha256": state.state_sha256,
+                "observed": dict(normalized_observed),
+                "requested": list(normalized_requested),
+                "context": normalized_context,
             }
-            status = "supported" if len(projected) == 1 else "alternatives"
-        return QueryResult(
-            status=status,
-            state_sha256=before,
-            field_generation=state.generation,
-            branches=branches,
-            requested=tuple(requested),
-            observed=normalized_observed,
-            context=normalized_context,
-            memory_unchanged=state.state_sha256 == before,
         )
+        _identifier(effective_query_id, "query_id")
+        receipt = _canonical_diagnostics(
+            {
+                "query_id": effective_query_id,
+                "predecessor_state_sha256": state.state_sha256,
+                "successor_workspace_sha256": workspace.state_sha256,
+                "resonance": resonance_receipts,
+                "branch_receipts": branch_receipts,
+            },
+            "checkpoint receipt",
+        )
+        result = replace(result, query_id=effective_query_id, checkpoint_receipt=receipt)
+        record = {
+            "query_id": effective_query_id,
+            "status": "prepared",
+            "frozen": False,
+            "result": result.as_dict(),
+            "branch_workspaces": [
+                {
+                    "workspace": item,
+                    "state_sha256": item.state_sha256,
+                    "page_sha256": hashlib.sha256(item.page_bytes).hexdigest(),
+                }
+                for item in branch_workspaces
+            ],
+            "branch_receipts": branch_receipts,
+        }
+        successor = working.with_transition(
+            "query-prepared",
+            {"query_id": effective_query_id, "status": result.status},
+            prepared_queries=(
+                *tuple(row for row in working.prepared_queries if row.get("query_id") != effective_query_id),
+                record,
+            ),
+        )
+        return successor, result, receipt
+
+    def query_prepared(self, state: AtlasState, query_id: str) -> QueryResult:
+        _identifier(query_id, "query_id")
+        for row in state.prepared_queries:
+            if row.get("query_id") == query_id:
+                if row.get("status") != "prepared":
+                    raise FieldIntelligenceError("QUERY_INVALIDATED", "prepared query was invalidated")
+                result = QueryResult.from_dict(row["result"])
+                if result.query_id != query_id or result.status not in {
+                    "supported", "alternatives", "unresolved", "unsupported"
+                }:
+                    raise FieldIntelligenceError("INVALID_STATE", "prepared query dependency is inconsistent")
+                for branch_result in result.branches:
+                    active_sources: set[str] = set()
+                    for chart_id, version in branch_result.active_chart_versions:
+                        chart = state.chart(chart_id)
+                        if chart.version != version:
+                            raise FieldIntelligenceError(
+                                "QUERY_INVALIDATED", "prepared query chart dependency changed"
+                            )
+                        active_sources.update(chart.active_source_revisions())
+                    if not set(branch_result.source_revision_ids).issubset(active_sources):
+                        raise FieldIntelligenceError(
+                            "QUERY_INVALIDATED", "prepared query source dependency changed"
+                        )
+                _digest(result.state_sha256, "prepared result state digest")
+                for branch in row.get("branch_workspaces", ()):
+                    workspace = branch["workspace"]
+                    if (
+                        workspace.state_sha256 != branch["state_sha256"]
+                        or hashlib.sha256(workspace.page_bytes).hexdigest() != branch["page_sha256"]
+                    ):
+                        raise FieldIntelligenceError("INVALID_STATE", "prepared branch dependency is corrupt")
+                return result
+        raise FieldIntelligenceError("QUERY_NOT_FOUND", f"unknown prepared query: {query_id}")
+
+    def freeze_query(self, state: AtlasState, query_id: str) -> AtlasState:
+        self.query_prepared(state, query_id)
+        rows = tuple(
+            {**row, "frozen": True} if row.get("query_id") == query_id else row
+            for row in state.prepared_queries
+        )
+        return state.with_transition(
+            "query-frozen",
+            {"query_id": query_id},
+            prepared_queries=rows,
+            frozen_query_ids=frozenset((*state.frozen_query_ids, query_id)),
+        )
+
+    def invalidate_query(self, state: AtlasState, query_id: str, *, reason: str) -> AtlasState:
+        _identifier(query_id, "query_id")
+        _identifier(reason, "invalidation reason")
+        found = False
+        rows: list[Mapping[str, Any]] = []
+        for row in state.prepared_queries:
+            if row.get("query_id") == query_id:
+                found = True
+                rows.append({**row, "status": "invalidated", "reason": reason})
+            else:
+                rows.append(row)
+        if not found:
+            raise FieldIntelligenceError("QUERY_NOT_FOUND", f"unknown prepared query: {query_id}")
+        return state.with_transition(
+            "query-invalidated",
+            {"query_id": query_id, "reason": reason},
+            prepared_queries=tuple(rows),
+        )
+
 
     def relax_block(
         self,
@@ -2934,29 +4365,1187 @@ class FieldAtlas:
             macros=tuple(macros),
         )
 
+REGIONAL_RESULT_SCHEMA: Final[str] = "cassifi.regional-kernel-result.v1"
+REGIONAL_KERNEL_NAME: Final[str] = "learning.atlas"
+REGIONAL_KERNEL_MAX_WORK: Final[int] = 4_096
+REGIONAL_STATE_SCHEMA: Final[str] = "cassifi.regional-atlas-state.v1"
+_REGIONAL_PHI = (1.0 + math.sqrt(5.0)) / 2.0
+_REGIONAL_SAFE_INTEGER = 2**53 - 1
+_REGIONAL_MAX_VARIABLES = 4_096
+_REGIONAL_MAX_CHARTS = 4_096
+_REGIONAL_MAX_CONTRIBUTIONS = 65_536
+_REGIONAL_MAX_DIMENSION = 256
+
+
+def _regional_plain(value: Any, label: str = "regional value") -> Any:
+    try:
+        return json.loads(canonical_json_bytes(value).decode("utf-8"))
+    except (TypeError, ValueError, UnicodeDecodeError) as exc:
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_VALUE", f"{label} must be canonical JSON data"
+        ) from exc
+
+
+def _regional_integer(
+    value: Any,
+    label: str,
+    *,
+    minimum: int = 0,
+    maximum: int = _REGIONAL_SAFE_INTEGER,
+) -> int:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not minimum <= value <= maximum
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_VALUE",
+            f"{label} must be an integer in [{minimum}, {maximum}]",
+        )
+    return int(value)
+
+
+def _regional_number(value: Any, label: str, *, positive: bool = False) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_VALUE", f"{label} must be numeric")
+    result = float(value)
+    if not math.isfinite(result) or (positive and result <= 0.0):
+        suffix = " and positive" if positive else ""
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_VALUE", f"{label} must be finite{suffix}"
+        )
+    return result
+
+
+def _regional_digest_text(value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_ID", f"{label} must be a lowercase SHA-256 digest"
+        )
+    return value
+
+
+def _regional_identifier(value: Any, label: str) -> str:
+    return _identifier(value, label)
+
+
+def _regional_sha(value: Any) -> str:
+    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def _regional_numeric_payload(values: Sequence[float], shape: Sequence[int]) -> dict[str, Any]:
+    checked = tuple(_regional_number(value, "numeric field word") for value in values)
+    raw = struct.pack("<" + "d" * len(checked), *checked)
+    return {
+        "bytes_base64": base64.b64encode(raw).decode("ascii"),
+        "dtype": "float64-le",
+        "shape": [int(item) for item in shape],
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
+def _regional_numeric_values(
+    payload: Mapping[str, Any],
+    dimension: int,
+) -> tuple[list[float], list[int]]:
+    if not isinstance(payload, Mapping) or set(payload) != {
+        "bytes_base64", "dtype", "shape", "sha256"
+    }:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field envelope is invalid")
+    if payload["dtype"] != "float64-le" or not isinstance(payload["shape"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field codec is invalid")
+    shape = [
+        _regional_integer(item, "numeric field shape", minimum=1, maximum=_REGIONAL_SAFE_INTEGER)
+        for item in payload["shape"]
+    ]
+    if len(shape) != 3 or shape[0] != 1 or shape[2] != 1 or shape[1] % 9:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field shape is invalid")
+    modes = shape[1] // 9
+    if modes < max(dimension, dimension * dimension):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field is too small")
+    encoded = payload["bytes_base64"]
+    if not isinstance(encoded, str):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field bytes are invalid")
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (TypeError, ValueError) as exc:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field bytes are invalid") from exc
+    if base64.b64encode(raw).decode("ascii") != encoded:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field bytes are noncanonical")
+    if len(raw) != math.prod(shape) * 8:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field byte length is invalid")
+    if hashlib.sha256(raw).hexdigest() != _regional_digest_text(payload["sha256"], "numeric field sha256"):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field digest is invalid")
+    values = list(struct.unpack("<" + "d" * (len(raw) // 8), raw))
+    if any(not math.isfinite(value) for value in values):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field contains nonfinite values")
+    for lane in (1, 3):
+        if any(values[lane * modes + index] != 0.0 for index in range(modes)):
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart workspace must be empty")
+    if any(value != 0.0 for value in values[4 * modes:]):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart statistic lanes must be empty")
+    for index in range(modes):
+        if values[index] != _REGIONAL_PHI * values[2 * modes + index]:
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart memory codec is invalid")
+    covariance = [
+        [
+            _REGIONAL_PHI * values[row * dimension + column]
+            + values[2 * modes + row * dimension + column]
+            for column in range(dimension)
+        ]
+        for row in range(dimension)
+    ]
+    for row in range(dimension):
+        for column in range(dimension):
+            if covariance[row][column] != covariance[column][row]:
+                raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart covariance is nonsymmetric")
+    # A small direct Cholesky check keeps the kernel independent of the legacy
+    # VariationalField object while rejecting non-SPD numeric words.
+    lower = [[0.0] * dimension for _ in range(dimension)]
+    for row in range(dimension):
+        for column in range(row + 1):
+            residual = covariance[row][column] - sum(
+                lower[row][index] * lower[column][index] for index in range(column)
+            )
+            if row == column:
+                if not math.isfinite(residual) or residual <= 0.0:
+                    raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart covariance is not positive definite")
+                lower[row][column] = math.sqrt(residual)
+            else:
+                lower[row][column] = residual / lower[column][column]
+    return values, shape
+
+
+def _regional_covariance(payload: Mapping[str, Any], dimension: int) -> list[list[float]]:
+    values, shape = _regional_numeric_values(payload, dimension)
+    modes = shape[1] // 9
+    return [
+        [
+            _REGIONAL_PHI * values[row * dimension + column]
+            + values[2 * modes + row * dimension + column]
+            for column in range(dimension)
+        ]
+        for row in range(dimension)
+    ]
+
+
+def _regional_initial_numeric(dimension: int, ridge: float) -> dict[str, Any]:
+    modes = max(dimension, dimension * dimension)
+    values = [0.0] * (9 * modes)
+    scale = 1.0 / (1.0 + _REGIONAL_PHI * _REGIONAL_PHI)
+    for index in range(dimension):
+        values[index * dimension + index] = _REGIONAL_PHI * ridge * scale
+        values[2 * modes + index * dimension + index] = ridge * scale
+    return _regional_numeric_payload(values, (1, 9 * modes, 1))
+
+
+def _regional_pack_covariance(
+    payload: Mapping[str, Any],
+    dimension: int,
+    covariance: Sequence[Sequence[float]],
+) -> dict[str, Any]:
+    values, shape = _regional_numeric_values(payload, dimension)
+    modes = shape[1] // 9
+    scale = 1.0 / (1.0 + _REGIONAL_PHI * _REGIONAL_PHI)
+    for row in range(dimension):
+        for column in range(dimension):
+            value = _regional_number(covariance[row][column], "chart covariance")
+            values[row * dimension + column] = _REGIONAL_PHI * value * scale
+            values[2 * modes + row * dimension + column] = value * scale
+    return _regional_numeric_payload(values, shape)
+
+
+def _regional_validate_variable(value: Any) -> dict[str, Any]:
+    if isinstance(value, VariableSpec):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional variable")
+    if not isinstance(raw, dict) or set(raw) != {
+        "constant", "frame", "kind", "lower", "unit", "upper", "variable_id"
+    }:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "regional variable keys are invalid")
+    _regional_identifier(raw["variable_id"], "variable_id")
+    _regional_identifier(raw["unit"], "variable unit")
+    _regional_identifier(raw["frame"], "variable frame")
+    if raw["kind"] not in VARIABLE_KINDS:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "variable kind is unsupported")
+    for key in ("lower", "upper", "constant"):
+        if raw[key] is not None:
+            raw[key] = _regional_number(raw[key], f"variable {key}")
+    if raw["lower"] is not None and raw["upper"] is not None and raw["lower"] > raw["upper"]:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "variable bounds are reversed")
+    if raw["kind"] == "constant":
+        if raw["constant"] is None:
+            raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "constant variable needs a value")
+        if (
+            raw["lower"] is not None and raw["constant"] < raw["lower"]
+            or raw["upper"] is not None and raw["constant"] > raw["upper"]
+        ):
+            raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "constant is outside its domain")
+    elif raw["constant"] is not None:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "only constant variables carry constants")
+    return raw
+
+
+def _regional_validate_guard(value: Any) -> dict[str, Any]:
+    if isinstance(value, Guard):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional guard")
+    if not isinstance(raw, dict) or set(raw) != {"field", "operator", "value"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "guard keys are invalid")
+    _regional_identifier(raw["field"], "guard field")
+    if raw["operator"] not in {"eq", "ne", "in", "range", "exists"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "guard operator is unsupported")
+    raw["value"] = _regional_plain(raw["value"], "guard value")
+    if raw["operator"] == "in" and not isinstance(raw["value"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "in guard requires a list")
+    if raw["operator"] == "range":
+        if (
+            not isinstance(raw["value"], list)
+            or len(raw["value"]) != 2
+            or any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in raw["value"])
+            or not all(math.isfinite(float(item)) for item in raw["value"])
+            or float(raw["value"][0]) > float(raw["value"][1])
+        ):
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "range guard is invalid")
+    return raw
+
+
+def _regional_validate_contribution(value: Any, *, width: int | None = None) -> dict[str, Any]:
+    if isinstance(value, SupportContribution):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional contribution")
+    if not isinstance(raw, dict) or set(raw) != {
+        "context_sha256", "derivation_roots", "epistemic_type", "event_id",
+        "logical_tick", "source_revision_id", "values", "weight",
+    }:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution keys are invalid")
+    _regional_digest_text(raw["event_id"], "event_id")
+    _regional_digest_text(raw["source_revision_id"], "source_revision_id")
+    if not isinstance(raw["values"], list) or not raw["values"]:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution values are invalid")
+    if width is not None and len(raw["values"]) != width:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution width is invalid")
+    raw["values"] = [_regional_number(item, "contribution value") for item in raw["values"]]
+    raw["weight"] = _regional_number(raw["weight"], "contribution weight", positive=True)
+    raw["logical_tick"] = _regional_integer(raw["logical_tick"], "logical tick", minimum=1)
+    if raw["epistemic_type"] not in {"observed", "asserted", "derived"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution epistemic type is invalid")
+    _regional_digest_text(raw["context_sha256"], "context_sha256")
+    if not isinstance(raw["derivation_roots"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "derivation roots are invalid")
+    raw["derivation_roots"] = [
+        _regional_digest_text(item, "derivation root") for item in raw["derivation_roots"]
+    ]
+    if raw["epistemic_type"] == "derived" and not raw["derivation_roots"]:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "derived support needs premise roots")
+    return raw
+
+
+def _regional_validate_chart(value: Any) -> dict[str, Any]:
+    if isinstance(value, RelationChart):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional chart")
+    required = {
+        "chart_id", "contributions", "dependencies", "factor_weight", "guards",
+        "learning_mode", "mode", "mode_group", "numeric_field",
+        "observation_norm_bound", "prior_mass", "recency_half_life",
+        "representation_id", "ridge", "scope", "status", "version",
+    }
+    if not isinstance(raw, dict) or set(raw) != required:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart keys are invalid")
+    _regional_identifier(raw["chart_id"], "chart_id")
+    if (
+        not isinstance(raw["scope"], list)
+        or not raw["scope"]
+        or len(raw["scope"]) > _REGIONAL_MAX_DIMENSION
+        or len(raw["scope"]) != len(set(raw["scope"]))
+    ):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart scope is invalid")
+    for name in raw["scope"]:
+        _regional_identifier(name, "chart variable")
+    raw["version"] = _regional_integer(raw["version"], "chart version", minimum=1)
+    raw["ridge"] = _regional_number(raw["ridge"], "chart ridge", positive=True)
+    raw["observation_norm_bound"] = _regional_number(
+        raw["observation_norm_bound"], "chart observation norm bound", positive=True
+    )
+    raw["prior_mass"] = _regional_number(raw["prior_mass"], "chart prior mass", positive=True)
+    raw["factor_weight"] = _regional_number(raw["factor_weight"], "chart factor weight", positive=True)
+    if raw["learning_mode"] not in LEARNING_MODES:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart learning mode is invalid")
+    if raw["learning_mode"] == "contextual":
+        if raw["recency_half_life"] is None:
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "contextual chart needs recency")
+        raw["recency_half_life"] = _regional_number(
+            raw["recency_half_life"], "recency half-life", positive=True
+        )
+    elif raw["recency_half_life"] is not None:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "stationary chart cannot decay")
+    if (raw["mode_group"] is None) != (raw["mode"] is None):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart mode identity is incomplete")
+    if raw["mode_group"] is not None:
+        _regional_identifier(raw["mode_group"], "mode_group")
+        _regional_identifier(raw["mode"], "mode")
+    _regional_identifier(raw["representation_id"], "representation_id")
+    if not isinstance(raw["dependencies"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart dependencies are invalid")
+    for dependency in raw["dependencies"]:
+        _regional_identifier(dependency, "chart dependency")
+    if raw["status"] not in CHART_STATUSES:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart status is invalid")
+    if not isinstance(raw["guards"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart guards are invalid")
+    raw["guards"] = [_regional_validate_guard(item) for item in raw["guards"]]
+    if not isinstance(raw["contributions"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart contributions are invalid")
+    if len(raw["contributions"]) > _REGIONAL_MAX_CONTRIBUTIONS:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart contributions exceed the regional bound")
+    raw["contributions"] = [
+        _regional_validate_contribution(item, width=len(raw["scope"]))
+        for item in raw["contributions"]
+    ]
+    event_ids = [item["event_id"] for item in raw["contributions"]]
+    if len(event_ids) != len(set(event_ids)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart repeats a support event")
+    values, shape = _regional_numeric_values(raw["numeric_field"], len(raw["scope"]))
+    modes = shape[1] // 9
+    covariance = torch.tensor(
+        [
+            [
+                _REGIONAL_PHI * values[row * len(raw["scope"]) + column]
+                + values[2 * modes + row * len(raw["scope"]) + column]
+                for column in range(len(raw["scope"]))
+            ]
+            for row in range(len(raw["scope"]))
+        ],
+        dtype=torch.float64,
+    )
+    eigenvalues = torch.linalg.eigvalsh(covariance)
+    upper = raw["ridge"] + raw["observation_norm_bound"] ** 2
+    tolerance = (
+        128 * torch.finfo(torch.float64).eps * len(raw["scope"]) * max(1.0, upper)
+    )
+    if (
+        float(eigenvalues.min()) < raw["ridge"] - tolerance
+        or float(eigenvalues.max()) > upper + tolerance
+    ):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart covariance leaves spectral bounds")
+    return raw
+
+
+def _regional_guard_matches(guard: Mapping[str, Any], context: Mapping[str, Any]) -> bool:
+    field_name = guard["field"]
+    operator = guard["operator"]
+    present = field_name in context
+    if operator == "exists":
+        return present is bool(guard["value"])
+    if not present:
+        return False
+    actual = context[field_name]
+    if operator == "eq":
+        return actual == guard["value"]
+    if operator == "ne":
+        return actual != guard["value"]
+    if operator == "in":
+        return actual in guard["value"]
+    return (
+        not isinstance(actual, bool)
+        and isinstance(actual, (int, float))
+        and float(guard["value"][0]) <= float(actual) <= float(guard["value"][1])
+    )
+
+
+def _regional_chart_matches(chart: Mapping[str, Any], context: Mapping[str, Any]) -> bool:
+    return chart["status"] == "active" and all(
+        _regional_guard_matches(guard, context) for guard in chart["guards"]
+    )
+
+
+def _regional_domain_values(
+    variables: Sequence[Mapping[str, Any]], values: Mapping[str, Any]
+) -> dict[str, float]:
+    known = {row["variable_id"]: row for row in variables}
+    if not isinstance(values, Mapping):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation values must be a mapping")
+    normalized: dict[str, float] = {}
+    for name, value in values.items():
+        if name not in known:
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation names an unknown variable")
+        number = _regional_number(value, str(name))
+        spec = known[name]
+        if (
+            spec["lower"] is not None and number < spec["lower"]
+            or spec["upper"] is not None and number > spec["upper"]
+            or spec["kind"] == "constant" and number != spec["constant"]
+        ):
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation is outside its domain")
+        normalized[str(name)] = number
+    return normalized
+
+
+def _regional_contribution_from(
+    item: Mapping[str, Any],
+    *,
+    chart: Mapping[str, Any],
+    values: Mapping[str, float],
+    context_sha256: str,
+    tick: int,
+) -> dict[str, Any]:
+    event_id = _regional_digest_text(item.get("event_id"), "event_id")
+    source_id = _regional_digest_text(item.get("source_revision_id"), "source_revision_id")
+    local_values = item.get("values", values)
+    if isinstance(local_values, Mapping):
+        local = [local_values[name] for name in chart["scope"] if name in local_values]
+        if len(local) != len(chart["scope"]):
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "chart scope is only partially observed")
+    elif isinstance(local_values, (list, tuple)):
+        local = list(local_values)
+    else:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution values are invalid")
+    contribution = {
+        "context_sha256": item.get("context_sha256", context_sha256),
+        "derivation_roots": list(item.get("derivation_roots", ())),
+        "epistemic_type": item.get("epistemic_type", "observed"),
+        "event_id": event_id,
+        "logical_tick": item.get("logical_tick", tick),
+        "source_revision_id": source_id,
+        "values": local,
+        "weight": item.get("weight", 1.0),
+    }
+    contribution = _regional_validate_contribution(
+        contribution, width=len(chart["scope"])
+    )
+    norm = math.sqrt(sum(value * value for value in contribution["values"]))
+    if norm > chart["observation_norm_bound"]:
+        raise FieldIntelligenceError(
+            "OBSERVATION_OUT_OF_DOMAIN",
+            "local observation exceeds the chart norm bound",
+        )
+    return contribution
+
+
+def _regional_observation_items(
+    variables: Sequence[Mapping[str, Any]],
+    charts: Sequence[Mapping[str, Any]],
+    spec: Mapping[str, Any],
+    supplied: Sequence[Any],
+    *,
+    tick: int,
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    context = _regional_plain(spec.get("context", {}), "observation context")
+    if not isinstance(context, dict):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation context must be a mapping")
+    values = _regional_domain_values(variables, spec.get("values", {}))
+    context_sha256 = _regional_sha(context)
+    target_raw = spec.get("target_chart_ids")
+    targets = None if target_raw is None else list(target_raw)
+    if targets is not None and (
+        not targets or len(targets) != len(set(targets))
+    ):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "target chart IDs are invalid")
+    chart_map = {chart["chart_id"]: chart for chart in charts}
+    if targets is not None and any(item not in chart_map for item in targets):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "target chart is unknown")
+    rows = list(supplied)
+    if not rows:
+        rows = [spec]
+    normalized_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if isinstance(row, SupportContribution):
+            normalized_rows.append(dict(row.as_dict()))
+        elif isinstance(row, Mapping):
+            normalized_rows.append(dict(row))
+        else:
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution task is invalid")
+    items: list[dict[str, Any]] = []
+    partial: list[str] = []
+    selected_ids: list[str] = []
+    for chart in charts:
+        if targets is not None and chart["chart_id"] not in targets:
+            continue
+        if not _regional_chart_matches(chart, context):
+            continue
+        selected_ids.append(chart["chart_id"])
+        chart_rows: list[dict[str, Any]] = []
+        try:
+            for row in normalized_rows:
+                if "values" not in row:
+                    row = {**dict(spec), **row}
+                chart_rows.append(
+                    _regional_contribution_from(
+                        row, chart=chart, values=values,
+                        context_sha256=context_sha256, tick=tick,
+                    )
+                )
+        except FieldIntelligenceError as exc:
+            if exc.code == "INVALID_REGIONAL_SUPPORT" and "partially observed" in str(exc):
+                partial.append(chart["chart_id"])
+                continue
+            raise
+        staged = list(chart["contributions"])
+        special_items: list[dict[str, Any]] = []
+        new_rows: list[dict[str, Any]] = []
+        for contribution in chart_rows:
+            existing = next(
+                (row for row in staged if row["event_id"] == contribution["event_id"]), None
+            )
+            if existing is not None:
+                special_items.append({
+                    "action": "conflict" if existing != contribution else "duplicate",
+                    "chart_id": chart["chart_id"],
+                    "contribution": contribution,
+                })
+                continue
+            new_rows.append(contribution)
+            staged.append(contribution)
+        items.extend(special_items)
+        if not new_rows:
+            continue
+        rebuild = (
+            len(new_rows) > 1
+            or chart["learning_mode"] == "contextual"
+            or chart["recency_half_life"] is not None
+            or (
+                chart["contributions"]
+                and (new_rows[0]["logical_tick"], new_rows[0]["event_id"])
+                <= max(
+                    (row["logical_tick"], row["event_id"])
+                    for row in chart["contributions"]
+                )
+            )
+        )
+        if rebuild:
+            items.append({
+                "action": "rebuild",
+                "chart_id": chart["chart_id"],
+                "contributions": sorted(
+                    staged, key=lambda row: (row["logical_tick"], row["event_id"])
+                ),
+                "rebuild_cursor": 0,
+                "working_numeric_field": _regional_initial_numeric(
+                    len(chart["scope"]), chart["ridge"]
+                ),
+                "mass": chart["prior_mass"],
+            })
+        else:
+            items.append({
+                "action": "incremental",
+                "chart_id": chart["chart_id"],
+                "contribution": new_rows[0],
+            })
+    return items, partial, selected_ids
+
+
+def regional_state(
+    variables: Sequence[Any] | Mapping[str, Any] = (),
+    charts: Sequence[Any] = (),
+    *,
+    operation: str | Mapping[str, Any] = "identity",
+    task: Mapping[str, Any] | None = None,
+    contributions: Sequence[Any] = (),
+    logical_tick: int = 0,
+    revocation_generation: int = 0,
+) -> dict[str, Any]:
+    """Build a JSON-only restartable Atlas task for the regional machine."""
+    if isinstance(variables, Mapping) and ("variables" in variables or "charts" in variables):
+        source = dict(variables)
+        variables = source.get("variables", ())
+        charts = source.get("charts", charts)
+        if task is None and "task" in source:
+            task = source["task"]
+        if operation == "identity" and "operation" in source:
+            operation = source["operation"]
+        logical_tick = source.get("logical_tick", logical_tick)
+        revocation_generation = source.get("revocation_generation", revocation_generation)
+    normalized_variables = [_regional_validate_variable(item) for item in variables]
+    normalized_charts = [_regional_validate_chart(item) for item in charts]
+    if len(normalized_variables) > _REGIONAL_MAX_VARIABLES or len(normalized_charts) > _REGIONAL_MAX_CHARTS:
+        raise FieldIntelligenceError("REGIONAL_CAPACITY", "regional Atlas identity capacity is exceeded")
+    variable_ids = [item["variable_id"] for item in normalized_variables]
+    chart_ids = [item["chart_id"] for item in normalized_charts]
+    if len(variable_ids) != len(set(variable_ids)) or len(chart_ids) != len(set(chart_ids)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_ID", "regional identities must be unique")
+    if any(name not in set(variable_ids) for chart in normalized_charts for name in chart["scope"]):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart scope names an unknown variable")
+    logical_tick = _regional_integer(logical_tick, "logical tick")
+    revocation_generation = _regional_integer(revocation_generation, "revocation generation")
+    if task is not None:
+        if not isinstance(task, Mapping):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "regional task must be a mapping")
+        spec = dict(task)
+    elif isinstance(operation, Mapping):
+        spec = dict(operation)
+    else:
+        spec = {"kind": operation}
+    kind = spec.get("kind", spec.get("operation", "identity"))
+    aliases = {
+        "atlas-identity": "identity",
+        "validate-identity": "identity",
+        "relation-chart-admission": "chart-admission",
+        "admit-chart": "chart-admission",
+        "observation": "contribution-update",
+        "admit-observation": "contribution-update",
+        "retract": "retraction-rebuild",
+        "retract-sources": "retraction-rebuild",
+    }
+    kind = aliases.get(kind, kind)
+    if kind not in {"identity", "chart-admission", "contribution-update", "retraction-rebuild", "rebuild"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "regional Atlas operation is unsupported")
+    tick = logical_tick + 1
+    if kind == "identity":
+        regional_task: dict[str, Any] = {
+            "kind": "identity", "phase": "identity", "cursor": 0,
+            "items": [{"variable_ids": variable_ids, "chart_ids": chart_ids}],
+        }
+    elif kind == "chart-admission":
+        chart_value = spec.get("chart")
+        if chart_value is None and len(normalized_charts) == 1:
+            chart_value = normalized_charts[0]
+        if chart_value is None:
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "chart admission needs a chart")
+        chart_value = _regional_validate_chart(chart_value)
+        if any(name not in set(variable_ids) for name in chart_value["scope"]):
+            raise FieldIntelligenceError(
+                "INVALID_REGIONAL_TASK", "chart admission scope names an unknown variable"
+            )
+        regional_task = {
+            "kind": "chart-admission", "phase": "apply", "cursor": 0,
+            "chart": chart_value,
+        }
+    elif kind == "contribution-update":
+        rows = spec.get("contributions", contributions)
+        if not rows and spec.get("contribution") is not None:
+            rows = [spec["contribution"]]
+        if not rows:
+            rows = [spec]
+        event_id = spec.get("event_id")
+        source_id = spec.get("source_revision_id")
+        if event_id is not None:
+            _regional_digest_text(event_id, "event_id")
+        if source_id is not None:
+            _regional_digest_text(source_id, "source_revision_id")
+        items, partial, selected = _regional_observation_items(
+            normalized_variables,
+            normalized_charts,
+            spec,
+            rows,
+            tick=tick,
+        )
+        regional_task = {
+            "kind": "contribution-update", "phase": "apply", "cursor": 0,
+            "tick": tick, "items": items, "partial_chart_ids": partial,
+            "selected_chart_ids": selected,
+            "target_chart_ids": None if spec.get("target_chart_ids") is None else list(spec["target_chart_ids"]),
+            "no_applicable": not bool(items),
+        }
+    elif kind == "rebuild":
+        targets = spec.get("chart_ids", spec.get("target_chart_ids"))
+        target_ids = chart_ids if targets is None else list(targets)
+        if not target_ids or len(target_ids) != len(set(target_ids)):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "rebuild chart IDs are invalid")
+        chart_map = {chart["chart_id"]: chart for chart in normalized_charts}
+        if any(item not in chart_map for item in target_ids):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "rebuild chart is unknown")
+        supplied_map = spec.get("contributions_by_chart", {})
+        if not isinstance(supplied_map, Mapping):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "rebuild contributions are invalid")
+        rebuild_items = []
+        for chart_id in target_ids:
+            chart = chart_map[chart_id]
+            raw_rows = supplied_map.get(chart_id, chart["contributions"])
+            rows = [
+                _regional_validate_contribution(item, width=len(chart["scope"]))
+                for item in raw_rows
+            ]
+            rebuild_items.append({
+                "chart_id": chart_id, "contributions": sorted(
+                    rows, key=lambda row: (row["logical_tick"], row["event_id"])
+                ),
+                "rebuild_cursor": 0,
+                "working_numeric_field": _regional_initial_numeric(len(chart["scope"]), chart["ridge"]),
+                "mass": chart["prior_mass"],
+            })
+        regional_task = {
+            "kind": "rebuild", "phase": "apply", "cursor": 0,
+            "tick": tick, "items": rebuild_items,
+        }
+    else:
+        targets = spec.get("source_revision_ids")
+        if not isinstance(targets, (list, tuple)) or not targets:
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "retraction targets cannot be empty")
+        target_ids = sorted({_regional_digest_text(item, "source revision") for item in targets})
+        explicit_events = spec.get("event_ids", ())
+        if not isinstance(explicit_events, (list, tuple)):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "retraction event IDs are invalid")
+        explicit_events = sorted({_regional_digest_text(item, "event ID") for item in explicit_events})
+        requested_generation = _regional_integer(
+            spec.get("revocation_generation", revocation_generation + 1),
+            "revocation generation",
+            minimum=revocation_generation + 1,
+        )
+        regional_task = {
+            "kind": "retraction-rebuild", "phase": "discover", "tick": tick,
+            "chart_cursor": 0, "contribution_cursor": 0, "changed_pass": False,
+            "source_revision_ids": target_ids, "event_ids": explicit_events,
+            "invalid_roots": sorted(set((*target_ids, *explicit_events))),
+            "removed_event_ids": list(explicit_events), "affected_chart_ids": [],
+            "current": None, "revocation_generation": requested_generation,
+        }
+    state = {
+        "schema": REGIONAL_STATE_SCHEMA,
+        "variables": normalized_variables,
+        "charts": normalized_charts,
+        "logical_tick": logical_tick,
+        "revocation_generation": revocation_generation,
+        "phase": "running",
+        "task": regional_task,
+        "journal": [{"event": "initialized", "operation": kind, "cursor": 0}],
+        "result": None,
+    }
+    return _regional_validate_state(state)
+
+
+def _regional_validate_state(value: Any) -> dict[str, Any]:
+    raw = _regional_plain(value, "regional Atlas state")
+    required = {
+        "schema", "variables", "charts", "logical_tick", "revocation_generation",
+        "phase", "task", "journal", "result",
+    }
+    if not isinstance(raw, dict) or set(raw) != required or raw["schema"] != REGIONAL_STATE_SCHEMA:
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional Atlas state keys are invalid")
+    if raw["phase"] not in {"running", "terminal", "fault"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional Atlas phase is invalid")
+    raw["logical_tick"] = _regional_integer(raw["logical_tick"], "logical tick")
+    raw["revocation_generation"] = _regional_integer(
+        raw["revocation_generation"], "revocation generation"
+    )
+    if not isinstance(raw["variables"], list) or not isinstance(raw["charts"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional identity records are invalid")
+    normalized_variables = [_regional_validate_variable(item) for item in raw["variables"]]
+    normalized_charts = [_regional_validate_chart(item) for item in raw["charts"]]
+    if len(normalized_variables) > _REGIONAL_MAX_VARIABLES or len(normalized_charts) > _REGIONAL_MAX_CHARTS:
+        raise FieldIntelligenceError("REGIONAL_CAPACITY", "regional Atlas identity capacity is exceeded")
+    variable_ids = [item["variable_id"] for item in normalized_variables]
+    chart_ids = [item["chart_id"] for item in normalized_charts]
+    if len(variable_ids) != len(set(variable_ids)) or len(chart_ids) != len(set(chart_ids)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional identities are duplicated")
+    variable_set = set(variable_ids)
+    if any(name not in variable_set for chart in normalized_charts for name in chart["scope"]):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional chart scope escaped identity")
+    if not isinstance(raw["task"], dict) or not isinstance(raw["journal"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional task or journal is invalid")
+    if raw["phase"] == "running" and raw["result"] is not None:
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "running regional state has a result")
+    if raw["phase"] in {"terminal", "fault"} and not isinstance(raw["result"], dict):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "terminal regional state lacks a result")
+    raw["variables"] = normalized_variables
+    raw["charts"] = normalized_charts
+    return raw
+
+
+def _regional_apply_observation(
+    numeric_field: Mapping[str, Any],
+    chart: Mapping[str, Any],
+    contribution: Mapping[str, Any],
+    *,
+    exposure: float,
+) -> dict[str, Any]:
+    dimension = len(chart["scope"])
+    covariance = _regional_covariance(numeric_field, dimension)
+    gain = -math.expm1(-_regional_number(exposure, "chart exposure", positive=True))
+    values = contribution["values"]
+    for row in range(dimension):
+        for column in range(dimension):
+            target = values[row] * values[column]
+            if row == column:
+                target += chart["ridge"]
+            covariance[row][column] = (
+                (1.0 - gain) * covariance[row][column] + gain * target
+            )
+    return _regional_pack_covariance(numeric_field, dimension, covariance)
+
+
+def _regional_effective_weight(
+    contribution: Mapping[str, Any], chart: Mapping[str, Any], at_tick: int
+) -> float:
+    weight = contribution["weight"]
+    half_life = chart["recency_half_life"]
+    if half_life is None:
+        return weight
+    age = max(0, at_tick - contribution["logical_tick"])
+    return weight * math.exp2(-age / half_life)
+
+
+def _regional_chart_replacement(
+    charts: list[dict[str, Any]], chart_id: str, replacement: dict[str, Any]
+) -> None:
+    for index, chart in enumerate(charts):
+        if chart["chart_id"] == chart_id:
+            charts[index] = replacement
+            return
+    raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional chart identity disappeared")
+
+
+def _regional_result(
+    state: Mapping[str, Any],
+    *,
+    status: str,
+    operation: str,
+    work: int,
+    **details: Any,
+) -> dict[str, Any]:
+    digest_payload = {key: value for key, value in state.items() if key != "result"}
+    return {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "status": status,
+        "operation": operation,
+        "work": work,
+        "state_sha256": _regional_sha(digest_payload),
+        **details,
+    }
+
+
+def _regional_finish(
+    state: dict[str, Any],
+    *,
+    status: str,
+    operation: str,
+    work: int,
+    **details: Any,
+) -> dict[str, Any]:
+    result = _regional_result(
+        state, status=status, operation=operation, work=work, **details
+    )
+    state["phase"] = "fault" if status == "fault" else "terminal"
+    state["result"] = result
+    return result
+
+
+def _regional_identity_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    if task["cursor"] == 0:
+        task["cursor"] = 1
+        task["phase"] = "done"
+        _regional_finish(
+            state,
+            status="done",
+            operation="identity",
+            work=work,
+            variable_ids=list(task["items"][0]["variable_ids"]),
+            chart_ids=list(task["items"][0]["chart_ids"]),
+        )
+
+
+def _regional_chart_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    if task["cursor"]:
+        return
+    chart = _regional_validate_chart(task["chart"])
+    variable_ids = {row["variable_id"] for row in state["variables"]}
+    if any(name not in variable_ids for name in chart["scope"]):
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_TASK", "chart admission scope names an unknown variable"
+        )
+    task["chart"] = chart
+    existing = next(
+        (row for row in state["charts"] if row["chart_id"] == chart["chart_id"]),
+        None,
+    )
+    if existing is not None and existing != chart:
+        raise FieldIntelligenceError("CHART_CONFLICT", "chart identity has different semantics")
+    if existing is None:
+        state["charts"].append(chart)
+    task["cursor"] = 1
+    task["phase"] = "done"
+    _regional_finish(
+        state,
+        status="done",
+        operation="chart-admission",
+        work=work,
+        chart_id=chart["chart_id"],
+        changed=existing is None,
+    )
+
+
+def _regional_update_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    items = task["items"]
+    cursor = task["cursor"]
+    if not items:
+        raise FieldIntelligenceError(
+            "NO_APPLICABLE_CHART",
+            "contribution did not fully support an applicable chart",
+        )
+    if cursor >= len(items):
+        task["phase"] = "done"
+        state["logical_tick"] = task["tick"]
+        _regional_finish(
+            state,
+            status="done",
+            operation="contribution-update",
+            work=work,
+            changed_chart_ids=sorted({
+                item["chart_id"] for item in items if item["action"] not in {"duplicate", "conflict"}
+            }),
+            partial_chart_ids=list(task["partial_chart_ids"]),
+        )
+        return
+    item = items[cursor]
+    chart = next(row for row in state["charts"] if row["chart_id"] == item["chart_id"])
+    if item["action"] == "conflict":
+        raise FieldIntelligenceError("EVIDENCE_IDENTITY_CONFLICT", "support event identity conflicts")
+    if item["action"] == "duplicate":
+        task["cursor"] += 1
+        return
+    if item["action"] == "incremental":
+        contribution = item["contribution"]
+        mass = chart["prior_mass"] + sum(row["weight"] for row in chart["contributions"])
+        exposure = math.log1p(contribution["weight"] / mass)
+        replacement = dict(chart)
+        replacement["numeric_field"] = _regional_apply_observation(
+            chart["numeric_field"], chart, contribution, exposure=exposure
+        )
+        replacement["contributions"] = [*chart["contributions"], contribution]
+        replacement["version"] = chart["version"] + 1
+        _regional_chart_replacement(state["charts"], chart["chart_id"], replacement)
+        task["cursor"] += 1
+        return
+    if item["rebuild_cursor"] < len(item["contributions"]):
+        contribution = item["contributions"][item["rebuild_cursor"]]
+        weight = _regional_effective_weight(contribution, chart, task["tick"])
+        if weight > 0.0:
+            exposure = math.log1p(weight / item["mass"])
+            item["working_numeric_field"] = _regional_apply_observation(
+                item["working_numeric_field"], chart, contribution, exposure=exposure
+            )
+            item["mass"] += weight
+        item["rebuild_cursor"] += 1
+        return
+    replacement = dict(chart)
+    replacement["numeric_field"] = item["working_numeric_field"]
+    replacement["contributions"] = item["contributions"]
+    replacement["version"] = chart["version"] + 1
+    _regional_chart_replacement(state["charts"], chart["chart_id"], replacement)
+    task["cursor"] += 1
+
+
+def _regional_retraction_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    charts = state["charts"]
+    if task["phase"] == "discover":
+        if task["chart_cursor"] < len(charts):
+            chart = charts[task["chart_cursor"]]
+            if task["contribution_cursor"] < len(chart["contributions"]):
+                contribution = chart["contributions"][task["contribution_cursor"]]
+                if (
+                    contribution["source_revision_id"] in task["source_revision_ids"]
+                    or set(task["invalid_roots"]).intersection(contribution["derivation_roots"])
+                ):
+                    if contribution["event_id"] not in task["removed_event_ids"]:
+                        task["removed_event_ids"].append(contribution["event_id"])
+                        task["invalid_roots"].append(contribution["event_id"])
+                        task["invalid_roots"].sort()
+                        task["changed_pass"] = True
+                task["contribution_cursor"] += 1
+                return
+            task["chart_cursor"] += 1
+            task["contribution_cursor"] = 0
+            return
+        if task["changed_pass"]:
+            task["chart_cursor"] = 0
+            task["contribution_cursor"] = 0
+            task["changed_pass"] = False
+            return
+        task["phase"] = "rebuild"
+        task["chart_cursor"] = 0
+        return
+    if task["phase"] == "rebuild":
+        current = task["current"]
+        if current is None:
+            if task["chart_cursor"] >= len(charts):
+                task["phase"] = "done"
+                state["logical_tick"] = task["tick"]
+                state["revocation_generation"] = task["revocation_generation"]
+                _regional_finish(
+                    state,
+                    status="done",
+                    operation="retraction-rebuild",
+                    work=work,
+                    removed_event_ids=sorted(task["removed_event_ids"]),
+                    affected_chart_ids=sorted(task["affected_chart_ids"]),
+                    revocation_generation=task["revocation_generation"],
+                )
+                return
+            chart = charts[task["chart_cursor"]]
+            retained = [
+                row for row in chart["contributions"]
+                if row["source_revision_id"] not in task["source_revision_ids"]
+                and row["event_id"] not in task["removed_event_ids"]
+            ]
+            if len(retained) == len(chart["contributions"]):
+                task["chart_cursor"] += 1
+                return
+            task["current"] = {
+                "chart_id": chart["chart_id"],
+                "contributions": sorted(
+                    retained, key=lambda row: (row["logical_tick"], row["event_id"])
+                ),
+                "rebuild_cursor": 0,
+                "working_numeric_field": _regional_initial_numeric(
+                    len(chart["scope"]), chart["ridge"]
+                ),
+                "mass": chart["prior_mass"],
+            }
+            return
+        chart = next(row for row in charts if row["chart_id"] == current["chart_id"])
+        if current["rebuild_cursor"] < len(current["contributions"]):
+            contribution = current["contributions"][current["rebuild_cursor"]]
+            weight = _regional_effective_weight(contribution, chart, task["tick"])
+            if weight > 0.0:
+                exposure = math.log1p(weight / current["mass"])
+                current["working_numeric_field"] = _regional_apply_observation(
+                    current["working_numeric_field"], chart, contribution, exposure=exposure
+                )
+                current["mass"] += weight
+            current["rebuild_cursor"] += 1
+            return
+        replacement = dict(chart)
+        replacement["numeric_field"] = current["working_numeric_field"]
+        replacement["contributions"] = current["contributions"]
+        replacement["version"] = chart["version"] + 1
+        _regional_chart_replacement(charts, chart["chart_id"], replacement)
+        task["affected_chart_ids"].append(chart["chart_id"])
+        task["chart_cursor"] += 1
+        task["current"] = None
+        return
+    raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "retraction phase is invalid")
+
+
+def _regional_rebuild_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    if task["cursor"] >= len(task["items"]):
+        task["phase"] = "done"
+        state["logical_tick"] = task["tick"]
+        _regional_finish(
+            state,
+            status="done",
+            operation="rebuild",
+            work=work,
+            affected_chart_ids=sorted(item["chart_id"] for item in task["items"]),
+        )
+        return
+    item = task["items"][task["cursor"]]
+    chart = next(row for row in state["charts"] if row["chart_id"] == item["chart_id"])
+    if item["rebuild_cursor"] < len(item["contributions"]):
+        contribution = item["contributions"][item["rebuild_cursor"]]
+        weight = _regional_effective_weight(contribution, chart, task["tick"])
+        if weight > 0.0:
+            exposure = math.log1p(weight / item["mass"])
+            item["working_numeric_field"] = _regional_apply_observation(
+                item["working_numeric_field"], chart, contribution, exposure=exposure
+            )
+            item["mass"] += weight
+        item["rebuild_cursor"] += 1
+        return
+    replacement = dict(chart)
+    replacement["numeric_field"] = item["working_numeric_field"]
+    replacement["contributions"] = item["contributions"]
+    replacement["version"] = chart["version"] + 1
+    _regional_chart_replacement(state["charts"], chart["chart_id"], replacement)
+    task["cursor"] += 1
+
+
+def regional_kernel(
+    state: Any,
+    arguments: Mapping[str, Any],
+    quantum: int,
+) -> KernelResult:
+    """Perform only the declared bounded Atlas task quantum over typed data."""
+    if not isinstance(arguments, Mapping) or arguments:
+        raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "Atlas regional kernel takes no arguments")
+    quantum = _regional_integer(
+        quantum, "Atlas regional quantum", minimum=1, maximum=REGIONAL_KERNEL_MAX_WORK
+    )
+    raw = _regional_validate_state(state)
+    if raw["phase"] == "terminal":
+        return KernelResult(state=raw, status="done", work=0, output=raw["result"])
+    if raw["phase"] == "fault":
+        return KernelResult(state=raw, status="fault", work=0, output=raw["result"])
+    current = _regional_plain(raw, "regional Atlas state")
+    operation = current["task"]["kind"]
+    used = 0
+    while used < quantum and current["phase"] == "running":
+        used += 1
+        try:
+            if operation == "identity":
+                _regional_identity_step(current, work=used)
+            elif operation == "chart-admission":
+                _regional_chart_step(current, work=used)
+            elif operation == "contribution-update":
+                _regional_update_step(current, work=used)
+            elif operation == "retraction-rebuild":
+                _regional_retraction_step(current, work=used)
+            elif operation == "rebuild":
+                _regional_rebuild_step(current, work=used)
+            else:
+                raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "regional Atlas operation is invalid")
+            current["journal"].append({
+                "event": "step", "operation": operation, "work": used,
+                "phase": current["task"].get("phase"),
+                "cursor": current["task"].get("cursor", current["task"].get("chart_cursor", 0)),
+            })
+        except FieldIntelligenceError as exc:
+            current["task"]["error"] = {"code": exc.code, "message": str(exc)}
+            _regional_finish(
+                current,
+                status="fault",
+                operation=operation,
+                work=used,
+                reason=exc.code,
+                message=str(exc),
+            )
+            break
+    if current["phase"] == "terminal":
+        return KernelResult(state=current, status="done", work=used, output=current["result"])
+    if current["phase"] == "fault":
+        return KernelResult(state=current, status="fault", work=used, output=current["result"])
+    return KernelResult(state=current, status="yield", work=used, output=None)
+
+
 
 __all__ = [
-    "ARITHMETIC_PROFILE",
-    "ATLAS_SCHEMA",
-    "AffineConstraint",
-    "AssessmentRecord",
-    "AtlasState",
-    "BranchSolution",
-    "ComputationRecord",
-    "ExactReduction",
-    "FieldAtlas",
-    "FieldIntelligenceError",
-    "FieldProgram",
-    "Guard",
-    "LanguageConstruction",
-    "PlanRecord",
-    "PlanSegment",
-    "PredictionRecord",
-    "PrimitiveStep",
-    "QueryResult",
-    "RelationChart",
-    "SupportContribution",
-    "VariableSpec",
-    "canonical_json_bytes",
-    "sha256_value",
+"ARITHMETIC_PROFILE",
+"ATLAS_LEGACY_SCHEMA",
+"ATLAS_SCHEMA",
+"AssessmentRecord",
+"AtlasState",
+"BranchSolution",
+"ComputationRecord",
+"ExactReduction",
+"FieldAtlas",
+"FieldIntelligenceError",
+"FieldProgram",
+"FieldTransceiver",
+"Guard",
+"LanguageConstruction",
+"PlanRecord",
+"PlanSegment",
+"PredictionRecord",
+"PrimitiveStep",
+"QueryResult",
+"RelationChart",
+"SupportContribution",
+"VariableSpec",
+"REGIONAL_KERNEL_MAX_WORK",
+"REGIONAL_KERNEL_NAME",
+"REGIONAL_RESULT_SCHEMA",
+"REGIONAL_STATE_SCHEMA",
+"canonical_json_bytes",
+"regional_kernel",
+"regional_state",
+"sha256_value",
 ]
