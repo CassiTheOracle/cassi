@@ -1,0 +1,4478 @@
+"""Behavioral boundaries of computer execution in the canonical owner."""
+from __future__ import annotations
+
+import copy
+import json
+from typing import Mapping
+
+import pytest
+
+from cassi_field_atlas import (
+    AtlasState,
+    FieldIntelligenceError,
+    canonical_json_bytes,
+)
+from cassi_field_owner import (
+    CapacityLimits,
+    FieldIntelligenceOwner,
+    FieldIntelligenceSurface,
+    RPC_SCHEMA,
+    SourceInput,
+)
+from cassi_field_program import (
+    SCHEMA as STRUCTURED_SCHEMA,
+    semantic_program_payload,
+)
+from run_cassi_computer import main as computer_cli, program_arguments
+
+
+def call(owner, op, action, **arguments):
+    return FieldIntelligenceSurface(owner).handle({
+        "schema": RPC_SCHEMA, "request_id": op, "operation": "computer",
+        "params": {"operation_id": op, "computer_id": "main", "action": action, "arguments": arguments},
+    })["result"]
+
+def computer_task(owner):
+    return owner.state.computers[0].inspect()["task"]
+
+
+def computer_policy_sha256(owner):
+    return owner.state.computers[0].inspect()["policy_state_sha256"]
+
+
+def test_owner_exhaustion_growth_restart_and_replay(tmp_path):
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "configure", "configure", profile={"program_capacity": 16, "stack_capacity": 2, "max_steps": 100})
+        call(owner, "load", "load", program=[[1, 0, 7, 1, 0], [1, 0, 7, 2, 0], [1, 0, 7, 3, 0], [0, 0, 0, 0, 0]])
+        first = call(owner, "advance", "advance", steps=20)
+        state = owner.state.computers[0].inspect()
+        assert state["task"]["status"] == "exhausted"
+        assert state["task"]["left"] == [7, 7]
+        digest = owner.state.state_sha256
+        policy = computer_policy_sha256(owner)
+        replay = call(owner, "advance", "advance", steps=20)
+        assert replay["receipt"] == first["receipt"]
+        assert replay["checkpoint_receipt"] == {**first["checkpoint_receipt"], "replayed": True}
+        assert owner.state.state_sha256 == digest
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.state_sha256 == digest
+        call(owner, "grow", "grow", stack_capacity=4)
+        call(owner, "finish", "advance", steps=20)
+        state = owner.state.computers[0].inspect()
+        assert state["task"]["status"] == "halted"
+        assert state["task"]["left"] == [7, 7, 7]
+        assert computer_policy_sha256(owner) == policy
+        restored = AtlasState.decode_bundle(owner.state.encode_bundle())
+        assert restored.state_sha256 == owner.state.state_sha256
+        assert restored.computers[0].inspect() == state
+
+
+def test_learning_is_persistent_exactly_once_and_frozen_on_request(tmp_path):
+    source = {"kind": "circuit", "source": {
+        "inputs": ["x"], "gates": [], "assertions": [["x", 1]], "relations": [], "clauses": [],
+    }}
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "configure", "configure", profile={"program_capacity": 16, "stack_capacity": 16, "max_steps": 100})
+        initial = computer_policy_sha256(owner)
+        result = call(owner, "solve", "solve", source=source, budget=300, method="conflict")
+        assert result["receipt"]["status"] == "sat"
+        learned = computer_policy_sha256(owner)
+        assert learned != initial
+        generation = owner.state.generation
+        replay = call(owner, "solve", "solve", source=source, budget=300, method="conflict")
+        assert replay["receipt"] == result["receipt"]
+        assert replay["checkpoint_receipt"] == {**result["checkpoint_receipt"], "replayed": True}
+        assert owner.state.generation == generation
+        assert computer_policy_sha256(owner) == learned
+    with FieldIntelligenceOwner(root) as owner:
+        assert computer_policy_sha256(owner) == learned
+        frozen = call(owner, "frozen", "solve", source=source, budget=300, learn=False)
+        assert frozen["receipt"]["status"] == "sat"
+        assert computer_policy_sha256(owner) == learned
+
+def test_policy_explanation_is_field_derived_and_does_not_publish(tmp_path):
+    source = {
+        "kind": "circuit",
+        "source": {
+            "inputs": ["x"],
+            "gates": [],
+            "assertions": [["x", 1]],
+            "relations": [],
+            "clauses": [],
+        },
+    }
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(
+            owner,
+            "configure",
+            "configure",
+            profile={
+                "program_capacity": 16,
+                "stack_capacity": 16,
+                "max_steps": 100,
+            },
+        )
+        before = owner.state.state_sha256
+        generation = owner.state.generation
+        result = FieldIntelligenceSurface(owner).handle(
+            {
+                "schema": RPC_SCHEMA,
+                "request_id": "explain",
+                "operation": "inspect_computer_policy",
+                "params": {
+                    "computer_id": "main",
+                    "source": source,
+                    "budget": 16,
+                },
+            }
+        )["result"]
+        assert result["read_only"] is True
+        assert result["inspection"]["selected_method"] == "conflict"
+        assert result["inspection"]["selection"]["phase"] == "cold-start"
+        assert result["state_sha256"] == before
+        assert owner.state.state_sha256 == before
+        assert owner.state.generation == generation
+
+def test_structured_program_restart_reuses_field_heat_and_replays_exactly(tmp_path):
+    document = {
+        "schema": STRUCTURED_SCHEMA,
+        "main": [
+            {"op": "set_acc", "value": 0},
+            {
+                "op": "while_acc",
+                "condition": {"not_equals": 3},
+                "body": [{"op": "add_acc", "value": 1}],
+            },
+            {"op": "push_acc", "stack": "left"},
+        ],
+    }
+    compiled = program_arguments(document)
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "configure", "configure", profile={
+            "program_capacity": len(compiled["program"]) + 4,
+            "stack_capacity": 8,
+            "max_steps": 1000,
+        })
+        call(owner, "load", "load", **compiled)
+        last_run = None
+        for cycle in range(9):
+            last_run = call(owner, f"run-{cycle}", "advance", steps=1000)
+            task = computer_task(owner)
+            assert task["status"] == "halted"
+            assert task["left"] == [3]
+            if cycle < 8:
+                call(owner, f"restart-{cycle}", "restart")
+        assert last_run is not None
+        specialization = last_run["receipt"]["specialization"]
+        assert specialization["enabled"] is True
+        assert specialization["derived_blocks"] >= 1
+        assert specialization["block_invocations"] >= 1
+        assert specialization["block_transitions"] >= 2
+        assert specialization["derivation_deferred"] is False
+        assert specialization["reason"] == "field-procedure-promoted"
+        observations = sum(computer_task(owner)["pc_observations"])
+        restart = call(owner, "restart-final", "restart", left=[9])
+        assert sum(computer_task(owner)["pc_observations"]) == observations
+        digest = owner.state.state_sha256
+        replay = call(owner, "restart-final", "restart", left=[9])
+        assert replay["receipt"] == restart["receipt"]
+        assert replay["checkpoint_receipt"] == {**restart["checkpoint_receipt"], "replayed": True}
+        assert owner.state.state_sha256 == digest
+    with FieldIntelligenceOwner(root) as owner:
+        task = computer_task(owner)
+        assert task["status"] == "running"
+        assert task["left"] == [9]
+        assert sum(task["pc_observations"]) == observations
+
+def test_parameterized_scalar_procedure_transfers_with_exact_equivalence(
+    tmp_path,
+) -> None:
+    def document(limit: int) -> dict[str, object]:
+        return {
+            "schema": STRUCTURED_SCHEMA,
+            "main": [
+                {"op": "set_acc", "value": 0},
+                {
+                    "op": "while_acc",
+                    "condition": {"not_equals": limit},
+                    "body": [{"op": "add_acc", "value": 1}],
+                },
+                {"op": "push_acc", "stack": "left"},
+            ],
+        }
+
+    learned_program = program_arguments(document(3))
+    held_out_program = program_arguments(document(5))
+    root = tmp_path / "learned"
+    with FieldIntelligenceOwner(root) as owner:
+        call(
+            owner,
+            "transfer-configure",
+            "configure",
+            profile={
+                "program_capacity": len(learned_program["program"]) + 4,
+                "stack_capacity": 8,
+                "max_steps": 1000,
+            },
+        )
+        call(owner, "transfer-load-training", "load", **learned_program)
+        for cycle in range(9):
+            call(owner, f"transfer-train-{cycle}", "advance", steps=1000)
+            if cycle < 8:
+                call(owner, f"transfer-restart-{cycle}", "restart")
+        library = computer_task(owner)["procedure_learning"]["transferable"]
+        assert library
+        call(owner, "transfer-load-held-out", "load", **held_out_program)
+        assert computer_task(owner)["procedure_learning"]["transferable"] == library
+        call(owner, "transfer-run-held-out", "advance", steps=1000)
+        transferred = owner.state.computers[0].inspect()["outcome"]
+        assert transferred["left"] == [5]
+        assert transferred["specialization"]["transferable_procedures"] >= 1
+        assert transferred["specialization"]["block_invocations"] >= 1
+        assert transferred["specialization"]["scheduler_dispatches_saved"] >= 1
+        transferred_digest = owner.state.computers[0].inspect()[
+            "task_state_sha256"
+        ]
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].inspect()[
+            "task_state_sha256"
+        ] == transferred_digest
+        assert (
+            owner.state.computers[0].inspect()["outcome"]["left"]
+            == [5]
+        )
+
+    baseline_root = tmp_path / "baseline"
+    with FieldIntelligenceOwner(baseline_root) as owner:
+        call(
+            owner,
+            "baseline-configure",
+            "configure",
+            profile={
+                "program_capacity": len(held_out_program["program"]) + 4,
+                "stack_capacity": 8,
+                "max_steps": 1000,
+            },
+        )
+        call(owner, "baseline-load", "load", **held_out_program)
+        call(owner, "baseline-run", "advance", steps=1000)
+        baseline = owner.state.computers[0].inspect()["outcome"]
+        for name in (
+            "status",
+            "reason",
+            "pc",
+            "accumulator",
+            "left",
+            "right",
+            "transitions",
+            "stack_reads",
+            "stack_writes",
+        ):
+            assert transferred.get(name, transferred["resource_ledger"].get(name)) == (
+                baseline.get(name, baseline["resource_ledger"].get(name))
+            )
+        assert baseline["specialization"]["block_invocations"] == 0
+
+    with FieldIntelligenceOwner(root) as owner:
+        call(
+            owner,
+            "transfer-load-non-equivalent",
+            "load",
+            program=[[0, 0, 0, 0, 0]],
+            left=[],
+            right=[],
+            entry=0,
+        )
+        call(owner, "transfer-run-non-equivalent", "advance", steps=32)
+        unrelated = owner.state.computers[0].inspect()["outcome"]
+        assert unrelated["status"] == "halted"
+        assert unrelated["specialization"]["block_invocations"] == 0
+
+
+
+def test_revision_assigns_credit_selectively_and_survives_reload(
+    tmp_path,
+) -> None:
+    from cassi_field_cognition import regional_revision_state
+
+    root = tmp_path / "selective-revision"
+    records = (
+        {
+            "record_id": "direct-record",
+            "kind": "answer",
+            "status": "supported",
+            "dependency_ids": ["premise-a"],
+        },
+        {
+            "record_id": "version-record",
+            "kind": "plan",
+            "status": "active",
+            "dependency_versions": [["chart-a", 1]],
+        },
+        {
+            "record_id": "retained-record",
+            "kind": "knowledge",
+            "status": "retained",
+            "dependency_ids": ["premise-z"],
+            "payload": {"value": 7},
+        },
+    )
+    task = regional_revision_state(
+        records,
+        changed_premise_ids=("premise-a",),
+        changed_dependency_versions={"chart-a": 2},
+    )
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "revision-configure", "configure")
+        call(
+            owner,
+            "revision-start",
+            "submit",
+            kernel="cognition.field",
+            state=task,
+            steps=1,
+        )
+        assert owner.state.computers[0].inspect()["status"] == "running"
+
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "revision-finish", "advance", steps=64)
+        result = owner.state.computers[0].inspect()["consumed_result"]
+        assert result["stale_ids"] == ["direct-record", "version-record"]
+        assert result["unaffected_record_ids"] == ["retained-record"]
+        assert [row["record_id"] for row in result["credit_assignments"]] == [
+            "direct-record",
+            "version-record",
+        ]
+        assert result["credit_assignments"][0]["credit"] == [
+            {
+                "dependency_id": "premise-a",
+                "numerator": 1,
+                "denominator": 1,
+            }
+        ]
+        assert result["credit_assignments"][1]["credit"] == [
+            {
+                "dependency_id": "chart-a",
+                "numerator": 1,
+                "denominator": 1,
+            }
+        ]
+        retained = next(
+            row
+            for row in result["records"]
+            if row["record_id"] == "retained-record"
+        )
+        assert retained == records[2]
+        final_sha256 = owner.state.computers[0].state_sha256
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].state_sha256 == final_sha256
+        assert (
+            owner.state.computers[0].inspect()["consumed_result"]
+            == result
+        )
+
+
+def test_invalid_or_overcapacity_operations_do_not_publish(tmp_path):
+    limits = CapacityLimits(max_workspace_bytes=200000)
+    with FieldIntelligenceOwner(tmp_path / "field", limits=limits) as owner:
+        before = owner.state.state_sha256
+        with pytest.raises(FieldIntelligenceError) as error:
+            call(owner, "huge", "configure", profile={"program_capacity": 16, "stack_capacity": 1000000, "max_steps": 100})
+        assert error.value.code == "WORK_CAPACITY"
+        assert owner.state.state_sha256 == before
+        call(owner, "configure", "configure", profile={"program_capacity": 16, "stack_capacity": 16, "max_steps": 100})
+        before = owner.state.state_sha256
+        with pytest.raises(FieldIntelligenceError):
+            call(owner, "invalid", "load", program=[[5, 99, 0, 0, 0]])
+        assert owner.state.state_sha256 == before
+        with pytest.raises(FieldIntelligenceError):
+            call(owner, "unloaded", "advance", steps=1)
+        assert owner.state.state_sha256 == before
+        with pytest.raises(FieldIntelligenceError):
+            call(
+                owner,
+                "invalid-regional",
+                "submit",
+                kernel="learning.atlas",
+                state={"schema": "invalid"},
+            )
+        assert owner.state.state_sha256 == before
+        with pytest.raises(FieldIntelligenceError):
+            call(owner, "configure", "configure", profile={"program_capacity": 17, "stack_capacity": 16, "max_steps": 100})
+        assert owner.state.state_sha256 == before
+
+
+def test_optional_computer_page_does_not_change_empty_atlas_encoding():
+    state = AtlasState()
+    bundle = json.loads(state.encode_bundle())
+    assert "computers" not in bundle["descriptor"]["pages"]
+    assert AtlasState.decode_bundle(state.encode_bundle()).state_sha256 == state.state_sha256
+    malformed = copy.deepcopy(bundle)
+    malformed["descriptor"]["pages"]["computers"] = {"schema": "bad"}
+    with pytest.raises(FieldIntelligenceError):
+        AtlasState.decode_bundle(canonical_json_bytes(malformed))
+
+
+def test_solver_continuation_persists_and_advances_exactly_once(
+    tmp_path,
+) -> None:
+    source = {
+        "kind": "circuit",
+        "source": {
+            "inputs": ["a", "b", "c", "d", "e", "f"],
+            "gates": [],
+            "assertions": [],
+            "relations": [
+                {
+                    "kind": "xor",
+                    "args": ["a", "b", "c", "d", "e", "f"],
+                    "rhs": 1,
+                }
+            ],
+            "clauses": [],
+        },
+    }
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(
+            owner,
+            "configure-continuation",
+            "configure",
+            profile={
+                "program_capacity": 16,
+                "stack_capacity": 16,
+                "max_steps": 100,
+            },
+        )
+        initial_policy = computer_policy_sha256(owner)
+        initial_tick = owner.state.logical_tick
+        paused = call(
+            owner,
+            "start-continuation",
+            "solve",
+            source=source,
+            budget=1,
+            method="conflict",
+        )
+        assert paused["receipt"]["status"] == "running"
+        assert paused["receipt"]["continuation"] is not None
+        assert computer_policy_sha256(owner) == initial_policy
+        assert owner.state.logical_tick == initial_tick
+        retained_state = owner.state.computers[0].inspect()[
+            "task_state_sha256"
+        ]
+    with FieldIntelligenceOwner(root) as owner:
+        inspection = owner.state.computers[0].inspect()
+        assert inspection["task_state_sha256"] == retained_state
+        before_wrong_source = owner.state.state_sha256
+        with pytest.raises(
+            FieldIntelligenceError, match="source differs"
+        ):
+            call(
+                owner,
+                "wrong-continuation-source",
+                "continue-solve",
+                source={
+                    "kind": "circuit",
+                    "source": {
+                        "inputs": ["x"],
+                        "gates": [],
+                        "assertions": [["x", 1]],
+                        "relations": [],
+                        "clauses": [],
+                    },
+                },
+                budget=63,
+            )
+        assert owner.state.state_sha256 == before_wrong_source
+
+        completed = call(
+            owner,
+            "finish-continuation",
+            "continue-solve",
+            source=source,
+            budget=63,
+        )
+        assert completed["receipt"]["status"] == "sat"
+        assert completed["receipt"]["continuation"] is None
+        assert owner.state.computers[0].inspect()["session"]["status"] == "terminal"
+        learned_policy = computer_policy_sha256(owner)
+        assert learned_policy != initial_policy
+        assert owner.state.logical_tick == initial_tick + 1
+        generation = owner.state.generation
+        replay = call(
+            owner,
+            "finish-continuation",
+            "continue-solve",
+            source=source,
+            budget=63,
+        )
+        assert replay["receipt"] == completed["receipt"]
+        assert replay["checkpoint_receipt"] == {
+            **completed["checkpoint_receipt"],
+            "replayed": True,
+        }
+        assert owner.state.generation == generation
+        assert owner.state.logical_tick == initial_tick + 1
+        assert computer_policy_sha256(owner) == learned_policy
+        before_second = owner.state.state_sha256
+        with pytest.raises(
+            FieldIntelligenceError,
+            match="no solver continuation",
+        ):
+            call(
+                owner,
+                "continue-after-final",
+                "continue-solve",
+                source=source,
+                budget=1,
+            )
+        assert owner.state.state_sha256 == before_second
+
+        atomic_pause = call(
+            owner,
+            "atomic-controller-start",
+            "solve",
+            source=source,
+            budget=2,
+            method="algebraic-1-controller",
+        )
+        assert atomic_pause["receipt"]["run"]["transitions_executed"] <= 2
+        if atomic_pause["receipt"]["continuation"] is not None:
+            before_one = owner.state.computers[0].inspect()[
+                "task_state_sha256"
+            ]
+            one = call(
+                owner,
+                "atomic-controller-one-work",
+                "continue-solve",
+                source=source,
+                budget=1,
+            )
+            assert one["receipt"]["run"]["transitions_executed"] <= 1
+            assert owner.state.computers[0].inspect()[
+                "task_state_sha256"
+            ] != before_one
+
+
+def test_fixed_catalog_tasks_submit_pause_recover_and_finish(tmp_path) -> None:
+    import hashlib
+
+    import torch
+
+    from cassi_field_atlas import FieldProgram, PrimitiveStep, VariableSpec
+    from cassi_field_atlas import regional_state as atlas_regional_state
+    from cassi_field_cognition import (
+        regional_program_state as cognition_regional_state,
+    )
+    from cassi_field_transceiver import (
+        regional_state as transceiver_regional_state,
+    )
+    from cassi_resonant_field import (
+        initial_workspace,
+        regional_state as resonant_regional_state,
+    )
+    from cassi_temporal_field import TemporalField
+    from cassi_temporal_field import regional_state as temporal_regional_state
+    from cassi_temporal_inquiry import (
+        regional_state as inquiry_regional_state,
+    )
+    from cassi_variational_field import VariationalField
+    from cassi_variational_field import (
+        regional_state as variational_regional_state,
+    )
+
+    revision = hashlib.sha256(b"regional-owner").hexdigest()
+    program = FieldProgram(
+        program_id="regional-identity",
+        version=1,
+        roles=("value",),
+        steps=(
+            PrimitiveStep("identity", "once", ("value",)),
+            PrimitiveStep("identity", "twice", ("once",)),
+        ),
+        outputs=("twice",),
+    )
+    torch.set_num_threads(1)
+    variational = VariationalField(3, ((0, 1), (1, 2)))
+    variational_field = variational.observe(
+        variational.initial_state(),
+        0,
+        [0.8, -0.45],
+        exposure=1.0,
+    )
+    memory = TemporalField.initial(
+        "owner-inquiry",
+        action_ids=("sense", "move"),
+        observation_ids=("ready", "done"),
+        max_states=8,
+    )
+    memory, _ = memory.learn(
+        (
+            (
+                {"action": "sense", "observation": "ready"},
+                {"action": "move", "observation": "done"},
+            ),
+        ),
+        source_revision_ids=(revision,),
+    )
+    transceiver_source = {
+        "metadata": {
+            "input_ids": ["input"],
+            "output_ids": ["output"],
+            "horizon_ticks": 1,
+        },
+        "full_words": {
+            "base_state": [0.0],
+            "input_lift": [[1.0]],
+            "output_rows": [[1.0]],
+            "initial_state": [0.0],
+        },
+    }
+    tasks = (
+        (
+            "learning.atlas",
+            atlas_regional_state(
+                (
+                    VariableSpec("x", lower=-1.0, upper=1.0),
+                    VariableSpec("y", lower=-1.0, upper=1.0),
+                )
+            ),
+        ),
+        (
+            "cognition.field",
+            cognition_regional_state(program, {"value": 7}),
+        ),
+        (
+            "numerical.variational",
+            variational_regional_state(
+                variational,
+                variational_field,
+                (0,),
+                (0.8,),
+                panel_size=1,
+                max_iterations=128,
+                allowance=1e-10,
+            ),
+        ),
+        (
+            "temporal-memory",
+            temporal_regional_state(
+                "owner-temporal",
+                action_ids=("sense", "move"),
+                observation_ids=("ready", "done"),
+                episodes=(
+                    (
+                        {"action": "sense", "observation": "ready"},
+                        {"action": "move", "observation": "done"},
+                    ),
+                ),
+                source_revision_ids=(revision,),
+            ),
+        ),
+        (
+            "inquiry.temporal",
+            inquiry_regional_state(
+                memory,
+                operations=(
+                    {
+                        "action": "move",
+                        "cost": 1.0,
+                        "risk": 0.0,
+                        "authorized": True,
+                        "feasible": True,
+                        "acquisition_allowed": False,
+                    },
+                ),
+                goal_observations=("done",),
+                horizon=2,
+            ),
+        ),
+        (
+            "numerical.resonant",
+            resonant_regional_state(
+                initial_workspace(),
+                ticks=2,
+                demand=0.2,
+            ),
+        ),
+        (
+            "numerical.transceiver",
+            transceiver_regional_state(
+                transceiver_source,
+                panel_size=1,
+            ),
+        ),
+    )
+
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "regional-configure", "configure")
+
+    for index, (kernel, state) in enumerate(tasks):
+        with FieldIntelligenceOwner(root) as owner:
+            submitted = call(
+                owner,
+                f"regional-submit-{index}",
+                "submit",
+                kernel=kernel,
+                state=state,
+                steps=1,
+            )
+            assert submitted["receipt"]["run"][
+                "transitions_executed"
+            ] == 1
+            submitted_digest = owner.state.state_sha256
+            task_digest = owner.state.computers[0].inspect()[
+                "task_state_sha256"
+            ]
+
+        with FieldIntelligenceOwner(root) as owner:
+            assert owner.state.state_sha256 == submitted_digest
+            assert owner.state.computers[0].inspect()[
+                "task_state_sha256"
+            ] == task_digest
+            for episode in range(128):
+                if owner.state.computers[0].inspect()["status"] == "halted":
+                    break
+                advanced = call(
+                    owner,
+                    f"regional-advance-{index}-{episode}",
+                    "advance",
+                    steps=64,
+                )
+                assert advanced["receipt"]["transitions_executed"] <= 64
+            else:
+                pytest.fail(f"{kernel} did not halt within its declared work")
+            inspection = owner.state.computers[0].inspect()
+            assert inspection["status"] == "halted"
+            assert inspection["session"]["kernel"] == kernel
+            assert inspection["session"]["status"] == "halted"
+            assert inspection["outcome"]["family"] == kernel
+
+
+def test_shared_representation_learning_restarts_and_retains_identity(
+    tmp_path,
+) -> None:
+    import hashlib
+
+    from cassi_field_cognition import (
+        regional_language_state,
+        regional_representation_state,
+    )
+
+    observed = hashlib.sha256(b"instrument observation").hexdigest()
+    corroborated = hashlib.sha256(b"instrument corroboration").hexdigest()
+    located = hashlib.sha256(b"instrument location").hexdigest()
+    root = tmp_path / "field"
+    task = regional_representation_state(
+        (
+            {
+                "mention_id": "instrument-observation",
+                "aliases": ["sensor"],
+                "features": {"kind": "instrument", "port": 7},
+                "support_event_ids": [observed],
+            },
+            {
+                "mention_id": "instrument-corroboration",
+                "aliases": ["detector"],
+                "features": {"kind": "instrument", "port": 7},
+                "support_event_ids": [corroborated],
+            },
+            {
+                "mention_id": "location-observation",
+                "aliases": ["bay"],
+                "features": {"kind": "location"},
+                "support_event_ids": [located],
+            },
+        ),
+        same_entity=(("instrument-observation", "instrument-corroboration"),),
+        distinct_entity=(("instrument-observation", "location-observation"),),
+        relations=(
+            {
+                "subject_mention": "instrument-observation",
+                "predicate": "located-at",
+                "object_mention": "location-observation",
+                "support_event_ids": [located],
+            },
+        ),
+    )
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "representation-configure", "configure")
+        call(
+            owner,
+            "representation-start",
+            "submit",
+            kernel="cognition.field",
+            state=task,
+            steps=2,
+        )
+        assert owner.state.computers[0].inspect()["status"] == "running"
+        paused_sha256 = owner.state.computers[0].inspect()["task_state_sha256"]
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].inspect()["task_state_sha256"] == paused_sha256
+        call(owner, "representation-finish", "advance", steps=64)
+        outcome = owner.state.computers[0].inspect()["consumed_result"]
+        assert outcome["status"] == "learned"
+        registry = outcome["registry"]
+        assert outcome["entity_count"] == 2
+        assert outcome["relation_count"] == 1
+        instrument = next(
+            row for row in registry["entities"] if "sensor" in row["aliases"]
+        )
+        instrument_id = instrument["entity_id"]
+        assert instrument["aliases"] == ["detector", "sensor"]
+        assert instrument["feature_candidates"]["port"] == [7]
+
+        extension = regional_representation_state(
+            (
+                {
+                    "mention_id": "instrument-dialogue",
+                    "aliases": ["scope"],
+                    "features": {"kind": "instrument", "port": 7},
+                    "support_event_ids": [corroborated],
+                },
+            ),
+            same_entity=(("instrument-observation", "instrument-dialogue"),),
+            registry=registry,
+        )
+        call(
+            owner,
+            "representation-extend",
+            "submit",
+            kernel="cognition.field",
+            state=extension,
+            steps=64,
+        )
+        extended = owner.state.computers[0].inspect()["consumed_result"]["registry"]
+        instrument = next(
+            row for row in extended["entities"] if row["entity_id"] == instrument_id
+        )
+        assert instrument["aliases"] == ["detector", "scope", "sensor"]
+        assert instrument["mention_ids"] == [
+            "instrument-corroboration",
+            "instrument-dialogue",
+            "instrument-observation",
+        ]
+        construction = {
+            "construction_id": "instrument-request",
+            "version": 1,
+            "pattern": ["use", "{instrument}"],
+            "roles": ["instrument"],
+            "semantic_program_id": "use-instrument",
+            "support_event_ids": [observed],
+            "status": "promoted",
+        }
+        interpretation = regional_language_state(
+            (construction,),
+            mode="interpret",
+            text="use detector",
+            representation_registry=extended,
+        )
+        call(
+            owner,
+            "representation-interpret",
+            "submit",
+            kernel="cognition.field",
+            state=interpretation,
+            steps=64,
+        )
+        understood = owner.state.computers[0].inspect()["consumed_result"]
+        assert understood["status"] == "understood"
+        assert understood["branches"][0]["bindings"] == {
+            "instrument": instrument_id
+        }
+
+        expression = regional_language_state(
+            (construction,),
+            mode="express",
+            bindings={"instrument": instrument_id},
+            semantic_program_id="use-instrument",
+            representation_registry=extended,
+        )
+        call(
+            owner,
+            "representation-express",
+            "submit",
+            kernel="cognition.field",
+            state=expression,
+            steps=64,
+        )
+        expressed = owner.state.computers[0].inspect()["consumed_result"]
+        assert expressed["status"] == "expressed"
+        assert expressed["text"] == "use detector"
+
+
+def test_learned_variable_span_language_composes_after_reload_and_ablates(
+    tmp_path,
+) -> None:
+    import hashlib
+
+    from cassi_field_cognition import (
+        regional_construction_learning_state,
+        regional_language_state,
+        regional_representation_state,
+    )
+
+    def event(label: str) -> str:
+        return hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+    mentions = tuple(
+        {
+            "mention_id": label.replace(" ", "-"),
+            "aliases": [label],
+            "features": {"kind": kind},
+            "support_event_ids": [event(label)],
+        }
+        for label, kind in (
+            ("red sensor", "instrument"),
+            ("blue probe", "instrument"),
+            ("amber meter", "instrument"),
+            ("north cabinet", "location"),
+            ("south drawer", "location"),
+            ("west locker", "location"),
+        )
+    )
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "composition-configure", "configure")
+        call(
+            owner,
+            "composition-representations",
+            "submit",
+            kernel="cognition.field",
+            state=regional_representation_state(mentions),
+            steps=64,
+        )
+        registry = owner.state.computers[0].inspect()["consumed_result"]["registry"]
+        learning = regional_construction_learning_state(
+            (
+                {
+                    "event_id": event("acquire-red-north"),
+                    "roles": {
+                        "instrument": "red sensor",
+                        "destination": "north cabinet",
+                    },
+                    "text": "place red sensor in north cabinet",
+                },
+                {
+                    "event_id": event("acquire-blue-south"),
+                    "roles": {
+                        "instrument": "blue probe",
+                        "destination": "south drawer",
+                    },
+                    "text": "place blue probe in south drawer",
+                },
+            ),
+            (
+                {
+                    "event_id": event("holdout-amber-west"),
+                    "roles": {
+                        "instrument": "amber meter",
+                        "destination": "west locker",
+                    },
+                    "text": "place amber meter in west locker",
+                },
+            ),
+            construction_id="learned-placement",
+            semantic_program_id="place-instrument",
+        )
+        call(
+            owner,
+            "composition-learn",
+            "submit",
+            kernel="cognition.field",
+            state=learning,
+            steps=2,
+        )
+        assert owner.state.computers[0].inspect()["status"] == "running"
+        paused = owner.state.computers[0].inspect()["task_state_sha256"]
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].inspect()["task_state_sha256"] == paused
+        call(owner, "composition-learn-finish", "advance", steps=64)
+        learned = owner.state.computers[0].inspect()["consumed_result"]
+        assert learned["status"] == "learned"
+        assert learned["held_out_validated"] is True
+        construction = learned["construction"]
+        assert construction["pattern"] == [
+            "place",
+            "{instrument}",
+            "in",
+            "{destination}",
+        ]
+        assert construction["variable_spans"] is True
+
+        entities = {
+            alias: row["entity_id"]
+            for row in registry["entities"]
+            for alias in row["aliases"]
+        }
+        interpretation = regional_language_state(
+            (construction,),
+            mode="interpret",
+            text="place amber meter in north cabinet",
+            representation_registry=registry,
+        )
+        call(
+            owner,
+            "composition-interpret",
+            "submit",
+            kernel="cognition.field",
+            state=interpretation,
+            steps=64,
+        )
+        understood = owner.state.computers[0].inspect()["consumed_result"]
+        assert understood["status"] == "understood"
+        assert understood["branches"][0]["bindings"] == {
+            "instrument": entities["amber meter"],
+            "destination": entities["north cabinet"],
+        }
+
+        expression = regional_language_state(
+            (construction,),
+            mode="express",
+            bindings={
+                "instrument": entities["amber meter"],
+                "destination": entities["north cabinet"],
+            },
+            semantic_program_id="place-instrument",
+            representation_registry=registry,
+        )
+        call(
+            owner,
+            "composition-express",
+            "submit",
+            kernel="cognition.field",
+            state=expression,
+            steps=64,
+        )
+        assert owner.state.computers[0].inspect()["consumed_result"]["text"] == (
+            "place amber meter in north cabinet"
+        )
+
+        ablated = regional_language_state(
+            (),
+            mode="interpret",
+            text="place amber meter in north cabinet",
+            representation_registry=registry,
+        )
+        call(
+            owner,
+            "composition-ablate",
+            "submit",
+            kernel="cognition.field",
+            state=ablated,
+            steps=64,
+        )
+        absent = owner.state.computers[0].inspect()["consumed_result"]
+        assert absent["status"] == "representation-insufficient"
+        assert absent["unsupported"] is True
+
+
+def test_regional_invocation_arguments_resume_resident_temporal_state(
+    tmp_path,
+) -> None:
+    from cassi_temporal_field import regional_state as temporal_regional_state
+
+    source = SourceInput(
+        source_id="temporal-invocation-source",
+        content=canonical_json_bytes({"episode": "temporal invocation"}),
+        media_type="application/json",
+        codec="utf-8",
+        observed_timestamp="temporal-invocation-time",
+        scope="test",
+        claim_category="controlled-observation",
+        fidelity="exact-record",
+        labels=("test",),
+    )
+    revision = source.revision_id
+    root = tmp_path / "field"
+    task = temporal_regional_state(
+        "shared-temporal",
+        action_ids=("sense", "move"),
+        observation_ids=("ready", "done"),
+        max_states=8,
+    )
+    induction = {
+        "operation": "induce",
+        "episodes": [
+            [
+                {"action": "sense", "observation": "ready"},
+                {"action": "move", "observation": "done"},
+            ]
+        ],
+        "source_revision_ids": [revision],
+    }
+    with FieldIntelligenceOwner(root) as owner:
+        owner.evidence.store_source(source)
+        call(owner, "temporal-configure-computer", "configure")
+        call(
+            owner,
+            "temporal-induce-start",
+            "submit",
+            kernel="temporal-memory",
+            state=task,
+            arguments=induction,
+            steps=1,
+        )
+        partial = computer_task(owner)
+        assert partial["continuation"]["phase"] == "running"
+        assert partial["continuation"]["operation"] == "induce"
+        partial_sha256 = owner.state.computers[0].inspect()["task_state_sha256"]
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].inspect()["task_state_sha256"] == partial_sha256
+        call(owner, "temporal-induce-finish", "advance", steps=64)
+        learned = computer_task(owner)
+        assert learned["continuation"]["phase"] == "ready"
+        assert learned["model"]["state_count"] >= 2
+
+        call(
+            owner,
+            "temporal-consume",
+            "invoke",
+            arguments={
+                "operation": "consume",
+                "action": "sense",
+                "observation": "ready",
+            },
+            steps=64,
+        )
+        consumed = owner.state.computers[0].inspect()["consumed_result"]
+        assert consumed["operation"] == "consume"
+        assert consumed["action"] == "sense"
+        assert consumed["observation"] == "ready"
+        assert computer_task(owner)["model"] == learned["model"]
+
+
+def test_sustained_machine_episode_crosses_evidence_language_revision_action_and_revocation(
+    tmp_path,
+    monkeypatch,
+) -> None:
+
+    from cassi_field_atlas import FieldProgram, RelationChart, VariableSpec, sha256_value
+    from cassi_field_cognition import (
+        ActionReadout,
+        regional_language_state,
+        regional_plan_state,
+        regional_query_state,
+        regional_representation_state,
+        regional_revision_state,
+    )
+    from cassi_field_owner import (
+        AuthorityGrant,
+        DeterministicWorldAdapter,
+        SourceInput,
+        WorldAcknowledgment,
+    )
+
+    root = tmp_path / "field"
+    source = SourceInput(
+        source_id="episode-source",
+        content=canonical_json_bytes({"bias": 1.0, "x": 1.0, "y": 1.0}),
+        media_type="application/json",
+        codec="utf-8",
+        observed_timestamp="episode-time",
+        scope="test",
+        claim_category="controlled-observation",
+        fidelity="exact-record",
+        labels=("test",),
+    )
+    construction = {
+        "construction_id": "episode-request",
+        "version": 1,
+        "pattern": ["use", "{instrument}"],
+        "roles": ["instrument"],
+        "semantic_program_id": "use-instrument",
+        "support_event_ids": [],
+        "status": "promoted",
+    }
+    computer_digests: list[str] = []
+
+    with FieldIntelligenceOwner(root) as owner:
+        for index, variable in enumerate(
+            (
+                VariableSpec("bias", kind="constant", constant=1.0),
+                VariableSpec("x", lower=-10.0, upper=10.0),
+                VariableSpec("y", lower=-10.0, upper=10.0),
+            )
+        ):
+            owner.configure_variable(f"episode-variable:{index}", variable)
+        owner.configure_chart(
+            "episode-chart",
+            RelationChart.empty(
+                chart_id="episode-xy",
+                scope=("bias", "x", "y"),
+                ridge=1e-5,
+                observation_norm_bound=20.0,
+                prior_mass=1e-3,
+            ),
+        )
+        revisions: list[str] = []
+        for index, x in enumerate((-3.0, -1.0, 1.0, 3.0)):
+            admitted = owner.admit_observation(
+                operation_id=f"episode-observe:{index}",
+                source=source if index == 2 else SourceInput(
+                    source_id=f"episode-source:{index}",
+                    content=canonical_json_bytes(
+                        {"bias": 1.0, "x": x, "y": x}
+                    ),
+                    media_type="application/json",
+                    codec="utf-8",
+                    observed_timestamp=f"episode-time:{index}",
+                    scope="test",
+                    claim_category="controlled-observation",
+                    fidelity="exact-record",
+                    labels=("test",),
+                ),
+                values={"bias": 1.0, "x": x, "y": x},
+                context={},
+            )
+            revisions.append(admitted["source"]["revision_id"])
+        revision_id = revisions[2]
+        construction["support_event_ids"] = [revision_id]
+        call(owner, "episode-configure", "configure")
+
+        def legacy_execute(*_args, **_kwargs):
+            raise AssertionError("legacy FieldProgram evaluator was reached")
+
+        with monkeypatch.context() as disabled:
+            disabled.setattr(FieldProgram, "execute", legacy_execute)
+            representation = regional_representation_state(
+                (
+                    {
+                        "mention_id": "episode-instrument",
+                        "aliases": ["sensor"],
+                        "features": {"kind": "instrument"},
+                        "support_event_ids": [revision_id],
+                    },
+                )
+            )
+            call(
+                owner,
+                "episode-representation",
+                "submit",
+                kernel="cognition.field",
+                state=representation,
+                steps=64,
+            )
+            registry = computer_task(owner)["result"]["registry"]
+            instrument_id = registry["entities"][0]["entity_id"]
+            computer_digests.append(owner.state.computers[0].state_sha256)
+
+            interpretation = regional_language_state(
+                (construction,),
+                mode="interpret",
+                text="use sensor",
+                representation_registry=registry,
+            )
+            call(
+                owner,
+                "episode-interpret",
+                "submit",
+                kernel="cognition.field",
+                state=interpretation,
+                steps=64,
+            )
+            understood = computer_task(owner)["result"]
+            assert understood["branches"][0]["bindings"]["instrument"] == instrument_id
+            computer_digests.append(owner.state.computers[0].state_sha256)
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].state_sha256 == computer_digests[-1]
+        plan = {
+            "plan_id": "episode-plan",
+            "goal_id": "use-instrument",
+            "goal": {"instrument": instrument_id},
+            "assumptions": {"source": revision_id},
+            "segments": [
+                {
+                    "segment_id": "episode-plan:0",
+                    "level": "task",
+                    "kind": "request",
+                    "payload": {"instrument": instrument_id},
+                    "status": "ready",
+                    "dependency_versions": [revision_id],
+                    "source_revision_ids": [revision_id],
+                }
+            ],
+            "source_revision_ids": [revision_id],
+            "status": "ready",
+        }
+        call(
+            owner,
+            "episode-plan",
+            "submit",
+            kernel="cognition.field",
+            state=regional_plan_state(plan),
+            steps=64,
+        )
+        planned = computer_task(owner)["result"]
+        assert planned["segments"][0]["payload"]["instrument"] == instrument_id
+        computer_digests.append(owner.state.computers[0].state_sha256)
+
+        query = {
+            "query_id": "episode-query",
+            "field_generation": owner.state.generation,
+            "requested": ["instrument"],
+            "observed": {"alias": "sensor"},
+            "branches": [
+                {
+                    "branch_id": "episode-query:0",
+                    "status": "supported",
+                    "values": {"instrument": instrument_id},
+                    "active_chart_versions": [revision_id],
+                    "source_revision_ids": [revision_id],
+                    "obligations": [],
+                }
+            ],
+            "status": "supported",
+            "state_sha256": owner.state.state_sha256,
+        }
+        call(
+            owner,
+            "episode-query",
+            "submit",
+            kernel="cognition.field",
+            state=regional_query_state(query),
+            steps=64,
+        )
+        queried = computer_task(owner)["result"]
+        assert queried["branches"][0]["values"]["instrument"] == instrument_id
+        computer_digests.append(owner.state.computers[0].state_sha256)
+
+        records = (
+            {
+                "record_id": "episode-plan",
+                "kind": "plan",
+                "status": "active",
+                "dependency_ids": [revision_id],
+            },
+            {
+                "record_id": "episode-query",
+                "kind": "query",
+                "status": "supported",
+                "dependency_ids": [revision_id],
+            },
+        )
+        call(
+            owner,
+            "episode-revision",
+            "submit",
+            kernel="cognition.field",
+            state=regional_revision_state(
+                records,
+                changed_premise_ids=(revision_id,),
+            ),
+            steps=64,
+        )
+        revised = computer_task(owner)["result"]
+        assert {
+            row["status"] for row in revised["records"]
+        } == {"stale"}
+        computer_digests.append(owner.state.computers[0].state_sha256)
+
+        expression = regional_language_state(
+            (construction,),
+            mode="express",
+            bindings={"instrument": instrument_id},
+            semantic_program_id="use-instrument",
+            representation_registry=registry,
+        )
+        call(
+            owner,
+            "episode-expression",
+            "submit",
+            kernel="cognition.field",
+            state=expression,
+            steps=64,
+        )
+        assert computer_task(owner)["result"]["text"] == "use sensor"
+        computer_digests.append(owner.state.computers[0].state_sha256)
+        assert len(set(computer_digests)) == len(computer_digests)
+
+        prepared = owner.think(
+            operation_id="episode-think",
+            observed={"x": 2.0},
+            requested=("y",),
+        )
+        assert prepared["status"] == "supported"
+        readout = ActionReadout(
+            readout_id="episode-sign",
+            version=1,
+            labels=("negative", "positive"),
+            coefficients=({"y": -1.0}, {"y": 1.0}),
+            observed_error_radius=0.01,
+        )
+        proposal = owner.propose_effect(
+            operation_id="episode-effect",
+            observed={"x": 2.0},
+            readout=readout,
+            target="episode-world",
+            scope="test",
+            payload={"instrument": instrument_id},
+        )
+
+        def transition(
+            action: str,
+            target: str,
+            payload: Mapping[str, object],
+        ) -> WorldAcknowledgment:
+            return WorldAcknowledgment(
+                acknowledgment_id="episode-ack",
+                operation_id="episode-effect",
+                status="succeeded",
+                observed_values={"x": 2.0, "y": 2.0},
+                context={"instrument": payload["instrument"]},
+                source_content=canonical_json_bytes(
+                    {"action": action, "payload": dict(payload), "target": target}
+                ),
+            )
+
+        dispatched = owner.dispatch_effect(
+            prediction_id=proposal["prediction"]["prediction_id"],
+            grant=AuthorityGrant(
+                grant_id="episode-effect-grant",
+                issuer="test-host",
+                generation=0,
+                operation="effect",
+                target="episode-world",
+                scope="test",
+            ),
+            adapter=DeterministicWorldAdapter(transition),
+        )
+        assert dispatched["status"] == "acknowledged"
+
+        old_manifest = owner.checkpoints.current_manifest_sha256
+        preview = owner.preview_forget((revision_id,))
+        owner.forget(
+            operation_id="episode-forget",
+            preview_id=preview["preview_id"],
+            revision_ids=(revision_id,),
+            grant=AuthorityGrant(
+                grant_id="episode-forget-grant",
+                issuer="test-host",
+                generation=0,
+                operation="forget",
+                target=sha256_value([revision_id]),
+                scope="test",
+            ),
+            scope="test",
+        )
+        with pytest.raises(FieldIntelligenceError) as stale:
+            owner.checkpoints.load_version(old_manifest)
+        assert stale.value.code == "STALE_REVOCATION"
+
+
+def test_strict_sustained_episode_stays_in_one_machine_and_checks_authority(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    import hashlib
+
+    from cassi_field_atlas import FieldProgram, RelationChart, VariableSpec, sha256_value
+    from cassi_field_cognition import regional_state
+    from cassi_field_owner import AuthorityGrant, SourceInput
+
+    root = tmp_path / "strict-episode"
+    source = SourceInput(
+        source_id="strict-episode-source",
+        content=canonical_json_bytes(
+            {"instrument": "sensor", "location": "bay", "access": False}
+        ),
+        media_type="application/json",
+        codec="utf-8",
+        observed_timestamp="strict-episode-time",
+        scope="test",
+        claim_category="controlled-observation",
+        fidelity="exact-record",
+        labels=("test",),
+    )
+    with FieldIntelligenceOwner(root) as owner:
+        owner.configure_variable(
+            "strict-episode-access-variable",
+            VariableSpec("access", lower=0.0, upper=1.0),
+        )
+        owner.configure_chart(
+            "strict-episode-access-chart",
+            RelationChart.empty(
+                chart_id="strict-episode-access",
+                scope=("access",),
+                ridge=1e-5,
+                observation_norm_bound=2.0,
+                prior_mass=1e-3,
+            ),
+        )
+        admitted = owner.admit_observation(
+            operation_id="strict-episode-observation",
+            source=source,
+            values={"access": 0.0},
+            context={},
+        )
+        revision_id = admitted["source"]["revision_id"]
+        call(owner, "strict-episode-configure", "configure")
+        task = regional_state(
+            {
+                "instrument_alias": "sensor",
+                "location_alias": "bay",
+                "access_allowed": False,
+                "source_revision_id": revision_id,
+                "action_target": "episode-world",
+                "action_scope": "test",
+                "numeric_work": [0.25, 0.5, 0.75],
+            },
+            operation="sustained-episode",
+        )
+        started = call(
+            owner,
+            "strict-episode-start",
+            "submit",
+            kernel="cognition.field",
+            state=task,
+            steps=128,
+        )
+        assert started["receipt"]["run"]["status"] == "waiting"
+        assert computer_task(owner)["continuation"]["stage"] == "await-premise"
+        paused_sha256 = owner.state.computers[0].state_sha256
+        old_manifest = owner.checkpoints.current_manifest_sha256
+
+    def unavailable(*_args, **_kwargs):
+        raise AssertionError("legacy cognition evaluator was reached")
+
+    with monkeypatch.context() as disabled:
+        disabled.setattr(FieldProgram, "execute", unavailable)
+        with FieldIntelligenceOwner(root) as owner:
+            assert owner.state.computers[0].state_sha256 == paused_sha256
+            revised = call(
+                owner,
+                "strict-episode-premise-change",
+                "invoke",
+                arguments={
+                    "operation": "premise-change",
+                    "event_id": hashlib.sha256(b"access-granted").hexdigest(),
+                    "source_revision_id": revision_id,
+                    "access_allowed": True,
+                },
+                steps=128,
+            )
+            assert revised["receipt"]["run"]["status"] == "waiting"
+            continuation = computer_task(owner)["continuation"]
+            assert continuation["stage"] == "await-authorization"
+            assert continuation["plan"]["status"] == "ready"
+            proposal_id = continuation["proposal"]["proposal_id"]
+
+            unauthorized_state = owner.state.state_sha256
+            with pytest.raises(FieldIntelligenceError) as unauthorized:
+                call(
+                    owner,
+                    "strict-episode-unauthorized",
+                    "invoke",
+                    arguments={
+                        "operation": "authorize-action",
+                        "proposal_id": proposal_id,
+                    },
+                    steps=128,
+                )
+            assert unauthorized.value.code == "AUTHORITY_REQUIRED"
+            assert owner.state.state_sha256 == unauthorized_state
+
+            grant = AuthorityGrant(
+                grant_id="strict-episode-grant",
+                issuer="test-host",
+                generation=0,
+                operation="computer-effect",
+                target="episode-world",
+                scope="test",
+                one_use=False,
+            )
+            authorized = call(
+                owner,
+                "strict-episode-authorize",
+                "authorized-invoke",
+                arguments={
+                    "operation": "authorize-action",
+                    "proposal_id": proposal_id,
+                },
+                grant=grant.as_dict(),
+                target="episode-world",
+                scope="test",
+                steps=128,
+            )
+            assert authorized["receipt"]["run"]["status"] == "waiting"
+            assert computer_task(owner)["continuation"]["stage"] == (
+                "await-dispatch"
+            )
+            dispatched = call(
+                owner,
+                "strict-episode-dispatch",
+                "authorized-invoke",
+                arguments={
+                    "operation": "dispatch-action",
+                    "adapter_id": "strict-test-adapter",
+                    "dispatch_id": "strict-episode-dispatch",
+                    "idempotency": "guaranteed",
+                    "idempotency_key": "strict-episode-use-instrument",
+                    "proposal_id": proposal_id,
+                },
+                grant=grant.as_dict(),
+                target="episode-world",
+                scope="test",
+                steps=128,
+            )
+            assert dispatched["receipt"]["run"]["status"] == "waiting"
+            assert computer_task(owner)["continuation"]["stage"] == (
+                "await-acknowledgment"
+            )
+            acknowledged = call(
+                owner,
+                "strict-episode-acknowledgment",
+                "invoke",
+                arguments={
+                    "operation": "acknowledgment",
+                    "event_id": hashlib.sha256(b"verified-ack").hexdigest(),
+                    "proposal_id": proposal_id,
+                    "status": "succeeded",
+                },
+                steps=128,
+            )
+            assert acknowledged["receipt"]["run"]["status"] == "waiting"
+            assert computer_task(owner)["continuation"]["stage"] == "await-revocation"
+            assert computer_task(owner)["continuation"]["assessment_updates"] == 1
+            generation = owner.state.generation
+            replay = call(
+                owner,
+                "strict-episode-acknowledgment",
+                "invoke",
+                arguments={
+                    "operation": "acknowledgment",
+                    "event_id": hashlib.sha256(b"verified-ack").hexdigest(),
+                    "proposal_id": proposal_id,
+                    "status": "succeeded",
+                },
+                steps=128,
+            )
+            assert replay["receipt"] == acknowledged["receipt"]
+            assert owner.state.generation == generation
+            assert computer_task(owner)["continuation"]["assessment_updates"] == 1
+
+            preview = owner.preview_forget((revision_id,))
+            owner.forget(
+                operation_id="strict-episode-forget",
+                preview_id=preview["preview_id"],
+                revision_ids=(revision_id,),
+                grant=AuthorityGrant(
+                    grant_id="strict-episode-forget-grant",
+                    issuer="test-host",
+                    generation=0,
+                    operation="forget",
+                    target=sha256_value([revision_id]),
+                    scope="test",
+                ),
+                scope="test",
+            )
+            revoked = call(
+                owner,
+                "strict-episode-revocation",
+                "invoke",
+                arguments={
+                    "operation": "revocation",
+                    "event_id": hashlib.sha256(b"source-revoked").hexdigest(),
+                    "source_revision_id": revision_id,
+                },
+                steps=128,
+            )
+            assert revoked["receipt"]["run"]["status"] == "halted"
+            result = owner.state.computers[0].inspect()["consumed_result"]
+            assert result["status"] == "complete"
+            assert result["query"]["status"] == "unsupported"
+            assert result["plan"]["status"] == "acknowledged"
+            assert result["acknowledgment"]["status"] == "succeeded"
+            assert result["assessment_updates"] == 1
+            assert result["numerical_total"] == 1.5
+            assert result["unaffected_knowledge"]["value"] == "retained"
+            assert result["work"] > 3
+            assert all(
+                revision_id not in row["support_event_ids"]
+                for row in result["registry"]["entities"]
+            )
+            with pytest.raises(FieldIntelligenceError) as stale:
+                owner.checkpoints.load_version(old_manifest)
+            assert stale.value.code == "STALE_REVOCATION"
+
+
+def test_cli_submits_and_invokes_resident_regional_task(tmp_path, capsys) -> None:
+    from cassi_temporal_field import regional_state as temporal_regional_state
+
+    data_home = tmp_path / "cli-owner"
+    task_path = tmp_path / "task.json"
+    induction_path = tmp_path / "induction.json"
+    consume_path = tmp_path / "consume.json"
+    source = SourceInput(
+        source_id="cli-temporal-source",
+        content=canonical_json_bytes({"episode": "cli temporal"}),
+        media_type="application/json",
+        codec="utf-8",
+        observed_timestamp="cli-temporal-time",
+        scope="test",
+        claim_category="controlled-observation",
+        fidelity="exact-record",
+        labels=("test",),
+    )
+    revision = source.revision_id
+    task_path.write_text(
+        json.dumps(
+            temporal_regional_state(
+                "cli-temporal",
+                action_ids=("sense", "move"),
+                observation_ids=("ready", "done"),
+                max_states=8,
+            )
+        ),
+        encoding="utf-8",
+    )
+    induction_path.write_text(
+        json.dumps(
+            {
+                "operation": "induce",
+                "episodes": [
+                    [
+                        {"action": "sense", "observation": "ready"},
+                        {"action": "move", "observation": "done"},
+                    ]
+                ],
+                "source_revision_ids": [revision],
+            }
+        ),
+        encoding="utf-8",
+    )
+    consume_path.write_text(
+        json.dumps(
+            {
+                "operation": "consume",
+                "action": "sense",
+                "observation": "ready",
+            }
+        ),
+        encoding="utf-8",
+    )
+    with FieldIntelligenceOwner(data_home) as owner:
+        owner.evidence.store_source(source)
+    prefix = ["--data-home", str(data_home)]
+    assert computer_cli([*prefix, "configure"]) == 0
+    capsys.readouterr()
+    assert computer_cli(
+        [
+            *prefix,
+            "submit",
+            "temporal-memory",
+            str(task_path),
+            "--arguments",
+            str(induction_path),
+            "--steps",
+            "64",
+        ]
+    ) == 0
+    submitted = json.loads(capsys.readouterr().out)
+    assert submitted["response"]["result"]["receipt"]["kernel"] == "temporal-memory"
+    assert computer_cli(
+        [
+            *prefix,
+            "invoke",
+            str(consume_path),
+            "--steps",
+            "64",
+        ]
+    ) == 0
+    invoked = json.loads(capsys.readouterr().out)
+    invoked_receipt = invoked["response"]["result"]["receipt"]
+    assert invoked_receipt["run"]["status"] == "halted"
+    assert computer_cli([*prefix, "inspect"]) == 0
+    inspected = json.loads(capsys.readouterr().out)
+    consumed = inspected["response"]["result"]["computers"][0][
+        "consumed_result"
+    ]
+    assert consumed["action"] == "sense"
+    assert consumed["observation"] == "ready"
+
+
+def _semantic_step(semantic_state, **request):
+    from cassi_field_cognition import semantic_cognition_kernel
+
+    transition = semantic_cognition_kernel(semantic_state, request, 4096)
+    assert transition.status == "done"
+    return transition.state, transition.output
+
+
+def test_semantic_observation_keeps_joint_history_and_revises_one_shared_binding(
+    tmp_path,
+) -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import semantic_program_payload
+
+    state = semantic_cognition_state(
+        scope={"world": "joint-test"},
+        frame={"coordinate_system": "sensor"},
+    )
+    state, registered_codec = _semantic_step(
+        state,
+        operation="register",
+        operation_id="register-packed-observation-codec",
+        kind="Program",
+        record_id="codec:packed-observation-v1",
+        payload={
+            "program": semantic_program_payload(
+                program_kind="measurement",
+                body={
+                    "transform": "identified-deterministic",
+                    "information_loss": "none",
+                },
+                max_work=1,
+            )
+        },
+    )
+    measurement_program = registered_codec["record"]
+    public_initial = copy.deepcopy(state)
+    observation = {
+        "operation": "observe",
+        "operation_id": "joint-observation",
+        "delivery_id": "delivery:joint",
+        "event_id": "event:joint",
+        "stream_id": "camera",
+        "chunk_index": 0,
+        "time": {"start": 2.0, "end": 3.0},
+        "world_clock": {"clock_domain": "sim", "uncertainty": 0.25},
+        "receipt": {
+            "clock_domain": "adapter",
+            "time": 8.0,
+            "uncertainty": 0.5,
+        },
+        "measurement": {
+            "availability": "partial",
+            "observed_mask": ["x", "y"],
+            "precision": {"x": 0.1, "y": 0.1},
+            "selection": {"visible": True},
+            "smoothing": False,
+        },
+        "joint_id": "joint:crossing",
+        "joint_semantics": "constraint-set",
+        "joint_alternatives": [
+            {"assignment": {"x": 0, "y": 0}},
+            {"assignment": {"x": 1, "y": 1}},
+        ],
+        "measurement_program": measurement_program,
+        "packed_observations": {
+            "columns": [
+                "binding_id",
+                "subject",
+                "attribute",
+                "value",
+                "measurement",
+            ],
+            "rows": [
+                [
+                    "binding:x",
+                    "pair",
+                    "x",
+                    {"x": 0, "y": 0},
+                    {"availability": "partial"},
+                ],
+                [
+                    "binding:unrelated",
+                    "clock",
+                    "phase",
+                    "quiet",
+                    {"availability": "observed"},
+                ],
+            ],
+        },
+    }
+    state, admitted = _semantic_step(state, **observation)
+    event_ref = admitted["event"]
+    assert state["records"][event_ref["id"]][-1]["epistemic_kind"] == "observed"
+    assert state["records"][event_ref["id"]][-1]["payload"][
+        "measurement_program"
+    ] == observation["measurement_program"]
+    assert set(state["current"]["Binding"]) >= {
+        "binding:x",
+        "binding:unrelated",
+    }
+    assert state["time"]["now"] == 3.0
+    state, joint = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-joint",
+        query={"kind": "joint", "joint_id": "joint:crossing"},
+    )
+    assert joint["status"] == "alternatives"
+    assert joint["belief_semantics"] == "constraint-set"
+    assert joint["probability_model"] is None
+    assert {tuple(sorted(row["assignment"].items())) for row in joint["alternatives"]} == {
+        (("x", 0), ("y", 0)),
+        (("x", 1), ("y", 1)),
+    }
+    record_count = sum(len(history) for history in state["records"].values())
+    state, replay = _semantic_step(
+        state,
+        **{**observation, "operation_id": "joint-observation-retransmitted"},
+    )
+    assert replay["replayed"] is True
+    assert sum(len(history) for history in state["records"].values()) == record_count
+
+    state, _ = _semantic_step(
+        state,
+        operation="advance-time",
+        operation_id="advance-world",
+        event_id="event:advance",
+        now=10.0,
+    )
+    old_binding = state["current"]["Binding"]["binding:x"]
+    unrelated = state["current"]["Binding"]["binding:unrelated"]
+    state, revised = _semantic_step(
+        state,
+        operation="correct",
+        operation_id="correct-identity",
+        correction_id="crossing-resolved",
+        target=old_binding,
+        replacement={"value": {"x": 1, "y": 1}, "alternatives": []},
+        reason="late identification",
+    )
+    assert revised["current"]["content_version"] == old_binding["content_version"] + 1
+    assert state["current"]["Binding"]["binding:unrelated"] == unrelated
+    state, stale = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-prior-binding",
+        query={"kind": "record", "reference": old_binding},
+    )
+    assert stale["status"] == "support-gap"
+    assert stale["current"] == revised["current"]
+
+    root = tmp_path / "semantic-roundtrip"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "semantic-roundtrip-configure", "configure")
+        submitted = call(
+            owner,
+            "semantic-roundtrip-submit",
+            "submit",
+            kernel="cognition.field",
+            state=public_initial,
+            arguments=observation,
+            steps=1,
+        )
+        assert submitted["receipt"]["run"]["status"] == "running"
+        paused_digest = owner.state.computers[0].state_sha256
+        paused_generation = owner.state.generation
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].state_sha256 == paused_digest
+        replayed = call(
+            owner,
+            "semantic-roundtrip-submit",
+            "submit",
+            kernel="cognition.field",
+            state=public_initial,
+            arguments=observation,
+            steps=1,
+        )
+        assert replayed["receipt"] == submitted["receipt"]
+        assert replayed["checkpoint_receipt"]["replayed"] is True
+        assert owner.state.generation == paused_generation
+        call(owner, "semantic-roundtrip-advance", "advance", steps=64)
+        inspection = owner.state.computers[0].inspect()
+        assert inspection["status"] == "halted"
+        assert inspection["consumed_result"]["joint_belief"]["id"] == (
+            "joint:crossing"
+        )
+        public_task = inspection["task"]
+        assert list(public_task["indexes"]["deliveries"]) == ["delivery:joint"]
+        assert list(public_task["indexes"]["events"]) == ["event:joint"]
+        assert len(public_task["ledger"]["operation_receipts"]) == 2
+        assert public_task["records"]["event:joint"][-1]["payload"][
+            "measurement_program"
+        ] == measurement_program
+        final_digest = owner.state.state_sha256
+        final_task = copy.deepcopy(public_task)
+        assert inspection["resource_ledger"]["dispatches"] > 0
+        assert inspection["field_bytes"] > 0
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.state_sha256 == final_digest
+        assert computer_task(owner) == final_task
+
+
+def test_semantic_mechanism_coverage_causal_meanings_and_planner_contract() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import semantic_program_payload
+
+    state = semantic_cognition_state()
+    episodes = [
+        {
+            "episode_id": f"episode:{action}",
+            "state": {},
+            "action": {"u": action},
+            "context": {"site": "bench"},
+            "interval": {"duration": 1.0},
+            "next": {"y": action},
+            "intervention": True,
+            "collection": {
+                "available_actions": [{"u": 0}, {"u": 1}],
+                "policy_version": "policy:1",
+                "selected_action": {"u": action},
+                "selection_assumptions": [],
+                "selection_mode": "deterministic",
+            },
+        }
+        for action in (0, 1)
+    ]
+    state, learned = _semantic_step(
+        state,
+        operation="learn-mechanism",
+        operation_id="learn-action-law",
+        mechanism_id="action-law",
+        episodes=episodes,
+        identification={
+            "assumptions": ["controlled bench"],
+            "controlled_variables": ["u"],
+            "design": "controlled-intervention",
+        },
+    )
+    assert learned["status"] == "supported"
+    assert learned["causal_authority"] is True
+    population = state["records"]["action-law"][-1]["payload"][
+        "outcome_population"
+    ]
+    assert population == {
+        "attempt_count": 2,
+        "holdout_attempt_count": 0,
+        "observed_and_scored_count": 2,
+        "outcome_status_counts": {"observed-and-scored": 2},
+        "policy_versions": ["policy:1"],
+        "training_attempt_count": 2,
+        "unknown_selection_count": 0,
+        "unresolved_count": 0,
+    }
+    state, prediction = _semantic_step(
+        state,
+        operation="predict",
+        operation_id="predict-action",
+        prediction_id="prediction:action",
+        mechanism_id="action-law",
+        state={},
+        action={"u": 1},
+        context={"site": "bench"},
+        interval={"duration": 1.0},
+    )
+    assert prediction["status"] == "supported"
+    assert prediction["alternatives"][0]["values"] == {"y": 1}
+    frozen_prediction = prediction["prediction"]
+    state, intervention = _semantic_step(
+        state,
+        operation="query",
+        operation_id="causal-action",
+        query={
+            "kind": "causal",
+            "meaning": "intervention",
+            "mechanism_id": "action-law",
+            "action": {"u": 1},
+            "context": {"site": "bench"},
+            "interval": {"duration": 1.0},
+        },
+    )
+    assert intervention["status"] == "supported"
+    assert intervention["causal_authority"] is True
+
+    unchanged = copy.deepcopy(state)
+    with pytest.raises(FieldIntelligenceError) as invalid_plan:
+        _semantic_step(
+            state,
+            operation="plan",
+            operation_id="plan-without-world-model",
+            plan_id="plan:invalid",
+            goal={"y": 1},
+            target="synthetic",
+            scope="test",
+            candidates=[{"action": {"u": 1}}],
+        )
+    assert invalid_plan.value.code == "INVALID_PLAN"
+    assert state == unchanged
+
+    with pytest.raises(FieldIntelligenceError) as invalid_policy:
+        _semantic_step(
+            state,
+            operation="learn-mechanism",
+            operation_id="bad-randomization",
+            mechanism_id="bad-randomization",
+            episodes=[
+                {
+                    "state": {},
+                    "action": {"u": 0},
+                    "next": {"y": 0},
+                    "collection": {
+                        "selection_mode": "randomized",
+                        "selected_action": {"u": 0},
+                    },
+                }
+            ],
+            candidates=[
+                {
+                    "candidate_id": "identity",
+                    "program": semantic_program_payload(
+                        program_kind="identity", body={}
+                    ),
+                }
+            ],
+        )
+    assert invalid_policy.value.code == "INVALID_MECHANISM_EVIDENCE"
+    assert state == unchanged
+    assert (
+        state["records"][frozen_prediction["id"]][
+            frozen_prediction["content_version"] - 1
+        ]["status"]
+        == "active"
+    )
+    confounded_episodes = [
+        {
+            "state": {},
+            "action": {"u": action},
+            "context": {"site": f"site-{action}"},
+            "interval": {},
+            "next": {"y": action},
+            "intervention": True,
+            "collection": {
+                "available_actions": [{"u": 0}, {"u": 1}],
+                "policy_version": "policy:confounded",
+                "selected_action": {"u": action},
+                "selection_mode": "deterministic",
+            },
+        }
+        for action in (0, 1)
+    ]
+    state, confounded = _semantic_step(
+        state,
+        operation="learn-mechanism",
+        operation_id="learn-confounded-law",
+        mechanism_id="confounded-law",
+        episodes=confounded_episodes,
+        identification={
+            "assumptions": [],
+            "controlled_variables": ["u"],
+            "design": "controlled-intervention",
+        },
+    )
+    assert confounded["causal_authority"] is False
+    assert (
+        "no-action-overlap-within-context"
+        in confounded["identification_limitations"]
+    )
+    state, unsupported_intervention = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-confounded-intervention",
+        query={
+            "kind": "causal",
+            "meaning": "intervention",
+            "mechanism_id": "confounded-law",
+            "action": {"u": 1},
+            "context": {"site": "site-1"},
+            "interval": {},
+        },
+    )
+    assert unsupported_intervention["status"] == "non-identifiable"
+    assert unsupported_intervention["causal_authority"] is False
+
+
+def test_semantic_prediction_preserves_set_probability_and_model_family() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import semantic_program_payload
+
+    state = semantic_cognition_state()
+    joint_cases = {
+        "set": {
+            "joint_semantics": "constraint-set",
+            "joint_alternatives": [
+                {"assignment": {"x": 0}},
+                {"assignment": {"x": 1}},
+            ],
+        },
+        "probability": {
+            "joint_semantics": "probability",
+            "joint_model": {
+                "model_id": "coin:model:1",
+                "observation_law": "direct-x",
+                "prior_or_frequency_basis": "coin-prior:1",
+                "reference_population": "coin-trials:1",
+            },
+            "joint_alternatives": [
+                {"assignment": {"x": 0}, "weight": 0.7},
+                {"assignment": {"x": 1}, "weight": 0.3},
+            ],
+        },
+        "family": {
+            "joint_semantics": "model-family",
+            "joint_alternatives": [
+                {"assignment": {"x": 0}, "model": "model:low"},
+                {"assignment": {"x": 1}, "model": "model:high"},
+            ],
+        },
+    }
+    for name, joint in joint_cases.items():
+        state, _ = _semantic_step(
+            state,
+            operation="observe",
+            operation_id=f"observe-{name}-joint",
+            delivery_id=f"delivery:{name}",
+            event_id=f"event:{name}",
+            joint_id=f"joint:{name}",
+            **joint,
+        )
+    state, learned = _semantic_step(
+        state,
+        operation="learn-mechanism",
+        operation_id="learn-identity-law",
+        mechanism_id="identity-law",
+        episodes=[
+            {
+                "state": {},
+                "action": {},
+                "context": {},
+                "interval": {},
+                "next": {},
+                "collection": {"selection_mode": "unknown"},
+            }
+        ],
+        candidates=[
+            {
+                "candidate_id": "identity",
+                "program": semantic_program_payload(
+                    program_kind="identity", body={}
+                ),
+            }
+        ],
+    )
+    assert learned["status"] == "supported"
+
+    predictions = {}
+    for name in joint_cases:
+        state, predicted = _semantic_step(
+            state,
+            operation="predict",
+            operation_id=f"predict-{name}",
+            prediction_id=f"prediction:{name}",
+            mechanism_id="identity-law",
+            joint_id=f"joint:{name}",
+            state={},
+            action={},
+            context={},
+            interval={},
+        )
+        predictions[name] = predicted
+    set_prediction = predictions["set"]
+    assert set_prediction["prediction_semantics"] == "constraint-set"
+    assert all("weight" not in row for row in set_prediction["alternatives"])
+    assert {row["values"]["x"] for row in set_prediction["alternatives"]} == {
+        0,
+        1,
+    }
+    probability_prediction = predictions["probability"]
+    assert probability_prediction["prediction_semantics"] == "probability"
+    assert [
+        row["weight"] for row in probability_prediction["alternatives"]
+    ] == [0.7, 0.3]
+    family_prediction = predictions["family"]
+    assert family_prediction["prediction_semantics"] == "model-family"
+    assert {
+        row["model_path"][0]["model_ids"][0]
+        for row in family_prediction["alternatives"]
+    } == {"model:low", "model:high"}
+    assert all(
+        "weight" not in row for row in family_prediction["alternatives"]
+    )
+
+    assessments = {}
+    for name in joint_cases:
+        state, assessed = _semantic_step(
+            state,
+            operation="assess-prediction",
+            operation_id=f"assess-{name}",
+            prediction_id=f"prediction:{name}",
+            event_id="event:set",
+            actual={"x": 0},
+        )
+        assessments[name] = assessed["assessment_metrics"]
+    assert assessments["set"]["scoring_rule"] == "set-coverage"
+    assert assessments["set"]["set_size"] == 2
+    assert assessments["set"]["coverage"] is True
+    assert assessments["probability"]["loss"] == pytest.approx(0.3)
+    assert (
+        assessments["probability"]["probability_score_status"]
+        == "proper-score-unavailable-without-observation-density"
+    )
+    assert (
+        assessments["family"]["scoring_rule"]
+        == "model-family-unaggregated"
+    )
+    assert len(assessments["family"]["model_conditional_losses"]) == 2
+def test_semantic_predictive_state_freezes_signature_and_first_split() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import execute_semantic_program
+
+    state = semantic_cognition_state()
+    signature = {
+        "clock_boundary": {
+            "decision_clock": "world",
+            "outcome_clock": "world",
+        },
+        "collection_boundary": {
+            "availability": "all-attempts",
+            "policy_version": "policy:predictive:1",
+        },
+        "comparison_metric": "exact-equality",
+        "horizon": 1,
+        "interval": {"duration": 1.0},
+        "output_measure": {"coordinates": ["y"], "kind": "json"},
+        "prediction_semantics": "constraint-set",
+        "probability_model": None,
+        "tolerance": 0.0,
+        "units": {"y": "unitless"},
+    }
+    state, learned = _semantic_step(
+        state,
+        operation="learn-predictive-state",
+        operation_id="learn-predictive-split",
+        representation_id="predictive:split",
+        signature=signature,
+        window=1,
+        examples=[
+            {
+                "history": ["left"],
+                "future": {"y": 0},
+                "question": "next",
+            },
+            {
+                "history": ["right"],
+                "future": {"y": 1},
+                "question": "next",
+            },
+        ],
+    )
+    assert learned["status"] == "supported"
+    assert learned["prediction_semantics"] == "constraint-set"
+    assert len(learned["splits"]) == 1
+    split = learned["splits"][0]
+    assert split["first_separating_test"] == {
+        "action": {},
+        "context": {},
+        "question": "next",
+    }
+    assert split["split_mapping"]["left"] != split["split_mapping"]["right"]
+    state, queried = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-predictive-left",
+        query={
+            "kind": "predictive-state",
+            "representation_id": "predictive:split",
+            "history": ["left"],
+            "question": "next",
+            "signature": signature,
+        },
+    )
+    assert queried["status"] == "supported"
+    assert queried["prediction_semantics"] == "constraint-set"
+    assert queried["answer"] == {"y": 0}
+    assert "weight" not in queried["alternatives"][0]
+
+    representation = state["records"]["predictive:split"][-1]
+    execution = execute_semantic_program(
+        representation["payload"]["program"],
+        {
+            "history": ["left"],
+            "question": "next",
+            "signature": signature,
+        },
+        action={},
+        context={},
+    )
+    assert execution["status"] == "supported"
+    assert execution["values"] == {"y": 0}
+    assert execution["uncertainty_semantics"] == "constraint-set"
+
+    mismatched_signature = {**signature, "horizon": 2}
+    state, mismatch = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-predictive-wrong-horizon",
+        query={
+            "kind": "predictive-state",
+            "representation_id": "predictive:split",
+            "history": ["left"],
+            "question": "next",
+            "signature": mismatched_signature,
+        },
+    )
+    assert mismatch["status"] == "support-gap"
+    assert mismatch["limitations"] == ["predictive-signature-mismatch"]
+
+
+
+
+def test_semantic_weighted_mechanism_requires_named_probability_model() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import semantic_program_payload
+
+    state = semantic_cognition_state()
+    identity = semantic_program_payload(program_kind="identity", body={})
+    hybrid = semantic_program_payload(
+        program_kind="hybrid",
+        body={
+            "mode_key": "mode",
+            "modes": {"high": identity, "low": identity},
+            "mode_weights": {"high": 0.75, "low": 0.25},
+            "transitions": [],
+        },
+    )
+    candidate = {
+        "candidate_id": "weighted-hybrid",
+        "latent_prior": {"high": 0.75, "low": 0.25},
+        "program": hybrid,
+    }
+    episode = {
+        "state": {"mode": "high"},
+        "action": {},
+        "context": {},
+        "interval": {},
+        "next": {"mode": "high"},
+        "collection": {"selection_mode": "unknown"},
+    }
+    unchanged = copy.deepcopy(state)
+    with pytest.raises(FieldIntelligenceError) as missing_model:
+        _semantic_step(
+            state,
+            operation="learn-mechanism",
+            operation_id="learn-weighted-without-model",
+            mechanism_id="weighted-law",
+            episodes=[episode],
+            candidates=[candidate],
+        )
+    assert missing_model.value.code == "INVALID_PROBABILITY_MODEL"
+    assert state == unchanged
+
+    probability_model = {
+        "model_id": "regime-mixture:1",
+        "observation_law": "mode-observed-without-error",
+        "prior_or_frequency_basis": "declared-regime-prior:1",
+        "reference_population": "weighted-law-deployments:1",
+    }
+    state, learned = _semantic_step(
+        state,
+        operation="learn-mechanism",
+        operation_id="learn-weighted-with-model",
+        mechanism_id="weighted-law",
+        episodes=[episode],
+        candidates=[{**candidate, "probability_model": probability_model}],
+    )
+    assert learned["status"] == "supported"
+    assert learned["probability_model"] == probability_model
+    state, predicted = _semantic_step(
+        state,
+        operation="predict",
+        operation_id="predict-weighted-law",
+        prediction_id="prediction:weighted-law",
+        mechanism_id="weighted-law",
+        state={},
+        action={},
+        context={},
+        interval={},
+    )
+    assert predicted["status"] == "alternatives"
+    assert predicted["prediction_semantics"] == "probability"
+    weighted = {
+        row["values"]["mode"]: row["weight"]
+        for row in predicted["alternatives"]
+    }
+    assert weighted == {"high": 0.75, "low": 0.25}
+    assert predicted["probability_models"] == [
+        {
+            "model": probability_model,
+            "source": learned["mechanism"],
+        }
+    ]
+
+
+def test_semantic_owner_pause_authority_assessment_and_exact_reopen(
+    tmp_path,
+) -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_owner import AuthorityGrant
+
+    root = tmp_path / "semantic-owner"
+    observe = {
+        "operation": "observe",
+        "operation_id": "observe-start",
+        "delivery_id": "delivery:start",
+        "event_id": "event:start",
+        "time": {"start": 1.0, "end": 1.0},
+        "observations": [
+            {
+                "binding_id": "binding:x",
+                "subject": "world",
+                "attribute": "x",
+                "value": 0,
+            },
+            {
+                "binding_id": "binding:y",
+                "subject": "world",
+                "attribute": "y",
+                "value": 0,
+            },
+        ],
+    }
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "semantic-owner-configure", "configure")
+        started = call(
+            owner,
+            "semantic-owner-submit",
+            "submit",
+            kernel="cognition.field",
+            state=semantic_cognition_state(),
+            arguments=observe,
+            steps=1,
+        )
+        assert started["receipt"]["run"]["status"] == "running"
+        paused = owner.state.computers[0].state_sha256
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].state_sha256 == paused
+        call(owner, "semantic-owner-observe-finish", "advance", steps=16)
+        episodes = [
+            {
+                "state": {},
+                "action": {"u": action},
+                "next": {"y": action},
+                "intervention": True,
+                "collection": {
+                    "available_actions": [{"u": 0}, {"u": 1}],
+                    "policy_version": "policy:owner",
+                    "selected_action": {"u": action},
+                    "selection_mode": "deterministic",
+                },
+            }
+            for action in (0, 1)
+        ]
+        call(
+            owner,
+            "semantic-owner-learn",
+            "invoke",
+            arguments={
+                "operation": "learn-mechanism",
+                "operation_id": "owner-learn",
+                "mechanism_id": "owner-law",
+                "episodes": episodes,
+                "identification": {
+                    "assumptions": [],
+                    "controlled_variables": ["u"],
+                    "design": "controlled-intervention",
+                },
+            },
+            steps=64,
+        )
+        affordance_payload = {
+            "program_role": "affordance",
+            "program": semantic_program_payload(
+                program_kind="procedure",
+                body={"steps": [{"kind": "set-u"}]},
+                max_work=1,
+            ),
+            "argument_roles": [
+                {
+                    "name": "u",
+                    "value_type": "integer",
+                    "units": "flag",
+                    "bounds": {"min": 0, "max": 1},
+                    "binding_constraints": {},
+                    "required": True,
+                }
+            ],
+            "preconditions": {
+                "observable": [],
+                "latent": [],
+                "semantics": "set",
+                "probability_model": None,
+            },
+            "execution": {
+                "duration": {"lower": 0.0, "upper": 1.0, "units": "step"},
+                "termination_conditions": [],
+                "concurrency": {"mode": "exclusive"},
+                "resource_occupancy": [],
+            },
+            "effects": {
+                "intended": {"y": 1},
+                "possible_side_effects": [],
+                "expected_observations": ["y"],
+                "failure_modes": [],
+            },
+            "action_context_support": [],
+            "reversibility": {"mode": "reversible", "compensation": None},
+            "risk": {
+                "minimum": 0.0,
+                "units": "risk-score",
+                "possible_harms": [],
+            },
+            "obligations": {
+                "disclosure": [],
+                "source_access": [],
+                "authority": ["test"],
+            },
+        }
+        call(
+            owner,
+            "semantic-owner-affordance",
+            "invoke",
+            arguments={
+                "operation": "register",
+                "operation_id": "owner-register-affordance",
+                "kind": "Program",
+                "record_id": "affordance:set-u",
+                "payload": affordance_payload,
+            },
+            steps=64,
+        )
+        call(
+            owner,
+            "semantic-owner-plan",
+            "invoke",
+            arguments={
+                "operation": "plan",
+                "operation_id": "owner-plan",
+                "plan_id": "plan:owner",
+                "goal": {"y": 1},
+                "target": "synthetic-world",
+                "scope": "test",
+                "causal_required": True,
+                "state": {},
+                "candidates": [
+                    {
+                        "action": {"u": 0},
+                        "affordance_id": "affordance:set-u",
+                        "mechanism_id": "owner-law",
+                    },
+                    {
+                        "action": {"u": 1},
+                        "affordance_id": "affordance:set-u",
+                        "mechanism_id": "owner-law",
+                    },
+                ],
+            },
+            steps=64,
+        )
+        proposal = owner.state.computers[0].inspect()["consumed_result"][
+            "proposal"
+        ]
+        assert proposal["status"] == "proposed"
+        assert proposal["operation_id"] == proposal["proposal_id"]
+        assert proposal["episode_id"] == proposal["proposal_id"]
+        assert proposal["model"]["id"] == "owner-law"
+        assert proposal["affordance"]["id"] == "affordance:set-u"
+        assert proposal["expected_observation_window"] == {
+            "start": 2.0,
+            "end": 2.0,
+        }
+        assert [row["phase"] for row in proposal["phases"]] == ["proposed"]
+
+        authorize_arguments = {
+            "operation": "authorize-action",
+            "operation_id": "owner-authorize",
+            "proposal_id": proposal["proposal_id"],
+        }
+        before_unauthorized = owner.state.state_sha256
+        with pytest.raises(FieldIntelligenceError) as unauthorized:
+            call(
+                owner,
+                "semantic-owner-unauthorized",
+                "invoke",
+                arguments=authorize_arguments,
+                steps=64,
+            )
+        assert unauthorized.value.code == "AUTHORITY_REQUIRED"
+        assert owner.state.state_sha256 == before_unauthorized
+
+        grant = AuthorityGrant(
+            grant_id="semantic-owner-grant",
+            issuer="test-host",
+            generation=0,
+            operation="computer-effect",
+            target="synthetic-world",
+            scope="test",
+            one_use=True,
+        )
+        call(
+            owner,
+            "semantic-owner-authorize",
+            "authorized-invoke",
+            arguments=authorize_arguments,
+            grant=grant.as_dict(),
+            target="synthetic-world",
+            scope="test",
+            steps=64,
+        )
+        authorized = owner.state.computers[0].inspect()["consumed_result"]
+        assert authorized["proposal"]["status"] == "authorized"
+        assert authorized["proposal"]["authorization"]["grant_id"] == (
+            grant.grant_id
+        )
+
+        dispatch_arguments = {
+            "operation": "dispatch-action",
+            "operation_id": "owner-dispatch",
+            "proposal_id": proposal["proposal_id"],
+            "adapter_id": "test-adapter",
+            "dispatch_id": "dispatch:owner",
+            "idempotency": "unknown",
+            "idempotency_key": "effect:owner",
+        }
+        before_unprivileged_dispatch = owner.state.state_sha256
+        with pytest.raises(FieldIntelligenceError) as unprivileged_dispatch:
+            call(
+                owner,
+                "semantic-owner-unprivileged-dispatch",
+                "invoke",
+                arguments=dispatch_arguments,
+                steps=64,
+            )
+        assert unprivileged_dispatch.value.code == "AUTHORITY_REQUIRED"
+        assert owner.state.state_sha256 == before_unprivileged_dispatch
+
+        dispatched = call(
+            owner,
+            "semantic-owner-dispatch",
+            "authorized-invoke",
+            arguments=dispatch_arguments,
+            grant=grant.as_dict(),
+            target="synthetic-world",
+            scope="test",
+            steps=64,
+        )
+        dispatch_result = owner.state.computers[0].inspect()[
+            "consumed_result"
+        ]
+        assert dispatch_result["proposal"]["status"] == "dispatch-uncertain"
+        assert dispatch_result["blind_retry_permitted"] is False
+        assert dispatch_result["reconciliation_required"] is True
+        dispatch_generation = owner.state.generation
+        dispatch_replay = call(
+            owner,
+            "semantic-owner-dispatch",
+            "authorized-invoke",
+            arguments=dispatch_arguments,
+            grant=grant.as_dict(),
+            target="synthetic-world",
+            scope="test",
+            steps=64,
+        )
+        assert dispatch_replay["receipt"] == dispatched["receipt"]
+        assert owner.state.generation == dispatch_generation
+
+        call(
+            owner,
+            "semantic-owner-track",
+            "invoke",
+            arguments={
+                "operation": "track-action",
+                "operation_id": "owner-track",
+                "proposal_id": proposal["proposal_id"],
+                "tracking_id": "track:owner",
+                "status": "unknown",
+                "adapter_receipt": {"poll": "no-definitive-result"},
+                "progress": {"completed": 0, "total": 1},
+                "effect_count": {"lower": 0, "upper": 1},
+            },
+            steps=64,
+        )
+        call(
+            owner,
+            "semantic-owner-cancel",
+            "invoke",
+            arguments={
+                "operation": "cancel-action",
+                "operation_id": "owner-cancel",
+                "proposal_id": proposal["proposal_id"],
+                "cancellation_id": "cancel:owner",
+                "reason": "test interruption",
+            },
+            steps=64,
+        )
+        cancelled = owner.state.computers[0].inspect()["consumed_result"]
+        assert cancelled["proposal"]["status"] == "cancel-requested"
+        assert cancelled["effect_prevention_confirmed"] is False
+        assert cancelled["obligation"]["status"] == "active"
+        assert cancelled["phase"]["effect_count"] == {"lower": 0, "upper": 1}
+
+        call(
+            owner,
+            "semantic-owner-acknowledgment",
+            "invoke",
+            arguments={
+                "operation": "acknowledgment",
+                "operation_id": "owner-acknowledgment",
+                "event_id": "event:owner-outcome",
+                "proposal_id": proposal["proposal_id"],
+                "status": "succeeded",
+                "observation": {"y": 1},
+                "observation_verified": True,
+                "transport_receipt": {"adapter_status": "delivered"},
+            },
+            steps=64,
+        )
+        acknowledged = owner.state.computers[0].inspect()[
+            "consumed_result"
+        ]
+        assert acknowledged["proposal"]["status"] == "acknowledged"
+        assert acknowledged["assessment_required"] is True
+        assert acknowledged["transport_is_world_observation"] is True
+        assert acknowledged["proposal"]["assessment"] is None
+        assert acknowledged["obligation"]["status"] == "active"
+
+        assessment_arguments = {
+            "operation": "assess-prediction",
+            "operation_id": "owner-assessment",
+            "event_id": "event:owner-outcome",
+            "prediction_id": proposal["prediction"]["id"],
+            "actual": {"y": 1},
+            "source": "verified-action-outcome",
+        }
+        assessed = call(
+            owner,
+            "semantic-owner-assessment",
+            "invoke",
+            arguments=assessment_arguments,
+            steps=64,
+        )
+        result = owner.state.computers[0].inspect()["consumed_result"]
+        assert result["loss"] == 0.0
+        assert result["action_proposal"]["status"] == "assessed"
+        assert result["prediction"]["content_version"] == 2
+        assert result["obligation"]["status"] == "resolved"
+        phases = result["action_proposal"]["phases"]
+        assert [row["phase"] for row in phases] == [
+            "proposed",
+            "authorized",
+            "dispatch-uncertain",
+            "tracked",
+            "cancel-requested",
+            "acknowledged",
+            "assessed",
+        ]
+        assert all(
+            row["operation_id"] == proposal["proposal_id"] for row in phases
+        )
+        assert all(row["receipt_rho"] for row in phases)
+        generation = owner.state.generation
+        replay = call(
+            owner,
+            "semantic-owner-assessment",
+            "invoke",
+            arguments=assessment_arguments,
+            steps=64,
+        )
+        assert replay["receipt"] == assessed["receipt"]
+        assert owner.state.generation == generation
+        final_digest = owner.state.state_sha256
+        final_task = copy.deepcopy(computer_task(owner))
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.state_sha256 == final_digest
+        assert computer_task(owner) == final_task
+
+
+def _semantic_parameter_fixture(event_count: int = 6):
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import semantic_program_payload
+
+    state = semantic_cognition_state()
+    state, _ = _semantic_step(
+        state,
+        operation="learn-mechanism",
+        operation_id="parameter-fixture-mechanism",
+        mechanism_id="parameter-law",
+        episodes=[
+            {
+                "state": {},
+                "action": {},
+                "context": {},
+                "interval": {},
+                "next": {},
+                "collection": {"selection_mode": "unknown"},
+            }
+        ],
+        candidates=[
+            {
+                "candidate_id": "identity",
+                "program": semantic_program_payload(
+                    program_kind="identity", body={}
+                ),
+            }
+        ],
+    )
+    events = []
+    for index in range(event_count):
+        state, admitted = _semantic_step(
+            state,
+            operation="observe",
+            operation_id=f"parameter-fixture-observe-{index}",
+            delivery_id=f"parameter-delivery:{index}",
+            event_id=f"parameter-event:{index}",
+            observations=[
+                {
+                    "binding_id": f"binding:parameter:{index}",
+                    "subject": "parameter-fixture",
+                    "attribute": f"sample-{index}",
+                    "value": index,
+                }
+            ],
+        )
+        events.append(admitted["event"])
+    return state, events
+
+
+def test_semantic_parameter_statistics_analytic_family_and_deduplication() -> None:
+    state, events = _semantic_parameter_fixture()
+    probability_model = {
+        "model_id": "parameter-family:1",
+        "observation_law": "declared-marginal-likelihood",
+        "prior_or_frequency_basis": "declared-equal-prior",
+        "reference_population": "parameter-fixture-events",
+    }
+    interpretation = {
+        "assumptions": ["fully-observed"],
+        "likelihood_or_compatibility": "linear-sufficient-statistics",
+        "probability_model": None,
+        "semantics": "compatibility",
+    }
+    contributions = [
+        {
+            "contribution_id": "linear-row:1",
+            "evidence": events[0],
+            "values": {
+                "x": 1.0,
+                "y": 2.0,
+                "candidate_likelihoods": {
+                    "constant": 0.2,
+                    "linear": 0.8,
+                },
+            },
+        },
+        {
+            "contribution_id": "linear-row:2",
+            "evidence": events[1],
+            "values": {
+                "x": 2.0,
+                "y": 4.0,
+                "candidate_likelihoods": {
+                    "constant": 0.1,
+                    "linear": 0.9,
+                },
+            },
+        },
+    ]
+    activation_transition = state["ledger"]["transitions"] + 1
+    request = {
+        "operation": "learn-parameters",
+        "operation_id": "learn-linear-parameters",
+        "mechanism_id": "parameter-law",
+        "parameter_set_id": "linear-parameters",
+        "parameter_path": "observed-sufficient-statistics",
+        "variables": ["x", "y"],
+        "design_variables": ["x"],
+        "target_variables": ["y"],
+        "interpretation": interpretation,
+        "evidence_prefix": events[:2],
+        "contributions": contributions,
+        "family_update": {
+            "activation_transition": activation_transition,
+            "candidate_family_version": "family:linear:1",
+            "candidates": [
+                {"candidate_id": "constant", "prior_mass": 0.5},
+                {"candidate_id": "linear", "prior_mass": 0.5},
+            ],
+            "probability_model": probability_model,
+            "update_semantics": "fixed-family",
+        },
+    }
+    state, learned = _semantic_step(state, **request)
+    parameter_state = learned["parameter_set"]["state"]
+    assert parameter_state["count"] == 2
+    assert parameter_state["parameters"] == {"y": {"x": 2.0}}
+    assert parameter_state["identified"] is True
+    family = learned["candidate_family"]
+    masses = {
+        row["candidate_id"]: row["mass"] for row in family["candidates"]
+    }
+    assert masses["linear"] == pytest.approx(0.72 / 0.74)
+    assert masses["constant"] == pytest.approx(0.02 / 0.74)
+    mechanism_version = learned["mechanism"]["content_version"]
+    record_count = sum(len(history) for history in state["records"].values())
+
+    replay_request = {
+        **request,
+        "operation_id": "learn-linear-parameters-reprocessed",
+        "family_update": {
+            **request["family_update"],
+            "candidates": [
+                {
+                    "candidate_id": candidate_id,
+                    "prior_mass": masses[candidate_id],
+                }
+                for candidate_id in ("constant", "linear")
+            ],
+        },
+    }
+    state, replayed = _semantic_step(state, **replay_request)
+    assert replayed["reused_evidence"] is True
+    assert replayed["assessment"] is None
+    assert replayed["mechanism"]["content_version"] == mechanism_version
+    assert sum(len(history) for history in state["records"].values()) == record_count
+
+    state, rank_deficient = _semantic_step(
+        state,
+        operation="learn-parameters",
+        operation_id="learn-rank-deficient",
+        mechanism_id="parameter-law",
+        parameter_set_id="rank-deficient",
+        parameter_path="observed-sufficient-statistics",
+        variables=["x", "y"],
+        design_variables=["x"],
+        target_variables=["y"],
+        interpretation=interpretation,
+        evidence_prefix=[events[2]],
+        contributions=[
+            {
+                "contribution_id": "zero-input",
+                "evidence": events[2],
+                "values": {"x": 0.0, "y": 7.0},
+            }
+        ],
+    )
+    assert rank_deficient["parameter_set"]["state"]["identified"] is False
+    assert rank_deficient["limitations"] == ["rank-deficient-design"]
+    assert rank_deficient["parameter_set"]["state"]["parameters"] == {}
+
+    state, analytic = _semantic_step(
+        state,
+        operation="learn-parameters",
+        operation_id="learn-beta-bernoulli",
+        mechanism_id="parameter-law",
+        parameter_set_id="coin-rate",
+        parameter_path="analytic-local",
+        analytic_rule={
+            "assumptions": ["conditionally-independent-bernoulli"],
+            "family": "beta-bernoulli",
+            "outcome_key": "success",
+            "prior": {"alpha": 1.0, "beta": 1.0},
+        },
+        evidence_prefix=events[3:6],
+        contributions=[
+            {
+                "contribution_id": f"coin-row:{index}",
+                "evidence": events[index + 3],
+                "values": {"success": outcome},
+            }
+            for index, outcome in enumerate((1, 0, 1))
+        ],
+    )
+    posterior = analytic["parameter_set"]["state"]["posterior"]
+    assert posterior == {"alpha": 3.0, "beta": 2.0, "mean": 0.6}
+
+    current_binding = state["current"]["Program"]["parameter-law"]
+    with pytest.raises(FieldIntelligenceError) as wrong_kind:
+        _semantic_step(
+            state,
+            operation="learn-parameters",
+            operation_id="parameter-non-event-lineage",
+            mechanism_id="parameter-law",
+            parameter_set_id="invalid-lineage",
+            parameter_path="analytic-local",
+            analytic_rule={
+                "assumptions": ["conditionally-independent-bernoulli"],
+                "family": "beta-bernoulli",
+                "outcome_key": "success",
+                "prior": {"alpha": 1.0, "beta": 1.0},
+            },
+            evidence_prefix=[current_binding],
+            contributions=[],
+        )
+    assert wrong_kind.value.code == "INVALID_SEMANTIC_REFERENCE"
+
+
+def test_semantic_parameter_refinement_conserves_current_mass_and_zero_support() -> None:
+    state, events = _semantic_parameter_fixture()
+    finite_initial = {
+        "operation": "learn-parameters",
+        "operation_id": "finite-initial",
+        "mechanism_id": "parameter-law",
+        "parameter_set_id": "finite-theta",
+        "parameter_path": "finite-alternatives",
+        "alternative_semantics": "probability",
+        "alternatives": [
+            {
+                "alternative_id": "a",
+                "parameters": {"theta": 0},
+                "prior_mass": 0.5,
+            },
+            {
+                "alternative_id": "b",
+                "parameters": {"theta": 1},
+                "prior_mass": 0.5,
+            },
+        ],
+        "evidence_prefix": [events[0]],
+        "contributions": [
+            {
+                "contribution_id": "finite-row:1",
+                "evidence": events[0],
+                "values": {"likelihoods": {"a": 0.8, "b": 0.2}},
+            }
+        ],
+    }
+    state, finite = _semantic_step(state, **finite_initial)
+    initial_rows = {
+        row["alternative_id"]: row
+        for row in finite["parameter_set"]["state"]["alternatives"]
+    }
+    assert initial_rows["a"]["mass"] == pytest.approx(0.8)
+    assert initial_rows["b"]["mass"] == pytest.approx(0.2)
+
+    state, refined = _semantic_step(
+        state,
+        operation="learn-parameters",
+        operation_id="finite-refinement",
+        mechanism_id="parameter-law",
+        parameter_set_id="finite-theta",
+        parameter_path="finite-alternatives",
+        alternative_semantics="probability",
+        alternatives=[
+            {
+                "alternative_id": "a-low",
+                "parent_id": "a",
+                "parameters": {"theta": -0.25},
+                "prior_mass": 0.3,
+            },
+            {
+                "alternative_id": "a-high",
+                "parent_id": "a",
+                "parameters": {"theta": 0.25},
+                "prior_mass": 0.5,
+            },
+            {
+                "alternative_id": "b",
+                "parameters": {"theta": 1},
+                "prior_mass": 0.2,
+            },
+        ],
+        evidence_prefix=events[:2],
+        contributions=[
+            {
+                "contribution_id": "finite-row:2",
+                "evidence": events[1],
+                "values": {
+                    "likelihoods": {
+                        "a-high": 1.0,
+                        "a-low": 1.0,
+                        "b": 1.0,
+                    }
+                },
+            }
+        ],
+    )
+    refined_rows = {
+        row["alternative_id"]: row
+        for row in refined["parameter_set"]["state"]["alternatives"]
+    }
+    assert refined_rows["a-low"]["mass"] == pytest.approx(0.3)
+    assert refined_rows["a-high"]["mass"] == pytest.approx(0.5)
+    assert refined_rows["b"]["mass"] == pytest.approx(0.2)
+    assert len(refined["parameter_set"]["state"]["contribution_scores"]) == 2
+
+    state, contradicted = _semantic_step(
+        state,
+        operation="learn-parameters",
+        operation_id="finite-zero-support",
+        mechanism_id="parameter-law",
+        parameter_set_id="finite-theta",
+        parameter_path="finite-alternatives",
+        alternative_semantics="probability",
+        alternatives=[
+            {
+                "alternative_id": candidate,
+                "parameters": refined_rows[candidate]["parameters"],
+                "prior_mass": refined_rows[candidate]["mass"],
+            }
+            for candidate in ("a-high", "a-low", "b")
+        ],
+        evidence_prefix=events[:3],
+        contributions=[
+            {
+                "contribution_id": "finite-row:3",
+                "evidence": events[2],
+                "values": {
+                    "likelihoods": {
+                        "a-high": 0.0,
+                        "a-low": 0.0,
+                        "b": 0.0,
+                    }
+                },
+            }
+        ],
+    )
+    assert contradicted["status"] == "support-gap"
+    assert contradicted["model_inadequacy"]["kind"] == "Obligation"
+    assert all(
+        row["mass"] is None
+        for row in contradicted["parameter_set"]["state"]["alternatives"]
+    )
+
+    integration = {
+        "error_rule": {"absolute": 0.0},
+        "method": "exact-box-partition",
+        "reference_measure": "lebesgue-theta",
+        "semantics": "exact-partition",
+    }
+    state, continuous = _semantic_step(
+        state,
+        operation="learn-parameters",
+        operation_id="continuous-initial",
+        mechanism_id="parameter-law",
+        parameter_set_id="continuous-theta",
+        parameter_path="continuous-cells",
+        cell_semantics="probability-measure",
+        integration=integration,
+        cells=[
+            {
+                "cell_id": "low",
+                "bounds": {"theta": [0.0, 1.0]},
+                "prior_mass": 0.5,
+            },
+            {
+                "cell_id": "high",
+                "bounds": {"theta": [1.0, 2.0]},
+                "prior_mass": 0.5,
+            },
+        ],
+        evidence_prefix=[events[3]],
+        contributions=[
+            {
+                "contribution_id": "continuous-row:1",
+                "evidence": events[3],
+                "values": {"likelihoods": {"low": 1.0, "high": 3.0}},
+            }
+        ],
+    )
+    first_cells = {
+        row["cell_id"]: row
+        for row in continuous["parameter_set"]["state"]["cells"]
+    }
+    assert first_cells["low"]["mass"] == pytest.approx(0.25)
+    assert first_cells["high"]["mass"] == pytest.approx(0.75)
+
+    state, split = _semantic_step(
+        state,
+        operation="learn-parameters",
+        operation_id="continuous-split",
+        mechanism_id="parameter-law",
+        parameter_set_id="continuous-theta",
+        parameter_path="continuous-cells",
+        cell_semantics="probability-measure",
+        integration=integration,
+        cells=[
+            {
+                "cell_id": "low",
+                "bounds": {"theta": [0.0, 1.0]},
+                "prior_mass": 0.25,
+            },
+            {
+                "cell_id": "high-left",
+                "parent_id": "high",
+                "bounds": {"theta": [1.0, 1.5]},
+                "prior_mass": 0.375,
+            },
+            {
+                "cell_id": "high-right",
+                "parent_id": "high",
+                "bounds": {"theta": [1.5, 2.0]},
+                "prior_mass": 0.375,
+            },
+        ],
+        evidence_prefix=events[3:5],
+        contributions=[
+            {
+                "contribution_id": "continuous-row:2",
+                "evidence": events[4],
+                "values": {
+                    "likelihoods": {
+                        "low": [0.9, 1.1],
+                        "high-left": [0.9, 1.1],
+                        "high-right": [0.9, 1.1],
+                    }
+                },
+            }
+        ],
+    )
+    split_state = split["parameter_set"]["state"]
+    assert split_state["ordering"] == "unresolved"
+    assert split_state["computational_uncertainty"] == [
+        "likelihood-enclosure"
+    ]
+    assert split_state["frozen_preupdate_mass"] == {
+        "high-left": 0.375,
+        "high-right": 0.375,
+        "low": 0.25,
+    }
+    assert len(split_state["contribution_likelihoods"]) == 2
+
+
+def test_semantic_candidate_activation_freezes_boundary_before_new_evidence() -> None:
+    state, events = _semantic_parameter_fixture(3)
+    probability_model = {
+        "model_id": "prospective-family:1",
+        "observation_law": "declared-marginal-likelihood",
+        "prior_or_frequency_basis": "explicit-family-prior",
+        "reference_population": "parameter-fixture-events",
+    }
+    common = {
+        "operation": "learn-parameters",
+        "mechanism_id": "parameter-law",
+        "parameter_set_id": "prospective-family",
+        "parameter_path": "observed-sufficient-statistics",
+        "variables": ["x", "y"],
+        "design_variables": ["x"],
+        "target_variables": ["y"],
+        "interpretation": {
+            "assumptions": ["fully-observed"],
+            "likelihood_or_compatibility": "linear-sufficient-statistics",
+            "probability_model": None,
+            "semantics": "compatibility",
+        },
+    }
+    state, initial = _semantic_step(
+        state,
+        **common,
+        operation_id="prospective-family-initial",
+        evidence_prefix=[events[0]],
+        contributions=[
+            {
+                "contribution_id": "prospective-row:0",
+                "evidence": events[0],
+                "values": {
+                    "x": 1.0,
+                    "y": 2.0,
+                    "candidate_likelihoods": {
+                        "constant": 0.25,
+                        "linear": 0.75,
+                    },
+                },
+            }
+        ],
+        family_update={
+            "activation_transition": state["ledger"]["transitions"] + 1,
+            "candidate_family_version": "prospective-family:v1",
+            "candidates": [
+                {"candidate_id": "constant", "prior_mass": 0.5},
+                {"candidate_id": "linear", "prior_mass": 0.5},
+            ],
+            "probability_model": probability_model,
+            "update_semantics": "fixed-family",
+        },
+    )
+    initial_mass = {
+        row["candidate_id"]: row["mass"]
+        for row in initial["candidate_family"]["candidates"]
+    }
+    state, activated = _semantic_step(
+        state,
+        **common,
+        operation_id="prospective-family-activate",
+        evidence_prefix=[events[0]],
+        contributions=[],
+        family_update={
+            "activation_basis": {
+                "kind": "bounded-structural-proposal",
+                "source": "retained-frontier",
+            },
+            "activation_mass": 0.1,
+            "activation_transition": state["ledger"]["transitions"] + 1,
+            "candidate_family_version": "prospective-family:v2",
+            "candidates": [
+                {
+                    "candidate_id": "constant",
+                    "prior_mass": initial_mass["constant"] * 0.9,
+                },
+                {
+                    "candidate_id": "linear",
+                    "prior_mass": initial_mass["linear"] * 0.9,
+                },
+                {"candidate_id": "quadratic", "prior_mass": 0.1},
+            ],
+            "previous_family_version": "prospective-family:v1",
+            "probability_model": probability_model,
+            "update_semantics": "prospective-activation",
+        },
+    )
+    family = activated["candidate_family"]
+    activated_mass = {
+        row["candidate_id"]: row["mass"] for row in family["candidates"]
+    }
+    assert activated_mass == pytest.approx(
+        {
+            "constant": initial_mass["constant"] * 0.9,
+            "linear": initial_mass["linear"] * 0.9,
+            "quadratic": 0.1,
+        }
+    )
+    assert family["activation"] == {
+        "basis": {
+            "kind": "bounded-structural-proposal",
+            "source": "retained-frontier",
+        },
+        "evidence_count_before_activation": 1,
+        "mass": 0.1,
+        "new_candidate_id": "quadratic",
+    }
+    assert family["contribution_scores"] == []
+    assert next(
+        row
+        for row in family["candidates"]
+        if row["candidate_id"] == "quadratic"
+    )["likelihood_bounds"] == [1.0, 1.0]
+
+    with pytest.raises(FieldIntelligenceError) as invented_mass:
+        _semantic_step(
+            state,
+            **common,
+            operation_id="prospective-family-invalid-alpha",
+            evidence_prefix=[events[0]],
+            contributions=[],
+            family_update={
+                "activation_basis": {"kind": "unsupported-reweighting"},
+                "activation_mass": 0.2,
+                "activation_transition": state["ledger"]["transitions"] + 1,
+                "candidate_family_version": "prospective-family:v3",
+                "candidates": [
+                    {
+                        "candidate_id": "constant",
+                        "prior_mass": activated_mass["constant"],
+                    },
+                    {
+                        "candidate_id": "linear",
+                        "prior_mass": activated_mass["linear"],
+                    },
+                    {
+                        "candidate_id": "quadratic",
+                        "prior_mass": activated_mass["quadratic"],
+                    },
+                    {"candidate_id": "cubic", "prior_mass": 0.2},
+                ],
+                "previous_family_version": "prospective-family:v2",
+                "probability_model": probability_model,
+                "update_semantics": "prospective-activation",
+            },
+        )
+    assert invented_mass.value.code == "INVALID_PARAMETER_UPDATE"
+
+
+def test_semantic_discovery_transfers_into_ordinary_query_and_language() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_program import execute_semantic_program
+    from cassi_field_regions import resolve_semantic_record
+
+    state = semantic_cognition_state()
+    difference = {
+        "family": "relational-variable",
+        "guard": None,
+        "relation": "difference",
+        "sources": ["x", "y"],
+        "target": "delta",
+        "tolerance": 0.0,
+        "units": "unitless",
+    }
+    examples = [
+        {
+            "example_id": "difference:0",
+            "features": {"x": 5.0, "y": 2.0},
+            "outcome": "ahead",
+        },
+        {
+            "example_id": "difference:1",
+            "features": {"x": 8.0, "y": 5.0},
+            "outcome": "ahead",
+        },
+    ]
+    state, learned_representation = _semantic_step(
+        state,
+        operation="learn-representation",
+        operation_id="learn-relative-position",
+        representation_id="relative-position",
+        question={"target": "relative-position"},
+        information_boundary={"available": ["features"]},
+        examples=examples,
+        holdout=[
+            {
+                "example_id": "difference:holdout",
+                "features": {"x": 11.0, "y": 8.0},
+                "outcome": "ahead",
+                "rare_case": True,
+            }
+        ],
+        candidates=[
+            {
+                "candidate_id": "difference-role",
+                "edits": [difference],
+                "output_roles": ["delta"],
+                "exceptions": [],
+                "frontier": {"remaining": [], "status": "evaluated"},
+                "measured_cost": {"field_steps": 1},
+                "parameter_initialization": {},
+                "parent_refs": [],
+                "proposal_history": [
+                    {"source": "repeated-equal-difference"}
+                ],
+                "prospective_predictions": [],
+            }
+        ],
+        support_roots=["difference-observation"],
+    )
+    assert learned_representation["status"] == "supported"
+    state, ordinary_use = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-relative-position",
+        query={
+            "kind": "representation",
+            "representation_id": "relative-position",
+            "features": {"x": 20.0, "y": 17.0},
+        },
+    )
+    assert ordinary_use["status"] == "supported"
+    assert ordinary_use["answer"] == "ahead"
+    assert ordinary_use["representation_output"]["encoded"]["delta"] == 3.0
+    state, packet = _semantic_step(
+        state,
+        operation="observe",
+        operation_id="observe-relative-position-packet",
+        delivery_id="delivery:relative-position-packet",
+        event_id="event:relative-position-packet",
+        time={"start": 1.0, "end": 1.0},
+        observations=[
+            {
+                "attribute": "x",
+                "binding_id": "binding:relative-x",
+                "frame": "shared-frame",
+                "subject": "relative-pair",
+                "units": "unitless",
+                "value": 20.0,
+            },
+            {
+                "attribute": "y",
+                "binding_id": "binding:relative-y",
+                "frame": "shared-frame",
+                "subject": "relative-pair",
+                "units": "unitless",
+                "value": 17.0,
+            },
+        ],
+    )
+    packet_bindings = {
+        reference["id"]: reference for reference in packet["bindings"]
+    }
+    state, binding_use = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-relative-position-bindings",
+        query={
+            "kind": "representation",
+            "representation_id": "relative-position",
+            "inputs": {
+                "x": {"binding": packet_bindings["binding:relative-x"]},
+                "y": {"binding": packet_bindings["binding:relative-y"]},
+            },
+        },
+    )
+    assert binding_use["status"] == "supported"
+    assert binding_use["answer"] == "ahead"
+    assert binding_use["representation_output"]["encoded"]["delta"] == 3.0
+    assert {
+        row["role"]: row["binding"]
+        for row in binding_use["representation_output"]["source_refs"]
+    } == {
+        "x": packet_bindings["binding:relative-x"],
+        "y": packet_bindings["binding:relative-y"],
+    }
+    assert {
+        row["value"]["kind"]
+        for row in binding_use["representation_output"]["source_refs"]
+    } == {"Value"}
+
+
+    trace = lambda item, place: [
+        {"op": "open", "item": item},
+        {"op": "move", "item": item, "to": place},
+        {"op": "check", "item": item},
+        {"op": "close", "item": item},
+    ]
+    state, learned_procedure = _semantic_step(
+        state,
+        operation="learn-procedure",
+        operation_id="learn-move-cycle",
+        procedure_id="move-cycle",
+        traces=[trace("a", "left"), trace("b", "right")],
+        holdout=[trace("novel", "center")],
+    )
+    assert learned_procedure["status"] == "supported"
+    winner = learned_procedure["candidates"][0]
+    assert winner["measured_cost"]["net_saved_steps"] > 0
+    procedure_record = resolve_semantic_record(
+        state["records"], learned_procedure["procedure"]
+    )
+    transferred = execute_semantic_program(
+        procedure_record["payload"]["program"],
+        {},
+        action={"role_0": "unseen-item", "role_1": "unseen-place"},
+    )
+    assert transferred["status"] == "supported"
+    assert transferred["proposed_actions"] == trace(
+        "unseen-item", "unseen-place"
+    )
+    invalid_roles = execute_semantic_program(
+        procedure_record["payload"]["program"],
+        {},
+        action={"role_0": 7, "role_1": "unseen-place"},
+    )
+    assert invalid_roles["status"] == "support-gap"
+    assert invalid_roles["limitations"] == ["argument-type:role_0:string"]
+
+    construction_examples = [
+        {
+            "text": "the key is in the drawer",
+            "bindings": {"item": "key", "place": "drawer"},
+        },
+        {
+            "text": "the cup is in the box",
+            "bindings": {"item": "cup", "place": "box"},
+        },
+    ]
+    state, construction = _semantic_step(
+        state,
+        operation="learn-construction",
+        operation_id="learn-location-assertion",
+        construction_id="location-assertion",
+        examples=construction_examples,
+        meaning={
+            "object": {"$role": "place"},
+            "relation": "located-in",
+            "subject": {"$role": "item"},
+        },
+        speech_act="assertion",
+    )
+    assert construction["status"] == "supported"
+    state, interpreted = _semantic_step(
+        state,
+        operation="interpret",
+        operation_id="interpret-novel-location",
+        text="the coin is in the chest",
+        speaker="bob",
+        discourse_id="location-discourse",
+    )
+    assert interpreted["interpretation"]["content"] == {
+        "object": "chest",
+        "relation": "located-in",
+        "subject": "coin",
+    }
+    assert interpreted["interpretation"]["content_status"] == (
+        "speaker-attributed"
+    )
+    assert interpreted["interpretation"]["authority_granted"] is False
+    state, perspective = _semantic_step(
+        state,
+        operation="update-perspective",
+        operation_id="record-bob-false-belief",
+        agent_id="bob",
+        perspective_path=["alice", "bob"],
+        updates={
+            "beliefs": {"key_location": "drawer"},
+            "information_access": {"move-event": False},
+        },
+    )
+    assert perspective["world_fact_promoted"] is False
+    state, attributed = _semantic_step(
+        state,
+        operation="query",
+        operation_id="query-bob-false-belief",
+        query={
+            "kind": "perspective",
+            "agent_id": "bob",
+            "perspective_path": ["alice", "bob"],
+            "category": "beliefs",
+            "name": "key_location",
+        },
+    )
+    assert attributed["answer"] == "drawer"
+    assert attributed["world_fact"] is False
+
+    state, _ = _semantic_step(
+        state,
+        operation="learn-construction",
+        operation_id="learn-location-question",
+        construction_id="location-question",
+        examples=construction_examples,
+        meaning={
+            "object": {"$role": "place"},
+            "relation": "ask-location",
+            "subject": {"$role": "item"},
+        },
+        speech_act="question",
+    )
+    state, ambiguous = _semantic_step(
+        state,
+        operation="interpret",
+        operation_id="interpret-ambiguous-location",
+        text="the token is in the bin",
+        speaker="bob",
+        discourse_id="ambiguous-discourse",
+    )
+    assert ambiguous["status"] == "alternatives"
+    assert ambiguous["interpretation"] is None
+    assert ambiguous["separating_question"]["target"] == (
+        "intended-construction"
+    )
+
+
+def test_semantic_affine_representation_reads_exact_binding_packet_transiently() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_regions import resolve_semantic_record
+
+    shared_frame = {"coordinate_system": "shared"}
+    observed_temperature = {
+        "availability": "partial",
+        "observed_mask": ["temperature"],
+        "precision": {"temperature": 0.0},
+    }
+    unspecified = object()
+
+    def observation(
+        identity,
+        value,
+        *,
+        frame=unspecified,
+        units=unspecified,
+        measurement=unspecified,
+        status="active",
+    ):
+        row = {
+            "attribute": identity,
+            "binding_id": f"binding:{identity}",
+            "frame": shared_frame if frame is unspecified else frame,
+            "measurement": (
+                observed_temperature
+                if measurement is unspecified
+                else measurement
+            ),
+            "status": status,
+            "subject": "two-view",
+            "value": value,
+        }
+        selected_units = (
+            {"temperature": "arb"} if units is unspecified else units
+        )
+        if selected_units is not None:
+            row["units"] = selected_units
+        return row
+
+    state = semantic_cognition_state()
+    state, packet = _semantic_step(
+        state,
+        operation="observe",
+        operation_id="observe-two-view-packet",
+        delivery_id="delivery:two-view-packet",
+        event_id="event:two-view-packet",
+        time={"start": 1.0, "end": 1.0},
+        observations=[
+            observation("yin", {"temperature": 3.0}),
+            observation("yang", {"temperature": 1.0}),
+            observation(
+                "imprecise",
+                {"temperature": 3.0},
+                measurement={
+                    "availability": "partial",
+                    "observed_mask": ["temperature"],
+                    "precision": {"temperature": 0.25},
+                },
+            ),
+            observation(
+                "whole-precision",
+                {"temperature": 3.0},
+                measurement={
+                    "availability": "partial",
+                    "observed_mask": ["temperature"],
+                    "precision": 0.25,
+                },
+            ),
+            observation(
+                "scalar-yin",
+                3.0,
+                measurement={"availability": "observed", "precision": 0.25},
+                units="arb",
+            ),
+            observation(
+                "scalar-yang",
+                1.0,
+                measurement={"availability": "observed", "precision": 0.0},
+                units="arb",
+            ),
+            observation(
+                "no-precision",
+                {"temperature": 3.0},
+                measurement={
+                    "availability": "partial",
+                    "observed_mask": ["temperature"],
+                },
+            ),
+            observation(
+                "censored",
+                {"temperature": 3.0},
+                measurement={
+                    "availability": "observed",
+                    "censoring": {"temperature": [2.0, 4.0]},
+                    "observed_mask": ["temperature"],
+                    "precision": {"temperature": 0.0},
+                },
+            ),
+            observation(
+                "whole-censored",
+                {"temperature": 3.0},
+                measurement={
+                    "availability": "observed",
+                    "censoring": {"value": [2.0, 4.0]},
+                    "observed_mask": ["temperature"],
+                    "precision": {"temperature": 0.0},
+                },
+            ),
+            observation(
+                "unrelated-censored",
+                {"hidden": 9.0, "temperature": 3.0},
+                measurement={
+                    "availability": "partial",
+                    "censoring": {"hidden": [8.0, 10.0]},
+                    "observed_mask": ["temperature"],
+                    "precision": {"temperature": 0.25},
+                },
+            ),
+            observation(
+                "masked",
+                {"hidden": 9.0, "temperature": 1.0},
+            ),
+            observation(
+                "other-units",
+                {"temperature": 1.0},
+                units={"temperature": "other"},
+            ),
+            observation(
+                "other-frame",
+                {"temperature": 1.0},
+                frame={"coordinate_system": "other"},
+            ),
+            observation(
+                "no-units",
+                {"temperature": 1.0},
+                units=None,
+            ),
+            observation(
+                "no-frame",
+                {"temperature": 1.0},
+                frame=None,
+            ),
+            observation(
+                "inactive",
+                {"temperature": 1.0},
+                status="invalidated",
+            ),
+            observation("negative", {"temperature": -3.0}),
+        ],
+    )
+    bindings = {reference["id"]: reference for reference in packet["bindings"]}
+    coefficient = 1.0 / (2.0**0.5)
+
+    def expression(yang_coefficient, *, shifted=False):
+        return {
+            "action_terms": {"shift": 1.0} if shifted else {},
+            "bias": 0.0,
+            "error": 0.1,
+            "terms": {
+                "features.yang": yang_coefficient * coefficient,
+                "features.yin": coefficient,
+            },
+        }
+
+    affine = semantic_program_payload(
+        program_kind="affine",
+        body={
+            "clamp": {"clamped": [2.7, 2.9]},
+            "outputs": {
+                "clamped": expression(1.0),
+                "common": expression(1.0),
+                "difference": expression(-1.0),
+                "outcome": expression(1.0, shifted=True),
+            },
+        },
+        guards=[
+            {
+                "left": "input_metadata.yin.observed",
+                "op": "eq",
+                "right": True,
+            },
+            {
+                "left": "input_metadata.yang.observed",
+                "op": "eq",
+                "right": True,
+            },
+            {
+                "left": "input_metadata.yin.frame",
+                "op": "eq",
+                "right": shared_frame,
+            },
+            {
+                "left": "input_metadata.yang.frame",
+                "op": "eq",
+                "right": shared_frame,
+            },
+            {
+                "left": "input_metadata.yin.units",
+                "op": "eq",
+                "right": "arb",
+            },
+            {
+                "left": "input_metadata.yang.units",
+                "op": "eq",
+                "right": "arb",
+            },
+            {"left": "context.mode", "op": "eq", "right": "packet"},
+            {"left": "features.yin", "op": "gt", "right": 0.0},
+        ],
+        reads=[
+            "context.mode",
+            "features.yang",
+            "features.yin",
+            "input_metadata.yang.frame",
+            "input_metadata.yang.observed",
+            "input_metadata.yang.units",
+            "input_metadata.yin.frame",
+            "input_metadata.yin.observed",
+            "input_metadata.yin.units",
+        ],
+        writes=["clamped", "common", "difference", "outcome"],
+        max_work=4,
+        applicability={
+            "frame": shared_frame,
+            "input_roles": ["yang", "yin"],
+            "units": "arb",
+        },
+    )
+    state, registered = _semantic_step(
+        state,
+        operation="register",
+        operation_id="register-two-view-affine",
+        kind="Program",
+        record_id="representation:two-view-affine",
+        payload={
+            "program": affine,
+            "program_role": "representation",
+        },
+    )
+    assert state["libraries"]["representations"][
+        "representation:two-view-affine"
+    ] == registered["record"]
+
+    def packet_query(
+        operation_id,
+        yin,
+        yang,
+        *,
+        yin_coordinate: str | None = "temperature",
+        yang_coordinate: str | None = "temperature",
+    ):
+        inputs = {}
+        for role, binding, coordinate in (
+            ("yin", yin, yin_coordinate),
+            ("yang", yang, yang_coordinate),
+        ):
+            inputs[role] = {"binding": binding}
+            if coordinate is not None:
+                inputs[role]["coordinate"] = coordinate
+        return {
+            "operation": "query",
+            "operation_id": operation_id,
+            "query": {
+                "action": {"shift": 0.0},
+                "context": {"mode": "packet"},
+                "inputs": inputs,
+                "kind": "representation",
+                "representation_id": "representation:two-view-affine",
+            },
+        }
+
+    def domain_snapshot(current):
+        return {
+            "beliefs": copy.deepcopy(current["beliefs"]),
+            "current": copy.deepcopy(current["current"]),
+            "indexes": {
+                name: copy.deepcopy(rows)
+                for name, rows in current["indexes"].items()
+                if name != "operations"
+            },
+            "libraries": copy.deepcopy(current["libraries"]),
+            "records": copy.deepcopy(current["records"]),
+            "time": copy.deepcopy(current["time"]),
+        }
+
+    domain_before = domain_snapshot(state)
+    state, represented = _semantic_step(
+        state,
+        **packet_query(
+            "query-two-view-affine",
+            bindings["binding:yin"],
+            bindings["binding:yang"],
+        ),
+    )
+    expected = {
+        "clamped": 2.0 * (2.0**0.5),
+        "common": 2.0 * (2.0**0.5),
+        "difference": 2.0**0.5,
+        "outcome": 2.0 * (2.0**0.5),
+    }
+    assert represented["status"] == "supported"
+    assert represented["answer"] == pytest.approx(expected["outcome"])
+    output = represented["representation_output"]
+    assert output["values"] == pytest.approx(expected)
+    assert set(output["uncertainty"]) == set(output["values"])
+    for name in ("common", "difference", "outcome"):
+        assert output["uncertainty"][name] == pytest.approx(
+            [expected[name] - 0.1, expected[name] + 0.1]
+        )
+    assert output["uncertainty"]["clamped"] == pytest.approx(
+        [expected["clamped"] - 0.1, 2.9]
+    )
+    assert [row["role"] for row in output["source_refs"]] == ["yang", "yin"]
+    for row in output["source_refs"]:
+        binding_record = resolve_semantic_record(
+            state["records"], row["binding"], require_current=True
+        )
+        assert row["value"] == binding_record["payload"]["value_ref"]
+        assert resolve_semantic_record(
+            state["records"], row["value"], require_current=True
+        )["payload"]["value"] == binding_record["payload"]["value"]
+    assert output["input_metadata"]["yin"]["measurement"][
+        "observed_mask"
+    ] == ["temperature"]
+    assert output["input_metadata"]["yin"]["units"] == "arb"
+    assert output["input_metadata"]["yin"]["precision"] == 0.0
+    assert output["uncertainty_semantics"] == (
+        "clamped-program-error-plus-absolute-affine-input-precision"
+    )
+    assert domain_snapshot(state) == domain_before
+    state, imprecise_view = _semantic_step(
+        state,
+        **packet_query(
+            "query-two-view-imprecise",
+            bindings["binding:imprecise"],
+            bindings["binding:yang"],
+        ),
+    )
+    propagated_radius = 0.1 + 0.25 / (2.0**0.5)
+    assert imprecise_view["status"] == "supported"
+    for name in ("common", "difference", "outcome"):
+        assert imprecise_view["representation_output"]["uncertainty"][
+            name
+        ] == pytest.approx(
+            [expected[name] - propagated_radius, expected[name] + propagated_radius]
+        )
+    assert imprecise_view["representation_output"]["uncertainty"][
+        "clamped"
+    ] == pytest.approx([2.7, 2.9])
+    for operation_id, yin, yin_coordinate in (
+        (
+            "query-two-view-whole-precision",
+            bindings["binding:whole-precision"],
+            "temperature",
+        ),
+        ("query-two-view-scalar", bindings["binding:scalar-yin"], None),
+    ):
+        yang = (
+            bindings["binding:scalar-yang"]
+            if yin_coordinate is None
+            else bindings["binding:yang"]
+        )
+        state, scalar_precision_view = _semantic_step(
+            state,
+            **packet_query(
+                operation_id,
+                yin,
+                yang,
+                yin_coordinate=yin_coordinate,
+                yang_coordinate=yin_coordinate,
+            ),
+        )
+        assert scalar_precision_view["status"] == "supported"
+        assert scalar_precision_view["representation_output"]["input_metadata"][
+            "yin"
+        ]["precision"] == 0.25
+        assert scalar_precision_view["representation_output"]["uncertainty"][
+            "outcome"
+        ] == pytest.approx(
+            [
+                expected["outcome"] - propagated_radius,
+                expected["outcome"] + propagated_radius,
+            ]
+        )
+
+    state, unrelated_censoring_view = _semantic_step(
+        state,
+        **packet_query(
+            "query-two-view-unrelated-censoring",
+            bindings["binding:unrelated-censored"],
+            bindings["binding:yang"],
+        ),
+    )
+    assert unrelated_censoring_view["status"] == "supported"
+    assert unrelated_censoring_view["limitations"] == []
+    assert unrelated_censoring_view["representation_output"]["uncertainty"][
+        "outcome"
+    ] == pytest.approx(
+        [
+            expected["outcome"] - propagated_radius,
+            expected["outcome"] + propagated_radius,
+        ]
+    )
+
+    cases = [
+        (
+            "query-two-view-masked",
+            bindings["binding:yin"],
+            bindings["binding:masked"],
+            "temperature",
+            "hidden",
+            ["representation-coordinate-unobserved:yang:hidden"],
+        ),
+        (
+            "query-two-view-units",
+            bindings["binding:yin"],
+            bindings["binding:other-units"],
+            "temperature",
+            "temperature",
+            ["representation-units-incompatible"],
+        ),
+        (
+            "query-two-view-frame",
+            bindings["binding:yin"],
+            bindings["binding:other-frame"],
+            "temperature",
+            "temperature",
+            ["representation-frames-incompatible"],
+        ),
+        (
+            "query-two-view-missing-units",
+            bindings["binding:yin"],
+            bindings["binding:no-units"],
+            "temperature",
+            "temperature",
+            ["representation-units-missing:yang"],
+        ),
+        (
+            "query-two-view-missing-frame",
+            bindings["binding:yin"],
+            bindings["binding:no-frame"],
+            "temperature",
+            "temperature",
+            ["representation-frame-missing:yang"],
+        ),
+        (
+            "query-two-view-inactive",
+            bindings["binding:yin"],
+            bindings["binding:inactive"],
+            "temperature",
+            "temperature",
+            ["representation-binding-invalidated:yang"],
+        ),
+        (
+            "query-two-view-guard",
+            bindings["binding:negative"],
+            bindings["binding:yang"],
+            "temperature",
+            "temperature",
+            ["guard-false"],
+        ),
+        (
+            "query-two-view-precision",
+            bindings["binding:no-precision"],
+            bindings["binding:yang"],
+            "temperature",
+            "temperature",
+            ["representation-precision-missing:yin"],
+        ),
+        (
+            "query-two-view-censored",
+            bindings["binding:censored"],
+            bindings["binding:yang"],
+            "temperature",
+            "temperature",
+            ["representation-binding-censored:yin"],
+        ),
+        (
+            "query-two-view-whole-censored",
+            bindings["binding:whole-censored"],
+            bindings["binding:yang"],
+            "temperature",
+            "temperature",
+            ["representation-binding-censored:yin"],
+        ),
+    ]
+    for (
+        operation_id,
+        yin,
+        yang,
+        yin_coordinate,
+        yang_coordinate,
+        limitations,
+    ) in cases:
+        state, refused = _semantic_step(
+            state,
+            **packet_query(
+                operation_id,
+                yin,
+                yang,
+                yin_coordinate=yin_coordinate,
+                yang_coordinate=yang_coordinate,
+            ),
+        )
+        assert refused["status"] == "support-gap"
+        assert refused["answer"] is None
+        assert refused["representation_output"] is None
+        assert refused["limitations"] == limitations
+    too_many_inputs = {
+        f"role-{index}": {"binding": bindings["binding:yin"]}
+        for index in range(state["bounds"]["max_observations"] + 1)
+    }
+    with pytest.raises(
+        FieldIntelligenceError,
+        match="representation Binding inputs must be a bounded nonempty mapping",
+    ) as over_limit:
+        _semantic_step(
+            state,
+            operation="query",
+            operation_id="query-two-view-over-limit",
+            query={
+                "inputs": too_many_inputs,
+                "kind": "representation",
+                "representation_id": "representation:two-view-affine",
+            },
+        )
+    assert over_limit.value.code == "INVALID_QUERY"
+
+    state, corrected = _semantic_step(
+        state,
+        operation="correct",
+        operation_id="correct-two-view-yin",
+        correction_id="two-view-yin",
+        target=bindings["binding:yin"],
+        replacement={"value": {"temperature": 5.0}},
+    )
+    state, stale = _semantic_step(
+        state,
+        **packet_query(
+            "query-two-view-stale",
+            bindings["binding:yin"],
+            bindings["binding:yang"],
+        ),
+    )
+    assert stale["status"] == "support-gap"
+    assert stale["limitations"] == ["representation-binding-unavailable:yin"]
+    state, corrected_view = _semantic_step(
+        state,
+        **packet_query(
+            "query-two-view-corrected",
+            corrected["current"],
+            bindings["binding:yang"],
+        ),
+    )
+    assert corrected_view["status"] == "supported"
+    assert corrected_view["representation_output"]["values"] == pytest.approx(
+        {
+            "clamped": 2.9,
+            "common": 3.0 * (2.0**0.5),
+            "difference": 2.0 * (2.0**0.5),
+            "outcome": 3.0 * (2.0**0.5),
+        }
+    )
+    assert corrected_view["representation_output"]["uncertainty"][
+        "clamped"
+    ] == pytest.approx([2.8, 2.9])
+    assert corrected_view["representation_output"]["input_metadata"]["yin"][
+        "binding_epistemic_kind"
+    ] == "corrected"
+    assert corrected_view["representation_output"]["input_metadata"]["yin"][
+        "value_epistemic_kind"
+    ] == "corrected"
+
+
+def test_semantic_migration_consolidation_recovery_and_revocation() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+    from cassi_field_regions import resolve_semantic_record
+
+    state = semantic_cognition_state()
+    state, registered = _semantic_step(
+        state,
+        operation="register",
+        operation_id="register-coarse-schema",
+        kind="Value",
+        record_id="representation-state",
+        payload={"schema": "representation.v1", "state": "coarse"},
+        support_roots=["observation:coarse"],
+    )
+    migration = {
+        "operation": "migrate",
+        "migration_id": "representation-v2-migration",
+        "target": registered["record"],
+        "replacement_payload": {
+            "schema": "representation.v2",
+            "states": ["fine-a", "fine-b"],
+        },
+        "old_schema": "representation.v1",
+        "new_schema": "representation.v2",
+        "mapping": [
+            {
+                "old": "coarse",
+                "new": ["fine-a", "fine-b"],
+                "semantics": "set-valued",
+            }
+        ],
+        "affected_bindings": [],
+        "preservation": {
+            "exact_queries": ["is-fine-family"],
+            "approximate_queries": [],
+            "lost_distinctions": [],
+        },
+        "resource_bounds": {
+            "max_work": 64,
+            "max_output_bytes": 4096,
+        },
+        "recovery": {
+            "available": True,
+            "requires_authorization": False,
+            "route": "regional immutable history",
+        },
+    }
+    state, waiting = _semantic_step(
+        state,
+        **migration,
+        operation_id="migration-await-source",
+        source_access={
+            "required": ["regional-history:representation-state"],
+            "available": [],
+        },
+    )
+    assert waiting["status"] == "support-gap"
+    assert waiting["obligation"]["kind"] == "Obligation"
+    assert waiting["progress"]["completed"] == 0
+    state, migrated = _semantic_step(
+        state,
+        **migration,
+        operation_id="migration-with-source",
+        source_access={
+            "required": ["regional-history:representation-state"],
+            "available": ["regional-history:representation-state"],
+        },
+    )
+    assert migrated["status"] == "supported"
+    assert migrated["progress"]["completed"] == migrated["progress"]["required"]
+    resolved_obligation = resolve_semantic_record(
+        state["records"], migrated["resolved_obligation"]
+    )
+    assert resolved_obligation["payload"]["state"] == "resolved"
+
+    state, consolidated = _semantic_step(
+        state,
+        operation="consolidate",
+        operation_id="consolidate-fine-state",
+        record_id="representation-summary",
+        references=[migrated["migrated"]],
+        summary={"family": "fine", "member_count": 2},
+        retention={
+            "recoverable_details": ["states"],
+            "sufficient_summaries": ["member_count"],
+            "lost_details": [],
+            "rare_exceptions": ["fine-b"],
+            "rare_exceptions_preserved": True,
+        },
+        questions={
+            "preserved": ["is-fine-family"],
+            "unavailable": [],
+        },
+        reconstruction={
+            "strategy": "inseparable-invalidates",
+            "authorized_inputs": [],
+            "contribution_partitions": [],
+            "initialization_lineage": [],
+        },
+        measured_cost={"field_steps": 1},
+    )
+    assert consolidated["status"] == "supported"
+    assert consolidated["semantic_loss"] is False
+    assert consolidated["support_root_count"] == 1
+
+    state, revision = _semantic_step(
+        state,
+        operation="register",
+        operation_id="correct-migrated-state",
+        kind="Value",
+        record_id="representation-state",
+        payload={
+            "schema": "representation.v2",
+            "states": ["fine-corrected"],
+        },
+        support_roots=["observation:correction"],
+    )
+    summary = resolve_semantic_record(
+        state["records"], state["current"]["Value"]["representation-summary"]
+    )
+    assert summary["status"] == "invalidated"
+    assert any(
+        reference["id"] == consolidated["summary"]["id"]
+        for reference in revision["invalidation_frontier"]
+    )
+
+    bounded_state = semantic_cognition_state()
+    bounded_state, bounded_record = _semantic_step(
+        bounded_state,
+        operation="register",
+        operation_id="register-bounded-source",
+        kind="Value",
+        record_id="bounded-source",
+        payload={"schema": "representation.v1", "state": "coarse"},
+    )
+    bounded_request = {
+        **migration,
+        "operation_id": "migration-resource-exhaustion",
+        "migration_id": "bounded-migration",
+        "target": bounded_record["record"],
+        "resource_bounds": {"max_work": 1, "max_output_bytes": 4096},
+        "source_access": {"required": [], "available": []},
+    }
+    bounded_state, exhausted = _semantic_step(
+        bounded_state, **bounded_request
+    )
+    assert exhausted["status"] == "resource-exhausted"
+    assert exhausted["migration"] is None
+    assert bounded_state["current"]["Value"]["bounded-source"] == (
+        bounded_record["record"]
+    )
