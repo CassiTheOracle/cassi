@@ -240,7 +240,7 @@ helix_wide N=32 time_refined step 1920/2048 (980s, 2.0 states/s)
 
 The declared receipt `runs/navier_stokes_strain_band_split/verification.json`
 is written only after `run_probe()` returns, so it was not written; the run's
-only artifact is the captured stdout at
+only artifact is the captured combined stdout and stderr at
 `runs/navier_stokes_strain_band_split/probe.log`. The three completed
 `beltrami` declarations printed positive-stretching integrals of
 $1.799751\times10^{-34}$, $1.913839\times10^{-34}$ and

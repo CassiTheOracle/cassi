@@ -2384,7 +2384,7 @@ cutoff-uniform estimate, and no conditional continuation claim.
 - `turbulence/navier-stokes-helical-dynamic-depletion.md`—finite helical families and the contradicted universal sign depletion.
 - `computations/navier-stokes-strain-band-split-prereg.md`—frozen six-family spectral band-split schedule, decision rules and recorded inconclusive execution.
 - `computations/verify_navier_stokes_strain_band_split.py`—18-run band-split verifier with the packed-strain path, band identity and Parseval checks.
-- `runs/navier_stokes_strain_band_split/probe.log`—captured stdout of the bounded band-split execution; the declared receipt was not written (gitignored run artifact).
+- `runs/navier_stokes_strain_band_split/probe.log`—captured combined stdout and stderr of the bounded band-split execution; the declared receipt was not written (gitignored run artifact).
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.
