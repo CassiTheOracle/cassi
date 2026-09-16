@@ -59,6 +59,10 @@ CassiQwen/world-schemas-extract.json
 /*.md
 !/README.md
 !/AGENTS.md
+# Mid-markup scrape of one preprint section (Yang-Mills, arXiv HTML section 8):
+# no tracked file references it and no comparable extract was ever committed, so
+# it stays a workspace-local scratch file rather than tree content.
+/preprint-section8-lines.txt
 
 # CassiQwen native MSVC build tree (b8-server flavor).
 CassiQwen/native/llama.cpp/b8/
