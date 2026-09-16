@@ -137,7 +137,7 @@ pooled held-out RMSE without observing the new pairs).
 
 ### Cross-reference to the concurrent harnesses
 
-Ten runner/regression pairs, written by other sessions in this checkout, are
+Thirteen runner/regression pairs, written by other sessions in this checkout, are
 this map's empirical components:
 `run_fractal_geometry_exploration.py` / `test_fractal_geometry_exploration.py`,
 `run_fractal_memory_exploration.py` / `test_fractal_memory_exploration.py`,
@@ -149,8 +149,11 @@ this map's empirical components:
 `run_fractal_metric_exploration.py` / `test_fractal_metric_exploration.py`
 and `run_fractal_lattice_exploration.py` /
 `test_fractal_lattice_exploration.py`, and `run_fractal_feedback_exploration.py` /
-`test_fractal_feedback_exploration.py`, and `run_owner_write_path_exploration.py` /
-`test_owner_write_path_exploration.py`. All ten runners exist and have been run
+`test_fractal_feedback_exploration.py`, `run_owner_write_path_exploration.py` /
+`test_owner_write_path_exploration.py`, `run_memory_consumer_path.py` /
+`test_memory_consumer_path.py` and `run_owner_surface_options.py` /
+`test_owner_surface_options.py`, and `run_owner_nested_cycle.py` /
+`test_owner_nested_cycle.py`. All thirteen runners exist and have been run
 from this directory, and each writes a receipt that parses:
 
 ```powershell
@@ -164,7 +167,10 @@ python run_fractal_metric_exploration.py --output _diag/fractal-metric/explorati
 python run_fractal_lattice_exploration.py --output _diag/fractal-lattice/exploration.json
 python run_fractal_feedback_exploration.py --output _diag/fractal-feedback/exploration.json
 python run_owner_write_path_exploration.py --output _diag/owner-write-path/exploration.json
-python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py -q
+python run_memory_consumer_path.py --output _diag/memory-consumer-path/exploration.json
+python run_owner_surface_options.py --output _diag/owner-surface-options/exploration.json
+python run_owner_nested_cycle.py --output _diag/owner-nested-cycle/exploration.json
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py -q
 ```
 
 - `_diag/fractal-geometry/exploration.json`, schema
@@ -204,6 +210,26 @@ python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_explor
   `a1f5c4ffe42a9c25182cf25ec54ab2e5bff7ff51147e2d51d98a6234072e9f7c` (the only
   digest field it carries; the receipt holds a `runtime_seconds` key, so its
   digest is stable across re-runs while its file hash is not).
+- `_diag/memory-consumer-path/exploration.json`, schema
+  `cassifi.memory-consumer-path.v1`, `receipt_digest`
+  `3933e8ecc0aeedd1a9722c0bd282006d5217b516b3acf504133e973cb48b5f07` (the only
+  digest field it carries; the receipt holds a `runtime_seconds` key, which its
+  declared strip set removes because the measured body carries no inner
+  wall-clock field).
+- `_diag/owner-surface-options/exploration.json`, schema
+  `cassifi.owner-surface-options.v1`, `receipt_digest`
+  `a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455` (the only
+  digest field it carries; the receipt holds an `elapsed_seconds` block, with a
+  per-selection `elapsed_seconds` inside the overlap enumeration, and its
+  declared strip set removes those leaves with the same four keys).
+- `_diag/owner-nested-cycle/exploration.json`, schema
+  `cassifi.owner-nested-cycle.v1`, `receipt_digest`
+  `909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa` (the only
+  digest field it carries; the receipt holds a `runtime_seconds` key, and its
+  declared strip set is the same four keys — but its digested body is not the
+  measurements alone. It carries each arm's construction record, so it includes
+  those records' live source-line fields and binds the source lines of the
+  declared builders; see "Determinism of the receipts").
 
 Their figures are quoted in "Measured results from the concurrent harnesses"
 below.
@@ -586,6 +612,7 @@ proposals are marked **INFERENCE**.
 ### G.1 The durable storage medium question
 **Status.** Open by design: §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct, and §26.13 says the wave becomes durable knowledge only through an admitted supported update. The memory harness measured departure-and-relaxation in packet coefficient space once, without any checkpoint: with the heartbeat on, the control arm drifts to `0.02616802125195171`, a small disturbance to `0.02644077052253202`, and a large one to `0.030227999631645543`; with the heartbeat off, the same disturbances relax to `0.0019031772406660008` and `0.013457592303609243` from a zero control. Neither condition restores the reference, so this is decay accounting, not demonstrated storage.
 **Measured.** The durability harness writes one declared item at budget `0.001` and reads it back in the declared read frame: recovery is `1.0` with no activity and `1.0` after an exact `ResonantWorkspace.as_dict`/`from_dict` round trip — state digest and page digest identical, read-frame maximum absolute difference `0.0` — and `0.29462880739045766` after `64` ticks of bounded canonical activity with sources and heartbeat on, identical with and without that restart, so the identity established is workspace-level restart identity for a written item and not a durable store, the owner transition surface exposing no packet-impulse operation (`owner_checkpoint_carries_written_item` false, `prepared_query_addressed_written_packet` false) (`_diag/fractal-durability/exploration.json`). The survival receipt shows that figure is scaffold-dependent rather than a property of the written item alone: the same declared item on the same declared activity recovers `0.3481552374975245` on `nested-core-shell` and `0.2702850816137677` on `recursive-paired-loops` against the `0.29462880739045766` default, and the `k = 4` gap is far wider — `0.3351631005750861` on `nested-core-shell` against `0.0764836820747603`, a difference of `0.2586794185003258` against the declared `0.02` margin — so what is stored and how long it lasts both depend on which declared scaffold carried it (`_diag/fractal-survival/exploration.json`).
+**Measured (retrieval).** A declared consumer does read a written direction back through the owner's own `read_packet_deposit` and act on what it read, on one declared profile, one declared policy and one declared budget: the target direction's deposit reads `0.005023718074326502` against a declared floor of half the freshly captured deposit (`0.002511834142857143`), and the act lands along the remembered direction with share `1.0`, against `0.0` with nothing written and `3.229441440156545e-66` when the same page and the same write carry a suppressed read. What does not follow is a store: the act is itself an owner write, and it doubles the deposit it read, `0.005023718074326502 -> 0.01004738636004079`, with no non-destructive actuator on the public surface (`_diag/memory-consumer-path/exploration.json`).
 **First step (INFERENCE).** Write one bit through `packet-impulse`, checkpoint, restart, and read it back through the prepared-query path, so the bit lives in `resonant_workspace` rather than a chart.
 **Measures.** Bit recovery after exact restart and after bounded unrelated work.
 **Counts against.** §26.24's record that readouts are frozen against unrelated heartbeats: a bit surviving only while nothing else happens is not durable.
@@ -731,6 +758,7 @@ proposals are marked **INFERENCE**.
 
 ### I.5 Read disturbance
 **Status.** Partly addressed: §26.13 gives readout semantics without writing, §26.24 freezes readouts against unrelated heartbeats, and the viewer cannot feed pixels back; readout-induced perturbation of a wave-stored pattern is unmeasured.
+**Measured (read neutrality).** The owner's own read of a written direction, taken on the held page, changes no page digest and no generation and returns the same readout when repeated, in each of the receipt's declared episodes; what moves the deposit is the consumer's *act*, not its read — one owner write of the direction it read doubles the owner-side recovery of that direction, `0.005023718074326502 -> 0.01004738636004079` (`_diag/memory-consumer-path/exploration.json`). Drift of the stored pattern under repeated reads is still unmeasured; what is measured is that no page and no generation moves.
 **First step (INFERENCE).** Read one pattern `n` times and measure drift in it and in an unrelated pattern.
 **Measures.** Drift versus `n` against the `2e-12` `ResonantProfile` tolerance and the declared roundoff allowance.
 **Counts against.** Drift above tolerance, making repeated reads lossy.
@@ -738,6 +766,7 @@ proposals are marked **INFERENCE**.
 
 ### I.6 Evidence versus generated activity
 **Status.** Enforced: §26.13 consumes external observations once, §32.3 admits telemetry for learning only with identity and dependencies in the field first, and §27.3 labels transceiver outputs `temporal-prediction` and adds no observed support.
+**Measured.** The read's declaration is now measured both ways on one declared profile. As shipped it is a `temporal-prediction` with `evidence_added` false: it moves no evidence clock, no logical tick and no evidence-store event, and `0` of the `2649` leaves on the four declared surfaces diffed. The same recovered deposit declared as evidence through the owner's own admission rule moves the evidence clock `0 -> 1`, adds one evidence-store event and one declared contribution, and moves `29` of those `2649` leaves — `13` clocks, `11` digests, `2` counts, `2` resources and `1` version — of which `0` are decision inputs, while the written page stays fixed under both (`_diag/owner-surface-options/exploration.json`).
 **First step (INFERENCE).** Compare evidence clock and support counts before and after a bounded read-and-replay cycle.
 **Measures.** Evidence-clock and support-count deltas across a pure read cycle.
 **Counts against.** Any nonzero delta, a direct violation of the stated separation.
@@ -840,7 +869,7 @@ what remains untested.
 
 ## Measured results from the concurrent harnesses
 
-All ten runners exist in this checkout and have been run. Their exact commands:
+All thirteen runners exist in this checkout and have been run. Their exact commands:
 
 ```powershell
 python run_fractal_geometry_exploration.py --output _diag/fractal-geometry/exploration.json
@@ -853,7 +882,10 @@ python run_fractal_metric_exploration.py --output _diag/fractal-metric/explorati
 python run_fractal_lattice_exploration.py --output _diag/fractal-lattice/exploration.json
 python run_fractal_feedback_exploration.py --output _diag/fractal-feedback/exploration.json
 python run_owner_write_path_exploration.py --output _diag/owner-write-path/exploration.json
-python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py -q
+python run_memory_consumer_path.py --output _diag/memory-consumer-path/exploration.json
+python run_owner_surface_options.py --output _diag/owner-surface-options/exploration.json
+python run_owner_nested_cycle.py --output _diag/owner-nested-cycle/exploration.json
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py -q
 ```
 
 `_diag/fractal-geometry/exploration.json` (`receipt_sha256`
@@ -875,7 +907,13 @@ python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_explor
 `_diag/fractal-feedback/exploration.json` (`receipt_digest`
 `fdc2e1443d95e010bae1bb8974980e9e1dff5047946f135dbaa5d30c243eb63b`) and
 `_diag/owner-write-path/exploration.json` (`receipt_digest`
-`a1f5c4ffe42a9c25182cf25ec54ab2e5bff7ff51147e2d51d98a6234072e9f7c`) all exist
+`a1f5c4ffe42a9c25182cf25ec54ab2e5bff7ff51147e2d51d98a6234072e9f7c`) and
+`_diag/memory-consumer-path/exploration.json` (`receipt_digest`
+`3933e8ecc0aeedd1a9722c0bd282006d5217b516b3acf504133e973cb48b5f07`) and
+`_diag/owner-surface-options/exploration.json` (`receipt_digest`
+`a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455`) and
+`_diag/owner-nested-cycle/exploration.json` (`receipt_digest`
+`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`) all exist
 and parse. Each states its own bound in the file: the geometry receipt covers
 "bounded numerical exploration of declared connection/metric scaffolds;
 arrangements are candidate scaffolds, not memory or task claims"; the memory
@@ -917,11 +955,33 @@ profiles or items, owner-level capacity beyond the declared limits, or any
 advantage over alternative architectures", and records one live consequence
 rather than repairing it — that the durability harness's own recon "says the
 owner exposes no packet-impulse operation, which this additive transition
-supersedes; that harness is frozen evidence and is deliberately left untouched."
-Every figure
-below is read from those ten files. All ten measure canonical-field numerical
-proxies — geometric/access, modal-access, or the owner transition surface itself;
-none measures memory utility
+supersedes; that harness is frozen evidence and is deliberately left untouched.";
+the memory consumer path receipt declares its task as "one declared
+deterministic policy over one declared set of candidate directions on one
+declared profile" and closes "nothing here measures a distribution over
+profiles, items, budgets or policies", recording beside it that the consumer's
+act "is the owner's write path, which is the only write actuator on the public
+surface"; and the owner surface options receipt covers "Canonical-field
+measurements in controlled conditions only" over one declared profile, "one
+declared written packet item at one declared write budget", one declared
+observation channel and one declared resolution ladder, states that "Nothing
+here changes a default: both options are measured off the shipped path", and
+closes "The authority figures are the transceiver's declared input-scan
+convention ... not a physical claim about the channel" with its overlap
+enumeration bounded to its declared lattice; and the owner nested cycle receipt
+declares one written item, `root-scale`, at one declared write budget of `0.001`
+on four declared bodies, and its five declared limitations close the figures:
+the two rails "are two declared bodies, not a family: the rail factor is read at
+one nested arrangement only", the metric factor "is read at two declared settings
+of the ladder family plus the survival harness's own shell metric in the reference
+legs; no conclusion about metrics in general follows", "the figures are one
+declared item's", the hold horizon is the consumer path's declared `16` ticks,
+and the no-loop control "is measured at the declared hold horizon and is a no-drive
+hold". Every figure
+below is read from those thirteen files. All thirteen measure canonical-field
+numerical
+proxies — geometric/access, modal-access, the owner transition surface itself, or
+one declared consumer's act on it; none measures task-level memory utility
 or task performance.
 
 ### Geometry
@@ -2174,9 +2234,390 @@ read half is a prediction of the canonical page under the write's own declared
 direction, not an observation: it recovers what a write deposited and says nothing
 about the world beyond the page it reads.
 
-### Reading the ten receipts together
+### Consumer path
 
-The ten receipts measure persistence, transfer, closure, disturbance response,
+One declared consumer on the owner's canonical page. One declared profile, the
+metric harness's flat-inertia member `ladder-uniform`, held by the closed loop at
+this profile's own measured neutral gain — `0.02734375`, bracketed
+`[0.026562500000000003, 0.028125]` from the feedback harness's own refinement —
+for `16` ticks at even horizon parity; one declared write and act budget of
+`0.001` in every arm; the durability harness's read frame and its captured unit
+directions; and three declared candidate directions — the target `root-scale`,
+the fallback `left-detail` and the mismatch item `root-detail` — each captured
+through the canonical packet impulse at that budget and measured pairwise
+orthogonal in the read frame, with a greatest off-diagonal squared cosine of
+`2.3960702554047607e-33` against a declared allowance of `1e-12`
+(`_diag/memory-consumer-path/exploration.json`, `receipt_digest`
+`3933e8ecc0aeedd1a9722c0bd282006d5217b516b3acf504133e973cb48b5f07`). The
+receipt's `question` is whether reading the field's memory changes what a
+consumer does, and whether that change is attributable to the retrieved content
+rather than to the write's side effects on the field. The reading taken is the
+minimal one: the consumer retrieves a declared direction through the owner's own
+`read_packet_deposit`, compares the recovered deposit against a declared floor of
+half the freshly captured deposit (`0.002511834142857143` against
+`0.005023668285714286`), and performs exactly one owner write of the selected
+declared direction — the remembered direction `root-scale` or the declared
+fallback `left-detail` — at the declared budget, under a declared deterministic
+policy that pursues the target if the retrieval reaches the floor and the
+fallback otherwise.
+
+- **The statistic is a field observable of the act rather than a restatement of
+  the read.** It is the share of the act's own read-frame increment lying along
+  each declared candidate, `dot(dframe, u_target)**2 / dot(dframe, dframe)`, with
+  `dframe` taken between the frames before and after the consumer's act and `u`
+  each captured unit direction. The act's budget is one declared value in every
+  arm and every arm deposited something positive, so a zero share is a measured
+  zero rather than an undefined ratio.
+- **Memory used: the retrieval reaches the floor and the consumer pursues the
+  target.** The target direction's deposit reads `0.005023718074326502` against
+  the floor `0.002511834142857143`; the act's increment is
+  `0.0008619191717734538` and its share along the target is `1.0`, against
+  `3.0115911998889716e-64` along the fallback and `5.027550745802709e-31` along
+  the mismatch item. Against the declared separation margin `0.5`, the memory arm
+  beats every control by `1.0`.
+- **Identity control: the field carries the target and the behaviour does not
+  follow it.** The same write and the same hold on a page byte-identical to the
+  memory arm's on arrival (`ad837e842348765037266bed195624c42bd2c43754df1f164a9d357a8d9e86c0`
+  in both), with the consumer's read suppressed — the declared zero, no read call
+  — leaves the consumer with `0.0`, short of the floor, so it pursues the
+  fallback. Its share along the target is `3.229441440156545e-66` while the
+  runner's own instrument read, taken on that same page and not passed to the
+  consumer, recovers `0.005023718074326502`. The act still deposits
+  `0.0050236012961321465`.
+- **No memory: a measured zero.** Nothing is written and the declared horizon is
+  advanced on a blank page with no drive. The retrieval returns `0.0`, the
+  consumer pursues the fallback, and the share along the target is `0.0` against
+  an act increment of `0.0050236682857142875`.
+- **Mismatch control: the same mechanism writes a different item.** A different
+  declared item, `root-detail`, is written and held by the same mechanism at the
+  same budget. The target's retrieval then reads `4.1217363503130554e-13` — nearly
+  ten orders below the declared floor — the consumer pursues the fallback, and the
+  share along the target is `2.906568712007306e-65` against an act increment of
+  `0.005023477863702145`. This is what separates an effect of the retrieved
+  content from an effect of writing at all.
+- **The predicate fires.** The no-memory field episode with the consumer's policy
+  mutated to ignore the retrieval and pursue the target unconditionally returns a
+  share along the target of `1.0` while its retrieval is `0.0`, so the predicate
+  the memory arm satisfies is exercised on the same statistic and the controls'
+  zeroes are not vacuous; the unmutated no-memory arm does not fire.
+- **The gain is measured afresh here and is neutral on each page this receipt
+  holds.** The refinement reproduces the owner write path receipt's own
+  `0.02734375`, and the loop is judged neutral on the target's page at
+  `1.0001475187841866` against `0.9119815524822384` with no drive, and on the
+  mismatch item's page at `1.0001443993691275` against `0.9089294283996476`. The
+  declared loop's tick body replayed from the same post-write page through the
+  feedback harness's own `advance_workspace` and `apply_drive` reproduces the
+  arm's held page at the horizon exactly.
+- **The reads are declared predictions, and the invariance is live.** Every
+  retrieval is a `temporal-prediction` with `evidence_added` false; no field
+  episode and no consumer episode moves the evidence clock (`0` before and after
+  in every arm), while the same published quantity moves `0 -> 1` under an
+  admission through the owner's own observation rule on a separate state of this
+  profile. The retrieval changes no page and no generation in any arm, and the
+  held read returns the same readout when repeated.
+- **Honest negatives.** Acting through the owner surface perturbs the memory it
+  read: the owner's own read of the queried direction, taken immediately before
+  and after the act, moves `0.005023718074326502 -> 0.01004738636004079`, doubling
+  the target direction's deposit, and the receipt records that the owner's write
+  path "is the only write actuator on the public surface", so no non-destructive
+  actuator exists for this task. The arms do not act with equal energy —
+  `0.0008619191717734538` for the memory arm against `0.0050236012961321465`,
+  `0.0050236682857142875`, `0.005023477863702145` and
+  `0.005023668285714286` elsewhere — which is why the statistic is normalised by
+  the increment's own energy and separates direction rather than effort. The held
+  read is parity-conditioned: the declared loop's drive alternates sign every
+  tick, the per-tick signed drive ratio is published for all `16` ticks
+  (`1.00000495539176` at the horizon), the declared holds run at even horizon
+  parity, and the written direction's relative difference `9.91080807587161e-06`
+  sits inside the declared post-hold allowance `0.0001` while the unwritten
+  direction's `0.9999999999555453` misses it. The task is narrow by declaration:
+  one policy, three declared directions, one profile, one budget.
+
+The receipt's own bounds are its four declared limitations: the task is "one
+declared deterministic policy over one declared set of candidate directions on
+one declared profile", so "nothing here measures a distribution over profiles,
+items, budgets or policies"; the consumer's act is the owner's write path, which
+"is the only write actuator on the public surface", so "an actuator with a
+different physical law would be a different task"; the hold horizon is short by
+declaration and "makes no claim about holding over a long horizon", which the
+owner write path receipt measures at `512` ticks; and the statistic "measures
+which direction the consumer actuated, not whether acting on a memory is useful
+in any wider sense". The receipt leaves one choice open rather than taking it —
+whether the read is declared as a prediction or as evidence — and records that
+this demonstration does not need the choice taken, because the consumer's
+decision uses the retrieved deposit as a number and admits nothing. Its own
+regression file, `test_memory_consumer_path.py`, carries `17` tests and passes.
+
+### Owner surface options
+
+Two declared options on one profile, the metric harness's flat-inertia member
+`ladder-uniform`: an evidence reading of the written-direction read, and a
+coupled input relation. Both are additive and default-off — the shipped read
+stays the prediction reading and the shipped declared input stays the identity
+precision — and the receipt declares one written packet item, `root-scale`, at
+one declared write budget of `0.001`, one declared observation channel (a
+declared variable over the declared deposit range and one declared chart over
+it), the transceiver's own declared loop settings, and one declared resolution
+ladder for the overlap enumeration (the four topology names the library validates
+times three ports-per-pool settings times both beta settings)
+(`_diag/owner-surface-options/exploration.json`, `receipt_digest`
+`a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455`). Its
+`declared` block states that "Nothing here changes a default: both options are
+measured off the shipped path", and its `recommendation` keeps the coupled
+relation opt-in because "it is orthogonal in the field to the owner write path on
+every amplitude of the declared sweep" while leaving the shipped prediction
+reading as the default, because adopting the evidence reading "would buy an
+evidence clock that nothing downstream reads yet".
+
+- **The evidence reading moves an owner's own clocks, counts, digests and
+  resources, and no decision input.** `read_packet_deposit(..., as_evidence=True)`
+  declares the same recovered deposit as an observation about the world through
+  the owner's own observation-admission rule. Of the `2649` leaves on the four
+  declared surfaces diffed (`inspect`, `inspect_resonance`, `inspect_computers`,
+  `inspect_transceivers`), it moves `29`: `13` clocks, `11` digests, `2` counts,
+  `2` resources and `1` version, and `0` decision inputs. The owner publishes `44`
+  declared dispatch operations, of which only `continue_inquiry` and `query` name
+  a decision or an observation. Both readings recover the same deposit,
+  `0.005023668285714286`; the evidence reading raises the read operation's
+  published key paths from `2266` to `2301`, while the shipped prediction reading
+  moves `0` leaves.
+- **Neither reading moves the page.** The written page
+  `8f7e287ad2215ace5fcceba01b95e578f7de1412a5663a68ee27a017fb77aca1` is unmoved
+  under both, and the channel the admission needs exists before the measurement:
+  its `contribution_count` is `0` at version `1` before and `1` at version `2`
+  after.
+- **The controls make the admission an admission rather than a call that always
+  succeeds.** Replayed under the same operation identity it publishes no second
+  successor, keeps the same event and source identities, and moves `0` of the
+  `2649` leaves; declared again under a fresh identity the event identity differs
+  while the derived source revision is reused and the store holds both events; and
+  on an owner with no declared channel for the observed variable the admission
+  rule refuses it with `FieldIntelligenceError: unknown variable: packet-deposit`.
+- **The coupled input has real authority over the declared readout.** The
+  authority measure is the absolute spread of the declared readout over the
+  declared input scan `(0.0, 0.5, 1.75, 3.5)`, window-averaged over ticks
+  `1, 2, 4, 8, 16`: `0.28078002525017076` for the coupled relation against `0.0`
+  for the shipped one on the declared profile, and `0.28077967389372793` against
+  `6.83694100295039e-21` on the declared beta-zero counterpart. Its persistence is
+  measured too — driven once on the first tick at `4.0`, the readout runs
+  `-0.008933586830295898` to `-0.07342087766095308` across eight ticks, against
+  `0.0` at every tick for the shipped relation.
+- **It nevertheless reproduces the owner write page at no amplitude of the
+  declared sweep.** Over the eleven declared amplitudes from `-4.0` to `4.0` the
+  set reporting page identity is empty, and the closest the coupled route comes is
+  the undriven base state at amplitude `0.0`, `0.07087784058303614` from the write
+  in state-vector distance. At the declared scan amplitude `3.5` the deposit's
+  relative difference is `0.446635087902169` and the read frame differs by
+  `2.8577330538035777`. Page, workspace state digest and read frame together carry
+  that verdict, and the predicate can fire: the reconstruction control — the
+  write's own state carried by the same library mapping — reports identity.
+- **What the owner's write stamps beyond the field is exactly the ledger.** The
+  write's own state carried through the same page mapping the route uses yields a
+  page digest identical to the owner's real page
+  (`8f7e287ad2215ace5fcceba01b95e578f7de1412a5663a68ee27a017fb77aca1`) while the
+  workspace state digest differs, and the metadata fields that differ are exactly
+  `ledger` and `state_sha256`. Page-level identity alone would therefore have
+  reported a route identity that the state digest denies.
+- **The coupled relation costs about six times the shipped one per tick.** Over
+  the same declared `64`-tick window, `0.0010491578132132418` per tick against
+  `0.00017769687565305503` — `5.9041995496964965` times the shipped per-tick work
+  — and against one owner write of the declared item, whose median is
+  `0.22603339998750016` over `3` repeats, the two sit at
+  `0.004641605237417396` and `0.0007861531776404806`. Every figure here is wall
+  clock on this machine and lives under the receipt's declared timing key.
+- **The overlap refusal is enumerated rather than sampled.** Across the declared
+  lattice of `24` profiles the library refuses the same two declared variables on
+  one shared port `24/24` times, with the single message
+  `ResonantNumericalError: inconsistent common-coordinate constraints`, and admits
+  the distinct-port selection `24/24` times. The mechanism is identified in the
+  source: the condenser builds one constraint row per declared value at the
+  declared ports (`cassi_resonant_field.py:1055-1058`), so the second write
+  replaces the first and the row loses an entry while its target keeps its value,
+  and the boundary check `norm(constraints @ result - targets) > tolerance`
+  (`cassi_resonant_field.py:1139-1143`) reports the inconsistency. The controls
+  bound the cause: the same overlapping selection with a zero declared value is
+  admitted `24/24`, so what is refused is a nonzero target on a row that lost its
+  entry rather than the shared port alone, and a topology name outside the four
+  the library validates is refused outright.
+- **Honest negatives.** The shipped declared relation is inert on the declared
+  profile — an absolute spread of exactly `0.0` — but it is not algebraically
+  zero: on the declared beta-zero counterpart the same identity relation reads
+  `1.1201241244351606e-22` at tick `1`, rising to `2.4930204339016798e-20` at tick
+  `16`. Nor does the normalised relative spread separate the two relations: it
+  reads `1.0` for the inert relation on that counterpart as well, because a
+  proportional response through the origin normalises to `1.0` whatever its size,
+  which is why the receipt carries the relative figure beside the absolute one and
+  asks a reader to compare the absolute spread. Neither option is adopted here,
+  and the receipt's `declaring_nothing` block records that the opt-in helpers are
+  called only in the defining module, this runner and this runner's test file,
+  with the coupling-zero kernel and the shipped condenser kernel the same object —
+  `sha256`
+  `2a62257e06522248efbbc410c647e8421e42b8a4d46dbb409d142e5b5740c66e` on both
+  sides — over identical dimensions.
+
+Its declared bound is "Canonical-field measurements in controlled conditions
+only", and its four declared limitations scope the figures: the authority figures
+are "the transceiver's declared input-scan convention ... not a physical claim
+about the channel"; the route identity "is a statement about this item, this
+profile and this mapper"; the overlap enumeration covers only its declared
+lattice, and "the library could accept a topology name outside the four it
+validates"; and the evidence reading's cost figures are "single-run wall clock on
+this machine". Nothing here demonstrates task-level memory utility, semantic
+content or any advantage over alternative architectures, and neither option is
+adopted. Its own regression file, `test_owner_surface_options.py`, carries `22`
+tests and passes.
+
+### Owner nested cycle
+
+The whole owned memory chain measured up to this point — write
+(`write_packet_impulse`), the closed-loop hold at the field's measured neutral
+gain, read (`read_packet_deposit`) and the consumer's act — runs on one body, the
+metric harness's `ladder-uniform`: the canonical rail with a flat inverse-mass
+projection. That body cannot separate *what the field is built from* from *how
+heavy it is*. This receipt runs the same chain on a declared `2 x 2` factorial of
+bodies and asks the receipt's own declared question: "does the owner's own memory
+behave differently inside a nested scaffold than on the flat rail, and is any
+difference carried by the structure or by the mass metric?"
+(`_diag/owner-nested-cycle/exploration.json`, `receipt_digest`
+`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa` — the only
+digest field it carries, whose digested body includes each arm's construction
+record; "Determinism of the receipts" below reads that). The rail factor is the
+canonical body's rail against the geometry harness's declared arrangement
+`nested-core-shell`, entered through
+`geometry.build_profile(geometry.arrangement_named(...))` inside the metric
+harness's own builder, and the metric factor is the flat inverse-mass control
+(`ladder-uniform`) against the field's real default ladder at ratio `1.3`
+(`ladder-ratio-1.3`). Within one rail the two metric levels are replaced by that
+rail's own flat vector and that rail's own ladder, so the metric factor is read
+across two metrics on one body; across one metric level the two cells carry the
+*same* inverse-mass vector on two rails, so the rail factor is a structural
+difference alone. Each arm's hold runs at *that arm's* neutral gain, measured on
+that arm's own field by the feedback harness's refinement, and no arm's gain is
+taken from another arm or another receipt.
+
+- **The rail separates nothing at owner level; the mass metric carries the
+  store.** The greatest absolute rail effect over the six declared figures is
+  `0.0024079538724970373` (on drift retention at the ladder metric level), under
+  every declared margin, while the metric separates the written deposit by
+  `0.23497047733555232` relative — `0.005023668285714286` on both rails at the
+  flat metric against `0.0038432545506445243` on both rails at the ladder metric
+  — the written direction's no-drive retention at the horizon, measured over the
+  neutral-gain refinement's own `64` ticks, by
+  `-0.6011762211167079` (`0.9119815524822384` and `0.9102664519192295` at the
+  flat metric against `0.31149818467501866` and `0.3090902308025216` at the
+  ladder metric), and the arm's own neutral gain by `0.020312499999999997`, all
+  against a declared margin of `0.02`.
+- **The neutral gain is rail-invariant.** `0.02734375` at the flat metric on both
+  rails and `0.04765625` at the ladder metric on both rails: the rail effect is
+  exactly `0.0` at either metric level, in both directions of reading. This is the
+  same pair of gains the feedback, owner write path and consumer path receipts
+  report, and it is the figure that decides what the hold does, so a nested
+  scaffold changes nothing about the loop's own setting.
+- **Three figures where neither factor separates, and one small-but-nonzero rail
+  effect.** `recovery_fraction` reads `1.0000099108080758` and `1.0000096247683181`
+  flat, `1.0127222556685962` and `1.012745604635565` ladder: a greatest metric
+  effect of `0.012735979867246838` and a greatest rail effect of
+  `2.334896696876143e-05`, both under the `0.02` margin, because the hold runs at
+  each arm's own measured gain and the figure is near one in every cell by
+  construction of the instrument. `hold_frame_energy_ratio` reads
+  `1.0000100338373779` and `1.0000098881260988` flat against `1.0128775402784498`
+  and `1.0129009543007057` ladder, metric effect `0.012891066174606891` and rail
+  effect `2.341402225591871e-05`. `act_share_along_target` is `1.0` in every cell
+  with both effects exactly `0.0`. `written_deposit`, `neutral_gain` and
+  `act_share_along_target` are the three figures whose rail effect is exactly
+  `0.0`; the largest of the rail effects that are not exactly zero is drift
+  retention's `-0.0024079538724970373` at the ladder metric, against
+  `-0.0017151005630089422` at the flat one, an order of magnitude below the margin
+  rather than absent.
+- **The rails are different bodies and the metrics are not confounded.** The two
+  rails' transport matrices differ by a relative Frobenius difference of
+  `0.7162833917927574` (largest absolute entry difference
+  `0.02599562175592876`) against a declared `1e-06` margin, while the two cells
+  that share a metric level carry the same inverse-mass vector and the same
+  transport, so neither factor is read through the other. The canonical rail is
+  the field's own default body.
+- **The reference legs carry the harness's signs but not its observable.** On the
+  four non-factorial bodies the survival receipt's own decomposition, re-measured
+  at the owner's store, reads a baseline of `0.31149818467501866` (canonical rail,
+  default metric), a mass-only leg of `0.3405074383294046` (canonical rail, shell
+  metric), a rail-only leg of `0.3090902308025216` (nested rail, default metric)
+  and a compound scaffold of `0.3397384755436551` (nested rail, shell metric).
+  The retention components are `0.029009253654385947` for the mass and
+  `-0.0024079538724970373` for the rail against the survival receipt's
+  `+0.25797616491469993` and `-0.002012515678662327` — the same signs on both
+  components, the same call that the rail component does not reach the margin and
+  the mass component does, and a mass component `8.89289217806871` times smaller,
+  because the harness
+  ranks multi-item survival under activity while this receipt measures one
+  declared item's deposit and its no-drive retention through the owner's own
+  operations. The legs carry no verdict of their own; the compound leg's own
+  component is `0.028240290868636442` against a mass-plus-rail sum that differs by
+  the interaction residual `0.0016389910867475321`.
+- **The shipped owner-chain gain is reproduced exactly.** On the canonical-flat
+  arm the refinement lands on `0.02734375` with the bracket
+  `[0.026562500000000003, 0.028125]`, and the owner write path receipt's own
+  `cycle.neutral_gain.measured_gain` is the same number with the same bracket: the
+  measured difference is `0.0` for the gain and `0.0` for the drift retention
+  beside it (`0.9119815524822384`), so this receipt's cycle runs the instrument
+  the shipped chain ran rather than a lookalike.
+- **The controls can fail, and the read is inert while the write is not.** With
+  nothing written, all six arms fall back — share `0.0`, recovered deposit `0.0`,
+  the declared fallback item selected. With the same write and the same hold but
+  the retrieval declined, all six fall back too, with a share along the target of
+  `3.229441440156545e-66` on the canonical-flat arm, `6.598282820579714e-65` on the
+  canonical-ladder arm, `3.83376153420348e-32` and `2.537729131929811e-32` on the
+  two nested cells, and `0.0` on the canonical-shell arm. Across all six arms the
+  reads move nothing — page, workspace state, owner state and ledger all unmoved —
+  while the act's write moves all four, and the further declared impulse applied in
+  a scratch copy moves the page, the workspace state and the ledger, so the
+  digest-equality predicates are not vacuously true. The declared candidates are
+  distinct in the read frame: the greatest off-diagonal squared cosine is
+  `2.3960702554047607e-33` against a declared `1e-12` allowance. A direction the
+  arm did not write recovers `8.247535290728763e-11` of the written deposit on the
+  canonical-flat arm and `9.448532734054032e-05` of it on the canonical-ladder arm,
+  both under the declared ceiling of `0.5`. On the canonical-flat arm the same
+  write held with no loop retains less than the held page —
+  `0.002378840505081224` recovered against `0.005023718074326502`, at a horizon
+  frame-energy ratio of `0.6769165389176107` — which is why the no-drive retention
+  figure is read beside the held one rather than identified with it.
+- **The owner's own inspection surface does not work on the nested rail.**
+  `inspect_resonance` is available and matches the public `AtlasState` fields
+  (`logical_tick`, `generation`, `state_sha256`) on all three canonical arms, and on
+  all three nested arms it raises `FieldIntelligenceError: resonance inspection
+  must be canonical JSON data`. The clocks in this receipt are therefore the public
+  state fields that `inspect_resonance` wraps, with the equivalence measured where
+  both work rather than assumed; and because the shipped consumer episode calls
+  `inspect_resonance` twice, it runs on the canonical-flat arm only, where its held
+  page digest, its written deposit `0.005023668285714286` and its recovery
+  `1.0000099108080758` are identical to this runner's own cycle at a relative
+  difference of `0.0`, and the nested arms' cycles run on this runner's route.
+- **The gauge, the item and the horizon are declared.** One written item,
+  `root-scale`, at a declared write budget of `0.001`, its capture
+  `0.005023668285714286`; the hold horizon is the consumer path's declared `16`
+  ticks with closed-loop drive accepted on every tick and none clipped; the act
+  budget is `0.001`; the read floor is half the captured deposit. The cited lattice
+  depth axis sits beside the factorial as the comparison one level up —
+  `deepest_vs_shallowest_k4_difference` `2.7589668119928912e-05` against a
+  saturation margin of `0.02`, i.e. flat, which is the harness-level statement this
+  receipt's rail factor repeats one level down.
+
+Its declared bounds are its five limitations, four of them quoted in the preamble
+above: the rail factor is read at one nested arrangement only; the metric factor is
+read at two declared ladder settings plus the survival harness's shell metric in the
+reference legs, so that "no conclusion about metrics in general follows"; "the
+figures are one declared item's"; the horizon "is the consumer-path runner's
+declared 16 ticks, chosen there for a consumer demonstration rather than for a
+lifetime measurement"; and the no-loop control "is measured at the declared hold
+horizon and is a no-drive hold", so its separation from the held arm grows with the
+horizon, which is why the compact test configuration runs it but does not judge it.
+Nothing here
+demonstrates task-level memory utility, semantic content, retrieval quality, or any
+advantage over alternative architectures. Its own regression file,
+`test_owner_nested_cycle.py`, carries `24` tests and passes.
+
+### Reading the thirteen receipts together
+
+The thirteen receipts measure persistence, transfer, closure, disturbance response,
 whether a written item survives a workspace round trip, how much of that survival
 depends on which declared scaffold carries it and how far apart the items sit in
 the declared scale hierarchy, which hooks actually move the body, which ports
@@ -2184,13 +2625,19 @@ reach which modes, how long a written direction lasts and why, which declared
 metric best preserves it under bounded activity, what a declared lattice of
 stations and rungs can and cannot move, whether a closed phase-inverted loop
 can hold a written direction without spreading into the frame's other content,
-and whether the owner's own transition surface can accept a written impulse,
-carry it across a restart and read a written direction's deposit back.
+whether the owner's own transition surface can accept a written impulse,
+carry it across a restart and read a written direction's deposit back, whether
+that deposit changes what a declared consumer does next, what a charged
+reading of the read and a coupled input relation would each move, and which
+factor the owner's own store follows once the body it runs on is varied by rail
+and by metric.
 Their common gap is narrower than "no memory" and is specific:
-the written item outlives a workspace round trip and bounded activity, and the
+the written item outlives a workspace round trip and bounded activity, the
 owner write path now carries it inside the owner's own checkpoint closure through
-an exactly-once owner operation that survives a close and reopen — but no receipt
-retrieves it the way a consumer would, and none measures a task. Mass metric and damping
+an exactly-once owner operation that survives a close and reopen, and the
+consumer path now measures one declared consumer reading that deposit back and
+acting on it — but the retrieval is a declared projection of the page under a
+declared direction rather than anything semantic, and none measures a task. Mass metric and damping
 control retention, and in the survival contrast the projected inverse-mass profile
 carries the multi-item gain; graph geometry and topology, once the rail is
 projected, mostly do not, though the rail is what carries the spacing separation.
@@ -2241,8 +2688,9 @@ declared criterion, the loop's capacity is two items on the default metric and t
 largest declared count, `8`, on the flat profile, because no declared scheme failed
 there; and on the default the naive shared two-item drive is not among the schemes
 that hold both, putting its second item below its own no-loop control. That is a
-maintained direction under a measured work budget, not a durable store, and not
-retrieval.
+maintained direction under a measured work budget, not a durable store; what that
+receipt does not measure is a consumer reading an item back, which the memory
+consumer path measures separately.
 The owner write path adds the transition the durability receipt could not measure,
 and it changes the gap rather than closing it. The declared input realization is
 measured exactly inert on that profile — the compact realization annihilates the
@@ -2262,25 +2710,116 @@ supports. The cycle holds the owner-written direction at this profile's own
 `0.02734375`, against the default profile's `0.04765625`; what does not follow is
 the two-item case, where every declared split beats its own control and no declared
 split holds both items at the neutral floor.
-Nothing here shows a consumer retrieving the written item itself — the read half
-returns its deposit, as a prediction — or a declared scaffold beating another on
-a task.
+The consumer path takes the retrieval question the earlier receipts leave open,
+and answers it narrowly. A declared consumer retrieves the written direction
+through the owner's own read operation — `0.005023718074326502` against a declared
+floor of half the freshly captured deposit, `0.002511834142857143` — and its one
+declared write lands along the remembered direction with share `1.0`, against
+`0.0` with nothing written and against `3.229441440156545e-66` when the same write
+and the same hold sit on a byte-identical page with the read suppressed, so the
+behaviour follows the retrieved content rather than the field's side effects. The
+mismatch control writes a different declared item through the same mechanism at
+the same budget and the retrieval falls to `4.1217363503130554e-13` with the share
+along the target at `2.906568712007306e-65`, while the mutated-policy leg restores
+share `1.0` at retrieval `0.0`, so the controls' zeroes are measured rather than
+vacuous. What that does not settle is what the act costs the memory: acting through
+the owner surface doubles the target direction's own deposit,
+`0.005023718074326502 -> 0.01004738636004079`, and the owner's write path is the
+only write actuator on the public surface.
+The owner surface options receipt measures the two ways this surface could be
+extended and adopts neither. Declaring the read as evidence buys an admission that
+moves `29` of the `2649` surface leaves — `13` clocks, `11` digests, `2` counts,
+`2` resources and `1` version, and no decision input — while the written page stays
+fixed and the shipped prediction reading moves nothing at all; declaring a coupled
+input relation raises the declared readout's authority over the declared input scan
+from `0.0` to a window-average `0.28078002525017076`, at `5.9041995496964965`
+times the shipped relation's per-tick work, and still does not reproduce the owner
+write page at any of the eleven declared amplitudes, whose closest member is the
+undriven base state. The same receipt isolates what the owner's write stamps beyond
+the field: the write's own state carried through the library's page mapping gives a
+page digest identical to the owner's real page while the state digest differs, and
+the fields that differ are the ledger and the state digest.
+The nested cycle receipt moves the whole owner chain onto a varied body and finds
+that the structural factor still does not pay. Writing, holding at each arm's own
+measured gain, reading back and acting on a declared `2 x 2` of rails and metrics,
+the greatest rail effect over its six figures is `0.0024079538724970373` against a
+`0.02` margin, while the metric separates the written deposit by
+`0.23497047733555232` relative and the written direction's no-drive retention by
+`-0.6011762211167079` — so on the owner's own store it is once again the body's mass
+that carries the item and not the scaffolding's shape, the same split the survival
+receipt reports one level up with the same signs and a mass component
+`8.89289217806871` times larger.
+The neutral gain is invariant under the rail (`0.02734375` flat and `0.04765625`
+ladder on both rails, rail effect exactly `0.0`), the canonical-flat arm reproduces
+the shipped owner-chain gain with an absolute difference of `0.0`, and five of the
+six figures carry a rail effect below `2.35e-05`; the figures that tie
+entirely — `recovery_fraction` at `0.012735979867246838` and
+`hold_frame_energy_ratio` at `0.012891066174606891` of metric effect — are the
+honest negatives, and they tie because each hold runs at its own arm's gain. What
+that receipt could not do is the other half of the same question: the owner's own
+inspection surface raises `FieldIntelligenceError` on the nested rail, so the
+nested arms' clocks come from the public state fields and the shipped consumer
+episode runs on the canonical arm alone.
+Nothing here shows a consumer retrieving the written item as anything but a
+declared projection of the page under a declared direction, a non-destructive act
+on the memory, or a declared scaffold beating another on a task.
 
 ### Determinism of the receipts
 
-The ten receipts are content-deterministic: their cited digests are stable across
-independent re-runs, while the raw file hash is not, because several harnesses
-record wall-clock fields. The definition is the lattice runner's, which declares
+The thirteen receipts are content-deterministic: their cited digests are stable
+across independent re-runs, while the raw file hash is not, because several
+harnesses record wall-clock fields. The definition is the lattice runner's, which
+declares
 "sha256 of the canonical JSON (sorted keys, no insignificant whitespace,
 `allow_nan=False`) of the measured body with wall-clock fields stripped, before the
 digest itself is attached"
 (`run_fractal_lattice_exploration.py:4986-4990`) and applies it after the runtime
 field is set (`run_fractal_lattice_exploration.py:4993-4998`); the stripped keys
 are `elapsed_seconds`, `runtime_seconds`, `condensation_elapsed_seconds` and
-`receipt_sha256` (`run_fractal_geometry_exploration.py:144-162`). Seven of the ten
-carry at least one of those keys — geometry, ladder, lattice, metric,
-owner-write-path, placement and survival — so a re-run of one of them changes the
-file hash without changing the digest. The feedback receipt carries no wall-clock key at all, as the durability and
+`receipt_sha256` (`run_fractal_geometry_exploration.py:144-162`). Ten of the thirteen
+carry at least one of those keys — geometry, ladder, lattice, memory consumer path,
+metric, owner nested cycle, owner surface options, owner-write-path, placement and
+survival — so a
+re-run of one of them changes the file hash without changing the digest; the
+memory consumer path receipt declares that its measured body carries no inner
+wall-clock field, so its set removes only the top-level `runtime_seconds`, and the
+owner surface options receipt declares the same four keys with `receipt_digest`
+added and strips an `elapsed_seconds` block that includes a per-selection
+`elapsed_seconds` inside its overlap enumeration.
+The owner nested cycle receipt is the one receipt here whose digested body binds its
+own builders' source lines, and it declares that in its own `receipt_digest` block
+rather than leaving it to be inferred. Its definition is the same lattice-runner
+rule with the same four stripped keys (`run_owner_nested_cycle.py:202-210`), but the
+body it is
+taken over is, in the receipt's words, "the whole measured body with the wall-clock
+keys of the declared strip set removed and the digest field itself excluded. The
+digested body includes the construction records' own source-line fields --
+`declared.factorial.construction.<arm>.declared_at_line`, and the same record's
+`built_at_line` and `base_rail_builder_line` -- because those records are part of
+the measured body (they are what lets a reader rebuild each arm), so the digest
+binds the live source lines of the declared builders and moves when an edit shifts
+them even if no measured number changes"
+(`declared.receipt_digest.taken_over`, `run_owner_nested_cycle.py:2421-2434`; the
+records themselves are built at `run_owner_nested_cycle.py:474-505`). The lines it
+binds reach beyond this runner into two others. `built_at_line` is
+`run_fractal_metric_exploration.py:1225` (`build_metric_profile`, the builder) on
+all six arms; `declared_at_line` is `run_fractal_metric_exploration.py:1084`
+(`ladder_row`) on the two declared ladder rows, `run_fractal_metric_exploration.py:1237`
+(`declared_row`) on the two shell rows and
+`run_owner_nested_cycle.py:418` (this runner's own `declared_row_for`) on the two
+nested flat and ladder cells; and `base_rail_builder_line` is
+`run_fractal_geometry_exploration.py:493` (`build_profile`, the rail builder) on the
+three nested arms. That receipt
+is therefore measurement-stable under a re-run but source-line-sensitive across
+edits: a change that moves any of those lines moves the digest with no measurement
+behind it, which was observed twice while the harness was being written — once from
+a docstring edit and once from the correction of this convention text. The memory
+consumer path receipt is the contrast case, and the contrast is the point of
+recording it: a docstring-only edit to its runner leaves its digest where it was,
+because its digested body carries no source-line field. A reader can therefore tell
+which receipts bind source and which bind measurements only, and the two are not
+interchangeable as evidence of "no change".
+The feedback receipt carries no wall-clock key at all, as the durability and
 memory receipts also do not, so its file is reproducible byte for byte as well as
 its digest. The Yang–Mills obligations receipt (`_diag/yang_mills_finite_obligations.json`) is
 the same case from the other side: it carries a `wall_seconds` field that is not one
@@ -2303,12 +2842,28 @@ An independent no-flag run of the owner write path reproduced its in-receipt dig
 exactly
 (`a1f5c4ffe42a9c25182cf25ec54ab2e5bff7ff51147e2d51d98a6234072e9f7c`) with exactly
 one differing leaf, `runtime_seconds`, and zero non-timing differences; its `18`
-tests pass.
+tests pass. An independent re-run of the two receipts added here made the same
+case for them: the memory consumer path runner reproduced its in-receipt digest
+exactly (`3933e8ecc0aeedd1a9722c0bd282006d5217b516b3acf504133e973cb48b5f07`) with
+`runtime_seconds` the only differing leaf, and the owner surface options runner
+reproduced its own exactly
+(`a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455`) with only
+`elapsed_seconds` leaves differing, at the top level and one per overlap-enumeration
+selection and nowhere else. Both re-runs wrote outside `_diag/`, so the frozen
+receipts are unchanged; their `17` and `22` tests pass. The receipt added here was
+re-run the same way, and it is the receipt for which that check carries the most
+weight, because source-line binding is exactly the property that a re-run must not
+disturb: an independent no-flag run reproduced the in-receipt digest exactly
+(`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`), with
+`runtime_seconds` the only differing leaf across the whole body and zero non-timing
+differences, so the source-line fields survived the re-run unchanged and the digest
+was reproduced while the file hash was not. That run wrote outside `_diag/` as well,
+so the frozen receipt is untouched. Its `24` tests pass.
 
 ## Where a direction could not be grounded
 
 - **No field-level self-similarity exists.** `ResonantProfile.__post_init__` accepts exactly `{meaningful-helix, undivided, isolated, rewired}` and fixes `pools == 7`, so no arrangement can change the pool count or the minimum port resolution of four. Spatial spacing is inexpressible because `coordinates` has no hook, and `profile.edges` is ignored whenever `projected_transport` is set, so declared arrangements re-declare their structure and carry `topology` as metadata only. Nested, recursive, ladder, quasiperiodic, and sparse-link layouts are therefore reachable as declared pool graphs and were measured once by the geometry harness, but they measure strength and metric declarations, not physical self-similarity; the porous, hyperbolic, and second-center variants (A.5, A.6, A.8) additionally need descriptor support that does not exist.
-- **No demonstrated durable pattern-storage mechanism exists.** `resonant_workspace` is persisted working state and §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct; the durability receipt writes one declared item into the canonical page and reads it back unchanged across a workspace round trip and records, for its own build, that the owner transition surface accepted no packet impulse and that its restart identity was workspace-level, while the owner write path now adds that transition — an exactly-once owner operation carrying the written pattern inside the owner's checkpoint closure across a close and reopen, with the generation, the logical tick and the evidence clock preserved — and still demonstrates no consumer retrieval, so a durable store remains the program's central open item (G.1, `_diag/fractal-durability/exploration.json`, `_diag/owner-write-path/exploration.json`).
+- **No demonstrated durable pattern-storage mechanism exists.** `resonant_workspace` is persisted working state and §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct; the durability receipt writes one declared item into the canonical page and reads it back unchanged across a workspace round trip and records, for its own build, that the owner transition surface accepted no packet impulse and that its restart identity was workspace-level, while the owner write path now adds that transition — an exactly-once owner operation carrying the written pattern inside the owner's checkpoint closure across a close and reopen, with the generation, the logical tick and the evidence clock preserved — and still demonstrates no durable store: the consumer path now measures one declared consumer retrieving a written direction's deposit and acting on it, but as a declared projection of the page under a declared direction, so a durable store remains the program's central open item (G.1, `_diag/fractal-durability/exploration.json`, `_diag/owner-write-path/exploration.json`, `_diag/memory-consumer-path/exploration.json`).
 - **No multi-level scaffold has been measured at any depth.** Depth, branching, and cross-scale connections exist only inside the disposable packet basis (§26.18) or as nested resolution projections of one fixed body (§26.24), a different object from a many-level physical scaffold.
 - **No activity-driven structural change exists.** Change is explicit — condensation, layout transition, revision, revocation — and §26.1 forbids a per-pool Hebbian matrix or oscillator-weight learner, so H.4 must route through admitted evidence.
 - **The exact-solver and theory analogies are analogies.** The width-two certificate, the `omega = 3` measurement, and the one-sided frame test concern cubic incidence matrices; the boundary-sector result concerns a lattice Yang–Mills transfer; J.4 and J.7 use them as shapes of argument, not inherited findings.
