@@ -1,0 +1,15 @@
+{
+  "kind": "circuit",
+  "source": {
+    "inputs": ["a", "b", "c", "d", "e", "f"],
+    "gates": [],
+    "assertions": [],
+    "relations": [
+      {"kind": "xor", "args": ["a", "b", "c"], "rhs": 0},
+      {"kind": "xor", "args": ["a", "d", "e"], "rhs": 0},
+      {"kind": "xor", "args": ["b", "d", "f"], "rhs": 0},
+      {"kind": "xor", "args": ["c", "e", "f"], "rhs": 1}
+    ],
+    "clauses": []
+  }
+}
