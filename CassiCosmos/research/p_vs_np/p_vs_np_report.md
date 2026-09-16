@@ -7,7 +7,7 @@ clause-field solver are rejected as routes to `P = NP`. These are
 mechanism-level results, not a proof that `P != NP` and not a claim that every
 Cassi-inspired algorithm must fail.
 
-The investigation and beyond-resolution continuation produced sixteen useful
+The investigation and beyond-resolution continuation produced twenty-four useful
 results:
 
 1. the fixed-source Cassi two-fluid field has an exact gapless/gapped
@@ -89,7 +89,98 @@ results:
     nontrivial width-two and width-three rows. This is a finite local
     measurement, not a distributional claim about general cubic incidence
     families.
-
+18. the mandatory projective-class filter is a sound one-sided obstruction:
+    classes outside every observed line containing at least three projective
+    classes must be selected by every internal width-two basis. On a finite
+    17-case screen it gives six mandatory rejections, while the existing
+    production path reports eight `no_width_two_basis` and nine `width_two`
+    outcomes. The diagnostic has six exact NO-case local censuses, two
+    `inconclusive` cap-limited NO cases, and nine positive
+    `not_applicable` rows. This is a finite obstruction screen, not a
+    polynomial recognition theorem or a lower bound.
+19. the frozen truth-state-cell screen checks six connected cubic controls and
+    six explicit degree-preserving two-switch compositions: `1,313` fixture
+    rank subsets, `600` independent ground bases, `104` width-two bases, and
+    `51,408` composition rank subsets produce `0` eligible exclusive
+    original-column pairs and `0` useful binary relations. The apparent
+    `(7,9)` pair is rejected because its primal incidence columns are
+    identical. This is a bounded gadget falsification, not a classification
+    or hardness result.
+20. the complete width-two basis-exchange certificate checks `192` fixture
+    candidate pairs plus `918` composition candidate pairs, with `1,110` pair
+    classifications attempted and checked, and `227,952/227,952` pair-work units
+    covered under the `250,000` cap. The `5` exclusive fixture pairs become `0`
+    cells after exchange-fibre, single-flip, auxiliary-shadow,
+    duplicate-incidence, and alternate-partition checks; the compositions
+    retain `0` escape-free relations. This is a sufficient finite certificate
+    screen, not a universal impossibility or a hardness result.
+21. the exchange-boundary certificate reconstructs the five exclusive
+    `01`/`10` pairs and all `54` crossing edges in their complete
+    width-two exchange graphs; every edge removes the right port and adds the
+    left port, and every exact relation is nonzero on both ports. All five
+    pairs remain rejected by primal-support or kernel-direction degeneracy,
+    so this is a finite local identity, not a universal exchange-boundary
+    theorem or a SAT reduction.
+22. the complete distance-one neighborhood of two frozen one-defect seeds
+    contains `860` legal switch specifications, `764` distinct non-base
+    neighbors, and `1,136` designated pair cases. All `764` neighbor censuses
+    are exact; `1,116` pair cases are checked and `20` are `not_applicable`.
+    The `236` exclusive cases retain their seed degeneracy, leaving `0`
+    eligible and `0` admissible pairs. This is a finite distance-one search
+    null, not a proof of the degeneracy conjecture or a hardness result.
+23. basis extension turns every eligible exclusive pair into a two-sided
+    width barrier: ordinary `00` and `11` bases exist, but width-two bases
+    realize only `01` and `10`. A six-vector rational control realizes the
+    barrier, so abstract matroid exchange cannot rule it out. An exact
+    all-pair scan over `766` frozen-neighborhood formulas and a deterministic
+    `20,000`-formula simple `n=12` corpus checks `237,468` applicable pairs
+    and finds `595` exclusive but `0` eligible or admissible pairs. This is a
+    finite cubic search null, not a proof of the degeneracy conjecture or a
+    complexity result.
+24. a three-perfect-matching factorization gives a complete existence cover,
+    up to row and variable relabeling, of all simple square cubic formulas
+    through order nine. The cover contains `204,667` unique row-sorted
+    formulas. Exactly `1,402` have nullity at least three; all occur at order
+    nine and are connected. Complete exact basis censuses check all `50,472`
+    variable-pair cases in those targets and find `2,887` exclusive pairs:
+    `1,920` are rank-below-two with distinct incidence columns and `967` are
+    rank-two with identical incidence columns. None is eligible. This excludes
+    a cubic width-barrier realization through order nine, not at larger order
+    and not as a general structural or complexity theorem.
+25. exact reclassification of every target pair reduces all `1,402`
+    order-nine width-two basis hypergraphs to four canonical families. Every
+    one of the `2,887` exclusive pairs is either dual-parallel (`1,920`) or
+    has identical primal incidence (`967`), with zero implication violations.
+    The converse fails on `4,799` dual-parallel nonexclusive pairs. A
+    rank-two/distinct noncubic rational control fires the generalized
+    implication violation, so the cubic zero is nonvacuous. This remains a
+    complete finite classification through order nine, not an arbitrary-order
+    theorem or complexity result.
+26. exact quotienting of every exclusive pair on one representative of each
+    canonical Result AA family gives nine cases: six primal-twin sum quotients
+    and three dual-parallel equality quotients. All nine preserve the complete
+    projected Boolean solution set and retain a width-two basis. Deterministic
+    recursive reduction reaches nullity at most two in six paths and a
+    nullity-three residual with one width-two basis and no exclusive pair in
+    three paths. This is representative-level evidence, not closure over all
+    `1,402` targets or at arbitrary order.
+27. population-wide quotienting closes the representative caveat throughout
+    the retained order-nine census. All `2,887` exclusive pairs across all
+    `1,402` targets preserve the complete projected Boolean solution set and a
+    width-two basis. The `967` primal-twin paths reach nullity at most two; the
+    `1,920` dual-parallel paths reach the same nullity-three, six-variable,
+    one-width-two-basis terminal after two further equality quotients. There
+    are zero behaviors outside the signatures measured on the four
+    representatives. This is complete finite closure through order nine, not
+    an arbitrary-order theorem.
+28. a targeted order-ten extension census from the four canonical Result AA
+    representatives visits `6,876` three-edge insertions, retains `6,240`
+    simple extensions, and deduplicates to `6,230` connected candidates.
+    Exact basis profiles cover every retained candidate, and all `3,474`
+    exclusive-pair cases are rank-below-two with identical primal incidence;
+    there are zero rank-two/distinct eligible pairs. This is a targeted
+    extension-domain null, not the complete order-ten symmetry cover or an
+    arbitrary-order theorem.
 
 The first two results make the CassiCosmos boundary unusually clear. Its
 isolated field is an auditable linear signal processor. Combinatorial search
@@ -1954,6 +2045,853 @@ not estimate a distribution for arbitrary cubic incidence formulas, establish a
 generic perturbation law, or provide a polynomial recognition algorithm.
 
 
+### Result T—mandatory projective classes give a sound one-sided obstruction
+
+The complete width-two search now exposes a finite obstruction before residual
+free-subset enumeration. Let the kernel-coordinate columns be reduced to
+projective classes. A nonbasis class with support at most two lies on the
+projective line spanned by its two selected basis classes, so that line
+contains at least three observed classes. Therefore every class outside every
+observed line with at least three classes must itself be selected by every
+internal width-two basis. Call this the mandatory class set.
+
+The resulting filter is exact and one-sided. If the mandatory classes have rank
+smaller than their cardinality, or if their cardinality exceeds the kernel
+nullity, no internal width-two basis exists. The production recognizer returns
+`mandatory_class_obstruction` with zero residual-subset checks in that case.
+When the set is feasible, the recognizer continues with its exact long-line or
+short-line search; the filter is not a completeness claim by itself.
+
+The registered screen has 17 finite cases: 12 rational projective families and
+five cubic controls. The diagnostic enumerates bases by original column
+indices, retaining projective duplicate columns for basis counts and
+deduplicating only target coverage. Six NO-case local obstruction censuses are
+exact and two are `inconclusive` because the 5,000-basis cap is reached. The
+nine positive `width_two` cases have `not_applicable` local status and
+`minimum_size = null`; they are not assigned an obstruction size. Six cases
+satisfy the mandatory rejection, while the existing production path reports
+eight `no_width_two_basis` cases and nine `width_two` cases. The negative
+moment families at `q = 3, 4, 5` have exact minimum missed subsets of sizes
+`4, 5, 6`. The `q = 6, 7` negative families remain locally capped but are
+rejected by mandatory-set cardinalities `12 > k = 8` and `14 > k = 9`.
+These results are finite rational and cubic measurements; they neither provide
+a polynomial recognition algorithm nor establish a complexity lower bound for
+the unbounded cubic family.
+
+The producer, independent verifier, and focused controls are reproduced from
+the `CassiFI` directory with:
+
+```powershell
+python run_mandatory_class_obstruction_probe.py
+python verify_mandatory_class_obstruction_probe.py
+python -m pytest test_mandatory_class_obstruction_probe.py -q
+```
+
+The receipt is
+`CassiFI/_diag/mandatory_class_obstruction_probe.json`. Its verifier imports
+neither the producer nor `cubic_kernel_decision.py`; it rebuilds the original
+column/class mapping, rational geometry, cubic kernel classes, mandatory sets,
+bounded local census, production candidate bases, and aggregate counts. A
+cap hit is recorded as `inconclusive`, never as a negative verdict, and a
+positive case records local obstruction status `not_applicable`.
+
+### Result U—exclusive kernel states do not yet yield a cubic truth-state gadget
+
+The next candidate construction tests whether a width-two internal basis can
+expose two original variable columns as a Boolean cell. The ports are
+**original variable columns**, indexed from one. A pair is `exclusive` only
+when the complete width-two basis census realizes exactly the local signatures
+`01` and `10`, with both signatures present. It is `eligible` only when both
+kernel columns are nonzero and projectively independent and their primal
+incidence supports are distinct. An apparent complementary pair with
+duplicate primal columns is not two independent truth ports.
+
+The runner freezes six pre-existing connected cubic controls. The formulas,
+roles, and canonical SHA-256 digests are:
+
+| fixture | role | variables | formula SHA-256 |
+|---|---|---:|---|
+| `hexagonal-prism` | planar-nullity-two-control | 6 | `0860a4706931c3b362a2f277b3cf6373ed2f90649bcee5330f2db556a68db33b` |
+| `support-three-sat` | sat-width-two-control | 9 | `c154b01433577cbad78ea942614b7fd3b3f6ff485802833df403787b9a08a1e4` |
+| `greedy-exchange-trap-sat` | sat-exchange-control | 9 | `9f323fccf0bbba8a11a14ccd3dd91bdcaf655ab2523b3ddd6dfda88a1c029e2a` |
+| `support-three-unsat` | unsat-width-two-control | 15 | `8a270824bbf4bff4dffba3d8ad70f89a083a2a5ede4eedf85967e7c4ddba60d5` |
+| `all-bases-ternary-sat` | sat-no-width-two-control | 12 | `382752c3cc4a88fd9d9b5dc65a068165f8c6d29cb48e6c2374891f834aae7ff2` |
+| `all-bases-ternary-unsat` | unsat-no-width-two-control | 15 | `4d3215ad1f61ea5db72a0128fa399d265ea5a93c943c2a638e49ea36292c99e7` |
+
+The domain omits the nullity-zero cube and retains the two no-width-two
+controls as negative controls. It is a frozen candidate domain, not a claim
+that these six formulas represent all cubic incidence matrices.
+
+The receipt checked `1,313` rank-sized subsets, `600` independent ground
+bases, and `104` width-two bases. It found `5` exclusive-looking pairs but
+`0` eligible pairs. Two were rejected for identical primal incidence
+columns. In `support-three-sat`, the diagnostic pair is variable columns
+`(7, 9)` in the formula with digest
+`c154b01433577cbad78ea942614b7fd3b3f6ff485802833df403787b9a08a1e4`.
+Its signatures have counts `01=12` and `10=12`, its kernel pair rank is `2`,
+and its kernel directions are nonparallel, but both primal columns have
+support `(5, 8, 9)`. The receipt therefore records it as `exclusive` but
+not `eligible`.
+
+The rejected pair was then used only as a negative composition control. Each
+composition joins two copies of the nine-variable SAT formula by a
+degree-preserving two-switch. The switch tuples are **incidence edges** of
+the form `(clause row, variable column)`, one-based within each component;
+they are not port-column pairs:
+
+| composition | left incidence edge | right incidence edge | switched formula SHA-256 |
+|---|---|---|---|
+| `nonport-nonport` | `(1,1)` | `(1,1)` | `183f56f43bc7b584ef716251c94b54c66bf5316cac5510687df5e04aee37594c` |
+| `nonport-port7` | `(1,1)` | `(5,7)` | `86b11cd8c5ecfa47d5157c2b604b8be1f626055da2b303519262f405ff57ae7a` |
+| `port7-nonport` | `(5,7)` | `(1,1)` | `57f68e6a52278d15502968ea7aa6bed628b64f01915a450d706bb7e4297de510` |
+| `port7-port7` | `(5,7)` | `(5,7)` | `bd704241ef966a12ed44bb96e281c3153f14953b94496f1c1972083176413108` |
+| `port7-port9` | `(5,7)` | `(5,9)` | `97e844f242c71149c57afd37b3e99ddde3a946830b9680123aefe4bc01ef7b4a` |
+| `port9-port9` | `(5,9)` | `(5,9)` | `a1a67ee8c189f1fdf49f29bb7cdfedd7ad17d6d7d25ad567466ebc63b1144ea7` |
+
+The six switched formulas checked `51,408` rank-sized subsets and contained
+`1,440` width-two bases. One composition preserved the local `01`/`10`
+states without an escape basis, but its relation contained all four global
+states `01|01`, `01|10`, `10|01`, and `10|10`, each with count `36`; it was
+therefore not a proper binary relation. The other five compositions either
+admitted an escape basis or lost a local state. The useful-relation count is
+`0`.
+
+The producer and verifier use schema
+`cassifi.cubic-truth-state-cell-probe.v2`. The verifier imports neither the
+producer nor `cubic_kernel_decision.py`; it rebuilds the frozen formulas,
+canonical SHA-256 digests, exact rational kernel coordinates, all original
+column bases, state signatures, and switched compositions. A fresh positional
+receipt-path test confirms that the command-line verifier does not silently
+fall back to the canonical receipt.
+
+This remains a bounded negative result for the registered domain. Result V
+completes the admissible-cell certificate over the full exchange graphs, and
+Result W measures the local exchange boundary exposed by its five exclusive
+pairs. Neither result classifies `CUBIC-INTERNAL-2-BASIS`, proves that eligible
+cells never exist outside the frozen domain, or provides a SAT reduction. The
+next proof target is a structural lemma connecting exchange-boundary behavior
+to one of the recorded escape conditions, or a justified relaxation that still
+permits a direct SAT-to-cubic incidence construction whose arbitrary
+width-two bases can be decoded.
+
+The producer, independent verifier, and focused controls are reproduced from
+the `CassiFI` directory with:
+
+```powershell
+python run_cubic_truth_state_cell_probe.py
+python verify_cubic_truth_state_cell_probe.py
+python -m pytest test_cubic_truth_state_cell_probe.py test_cubic_kernel_decision.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_truth_state_cell_probe.json`. It stores the six frozen
+fixture formulas and digests, all six explicit incidence-edge switches and
+switched-formula digests, every exact basis census, every exclusive-pair
+classification, the duplicate-incidence diagnostic, and the bounded
+assessment. The verifier recomputes those rows independently and treats
+`0` eligible pairs as a finite-domain result rather than a universal
+negative.
+
+
+
+### Result V—complete exchange certificates find no admissible cell in the frozen domain
+
+Result U rejected complementary kernel signatures that were supported by
+duplicate primal columns. Result V makes the remaining finite gadget
+conditions explicit over the complete width-two basis-exchange graph. A graph
+vertex is a lexicographically ordered width-two original-column basis. An
+edge joins two vertices whose basis symmetric difference has size two.
+
+For every original-column pair, the certificate records all four membership
+states, the full exchange graph, the induced `01` and `10` fibre components,
+all single-exchange truth-state flips, auxiliary columns with identical
+membership signatures, and alternate pairs inducing the same partition up to
+orientation. A pair is **admissible** only if it is exclusive, its kernel
+columns are nonzero and projectively independent, its primal incidence
+supports are distinct, the full graph and both truth fibres are connected,
+there is a cross-state exchange edge, and no auxiliary or alternate-pair
+escape exists. This is a registered sufficient finite certificate, not a
+necessary characterization of every possible gadget.
+
+The producer checked `192` candidate pairs across the four exact-width-two
+fixture controls; `5` were exclusive and `0` were admissible. The two
+no-width-two controls were retained as exact `not_applicable` negative
+controls. The rejection histogram includes `21` auxiliary-column shadows,
+`21` disconnected truth fibres, `115` pairs without a single-exchange truth
+flip, `30` projectively parallel kernel-column classifications, and `2`
+duplicate primal-incidence classifications. Counts overlap because each pair
+receives every applicable failure reason.
+
+Each of the six frozen two-switch compositions checked all `153` candidate
+pairs. Across the six compositions, `51,408` rank-sized subsets and `1,440`
+width-two bases yielded `918` pair classifications attempted and checked,
+and `227,952/227,952` pair-work units under the registered `250,000` per-record
+cap. They produced `176` explicit cross-component column-shadow witnesses,
+`0` cross-component alternate-pair witnesses, and `0` escape-free
+compositions. No useful binary relation survived the full certificate.
+
+The independently verified bounded result is:
+
+```text
+no_admissible_cell_in_frozen_fixtures
+```
+
+The v2 receipt freezes the six formula digests, six switched-formula digests,
+port and incidence-edge namespaces, every exchange graph, every pair
+classification, and every composition escape witness. The verifier imports
+neither the producer nor `cubic_kernel_decision.py`; it rebuilds the exact
+rational kernel coordinates, basis censuses, exchange graphs, state
+partitions, and composition rows.
+
+This does not prove that no admissible cell exists outside the frozen domain,
+under a different sufficient certificate, or in a direct reduction that does
+not use this cell interface. The next theorem target is now a structural
+lemma showing that one or more of these escape conditions is unavoidable, or
+a mathematically justified relaxation that still supports decoding an
+arbitrary width-two basis in a direct SAT construction.
+
+The producer, independent verifier, and focused controls are reproduced from
+the `CassiFI` directory with:
+
+```powershell
+python run_cubic_admissible_cell_probe.py
+python verify_cubic_admissible_cell_probe.py
+python -m pytest test_cubic_admissible_cell_probe.py test_cubic_truth_state_cell_probe.py test_cubic_kernel_decision.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_admissible_cell_probe.json`. It is the canonical
+bounded certificate artifact for this screen and distinguishes
+`not_applicable`, `inconclusive`, exclusive-but-rejected, and admissible
+outcomes without promoting an empty candidate set to a universal theorem.
+
+### Result W—exchange boundaries are exact port swaps on the frozen exclusive pairs
+
+Result V leaves five exclusive `01`/`10` pairs in the finite controls, but all
+five are rejected before they can serve as admissible cells. Result W records
+the local exchange boundary rather than treating an exclusive pair as a
+complete gadget. For every edge of the complete width-two basis-exchange graph
+whose endpoint states are `01` and `10`, the certificate orients the edge from
+`01` to `10`, identifies the common basis, and derives the exact
+one-dimensional kernel relation on the common columns plus the two exchanged
+ports.
+Ports use original variable-column numbers, one-based; exchange-graph vertices
+use zero-based indices into the lexicographically ordered basis list.
+
+The source reconstruction accounts for all `363` original-column pairs across
+the six fixtures: `192` pairs are attempted and checked in the four exact
+width-two fixtures, while `171` pairs belong to the two exact no-width-two
+fixtures and are explicitly `not_applicable`. No pair is classified against
+an empty basis family.
+
+The boundary receipt contains `54` crossing edges from `5` exclusive pairs:
+
+| fixture | exclusive ports | crossing edges | pair rejection |
+|---|---|---:|---|
+| `support-three-sat` | `(7, 9)` | `12` | identical primal incidence supports |
+| `greedy-exchange-trap-sat` | `(1, 4)`, `(5, 7)`, `(6, 9)` | `4` each | projectively parallel kernel columns |
+| `support-three-unsat` | `(3, 10)` | `30` | identical primal incidence supports |
+
+Every one of the `54` edges removes the right port and adds the left port.
+Every exact relation has a nonzero coefficient on both exchanged ports. The
+result is a local finite identity:
+
+```text
+boundary_identity_verified_on_frozen_exclusive_pairs
+```
+
+The identity is expected for an exchange edge once the two endpoint bases and
+the exact kernel are fixed; it does not make any rejected pair admissible,
+establish a universal exchange-boundary theorem, or show that a boundary edge
+causes an auxiliary shadow or alternate partition. Result X exhausts the
+nearest degree-preserving switch neighborhoods of the two complementary
+one-defect seeds. Result Y broadens that search to every column pair and a
+deterministic simple cubic corpus, then isolates the cubic zero-sum
+realization question left by a positive general-vector barrier.
+
+The producer, independent verifier, and focused controls are reproduced from
+the `CassiFI` directory with:
+
+```powershell
+python run_cubic_exchange_boundary_probe.py
+python verify_cubic_exchange_boundary_probe.py _diag/cubic_exchange_boundary_probe.json
+python -m pytest test_cubic_exchange_boundary_probe.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_exchange_boundary_probe.json`. It is schema
+`cassifi.cubic-exchange-boundary-probe.v1`; the independent verifier imports
+neither the producer nor the admissible-cell probe and reconstructs the frozen
+formulas, exact rational kernels, complete width-two censuses, exchange
+graphs, exclusive pairs, boundary orientations, and common-basis relations.
+
+### Result X—every distance-one exclusive neighbor retains its seed degeneracy
+
+The closest positive candidates after Result W are complementary. In the
+first frozen formula, ports `(8, 10)` are exclusive and their kernel columns
+have rank two, but their primal incidence columns are identical. In the
+second, ports `(2, 9)` and `(4, 6)` are exclusive with distinct primal
+supports, but each kernel pair is projectively parallel. Result X applies
+every legal degree-preserving incidence two-switch to both formulas and asks
+whether one switch can remove the final defect while preserving exclusivity.
+
+The complete canonical distance-one accounting is:
+
+| quantity | count |
+|---|---:|
+| legal switch specifications | `860` |
+| base-equivalent / duplicate non-base specifications | `16 / 80` |
+| distinct non-base neighbors | `764` |
+| connected / exact-census neighbors | `764 / 764` |
+| neighbors with / without width-two bases | `754 / 10` |
+| designated pair cases | `1,136` |
+| checked / `not_applicable` / inconclusive cases | `1,116 / 20 / 0` |
+| exclusive pair cases | `236` |
+| eligible / admissible pair cases | `0 / 0` |
+
+The first seed contributes `128` exclusive neighbor cases; every one retains
+identical primal incidence while its kernel pair remains rank two and
+nonparallel. The second contributes `108` exclusive cases; every one retains
+projectively parallel kernel columns while its primal supports remain
+distinct. Thus the exact finite result is:
+
+```text
+finite_distance_one_search_null
+```
+
+This is a complete result only for the two frozen formulas, three designated
+pairs, and one-switch radius. It does not prove that every exclusive pair is
+degenerate, rule out a distance-two or unrelated witness, classify the
+internal width-two basis problem, establish NP-hardness, or bear on
+`P = NP`. The domain contains no genuine eligible or admissible positive
+case; none is fabricated as a control.
+
+The producer, standalone verifier, and exhaustive regression controls are
+reproduced from the `CassiFI` directory with:
+
+```powershell
+python run_cubic_exclusive_pair_neighborhood_probe.py
+python verify_cubic_exclusive_pair_neighborhood_probe.py _diag/cubic_exclusive_pair_neighborhood_probe.json
+python -m pytest test_cubic_exclusive_pair_neighborhood_probe.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_exclusive_pair_neighborhood_probe.json`, schema
+`cassifi.cubic-exclusive-pair-neighborhood-probe.v1`. The verifier imports no
+runner or production kernel, switch, or admissibility implementation. It
+reconstructs both frozen formulas, all legal switches, the canonical neighbor
+population, exact rational basis censuses, all designated-pair
+classifications, accounting identities, and the finite assessment.
+
+### Result Y—abstract width barriers exist, but two bounded cubic domains contain none
+
+Let `v_j` be original column `j` in the canonical RREF coordinates for
+`ker(M)` recorded by the receipt. Changing the kernel-row basis applies one
+common invertible linear map to every `v_j`, preserving pair rank, projective
+dependence, and the clause zero-sum relations. Width uses the coefficient
+support obtained after re-expressing every column in each selected
+original-column ground basis; those coefficients are likewise invariant under
+the common map. The statement is therefore intrinsic to the represented dual
+matroid rather than to raw ambient-coordinate support. Two basis-extension
+facts isolate the remaining obstruction:
+
+1. if `rank(v_p, v_q) = 2`, the pair extends to an ordinary dual ground basis,
+   so a basis with port state `11` exists; and
+2. if the weight-three primal incidence columns `M_p` and `M_q` are distinct,
+   they are independent, extend to a primal basis, and the complementary dual
+   basis has port state `00`.
+
+Consequently, every eligible pair is a two-sided width barrier. Ordinary
+ground bases in states `00` and `11` exist, but the complete width-two family
+contains only the nonempty states `01` and `10`.
+
+Abstract vector-matroid exchange does not prohibit this barrier. The rational
+configuration
+
+```text
+[(0,0,1), (0,1,-1), (0,1,0),
+ (1,-1,-1), (1,-1,0), (1,0,-1)]
+```
+
+with ports `(1, 6)` has `16` ordinary bases and `4` width-two bases. Its
+minimum widths by port state are `00:3`, `01:2`, `10:2`, and `11:3`, so the
+positive control realizes the target exactly. A separate rank-two four-vector
+control has every ordinary basis at width at most two and rejects the
+predicate. Neither control is asserted to arise from a cubic incidence
+kernel.
+
+The cubic screen evaluates every original-column pair in the frozen
+distance-one domain and in a deterministic simple `n=12` corpus:
+
+| quantity | seeds plus all distance-one neighbors | deterministic random corpus |
+|---|---:|---:|
+| formulas | `766` | `20,000` |
+| connected formulas | `766` | `19,993` |
+| exact ground-basis censuses | `766` | `2,853` |
+| formulas with / without width-two bases | `756 / 10` | `2,842 / 11` |
+| applicable checked pair cases | `49,896` | `187,572` |
+| exclusive pairs | `343` | `252` |
+| eligible / admissible pairs | `0 / 0` | `0 / 0` |
+
+All `50,556` pair opportunities in the first domain are accounted for:
+`49,896` are checked and `660` are `not_applicable` because their formulas
+have no width-two basis. The `343` exclusive pairs divide into `181`
+rank-two pairs with identical primal incidence and `162` rank-below-two pairs
+with distinct incidence.
+
+The random generator uses three independently shuffled permutations, rejects
+repeated variables within a clause and duplicate clause rows, and uses seed
+`0xE11B1E`. It accepts `20,000` unique formulas after `490,819`
+configuration attempts. Of these, `19,993` are connected, with nullity
+histogram `0:6202, 1:10938, 2:2714, 3:138, 4:1`. The rank-dimension filter
+soundly excludes `17,140` connected formulas with nullity below two; every
+remaining connected formula receives a complete exact ground-basis census.
+Nullity at most two cannot realize a two-sided width barrier because every
+ordinary basis then has width at most two, leaving only `139` random formulas
+at the relevant nullity-three-or-higher target. The `252` exclusive random
+pairs divide into `85` rank-two/identical, `49` rank-below-two/distinct, and
+`118` rank-below-two/identical cases.
+
+Across both bounded domains there are `20,766` cubic formulas,
+`237,468` applicable checked pairs, and `595` exclusive pairs. None is
+eligible, so none can be admissible. The measured result is:
+
+```text
+no_eligible_pair_in_two_bounded_cubic_domains
+```
+
+This is complete for the stated distance-one domain and deterministic
+20,000-draw corpus only. It does not prove the exclusive-pair degeneracy
+conjecture, a cubic-specific width-barrier impossibility, a recognition or
+hardness classification, or any statement about `P = NP`. The positive
+control rules out a proof from abstract basis exchange alone.
+
+The remaining structure is specific to cubic incidence kernels. Every clause
+gives a zero-sum relation `v_a + v_b + v_c = 0`, every column participates in
+three such relations, and summing all clause relations gives
+`sum_j v_j = 0`. The immediate theorem fork is therefore:
+
+> Can a rational vector configuration with a two-sided width barrier admit a
+> connected, simple, three-regular zero-sum triple presentation whose
+> incidence matrix has exactly that kernel?
+
+A targeted realization solver can refute this with a cubic lift, while a
+structural invariant excluding all such lifts would prove the degeneracy
+lemma needed by this route. Another unconditioned random scan would add
+finite evidence without addressing the special structure isolated here.
+
+The producer, standalone verifier, and fast controls are reproduced from the
+`CassiFI` directory with:
+
+```powershell
+python run_cubic_exclusive_width_barrier_probe.py
+python verify_cubic_exclusive_width_barrier_probe.py _diag/cubic_exclusive_width_barrier_probe.json
+python -m pytest test_cubic_exclusive_width_barrier_probe.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_exclusive_width_barrier_probe.json`, schema
+`cassifi.cubic-exclusive-width-barrier-probe.v1`. It stores both predicate
+controls, every formula in both bounded domains, switch provenance, random
+stream accounting and digest, exact census opportunity accounting, every
+exclusive-pair classification, aggregate counts, and the finite assessment.
+The standard-library verifier imports no producer or production kernel,
+switch, or admissibility implementation. It reconstructs the formulas,
+random generator, rational elimination, complete basis censuses, exchange
+checks, pair decisions, controls, aggregates, and assessment.
+
+### Result Z—a complete symmetry cover excludes cubic width barriers through order nine
+
+Result Y isolates a realization problem rather than another sampling problem.
+The target must be the exact kernel of a connected, simple, three-regular
+bipartite incidence graph. Result Z completely covers that existence question
+for square formulas with `n = 3,...,9`: there are `n` clauses and `n`
+variables, each clause contains three distinct variables, every variable occurs
+three times, and no two clause triples are equal. Distinct variables may still
+have identical incidence columns, because that coincidence is one of the two
+measured degeneracies.
+
+The cover follows from the perfect-matching structure of cubic bipartite
+graphs:
+
+1. every finite three-regular bipartite graph decomposes into three perfect
+   matchings;
+2. relabel the variable side so that the first matching is the identity;
+3. the second and third matchings become fixed-point-free permutations `p`
+   and `q`, with `q(i)` distinct from both `i` and `p(i)`;
+4. simultaneous clause and variable relabeling preserves the identity matching
+   and conjugates `p`, so one canonical representative of every
+   fixed-point-free cycle partition suffices; and
+5. enumerating every legal `q`, row-sorting the clause triples, deduplicating,
+   and checking every variable pair preserves the existence of a connected
+   eligible witness.
+
+This is a complete symmetry cover for existence, not a count of labeled or
+unlabeled graphs. A separate brute-force quotient control enumerates both `p`
+and `q` without the cycle-representative reduction at orders four through six:
+
+| order | full row-sorted formulas | representative formulas | full / representative isomorphism classes |
+|---:|---:|---:|---:|
+| 4 | `1` | `1` | `1 / 1` |
+| 5 | `12` | `10` | `1 / 1` |
+| 6 | `330` | `136` | `4 / 4` |
+
+The class sets and their canonical stream digests agree at every controlled
+order. Across the full bounded cover, generation proceeds as:
+
+| order | cycle types for `p` | scanned `q` permutations | unique simple formulas | exact nullity-at-least-three targets |
+|---:|---:|---:|---:|---:|
+| 3 | `1` | `6` | `0` | `0` |
+| 4 | `2` | `48` | `1` | `0` |
+| 5 | `2` | `240` | `10` | `0` |
+| 6 | `4` | `2,880` | `136` | `0` |
+| 7 | `4` | `20,160` | `1,154` | `0` |
+| 8 | `7` | `282,240` | `15,502` | `0` |
+| 9 | `8` | `2,903,040` | `187,864` | `1,402` |
+
+The total is `204,667` unique row-sorted formulas. The rank screen is
+performed modulo the prime `1,000,003`. For an integer matrix,
+`rank_Fp(M) <= rank_Q(M)`, so modular rank greater than `n - 3` safely excludes
+rational nullity at least three. Every retained candidate is reranked by exact
+fraction elimination; the screen has `1,402` candidates and zero false
+positives. Nullity below three cannot support the target because every basis
+in a space of dimension at most two has width at most two, while basis
+extension supplies ordinary `00` and `11` bases for an eligible pair.
+
+All `1,402` targets occur at order nine and are connected. Their exact nullity
+histogram is `3:1399, 4:3`. Every one receives a complete exact ground-basis
+census. The width-two family sizes are:
+
+| nullity | width-two bases | formulas |
+|---:|---:|---:|
+| 3 | `8` | `640` |
+| 3 | `20` | `199` |
+| 3 | `24` | `560` |
+| 4 | `24` | `3` |
+
+The all-pair pass checks `1,402 * C(9,2) = 50,472` cases. It finds `2,887`
+exclusive pairs, partitioned without remainder:
+
+| exclusive-pair outcome | count |
+|---|---:|
+| kernel-pair rank below two, distinct primal incidence | `1,920` |
+| kernel-pair rank below two, identical primal incidence | `0` |
+| kernel-pair rank two, identical primal incidence | `967` |
+| kernel-pair rank two, distinct primal incidence—eligible | `0` |
+
+Thus every exclusive pair retains exactly one of the two cubic degeneracies
+identified in Results X and Y. No eligible pair, and hence no two-sided width
+barrier, exists in the complete bounded cover:
+
+```text
+no_cubic_width_barrier_in_bounded_symmetry_cover
+```
+
+A frozen connected order-nine control independently exercises the
+rank-two/identical branch: it has rank six, nullity three, `24` ground bases,
+`20` width-two bases, and two exclusive pairs, both rank-two with identical
+primal incidence. The categorical control also includes the eligible
+rank-two/distinct branch, while Result Y's rational-vector fixture remains the
+positive behavioral witness for the barrier predicate.
+
+The result proves that a counterexample under this simple square cubic
+convention, if one exists, has order at least ten. It does not prove the
+exclusive-pair degeneracy implication at arbitrary order, give a
+polynomial-time width-two recognizer, establish hardness, or bear on `P = NP`.
+The exact theorem target is:
+
+> For every connected simple cubic incidence matrix `M`, if original columns
+> `p,q` are exclusive across the complete width-two basis family of `ker(M)`,
+> then `rank(v_p,v_q) < 2` or `M_p = M_q`.
+
+The next computational falsifier is a targeted canonical order-ten witness
+search that encodes exclusivity and both nondegeneracy conditions, rather than
+another unconditioned random sample. A structural proof should exploit the
+three edge-disjoint matchings and the resulting overlapping zero-sum triples.
+
+The producer, independent verifier, and fast controls are reproduced from the
+`CassiFI` directory with:
+
+```powershell
+python run_cubic_lift_realization_probe.py
+python verify_cubic_lift_realization_probe.py _diag/cubic_lift_realization_probe.json
+python -m pytest test_cubic_lift_realization_probe.py -q
+```
+
+The receipt is `CassiFI/_diag/cubic_lift_realization_probe.json`, schema
+`cassifi.cubic-lift-realization-probe.v1`. The runner stores the domain and
+coverage proof, quotient-control digests, every per-order generation count and
+formula-stream digest, compact exact target profiles, complete basis and
+exclusive-pair stream digests, aggregates, and bounded assessment. The
+standard-library verifier imports neither the producer nor a production
+kernel implementation. It reconstructs the cover, exact rational
+elimination, basis censuses, pair classifications, controls, digests, and
+assessment, and rejects a receipt whose declared maximum order is below the
+required bound.
+
+### Result AA—four canonical width-two families exhaust the bounded targets
+
+Result Z records the two degeneracy categories but does not determine whether
+they are incidental pair outcomes or the visible structure of the complete
+width-two families. Result AA reconstructs all `1,402` exact targets, retains
+each full width-two basis hypergraph, and independently classifies all
+`50,472` variable-pair cases.
+
+For ports `p,q`, define:
+
+- **dual-parallel** when the exact rational kernel columns `v_p,v_q` have rank
+  below two;
+- **primal-incidence twins** when `M_p = M_q`; and
+- **exclusive** when the complete width-two basis family realizes precisely
+  states `01` and `10`.
+
+All `2,887` measured exclusive pairs obey
+
+```text
+exclusive -> dual-parallel or primal-incidence twins
+```
+
+with zero violations. The two categories are disjoint on the exclusive pairs:
+`1,920` are dual-parallel with distinct primal incidence and `967` have
+rank-two dual columns with identical primal incidence.
+
+The zero is behaviorally nonvacuous. The six-vector rational barrier from
+Result Y is equipped here with an explicitly reconstructed orthogonal primal
+representation. Its designated pair is exclusive, has dual-pair rank two, and
+has primal-pair rank two with nonidentical columns. The generalized
+degeneracy implication therefore records a violation. A second rational
+configuration has pair rank two but realizes all four width-two states and is
+correctly nonexclusive. Neither control is claimed to be a cubic incidence
+kernel.
+
+Degeneracy is not sufficient for exclusivity. The cubic target census contains
+`4,799` degenerate nonexclusive pairs, all dual-parallel. No
+primal-incidence twin is nonexclusive. More strongly, every target falls into
+one of two exact finite modes:
+
+1. `640` formulas have no primal twins. Each has three dual-parallel pairs and
+   exactly those three are exclusive, giving `1,920` exclusive pairs.
+2. `762` formulas have primal twins. Their exclusive pairs are exactly the
+   twin pairs: `560` formulas have one, `199` have two, and `3` have three,
+   giving `967` exclusive pairs. Their additional dual-parallel pairs are
+   nonexclusive.
+
+Canonicalizing the complete width-two basis hypergraphs under variable
+relabeling produces exactly four families:
+
+| formulas | nullity | ordinary basis widths | width-two bases | dual projective class sizes | primal incidence class sizes | exclusive mode |
+|---:|---:|---|---:|---|---|---|
+| `640` | `3` | `2:8, 3:43` | `8` | `2,2,2,1,1,1` | nine singletons | three dual-parallel pairs |
+| `199` | `3` | `2:20, 3:4` | `20` | `5,1,1,1,1` | `2,2,1,1,1,1,1` | two primal-twin pairs |
+| `560` | `3` | `2:24, 3:12` | `24` | `3,2,2,1,1` | `2,1,1,1,1,1,1,1` | one primal-twin pair |
+| `3` | `4` | `2:24, 3:12` | `24` | `3,1,1,1,1,1,1` | `2,2,2,1,1,1` | three primal-twin pairs |
+
+The structural profile is outcome-independent: it is formed from exact
+rank/nullity, the ordinary basis-width histogram, width-two family size, dual
+projective class sizes, and primal incidence class sizes. Each canonical
+family has one such profile, and each profile has one measured exclusive
+mode.
+
+This is a finite structural classification through order nine. It neither
+proves that higher-order connected cubic kernels introduce no fifth family nor
+gives a polynomial-time width-two recognizer. It does isolate the next
+proof obligation more sharply than another census: derive size-decreasing
+substitutions for dual-parallel pairs and primal twins, and prove that the
+resulting residual constraint language remains in a tractable closure. A
+targeted canonical order-ten nondegenerate-exclusive search remains the direct
+falsification backstop.
+
+Reproduce the runner, independent verifier, and focused controls from
+`CassiFI` with:
+
+```powershell
+python run_cubic_degeneracy_structure_probe.py
+python verify_cubic_degeneracy_structure_probe.py _diag/cubic_degeneracy_structure_probe.json
+python -m pytest test_cubic_degeneracy_structure_probe.py -q
+```
+
+The receipt is `CassiFI/_diag/cubic_degeneracy_structure_probe.json`, schema
+`cassifi.cubic-degeneracy-structure-probe.v1`. It binds the complete lift
+receipt and per-order cover digests, stores compact classifications for all
+targets, the four canonical families and profiles, both noncubic controls,
+and every aggregate. The verifier does not import the audited structure runner
+or a production kernel implementation. It starts from the independent lift
+reconstruction, separately redoes the exact pair analysis and
+degree-preserving canonicalization, and compares the complete receipt.
+
+### Result AB—exact quotients close on the four representatives
+
+Result AA identifies two pair degeneracies but does not establish that
+eliminating either pair preserves Boolean solutions or useful kernel
+structure. Result AB performs that test on the lexicographically first formula
+representative of each of the four canonical width-two families and applies
+the quotient to every exclusive pair of each representative.
+
+The nine cases divide into six primal-incidence twins and three dual-parallel
+pairs. A twin pair is replaced by the Boolean aggregate
+
+```text
+y = x_p + x_q
+```
+
+with canonical lift `x_p = y, x_q = 0`; when `y = 1`, the symmetric lift
+`x_p = 0, x_q = 1` is also valid because the two columns are identical. For
+each dual-parallel case, exact rational affine projection gives precisely the
+Boolean relation `{00, 11}`, so the quotient identifies both variables with
+one Boolean parameter.
+
+The producer enumerates every Boolean solution before and after each quotient
+and compares the quotient solution set with the projected original solution
+set. All nine sets agree exactly. Every first quotient retains a width-two
+ground-set basis. Three quotient systems have nullity two; six have nullity
+three and retain an exclusive pair.
+
+Starting from each first quotient, the runner repeatedly selects the
+lexicographically first remaining exclusive pair, independently reclassifies
+it, applies its exact quotient, and repeats. The nine paths terminate as
+follows:
+
+| terminal | paths | measured structure |
+|---|---:|---|
+| nullity at most two | `6` | width two is automatic and an explicit basis is retained |
+| nullity three with no exclusive pair | `3` | exactly one width-two basis and four Boolean solutions |
+
+The latter three are the dual-family paths. Each uses two additional equality
+quotients after the first and ends with six variables and three distinct
+three-variable exact-one rows, each repeated three times. No path needs more
+than two recursive steps after the first quotient, and all nine reach a
+constructive width-two terminal.
+
+Result AC below performs the same exact quotient, exhaustive solution
+projection, and recursive-terminal analysis over all `2,887` exclusive pairs.
+It closes this representative caveat for the complete retained order-nine
+census, but not at arbitrary order.
+
+Reproduce from `CassiFI` with:
+
+```powershell
+python run_cubic_degeneracy_quotient_probe.py
+python verify_cubic_degeneracy_quotient_probe.py _diag/cubic_degeneracy_quotient_probe.json
+python -m pytest test_cubic_degeneracy_quotient_probe.py -q
+```
+
+The receipt is `CassiFI/_diag/cubic_degeneracy_quotient_probe.json`, schema
+`cassifi.cubic-degeneracy-quotient-probe.v1`. It binds the Result AA and lift
+receipts and stores all nine transformations, offsets, solution counts, basis
+censuses, recursive traces, terminal matrices, and aggregates. The verifier
+imports neither the quotient runner nor the production kernel implementation.
+It independently reconstructs the rational affine spaces, Boolean
+projections, basis families, exclusive pairs, transformations, traces,
+digests, and complete receipt.
+
+### Result AC—exact quotients close across the complete order-nine population
+
+Result AC applies the two Result AB quotient constructions to every exclusive
+pair of all `1,402` retained targets. The `2,887` cases divide into `967`
+primal-twin sum quotients and `1,920` dual-parallel equality quotients. Exact
+Boolean enumeration gives zero projected-solution-set mismatches, and every
+first quotient retains a width-two basis. There are `958` first quotients of
+nullity two and `1,929` of nullity three.
+
+Deterministic recursive reduction yields four terminal structures:
+
+| cases | category | further steps | terminal |
+|---:|---|---:|---|
+| `560` | primal twins | `0` | nullity two, eight variables, three solutions, 20 width-two bases |
+| `398` | primal twins | `0` | nullity two, eight variables, two solutions, 13 width-two bases |
+| `9` | primal twins | `1` | nullity two, seven variables, three solutions, 11 width-two bases |
+| `1,920` | dual parallel | `2` | nullity three, six variables, four solutions, one width-two basis, no exclusive pair |
+
+No recursive path needs more than two steps after its first quotient. All
+`2,887` compact behavior signatures occur on the target with the smallest
+formula SHA-256 in the corresponding canonical family. Here the
+signature records category, relation kind, quotient nullity, presence of a
+width-two basis and another exclusive pair, recursive step count, terminal,
+final nullity, and final width-two status.
+
+This is a complete constructive closure result for the retained connected
+order-nine cubic census. It is not an arbitrary-order theorem. The remaining
+fork is to prove that every arbitrary-order exclusive width-two pair has one
+of the two measured degeneracies and that recursive quotienting preserves the
+required structure, with a targeted canonical order-ten nondegenerate-pair
+search as the immediate falsification control.
+
+Reproduce from `CassiFI` with:
+
+```powershell
+python run_cubic_degeneracy_quotient_population_probe.py
+python verify_cubic_degeneracy_quotient_population_probe.py
+python -m pytest test_cubic_degeneracy_quotient_population_probe.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_degeneracy_quotient_population_probe.json`, schema
+`cassifi.cubic-degeneracy-quotient-population-probe.v1`. It binds the complete
+Result AA and lift receipts and stores compact measurements plus full relation,
+trace, and terminal-instance digests for every pair. The verifier imports
+neither the population runner nor the production kernel and independently
+reconstructs all `2,887` records and aggregates.
+
+### Result AD—targeted order-ten extensions contain no nondegenerate pair
+
+Result AD is the immediate finite falsification control for the arbitrary-order
+quotient fork. It chooses the minimum-formula-SHA-256 representative of each
+of the four canonical Result AA families. For each representative it visits
+every size-three matching of old incidence edges, replaces those three old
+edges by the new variable `10`, creates the new three-variable row from the
+selected old variables, retains distinct clause rows, and deduplicates by the
+row-sorted formula digest. This is a targeted extension domain; it is not the
+complete order-ten symmetry cover.
+
+The generator visits `6,876` matching extensions. `6,240` are simple and
+deduplicate to `6,230` unique candidates, all connected. An exact rational
+basis profile is reconstructed for every one of the `6,230` candidates. The
+nullity histogram is:
+
+| nullity | candidates |
+|---:|---:|
+| `0` | `1,485` |
+| `1` | `3,926` |
+| `2` | `807` |
+| `3` | `12` |
+
+The pair denominator is the complete connected candidate population, not only
+the nullity-three subset. All `6,230` candidates receive an exclusive-pair
+check, yielding `3,474` exclusive-pair cases. Every case is
+`rank_below_two_identical`; the nullity-three subset contributes `36` cases,
+also all `rank_below_two_identical`. The count of rank-two/distinct
+nondegenerate pairs is zero.
+Here `rank_below_two_identical` is the intersection of the two known
+degeneracy predicates, not a new nondegenerate mechanism: both the kernel
+columns are dependent and the primal incidence columns coincide.
+
+Result AD therefore finds no nondegenerate exclusive pair in this targeted
+order-ten extension domain. It strengthens the finite degeneracy pattern but
+does not establish the arbitrary-order implication, because other order-ten
+cubic formulas are outside the domain. The next decisive work is an
+arbitrary-order proof of the two degeneracy forms and quotient preservation,
+or a complete order-ten symmetry cover after a generation-cost feasibility
+screen. Neither branch is a proof of `P = NP` or of unrestricted cubic
+one-in-three tractability by itself.
+
+Reproduce from `CassiFI` with:
+
+```powershell
+python run_cubic_order10_targeted_probe.py
+python verify_cubic_order10_targeted_probe.py
+python -m pytest test_cubic_order10_targeted_probe.py -q
+```
+
+The receipt is
+`CassiFI/_diag/cubic_order10_targeted_probe.json`, schema
+`cassifi.cubic-order10-targeted-probe.v1`. It binds the raw Result AA
+structure and lift receipts, stores the full extension and candidate streams,
+and separates the all-connected pair denominator from the nullity-three target
+subset. The standard-library verifier imports neither the targeted runner nor
+the production kernel; it independently reconstructs source joins, generation,
+exact bases, pair records, digests, aggregate denominators, and assessment.
+
+
 > The ground-set frame question for cubic incidence duals is decidable without
 > free-subset enumeration, and connected chains of the two width-three controls
 > stay width three through nullity nine, where enumeration is infeasible. This is
@@ -1997,6 +2935,26 @@ compression attempts now have precise outcomes. The next work is:
    `C(n,k)` free-subset intersection at each bound is still `O(n^k)` for fixed
    nullity `k`, so the pair certifies finite families rather than changing the
    asymptotics.
+   Result Z resolves the cubic realization fork completely through order
+   nine: the matching-factorization symmetry cover contains `204,667`
+   formulas, with all `1,402` nullity-at-least-three targets and all `50,472`
+   target pairs checked exactly. Result AA then reduces their complete
+   width-two basis hypergraphs to four canonical families and finds that all
+   `2,887` exclusive pairs are dual-parallel or primal-incidence twins, while
+   `4,799` dual-parallel pairs are nonexclusive. The noncubic positive control
+   shows that abstract basis exchange alone does not force the implication;
+   the complete cubic census nonvacuously satisfies it. Result AB first
+   applies exact twin-sum and dual-equality quotients to all nine exclusive
+   pairs of one representative per canonical family. Result AC then closes
+   the representative caveat: all `2,887` exclusive pairs across all `1,402`
+   retained targets preserve their complete projected Boolean solution sets
+   and a width-two basis, and every deterministic recursive path reaches one
+   of four constructive family-level terminal structures in at most two
+   further steps. No population case has a behavior signature absent from its
+   representative. The remaining fork is arbitrary-order: prove the
+   degeneracy-and-quotient closure, or falsify it with a targeted canonical
+   order-ten nondegenerate-exclusive search. Another unconditioned random
+   sample is not.
 2. **Move beyond one uniform matchgate basis.** Test whether locally varying
    edge gauges, bounded-size equality gadgets, higher-dimensional signatures,
    or non-matchgate determinant identities can aggregate the correlated
@@ -2107,6 +3065,24 @@ python -m pytest test_switch_neighborhood_probe.py -q
 python -m pytest test_cubic_kernel_decision.py -q
 python -m pytest test_frame_separation_probe.py -q
 python -m pytest test_frame_search_probe.py -q
+python run_cubic_truth_state_cell_probe.py
+python verify_cubic_truth_state_cell_probe.py
+python -m pytest test_cubic_truth_state_cell_probe.py test_cubic_kernel_decision.py -q
+python run_cubic_admissible_cell_probe.py
+python verify_cubic_admissible_cell_probe.py
+python -m pytest test_cubic_admissible_cell_probe.py test_cubic_truth_state_cell_probe.py test_cubic_kernel_decision.py -q
+python run_cubic_exchange_boundary_probe.py
+python verify_cubic_exchange_boundary_probe.py _diag/cubic_exchange_boundary_probe.json
+python -m pytest test_cubic_exchange_boundary_probe.py -q
+python run_cubic_exclusive_pair_neighborhood_probe.py
+python verify_cubic_exclusive_pair_neighborhood_probe.py _diag/cubic_exclusive_pair_neighborhood_probe.json
+python -m pytest test_cubic_exclusive_pair_neighborhood_probe.py -q
+python run_cubic_exclusive_width_barrier_probe.py
+python verify_cubic_exclusive_width_barrier_probe.py _diag/cubic_exclusive_width_barrier_probe.json
+python -m pytest test_cubic_exclusive_width_barrier_probe.py -q
+python run_cubic_lift_realization_probe.py
+python verify_cubic_lift_realization_probe.py _diag/cubic_lift_realization_probe.json
+python -m pytest test_cubic_lift_realization_probe.py -q
 ```
 
 The raw receipt is `_diag/p_vs_np_probe.json`. The verifier checks the frozen
@@ -2255,6 +3231,20 @@ across 40 cases with three skipped as too large, 2,694,750 sieved free subsets,
 1,282,415 dependent coverings rejected by the independence filter, and no
 width-two draw outside the known width-two cases.
 
+The mandatory-class obstruction receipt is
+`CassiFI/_diag/mandatory_class_obstruction_probe.json`. It stores the exact
+projective-class and rich-line reconstruction for 12 rational families and
+five cubic controls, the original-column/class mapping, mandatory sets and
+rank/cardinality witnesses, the bounded NO-case local-obstruction census,
+positive-case `not_applicable` rows, and the production candidate summaries.
+The independent verifier reconstructs all 17 cases without importing the
+producer or the cubic-kernel implementation. The final run reports six exact
+NO-case local statuses, two cap-limited `inconclusive` NO cases, nine positive
+`not_applicable` rows, six mandatory rejections, and production outcomes of
+eight `no_width_two_basis` versus nine `width_two`. The two cap-limited local
+rows remain scope-limited and are not treated as local exact obstructions.
+
+
 The switch-neighborhood receipt is `CassiFI/_diag/switch_neighborhood_probe.json`.
 It stores every distinct one-switch neighbor with its canonical digest, switch,
 nullity, exact census width, class-search verdict, and witness metadata, plus
@@ -2266,6 +3256,89 @@ decisions, both seeded walk sequences, and every stored frame witness. The run
 reports 1,014 complete neighbors, 796 unique sampled finals, census/search
 agreement on every decision, and two synthetic search anchors; the distance-two
 walks are samples rather than an exhaustive radius-two neighborhood.
+
+The truth-state-cell receipt is
+`CassiFI/_diag/cubic_truth_state_cell_probe.json`. It is schema
+`cassifi.cubic-truth-state-cell-probe.v2` and stores the six frozen fixture
+names, roles, formulas, and SHA-256 digests; the diagnostic variable-column
+pair; all six explicit incidence-edge switch tuples and switched-formula
+digests; exact original-column basis censuses; every exclusive-pair
+classification; and the bounded assessment. The independent verifier imports
+neither the producer nor `cubic_kernel_decision.py`. It rebuilds the formulas,
+digests, rational kernel coordinates, basis censuses, state signatures, and
+switched compositions, and verifies a supplied positional receipt path rather
+than silently opening the default receipt.
+
+The admissible-cell receipt is
+`CassiFI/_diag/cubic_admissible_cell_probe.json`. It is schema
+`cassifi.cubic-admissible-cell-probe.v2` and stores the six frozen fixture
+and six switched-formula digests, explicit port and incidence-edge
+namespaces, every width-two basis-exchange graph, all complete pair
+classifications, auxiliary and alternate-partition witnesses, cross-component
+composition escapes, and the bounded assessment. The independent verifier
+imports neither the producer nor `cubic_kernel_decision.py`; it reconstructs
+the formulas, exact rational kernels, basis censuses, exchange graphs,
+partitions, compositions, and aggregate rejection counts, and accepts an
+explicit positional receipt path.
+
+The exchange-boundary receipt is
+`CassiFI/_diag/cubic_exchange_boundary_probe.json`. It is schema
+`cassifi.cubic-exchange-boundary-probe.v1` and stores the six frozen fixture
+digests, candidate-pair totals plus attempted, checked, and `not_applicable`
+counts, the five reconstructed exclusive pairs, every crossing edge in their
+complete width-two exchange graphs, the oriented port swap, the exact
+common-basis kernel relation, and the finite assessment. Its independent
+verifier imports neither the producer nor the admissible-cell probe; it
+reconstructs the formulas, rational kernels, basis censuses, candidate
+accounting, exchange graphs, exclusive pairs, boundary edges, and relations
+from the supplied positional receipt path.
+
+The exclusive-pair neighborhood receipt is
+`CassiFI/_diag/cubic_exclusive_pair_neighborhood_probe.json`. It is schema
+`cassifi.cubic-exclusive-pair-neighborhood-probe.v1` and stores the two
+frozen seed formulas, three designated pairs, all `764` distinct non-base
+neighbors with replay switches and multiplicities, complete census and pair
+case accounting, compact pair classifications, and the finite search-null
+assessment. Its standalone verifier imports no runner or production kernel,
+switch, or admissibility implementation; it reconstructs all `860` legal
+switches, canonical deduplication, exact rational kernels, basis censuses,
+exchange graphs, pair decisions, aggregates, and assessment from the
+supplied positional receipt path.
+
+The exclusive width-barrier receipt is
+`CassiFI/_diag/cubic_exclusive_width_barrier_probe.json`. It is schema
+`cassifi.cubic-exclusive-width-barrier-probe.v1` and stores positive and
+negative rational-vector predicate controls, all `766` formulas in the
+frozen all-pair distance-one domain, all `20,000` formulas in the
+deterministic simple `n=12` corpus, generation and opportunity accounting,
+every exclusive-pair classification, and the finite assessment. Its
+standard-library verifier imports no producer or production kernel, switch,
+or admissibility implementation; it reconstructs both domains, exact
+rational kernels, every applicable complete basis census, pair decisions,
+controls, aggregates, and assessment from the supplied positional receipt
+path.
+
+The cubic-lift realization receipt is
+`CassiFI/_diag/cubic_lift_realization_probe.json`. It is schema
+`cassifi.cubic-lift-realization-probe.v1` and stores the complete
+matching-factorization symmetry cover through order nine, the independent
+small-order quotient control, per-order formula-stream and generation
+accounting, modular and exact rank results, compact target profiles, complete
+ground-basis and exclusive-pair stream digests, and the bounded assessment.
+Its standard-library verifier imports neither the producer nor a production
+kernel implementation; it rebuilds the cover and every exact target census,
+checks all pair outcomes and controls, and fails closed on receipt mutation or
+scope shrinkage.
+
+The cubic degeneracy-structure receipt is
+`CassiFI/_diag/cubic_degeneracy_structure_probe.json`. It is schema
+`cassifi.cubic-degeneracy-structure-probe.v1` and binds the independently
+verified lift cover, all compact target classifications, four canonical
+width-two families and structural profiles, the noncubic positive and negative
+controls, and the finite assessment. Its verifier imports neither the audited
+runner nor the production kernel implementation; it independently rebuilds
+the source cover, exact bases, pair categories, canonicalization, controls,
+digests, and aggregates.
 
 ## Primary references
 
