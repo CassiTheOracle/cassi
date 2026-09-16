@@ -765,7 +765,7 @@ def resolvent_controls(result: dict[str, Any]) -> None:
             full_off = jacobi_off_diagonal(x, terminal + 1)
             A_diagonal = jacobi_diagonal(x, 0, n_cut)
             A_off = jacobi_off_diagonal(x, n_cut + 1)
-            for eta in (1.0, math.sqrt(x)):
+            for eta in tuple(dict.fromkeys((1.0, math.sqrt(x)))):
                 full_rhs = np.zeros((terminal + 1, n_cut + 1), dtype=float)
                 full_rhs[:n_cut + 1, :] = np.eye(n_cut + 1)
                 full_solution = tridiagonal_solve(
@@ -794,7 +794,7 @@ def resolvent_controls(result: dict[str, Any]) -> None:
                 })
     result["resolvent_rows"] = rows
     keys = [(row["x"], row["N"], row["eta"]) for row in rows]
-    expected = len(x_values) * len(n_values) * 2
+    expected = sum(len(tuple(dict.fromkeys((1.0, math.sqrt(x))))) for x in x_values) * len(n_values)
     record_check(result, "resolvent_row_inventory",
                  len(rows) == expected and len(set(keys)) == expected,
                  {"actual": len(rows), "expected": expected, "unique": len(set(keys))})
