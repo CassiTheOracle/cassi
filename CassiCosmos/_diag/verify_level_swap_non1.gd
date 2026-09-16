@@ -118,16 +118,18 @@ func _process(_delta: float) -> void:
 func _adopted_particles_in_box(ext: Vector3) -> bool:
 	if _sim == null or not _sim._pos_buf.is_valid():
 		return false
-	var n := _sim.N_particles
+	var n: int = int(_sim.N_particles)
 	if n <= 0:
 		return _ext_vec_le(ext, Vector3.ZERO)
-	var pos := _sim._rd.buffer_get_data(_sim._pos_buf, 0, n * 16).to_float32_array()
+	var pos: PackedFloat32Array = _sim._rd.buffer_get_data(
+			_sim._pos_buf, 0, n * 16).to_float32_array()
 	if pos.size() < n * 4:
 		return false
-	var lim := Vector3(ext.x + BOX_TOL, ext.y + BOX_TOL, ext.z + BOX_TOL)
+	var lim: Vector3 = Vector3(
+			ext.x + BOX_TOL, ext.y + BOX_TOL, ext.z + BOX_TOL)
 	for i in range(n):
-		var b := i * 4
-		var w := pos[b + 3]
+		var b: int = i * 4
+		var w: float = float(pos[b + 3])
 		if w <= 0.0:
 			continue   # dead particle — skip (liveness convention)
 		if absf(pos[b]) > lim.x or absf(pos[b + 1]) > lim.y or absf(pos[b + 2]) > lim.z:
