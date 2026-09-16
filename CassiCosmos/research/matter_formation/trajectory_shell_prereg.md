@@ -142,3 +142,24 @@ Each run writes a JSON receipt and the following raw arrays under
 The raw arrays and receipt are diagnostic artifacts. They are not copied into a
 paper as physical evidence without an independent analysis and an explicit
 scope statement.
+
+## 7. Scope of the registered receipts
+
+The receipts under `_diag/matter_formation/trajectory_shell_registered/` and
+`_diag/matter_formation/trajectory_ancestry_registered/` record
+`gravity_mode = 2` with the meshless modes off, which is the harness default
+and the Plummer reference arm. That arm evaluates each particle's acceleration
+from the soft-collapsed cluster records uploaded once during setup
+(`_upload_particles`, the only write to `_cluster_buf`), so the potential is
+fixed for the whole run: the recorded shell candidates are the turning-point
+caustics of test particles in that static potential, and the recorded merge
+ancestry is the merge rule's response inside it. Neither receipt exercises
+mutual gravity, and neither is a measurement of the production scene, which
+runs `gridless_physics` with the site-native tree force.
+
+The multi-condition probe in
+`research/matter_formation/trajectory_general_attractor_prereg.md` closes that
+gap: it varies the initial shape inside the production force configuration
+(gridless site-native tree, attractor-initialized field) and measures the same
+kind of radial structure. The layered structure of the production arm is
+established there, not by the two receipts above.
