@@ -59,3 +59,13 @@ CassiQwen/world-schemas-extract.json
 /*.md
 !/README.md
 !/AGENTS.md
+
+# CassiQwen native MSVC build tree (b8-server flavor).
+CassiQwen/native/llama.cpp/b8/
+
+# CassiFI field-frequency-query run outputs (build dump and stdout log).
+CassiFI/_ffq_*.txt
+
+# CassiTheory scratch transfers and temp coefficient dumps.
+CassiTheory/_tmp_incoming_*
+CassiTheory/*.tmp
