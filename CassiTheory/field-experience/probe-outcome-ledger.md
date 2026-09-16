@@ -2293,14 +2293,33 @@ schedule declares 18 executions: a primary run at each $N\in\{16,32\}$ and a
 
 | Stage | Decisive result | Classification and scope |
 |---|---|---|
-| Recorded execution | `timeout 3300 python computations/verify_navier_stokes_strain_band_split.py`, run from the repository root, completed five of the 18 declared executions—the three `beltrami` declarations and both `helix_wide` primary declarations—and its bound expired at 3300.12 s with exit code 124 inside the sixth, at the printed progress `helix_wide N=32 time_refined step 1920/2048 (980s, 2.0 states/s)` | No classification—the bounded invocation terminated; 13 declarations did not run |
-| Beltrami control | The three completed control declarations printed positive-stretching integrals $1.799751\times10^{-34}$, $1.913839\times10^{-34}$ and $1.914922\times10^{-34}$ with band productions between $7.840078\times10^{-35}$ and $1.132862\times10^{-34}$ | The exact heat-flow control requires these to vanish; the receipt that carries the $10^{-10}$ band gate was not assembled |
-| Raw artifact | The declared receipt `runs/navier_stokes_strain_band_split/verification.json` is written only after `run_probe()` returns and was not written, leaving `runs/navier_stokes_strain_band_split/probe.log` as the only artifact | No receipt binds the schedule |
+| Completed execution | `timeout 12000 python computations/verify_navier_stokes_strain_band_split.py`, run unmodified from the repository root, exited 0 after 10711.57 s with all 18 declared executions and wrote `runs/navier_stokes_strain_band_split/verification.json` at `status=PASS` | `PASS` on the declared truncations and step sizes |
+| Integrity | Receipt checks 10 of 10: declared run count 18, kinetic normalization $3.33\times10^{-16}$, Fourier divergence $2.86\times10^{-17}$, band identity $0$, band Parseval $2.08\times10^{-17}$, positive kinetic-energy increment $0$, energy-balance ratio $1.23\times10^{-15}$, timestep-refinement change $4.10\times10^{-7}$ against $10^{-4}$, Beltrami band control $7.10\times10^{-34}$ against $10^{-10}$ | Every gate inside its frozen tolerance |
+| Earlier bounded attempt | The same script under a 3300 s bound completed five of the 18 declarations—the three `beltrami` declarations and both `helix_wide` primary declarations—and expired with exit code 124 inside the sixth at the printed progress `helix_wide N=32 time_refined step 1920/2048 (980s, 2.0 states/s)`, writing no receipt and fixing a 11880 s linear floor for the full schedule | No classification; superseded by the completed execution under a 12000 s bound |
 
-The terminal classification is `INCONCLUSIVE`: four of the five tube families
-have no $N=32$ primary record, so the frozen decision rules were never applied.
-This record supplies no low-band or high-band dominance statement, no
-cutoff-uniform estimate, and no conditional continuation claim.
+The $N=32$ primary ratios, with $r_{\mathrm{high}}$ and
+$r_{\mathrm{low}}$ as the protocol defines them:
+
+| Tube family | $r_{\mathrm{high}}$, $k_c=2$ | $r_{\mathrm{low}}$, $k_c=2$ | $r_{\mathrm{high}}$, $k_c=4$ | $r_{\mathrm{low}}$, $k_c=4$ | Family verdict |
+|---|---:|---:|---:|---:|---|
+| Wide | 0.080289 | 0.919711 | 0.000000 | 1.102017 | SUPPORTS |
+| Narrow | 0.493540 | 0.506460 | 0.049856 | 0.986010 | INCONCLUSIVE |
+| Tight pitch | 0.874568 | 0.125432 | 0.403669 | 0.596331 | INCONCLUSIVE |
+| Two scale | 0.093607 | 0.906393 | 0.000000 | 1.103970 | SUPPORTS |
+| Opposite handed | 0.760908 | 0.239092 | 0.008912 | 1.491487 | INCONCLUSIVE |
+
+The terminal classification is `INCONCLUSIVE`. No tube family satisfies
+$r_{\mathrm{high}}>0.5$ at both cutoffs, which is what `CONTRADICTS` requires:
+the tight-pitch family reads $0.874568$ at $k_c=2$ and $0.403669$ at
+$k_c=4$, and the opposite-handed family falls from $0.760908$ to $0.008912$.
+The `SUPPORTS` condition of $r_{\mathrm{high}}\le0.1$ and
+$r_{\mathrm{low}}\ge0.5$ at both cutoffs holds for the wide and two-scale
+families and fails for the other three, so the aggregate rule returns no
+classification. Low-band fractions above one follow from the protocol's
+normalization of each band by the positive part of the total production. This
+record supplies a finite-family pattern at two cutoffs in one truncation pair,
+one viscosity and one horizon; it carries no cutoff-uniform estimate, no
+data-controlled bound on $\mathcal D_S(T)$, and no continuation claim.
 
 ## References
 
@@ -2382,9 +2401,10 @@ cutoff-uniform estimate, and no conditional continuation claim.
 - `computations/navier-stokes-helical-dynamic-depletion-prereg.md`—frozen eight-family helical stress-test schedule, observables and decision rules.
 - `computations/verify_navier_stokes_helical_dynamic_depletion.py`—24-run signed-production, alignment and direction-diagnostic verifier.
 - `turbulence/navier-stokes-helical-dynamic-depletion.md`—finite helical families and the contradicted universal sign depletion.
-- `computations/navier-stokes-strain-band-split-prereg.md`—frozen six-family spectral band-split schedule, decision rules and recorded inconclusive execution.
+- `computations/navier-stokes-strain-band-split-prereg.md`—frozen six-family spectral band-split schedule, decision rules and post-execution record.
 - `computations/verify_navier_stokes_strain_band_split.py`—18-run band-split verifier with the packed-strain path, band identity and Parseval checks.
-- `runs/navier_stokes_strain_band_split/probe.log`—captured combined stdout and stderr of the bounded band-split execution; the declared receipt was not written (gitignored run artifact).
+- `runs/navier_stokes_strain_band_split/verification.json`—completed 18-run receipt at `status=PASS` with the five family verdicts and the `INCONCLUSIVE` classification (gitignored run artifact).
+- `runs/navier_stokes_strain_band_split/probe.log` and `probe_completed.log`—captured combined stdout and stderr of the bounded attempt and of the completed execution (gitignored run artifacts).
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.

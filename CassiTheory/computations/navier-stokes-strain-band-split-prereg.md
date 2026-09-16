@@ -223,37 +223,65 @@ constitutive identification beyond the original Navier–Stokes equation.
 
 ## 7. Post-execution record
 
-The schedule ran as written from the repository root:
+The schedule ran as written, unmodified, from the repository root:
 
 ```text
-timeout 3300 python computations/verify_navier_stokes_strain_band_split.py
+timeout 12000 python computations/verify_navier_stokes_strain_band_split.py
 ```
 
-The invocation was terminated by its bound after 3300.12 s with exit code 124.
-Five of the 18 declared executions completed—the three `beltrami` declarations
-and both `helix_wide` primary declarations—and the sixth, the `helix_wide`
-$N=32$ timestep refinement, was killed with its last printed progress at
+The invocation exited 0 after 10711.57 s, completing all 18 declared
+executions and writing `runs/navier_stokes_strain_band_split/verification.json`
+with `status=PASS` and all 10 integrity checks passed. An earlier invocation of
+the same script under a 3300 s bound had reached five of the 18 declarations
+and written no receipt; its combined output is retained at
+`runs/navier_stokes_strain_band_split/probe.log`, and the completed
+invocation's combined output at
+`runs/navier_stokes_strain_band_split/probe_completed.log`. That bounded
+attempt fixes a linear floor of 11880 s ($3300\times18/5$) for the full
+schedule; the completed invocation ran under a 12000 s bound, 120 s above that
+floor rather than the factor-of-two headroom the sizing called for, and
+finished 1288 s inside the bound. The receipt binds the prereg by hash as it
+stood at execution time, when §7 carried only the bounded-attempt record; the
+frozen rules of §1–§6 are unchanged from commit `1ab33511`.
 
-```text
-helix_wide N=32 time_refined step 1920/2048 (980s, 2.0 states/s)
-```
+The receipt records a declared run count of 18, kinetic normalization
+$3.33\times10^{-16}$, Fourier divergence $2.86\times10^{-17}$, band identity
+$0$, band Parseval $2.08\times10^{-17}$, a maximum positive kinetic-energy
+increment of $0$, an energy-balance ratio of $1.23\times10^{-15}$, a maximum
+timestep-refinement change of $4.10\times10^{-7}$ against the frozen
+$10^{-4}$ tolerance, and a Beltrami band control of $7.10\times10^{-34}$
+against $10^{-10}$.
 
-The declared receipt `runs/navier_stokes_strain_band_split/verification.json`
-is written only after `run_probe()` returns, so it was not written; the run's
-only artifact is the captured combined stdout and stderr at
-`runs/navier_stokes_strain_band_split/probe.log`. The three completed
-`beltrami` declarations printed positive-stretching integrals of
-$1.799751\times10^{-34}$, $1.913839\times10^{-34}$ and
-$1.914922\times10^{-34}$ with band productions between
-$7.840078\times10^{-35}$ and $1.132862\times10^{-34}$, which the exact
-heat-flow control requires to vanish; the band-identity, Parseval and
-refinement checks were never assembled into a receipt.
+The classification reads the $N=32$ primary run of each helical-tube family
+through the §5 decision rules, with $r_{\mathrm{high}}$ and
+$r_{\mathrm{low}}$ as defined in §1:
 
-The classification is `INCONCLUSIVE`. Four of the five tube families have no
-$N=32$ primary record, so the decision rules of §5 cannot be applied and no
-statement about low-band or high-band production follows from this execution.
-The statistic, decision tree and stopping rule of §5 are the frozen rules of
-this schedule, and this record adds the execution outcome only.
+| Tube family | $r_{\mathrm{high}}$, $k_c=2$ | $r_{\mathrm{low}}$, $k_c=2$ | $r_{\mathrm{high}}$, $k_c=4$ | $r_{\mathrm{low}}$, $k_c=4$ | Family verdict |
+|---|---:|---:|---:|---:|---|
+| Wide | 0.080289 | 0.919711 | 0.000000 | 1.102017 | SUPPORTS |
+| Narrow | 0.493540 | 0.506460 | 0.049856 | 0.986010 | INCONCLUSIVE |
+| Tight pitch | 0.874568 | 0.125432 | 0.403669 | 0.596331 | INCONCLUSIVE |
+| Two scale | 0.093607 | 0.906393 | 0.000000 | 1.103970 | SUPPORTS |
+| Opposite handed | 0.760908 | 0.239092 | 0.008912 | 1.491487 | INCONCLUSIVE |
+
+No tube family meets the `CONTRADICTS` condition, which requires
+$r_{\mathrm{high}}>0.5$ at both cutoffs: the tight-pitch family reads
+$0.874568$ at $k_c=2$ but falls to $0.403669$ at $k_c=4$, and the
+opposite-handed family falls from $0.760908$ to $0.008912$. The `SUPPORTS`
+condition, which requires $r_{\mathrm{high}}\le0.1$ and
+$r_{\mathrm{low}}\ge0.5$ at both cutoffs for every tube family, holds for the
+wide and two-scale families and fails for the narrow, tight-pitch and
+opposite-handed families. The overall classification is `INCONCLUSIVE`.
+
+Low-band fractions above one follow from the §1 normalization, which divides
+each band by the positive part of the total production; the two fractions are
+not required to sum to one. The record establishes a finite-family pattern at
+two cutoffs in one truncation pair, one viscosity and one horizon: two of the
+five tube families carry low-band dominance at both cutoffs, two place most of
+their positive production in the high band at $k_c=2$, and the aggregate rule
+returns no classification. No cutoff-uniform estimate, no data-controlled
+bound on $\mathcal D_S(T)$ and no continuation statement follows from this
+execution.
 
 ## References
 
