@@ -3,13 +3,15 @@
 Cascade RGE + PMNS: Pin the Exact Fibonacci Offsets
 ====================================================
 
-Runs the discrete φ-RG from GUT to seesaw scale, computes a conditional
+Uses a selected mapped $\varphi$-rung coordinate span, computes a conditional
 candidate PMNS matrix from the conversion-Jacobian eigenvectors, and pins the
-exact Fibonacci offsets Δ_{ν,1} and Δ_{ν,2} by matching to neutrino
-oscillation data.
+Fibonacci offsets $\Delta_{\nu,1}$ and $\Delta_{\nu,2}$ by matching to neutrino
+oscillation data. The compression factors reported below are post-hoc ratios
+of fitted offsets to the raw Fibonacci offsets; this script does not construct
+or execute a microscopic RG blocking map.
 
 Theory sources:
-  - foundations/phi-rg-formalism.md      —discrete φ-RG beta function
+  - foundations/phi-rg-formalism.md      —conditional discrete-step identities
   - foundations/neutrino-masses.md       —seesaw y² amplification
   - foundations/dimensionful-cascade.md  —step-20 seesaw anchor; mapped fit coordinates n=8→20
   - predictions/falsifiable-predictions.md—conditional PMNS candidates from conversion Jacobian
@@ -79,41 +81,23 @@ print(f"  M_R = E(n=20)         = {M_R:.2e} GeV")
 print()
 
 # ============================================================================
-# §2  φ-RG BETA FUNCTION & ANOMALOUS DIMENSIONS
+# §2  MAPPED φ-RUNG DIAGNOSTICS
 # ============================================================================
 
-print("── §2  φ-RG FORMALISM ──")
+print("── §2  MAPPED φ-RUNG DIAGNOSTICS ──")
+print()
 
-# The discrete φ-RG beta function (phi-rg-formalism.md §2):
-#   β_φ(g) = [g(k/φ) - g(k)] / ln φ
+# The formalism supplies conditional discrete-step identities. This script
+# uses the selected mapped coordinate span and does not construct a blocking
+# map, select a fixed point, or infer an anomalous dimension.
 #
-# Near the fixed point α_* = φ⁻¹, the linearized flow gives:
-#   g(μ) ≈ g_* · φ^{(Δ_g - 1) · N}
-#
-# For the neutrino Yukawa coupling y_ν, the anomalous dimension γ_ν
-# determines per-step scaling:
-#   y_ν(n-1) = y_ν(n) · φ^{γ_ν}
-#
-# After N steps: y_ν(N) = y_ν(0) · φ^{-γ_ν · N}
-#
-# The seesaw formula: m_ν = y_ν² v₀² / M_R
-#   → m_ν ∝ φ^{-2γ_ν · N}
-#
-# So the effective mass anomalous dimension is 2γ_ν.
+# The seesaw formula is retained as a scale diagnostic:
+#   m_ν = y_ν² v₀² / M_R
+# The fitted offsets below remain the selected mass-ratio construction.
 
-# Fixed point
-alpha_star = PHI_INV               # φ⁻¹ ≈ 0.618
-
-# The scaling dimension Δ_g determines the anomalous dimension:
-#   γ_ν = Δ_g - 1
-# At the fixed point, Δ_g is set by the Qi gate structure.
-# For the seesaw: γ_ν emerges from the Fibonacci sub-rung structure.
-
-# Key insight: the three generations occupy different sub-rungs of the
+# Key comparison: the three generations occupy different sub-rungs of the
 # compressed 12-rung span. The Fibonacci recurrence φⁿ = φⁿ⁻¹ + φⁿ⁻²
-# creates the triple-clustering. The effective anomalous dimension
-# DIFFERS between sub-rungs because each occupies a different fraction
-# of the full span.
+# supplies the raw triple-clustering coordinates.
 
 # Fibonacci numbers over 12
 fib = [0, 1, 1, 2, 3, 5, 8, 13, 21]
@@ -138,21 +122,16 @@ print(f"    Δ₂(raw) = {delta_raw_23:.2f} rungs  (gen2→gen3)")
 print(f"  But these give mass ratios ~φ^(2Δ) = huge—")
 print(f"  the seesaw y² amplification compresses the effective offsets.")
 
-# The cascade RGE determines the EFFECTIVE offsets.
-# Due to the Yukawa-squared structure and anomalous dimension,
-# the effective offsets are reduced from the raw Fibonacci values.
-# 
-# The anomalous dimension γ_ν compresses the effective span:
-#   Δ_eff = Δ_raw · (γ_ν / γ_ν⁰)
-# where γ_ν⁰ is the naive anomalous dimension from the Fibonacci mapping.
-#
-# From the observed mass hierarchy, we can determine the effective offsets
-# and then work backward to the anomalous dimension.
+# The selected coordinate construction compares effective offsets with the
+# raw Fibonacci offsets. The ratios κ₁ and κ₂ below are post-hoc fitted
+# compression factors, defined only after the effective offsets are selected.
+# They are not anomalous dimensions and do not encode a derived RG flow.
 
 print(f"\n  Seesaw formula: m_ν = y_ν² v₀² / M_R")
 print(f"  Mass ratios: m_{{k+1}}/m_k = φ^(2Δ_k)")
 print(f"  where Δ_k are the EFFECTIVE cascade-span offsets.")
 print()
+
 
 # ============================================================================
 # §3  CONDITIONAL PMNS CANDIDATE FROM CONVERSION JACOBIAN
@@ -301,12 +280,10 @@ print()
 #   m₁² = Δm²₂₁ / (φ^{4Δ₁} - 1)
 #   The ratio is then fully determined.
 
-# The cascade RGE + Fibonacci structure constrains Δ₁, Δ₂ to specific
-# discrete values. For the compressed 12-rung span:
-#
-# The Fibonacci triple (5, 8, 13) when mapped to the 12-rung compressed
-# span gives sub-rung positions. But the seesaw's Yukawa-squared structure
-# and the anomalous dimension compress the effective offsets.
+# The mapped coordinate construction constrains Δ₁ and Δ₂ to the selected
+# discrete values. For the compressed 12-rung span, the Fibonacci triple
+# (5, 8, 13) supplies the raw sub-rung positions, while the seesaw
+# Yukawa-squared relation enters the mass exponents algebraically.
 #
 # The allowed offsets are multiples of the fundamental half-rung:
 #   Δ_k ∈ {0.25, 0.50, 0.75, 1.00, ...} rungs
@@ -472,28 +449,30 @@ print()
 print("── §8  PHYSICAL INTERPRETATION ──")
 print()
 
-# The offsets we found are EFFECTIVE cascade-span offsets.
-# They encode the combined effect of:
+# The offsets are effective cascade-span quantities. They summarize:
 #   1. The raw Fibonacci triple clustering (5, 8, 13) over 12 rungs
-#   2. The anomalous dimension γ_ν of the Yukawa coupling
+#   2. The selected fitted offsets from the mass-ratio scan
 #   3. The seesaw Yukawa-squared amplification (factor of 2)
+#
+# No anomalous dimension or RG flow is inferred from this comparison.
 
 # From the cascade structure:
 # Raw Fibonacci offsets (mapped to 12 rungs):
 #   Δ₁_raw = (8-5)/13 × 12 ≈ 2.77 rungs
 #   Δ₂_raw = (13-8)/13 × 12 ≈ 4.62 rungs
-#
+
 # Effective offsets from scan:
 #   Δ₁_eff ≈ d1_best
 #   Δ₂_eff ≈ d2_best
-#
-# The compression factor:
-#   κ = Δ_eff / Δ_raw
 
+# Post-hoc fitted compression factors:
+#   κ₁ = Δ₁(eff) / Δ₁(raw)
+#   κ₂ = Δ₂(eff) / Δ₂(raw)
 delta1_raw = (8 - 5) / 13 * N_NU
 delta2_raw = (13 - 8) / 13 * N_NU
 kappa1 = d1_best / delta1_raw
 kappa2 = d2_best / delta2_raw
+kappa_avg = (kappa1 + kappa2) / 2
 
 print(f"  Raw Fibonacci offsets (mapped to {N_NU} rungs):")
 print(f"    Δ₁(raw) = {delta1_raw:.2f} rungs  (from Fibonacci 5→8)")
@@ -501,51 +480,27 @@ print(f"    Δ₂(raw) = {delta2_raw:.2f} rungs  (from Fibonacci 8→13)")
 print(f"  Best-fit effective offsets:")
 print(f"    Δ₁(eff) = {d1_best:.2f} rungs")
 print(f"    Δ₂(eff) = {d2_best:.2f} rungs")
-print(f"  Compression factors:")
+print(f"  Post-hoc fitted compression factors:")
 print(f"    κ₁ = Δ₁(eff)/Δ₁(raw) = {kappa1:.3f}")
 print(f"    κ₂ = Δ₂(eff)/Δ₂(raw) = {kappa2:.3f}")
+print(f"  The factors differ because the selected offsets occupy different")
+print(f"  fractions of the mapped Fibonacci span.")
 print()
 
-# The anomalous dimension interpretation:
-# The effective mass anomalous dimension is:
-#   γ_m^eff = 2γ_ν = −(ln(m_{k+1}/m_k) / ln φ) / (Δ_raw in rungs)
-# But the mass ratio involves 2Δ, and the anomalous dimension
-# compresses the effective Δ. We can back out γ_ν:
-#
-#   m_{k+1}/m_k = φ^{2 · Δ_eff} = φ^{2 · κ · Δ_raw}
-#   y_ν(k+1)/y_ν(k) = φ^{γ_ν · Δ_raw}
-#   m_{k+1}/m_k = (y_ν(k+1)/y_ν(k))² = φ^{2γ_ν · Δ_raw}
-#   → 2κΔ_raw = 2γ_ν · Δ_raw → γ_ν = κ
-
-# The anomalous dimension is approximately the compression factor.
-# For the best fit:
-gamma_nu_1 = kappa1
-gamma_nu_2 = kappa2
-
-print(f"  Inferred anomalous dimensions:")
-print(f"    γ_ν(gen1→gen2) ≈ κ₁ = {gamma_nu_1:.3f}")
-print(f"    γ_ν(gen2→gen3) ≈ κ₂ = {gamma_nu_2:.3f}")
-print(f"  These differ because the Fibonacci sub-rungs occupy different")
-print(f"  fractions of the cascade span and feel different effective")
-print(f"  φ-RG flow rates.")
-print()
-
-print(f"  Comparison to fixed-point values:")
-print(f"    γ_ν(avg) = {(gamma_nu_1 + gamma_nu_2)/2:.3f}")
-print(f"    φ⁻² = {PHI**(-2):.3f} ← the spectral gap!")
-print(f"    φ⁻¹ = {PHI_INV:.3f} (fixed point)")
-print(f"  γ_ν is close to φ⁻² = {PHI**(-2):.3f}, NOT φ⁻¹ = {PHI_INV:.3f}.")
-print(f"  This is physically significant: the spectral gap φ⁻²")
-print(f"  governs the rate at which the Fibonacci sub-rung structure")
-print(f"  compresses the effective offsets—each sub-rung feels")
-print(f"  only the φ⁻²-gapped portion of the full cascade flow.")
+print(f"  Numerical reference comparisons:")
+print(f"    κ_avg = {kappa_avg:.3f}")
+print(f"    φ⁻² = {PHI**(-2):.3f} (arithmetic comparison only)")
+print(f"    φ⁻¹ = {PHI_INV:.3f} (reference exponent only)")
+print(f"  The proximity of κ_avg to φ⁻² is a mapped numerical comparison.")
+print(f"  It does not establish a spectral gap, fixed point, or RG mechanism.")
 print()
 
 # ============================================================================
-# §9  CASCADE RGE: GAUGE COUPLING EVOLUTION
+# §9  MAPPED SCALE DIAGNOSTICS
 # ============================================================================
 
-print("── §9  CASCADE RGE: GAUGE COUPLINGS ──")
+print("── §9  MAPPED SCALE DIAGNOSTICS ──")
+print()
 
 # At the selected fit-start coordinate (n=8); the physical GUT anchor is mapped
 # near n≈13.3 in foundations/neutrino-masses.md.
@@ -553,41 +508,32 @@ alpha_GUT = PHI**(-3) / (4*pi)   # ≈ 1/53
 print(f"  α_GUT = φ⁻³/(4π) = {alpha_GUT:.6f} ≈ 1/{1/alpha_GUT:.0f}")
 print(f"  At selected fit-start coordinate: E = {E_GUT:.2e} GeV")
 
-# The offset fit uses a mapped 12-rung coordinate span. The physical ladder
-# interval from the mapped GUT anchor n≈13.3 to step 20 is about 7 rungs.
-# For the gauge couplings, the beta function is:
-#   g(μ/φ) ≈ g(μ) · φ^{Δ_g - 1}
-# Near the fixed point, Δ_g ≈ 1 for gauge couplings (marginal at GUT)
-# 
-# The SM RGE gives the continuous running. The φ-RG gives the
-# discrete-step version. For the seesaw sector, the relevant
-# coupling is the neutrino Yukawa at each cascade step.
+# No gauge or Yukawa RG evolution is evaluated here. The following is a
+# scale-diagnostic algebraic comparison over the selected mapped span.
+# The fitted absolute spectrum remains fixed by the selected mass-squared
+# differences and offsets; these diagnostics do not supply its normalization.
 
-# Compute a representative single-Yukawa seesaw diagnostic.
-# At the selected fit-start coordinate, use the O(1) seed y_GUT; after N_NU=12
-# y_ν(seesaw) = y_ν(GUT) · φ^{-12·γ_ν}.
-# The resulting m_ν = y_ν²v₀²/M_R is printed as a scale diagnostic only.
-# It is not used to normalize the fitted three-state spectrum below: that
-# absolute scale is fixed by the selected Δm² fit, so the two outputs answer
-# different questions and need not agree.
-
-y_GUT_seed = 1.0                       # O(1) at GUT
-y_seesaw = y_GUT_seed * PHI**(-12 * PHI_INV)
-print(f"\n  Yukawa running (γ_ν = φ⁻¹):")
-print(f"    y_ν(GUT) = {y_GUT_seed:.3f} (seed)")
-print(f"    y_ν(seesaw) = y_GUT · φ^(-12 × φ⁻¹)")
-print(f"                = {y_seesaw:.4f}")
+# Compute a representative single-Yukawa scale diagnostic.
+# The reference exponent φ⁻¹ is retained as an arithmetic comparison input;
+# it is not inferred here as a fixed point or running law.
+reference_exponent = PHI_INV
+y_GUT_seed = 1.0                       # O(1) reference seed
+y_seesaw = y_GUT_seed * PHI**(-12 * reference_exponent)
+print(f"\n  Reference-exponent diagnostic (exponent φ⁻¹):")
+print(f"    y_ν(reference) = {y_GUT_seed:.3f} (seed)")
+print(f"    y_ν(reference span) = y_GUT · φ^(-12 × φ⁻¹)")
+print(f"                       = {y_seesaw:.4f}")
 print(f"    Diagnostic only (not the fitted-spectrum normalization): m_ν = y² v₀²/M_R = {y_seesaw**2 * V0**2 / M_R * GEV_TO_EV:.4e} eV")
 
-# With the best-fit anomalous dimension:
-gamma_avg = (gamma_nu_1 + gamma_nu_2) / 2
-y_seesaw_eff = y_GUT_seed * PHI**(-12 * gamma_avg)
+# Apply the post-hoc average compression factor as a separate scale diagnostic.
+y_seesaw_eff = y_GUT_seed * PHI**(-12 * kappa_avg)
 m_nu_check = y_seesaw_eff**2 * V0**2 / M_R * GEV_TO_EV
-print(f"\n  With best-fit γ_ν(avg) = {gamma_avg:.3f}:")
-print(f"    y_ν(seesaw) = {y_seesaw_eff:.4f}")
+print(f"\n  With post-hoc compression average κ_avg = {kappa_avg:.3f}:")
+print(f"    y_ν(mapped-span diagnostic) = {y_seesaw_eff:.4f}")
 print(f"    Diagnostic only (not the fitted-spectrum normalization): m_ν = {m_nu_check:.4e} eV")
 print("    The fitted absolute masses in §10 come from the selected mass-squared differences and offsets, not this single-Yukawa estimate.")
 print()
+
 
 # ============================================================================
 # §10 SUMMARY: PINNED FIBONACCI OFFSETS
@@ -630,8 +576,8 @@ print(f"    m_β = {m_nue_A:.5f} eV (KATRIN endpoint)")
 print(f"    Normal ordering confirmed by Fibonacci monotonicity")
 print(f"    No sterile neutrinos below GUT scale")
 print()
-print(f"  Anomalous dimension:")
-print(f"    γ_ν(avg) = {gamma_avg:.3f} ≈ φ⁻² = {PHI**(-2):.3f} (spectral-gap governed)")
+print(f"  Compression-factor comparison:")
+print(f"    κ_avg = {kappa_avg:.3f} ≈ φ⁻² = {PHI**(-2):.3f} (mapped numerical comparison)")
 print()
 print("=" * 72)
 print("  Computation complete.")

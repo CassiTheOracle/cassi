@@ -113,7 +113,7 @@ The Weinberg-angle identity: $\varphi^3 = \varphi\cdot\varphi^2 = \varphi(\varph
 Four readings of the exponent 6 circulate in the repo. The conditional derivation of §2 supplies the single dynamical origin under its stated quadratic-coupling input; the others are secondary or descriptive:
 
 - **2 × 3 degrees of freedom** (2 density components × 3 spatial dimensions)—the reading in `foundations/unified-lagrangian.md` §3.3 and `foundations/cassi-theory-reference.md` §4.3/§10.2. Retained in §6 as a clearly labeled secondary geometric reading. It does not derive the exponent: $d = 3$ rests on the Frenet-Serret hypothesis (`foundations/why-three-dimensions.md`; Hypothesized—registry G5) and the φ-per-DOF factor is asserted rather than shown by the dynamics or geometry.
-- **Dimensional reduction** of the 4D two-fluid action to a 3D effective potential (`foundations/phi-rg-formalism.md` §7)—a restatement of the coupling's two fixed-point values, not an origin of the exponent.
+- **State-space coupling diagnostic** (`foundations/phi-rg-formalism.md` §4.3)—the current RG formalism records the conditional $\mathcal G_C(E_Y,E_I)$ expression and the missing momentum-to-state map; it does not supply a dimensional-reduction derivation of $\xi$.
 - **Cascade activation at step 6** (`cosmology/sigma8-computational-plan.md` §2.1, `foundations/wa-pentagon-gate.md` §5)—a shorthand label of the exponent's rung position ($\xi = \varphi^6$ sits at ladder step 6), used by consumer documents, not a derivation.
 - **Six-dimensional phase space** (`foundations/phi_attractor_synthesis.md` §2.2)—the 2 × 3 reading restated in phase-space language; same status.
 
@@ -180,7 +180,7 @@ $\xi = \varphi^6$ is the inverse-square of the fixed-point imbalance, derived co
 - `foundations/cassi-first-principles.md`—two-fluid postulate, Qi-enhanced gravity
 - `foundations/unified-lagrangian.md`—the complete action with $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)q)$
 - `foundations/cassi-theory-reference.md`—attractor fixed point §2.3, constant table §12
-- `foundations/phi-rg-formalism.md`—φ-RG restatement of the coupling (dimensional-reduction reading)
+- `foundations/phi-rg-formalism.md` §4.3—conditional state-space diagnostic and explicit momentum-to-state-map boundary
 - `foundations/phi_attractor_synthesis.md`—attractor dynamics (phase-space reading)
 - `foundations/wa-pentagon-gate.md`—$w_a$ from $\xi = \varphi^6$ (cascade-step-6 label)
 - `cosmology/sigma8-computational-plan.md`—σ8 pipeline parameter table (cascade-step-6 label)
