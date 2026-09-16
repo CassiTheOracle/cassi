@@ -1109,7 +1109,8 @@ The separate fixed integrity qualification in
 state construction, kinetic internal-energy recovery, the thermodynamic
 identities, exact physical-frequency Doppler normalization, invalid-state
 rejection, line and photoionization energy cancellation, normalized transfer
-sources, stellar control-volume reconstruction, nuclear conservation and the
+sources, stellar control-volume reconstruction, nuclear conservation, a full
+nested base qualification confined to the frozen snapshot root and the
 `INCONCLUSIVE` classification of missing scientific prerequisites. The
 `cassi-compressible-radiative-plasma-integrity-v2` receipt binds the executed
 kernel, base verifier and integrity schedule to their manifest-recorded
