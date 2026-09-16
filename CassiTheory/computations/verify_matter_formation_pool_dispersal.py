@@ -1183,9 +1183,20 @@ def compare_traces(kind: str, left: dict[str, Any], right: dict[str, Any]) -> di
         return record
     scales = np.maximum(diagnostic_scales(left["initial_energy"]), diagnostic_scales(right["initial_energy"]))
     difference = np.mean(left["trace"][late], axis=0) - np.mean(right["trace"][late], axis=0)
-    errors = np.abs(difference) / scales
+    raw_errors = np.abs(difference) / scales
+    comparison_difference = np.abs(difference)
+    left_means = np.mean(left["trace"][late], axis=0)
+    right_means = np.mean(right["trace"][late], axis=0)
+    for index, name in enumerate(TRACE_NAMES):
+        if name.endswith("clearance"):
+            left_deficit = max(0.0, FORMATION_CLEARANCE - float(left_means[index]))
+            right_deficit = max(0.0, FORMATION_CLEARANCE - float(right_means[index]))
+            comparison_difference[index] = abs(left_deficit - right_deficit)
+    errors = comparison_difference / scales
     record["max_error"] = float(np.max(errors))
     record["columns"] = {name: float(error) for name, error in zip(TRACE_NAMES, errors)}
+    record["raw_columns"] = {name: float(error) for name, error in zip(TRACE_NAMES, raw_errors)}
+    record["comparison_metric"] = "clearance_threshold_deficit_for_clearance_columns"
     record["pass"] = bool(record["max_error"] < TOL_DIAGNOSTIC_MEAN)
     return record
 

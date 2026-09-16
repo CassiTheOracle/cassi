@@ -654,7 +654,7 @@ def run_smoke() -> int:
     source_paths = (SELF, PREREG, NEUTRAL_SOURCE, CLOUD_SOURCE, VERIFIER_SOURCE)
     source_identity = {path.relative_to(ROOT).as_posix(): sha256(path) for path in source_paths}
     assert all(path.is_file() and len(source_identity[path.relative_to(ROOT).as_posix()]) == 64 for path in source_paths)
-    reference = ROOT / "runs" / "20260911_matter_formation_minimum_droplet" / "stationary" / "q16_S1_c1p2.json"
+    reference = ROOT / "runs" / "20260912_matter_formation_minimum_droplet" / "stationary" / "q16_S1_c1p2.json"
     reference_archive = reference.with_suffix(".npz")
     reference_record = json.loads(reference.read_text(encoding="utf-8"))
     assert reference_record["stationary"] is True and reference_record["binding_witness"] is True

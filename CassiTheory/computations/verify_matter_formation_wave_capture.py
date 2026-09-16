@@ -1054,7 +1054,7 @@ def run_smoke() -> int:
     assert abs(finite_energy - analytic["core_energy_derivative"]) / max(1.0, abs(finite_energy), abs(analytic["core_energy_derivative"])) < 1.0e-6
     assert abs(finite_charge - analytic["core_charge_derivative"]) / max(1.0, abs(finite_charge), abs(analytic["core_charge_derivative"])) < 1.0e-6
 
-    stationary = ROOT / "runs" / "20260911_matter_formation_minimum_droplet" / "stationary" / "q16_S1_c1p2.json"
+    stationary = ROOT / "runs" / "20260912_matter_formation_minimum_droplet" / "stationary" / "q16_S1_c1p2.json"
     archive = stationary.with_suffix(".npz")
     record = json.loads(stationary.read_text(encoding="utf-8"))
     assert record["stationary"] is True and record["binding_witness"] is True

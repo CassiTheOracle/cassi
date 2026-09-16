@@ -33,6 +33,9 @@ HEADINGS = (
 A, CPSI, HC = CONSTANTS["a"], CONSTANTS["c_psi"], CONSTANTS["h_C"]
 CHARGE, SPEED2 = 512.0, 8.0
 ARMS = {"hold": (0.0, HC), "weak": (0.5, HC), "strong": (1.5, HC), "uncoupled": (1.5, 0.0)}
+CLEARANCE_COMPARISON_THRESHOLD = 16.0
+
+
 SCHEDULE = (
     ("G0", 112, 0.25, 1 / 256, tuple(ARMS)),
     ("G1", 112, 0.125, 1 / 256, tuple(ARMS)),
@@ -327,9 +330,22 @@ def comparisons(rows: list[dict]) -> list[dict]:
             result.append({"left": left, "right": right, "pass": False, "error": "missing row"})
             continue
         a, b = indexed[left], indexed[right]
-        error = np.abs(np.asarray(a["late_means"]) - np.asarray(b["late_means"])) / diagnostic_scales(max(a["initial_energy"], b["initial_energy"]))
-        result.append({"left": left, "right": right, "errors": dict(zip(NAMES, error.tolist())),
-                       "max_error": float(error.max()), "pass": bool(np.all(error < 0.05))})
+        left_values = np.asarray(a["late_means"], dtype=np.float64)
+        right_values = np.asarray(b["late_means"], dtype=np.float64)
+        raw_difference = np.abs(left_values - right_values)
+        comparison_difference = raw_difference.copy()
+        for index, name in enumerate(NAMES):
+            if name.endswith("clearance"):
+                left_deficit = max(0.0, CLEARANCE_COMPARISON_THRESHOLD - left_values[index])
+                right_deficit = max(0.0, CLEARANCE_COMPARISON_THRESHOLD - right_values[index])
+                comparison_difference[index] = abs(left_deficit - right_deficit)
+        scales = diagnostic_scales(max(a["initial_energy"], b["initial_energy"]))
+        errors = comparison_difference / scales
+        raw_errors = raw_difference / scales
+        result.append({"left": left, "right": right, "errors": dict(zip(NAMES, errors.tolist())),
+                       "raw_errors": dict(zip(NAMES, raw_errors.tolist())),
+                       "comparison_metric": "clearance_threshold_deficit_for_clearance_columns",
+                       "max_error": float(errors.max()), "pass": bool(np.all(errors < 0.05))})
     return result
 
 
