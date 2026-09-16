@@ -1,0 +1,56 @@
+{
+  "schema": "cassifi.cassipi-runtime-closure.v1",
+  "runtime_id": "cassifi.cassipi-field-intelligence.v4",
+  "entry_module": "cassi_cassipi_worker",
+  "modules": [
+    "cassi_resonant_field.py",
+    "cassi_variational_field.py",
+    "cassi_field_atlas.py",
+    "cassi_field_cognition.py",
+    "cassi_field_owner.py",
+    "cassi_field_input.py",
+    "cassi_field_transceiver.py",
+    "cassi_temporal_field.py",
+    "cassi_temporal_inquiry.py",
+    "cassi_field_computer.py",
+    "cassi_field_regions.py",
+    "cassi_field_program.py",
+    "cassi_computation_policy.py",
+    "cassi_learning_computer.py",
+    "cassi_regional_catalog.py",
+    "cassi_constraint_field.py",
+    "cassi_constraint_dynamics.py",
+    "cassi_clause_field.py",
+    "cassi_hybrid_inference.py",
+    "cassi_constraint_implication.py",
+    "cassi_cubic_reduction.py",
+    "cubic_kernel_decision.py",
+    "cassi_alias_exact_one_field.py",
+    "cassi_alias_obstruction.py",
+    "cassi_alias_cut_field.py",
+    "cassi_general_matched_field.py",
+    "cassi_mixed_exact_one_field.py",
+    "run_p_vs_np_clause_field_probe.py",
+    "verify_hybrid_inference.py",
+    "verify_p_vs_np_clause_field_probe.py",
+    "verify_constraint_field.py"
+  ],
+  "runtime_modules": [
+    "cassi_cassipi_v2.py",
+    "cassi_cassipi_worker.py",
+    "cassi_resonant_view.py"
+  ],
+  "dependencies": [
+    "numpy",
+    "scipy",
+    "torch"
+  ],
+  "resources": [],
+  "forbidden_module_prefixes": [
+    "cassi_canonical_runtime",
+    "cassi_field_language",
+    "cassi_qi",
+    "cassi_text_codec",
+    "cassi_universal_data"
+  ]
+}

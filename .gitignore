@@ -4,6 +4,7 @@ tmp_audit*/
 comp.spv
 **/__pycache__/
 **/_diag/
+**/.probe/
 **/.godot/
 **/*.import
 **/*.uid
