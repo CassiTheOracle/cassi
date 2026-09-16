@@ -195,5 +195,5 @@ Reuse the immutable source-manifest and receipt conventions of `computations/ver
 - `foundations/phi-rg-formalism.md`—separate hypothesized RG interpretation and discrete-step convention
 - S. Janson, *Gaussian Hilbert Spaces*, Cambridge University Press
   (1997)—Wiener chaos and second quantization used in the tensorization proof
-- D. Hasler and I. Herbst, [On the Smooth Feshbach–Schur
+- M. Griesemer and D. Hasler, [On the Smooth Feshbach–Schur
   Map](https://arxiv.org/abs/0704.3244)—spectral reduction conditions
