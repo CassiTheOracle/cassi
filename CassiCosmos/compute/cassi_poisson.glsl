@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 7 floats (28 B); set 0: bindings 0-3
+// canonical layout: scripts/contracts/layout.gd §PC — 7 floats (28 B); set 0: bindings 0-4
 #version 450
 // The mass-deposit fixed-point accumulator (cassi_mass_deposit.glsl
 // binding 2, SCALE = 2^24, 4×uint8-digit sums packed as uvec4 per cell):
@@ -15,24 +15,17 @@
 //   fftfreq labels: n ≤ N/2 → +n, n > N/2 → n − N   (Nyquist at +N/2 only)
 //   Φ̂(k=0) = 0;  Φ̂(k≠0) = −ρ̂/k²
 //
-// The FFT is a hand-rolled Stockham autosort complex FFT (natural order in
-// and out; no bit-reversal), one axis per dispatch:
+// The FFT is a radix-2 DIT complex transform with one axis per dispatch.
+// Rows load in bit-reversed order and write in natural order:
 //   stage s: n_sub = 2^s, half = 2^(s−1), j = e & (n_sub−1), block = e >> s
 //   out[block·n_sub + j]      = even + odd·ω^j
 //   out[block·n_sub + j+half] = even − odd·ω^j
 //   ω = exp(∓2πi·j/n_sub)     (forward −, inverse +)
 // Forward transforms are unnormalized; each inverse pass scales by 1/N.
 //
-// MULTI-ROW LAYOUT (the 2026-08-14 speedup): one workgroup of 256 threads
-// processes R = 256/N rows at once (R = 4/2/1 for N = 64/128/256; N = 32
-// cascade level → R = 8). Thread t handles row r = t/N, element e = t%N of
-// the block's R rows; the 256-slot shared array holds R rows of N elements.
-// The per-element arithmetic is IDENTICAL to the old one-row-per-workgroup
-// schedule (same bitrev, same twiddles, same butterfly order), so the
-// transform reproduces the old one bit-for-bit — the win is 4× the row
-// throughput per workgroup/barrier at N=64 (the old layout ran 256-slot
-// butterflies for 64-element rows, wasting 3/4 of the threads), 2× at 128,
-// and full occupancy everywhere (no idle threads, no guard-only threads).
+// MULTI-ROW LAYOUT: one workgroup of 256 threads processes R = 256/N rows
+// at once (R = 8/4/2/1 for N = 32/64/128/256). Thread t handles row
+// r = t/N and element e = t%N; the shared array holds R rows of N elements.
 //
 // Dispatch sequence (host, one compute list, one submit):
 //   clear → load+x → fft(y) → fft(z) → [kspace+inv-z] → ifft(y) → ifft(x)
@@ -44,7 +37,7 @@
 // the N-body shader samples it directly (binding 5 of its set 0).
 //
 // Modes (pc.mode):
-//   0 = load:   ρ (float, deposited by float-atomic CIC) → complex buffer
+//   0 = load:   ρ (float, deposited and converted before the solve) → complex buffer
 //               (kept for external direct users; the engine chain uses 4)
 //   1 = fft:    one multi-row Stockham axis pass (pc.axis 0/1/2,
 //               pc.direction 0 fwd / 1 inv) — dispatch (N, N/R, 1)
@@ -56,24 +49,28 @@
 //   4 = load+x: fused mode-0 + forward-x (the chain's first FFT pass)
 //   5 = inv-z+kspace: fused kspace multiply + inverse-z (chain's first
 //               inverse pass; direction must be 1)
+//   6 = twiddle init: populate binding 4 once before the first solve
 //
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, std430) buffer FFTBuf { vec2 f[]; };
 layout(set = 0, binding = 1, std430) buffer MassDensity { float rho[]; };
 layout(set = 0, binding = 2, std430) buffer Telemetry { uint tel[]; };
-// The mass-deposit fixed-point accumulator (see the note at the top):
-// mode 3 (clear) zeroes it WITH rho every step so the deposit never
-// accumulates stale digits and the convert pass reflects only this step.
+// Persistent twiddles are generated once per supported grid size by mode 6.
+// The table uses the same stage offsets and fp32 sin/cos expressions as the
+// FFT, then remains read-only during every solve.
 layout(set = 0, binding = 3, std430) coherent buffer MassDensityFix {
     uvec4 fix[];
+};
+layout(set = 0, binding = 4, std430) coherent buffer TwiddleTable {
+    vec2 tw[];
 };
 
 layout(push_constant, std430) uniform PC {
     float N_f;
     float axis;        // fft mode: 0 = x, 1 = y, 2 = z
     float direction;   // fft mode: 0 = forward, 1 = inverse (scaled 1/N)
-    float mode;        // 0 = load, 1 = fft, 2 = kspace, 3 = clear, 4 = load+x, 5 = inv-z+kspace
+    float mode;        // 0 load, 1 fft, 2 kspace, 3 clear, 4 load+x, 5 inv-z+kspace, 6 init twiddles
     float extent_x;    // kspace mode: per-axis grid half-extents
     float extent_y;    // (L_i = 2·extent_i = 2·aspect_i·1.5·cluster_radius)
     float extent_z;
@@ -83,19 +80,33 @@ const float PI = 3.14159265358979323846;
 const float TWO_PI = 6.28318530717958647693;
 
 shared vec2 sdata[2][256];
-// Forward twiddle table (255 entries, exp(−2πi·jj/2^s) for s ∈ [1..8],
-// jj ∈ [0, 2^(s−1))): built once per pass — one sin/cos per thread instead
-// of one per thread per stage. Layout: offset[s] = 2^(s−1) − 1.
-shared vec2 tw_tab[255];
+
+// Mode 6: build the persistent table once for this N. Entries are grouped
+// by radix stage: offset[s] = 2^(s−1) − 1. A later smaller N simply uses
+// its prefix, so one max-sized table serves every supported radix-2 size.
+void twiddle_init_main() {
+    int N = int(pc.N_f);
+    if (N < 2 || (N & (N - 1)) != 0 || N > 256) return;
+    int bits = 0;
+    for (int n = N; n > 1; n >>= 1) bits++;
+    int total = (1 << bits) - 1;
+    int t = int(gl_GlobalInvocationID.x);
+    if (t >= total || t >= 255) return;
+    int s = 1;
+    for (int q = 2; q <= 8; q++) {
+        if (t >= (1 << (q - 1)) - 1) s = q;
+    }
+    int jj = t - ((1 << (s - 1)) - 1);
+    float ang = TWO_PI * float(jj) / float(1 << s);
+    tw[t] = vec2(cos(ang), -sin(ang));
+}
+
 
 // ── Mode 0: load ρ into the complex buffer ─────────────────────────────
 void load_main() {
     int nc = int(pc.N_f) * int(pc.N_f) * int(pc.N_f);
-    // Cells modes dispatch (N, N, 1) with 256 threads/group: x covers one
-    // 256-thread group (N·256 threads), y walks the groups — row-major
-    // cell index = x + y·(N·256), exactly N³ cells. (The naive
-    // x + y·N covers only N² + 255N cells — the Vulkan dispatch landmine
-    // that drops every 256th group at N=256.)
+    // Two-dimensional dispatch maps each 256-thread group to a contiguous
+    // block of cells: x covers the threads and y covers the blocks.
     uint gid = gl_GlobalInvocationID.x
              + gl_GlobalInvocationID.y * uint(int(pc.N_f) * 256);
     if (int(gid) >= nc) return;
@@ -103,25 +114,18 @@ void load_main() {
 }
 
 // ── Modes 1/4/5: multi-row Stockham FFT along one axis ────────────────
-// R = 256/N rows per workgroup; dispatch (N, N/R, 1) — workgroup count
-// N²/R, block id = wg.x + wg.y·N (the same 2D enumeration as the old
-// (N, N, 1) row dispatch, compressed by R in y). Thread t → row r = t/N,
-// element e = t%N. N-generic radix-2: any power of 2 with 32 ≤ N ≤ 256
-// (R = 256/N ∈ [1, 8]; the shared array always holds R·N = 256 slots).
+// R = 256/N rows per workgroup; dispatch (N, N/R, 1). Thread t maps to
+// row r = t/N and element e = t%N. Any supported radix-2 N from 32 to 256
+// fits R·N = 256 slots.
 //
 // This is a radix-2 DIT schedule: butterflies run over blocks that double
 // each stage, pairing elements jj and jj + halfn with twiddle ω^jj.
-// DIT REQUIRES THE INPUT IN BIT-REVERSED ORDER: the row is loaded into
-// shared memory with the local index bit-reversed (log2(N) bits, per
-// axis — the reversal permutes positions WITHIN the row). The same
-// reversed load is applied on the inverse side, so the transform pair
-// closes: FFT⁻¹(FFT(x)) = x.
+// DIT requires the input in bit-reversed order. The reversal is within each
+// row and is applied to both directions, so the transform pair closes.
 //
-// Barrier discipline: EVERY one of the 256 local threads reaches every
-// barrier (all threads are active in every stage — no guards except the
-// butterfly's `jj < halfn` write-selector, whose inactive half still hits
-// the barriers). The whole-workgroup early return (block ≥ N²/R) fires
-// uniformly across the group, so it can never strand threads at a barrier.
+// Barrier discipline: every local thread reaches every barrier. Threads
+// outside a selected butterfly still participate in the stage barriers, and
+// whole-workgroup bounds are checked uniformly before the first barrier.
 int bitrev(int x, int bits) {
     int r = 0;
     for (int b = 0; b < bits; b++) {
@@ -141,9 +145,8 @@ void row_base_stride(int row, int N, int axis, out int base, out int stride) {
     else { base = r0 + N * r1; stride = N * N; }
 }
 
-// k² for one cell (identical formula to the old kspace pass — the
-// multiply MUST stay `−f/k2` (division, one rounding) to reproduce the
-// old chain bit-for-bit; a reciprocal-multiply would differ by ~1 ulp).
+// k² for one cell. The division form is intentional: it preserves the
+// declared Poisson normalization and its fp32 rounding behavior.
 float k2_of_cell(int cell, int N) {
     int i = cell % N;
     int j = (cell / N) % N;
@@ -187,13 +190,9 @@ void fft_main() {
 
     // Load the block's rows into shared memory, bit-reversed per row.
     if (pc.mode > 4.5) {
-        // mode 5: the k-space multiply rides in on the load (the first
-        // inverse pass — the full forward spectrum is already in f[]).
-        // The element this thread loads sits at the BIT-REVERSED offset
-        // (the DIT load permutation); k² belongs to that PHYSICAL cell
-        // (the old chain multiplied every physical cell in mode 2 BEFORE
-        // the inverse's bit-reversed load). `−v/k2` with k = 0 nulled —
-        // the EXACT old kspace arithmetic, fused into the inverse-z load.
+        // Mode 5: apply the k-space multiply during the inverse-z load.
+        // The input is addressed at the bit-reversed physical cell before
+        // the DIT butterflies. k = 0 is nulled; arithmetic remains −v/k².
         int cell = base + bitrev(e, bits) * stride;
         vec2 v = f[cell];
         float k2 = k2_of_cell(cell, N);
@@ -210,17 +209,6 @@ void fft_main() {
     } else {
         sdata[0][t] = f[base + bitrev(e, bits) * stride];
     }
-    // Build the forward twiddle table (thread t computes entry t). Shares
-    // the load barrier: the table writes are visible to every butterfly.
-    if (t < 255) {
-        int s = 1;
-        for (int q = 2; q <= 8; q++) {
-            if (t >= (1 << (q - 1)) - 1) s = q;
-        }
-        int jj = t - ((1 << (s - 1)) - 1);
-        float ang = TWO_PI * float(jj) / float(1 << s);
-        tw_tab[t] = vec2(cos(ang), -sin(ang));  // forward: exp(−iθ)
-    }
     barrier();
 
     int rbank = 0;
@@ -234,17 +222,16 @@ void fft_main() {
             int slot = r * N + blk * n_sub + jj;
             vec2 even = sdata[rbank][slot];
             vec2 odd  = sdata[rbank][slot + halfn];
-            vec2 tw = tw_tab[(1 << (s - 1)) - 1 + jj];
-            if (pc.direction > 0.5) tw.y = -tw.y;  // inverse: conjugate
-            vec2 o = vec2(odd.x * tw.x - odd.y * tw.y, odd.x * tw.y + odd.y * tw.x);
+            vec2 twiddle = tw[(1 << (s - 1)) - 1 + jj];
+            if (pc.direction > 0.5) twiddle.y = -twiddle.y;  // inverse conjugate
+            vec2 o = vec2(odd.x * twiddle.x - odd.y * twiddle.y,
+                          odd.x * twiddle.y + odd.y * twiddle.x);
             sdata[wbank][slot] = even + o;
             sdata[wbank][slot + halfn] = even - o;
         }
-        // ONE barrier per stage: it orders every thread's stage-s writes
-        // (bank w) before the stage-(s+1) reads of bank w, and every
-        // thread's stage-s reads of bank r before the stage-(s+1) writes
-        // to bank r (the swap flips the banks). The old second barrier
-        // after the swap was redundant with the double buffer.
+        // One barrier publishes this stage's writes before the next stage
+        // reads them. The two banks alternate, so no second barrier is
+        // needed after the swap.
         barrier();
         int tmp = rbank; rbank = wbank; wbank = tmp;
     }
@@ -268,12 +255,10 @@ void kspace_main() {
     }
 }
 
-// ── Mode 3: per-step GPU clear — ρ = 0, telemetry reset ────────────────
-// Two cells per thread (gid and gid + nc/2) so the dispatch is (N, N/2, 1)
-// — half the threads of the old (N, N, 1) clear. The (N, N, 1) shape still
-// works: threads with gid ≥ nc/2 idle out and the coverage is unchanged.
-// Required so chained steps inside ONE compute list start from a clean
-// density and telemetry state (CPU buffer_update is illegal mid-list).
+// ── Mode 3: per-step GPU clear — rho, fixed-point digits, telemetry ─────
+// Two cells per thread (gid and gid + nc/2), dispatched as (N, N/2, 1).
+// A full (N, N, 1) dispatch is also accepted; excess invocations return.
+// This keeps chained passes in one compute list independent of host readback.
 void clear_main() {
     int nc = int(pc.N_f) * int(pc.N_f) * int(pc.N_f);
     uint gid = gl_GlobalInvocationID.x
@@ -301,5 +286,6 @@ void main() {
     else if (mode == 1) fft_main();
     else if (mode == 2) kspace_main();
     else if (mode == 3) clear_main();
-    else fft_main();  // modes 4/5: fused passes (the mode branch inside fft_main)
+    else if (mode == 6) twiddle_init_main();
+    else fft_main();  // modes 4/5: fused passes
 }

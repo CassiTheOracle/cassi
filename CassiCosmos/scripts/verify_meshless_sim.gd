@@ -73,8 +73,9 @@ func _process(_delta: float) -> void:
 			# init aliases differently onto the mesh's cell sampling, so
 			# the cross-arm gate runs on the resolved smooth physics
 			_write_smooth_ic()
-			_ic_ey = _sim._rd.buffer_get_data(_sim._field_ey, 0, _n3() * 4)
-			_ic_ei = _sim._rd.buffer_get_data(_sim._field_ei, 0, _n3() * 4)
+			var field_state_init: Dictionary = _sim.get_field_role_state()
+			_ic_ey = _sim._rd.buffer_get_data(field_state_init.ey, 0, _n3() * 4)
+			_ic_ei = _sim._rd.buffer_get_data(field_state_init.ei, 0, _n3() * 4)
 			print("[VerifyMeshlessSim] smooth IC written — running arm A (grid)")
 			_phase = 1
 		1:
@@ -86,7 +87,8 @@ func _process(_delta: float) -> void:
 					print("[VerifyMeshlessSim] arm A batch %d/%d d=%.6f"
 						% [_batch, N_BATCHES, _d_a[_batch - 1]])
 			else:
-				_ey_a = _sim._rd.buffer_get_data(_sim._field_ey, 0, _n3() * 4).to_float32_array()
+				var field_state_a: Dictionary = _sim.get_field_role_state()
+				_ey_a = _sim._rd.buffer_get_data(field_state_a.ey, 0, _n3() * 4).to_float32_array()
 				print("[VerifyMeshlessSim] arm A done — switching to arm B (meshless)")
 				_batch = 0
 				_phase = 2
@@ -94,8 +96,9 @@ func _process(_delta: float) -> void:
 			# reinit with the meshless arm, restore arm A's IC, re-sample
 			_sim.meshless_mode = true
 			_sim.reinit()
-			_sim._rd.buffer_update(_sim._field_ey, 0, _ic_ey.size(), _ic_ey)
-			_sim._rd.buffer_update(_sim._field_ei, 0, _ic_ei.size(), _ic_ei)
+			var field_state_b_init: Dictionary = _sim.get_field_role_state()
+			_sim._rd.buffer_update(field_state_b_init.ey, 0, _ic_ey.size(), _ic_ey)
+			_sim._rd.buffer_update(field_state_b_init.ei, 0, _ic_ei.size(), _ic_ei)
 			_sim._meshless_init()
 			print("[VerifyMeshlessSim] arm B re-inited — running (meshless)")
 			_phase = 3
@@ -109,7 +112,8 @@ func _process(_delta: float) -> void:
 						% [_batch, N_BATCHES, _d_b[_batch - 1]])
 			else:
 				# arm B: capture the RECONSTRUCTED grid field (the rendered one)
-				_ey_b = _sim._rd.buffer_get_data(_sim._field_ey, 0, _n3() * 4).to_float32_array()
+				var field_state_b: Dictionary = _sim.get_field_role_state()
+				_ey_b = _sim._rd.buffer_get_data(field_state_b.ey, 0, _n3() * 4).to_float32_array()
 				# AND the per-site cell-averaged state + labels + sites, so the
 				# numpy gate builds the piecewise-constant cell-average grid
 				# field for the physics-identity comparison (the reconstruction
@@ -132,8 +136,9 @@ func _n3() -> int:
 
 func _mean_dev() -> float:
 	var N: int = _sim.grid_N
-	var ey: PackedFloat32Array = _sim._rd.buffer_get_data(_sim._field_ey, 0, N * N * N * 4).to_float32_array()
-	var ei: PackedFloat32Array = _sim._rd.buffer_get_data(_sim._field_ei, 0, N * N * N * 4).to_float32_array()
+	var field_state: Dictionary = _sim.get_field_role_state()
+	var ey: PackedFloat32Array = _sim._rd.buffer_get_data(field_state.ey, 0, N * N * N * 4).to_float32_array()
+	var ei: PackedFloat32Array = _sim._rd.buffer_get_data(field_state.ei, 0, N * N * N * 4).to_float32_array()
 	var s := 0.0
 	for idx in range(N * N * N):
 		s += ey[idx] - PHI * ei[idx]
@@ -176,8 +181,9 @@ func _write_smooth_ic() -> void:
 		var my: float = ey[idx] / maxy
 		ei[idx] = 0.01 * (1.0 + 0.05 * mi)
 		ey[idx] = PHI * ei[idx] + 0.0005 * (1.0 + 0.05 * my)
-	_sim._rd.buffer_update(_sim._field_ey, 0, ey.size() * 4, ey.to_byte_array())
-	_sim._rd.buffer_update(_sim._field_ei, 0, ei.size() * 4, ei.to_byte_array())
+	var field_state: Dictionary = _sim.get_field_role_state()
+	_sim._rd.buffer_update(field_state.ey, 0, ey.size() * 4, ey.to_byte_array())
+	_sim._rd.buffer_update(field_state.ei, 0, ei.size() * 4, ei.to_byte_array())
 
 
 

@@ -43,7 +43,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _sim == null or not _sim._shaders_ready:
+	if _sim == null or not _sim._shaders_ready or _sim._decoupled_boot_wait:
 		return
 	match _phase:
 		0:
@@ -66,10 +66,26 @@ func _process(_delta: float) -> void:
 				# Direct reference read of the FROZEN field buffers (the sim
 				# stays paused; identical to what the survey just dumped).
 				var N: int = _sim.grid_N
-				var ey_ref: PackedByteArray = _sim._rd.buffer_get_data(_sim._field_ey, 0, N * N * N * 4)
-				var ei_ref: PackedByteArray = _sim._rd.buffer_get_data(_sim._field_ei, 0, N * N * N * 4)
+				var field_state_snapshot: Dictionary = _sim.get_field_role_state()
+				var ey_ref: PackedByteArray = _sim._rd.buffer_get_data(field_state_snapshot.ey, 0, N * N * N * 4)
+				var ei_ref: PackedByteArray = _sim._rd.buffer_get_data(field_state_snapshot.ei, 0, N * N * N * 4)
 				_write_raw("res://_diag/survey_ref.raw", ey_ref)
 				_write_raw("res://_diag/survey_ref_ei.raw", ei_ref)
+				var particle_authority: Object = _sim._physics_engine if _sim._decoupled_active else _sim
+				var np: int = _sim.N_particles
+				var particle_ref: PackedFloat32Array = _sim._rd.buffer_get_data(particle_authority._pos_buf, 0, np * 16).to_float32_array()
+				var xyz_ref := PackedFloat32Array()
+				xyz_ref.resize(np * 3)
+				for index in range(np):
+					for axis in range(3):
+						xyz_ref[index * 3 + axis] = particle_ref[index * 4 + axis]
+				var xyz_bytes := xyz_ref.to_byte_array()
+				_write_raw("res://_diag/survey_particles_ref.raw", xyz_bytes)
+				if FileAccess.get_file_as_bytes(_survey_dir.path_join("particles.raw")) != xyz_bytes:
+					push_error("[VerifySurvey] FAIL: exported particles differ from frozen authoritative positions")
+					get_tree().quit(1)
+					return
+				print("[VerifySurvey] particle positions match frozen authority byte-for-byte")
 				print("[VerifySurvey] snapshot dir = %s" % _survey_dir)
 				print("[VerifySurvey] ref ey=%d bytes ei=%d bytes" % [ey_ref.size(), ei_ref.size()])
 				print("[VerifySurvey] grid=%d³ particles=%d step=%d arm=%s" % [
@@ -114,8 +130,9 @@ func _write_smooth_ic() -> void:
 		var my: float = ey[idx] / maxy
 		ei[idx] = 0.01 * (1.0 + 0.05 * mi)
 		ey[idx] = 1.618033988749895 * ei[idx] + 0.0005 * (1.0 + 0.05 * my)
-	_sim._rd.buffer_update(_sim._field_ey, 0, ey.size() * 4, ey.to_byte_array())
-	_sim._rd.buffer_update(_sim._field_ei, 0, ei.size() * 4, ei.to_byte_array())
+	var field_state: Dictionary = _sim.get_field_role_state()
+	_sim._rd.buffer_update(field_state.ey, 0, ey.size() * 4, ey.to_byte_array())
+	_sim._rd.buffer_update(field_state.ei, 0, ei.size() * 4, ei.to_byte_array())
 
 
 func _write_raw(path: String, bytes: PackedByteArray) -> void:

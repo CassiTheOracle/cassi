@@ -245,6 +245,14 @@ func _init_root(src: PackedFloat32Array, box: Dictionary) -> void:
 	var cf := PackedFloat32Array([cc.x, cc.y, cc.z, half]).to_byte_array()
 	_rd.buffer_update(_node_cf, 0, 16, cf)
 	var nr := PackedInt32Array([0, N, -1, 0]).to_byte_array()
+	# Stackless traversal metadata: the root's escape is the terminal -1
+	# sentinel.  Keep this explicit for the manual host-seeded path; the
+	# production mode-10 ROOT_SEED pass enforces the same invariant on-GPU.
+	var nq_root := PackedFloat32Array([
+		0.0, 0.0, 0.0, 0.0,
+		0.0, 0.0, EPS2, -1.0,
+	]).to_byte_array()
+	_rd.buffer_update(_node_q, 0, nq_root.size(), nq_root)
 	_rd.buffer_update(_node_r, 0, 16, nr)
 	# counters: [0]=node_cnt=1 (root), [1]=split front=0, [2]=level_end=1
 	# (the atomic-front/frontier split model — cassi_tree_build.glsl mode 5/8)

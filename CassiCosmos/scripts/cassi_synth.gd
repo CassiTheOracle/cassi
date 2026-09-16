@@ -13,13 +13,14 @@ extends Node
 ##   • gentle per-rung detune makes the φ chords shimmer/beat;
 ##   • a low drone at a musically-mapped subharmonic of the breather mode
 ##     (see design doc §5 — an ARBITRARY musical scaling, flagged as such);
-##     mild saturation lifted by the total energy;
 ##   • a percussive hit when a NEW black hole nucleates (BH header polled
 ##     at the same low cadence).
 ##
-## CPU budget: OK — the reduce is R+3 tiny passes + a 64-byte readback,
-## every POLL_MS (default 150 ms) — NO per-frame or large readbacks. The
-## sine bank is a handful of oscillators. Total audio+reactor CPU ≲ 5%.
+## Raster compatibility mode snapshots the two field channels at POLL_MS,
+## then meters those snapshots on a same-thread local RenderingDevice.
+## Site-native mode reads its existing global buffers directly at the same
+## cadence. Audio rendering remains per-frame; the meter output remains the
+## same 64-byte readback (the compatibility snapshots are cadence-limited).
 ##
 ## Activation: put this node under the sim root, e.g.
 ##   var s := CassiSynth.new(); sim.add_child(s)
@@ -41,10 +42,13 @@ const OUT_N := 16
 @export var bh_hit_gain := 0.6
 
 var _sim: Node = null
-var _rd: RenderingDevice = null
+var _rd: RenderingDevice = null              # renderer-owned device (readbacks only)
+var _meter_device: RenderingDevice = null      # local device owned and used here
 var _shader_rid := RID()
 var _pipe_rid := RID()
 var _us_rid := RID()
+var _meter_ey_rid := RID()
+var _meter_ei_rid := RID()
 var _sat_rid := RID()
 var _out_rid := RID()
 var _chunk := PackedByteArray()
@@ -123,7 +127,8 @@ func _try_wire() -> void:
 		_ready_ok = true
 		print("[CassiSynth] wired to site-native meter @ %d ms cadence, R=%d" % [POLL_MS, R])
 		return
-	if not (_sim.get("_field_ey").is_valid() and _sim.get("_field_ei").is_valid()):
+	var field_state: Dictionary = _sim.get_field_role_state()
+	if not (field_state.ey.is_valid() and field_state.ei.is_valid()):
 		return
 	var grid_n: int = int(_sim.get("grid_N"))
 
@@ -131,23 +136,41 @@ func _try_wire() -> void:
 	if sf == null:
 		push_error("[CassiSynth] reduce shader load failed")
 		return
+	_meter_device = RenderingServer.create_local_rendering_device()
+	if _meter_device == null:
+		push_error("[CassiSynth] local meter RenderingDevice unavailable")
+		return
 	var spirv := sf.get_spirv()
-	_shader_rid = _rd.shader_create_from_spirv(spirv)
-	_pipe_rid = _rd.compute_pipeline_create(_shader_rid)
+	_shader_rid = _meter_device.shader_create_from_spirv(spirv)
+	_pipe_rid = _meter_device.compute_pipeline_create(_shader_rid)
 	if not _pipe_rid.is_valid():
 		push_error("[CassiSynth] reduce pipeline build failed")
+		_release_meter_device()
 		return
 	var n3 := grid_n * grid_n * grid_n
-	_sat_rid = _rd.storage_buffer_create(n3 * 4)
-	_out_rid = _rd.storage_buffer_create(OUT_N * 4)
+	_meter_ey_rid = _meter_device.storage_buffer_create(n3 * 4)
+	_meter_ei_rid = _meter_device.storage_buffer_create(n3 * 4)
+	_sat_rid = _meter_device.storage_buffer_create(n3 * 4)
+	_out_rid = _meter_device.storage_buffer_create(OUT_N * 4)
+	if not (_meter_ey_rid.is_valid() and _meter_ei_rid.is_valid()
+			and _sat_rid.is_valid() and _out_rid.is_valid()):
+		push_error("[CassiSynth] local meter buffer allocation failed")
+		_release_meter_device()
+		return
 	var z := PackedByteArray(); z.resize(OUT_N * 4)
-	_rd.buffer_update(_out_rid, 0, OUT_N * 4, z)
+	_meter_device.buffer_update(_out_rid, 0, OUT_N * 4, z)
 	var zs := PackedByteArray(); zs.resize(n3 * 4)
-	_rd.buffer_update(_sat_rid, 0, n3 * 4, zs)
-	_us_rid = _rd.uniform_set_create([
-		_us_s(0, _sat_rid), _us_s(1, _sim.get("_field_ey")),
-		_us_s(2, _sim.get("_field_ei")), _us_s(3, _out_rid),
+	_meter_device.buffer_update(_meter_ey_rid, 0, n3 * 4, zs)
+	_meter_device.buffer_update(_meter_ei_rid, 0, n3 * 4, zs)
+	_meter_device.buffer_update(_sat_rid, 0, n3 * 4, zs)
+	_us_rid = _meter_device.uniform_set_create([
+		_us_s(0, _sat_rid), _us_s(1, _meter_ey_rid),
+		_us_s(2, _meter_ei_rid), _us_s(3, _out_rid),
 	], _shader_rid, 0)
+	if not _us_rid.is_valid():
+		push_error("[CassiSynth] local meter uniform set creation failed")
+		_release_meter_device()
+		return
 	_chunk = PackedFloat32Array([0.0, float(grid_n), 0.0, 0.0]).to_byte_array()
 
 	_start_audio()
@@ -163,6 +186,23 @@ func _us_s(binding: int, buf: RID) -> RDUniform:
 	u.binding = binding
 	u.add_id(buf)
 	return u
+
+func _release_meter_device() -> void:
+	if _meter_device == null:
+		return
+	for rid in [_us_rid, _out_rid, _sat_rid, _meter_ei_rid, _meter_ey_rid,
+			_pipe_rid, _shader_rid]:
+		if rid.is_valid():
+			_meter_device.free_rid(rid)
+	_meter_device.free()
+	_meter_device = null
+	_shader_rid = RID()
+	_pipe_rid = RID()
+	_us_rid = RID()
+	_meter_ey_rid = RID()
+	_meter_ei_rid = RID()
+	_sat_rid = RID()
+	_out_rid = RID()
 
 
 func _start_audio() -> void:
@@ -214,35 +254,47 @@ func _poll_meter() -> void:
 	if bool(_sim.get("gridless_physics")):
 		_poll_site_meter()
 		return
+	if _meter_device == null:
+		return
 	var grid_n: int = int(_sim.get("grid_N"))
+	var n3: int = grid_n * grid_n * grid_n
 	var rows := int(ceili(float(grid_n * grid_n) / 64.0))
-	var cells := int(ceili(float(grid_n * grid_n * grid_n) / 256.0))
-	# zero accumulators + SAT before the chain
+	var cells := int(ceili(float(n3) / 256.0))
+	# Renderer-owned reads are limited to these two field snapshots; all
+	# meter dispatches and the meter readback use the local RD below.
+	var field_state: Dictionary = _sim.get_field_role_state()
+	var field_ey: RID = field_state.ey
+	var field_ei: RID = field_state.ei
+	var ey_bytes: PackedByteArray = _rd.buffer_get_data(field_ey, 0, n3 * 4)
+	var ei_bytes: PackedByteArray = _rd.buffer_get_data(field_ei, 0, n3 * 4)
+	_meter_device.buffer_update(_meter_ey_rid, 0, n3 * 4, ey_bytes)
+	_meter_device.buffer_update(_meter_ei_rid, 0, n3 * 4, ei_bytes)
+	# Zero accumulators + SAT before the local chain.
 	var zout := PackedByteArray(); zout.resize(OUT_N * 4)
-	_rd.buffer_update(_out_rid, 0, OUT_N * 4, zout)
-	var zsat := PackedByteArray(); zsat.resize(grid_n * grid_n * grid_n * 4)
-	_rd.buffer_update(_sat_rid, 0, zsat.size(), zsat)
+	_meter_device.buffer_update(_out_rid, 0, OUT_N * 4, zout)
+	var zsat := PackedByteArray(); zsat.resize(n3 * 4)
+	_meter_device.buffer_update(_sat_rid, 0, zsat.size(), zsat)
 	for xi in range(4):
 		var m := _chunk.to_float32_array()
 		m[0] = float(xi)
 		_chunk = m.to_byte_array()
-		var cl := _rd.compute_list_begin()
-		_rd.compute_list_bind_compute_pipeline(cl, _pipe_rid)
-		_rd.compute_list_bind_uniform_set(cl, _us_rid, 0)
-		_rd.compute_list_set_push_constant(cl, _chunk, _chunk.size())
+		var cl := _meter_device.compute_list_begin()
+		_meter_device.compute_list_bind_compute_pipeline(cl, _pipe_rid)
+		_meter_device.compute_list_bind_uniform_set(cl, _us_rid, 0)
+		_meter_device.compute_list_set_push_constant(cl, _chunk, _chunk.size())
 		if xi < 3:
-			_rd.compute_list_dispatch(cl, rows, 1, 1)
+			_meter_device.compute_list_dispatch(cl, rows, 1, 1)
 		else:
-			_rd.compute_list_dispatch(cl, cells, 1, 1)
-		_rd.compute_list_add_barrier(cl)
-		_rd.compute_list_end()
-		_rd.submit()
-		_rd.sync()
+			_meter_device.compute_list_dispatch(cl, cells, 1, 1)
+		_meter_device.compute_list_add_barrier(cl)
+		_meter_device.compute_list_end()
+		_meter_device.submit()
+		_meter_device.sync()
 
-	# the ONLY readback: 64 bytes, at the low cadence (the stutter lesson)
-	var data := _rd.buffer_get_data(_out_rid, 0, OUT_N * 4)
+	# The only local readback is 64 bytes at the low cadence.
+	var data := _meter_device.buffer_get_data(_out_rid, 0, OUT_N * 4)
 	var f := data.to_float32_array()
-	var scale := 1.0 / float(grid_n * grid_n * grid_n)
+	var scale := 1.0 / float(n3)
 	var total := float(f[0]) * scale
 	var rungs := PackedFloat32Array()
 	rungs.resize(R)
@@ -332,9 +384,4 @@ func _drone_level() -> float:
 
 
 func _exit_tree() -> void:
-	if _out_rid.is_valid() and _rd != null:
-		_rd.free_rid(_out_rid)
-		_rd.free_rid(_sat_rid)
-		_rd.free_rid(_pipe_rid)
-		_rd.free_rid(_shader_rid)
-		_rd.free_rid(_us_rid)
+	_release_meter_device()

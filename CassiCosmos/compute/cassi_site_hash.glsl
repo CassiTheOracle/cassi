@@ -58,5 +58,11 @@ void main() {
     if (gid >= uint(ns)) return;
     uint c = cell_of(sl[gid].xyz);
     uint slot = atomicAdd(cell_count[c], 1u);
-    cell_sites[slot] = gid;
+    // Preserve original shortlist.w IDs; malformed payloads become the
+    // deterministic no-site sentinel and are ignored by every consumer.
+    float raw_id = sl[gid].w;
+    bool valid_id = !(isnan(raw_id) || isinf(raw_id))
+            && raw_id >= 0.0 && raw_id < 4294967295.0
+            && floor(raw_id) == raw_id;
+    cell_sites[slot] = valid_id ? uint(raw_id) : 0xffffffffu;
 }

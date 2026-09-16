@@ -9,6 +9,7 @@ class_name CassiTreeConsts
 ## see the PHI_6 double-spelling note below.
 
 const ML_TREE_LEAF_CAP := 1
+# Build depth is bounded here; escape-link traversal has no finite stack.
 const ML_TREE_MAX_LEVELS := 14
 const ML_TREE_NODE_MAX_MULT := 8
 const ML_TREE_FIELD_FLOOR := 1e-6   # source-mass recipe field-density floor

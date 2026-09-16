@@ -110,9 +110,12 @@ func _process(_delta: float) -> void:
 ## Is the live field equal to what a level dir plants? (compare a strided
 ## sample against the dir's own field_ey.raw — probe the default-off contract)
 func _field_ey_sum() -> float:
-	if _sim == null or not _sim._field_ey.is_valid():
+	if _sim == null:
 		return -1.0
-	var ey := _rd_read(_sim._field_ey, CELLS)
+	var field_state: Dictionary = _sim.get_field_role_state()
+	if not field_state.ey.is_valid():
+		return -1.0
+	var ey := _rd_read(field_state.ey, CELLS)
 	var s := 0.0
 	for i in range(0, ey.size(), 4096):
 		s += ey[i]

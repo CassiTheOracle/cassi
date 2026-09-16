@@ -102,10 +102,10 @@ layout(set = 0, binding = 21, std430) readonly buffer ML_GradY { vec4 ml_grad_y[
 layout(set = 0, binding = 22, std430) readonly buffer ML_GradI { vec4 ml_grad_i[]; };  // AREPO ∇EI (mode-12 solve), .w=1
 layout(set = 0, binding = 23, std430) readonly buffer ML_PiY { float ml_piy[]; };      // site EY momentum
 layout(set = 0, binding = 24, std430) readonly buffer ML_PiI { float ml_pii[]; };      // site EI momentum
-// Exact accelerated nearest-site query.  The shortlist is forced to contain
-// every live site while boxless merge is enabled; .w maps compact slots back
-// to the full site-field arrays.  Hash positions are tile-local, while
-// SiteHashCfg.xyz carries the tile's world-space center.
+// Exact accelerated nearest-site query. The hash stores original site IDs
+// from shortlist.w, while site_query remains a compact position payload.
+// Hash positions are tile-local, while SiteHashCfg.xyz carries the tile's
+// world-space center.
 layout(set = 0, binding = 25, std430) readonly buffer SiteQueryPositions { vec4 site_query[]; };
 layout(set = 0, binding = 26, std430) readonly buffer SiteHashStart { uint site_cell_start[]; };
 layout(set = 0, binding = 27, std430) readonly buffer SiteHashSites { uint site_cell_sites[]; };
@@ -287,11 +287,9 @@ int nearest_site(vec3 wp) {
                     uint begin = site_cell_start[cell];
                     uint end = site_cell_start[cell + 1];
                     for (uint at = begin; at < end; at++) {
-                        uint slot = site_cell_sites[at];
-                        if (slot >= uint(nq)) continue;
-                        int s = int(round(site_query[slot].w));
+                        int s = int(site_cell_sites[at]);
                         if (s < 0 || s >= ns) continue;
-                        vec3 sw = site_query[slot].xyz - ext + center;
+                        vec3 sw = ml_sites[s].xyz - ext + center;
                         vec3 d = sw - wp;
                         float d2 = dot(d, d);
                         if (d2 < best_d2 || (d2 == best_d2 && (best < 0 || s < best))) {

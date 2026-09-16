@@ -201,8 +201,9 @@ func _drive_to(target_steps: int) -> void:
 # (A) CLUMPING
 # ═══════════════════════════════════════════════════════════════════════════
 func _clumping_analysis() -> Dictionary:
-	var ey: PackedFloat32Array = sim._rd.buffer_get_data(sim._field_ey, 0, nc * 4).to_float32_array()
-	var ei: PackedFloat32Array = sim._rd.buffer_get_data(sim._field_ei, 0, nc * 4).to_float32_array()
+	var field_state: Dictionary = sim.get_field_role_state()
+	var ey: PackedFloat32Array = sim._rd.buffer_get_data(field_state.ey, 0, nc * 4).to_float32_array()
+	var ei: PackedFloat32Array = sim._rd.buffer_get_data(field_state.ei, 0, nc * 4).to_float32_array()
 	var q_color := PackedFloat32Array(); q_color.resize(nc)
 	var q_theory := PackedFloat32Array(); q_theory.resize(nc)
 	for id in range(nc):
@@ -379,7 +380,8 @@ func _ripple_analysis() -> Dictionary:
 	while Nsamples < RIP_SAMPLES:
 		var step_now: int = sim._step_count
 		var t_now: float = step_now * sim.dt
-		var q: PackedFloat32Array = sim._rd.buffer_get_data(sim._field_q, 0, nc * 4).to_float32_array()
+		var field_state: Dictionary = sim.get_field_role_state()
+		var q: PackedFloat32Array = sim._rd.buffer_get_data(field_state.q, 0, nc * 4).to_float32_array()
 		var c := _front_centroid(q)
 		times.append(t_now)
 		cents.append(c)

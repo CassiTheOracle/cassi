@@ -209,7 +209,7 @@ func apply_queued() -> Dictionary:
 		return gate
 	var commands := _queued.duplicate(true)
 	var buffers: Dictionary = _host.call("_workbench_read_buffers")
-	if not _valid_buffers(buffers):
+	if not _valid_buffers(buffers, particle_only):
 		return _reject_queued(commands, "invalid_host_buffers")
 	if _baseline.is_empty():
 		_baseline = _snapshot(buffers)
@@ -257,7 +257,7 @@ func apply_queued() -> Dictionary:
 			backend_receipt["backend"] = backend
 			results[index]["receipt"] = backend_receipt
 	var committed_buffers: Dictionary = _host.call("_workbench_read_buffers")
-	if not _valid_buffers(committed_buffers):
+	if not _valid_buffers(committed_buffers, particle_only):
 		var invalid_rollback := _rollback_authority(automatic)
 		if not invalid_rollback.ok:
 			return _reject_queued(commands, "authority_rollback_failed", {"write_error": "authority_verification_read_failed", "rollback": invalid_rollback})
@@ -300,7 +300,7 @@ func preview_command(command: Dictionary) -> Dictionary:
 	if str(normalized.command.kind) != OP_ARRANGE:
 		return _fail("preview_requires_particle_program")
 	var buffers: Dictionary = _host.call("_workbench_read_buffers")
-	if not _valid_buffers(buffers):
+	if not _valid_buffers(buffers, true):
 		return _fail("invalid_host_buffers")
 	var plan := _arrangement_plan(normalized.command.args, buffers)
 	if not plan.ok:
@@ -440,7 +440,8 @@ func _rollback_authority(source: Dictionary) -> Dictionary:
 	if _host.has_method("_workbench_restore_clock"):
 		_host.call("_workbench_restore_clock", int(source.step), float(source.time))
 	var restored: Dictionary = _host.call("_workbench_read_buffers")
-	if not _valid_buffers(restored):
+	var particle_only := bool(source.get("particle_only", false))
+	if not _valid_buffers(restored, particle_only):
 		return _fail("rollback_read_failed")
 	var actual := _buffer_digest(restored)
 	if actual != str(source.digest):
@@ -468,7 +469,8 @@ func _restore_checkpoint_source(source: Dictionary, state: Dictionary) -> Dictio
 	if str(source.get("signature", "")) != _compatibility_signature(state):
 		return _fail("checkpoint_signature_mismatch")
 	var buffers: Dictionary = source.get("buffers", {})
-	if not _valid_buffers(buffers):
+	var particle_only := bool(source.get("particle_only", false))
+	if not _valid_buffers(buffers, particle_only):
 		return _fail("checkpoint_buffer_mismatch")
 	var write_result: Variant = _host.call("_workbench_write_buffers", _snapshot(buffers), bool(source.get("particle_only", false)))
 	if write_result is Dictionary and not bool(write_result.get("ok", false)):
@@ -525,9 +527,8 @@ func run_branch(name: String, commands: Array, steps := 0) -> Dictionary:
 	var buffers: Dictionary = _host.call("_workbench_read_buffers")
 	var summary := summarize_buffers(buffers)
 	return _ok({"name": name, "applied": applied.applied, "steps": steps, "digest": _buffer_digest(buffers), "summary": summary, "difference": difference_view(summarize_buffers(_checkpoint.buffers), summary)})
-
 func summarize_buffers(buffers: Dictionary) -> Dictionary:
-	if not _valid_buffers(buffers):
+	if not _valid_buffers(buffers, true):
 		return {}
 	var n: int = buffers.ey.size()
 	var intensity := 0.0
@@ -630,14 +631,27 @@ func _periodic_distance(a: Vector3, b: Vector3, extents: Vector3) -> Vector3:
 func _snapshot(buffers: Dictionary) -> Dictionary:
 	return buffers.duplicate(true)
 
-func _valid_buffers(buffers: Dictionary) -> bool:
+func _valid_buffers(buffers: Dictionary, particle_only := false) -> bool:
 	if not buffers.has_all(["grid_N", "extents", "window_center", "ey", "ei", "q", "vel", "pos", "pvel", "acc"]):
+		return false
+	for key in ["ey", "ei", "q", "vel", "pos", "pvel", "acc"]:
+		if not buffers[key] is PackedFloat32Array:
+			return false
+	if not buffers.extents is Vector3 or not buffers.window_center is Vector3:
+		return false
+	var extents: Vector3 = buffers.extents
+	var center: Vector3 = buffers.window_center
+	if not extents.is_finite() or not center.is_finite() or extents.x <= 0.0 or extents.y <= 0.0 or extents.z <= 0.0:
 		return false
 	var n: int = int(buffers.grid_N)
 	var cells := n * n * n
+	# Gridless particle-only edits retain one raster ABI cell.
+	if particle_only and buffers.ey.size() == 1:
+		cells = 1
 	return n > 0 and buffers.ey.size() == cells and buffers.ei.size() == cells and buffers.q.size() == cells \
 		and buffers.vel.size() == cells * 4 and buffers.pos.size() == buffers.pvel.size() \
 		and buffers.pos.size() == buffers.acc.size() and buffers.pos.size() % 4 == 0
+
 
 func _buffer_digest(buffers: Dictionary) -> String:
 	var context := HashingContext.new()

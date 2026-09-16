@@ -99,6 +99,13 @@ layout(set = 0, binding = 10, std430) readonly buffer ShortlistCount { uint cnt;
 layout(set = 0, binding = 11, std430) readonly buffer HashCellStart { uint hcs[]; };
 layout(set = 0, binding = 12, std430) readonly buffer HashCellSites { uint hsite[]; };
 layout(set = 0, binding = 13, std430) readonly buffer HashCfg { vec4 cfg; };
+layout(set = 0, binding = 14, rgba32f) uniform restrict writeonly image2D compact_data;
+// Full site positions indexed by original shortlist.w IDs. Hash entries are
+// never interpreted as compact shortlist slots.
+layout(set = 0, binding = 15, std430) readonly buffer SitePositions {
+    vec4 site_pos[];
+};
+
 
 // ── Consolidated gradient engine PC (32 floats = 128 B — the AMD RDNA3
 // Vulkan push-constant cap; EXACTLY 128, nothing more) ──────────────────
@@ -161,6 +168,12 @@ const float LOG_GUARD = 1e-9;
 // exactly 0.5 when ρ² = φ⁻²+ε², and 1 as ρ→∞. The hue strategy treats φ⁻²
 // as the approach/pink entry (high-coherence saturation point).
 const float PHI_INV2 = 0.3819660112501051;
+bool finite_float(float value) { return !(isnan(value) || isinf(value)); }
+float point_aabb_distance2(vec3 p, vec3 lo, vec3 hi) {
+    vec3 d = max(max(lo - p, p - hi), vec3(0.0));
+    return dot(d, d);
+}
+
 
 // ── VFX constants (2026-08-13; feature work on the current PC/bindings) ─
 // SIZE_BY_MASS (flag 0x10): s = clamp(SIZE_K · cbrt(m), SIZE_S_MIN,
@@ -378,79 +391,149 @@ float tri_phase(vec3 wp) {
 // cost is O(shortlist) not O(8192). Active only when flag.y > 0.5 (boxless
 // instancer set bound); otherwise the grid trilinear paths above are used.
 bool boxless_active(void) { return flag.y > 0.5; }
-
 bool open_world_active(void) { return flag.z > 0.5; }
-// Rendering-only support for site-field colour. The finite site window is an
-// axis-aligned compute tile, but exposing its hard faces through the colour
-// fallback paints a box across round particle clouds. Use a broad ellipsoidal
-// feather in the window-relative coordinate frame; callers blend to a
-// particle-local mass colour instead of mapping "no site" to the q=0 endpoint.
+
+// Fade field colour across the ellipsoidal support, not the tile's hard faces.
 float field_color_support(vec3 wp) {
     if (!boxless_active() || !open_world_active()) return 1.0;
     vec3 ext = max(vec3(pc.extent_x, pc.extent_y, pc.extent_z), vec3(1e-4));
     return 1.0 - smoothstep(0.65, 1.0, length(wp / ext));
 }
-// Returns the site index of the nearest shortlisted site; -1 if the shortlist
-// is empty. (GLSL has no int -1 from a 0-min scan failure — use a flag.)
-// BOXLESS HASH (boxless_site_hash_prereg.md): a growing-Chebyshev-ring query
-// over the spatial hash built by cassi_site_hash.glsl. Scans all cells in rings
-// ≤ r (the full r-cube) and breaks on a DISTANCE bound: an unscanned cell has
-// Chebyshev ≥ r+1, so its nearest point is ≥ r·cs away (the cells at offsets
-// 1..r fill the r·cs gap). When the best site found is strictly closer than
-// (r·cs)², no unscanned cell can hold a closer site → the result IS the
-// brute-force nearest. Exact by construction (a closer site lives in ≤ r) — the
-// probe confirms equivalence rather than tuning it. Cost: 27 cells at r=1 (the
-// dense-blob case), rising only in sparse voids where there are few sites.
+
+// Returns the original site ID of the nearest shortlisted site; -1 means the
+// shortlist is empty or no valid hash/fallback entry exists. The hash query
+// scans complete shells and uses exact point-to-AABB bounds for anisotropic
+// extents and face-clipped domains.
+void scan_hash_cell(uint cell, uint site_capacity, vec3 tile,
+        inout int best, inout float best_d2) {
+    uint hash_capacity = uint(hsite.length());
+    uint start = min(hcs[cell], hash_capacity);
+    uint end = min(hcs[cell + 1u], hash_capacity);
+    for (uint k = start; k < end; ++k) {
+        uint site_id = hsite[k];
+        if (site_id >= site_capacity) continue;
+        vec3 d = site_pos[site_id].xyz - tile;
+        float dd = dot(d, d);
+        if (!(dd >= 0.0) || !finite_float(dd)) continue;
+        if (dd < best_d2 || (dd == best_d2
+                && (best < 0 || int(site_id) < best))) {
+            best_d2 = dd;
+            best = int(site_id);
+        }
+    }
+}
+
 int nearest_shortlist_site(vec3 wp, out bool found) {
     found = false;
-    vec3 ext = max(vec3(pc.extent_x, pc.extent_y, pc.extent_z),
-            vec3(1e-4));
+    vec3 ext = max(vec3(pc.extent_x, pc.extent_y, pc.extent_z), vec3(1e-4));
     uint n = cnt;
     if (n == 0u) return 0;
-    // In open-world mode the finite site tile is a computational window, not
-    // a periodic domain. Escaped particles deliberately have no site field
-    // value; they keep the deterministic fallback (0.0 at callers). Returning
-    // immediately avoids clamping every out-of-domain particle onto edge
-    // cells, which made a visible shell boundary and charged every escaped
-    // particle with a boundary-site lookup.
     if (open_world_active()
             && (any(lessThan(wp, -ext)) || any(greaterThan(wp, ext))))
         return 0;
     vec3 tile_wp = wp + ext;
-    int H = max(int(round(2.0 * pc.extent_x / max(cfg.w, 1e-9))), 1);
-    vec3 cs = 2.0 * ext / max(float(H), 1.0);
-    ivec3 cc = clamp(ivec3(floor(tile_wp / cs)), ivec3(0), ivec3(H - 1));
+    float published_cell = cfg.w;
+    int H = (finite_float(published_cell) && published_cell > 0.0)
+            ? int(round((2.0 * ext.x) / published_cell)) : 0;
+    H = clamp(H, 1, 256);
+    vec3 cs = 2.0 * ext / float(H);
+    ivec3 c0 = clamp(ivec3(floor(tile_wp / cs)), ivec3(0), ivec3(H - 1));
     int best = -1;
-    float bd = 1e30;
-    for (int r = 0; r <= H; r++) {
-        int x0 = max(cc.x-r, 0), x1 = min(cc.x+r, H-1);
-        int y0 = max(cc.y-r, 0), y1 = min(cc.y+r, H-1);
-        int z0 = max(cc.z-r, 0), z1 = min(cc.z+r, H-1);
-        for (int z = z0; z <= z1; z++)
-            for (int y = y0; y <= y1; y++)
-                for (int x = x0; x <= x1; x++) {
-                    uint cell = uint(x + H * (y + H * z));
-                    for (uint k = hcs[cell]; k < hcs[cell + 1u]; k++) {
-                        uint s = hsite[k];
-                        if (s >= n) continue;
-                        vec3 d = sl[s].xyz - tile_wp;
-                        float dd = dot(d, d);
-                        if (dd < bd) {
-                            bd = dd;
-                            best = int(s);
-                        }
-                    }
-                }
-        // Cells outside the scanned Chebyshev cube are at least one full
-        // cell farther away. Once the current best beats that conservative
-        // axis bound, the nearest eligible shortlist site is proven.
-        vec3 reach = float(r + 1) * cs;
-        float bound2 = min(dot(reach, reach),
-                min(reach.x*reach.x, min(reach.y*reach.y, reach.z*reach.z)));
-        if (best >= 0 && bd < bound2) break;
+    float best_d2 = 1e30;
+    uint site_capacity = uint(site_pos.length());
+    for (int ring = 0; ring < H; ++ring) {
+        ivec3 lo_cell = max(c0 - ivec3(ring), ivec3(0));
+        ivec3 hi_cell = min(c0 + ivec3(ring), ivec3(H - 1));
+        if (ring == 0) {
+            uint cell = uint(c0.x + H * (c0.y + H * c0.z));
+            scan_hash_cell(cell, site_capacity, tile_wp, best, best_d2);
+        } else {
+            ivec3 prev_lo = max(c0 - ivec3(ring - 1), ivec3(0));
+            ivec3 prev_hi = min(c0 + ivec3(ring - 1), ivec3(H - 1));
+            bool zlo_new = lo_cell.z < prev_lo.z;
+            bool zhi_new = hi_cell.z > prev_hi.z;
+            bool ylo_new = lo_cell.y < prev_lo.y;
+            bool yhi_new = hi_cell.y > prev_hi.y;
+            bool xlo_new = lo_cell.x < prev_lo.x;
+            bool xhi_new = hi_cell.x > prev_hi.x;
+            if (zlo_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int y = lo_cell.y; y <= hi_cell.y; ++y)
+                        scan_hash_cell(uint(x + H * (y + H * lo_cell.z)),
+                                site_capacity, tile_wp, best, best_d2);
+            if (zhi_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int y = lo_cell.y; y <= hi_cell.y; ++y)
+                        scan_hash_cell(uint(x + H * (y + H * hi_cell.z)),
+                                site_capacity, tile_wp, best, best_d2);
+            int zlo_inner = lo_cell.z + (zlo_new ? 1 : 0);
+            int zhi_inner = hi_cell.z - (zhi_new ? 1 : 0);
+            if (ylo_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(x + H * (lo_cell.y + H * z)),
+                                site_capacity, tile_wp, best, best_d2);
+            if (yhi_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(x + H * (hi_cell.y + H * z)),
+                                site_capacity, tile_wp, best, best_d2);
+            int ylo_inner = lo_cell.y + (ylo_new ? 1 : 0);
+            int yhi_inner = hi_cell.y - (yhi_new ? 1 : 0);
+            if (xlo_new)
+                for (int y = ylo_inner; y <= yhi_inner; ++y)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(lo_cell.x + H * (y + H * z)),
+                                site_capacity, tile_wp, best, best_d2);
+            if (xhi_new)
+                for (int y = ylo_inner; y <= yhi_inner; ++y)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(hi_cell.x + H * (y + H * z)),
+                                site_capacity, tile_wp, best, best_d2);
+        }
+        float bound2 = 1e30;
+        if (lo_cell.x > 0)
+            bound2 = min(bound2, point_aabb_distance2(tile_wp, vec3(0.0),
+                vec3(float(lo_cell.x) * cs.x, 2.0 * ext.y, 2.0 * ext.z)));
+        if (hi_cell.x < H - 1)
+            bound2 = min(bound2, point_aabb_distance2(tile_wp,
+                vec3(float(hi_cell.x + 1) * cs.x, 0.0, 0.0), 2.0 * ext));
+        if (lo_cell.y > 0)
+            bound2 = min(bound2, point_aabb_distance2(tile_wp, vec3(0.0),
+                vec3(2.0 * ext.x, float(lo_cell.y) * cs.y, 2.0 * ext.z)));
+        if (hi_cell.y < H - 1)
+            bound2 = min(bound2, point_aabb_distance2(tile_wp,
+                vec3(0.0, float(hi_cell.y + 1) * cs.y, 0.0), 2.0 * ext));
+        if (lo_cell.z > 0)
+            bound2 = min(bound2, point_aabb_distance2(tile_wp, vec3(0.0),
+                vec3(2.0 * ext.x, 2.0 * ext.y, float(lo_cell.z) * cs.z)));
+        if (hi_cell.z < H - 1)
+            bound2 = min(bound2, point_aabb_distance2(tile_wp,
+                vec3(0.0, 0.0, float(hi_cell.z + 1) * cs.z), 2.0 * ext));
+        if (best_d2 < bound2) break;
+    }
+    if (best >= 0) {
+        found = true;
+        return best;
+    }
+    // Preserve the nonhash shortlist path for legacy/unpublished hash data.
+    for (uint slot = 0u; slot < n; ++slot) {
+        float raw_id = sl[slot].w;
+        if (!finite_float(raw_id) || raw_id < 0.0 || raw_id >= 2147483647.0)
+            continue;
+        uint site_id = uint(raw_id);
+        if (site_id >= site_capacity) continue;
+        vec3 d = sl[slot].xyz - tile_wp;
+        float dd = dot(d, d);
+        if (!(dd >= 0.0) || !finite_float(dd)) continue;
+        if (dd < best_d2 || (dd == best_d2
+                && (best < 0 || int(site_id) < best))) {
+            best_d2 = dd;
+            best = int(site_id);
+        }
     }
     found = best >= 0;
-    return best;
+    return best < 0 ? 0 : best;
 }
 float site_q_at(vec3 wp) {
     bool found;
@@ -561,6 +644,31 @@ float vfx_depth_fade(vec3 wp) {
     return pow(fade, DEPTH_POW);
 }
 
+bool compact_active() {
+    return pc.dt < 0.0;
+}
+
+void compact_store(int particle, vec3 origin, float size, vec4 payload) {
+    ivec2 extent = imageSize(compact_data);
+    int texel = particle * 2;
+    int width = max(extent.x, 1);
+    imageStore(compact_data, ivec2(texel % width, texel / width),
+            vec4(origin, size));
+    int payload_texel = texel + 1;
+    imageStore(compact_data,
+            ivec2(payload_texel % width, payload_texel / width), payload);
+}
+
+void compact_clear(int particle) {
+    ivec2 extent = imageSize(compact_data);
+    int texel = particle * 2;
+    int width = max(extent.x, 1);
+    imageStore(compact_data, ivec2(texel % width, texel / width), vec4(0.0));
+    int payload_texel = texel + 1;
+    imageStore(compact_data,
+            ivec2(payload_texel % width, payload_texel / width), vec4(0.0));
+}
+
 void main() {
     int i = int(gl_GlobalInvocationID.x);
     int N = int(pc.particle_N);
@@ -572,10 +680,14 @@ void main() {
     // stale/zero-mass quad; live particles take the unchanged path below.
     int base = i * 4;
     if (p.w <= 0.0) {
-        inst[base]     = vec4(0.0);
-        inst[base + 1] = vec4(0.0);
-        inst[base + 2] = vec4(0.0);
-        inst[base + 3] = vec4(0.0);
+        if (compact_active()) {
+            compact_clear(i);
+        } else {
+            inst[base]     = vec4(0.0);
+            inst[base + 1] = vec4(0.0);
+            inst[base + 2] = vec4(0.0);
+            inst[base + 3] = vec4(0.0);
+        }
         return;
     }
     int bmode = cm_base();
@@ -610,9 +722,11 @@ void main() {
     // Row-major 3x4: scale basis by mass-derived size. Origin = the
     // window-relative open-world position (or the folded legacy position).
     // The transform must never discard a raw escaped coordinate.
-    inst[base]     = vec4(s, 0.0, 0.0, pf.x);
-    inst[base + 1] = vec4(0.0, s, 0.0, pf.y);
-    inst[base + 2] = vec4(0.0, 0.0, s, pf.z);
+    if (!compact_active()) {
+        inst[base]     = vec4(s, 0.0, 0.0, pf.x);
+        inst[base + 1] = vec4(0.0, s, 0.0, pf.y);
+        inst[base + 2] = vec4(0.0, 0.0, s, pf.z);
+    }
 
     // ── Color: legacy (bit-identical) or the consolidated engine ──────
     // COLOR-AS-LUT (Tier-2): with lut flag on the instance buffer carries
@@ -658,7 +772,12 @@ void main() {
         float depth_fade = 1.0;   // F_DP off → no depth fade (material × 1)
         if ((flags & F_GL) != 0) { glow_boost = vfx_glow_boost(x_axis, s); }
         if ((flags & F_DP) != 0) { depth_fade = vfx_depth_fade(pf); }
-        inst[base + 3] = vec4(u, glow_boost, depth_fade, 0.0);  // custom_data: (u, glow, depth, spare)
+        vec4 compact_payload = vec4(u, glow_boost, depth_fade, 0.0);
+        if (compact_active()) {
+            compact_store(i, pf, s, compact_payload);
+        } else {
+            inst[base + 3] = compact_payload;  // custom_data: (u, glow, depth, spare)
+        }
     } else {
         vec4 color;
         if (bmode == 6) {
@@ -798,6 +917,10 @@ void main() {
             color.a *= vfx_depth_fade(pf);
         }
     
-        inst[base + 3] = color;
+        if (compact_active()) {
+            compact_store(i, pf, s, color);
+        } else {
+            inst[base + 3] = color;
+        }
     }  // end legacy color branch (LUT flag off)
 }

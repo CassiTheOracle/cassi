@@ -217,6 +217,12 @@ func _build_local_tree() -> void:
 	_lrd.buffer_update(_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
 	_lrd.buffer_update(_cf, 0, 16, PackedFloat32Array([ext.x, ext.y, ext.z, half]).to_byte_array())
 	_lrd.buffer_update(_nr, 0, 16, PackedInt32Array([0, _nl_sites, -1, 0]).to_byte_array())
+	# Explicitly seed the stackless root metadata for this host-seeded
+	# verifier path; ROOT_SEED repeats the same invariant on-GPU.
+	_lrd.buffer_update(
+			_nq, 0, 32,
+			PackedFloat32Array([0.0, 0.0, 0.0, 0.0,
+					0.0, 0.0, EPS2, -1.0]).to_byte_array())
 	var bsf := load("res://compute/cassi_tree_build.glsl") as RDShaderFile
 	var gsf := load("res://compute/cassi_tree_gravity.glsl") as RDShaderFile
 	_bld_sh = _lrd.shader_create_from_spirv(bsf.get_spirv())

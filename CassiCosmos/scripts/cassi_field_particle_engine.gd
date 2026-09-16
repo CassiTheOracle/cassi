@@ -476,6 +476,27 @@ func hamiltonian_gradient_bytes() -> PackedByteArray:
 		return PackedByteArray()
 	return _rd.buffer_get_data(_gradient, 0, cells * STATE_STRIDE * 4)
 
+## Run one explicit, synchronously read back gradient reference dispatch.
+## This proof path is local-RD only; normal record_steps() always uses pass 0.
+## "numeric" selects the original fourth-order finite-difference reference,
+## while "analytic" selects the same shell-aware derivative without the
+## production boundary pinning mask.
+func gradient_diagnostic_bytes(mode: String = "analytic") -> PackedFloat32Array:
+	if not _ready or _rd_global or (mode != "analytic" and mode != "numeric"):
+		return PackedFloat32Array()
+	var pass_sel := 6 if mode == "analytic" else 5
+	var gradient_groups := ceili(float(cells * STATE_STRIDE) / float(WORKGROUP_SIZE))
+	var compute_list := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(compute_list, _pipeline)
+	_rd.compute_list_bind_uniform_set(compute_list, _uniform_sets[0], 0)
+	_fill_push_constants(0.0, pass_sel)
+	_rd.compute_list_set_push_constant(compute_list, _pc, _pc.size())
+	_rd.compute_list_dispatch(compute_list, gradient_groups, 1, 1)
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
+	return _rd.buffer_get_data(_gradient, 0, cells * STATE_STRIDE * 4).to_float32_array()
+
 
 func reset_seed() -> bool:
 	return set_state(_seed_bytes, _seed_velocity_bytes)

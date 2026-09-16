@@ -123,6 +123,7 @@ func _base_cfg() -> Dictionary:
 		"dt": DT,
 		"cluster_radius": CLUSTER_RADIUS,
 		"num_clusters": 10,
+		"initial_arrangement": 1, # Explicit Fibonacci sphere, independent of count.
 		"cluster_separation": SEP,
 		"source_strength": 0.0,
 		"gravity_mode": 3,            # river-SELF: pure gravity, no dissipation
@@ -162,9 +163,10 @@ func _run_arm(tag: String, overrides: Dictionary, step_per_sample: int, total_st
 	while steps < total_steps:
 		_eng.run_steps(step_per_sample)
 		steps += step_per_sample
-		var ey: PackedFloat32Array = _rd.buffer_get_data(_eng._field_ey, 0, grid * 4).to_float32_array()
-		var ei: PackedFloat32Array = _rd.buffer_get_data(_eng._field_ei, 0, grid * 4).to_float32_array()
-		var vel: PackedFloat32Array = _rd.buffer_get_data(_eng._field_vel, 0, grid * 16).to_float32_array()
+		var field_state: Dictionary = _eng.get_field_role_state()
+		var ey: PackedFloat32Array = _rd.buffer_get_data(field_state.ey, 0, grid * 4).to_float32_array()
+		var ei: PackedFloat32Array = _rd.buffer_get_data(field_state.ei, 0, grid * 4).to_float32_array()
+		var vel: PackedFloat32Array = _rd.buffer_get_data(field_state.vel, 0, grid * 16).to_float32_array()
 		var rho: PackedFloat32Array = _rd.buffer_get_data(_eng._mass_density_buf, 0, grid * 4).to_float32_array()
 		series.append(_measure(ey, ei, vel, rho, steps))
 	var last: Dictionary = _series_last(series) if series.size() > 0 else {}

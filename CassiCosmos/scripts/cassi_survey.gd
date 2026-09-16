@@ -92,7 +92,7 @@ func take_snapshot() -> Dictionary:
 			push_warning("[CassiSurvey] site field buffers not ready — skipping snapshot")
 			return {}
 	else:
-		var ey_rid = _sim.get("_field_ey")
+		var ey_rid: RID = _sim.get_field_role_state().ey
 		if ey_rid == null or not ey_rid.is_valid():
 			push_warning("[CassiSurvey] sim field buffers not ready — skipping snapshot")
 			return {}
@@ -124,23 +124,25 @@ func take_snapshot() -> Dictionary:
 		meta["site_q_bytes"] = q.size() * 4
 	else:
 		# Legacy compatibility export: full raster field payload.
-		var ey: PackedFloat32Array = _read_float_buffer(_sim._field_ey, nc)
-		var ei: PackedFloat32Array = _read_float_buffer(_sim._field_ei, nc)
+		var field_state: Dictionary = _sim.get_field_role_state()
+		var ey: PackedFloat32Array = _read_float_buffer(field_state.ey, nc)
+		var ei: PackedFloat32Array = _read_float_buffer(field_state.ei, nc)
 		_write_raw("%s/field_ey.raw" % dir_path, ey.to_byte_array())
 		_write_raw("%s/field_ei.raw" % dir_path, ei.to_byte_array())
 		meta["field_ey_bytes"] = ey.size() * 4
 		meta["field_ei_bytes"] = ei.size() * 4
 		meta["field_q"] = false
-		var q_rid = _sim.get("_field_q")
+		var q_rid: RID = field_state.q
 		if q_rid != null and q_rid.is_valid():
-			var q: PackedFloat32Array = _read_float_buffer(_sim._field_q, nc)
+			var q: PackedFloat32Array = _read_float_buffer(q_rid, nc)
 			_write_raw("%s/field_q.raw" % dir_path, q.to_byte_array())
 			meta["field_q"] = true
 			meta["field_q_bytes"] = q.size() * 4
 	# Particles: positions only (x,y,z per particle; skip the mass w).
-	if dump_particles and _sim.get("_pos_buf") != null and _sim._pos_buf.is_valid():
+	var particle_authority: Object = _sim._physics_engine if _sim._decoupled_active else _sim
+	if dump_particles and particle_authority.get("_pos_buf") != null and particle_authority._pos_buf.is_valid():
 		var np: int = int(_sim.N_particles)
-		var pf: PackedFloat32Array = _sim._rd.buffer_get_data(_sim._pos_buf, 0, np * 16).to_float32_array()
+		var pf: PackedFloat32Array = _sim._rd.buffer_get_data(particle_authority._pos_buf, 0, np * 16).to_float32_array()
 		if pf.size() >= np * 4:
 			var xyz := PackedFloat32Array()
 			xyz.resize(np * 3)
@@ -171,8 +173,10 @@ func _read_float_buffer(rid: RID, count: int) -> PackedFloat32Array:
 
 
 func _collect_meta(N: int) -> Dictionary:
+	var extents: Vector3 = _sim._extents()
 	var meta := {
 		"grid_N": N,
+		"extents": {"x": extents.x, "y": extents.y, "z": extents.z},
 		"particle_count": int(_sim.N_particles),
 		"step": int(_sim._step_count),
 		"time": float(_sim._time),

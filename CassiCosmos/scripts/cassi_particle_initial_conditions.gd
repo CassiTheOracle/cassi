@@ -251,8 +251,8 @@ static func _rotate(v: Vector3, s: Dictionary) -> Vector3:
 static func _oriented_unit(v: Vector3, s: Dictionary) -> Vector3:
 	var out := _rotate(v, s)
 	return out.normalized() if out.length_squared() > 1.0e-12 else Vector3.FORWARD
-static func _profile_point(rng: RandomNumberGenerator, shape: int, scale: float, cfg: Dictionary) -> Vector3:
-	var fraction: float = maxf(_f(cfg, "initial_radius_fraction", 0.9), 0.01)
+static func _profile_point(rng: RandomNumberGenerator, shape: int, scale: float, cfg: Dictionary, radius_fraction: float = -1.0) -> Vector3:
+	var fraction: float = radius_fraction if radius_fraction > 0.0 else maxf(_f(cfg, "initial_radius_fraction", 0.9), 0.01)
 	var radius: float = maxf(absf(scale) * fraction, 1.0e-6)
 	if shape == 0:
 		var scale_ratio: float = radius / maxf(absf(scale), 1.0e-6)
@@ -286,11 +286,24 @@ static func _disc_point(rng: RandomNumberGenerator, radius: float, thickness: fl
 	var r: float = radius * sqrt(rng.randf())
 	var a: float = rng.randf() * TAU_F
 	return Vector3(r * cos(a), r * sin(a), rng.randf_range(-thickness, thickness))
+static func _shape7_parameters(s: Dictionary) -> PackedFloat64Array:
+	var params := PackedFloat64Array()
+	params.resize(7)
+	params[0] = clampi(_setting_i(s, "helix_strands"), 1, 6)
+	params[1] = _setting_f(s, "helix_turns")
+	params[2] = _setting_f(s, "helix_radius")
+	params[3] = _setting_f(s, "helix_pitch")
+	params[5] = clampf(_setting_f(s, "clumpiness"), 0.0, 2.0)
+	params[6] = maxf(0.02, _setting_f(s, "thickness"))
+	params[4] = 0.045 * params[6] * params[5]
+	return params
+
 
 ## xyz is the sampled point; w retains its curve parameter or encounter part.
-static func _shape_point(shape: int, rng: RandomNumberGenerator, index: int, count: int, s: Dictionary, web_nodes: PackedVector3Array, web_edges: PackedInt32Array, web_lengths: PackedFloat32Array, hierarchy_levels: Array[PackedVector3Array], hierarchy_widths: PackedFloat32Array, trefoil_grid: PackedFloat32Array, trefoil_cdf: PackedFloat32Array) -> Vector4:
-	var clump: float = clampf(_setting_f(s, "clumpiness"), 0.0, 2.0)
-	var thick: float = maxf(0.02, _setting_f(s, "thickness"))
+static func _shape_point(shape: int, rng: RandomNumberGenerator, index: int, count: int, s: Dictionary, web_nodes: PackedVector3Array, web_edges: PackedInt32Array, web_lengths: PackedFloat32Array, hierarchy_levels: Array[PackedVector3Array], hierarchy_widths: PackedFloat32Array, trefoil_grid: PackedFloat32Array, trefoil_cdf: PackedFloat32Array, shape7_params: PackedFloat64Array) -> Vector4:
+	var has_shape7_params: bool = shape7_params.size() >= 7
+	var clump: float = float(shape7_params[5]) if has_shape7_params else clampf(_setting_f(s, "clumpiness"), 0.0, 2.0)
+	var thick: float = float(shape7_params[6]) if has_shape7_params else maxf(0.02, _setting_f(s, "thickness"))
 	var p := Vector3.ZERO
 	var parameter := 0.0
 	if shape == 3:
@@ -342,12 +355,15 @@ static func _shape_point(shape: int, rng: RandomNumberGenerator, index: int, cou
 		if shell % 2 == 1:
 			p += Vector3(_setting_f(s, "shell_offset"), 0.0, 0.0)
 	elif shape == 7:
-		var strands: int = clampi(_setting_i(s, "helix_strands"), 1, 6)
+		var strands: int = int(shape7_params[0]) if has_shape7_params else clampi(_setting_i(s, "helix_strands"), 1, 6)
 		var strand: int = index % strands
 		var t: float = rng.randf_range(-1.0, 1.0)
-		var theta: float = (t + 1.0) * PI_F * _setting_f(s, "helix_turns") + TAU_F * float(strand) / float(strands)
-		var hr: float = _setting_f(s, "helix_radius")
-		p = Vector3(hr * cos(theta), hr * sin(theta), t * _setting_f(s, "helix_pitch")) + _random_ball(rng, 0.045 * thick * clump)
+		var turns: float = float(shape7_params[1]) if has_shape7_params else _setting_f(s, "helix_turns")
+		var theta: float = (t + 1.0) * PI_F * turns + TAU_F * float(strand) / float(strands)
+		var hr: float = float(shape7_params[2]) if has_shape7_params else _setting_f(s, "helix_radius")
+		var helix_pitch: float = float(shape7_params[3]) if has_shape7_params else _setting_f(s, "helix_pitch")
+		var scatter_radius: float = float(shape7_params[4]) if has_shape7_params else 0.045 * thick * clump
+		p = Vector3(hr * cos(theta), hr * sin(theta), t * helix_pitch) + _random_ball(rng, scatter_radius)
 		parameter = theta
 	elif shape == 8:
 		var edge_count: int = maxi(1, web_edges.size() / 2)
@@ -458,7 +474,40 @@ static func _build_trefoil_table(s: Dictionary) -> Array:
 			cdf[i] = cdf[i - 1] + pa.distance_to(pb)
 	return [grid, cdf]
 
-static func _multi_rung(p: Vector3, cfg: Dictionary) -> Vector3:
+static func _multi_rung_cache(cfg: Dictionary) -> Array:
+	if not bool(cfg.get("multi_rung_seed", false)):
+		return []
+	var count: int = clampi(_i(cfg, "multi_rung_count", 0), 0, 16)
+	if count <= 0:
+		return []
+	var base: float = maxf(_f(cfg, "multi_rung_base_scale", 1.0) * absf(_f(cfg, "cluster_radius", 50.0)), 1.0e-5)
+	var kbase: float = TAU_F / base
+	var ks := PackedFloat64Array(); ks.resize(count)
+	var dirs := PackedVector3Array(); dirs.resize(count)
+	var amps := PackedFloat64Array(); amps.resize(count)
+	var phases := PackedFloat64Array(); phases.resize(count)
+	var rung_amp: float = _f(cfg, "multi_rung_amp", 0.2)
+	var phi_squared: float = PHI_F * PHI_F
+	for rung in range(count):
+		var k: float = kbase * pow(PHI_F, float(rung))
+		ks[rung] = k
+		dirs[rung] = _fibonacci_dir(rung, count)
+		phases[rung] = float(rung) * TAU_F / phi_squared
+		amps[rung] = rung_amp / maxf(k, 1.0e-6)
+	return [ks, dirs, amps, phases]
+
+static func _multi_rung(p: Vector3, cfg: Dictionary, cache: Array = []) -> Vector3:
+	if not cache.is_empty():
+		var ks: PackedFloat64Array = cache[0]
+		var dirs: PackedVector3Array = cache[1]
+		var amps: PackedFloat64Array = cache[2]
+		var phases: PackedFloat64Array = cache[3]
+		var out_cached := p
+		for rung in range(ks.size()):
+			var d: Vector3 = dirs[rung]
+			var wave: float = sin(ks[rung] * out_cached.dot(d) + phases[rung])
+			out_cached += d * (amps[rung] * wave)
+		return out_cached
 	if not bool(cfg.get("multi_rung_seed", false)): return p
 	var count: int = clampi(_i(cfg, "multi_rung_count", 0), 0, 16)
 	if count <= 0: return p
@@ -572,32 +621,47 @@ static func _motion_velocity(motion: int, speed: float, shape: int, p: Vector3, 
 
 static func generate(cfg: Dictionary) -> Dictionary:
 	var n: int = maxi(0, _i(cfg, "N_particles", 0))
-	var pos := PackedFloat32Array(); var vel := PackedFloat32Array(); var acc := PackedFloat32Array()
-	pos.resize(n * 4); vel.resize(n * 4); acc.resize(n * 4)
+	var pos := PackedFloat32Array(); var vel := PackedFloat32Array()
+	pos.resize(n * 4); vel.resize(n * 4)
 	var centers: PackedVector3Array = component_centers(cfg)
 	var shape: int = clampi(_i(cfg, "initial_condition", 0), 0, 11)
 	var motion: int = clampi(_i(cfg, "initial_motion", 0), 0, 7)
+	# Stream directions live in the already-required velocity buffer until the
+	# velocity pass consumes them. This keeps stream motion O(1) extra memory.
 	var capture_stream: bool = motion == 6 or motion == 7
-	var stream_dirs := PackedFloat32Array()
-	if capture_stream: stream_dirs.resize(n * 3)
+	var default_profile: bool = motion == 0 and shape <= 2
 	var component_count: int = centers.size()
 	var clusters := PackedFloat32Array(); clusters.resize(component_count * 4)
-	var per_cluster: PackedInt32Array = PackedInt32Array(); per_cluster.resize(component_count)
-	for i in range(n): per_cluster[mini(i * component_count / maxi(n, 1), component_count - 1)] += 1
+	# The particle-to-component mapping uses ceil(c * N / C) boundaries. Compute
+	# the same counts directly instead of walking every particle a second time.
 	for c in range(component_count):
-		clusters[c * 4] = centers[c].x; clusters[c * 4 + 1] = centers[c].y; clusters[c * 4 + 2] = centers[c].z; clusters[c * 4 + 3] = per_cluster[c]
+		var cluster_start: int = (c * n + component_count - 1) / component_count
+		var cluster_end: int = ((c + 1) * n + component_count - 1) / component_count
+		var cluster_size: int = cluster_end - cluster_start
+		clusters[c * 4] = centers[c].x
+		clusters[c * 4 + 1] = centers[c].y
+		clusters[c * 4 + 2] = centers[c].z
+		clusters[c * 4 + 3] = cluster_size
 	if n == 0:
-		return {"pos":pos, "vel":vel, "acc":acc, "clusters":clusters, "cluster_count":component_count, "total_mass":0.0, "bounds":AABB(Vector3.ZERO, Vector3.ZERO)}
+		return {"pos":pos, "vel":vel, "clusters":clusters, "cluster_count":component_count, "total_mass":0.0, "bounds":AABB(Vector3.ZERO, Vector3.ZERO), "max_radius":0.0, "max_component":0.0, "out_of_box":0, "max_speed":0.0, "mean_speed":0.0}
 	var scale: float = maxf(absf(_f(cfg, "cluster_radius", 50.0)), 1.0e-6)
 	var settings: Dictionary = _settings(cfg)
-	var pos_rng := RandomNumberGenerator.new(); pos_rng.seed = _stream_seed(_i(cfg, "seed", _i(cfg, "ic_seed", 1)), POSITION_STREAM_OFFSET)
-	var structure_rng := RandomNumberGenerator.new(); structure_rng.seed = _stream_seed(_i(cfg, "seed", _i(cfg, "ic_seed", 1)), STRUCTURE_STREAM_OFFSET + shape * 104729)
-	var mass_rng := RandomNumberGenerator.new(); mass_rng.seed = _stream_seed(_i(cfg, "seed", _i(cfg, "ic_seed", 1)), MASS_STREAM_OFFSET)
+	var shape7_params := PackedFloat64Array()
+	if shape == 7:
+		shape7_params = _shape7_parameters(settings)
+	var rung_cache: Array = _multi_rung_cache(cfg)
+	var seed: int = _i(cfg, "seed", _i(cfg, "ic_seed", 1))
+	var pos_rng := RandomNumberGenerator.new(); pos_rng.seed = _stream_seed(seed, POSITION_STREAM_OFFSET)
+	var structure_rng := RandomNumberGenerator.new(); structure_rng.seed = _stream_seed(seed, STRUCTURE_STREAM_OFFSET + shape * 104729)
+	var mass_rng := RandomNumberGenerator.new(); mass_rng.seed = _stream_seed(seed, MASS_STREAM_OFFSET)
 	var salp_a: float = pow(0.3, -1.35)
 	var salp_b: float = pow(30.0, -1.35)
 	var salp_inv: float = -1.0 / 1.35
 	var web_data: Array = [PackedVector3Array(), PackedInt32Array(), PackedFloat32Array()]
 	if shape == 8: web_data = _build_web(settings, structure_rng)
+	var web_nodes: PackedVector3Array = web_data[0]
+	var web_edges: PackedInt32Array = web_data[1]
+	var web_lengths: PackedFloat32Array = web_data[2]
 	var hierarchy_levels: Array[PackedVector3Array] = []; var hierarchy_widths := PackedFloat32Array()
 	if shape == 9:
 		var hierarchy_data: Array = _build_hierarchy(settings, structure_rng); hierarchy_levels = hierarchy_data[0]; hierarchy_widths = hierarchy_data[1]
@@ -608,73 +672,108 @@ static func generate(cfg: Dictionary) -> Dictionary:
 	var cluster_mass := PackedFloat32Array(); cluster_mass.resize(component_count)
 	var total_mass: float = 0.0
 	var center_of_arrangement := _v3(cfg, "window_center", Vector3.ZERO)
+	var extents := _v3(cfg, "extents", Vector3(INF, INF, INF))
+	var radius_fraction: float = maxf(_f(cfg, "initial_radius_fraction", 0.9), 0.01)
+	var bounds_lo := Vector3(INF, INF, INF)
+	var bounds_hi := Vector3(-INF, -INF, -INF)
+	var max_radius_sq: float = 0.0
+	var max_component: float = 0.0
+	var out_box: int = 0
 	for i in range(n):
 		var i4: int = i * 4
 		var cidx: int = mini(i * component_count / n, component_count - 1)
 		# The Salpeter stream is isolated from every geometry and structure RNG.
 		var mass: float = pow(salp_a - mass_rng.randf() * (salp_a - salp_b), salp_inv)
-		pos[i4 + 3] = mass; cluster_mass[cidx] += mass; total_mass += mass
+		pos[i4 + 3] = mass
+		if default_profile:
+			cluster_mass[cidx] += mass
+		total_mass += mass
 		var local: Vector3
 		var parameter := 0.0
+		var start: int = (cidx * n + component_count - 1) / component_count
+		var end: int = ((cidx + 1) * n + component_count - 1) / component_count
 		if shape <= 2:
-			local = _profile_point(pos_rng, shape, scale, cfg)
+			local = _profile_point(pos_rng, shape, scale, cfg, radius_fraction)
 		else:
-			var start: int = (cidx * n + component_count - 1) / component_count
-			var end: int = ((cidx + 1) * n + component_count - 1) / component_count
-			var sample := _shape_point(shape, pos_rng, i - start, end - start, settings, web_data[0], web_data[1], web_data[2], hierarchy_levels, hierarchy_widths, trefoil_grid, trefoil_cdf)
+			var sample := _shape_point(shape, pos_rng, i - start, end - start, settings, web_nodes, web_edges, web_lengths, hierarchy_levels, hierarchy_widths, trefoil_grid, trefoil_cdf, shape7_params)
 			local = Vector3(sample.x, sample.y, sample.z)
 			parameter = sample.w
 		if capture_stream:
-			var raw_stream: Vector3 = _raw_structure_direction(shape, local, settings, parameter, web_data[0], web_data[1])
+			var raw_stream: Vector3 = _raw_structure_direction(shape, local, settings, parameter, web_nodes, web_edges)
 			var stream_world: Vector3 = _rotate(raw_stream, settings).normalized()
-			stream_dirs[i * 3] = stream_world.x; stream_dirs[i * 3 + 1] = stream_world.y; stream_dirs[i * 3 + 2] = stream_world.z
+			# vel is zero-initialized and is overwritten with actual velocity below.
+			vel[i4] = stream_world.x; vel[i4 + 1] = stream_world.y; vel[i4 + 2] = stream_world.z
 		if shape >= 3: local *= scale
 		local = _rotate(local, settings)
 		var world: Vector3 = centers[cidx] + local
-		world = _multi_rung(world, cfg)
+		world = _multi_rung(world, cfg, rung_cache)
 		pos[i4] = world.x; pos[i4 + 1] = world.y; pos[i4 + 2] = world.z
+		bounds_lo.x = minf(bounds_lo.x, pos[i4]); bounds_lo.y = minf(bounds_lo.y, pos[i4 + 1]); bounds_lo.z = minf(bounds_lo.z, pos[i4 + 2])
+		bounds_hi.x = maxf(bounds_hi.x, pos[i4]); bounds_hi.y = maxf(bounds_hi.y, pos[i4 + 1]); bounds_hi.z = maxf(bounds_hi.z, pos[i4 + 2])
+		var dx: float = world.x - centers[cidx].x
+		var dy: float = world.y - centers[cidx].y
+		var dz: float = world.z - centers[cidx].z
+		max_radius_sq = maxf(max_radius_sq, dx * dx + dy * dy + dz * dz)
+		var rx: float = absf(world.x - center_of_arrangement.x)
+		var ry: float = absf(world.y - center_of_arrangement.y)
+		var rz: float = absf(world.z - center_of_arrangement.z)
+		max_component = maxf(max_component, maxf(rx, maxf(ry, rz)))
+		if rx > extents.x or ry > extents.y or rz > extents.z:
+			out_box += 1
 	# Positions are complete before any velocity mode is selected.
 	var mass_override: float = _f(cfg, "initial_total_mass", 0.0)
 	if mass_override > 0.0 and total_mass > 0.0:
 		var factor: float = mass_override / total_mass
 		for i in range(n): pos[i * 4 + 3] *= factor
 		total_mass = mass_override
-	var default_profile: bool = motion == 0 and shape <= 2
 	var merger_speed: float = _f(cfg, "merger_speed", 0.0)
-	for i in range(n):
-		var i4: int = i * 4; var cidx: int = mini(i * component_count / n, component_count - 1)
-		var world := Vector3(pos[i4], pos[i4 + 1], pos[i4 + 2])
-		var v := Vector3.ZERO
-		if default_profile:
-			var rel := world - centers[cidx]
-			var rr: float = rel.length()
-			var enclosed: float = cluster_mass[cidx] * minf(1.0, pow(rr / maxf(scale, 1.0e-6), 3.0))
-			var vc: float = sqrt(maxf(enclosed / maxf(rr, 0.01), 0.0)) * _f(cfg, "initial_v_circ_factor", 0.85)
-			var tangent := Vector3(-rel.y, rel.x, 0.0).normalized() if rel.x * rel.x + rel.y * rel.y > 1.0e-12 else Vector3.RIGHT
-			v = tangent * vc
-			if merger_speed != 0.0:
-				var radial := (center_of_arrangement - centers[cidx]).normalized()
-				v += radial * merger_speed
-		elif motion != 0:
-			var stream_dir := Vector3.ZERO
-			if capture_stream:
-				stream_dir = Vector3(stream_dirs[i * 3], stream_dirs[i * 3 + 1], stream_dirs[i * 3 + 2])
-			var motion_center: Vector3 = centers[cidx]
-			var motion_component: int = cidx
-			var start: int = (cidx * n + component_count - 1) / component_count
-			if shape == 4:
-				var end: int = ((cidx + 1) * n + component_count - 1) / component_count
-				var first: bool = float(i - start) / float(end - start) < clampf(_setting_f(settings, "encounter_particle_ratio"), 0.1, 0.9)
-				motion_component = 0 if first else 1
-				var offset := Vector3(_setting_f(settings, "encounter_separation") * 0.5, _setting_f(settings, "encounter_offset") * 0.35, 0.0) * (-1.0 if first else 1.0)
-				motion_center += _rotate(offset, settings) * scale
-			v = _motion_velocity(motion, maxf(0.0, _f(cfg, "initial_speed", 5.0)), shape, world, motion_center, center_of_arrangement, settings, motion_component, i - start, component_count, stream_dir)
-		vel[i4] = v.x; vel[i4 + 1] = v.y; vel[i4 + 2] = v.z; vel[i4 + 3] = 0.0
-	var lo := Vector3(INF, INF, INF); var hi := Vector3(-INF, -INF, -INF)
-	for i in range(n):
-		var i4: int = i * 4; var q := Vector3(pos[i4], pos[i4 + 1], pos[i4 + 2])
-		lo.x = minf(lo.x, q.x); lo.y = minf(lo.y, q.y); lo.z = minf(lo.z, q.z); hi.x = maxf(hi.x, q.x); hi.y = maxf(hi.y, q.y); hi.z = maxf(hi.z, q.z)
-	return {"pos":pos, "vel":vel, "acc":acc, "clusters":clusters, "cluster_count":component_count, "total_mass":total_mass, "bounds":AABB(lo, hi - lo)}
+	var speed: float = maxf(0.0, _f(cfg, "initial_speed", 5.0))
+	var v_circ_factor: float = _f(cfg, "initial_v_circ_factor", 0.85)
+	var encounter_ratio: float = clampf(_setting_f(settings, "encounter_particle_ratio"), 0.1, 0.9)
+	var encounter_offset_world := Vector3.ZERO
+	if shape == 4:
+		var encounter_offset_local := Vector3(_setting_f(settings, "encounter_separation") * 0.5, _setting_f(settings, "encounter_offset") * 0.35, 0.0)
+		encounter_offset_world = _rotate(encounter_offset_local, settings) * scale
+	# Generated non-profile geometry is at rest for motions 0 and 1; vel is
+	# already zero-filled, so avoid a full-N write pass in that common case.
+	var need_velocity_pass: bool = not (shape >= 3 and motion <= 1)
+	var max_speed: float = 0.0
+	var sum_speed: float = 0.0
+	if need_velocity_pass:
+		for i in range(n):
+			var i4: int = i * 4; var cidx: int = mini(i * component_count / n, component_count - 1)
+			var world := Vector3(pos[i4], pos[i4 + 1], pos[i4 + 2])
+			var v := Vector3.ZERO
+			if default_profile:
+				var rel := world - centers[cidx]
+				var rr: float = rel.length()
+				var enclosed: float = cluster_mass[cidx] * minf(1.0, pow(rr / maxf(scale, 1.0e-6), 3.0))
+				var vc: float = sqrt(maxf(enclosed / maxf(rr, 0.01), 0.0)) * v_circ_factor
+				var tangent := Vector3(-rel.y, rel.x, 0.0).normalized() if rel.x * rel.x + rel.y * rel.y > 1.0e-12 else Vector3.RIGHT
+				v = tangent * vc
+				if merger_speed != 0.0:
+					var radial := (center_of_arrangement - centers[cidx]).normalized()
+					v += radial * merger_speed
+			elif motion != 0:
+				var stream_dir := Vector3.ZERO
+				if capture_stream:
+					stream_dir = Vector3(vel[i4], vel[i4 + 1], vel[i4 + 2])
+				var motion_center: Vector3 = centers[cidx]
+				var motion_component: int = cidx
+				var start: int = (cidx * n + component_count - 1) / component_count
+				if shape == 4:
+					var end: int = ((cidx + 1) * n + component_count - 1) / component_count
+					var first: bool = float(i - start) / float(end - start) < encounter_ratio
+					motion_component = 0 if first else 1
+					motion_center += encounter_offset_world * (-1.0 if first else 1.0)
+				v = _motion_velocity(motion, speed, shape, world, motion_center, center_of_arrangement, settings, motion_component, i - start, component_count, stream_dir)
+			vel[i4] = v.x; vel[i4 + 1] = v.y; vel[i4 + 2] = v.z; vel[i4 + 3] = 0.0
+			var speed_sq: float = v.length_squared()
+			if speed_sq > 0.0:
+				var particle_speed := sqrt(speed_sq)
+				max_speed = maxf(max_speed, particle_speed)
+				sum_speed += particle_speed
+	return {"pos":pos, "vel":vel, "clusters":clusters, "cluster_count":component_count, "total_mass":total_mass, "bounds":AABB(bounds_lo, bounds_hi - bounds_lo), "max_radius":sqrt(max_radius_sq), "max_component":max_component, "out_of_box":out_box, "max_speed":max_speed, "mean_speed":sum_speed / float(maxi(n, 1))}
 
 static func apply_overrides(cfg: Dictionary, pos: PackedFloat32Array, vel: PackedFloat32Array, centers: PackedVector3Array) -> float:
 	var n: int = pos.size() / 4

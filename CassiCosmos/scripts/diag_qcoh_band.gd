@@ -125,9 +125,10 @@ func _sample() -> Dictionary:
 	if np <= 0:
 		return res
 	var ext: Vector3 = sim._extents()
+	var field_state: Dictionary = sim.get_field_role_state()
 	var pos: PackedFloat32Array = sim._rd.buffer_get_data(sim._pos_buf, 0, np * 16).to_float32_array()
-	var ey: PackedFloat32Array = sim._rd.buffer_get_data(sim._field_ey, 0, nc * 4).to_float32_array()
-	var ei: PackedFloat32Array = sim._rd.buffer_get_data(sim._field_ei, 0, nc * 4).to_float32_array()
+	var ey: PackedFloat32Array = sim._rd.buffer_get_data(field_state.ey, 0, nc * 4).to_float32_array()
+	var ei: PackedFloat32Array = sim._rd.buffer_get_data(field_state.ei, 0, nc * 4).to_float32_array()
 	if pos.size() < np * 4 or ey.size() < nc or ei.size() < nc:
 		return res
 	var win: Vector3 = sim._window_center

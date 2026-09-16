@@ -204,9 +204,10 @@ func _buffers_ready() -> bool:
 	var rd = sim._rd
 	if rd == null:
 		return false
-	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
+	var field_state: Dictionary = sim.get_field_role_state()
+	if not field_state.ey.is_valid() or not field_state.ei.is_valid():
 		return false
-	if not sim._field_vel.is_valid() or not sim._field_q.is_valid():
+	if not field_state.vel.is_valid() or not field_state.q.is_valid():
 		return false
 	if not sim._vel_buf.is_valid() or not sim._pos_buf.is_valid():
 		return false
@@ -218,10 +219,11 @@ func _read_snapshot() -> Dictionary:
 	var nc: int = n * n * n
 	var np: int = int(sim.N_particles)
 	var rd = sim._rd
-	var ey: PackedFloat32Array = rd.buffer_get_data(sim._field_ey, 0, nc * 4).to_float32_array()
-	var ei: PackedFloat32Array = rd.buffer_get_data(sim._field_ei, 0, nc * 4).to_float32_array()
-	var fv: PackedFloat32Array = rd.buffer_get_data(sim._field_vel, 0, nc * 16).to_float32_array()
-	var q: PackedFloat32Array = rd.buffer_get_data(sim._field_q, 0, nc * 4).to_float32_array()
+	var field_state: Dictionary = sim.get_field_role_state()
+	var ey: PackedFloat32Array = rd.buffer_get_data(field_state.ey, 0, nc * 4).to_float32_array()
+	var ei: PackedFloat32Array = rd.buffer_get_data(field_state.ei, 0, nc * 4).to_float32_array()
+	var fv: PackedFloat32Array = rd.buffer_get_data(field_state.vel, 0, nc * 16).to_float32_array()
+	var q: PackedFloat32Array = rd.buffer_get_data(field_state.q, 0, nc * 4).to_float32_array()
 	var particle_vel: PackedFloat32Array = rd.buffer_get_data(sim._vel_buf, 0, np * 16).to_float32_array()
 	var pos: PackedFloat32Array = rd.buffer_get_data(sim._pos_buf, 0, np * 16).to_float32_array()
 	if ey.size() < nc or ei.size() < nc or fv.size() < nc * 4 or q.size() < nc:

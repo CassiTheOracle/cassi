@@ -209,7 +209,7 @@ func _setup(bspirv: RDShaderSPIRV, gspirv: RDShaderSPIRV) -> void:
 	_tl_nw = _tlrd.storage_buffer_create(tnm * 16)
 	_tl_nq = _tlrd.storage_buffer_create(2 * tnm * 16)
 	_tl_nr = _tlrd.storage_buffer_create(tnm * 16)
-	_tl_ctr = _tlrd.storage_buffer_create(8 * 4)
+	_tl_ctr = _tlrd.storage_buffer_create(8 * 4, PackedByteArray(), RenderingDevice.STORAGE_BUFFER_USAGE_DISPATCH_INDIRECT)
 	_tl_nqq = _tlrd.storage_buffer_create(tnm * 4)  # Arm 2: per-node mean coherence q (binding 14)
 	_tl_sites = _tlrd.storage_buffer_create(S * 16)
 	_tl_psy = _tlrd.storage_buffer_create(S * 4)
@@ -259,8 +259,8 @@ func _free_resources() -> void:
 	_ready = false
 
 
-## The full tree build+walk on the worker's local RD (verbatim from the
-## verify_meshless_gravity-proven recipe) + gradient readback + publish.
+## Build and walk the tree on the worker's local RD, then read back and
+## publish the per-particle gradient and node count.
 func _run_job(job: Dictionary) -> void:
 	if not _ready:
 		return
@@ -284,13 +284,13 @@ func _run_job(job: Dictionary) -> void:
 	_tlrd.buffer_update(_tl_vol, 0, (job["vol"] as PackedFloat32Array).size() * 4, (job["vol"] as PackedFloat32Array).to_byte_array())
 	_tlrd.buffer_update(_tl_rho, 0, (job["rho"] as PackedFloat32Array).size() * 4, (job["rho"] as PackedFloat32Array).to_byte_array())
 	_tlrd.buffer_update(_tl_tpos, 0, (job["pos"] as PackedFloat32Array).size() * 4, (job["pos"] as PackedFloat32Array).to_byte_array())
-	# seed the self-contained counters + root (host seed is fine on the
-	# local RD — no global-RD cross-list race here). The root nodeCF is
-	# authoritative from mode-10 ROOT_SEED (bmin+bhalf); the _tl_cf seed
-	# mirrors the same root center (bmin + half) for consistency.
-	_tlrd.buffer_update(_tl_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 0, 0, 0, 0]).to_byte_array())
+	# Seed the counters and root metadata. ctr[4:7] is the first indirect
+	# dispatch argument (one root workgroup); nodeQ q1.z/w carry root
+	# softening/escape metadata and are preserved by the moments pass.
+	_tlrd.buffer_update(_tl_ctr, 0, 32, PackedInt32Array([1, 0, 1, 0, 1, 1, 1, 0]).to_byte_array())
 	_tlrd.buffer_update(_tl_cf, 0, 16, PackedFloat32Array([bmin.x + half, bmin.y + half, bmin.z + half, half]).to_byte_array())
 	_tlrd.buffer_update(_tl_nr, 0, 16, PackedInt32Array([0, S, -1, 0]).to_byte_array())
+	_tlrd.buffer_update(_tl_nq, 0, 32, PackedFloat32Array([0.0, 0.0, eps2, 0.0, 0.0, 0.0, eps2, -1.0]).to_byte_array())
 	var bpc := PackedFloat32Array()
 	bpc.resize(19)
 	bpc[0] = float(S)
@@ -346,7 +346,9 @@ func _run_job(job: Dictionary) -> void:
 	for _d in range(ML_TREE_MAX_LEVELS):
 		bpc[10] = 5.0
 		_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
-		_tlrd.compute_list_dispatch(cl, pall, 1, 1)
+		# ctr[4:7] is written by the preceding reset/commit pass; the
+		# indirect dispatch covers exactly the current frontier.
+		_tlrd.compute_list_dispatch_indirect(cl, _tl_ctr, 16)
 		_tlrd.compute_list_add_barrier(cl)
 		bpc[10] = 8.0
 		_tlrd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)

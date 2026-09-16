@@ -177,7 +177,8 @@ func _run() -> void:
 			sim._run_physics_steps(b)
 			total_steps += b
 			need -= b
-		var qdata: PackedFloat32Array = sim._rd.buffer_get_data(sim._field_q, 0, N * N * N * 4).to_float32_array()
+		var field_state: Dictionary = sim.get_field_role_state()
+		var qdata: PackedFloat32Array = sim._rd.buffer_get_data(field_state.q, 0, N * N * N * 4).to_float32_array()
 		var prof := _radial_profile(qdata, N, center)
 		var rec := _analyze_epoch(epoch, prof, qdata, N, center)
 		all_epochs.append(rec)
@@ -232,10 +233,11 @@ func _seed_field() -> void:
 				ey[id] = v
 				ei[id] = v / PHI
 				q[id] = v * v + (v / PHI) * (v / PHI)
-	sim._rd.buffer_update(sim._field_ey, 0, ey.size() * 4, ey.to_byte_array())
-	sim._rd.buffer_update(sim._field_ei, 0, ei.size() * 4, ei.to_byte_array())
-	sim._rd.buffer_update(sim._field_q, 0, q.size() * 4, q.to_byte_array())
-	_rd_zero(sim._field_vel, nc * 16)
+	var field_state: Dictionary = sim.get_field_role_state()
+	sim._rd.buffer_update(field_state.ey, 0, ey.size() * 4, ey.to_byte_array())
+	sim._rd.buffer_update(field_state.ei, 0, ei.size() * 4, ei.to_byte_array())
+	sim._rd.buffer_update(field_state.q, 0, q.size() * 4, q.to_byte_array())
+	_rd_zero(field_state.vel, nc * 16)
 
 
 func _rd_zero(rid: RID, bytes: int) -> void:

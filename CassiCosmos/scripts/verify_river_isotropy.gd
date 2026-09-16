@@ -140,13 +140,14 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _write_fields(ey: PackedFloat32Array, ei: PackedFloat32Array) -> void:
-	sim._rd.buffer_update(sim._field_ey, 0, nc * 4, ey.to_byte_array())
-	sim._rd.buffer_update(sim._field_ei, 0, nc * 4, ei.to_byte_array())
+	var field_state: Dictionary = sim.get_field_role_state()
+	sim._rd.buffer_update(field_state.ey, 0, nc * 4, ey.to_byte_array())
+	sim._rd.buffer_update(field_state.ei, 0, nc * 4, ei.to_byte_array())
 	var q = PackedFloat32Array()
 	q.resize(nc)
 	for i in range(nc):
 		q[i] = ey[i] * ey[i] + ei[i] * ei[i]
-	sim._rd.buffer_update(sim._field_q, 0, nc * 4, q.to_byte_array())
+	sim._rd.buffer_update(field_state.q, 0, nc * 4, q.to_byte_array())
 
 
 # Single-cell delta mass 10.0 at the grid center — the verify_fft _delta
@@ -183,20 +184,22 @@ func _set_probes(radius_h: float) -> void:
 # compute list with barriers — the exact ordering/push constants of
 # _step_dispatches (poisson → 2.8 gradient → 3. nbody).
 func _run_chain() -> void:
+	var field_state: Dictionary = sim.get_field_role_state()
+	var nbody_fields: RID = sim._us_nbody_0_b if bool(field_state.role_b) else sim._us_nbody_0
 	var cl = sim._rd.compute_list_begin()
 	sim._dispatch_poisson(cl)
 	sim._barrier(cl)  # poisson → gradient
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
 	# ALL THREE sets must be bound (the pipeline rejects a dispatch with any
 	# declared set missing) — grad_main reads set 0 + bh extent (set 2).
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+	sim._rd.compute_list_bind_uniform_set(cl, nbody_fields, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
 	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(1.0), 60)  # gradient pass
 	sim._rd.compute_list_dispatch(cl, N, N, 1)  # 2D cells dispatch
 	sim._barrier(cl)  # gradient → nbody
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+	sim._rd.compute_list_bind_uniform_set(cl, nbody_fields, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
 	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)  # particle pass
@@ -398,7 +401,9 @@ func _run_grid(n: int) -> void:
 			_set_probes(radius_h)
 			var cl = sim._rd.compute_list_begin()
 			sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
-			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+			var field_state_ring: Dictionary = sim.get_field_role_state()
+			var nbody_fields_ring: RID = sim._us_nbody_0_b if bool(field_state_ring.role_b) else sim._us_nbody_0
+			sim._rd.compute_list_bind_uniform_set(cl, nbody_fields_ring, 0)
 			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 			sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
 			sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)
@@ -484,8 +489,10 @@ func _dispatch_md(cl: int, off: Vector3, convert: bool = false) -> void:
 
 
 func _dispatch_grad(cl: int, pass_mode: float) -> void:
+	var field_state_grad: Dictionary = sim.get_field_role_state()
+	var nbody_fields_grad: RID = sim._us_nbody_0_b if bool(field_state_grad.role_b) else sim._us_nbody_0
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+	sim._rd.compute_list_bind_uniform_set(cl, nbody_fields_grad, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
 	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(pass_mode), 60)
@@ -493,8 +500,10 @@ func _dispatch_grad(cl: int, pass_mode: float) -> void:
 
 
 func _dispatch_nbody(cl: int) -> void:
+	var field_state_nbody: Dictionary = sim.get_field_role_state()
+	var nbody_fields_nbody: RID = sim._us_nbody_0_b if bool(field_state_nbody.role_b) else sim._us_nbody_0
 	sim._rd.compute_list_bind_compute_pipeline(cl, sim._nbody_pipe)
-	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_0, 0)
+	sim._rd.compute_list_bind_uniform_set(cl, nbody_fields_nbody, 0)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_1, 1)
 	sim._rd.compute_list_bind_uniform_set(cl, sim._us_nbody_2, 2)
 	sim._rd.compute_list_set_push_constant(cl, _nbody_pc(0.0), 60)

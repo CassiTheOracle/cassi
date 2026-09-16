@@ -53,10 +53,11 @@
 //   2 srcKey    uint[N]   30-bit Morton key
 //   3 srcOrder  uint[N]   sorted slot -> source index (bitonic payload)
 //   4 nodeCF    vec4[M]   [cx,cy,cz, half]
-//   5 nodeW     vec4[M]   [W, comx, comy, comz]
-//   6 nodeQ     vec4[2M]  [Qxx,Qxy,Qxz,Qyy], [Qyz,Qzz,0,0]  (trace-free)
+//   6 nodeQ     vec4[2M]  [Qxx,Qxy,Qxz,Qyy], [Qyz,Qzz,eps2,escape]
+//                         (trace-free quadrupole + traversal metadata)
 //   7 nodeR     ivec4[M]  [ps, pe, childBase, childCount]
-//   8 counters  uint[8]   [0]=node_cnt, [1]=spare
+//   8 counters  uint[8]   [node_cnt, spare, frontier_end, frontier_start,
+//                          indirect_x, indirect_y, indirect_z, error]
 //   9 mlsites   vec4[N]   meshless site positions (mode 7)
 //  10 mlpsy     float[N]  meshless per-site EY (mode 7)
 //  11 mlpsi     float[N]  meshless per-site EI (mode 7)
@@ -65,11 +66,11 @@
 // Root box (host): box_cx/y/z = 0.5·(lo+hi), pc.half = 0.5·max(hi−lo)·(1+1e-6)
 // inflate so every point is strictly inside; root node = slot 0, range [0,N).
 
-//Morton key: interleaved 10-bit/axis (30-bit). Node source ranges are
-//Morton-contiguous, so each node's split scan finds octant sub-runs inline.
-//The BFS allocation avoids standalone histogram/prefix passes — the sort is
-//bitonic (91 stages, exact ascending), and per-level child allocation is via
-//the integer atomic counter (no float atomics needed here).
+// Morton key: interleaved 10-bit/axis (30-bit). Node source ranges are
+// Morton-contiguous, so each node's split scan finds octant sub-runs inline.
+// BFS allocation avoids standalone histogram/prefix passes. The frontier
+// range is carried in ctr[2:4], and ctr[4:7] is an indirect-dispatch
+// argument written by COMMIT; callers can dispatch exactly the active range.
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -251,26 +252,16 @@ void bitonic_main() {
         srcorder[int(i)] = ol; srcorder[li] = oi;
     }
 }
-
 // ── mode 5: split one BFS level's nodes into children ──────────────────
-// SELF-CONTAINED round — no host level feedback, so the whole build runs
-// in the frame's ONE compute list (stutter-free: the codebase forbids
-// per-frame CPU syncs on the global RD). Counters (uint[8]):
-//   ctr[0] = node_cnt (produced; root=1 at init)
-//   ctr[2] = level_end — the FROZEN frontier capping this round: a thread
-//            owns node gid and splits it iff gid < ctr[2] (nodes produced
-//            by the previous round) and the node is not yet internal
-//            (nr[gid].w, the childCount, == 0). Children are allocated via
-//            atomicAdd(ctr[0], nchild) into slots ≥ ctr[2], so they are not
-//            touched this round. After the round a mode-8 COMMIT pass sets
-//            ctr[2] = ctr[0]; the next round then splits exactly the newly-
-//            produced level. Internal nodes (childCount>0) are skipped;
-//            leaf cells re-split idempotently (they stay childCount 0). The
-//            host loops MAX_LEVELS × [split → barrier → commit → barrier];
-//            once a round produces no new nodes, later rounds skip all.
+// The current frontier is an exact half-open range [ctr[3], ctr[2]).
+// COMMIT writes an indirect dispatch argument into ctr[4:7], so callers do
+// not launch over the full node allocation on every depth.
+// Children inherit stackless DFS escape links in nodeQ[2*node+1].w. The
+// existing stack walk pushed ascending child indices and popped the highest
+// first; escape links preserve that descending visitation order.
 void split_main() {
-    uint gid = gl_GlobalInvocationID.x;
-    if (int(gid) >= int(ctr[2])) return;      // not in the current level block
+    uint gid = ctr[3] + gl_GlobalInvocationID.x;
+    if (gid >= ctr[2]) return;
     ivec4 rng = nr[gid];
     if (rng.w != 0) return;                    // already split (internal)
     int ps = rng.x;
@@ -311,6 +302,10 @@ void split_main() {
         uint base = atomicAdd(ctr[0], uint(nchild));
         nr[gid] = ivec4(ps, pe, int(base), nchild);
         vec3 ctrv = cf.xyz;
+        // Root has no ancestor/sibling; preserve its terminal escape sentinel
+        // even when a host consumer seeds only nodeCF/nodeR.
+        int parent_escape = (gid == 0u) ? -1
+                : int(round(nq[2 * gid + 1].w));
         for (int c = 0; c < nchild; c++) {
             vec3 off;
             off.x = (run_oct[c] & 4) != 0 ? chalf : -chalf;
@@ -319,6 +314,10 @@ void split_main() {
             int child = int(base) + c;
             ncf[child] = vec4(ctrv + off, chalf);
             nr[child] = ivec4(run_start[c], run_end[c], -1, 0);
+            // Existing stack order is descending child index. The next
+            // sibling after child c is c-1; c==0 escapes its parent.
+            int escape = (c > 0) ? (child - 1) : parent_escape;
+            nq[2 * child + 1] = vec4(0.0, 0.0, 0.0, float(escape));
         }
     } else {
         nr[gid] = ivec4(ps, pe, -1, 0);   // leaf: no children
@@ -326,46 +325,47 @@ void split_main() {
 }
 
 // ── mode 8: COMMIT — advance the BFS frontier after a split round ───────
-// One thread: ctr[2] = ctr[0] (the new node count = the next level's end).
-// Runs after a barrier post-split so ctr[0]'s atomicAdds are all visible;
-// a barrier after it hands the next split round a stable level_end.
+// One thread publishes [old_end, new_node_count) and its indirect dispatch
+// argument. A barrier after this pass hands the next split round a stable
+// range and argument buffer.
 void commit_main() {
     if (gl_GlobalInvocationID.x != 0u) return;
-    ctr[2] = ctr[0];
+    uint old_end = ctr[2];
+    uint new_end = ctr[0];
+    ctr[3] = old_end;
+    ctr[2] = new_end;
+    ctr[4] = (new_end > old_end) ? ((new_end - old_end + 63u) / 64u) : 0u;
+    ctr[5] = 1u;
+    ctr[6] = 1u;
 }
 
 // ── mode 9: CTR_RESET — seed the build counters ON THE GPU ─────────────
-// One thread, dispatched in-list as the FIRST tree pass (before gather).
-// ctr[0]=node_cnt(1), ctr[1]=unused, ctr[2]=level_end(1), ctr[3..7]=0.
-// Moving the counter seed onto the GPU removes ALL pre-list CPU buffer
-// traffic for the tree arm (the global-RD seed-race suspected in the
-// in-sim no-op: a pre-list buffer_update queued against the same buffer
-// the chain writes in-list).
+// ctr[2:4] is the first frontier [0,1); ctr[4:7] is its dispatch argument.
 void ctr_reset_main() {
     if (gl_GlobalInvocationID.x != 0u) return;
-    ctr[0] = 1u; ctr[1] = 0u; ctr[2] = 1u;
-    ctr[3] = 0u; ctr[4] = 0u; ctr[5] = 0u; ctr[6] = 0u; ctr[7] = 0u;
+    ctr[0] = 1u; ctr[1] = 0u; ctr[2] = 1u; ctr[3] = 0u;
+    ctr[4] = 1u; ctr[5] = 1u; ctr[6] = 1u; ctr[7] = 0u;
 }
 
-// ── mode 10: ROOT_SEED — write the root nodeCF + nodeR on the GPU ───────
-// One thread: root box [bmin, bmin+2·half]³ centered (bmin+bhalf) per
-// axis, half = pc.bhalf (the PC already carries bmin.xyz + bhalf); root
-// range [0, N_f), childBase −1, childCount 0 (not yet internal). Replaces
-// the per-frame host buffer_update of _ml_tree_cf/_ml_tree_r.
+// ── mode 10: ROOT_SEED — write the root nodeCF + nodeR on the GPU ─────
 void root_seed_main() {
     if (gl_GlobalInvocationID.x != 0u) return;
     ncf[0] = vec4(pc.bmin_x + pc.bhalf, pc.bmin_y + pc.bhalf,
                   pc.bmin_z + pc.bhalf, pc.bhalf);
     nr[0] = ivec4(0, int(pc.N_f), -1, 0);
+    // q1.z is filled by moments; q1.w is the root escape sentinel.
+    nq[1] = vec4(0.0, 0.0, pc.eps2, -1.0);
 }
 
-// packed trace-free quadrupole accumulation helpers (node-local, mode 6)
-// Q[6] = [Qxx,Qxy,Qxz,Qyy,Qyz,Qzz]
+// Packed trace-free quadrupole accumulation: q1.z stores the effective
+// node softening, q1.w stores the stackless DFS escape index.
+float mass_softening(float W) {
+    return pc.eps2 + exp((2.0 / 3.0) * log(max(W, 1e-30)));
+}
 
 // ── mode 6: moments for every node (one thread/node scans its range) ───
 // W = Σ w ; COM = Σ w·p / W ; Q_ij = Σ w(3 ξ_i ξ_j − |ξ|² δ_ij), ξ = p − COM.
-// Accumulated in float (portable; the float32 AMOUNT of rounding is well
-// below the G16 ≤5e-3 cross-check threshold vs the float64 prototype).
+// Accumulated in float to preserve the established tree arithmetic.
 void direct_moments(uint gid) {
     ivec4 rng = nr[gid];
     int ps = rng.x;
@@ -387,6 +387,9 @@ void direct_moments(uint gid) {
         qsum += wv * qi;
     }
     vec3 com = (W > 1e-30) ? s / W : vec3(0.0);
+    // Root escape is a topology invariant, not optional host metadata.
+    float escape = (gid == 0u) ? -1.0 : nq[2 * gid + 1].w;
+    float eps2_node = mass_softening(W);
     nodeqq[gid] = (W > 1e-30) ? qsum / W : 0.0;
     float qxx = 0.0, qxy = 0.0, qxz = 0.0, qyy = 0.0, qyz = 0.0, qzz = 0.0;
     for (int s2 = ps; s2 < pe; s2++) {
@@ -404,7 +407,7 @@ void direct_moments(uint gid) {
     }
     nw[gid] = vec4(W, com);
     nq[2 * gid] = vec4(qxx, qxy, qxz, qyy);
-    nq[2 * gid + 1] = vec4(qyz, qzz, 0.0, 0.0);
+    nq[2 * gid + 1] = vec4(qyz, qzz, eps2_node, escape);
 }
 
 void moments_main() {
@@ -430,6 +433,8 @@ void reduce_moments_main() {
     int depth = int(round(log2(max(half_ratio, 1.0))));
     if (depth != int(pc.b_k)) return;
 
+    // Root escape is a topology invariant, not optional host metadata.
+    float escape = (gid == 0u) ? -1.0 : nq[2 * gid + 1].w;
     float W = 0.0;
     vec3 weighted_com = vec3(0.0);
     float qsum = 0.0;
@@ -456,9 +461,10 @@ void reduce_moments_main() {
         qyz += q1.x + child_w * (3.0 * d.y * d.z);
         qzz += q1.y + child_w * (3.0 * d.z * d.z - r2);
     }
+    float eps2_node = mass_softening(W);
     nw[gid] = vec4(W, com);
     nq[2 * gid] = vec4(qxx, qxy, qxz, qyy);
-    nq[2 * gid + 1] = vec4(qyz, qzz, 0.0, 0.0);
+    nq[2 * gid + 1] = vec4(qyz, qzz, eps2_node, escape);
     nodeqq[gid] = (W > 1e-30) ? qsum / W : 0.0;
 }
 

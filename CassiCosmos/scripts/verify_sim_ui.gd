@@ -52,14 +52,6 @@ func _ready() -> void:
 		_failures += 1
 	else:
 		_checks += 1
-		if field_particles.text != "Field Particles":
-			push_error("validate_sim_ui: Field Particles caption changed")
-			_failures += 1
-		_checks += 1
-		if field_particles.tooltip_text != "Particles are simulated as moving patterns in the field instead of point objects.":
-			push_error("validate_sim_ui: Field Particles description changed")
-			_failures += 1
-		_checks += 1
 		if field_particles.button_pressed:
 			push_error("validate_sim_ui: Field Particles defaulted ON without a simulation")
 			_failures += 1

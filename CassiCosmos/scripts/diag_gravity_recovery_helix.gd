@@ -45,12 +45,13 @@ func _ready() -> void:
 	for step in range(1, FINAL_STEP + 1):
 		engine.run_steps(1, true)
 		if step >= 32:
+			var field_state: Dictionary = engine.get_field_role_state()
 			snapshots.append({
 				"step": step,
 				"ey_b64": Marshalls.raw_to_base64(
-					engine._rd.buffer_get_data(engine._field_ey, 0, field_bytes)),
+					engine._rd.buffer_get_data(field_state.ey, 0, field_bytes)),
 				"ei_b64": Marshalls.raw_to_base64(
-					engine._rd.buffer_get_data(engine._field_ei, 0, field_bytes)),
+					engine._rd.buffer_get_data(field_state.ei, 0, field_bytes)),
 			})
 	var result := {
 		"grid_N": GRID_N,
