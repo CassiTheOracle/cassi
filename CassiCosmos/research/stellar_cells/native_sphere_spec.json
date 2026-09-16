@@ -1,0 +1,266 @@
+{
+  "schema": "cassi_native_sphere_spec_v1",
+  "defaults": {
+    "total_mass": 1000,
+    "particle_count": 8192,
+    "dt": 0.02,
+    "target_steps": 1600,
+    "snapshot_stride": 10,
+    "extents": [
+      15,
+      15,
+      15
+    ],
+    "window_center": [
+      0,
+      0,
+      0
+    ],
+    "grid_N": 64,
+    "site_lattice_n1": 16,
+    "G_N": 1,
+    "tree_softening": 0.75,
+    "source_strength": 0,
+    "winding_coupling": 0,
+    "perturb_step": -1,
+    "perturb_fraction": 0.05,
+    "geometry_mode": "fixed_after_native_topology_setup",
+    "mass_source_multiplier": 1,
+    "conversion_multiplier": 1,
+    "c2_multiplier": 1,
+    "physical_matter_enabled": false,
+    "physical_radiation_enabled": false,
+    "freeze_field": false,
+    "wall_timeout_seconds": 900
+  },
+  "criteria": {
+    "mass_rel_tolerance": 0.000001,
+    "q_abs_tolerance": 0.000002,
+    "epsilon_abs_tolerance": 0.000002,
+    "epsilon_rel_tolerance": 0.00002,
+    "final_window_start": 24,
+    "retained_fraction_min": 0.95,
+    "outside_domain_fraction_max": 0.02,
+    "r90_softening_min": 3,
+    "r90_breathing_ratio_max": 1.5,
+    "axis_ratio_min": 0.6,
+    "field_concentration_effect_min": 0.05,
+    "repeat_discrepancy_max": 0.01,
+    "refinement_r50_difference_max": 0.1,
+    "recovery_r50_difference_max": 0.05,
+    "phase_amplitude_floor": 0.001,
+    "phase_alias_increment": 1.5707963267948966,
+    "angular_bins": 48,
+    "angular_bin_min_particles": 16
+  },
+  "arms": [
+    {
+      "id": "r12_dynamic_s20260915",
+      "family": "primary",
+      "radius": 12,
+      "seed": 20260915,
+      "freeze_field": false
+    },
+    {
+      "id": "r12_frozen_s20260915",
+      "family": "primary",
+      "radius": 12,
+      "seed": 20260915,
+      "freeze_field": true
+    },
+    {
+      "id": "r9_dynamic_s20260915",
+      "family": "primary",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false
+    },
+    {
+      "id": "r9_frozen_s20260915",
+      "family": "primary",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": true
+    },
+    {
+      "id": "r6_dynamic_s20260915",
+      "family": "primary",
+      "radius": 6,
+      "seed": 20260915,
+      "freeze_field": false
+    },
+    {
+      "id": "r6_frozen_s20260915",
+      "family": "primary",
+      "radius": 6,
+      "seed": 20260915,
+      "freeze_field": true
+    },
+    {
+      "id": "r12_dynamic_s20260916",
+      "family": "primary",
+      "radius": 12,
+      "seed": 20260916,
+      "freeze_field": false
+    },
+    {
+      "id": "r12_frozen_s20260916",
+      "family": "primary",
+      "radius": 12,
+      "seed": 20260916,
+      "freeze_field": true
+    },
+    {
+      "id": "r9_dynamic_s20260916",
+      "family": "primary",
+      "radius": 9,
+      "seed": 20260916,
+      "freeze_field": false
+    },
+    {
+      "id": "r9_frozen_s20260916",
+      "family": "primary",
+      "radius": 9,
+      "seed": 20260916,
+      "freeze_field": true
+    },
+    {
+      "id": "r6_dynamic_s20260916",
+      "family": "primary",
+      "radius": 6,
+      "seed": 20260916,
+      "freeze_field": false
+    },
+    {
+      "id": "r6_frozen_s20260916",
+      "family": "primary",
+      "radius": 6,
+      "seed": 20260916,
+      "freeze_field": true
+    },
+    {
+      "id": "r9_dynamic_s20260915_kick",
+      "family": "perturbation",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "perturb_step": 800,
+      "control_id": "r9_dynamic_s20260915"
+    },
+    {
+      "id": "r9_frozen_s20260915_kick",
+      "family": "perturbation",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": true,
+      "perturb_step": 800,
+      "control_id": "r9_frozen_s20260915"
+    },
+    {
+      "id": "r9_dynamic_s20260916_kick",
+      "family": "perturbation",
+      "radius": 9,
+      "seed": 20260916,
+      "freeze_field": false,
+      "perturb_step": 800,
+      "control_id": "r9_dynamic_s20260916"
+    },
+    {
+      "id": "r9_frozen_s20260916_kick",
+      "family": "perturbation",
+      "radius": 9,
+      "seed": 20260916,
+      "freeze_field": true,
+      "perturb_step": 800,
+      "control_id": "r9_frozen_s20260916"
+    },
+    {
+      "id": "r9_dynamic_s20260915_dt_half",
+      "family": "dt_half",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "control_id": "r9_dynamic_s20260915",
+      "dt": 0.01,
+      "target_steps": 3200,
+      "snapshot_stride": 20
+    },
+    {
+      "id": "r9_dynamic_s20260915_particles_double",
+      "family": "particles_double",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "control_id": "r9_dynamic_s20260915",
+      "particle_count": 16384
+    },
+    {
+      "id": "r9_dynamic_s20260915_sites_coarse",
+      "family": "sites_coarse",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "control_id": "r9_dynamic_s20260915",
+      "site_lattice_n1": 8,
+      "c2_multiplier": 0.25,
+      "mass_source_multiplier": 0.125
+    },
+    {
+      "id": "r9_frozen_s20260915_dt_half",
+      "family": "dt_half",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": true,
+      "control_id": "r9_frozen_s20260915",
+      "dt": 0.01,
+      "target_steps": 3200,
+      "snapshot_stride": 20
+    },
+    {
+      "id": "r9_frozen_s20260915_particles_double",
+      "family": "particles_double",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": true,
+      "control_id": "r9_frozen_s20260915",
+      "particle_count": 16384
+    },
+    {
+      "id": "r9_frozen_s20260915_sites_coarse",
+      "family": "sites_coarse",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": true,
+      "control_id": "r9_frozen_s20260915",
+      "site_lattice_n1": 8,
+      "c2_multiplier": 0.25,
+      "mass_source_multiplier": 0.125
+    },
+    {
+      "id": "r9_dynamic_s20260915_no_mass_source",
+      "family": "no_mass_source",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "control_id": "r9_dynamic_s20260915",
+      "mass_source_multiplier": 0
+    },
+    {
+      "id": "r9_dynamic_s20260915_no_conversion",
+      "family": "no_conversion",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "control_id": "r9_dynamic_s20260915",
+      "conversion_multiplier": 0
+    },
+    {
+      "id": "r9_dynamic_s20260915_repeat",
+      "family": "repeat",
+      "radius": 9,
+      "seed": 20260915,
+      "freeze_field": false,
+      "control_id": "r9_dynamic_s20260915"
+    }
+  ]
+}
