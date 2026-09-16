@@ -1,0 +1,46 @@
+{
+  "name": "@cassi/cassipi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "bun": ">=1.3.14",
+    "node": ">=20"
+  },
+  "files": [
+    "src/",
+    "fi-runtime/",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "probe:host": "bun run scripts/probe-host.ts",
+    "probe:owner": "bun run scripts/probe-cassipi-owner.ts",
+    "probe:field-control": "python scripts/probe_field_control.py --runtime fi-runtime",
+    "probe:installed": "bun run scripts/probe-cassipi-owner.ts --installed-profile cassipi-rehearsal",
+    "probe:ordinary": "bun run scripts/probe-ordinary-profile.ts",
+    "measure:integration": "python scripts/measure_integration.py --runtime fi-runtime",
+    "compare:providers": "bun run scripts/compare-providers.ts",
+    "compare:providers:synthetic": "bun run scripts/compare-synthetic-providers.ts",
+    "verify:release-host": "bun run scripts/verify-release-host.ts",
+    "verify:host-pin": "bun run scripts/verify-host-pin.ts",
+    "package:runtime": "python scripts/package_runtime.py",
+    "package:release": "python scripts/package_release.py"
+  },
+  "omp": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "dependencies": {
+    "@oh-my-pi/pi-agent-core": "18.1.10",
+    "@oh-my-pi/pi-ai": "18.1.10",
+    "@oh-my-pi/pi-catalog": "18.1.10"
+  },
+  "devDependencies": {
+    "@oh-my-pi/pi-coding-agent": "18.1.10",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.3"
+  }
+}

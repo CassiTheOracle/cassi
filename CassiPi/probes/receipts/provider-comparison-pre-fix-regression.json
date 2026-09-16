@@ -1,0 +1,614 @@
+{
+  "schema": "cassipi.provider-comparison.v1",
+  "createdAt": "2026-09-05T18:18:24.490Z",
+  "verdict": "PASS",
+  "observedResult": "MIXED_WITHIN_THIS_SYNTHETIC_SAMPLE",
+  "scope": {
+    "description": "Full-factorial synthetic stock-versus-CassiPi comparison across two configured provider families and two held-out task variants.",
+    "arms": 8,
+    "compactionsPerArm": 3,
+    "restartPolicy": "close and reopen around every compaction and final provider turn",
+    "branchPolicy": "inactive sibling carries a task-private conflicting marker that must not enter active context",
+    "safety": "Only synthetic prompts and synthetic session records were sent. Existing provider credentials were referenced in place and were not copied or recorded. The live profile was not changed.",
+    "interpretation": "This is a small deterministic integration comparison, not a population benchmark or evidence of general model-quality superiority."
+  },
+  "providers": [
+    {
+      "family": "OpenAI Codex",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol"
+    },
+    {
+      "family": "OpenCode Go",
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "harbor-relay",
+      "stale": "relay port is 4100",
+      "current": "relay port is 4197",
+      "failed": "RETRY_MODE=spin",
+      "source": "src/relay.ts:88 => const endpoint = \"http://127.0.0.1:4197/v2\";",
+      "proposal": "delete the cache index",
+      "status": "proposed-not-executed",
+      "branchMarkerDisclosure": "redacted from receipt until scoring; exact marker remains only in disposable local run data"
+    },
+    {
+      "id": "quartz-batcher",
+      "stale": "batch size is 96",
+      "current": "batch size is 112",
+      "failed": "eager fanout",
+      "source": "src/batcher.ts:41 => const batchSize = 112;",
+      "proposal": "rotate the event ledger",
+      "status": "proposed-not-executed",
+      "branchMarkerDisclosure": "redacted from receipt until scoring; exact marker remains only in disposable local run data"
+    }
+  ],
+  "identities": {
+    "stockHostVersion": "18.1.10",
+    "stockHostSha256": "00b25bb0ad2992d252326a7ecea2527cfb85019b4a6d24a67842cf3712cd6625",
+    "cassipiReleaseHostSha256": "61983ce7f50d367ee5eb47ffe97ae698cfdaaf4e887fab560d5516cb4660cca4",
+    "cassipiInstalledHostSha256": "61983ce7f50d367ee5eb47ffe97ae698cfdaaf4e887fab560d5516cb4660cca4",
+    "cassipiPatchSha256": "d627e54375b677f5760d9d798efcfebee89a54c91e9dd764086408213c8b24b1",
+    "cassipiRuntimeId": "cassifi.cassipi-field-intelligence.v2",
+    "cassipiRuntimeManifestSha256": "a7e023c1872a1e6ded3c3bbba702370daf18e38918abf9376731a72cb3ad17ba"
+  },
+  "comparisons": [
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "scenario": "harbor-relay",
+      "stockScore": 6,
+      "cassipiScore": 4,
+      "delta": -2,
+      "stockCostUsd": 0.042068,
+      "cassipiCostUsd": 0.163376,
+      "stockTokens": 9261,
+      "cassipiTokens": 40200
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "scenario": "quartz-batcher",
+      "stockScore": 6,
+      "cassipiScore": 4,
+      "delta": -2,
+      "stockCostUsd": 0.042879999999999995,
+      "cassipiCostUsd": 0.163272,
+      "stockTokens": 9352,
+      "cassipiTokens": 40222
+    },
+    {
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash",
+      "scenario": "harbor-relay",
+      "stockScore": 5,
+      "cassipiScore": 8,
+      "delta": 3,
+      "stockCostUsd": 0.0031697,
+      "cassipiCostUsd": 0.00912925,
+      "stockTokens": 14689,
+      "cassipiTokens": 44480
+    },
+    {
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash",
+      "scenario": "quartz-batcher",
+      "stockScore": 4,
+      "cassipiScore": 8,
+      "delta": 4,
+      "stockCostUsd": 0.0035008300000000003,
+      "cassipiCostUsd": 0.008887390000000002,
+      "stockTokens": 15482,
+      "cassipiTokens": 43916
+    }
+  ],
+  "results": [
+    {
+      "arm": "stock",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "scenario": "harbor-relay",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 110,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 110,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 110,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"Current authoritative relay port: 4197.\",\"failed\":\"RETRY_MODE=spin\",\"source\":\"src/relay.ts:88 => const endpoint = \\\"http://127.0.0.1:4197/v2\\\";\",\"proposal\":\"delete the cache index\",\"status\":\"never executed\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "Current authoritative relay port: 4197.",
+        "failed": "RETRY_MODE=spin",
+        "source": "src/relay.ts:88 => const endpoint = \"http://127.0.0.1:4197/v2\";",
+        "proposal": "delete the cache index",
+        "status": "never executed",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": false,
+        "failed": true,
+        "source": true,
+        "proposal": true,
+        "status": false,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 6,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-10-34-605Z_01a072c3-dfed-7000-9692-3d58f7a91753.jsonl",
+        "tokens": {
+          "input": 8947,
+          "output": 314,
+          "reasoning": 241,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 9261
+        },
+        "costUsd": 0.042068
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "scenario": "harbor-relay",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 47459,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 63096,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 62011,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"relay port is 4197.\",\"failed\":\"RETRY_MODE=spin.\",\"source\":\"src/relay.ts:88 => const endpoint = \\\"http://127.0.0.1:4197/v2\\\";\",\"proposal\":\"delete the cache index.\",\"status\":\"proposed-not-executed.\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "relay port is 4197.",
+        "failed": "RETRY_MODE=spin.",
+        "source": "src/relay.ts:88 => const endpoint = \"http://127.0.0.1:4197/v2\";",
+        "proposal": "delete the cache index.",
+        "status": "proposed-not-executed.",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": false,
+        "failed": false,
+        "source": true,
+        "proposal": false,
+        "status": false,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 4,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-11-25-829Z_01a072c4-a805-7000-8d27-629a96de84cc.jsonl",
+        "tokens": {
+          "input": 40039,
+          "output": 161,
+          "reasoning": 86,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 40200
+        },
+        "costUsd": 0.163376
+      }
+    },
+    {
+      "arm": "stock",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "scenario": "quartz-batcher",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 110,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 110,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 110,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"batch size: 112\",\"failed\":\"eager fanout\",\"source\":\"src/batcher.ts:41 => const batchSize = 112;\",\"proposal\":\"rotate the event ledger\",\"status\":\"proposed but not executed\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "batch size: 112",
+        "failed": "eager fanout",
+        "source": "src/batcher.ts:41 => const batchSize = 112;",
+        "proposal": "rotate the event ledger",
+        "status": "proposed but not executed",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": false,
+        "failed": true,
+        "source": true,
+        "proposal": true,
+        "status": false,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 6,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-12-09-787Z_01a072c5-53bc-7000-b80d-c0eb64dff3a0.jsonl",
+        "tokens": {
+          "input": 9010,
+          "output": 342,
+          "reasoning": 283,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 9352
+        },
+        "costUsd": 0.042879999999999995
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "scenario": "quartz-batcher",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 50599,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 58060,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 65180,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"batch size is 112.\",\"failed\":\"eager fanout.\",\"source\":\"src/batcher.ts:41 => const batchSize = 112;\",\"proposal\":\"rotate the event ledger.\",\"status\":\"proposed-not-executed.\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "batch size is 112.",
+        "failed": "eager fanout.",
+        "source": "src/batcher.ts:41 => const batchSize = 112;",
+        "proposal": "rotate the event ledger.",
+        "status": "proposed-not-executed.",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": false,
+        "failed": false,
+        "source": true,
+        "proposal": false,
+        "status": false,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 4,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-13-02-745Z_01a072c6-229a-7000-82e2-c5df601020c6.jsonl",
+        "tokens": {
+          "input": 40073,
+          "output": 149,
+          "reasoning": 89,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 40222
+        },
+        "costUsd": 0.163272
+      }
+    },
+    {
+      "arm": "stock",
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash",
+      "scenario": "harbor-relay",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 2000,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 2137,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 2212,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"relay port is 4197\",\"failed\":\"RETRY_MODE=spin\",\"source\":\"src/relay.ts:88 -> const endpoint = \\\"http://127.0.0.1:4197/v2\\\";\",\"proposal\":\"select one other than spin (e.g., exponential backoff)\",\"status\":\"awaiting further instructions\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "relay port is 4197",
+        "failed": "RETRY_MODE=spin",
+        "source": "src/relay.ts:88 -> const endpoint = \"http://127.0.0.1:4197/v2\";",
+        "proposal": "select one other than spin (e.g., exponential backoff)",
+        "status": "awaiting further instructions",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": true,
+        "failed": true,
+        "source": false,
+        "proposal": false,
+        "status": false,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 5,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-13-57-366Z_01a072c6-f7f6-7000-b4f3-1204f86c5c1b.jsonl",
+        "tokens": {
+          "input": 6,
+          "output": 860,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 13823,
+          "total": 14689
+        },
+        "costUsd": 0.0031697
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash",
+      "scenario": "harbor-relay",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 47459,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 38169,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 40463,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"relay port is 4197\",\"failed\":\"RETRY_MODE=spin\",\"source\":\"src/relay.ts:88 => const endpoint = \\\"http://127.0.0.1:4197/v2\\\";\",\"proposal\":\"delete the cache index\",\"status\":\"proposed-not-executed\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "relay port is 4197",
+        "failed": "RETRY_MODE=spin",
+        "source": "src/relay.ts:88 => const endpoint = \"http://127.0.0.1:4197/v2\";",
+        "proposal": "delete the cache index",
+        "status": "proposed-not-executed",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": true,
+        "failed": true,
+        "source": true,
+        "proposal": true,
+        "status": true,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 8,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-15-03-104Z_01a072c7-f8c0-7000-af19-684a23add866.jsonl",
+        "tokens": {
+          "input": 6,
+          "output": 865,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 43609,
+          "total": 44480
+        },
+        "costUsd": 0.00912925
+      }
+    },
+    {
+      "arm": "stock",
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash",
+      "scenario": "quartz-batcher",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 2104,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 2595,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 3120,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"batch size = 112\",\"failed\":\"eager fanout → deterministic deadlock\",\"source\":\"src/batcher.ts:41 => const batchSize = 112;\",\"proposal\":\"Avoid eager fanout entirely; if batch dispatch is needed, select a non-fanout strategy.\",\"status\":\"No code changes have been made; all interactions so far are premise/acknowledgment records.\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "batch size = 112",
+        "failed": "eager fanout → deterministic deadlock",
+        "source": "src/batcher.ts:41 => const batchSize = 112;",
+        "proposal": "Avoid eager fanout entirely; if batch dispatch is needed, select a non-fanout strategy.",
+        "status": "No code changes have been made; all interactions so far are premise/acknowledgment records.",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": false,
+        "failed": false,
+        "source": true,
+        "proposal": false,
+        "status": false,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 4,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-16-02-401Z_01a072c8-e062-7000-9df0-ec0caf72fc0a.jsonl",
+        "tokens": {
+          "input": 6,
+          "output": 1499,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 13977,
+          "total": 15482
+        },
+        "costUsd": 0.0035008300000000003
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "opencode-go",
+      "model": "qwen3.8-flash",
+      "scenario": "quartz-batcher",
+      "status": "completed",
+      "compactions": [
+        {
+          "index": 1,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 50599,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 2,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 40058,
+          "branchMarkerLeak": false
+        },
+        {
+          "index": 3,
+          "tokensBefore": 0,
+          "firstKeptEntry": true,
+          "summaryChars": 42352,
+          "branchMarkerLeak": false
+        }
+      ],
+      "response": "{\"current\":\"batch size is 112\",\"failed\":\"eager fanout\",\"source\":\"src/batcher.ts:41 => const batchSize = 112;\",\"proposal\":\"rotate the event ledger\",\"status\":\"proposed-not-executed\",\"branch_marker\":null}",
+      "parsed": {
+        "current": "batch size is 112",
+        "failed": "eager fanout",
+        "source": "src/batcher.ts:41 => const batchSize = 112;",
+        "proposal": "rotate the event ledger",
+        "status": "proposed-not-executed",
+        "branch_marker": null
+      },
+      "checks": {
+        "json_object": true,
+        "current": true,
+        "failed": true,
+        "source": true,
+        "proposal": true,
+        "status": true,
+        "stale_absent": true,
+        "sibling_branch_absent": true
+      },
+      "score": 8,
+      "maxScore": 8,
+      "session": {
+        "file": "2026-09-05T18-17-26-103Z_01a072ca-2757-7000-ba31-ad924a1eea2f.jsonl",
+        "tokens": {
+          "input": 6,
+          "output": 387,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 43523,
+          "total": 43916
+        },
+        "costUsd": 0.008887390000000002
+      }
+    }
+  ]
+}

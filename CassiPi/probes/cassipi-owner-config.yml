@@ -1,0 +1,13 @@
+context:
+  owner: cassipi
+compaction:
+  enabled: true
+  autoContinue: false
+  asyncEnabled: false
+  idleEnabled: false
+  midTurnEnabled: false
+  thresholdTokens: 28000
+  reserveTokens: 4000
+  keepRecentTokens: 64
+  supersedeReads: false
+  dropUseless: false

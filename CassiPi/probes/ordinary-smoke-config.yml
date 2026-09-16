@@ -1,0 +1,6 @@
+autolearn:
+  enabled: false
+  autoContinue: false
+startup:
+  setupWizard: false
+  showSplash: false
