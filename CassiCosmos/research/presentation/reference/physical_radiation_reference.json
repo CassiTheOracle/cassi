@@ -1,0 +1,622 @@
+{
+  "schema_version": "1.0.0",
+  "generated_by": "physical_radiation_reference.py",
+  "observer_asset": {
+    "path": "research/presentation/reference/CIE_xyz_1931_2deg.csv",
+    "metadata_path": "research/presentation/reference/CIE_xyz_1931_2deg.metadata.json",
+    "sha256": "fa663e3535a7e0763a745993a1f0a192eb0275ac46ad2d1befd7626841e713c1"
+  },
+  "candidate_receipts": [
+    {
+      "visible_group_count": 16,
+      "layout_sha256": "c6fa167a723bfd28f8c45f8d1d0373e22667af62fe1311c49894851f01fb41f4",
+      "max_chromaticity_error": 0.0006974970615930554,
+      "max_relative_power_error": 2.220446049250313e-16,
+      "passed": true
+    },
+    {
+      "visible_group_count": 32,
+      "layout_sha256": "a8c6d9d47153a1bdd237f61ac1d0fb8eec75694b584a1a2637623c5d5e92a6dd",
+      "max_chromaticity_error": 0.00018018739566233455,
+      "max_relative_power_error": 2.220446049250313e-16,
+      "passed": true
+    },
+    {
+      "visible_group_count": 64,
+      "layout_sha256": "a2446dafc7e8a60ee8f088ac867843a60cb6b505c01ac6d1de55fc1dab944580",
+      "max_chromaticity_error": 4.616894237968738e-05,
+      "max_relative_power_error": 2.220446049250313e-16,
+      "passed": true
+    }
+  ],
+  "selected_layout": {
+    "schema_version": "1.0.0",
+    "layout_id": "cie1931-visible-16-plus-bolometric-tails",
+    "visible_group_count": 16,
+    "total_group_count": 18,
+    "frequency_frame": "material_rest_frame_prescribed",
+    "integration": "group-integrated wavelength radiance; CIE piecewise-linear 1 nm observer",
+    "reconstruction": "constant spectral radiance per wavelength within each visible interval",
+    "observer_sha256": "fa663e3535a7e0763a745993a1f0a192eb0275ac46ad2d1befd7626841e713c1",
+    "groups": [
+      {
+        "index": 0,
+        "kind": "ultraviolet_tail",
+        "wavelength_hi_nm": 360.0,
+        "frequency_lo_hz": 832756827777777.8,
+        "frequency_hi_semantic": "infinity"
+      },
+      {
+        "index": 1,
+        "kind": "visible",
+        "wavelength_lo_nm": 360.0,
+        "wavelength_hi_nm": 389.0,
+        "frequency_lo_hz": 770674699228791.8,
+        "frequency_hi_hz": 832756827777777.6,
+        "observer_xyz_integral_m": [
+          3.091484279999991e-11,
+          8.905979149999976e-13,
+          1.4568498299999958e-10
+        ]
+      },
+      {
+        "index": 2,
+        "kind": "visible",
+        "wavelength_lo_nm": 389.0,
+        "wavelength_hi_nm": 419.0,
+        "frequency_lo_hz": 715495126491646.8,
+        "frequency_hi_hz": 770674699228791.8,
+        "observer_xyz_integral_m": [
+          1.0268866770000008e-09,
+          2.8874768850000027e-11,
+          4.901252585000004e-09
+        ]
+      },
+      {
+        "index": 3,
+        "kind": "visible",
+        "wavelength_lo_nm": 419.0,
+        "wavelength_hi_nm": 448.0,
+        "frequency_lo_hz": 669179593750000.0,
+        "frequency_hi_hz": 715495126491646.8,
+        "observer_xyz_integral_m": [
+          8.277946000000004e-09,
+          4.763759370000005e-10,
+          4.113813365000002e-08
+        ]
+      },
+      {
+        "index": 4,
+        "kind": "visible",
+        "wavelength_lo_nm": 448.0,
+        "wavelength_hi_nm": 478.0,
+        "frequency_lo_hz": 627180874476987.4,
+        "frequency_hi_hz": 669179593750000.0,
+        "observer_xyz_integral_m": [
+          7.550324699999994e-09,
+          2.1678784599999983e-09,
+          4.473348374999997e-08
+        ]
+      },
+      {
+        "index": 5,
+        "kind": "visible",
+        "wavelength_lo_nm": 478.0,
+        "wavelength_hi_nm": 507.0,
+        "frequency_lo_hz": 591306623274161.6,
+        "frequency_hi_hz": 627180874476987.4,
+        "observer_xyz_integral_m": [
+          9.900109920000014e-10,
+          7.253665900000023e-09,
+          1.3148913550000019e-08
+        ]
+      },
+      {
+        "index": 6,
+        "kind": "visible",
+        "wavelength_lo_nm": 507.0,
+        "wavelength_hi_nm": 536.0,
+        "frequency_lo_hz": 559314287313432.8,
+        "frequency_hi_hz": 591306623274161.6,
+        "observer_xyz_integral_m": [
+          2.6559398300000005e-09,
+          2.077328279999998e-08,
+          2.4516212949999912e-09
+        ]
+      },
+      {
+        "index": 7,
+        "kind": "visible",
+        "wavelength_lo_nm": 536.0,
+        "wavelength_hi_nm": 566.0,
+        "frequency_lo_hz": 529668653710247.3,
+        "frequency_hi_hz": 559314287313432.8,
+        "observer_xyz_integral_m": [
+          1.3656950750000021e-08,
+          2.943874755000003e-08,
+          3.11847348e-10
+        ]
+      },
+      {
+        "index": 8,
+        "kind": "visible",
+        "wavelength_lo_nm": 566.0,
+        "wavelength_hi_nm": 595.0,
+        "frequency_lo_hz": 503852870588235.25,
+        "frequency_hi_hz": 529668653710247.3,
+        "observer_xyz_integral_m": [
+          2.6306268799999964e-08,
+          2.477755134999996e-08,
+          4.666240099999991e-11
+        ]
+      },
+      {
+        "index": 9,
+        "kind": "visible",
+        "wavelength_lo_nm": 595.0,
+        "wavelength_hi_nm": 624.0,
+        "frequency_lo_hz": 480436631410256.4,
+        "frequency_hi_hz": 503852870588235.25,
+        "observer_xyz_integral_m": [
+          2.8324992900000053e-08,
+          1.4826018000000027e-08,
+          1.3468573350000021e-11
+        ]
+      },
+      {
+        "index": 10,
+        "kind": "visible",
+        "wavelength_lo_nm": 624.0,
+        "wavelength_hi_nm": 654.0,
+        "frequency_lo_hz": 458398253822629.94,
+        "frequency_hi_hz": 480436631410256.4,
+        "observer_xyz_integral_m": [
+          1.4325523399999961e-08,
+          5.746162424999983e-09,
+          8.800932859999952e-13
+        ]
+      },
+      {
+        "index": 11,
+        "kind": "visible",
+        "wavelength_lo_nm": 654.0,
+        "wavelength_hi_nm": 683.0,
+        "frequency_lo_hz": 438934784773060.0,
+        "frequency_hi_hz": 458398253822629.94,
+        "observer_xyz_integral_m": [
+          3.183359540000009e-09,
+          1.1735477150000033e-09,
+          0.0
+        ]
+      },
+      {
+        "index": 12,
+        "kind": "visible",
+        "wavelength_lo_nm": 683.0,
+        "wavelength_hi_nm": 712.0,
+        "frequency_lo_hz": 421056823033707.9,
+        "frequency_hi_hz": 438934784773060.0,
+        "observer_xyz_integral_m": [
+          4.6445763649999906e-10,
+          1.6798106299999966e-10,
+          0.0
+        ]
+      },
+      {
+        "index": 13,
+        "kind": "visible",
+        "wavelength_lo_nm": 712.0,
+        "wavelength_hi_nm": 742.0,
+        "frequency_lo_hz": 404032962264150.94,
+        "frequency_hi_hz": 421056823033707.9,
+        "observer_xyz_integral_m": [
+          6.345978035000011e-11,
+          2.2916488500000035e-11,
+          0.0
+        ]
+      },
+      {
+        "index": 14,
+        "kind": "visible",
+        "wavelength_lo_nm": 742.0,
+        "wavelength_hi_nm": 771.0,
+        "frequency_lo_hz": 388835872892347.6,
+        "frequency_hi_hz": 404032962264150.94,
+        "observer_xyz_integral_m": [
+          7.272641714999995e-12,
+          2.6262839749999982e-12,
+          0.0
+        ]
+      },
+      {
+        "index": 15,
+        "kind": "visible",
+        "wavelength_lo_nm": 771.0,
+        "wavelength_hi_nm": 801.0,
+        "frequency_lo_hz": 374272731585518.06,
+        "frequency_hi_hz": 388835872892347.6,
+        "observer_xyz_integral_m": [
+          9.768895280000032e-13,
+          3.5277268350000114e-13,
+          0.0
+        ]
+      },
+      {
+        "index": 16,
+        "kind": "visible",
+        "wavelength_lo_nm": 801.0,
+        "wavelength_hi_nm": 830.0,
+        "frequency_lo_hz": 361195732530120.44,
+        "frequency_hi_hz": 374272731585518.06,
+        "observer_xyz_integral_m": [
+          1.1853413150000016e-13,
+          4.280484340000006e-14,
+          0.0
+        ]
+      },
+      {
+        "index": 17,
+        "kind": "infrared_tail",
+        "wavelength_lo_nm": 830.0,
+        "frequency_lo_hz": 0.0,
+        "frequency_hi_hz": 361195732530120.5
+      }
+    ],
+    "layout_sha256": "c6fa167a723bfd28f8c45f8d1d0373e22667af62fe1311c49894851f01fb41f4"
+  },
+  "model": {
+    "schema_version": "1.0.0",
+    "model_id": "prescribed-homogeneous-lte-continuum",
+    "model_revision": 1,
+    "source_kind": "prescribed",
+    "coupling": "prescribed",
+    "qualification_scope": [
+      "one_way_emission_absorption",
+      "frozen_state_formal_solution"
+    ],
+    "unsupported_capabilities": [
+      "native_material_mapping",
+      "coupled_thermal_state",
+      "radiation_feedback",
+      "moving_multigroup_transport",
+      "non_lte_populations",
+      "line_radiation",
+      "physical_unresolved_emitters"
+    ],
+    "equation_references": [
+      "research/presentation/physical_radiation_design.md#51-one-way-observation",
+      "../CassiTheory/turbulence/cassi-radiative-material-closure.md"
+    ],
+    "unit_map": {
+      "schema_version": "1.0.0",
+      "length_m_per_sim": 1.0,
+      "time_s_per_physics_sim": 1.0,
+      "mass_kg_per_sim": 1.0,
+      "temperature_K_per_value": 1.0,
+      "radiance_scale_W_m2_sr": 100000000.0,
+      "c_gamma_sim": 299792458.0,
+      "unit_map_sha256": "d81eeb9d6ca14d9155ec29a62e2547d461ec5dc4238cb8aa803e542cea42b992"
+    },
+    "material": {
+      "temperature_K": 6500.0,
+      "absorption_m_inv": 0.06,
+      "scattering_m_inv": 0.0,
+      "boundary_radiance_W_m2_sr": 0.0,
+      "geometry": "homogeneous sphere on a supplied observation bounds snapshot"
+    },
+    "observer": {
+      "id": "CIE-1931-2deg",
+      "doi": "10.25039/CIE.DS.xvudnb9b",
+      "sha256": "fa663e3535a7e0763a745993a1f0a192eb0275ac46ad2d1befd7626841e713c1",
+      "license": "CC BY-SA 4.0",
+      "wavelength_nm": [
+        360.0,
+        830.0,
+        1.0
+      ],
+      "white_point": "CIE-D65",
+      "xyz_to_linear_rgb": "IEC-61966-2-1-sRGB",
+      "gamut_map": "clip-negative-linear-components-after-preserving-raw-XYZ",
+      "photometric_normalization": "absolute spectral radiance; no source white normalization"
+    },
+    "model_sha256": "6d834b4f67177de6de15866c9399325ef738a29fc3a63fe5ceb70a21d332fbc4"
+  },
+  "prescribed_snapshot": {
+    "schema_version": "1.0.0",
+    "producer": "physical_radiation_reference.py",
+    "source_kind": "prescribed",
+    "coupling": "prescribed",
+    "model_sha256": "6d834b4f67177de6de15866c9399325ef738a29fc3a63fe5ceb70a21d332fbc4",
+    "unit_map_sha256": "d81eeb9d6ca14d9155ec29a62e2547d461ec5dc4238cb8aa803e542cea42b992",
+    "group_layout_sha256": "c6fa167a723bfd28f8c45f8d1d0373e22667af62fe1311c49894851f01fb41f4",
+    "state_epoch": 1,
+    "reset_epoch": 1,
+    "executed_step": 0,
+    "physical_time_s": 0.0,
+    "integration_interval_s": 0.0,
+    "coordinate_frame": "simulation_world_relative_to_frame_origin",
+    "frame_origin_sim": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "geometry_kind": "homogeneous_sphere",
+    "center_sim": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "radius_sim": 25.0,
+    "temperature_K": 6500.0,
+    "absorption_m_inv": 0.06,
+    "scattering_m_inv": 0.0,
+    "boundary_radiance_W_m2_sr": 0.0,
+    "valid": true,
+    "readiness": "ready_prescribed_preview",
+    "unavailable_capabilities": [
+      "native_material_mapping",
+      "coupled_thermal_state",
+      "radiation_feedback",
+      "moving_multigroup_transport",
+      "non_lte_populations",
+      "line_radiation",
+      "physical_unresolved_emitters"
+    ],
+    "snapshot_sha256": "c9df83da771ac0867394722596951d478fc88f78aba9d1a9927d9ed4e330fe68"
+  },
+  "temperature_controls": [
+    {
+      "temperature_K": 2500.0,
+      "bolometric_radiance_W_m2_sr": 705053.2171606907,
+      "group_radiance_W_m2_sr": [
+        61.3589624050276,
+        101.36137672998501,
+        219.0942658552628,
+        390.4055389104887,
+        675.3499538113753,
+        1006.9360756319544,
+        1446.8029727639314,
+        2050.714345549869,
+        2595.0119354411927,
+        3258.1782520559573,
+        4114.128043231244,
+        4721.615485737642,
+        5461.398383909207,
+        6419.251038747847,
+        6926.151561308652,
+        7874.070042135019,
+        8252.526411538367,
+        649478.8625149278
+      ],
+      "exact_XYZ_W_m2_sr": [
+        9494.242679471734,
+        8233.918886356267,
+        2176.1385436469895
+      ],
+      "group_XYZ_W_m2_sr": [
+        9511.695028426368,
+        8255.260897519407,
+        2203.134092540707
+      ],
+      "exact_xy": [
+        0.4769945502857554,
+        0.41367537874073235
+      ],
+      "group_xy": [
+        0.4762970532241623,
+        0.4133812561624631
+      ],
+      "relative_power_error": 2.220446049250313e-16,
+      "max_chromaticity_error": 0.0006974970615930554
+    },
+    {
+      "temperature_K": 4000.0,
+      "bolometric_radiance_W_m2_sr": 4620636.763984302,
+      "group_radiance_W_m2_sr": [
+        44402.6299701761,
+        31667.13507759164,
+        45162.93451373126,
+        56220.91382984416,
+        70986.63789663304,
+        80256.0442904743,
+        90520.237018964,
+        102928.81526590636,
+        106886.3905929204,
+        112572.2087303762,
+        120844.15318855028,
+        119636.20854135095,
+        121153.05429938513,
+        125772.50840512059,
+        121052.55541050012,
+        123845.79075480577,
+        117729.03790588737,
+        3028999.5082920846
+      ],
+      "exact_XYZ_W_m2_sr": [
+        373769.5697282014,
+        370141.66013549257,
+        238556.3388033231
+      ],
+      "group_XYZ_W_m2_sr": [
+        373368.9764800559,
+        369689.7612328737,
+        238478.60273923475
+      ],
+      "exact_xy": [
+        0.3804396009074588,
+        0.37674695016924564
+      ],
+      "group_xy": [
+        0.38039202493107005,
+        0.3766436038618448
+      ],
+      "relative_power_error": 0.0,
+      "max_chromaticity_error": 0.00010334630740083117
+    },
+    {
+      "temperature_K": 6500.0,
+      "bolometric_radiance_W_m2_sr": 32219239.89652238,
+      "group_radiance_W_m2_sr": [
+        4124155.822585656,
+        1272571.6682226385,
+        1389665.2413900646,
+        1374187.7900696027,
+        1419704.878548917,
+        1345985.6230923813,
+        1302588.989550668,
+        1289441.3609275103,
+        1182897.1922053222,
+        1116539.9554753369,
+        1083844.5857697893,
+        979434.8786317683,
+        914117.0939891073,
+        879699.2452706477,
+        789867.6964032748,
+        758198.139274735,
+        679625.5798609793,
+        10316714.155253982
+      ],
+      "exact_XYZ_W_m2_sr": [
+        4358133.227978241,
+        4498563.658692536,
+        5043690.1496939
+      ],
+      "group_XYZ_W_m2_sr": [
+        4356096.9900330035,
+        4496365.935802094,
+        5035998.115851761
+      ],
+      "exact_xy": [
+        0.31352603467637036,
+        0.32362866205983215
+      ],
+      "group_xy": [
+        0.3136486452284365,
+        0.32374832044429136
+      ],
+      "relative_power_error": 0.0,
+      "max_chromaticity_error": 0.00012261055206613802
+    },
+    {
+      "temperature_K": 10000.0,
+      "bolometric_radiance_W_m2_sr": 180493623.59313682,
+      "group_radiance_W_m2_sr": [
+        72846902.18117419,
+        10276285.795095425,
+        9704466.626131615,
+        8473296.227349536,
+        7863005.366816827,
+        6788752.443969826,
+        6060588.501787638,
+        5580054.307887253,
+        4799533.34461774,
+        4281215.7440939685,
+        3946792.4977478217,
+        3404231.9834706173,
+        3048200.152523937,
+        2823159.705892087,
+        2447690.9201109107,
+        2275608.7273506676,
+        1980688.4544191586,
+        23893150.6126976
+      ],
+      "exact_XYZ_W_m2_sr": [
+        18899498.100728907,
+        19415005.007922485,
+        29031266.14135502
+      ],
+      "group_XYZ_W_m2_sr": [
+        18916894.682844996,
+        19435312.42340251,
+        29039873.142334513
+      ],
+      "exact_xy": [
+        0.28063378458962523,
+        0.28828841401823674
+      ],
+      "group_xy": [
+        0.2806990764058366,
+        0.2883916381823136
+      ],
+      "relative_power_error": 0.0,
+      "max_chromaticity_error": 0.00010322416407687607
+    },
+    {
+      "temperature_K": 20000.0,
+      "bolometric_radiance_W_m2_sr": 2887897977.490189,
+      "group_radiance_W_m2_sr": [
+        2365714465.950122,
+        80640875.37749532,
+        67441378.17870566,
+        53107933.22265073,
+        45120179.05908401,
+        36086075.238697805,
+        30169987.258728936,
+        26195565.319165498,
+        21389314.241893064,
+        18230375.137537044,
+        16123752.77699616,
+        13396753.323505428,
+        11603502.125345781,
+        10421865.278480725,
+        8785817.476481771,
+        7961435.404190926,
+        6768102.528885718,
+        68740599.59222269
+      ],
+      "exact_XYZ_W_m2_sr": [
+        91158018.3509809,
+        91575382.02142324,
+        172717369.64628804
+      ],
+      "group_XYZ_W_m2_sr": [
+        91418603.14174663,
+        91844870.7199079,
+        173267375.61652628
+      ],
+      "exact_xy": [
+        0.2564575070302623,
+        0.257631688395576
+      ],
+      "group_xy": [
+        0.2564114810136264,
+        0.25760707903490604
+      ],
+      "relative_power_error": 0.0,
+      "max_chromaticity_error": 4.602601663594719e-05
+    }
+  ],
+  "slab_controls": [
+    {
+      "tau": 0.0,
+      "computed": 0.25,
+      "exact": 0.25,
+      "relative_error": 0.0
+    },
+    {
+      "tau": 1e-08,
+      "computed": 0.2500000174999999,
+      "exact": 0.2500000175000001,
+      "relative_error": 8.881783575276398e-16
+    },
+    {
+      "tau": 0.1,
+      "computed": 0.41653451843707073,
+      "exact": 0.41653451843707084,
+      "relative_error": 2.665380599886313e-16
+    },
+    {
+      "tau": 1.0,
+      "computed": 1.356210977949976,
+      "exact": 1.356210977949976,
+      "relative_error": 0.0
+    },
+    {
+      "tau": 10.0,
+      "computed": 1.9999205501229156,
+      "exact": 1.9999205501229156,
+      "relative_error": 0.0
+    }
+  ],
+  "fixture_sha256": "f8a93bcc98af53791c054117105f6beab92b5ca2fc686d2467fd732f68bc75ae"
+}

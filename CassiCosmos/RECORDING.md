@@ -8,7 +8,7 @@ reached. Leave it running and walk away.
 
 ## Launch
 
-From `godot/space-sim`:
+From the `CassiCosmos` directory:
 
 ```powershell
 powershell -File record.ps1 -Out myvideo.avi -Duration 60
@@ -25,12 +25,79 @@ Raw one-liner (same thing, no wrapper):
 `-Steps` (0 / -1 = leave the scene default), `-Aspect` (`x,y,z` — the
 per-axis box aspect, e.g. `1.618,1,2.618` for the theory φ-aspect box;
 empty = inherit from main.tscn), `-Scene`, `-Exe`.
+`-Resolution WIDTHxHEIGHT` controls encoded dimensions. Rendering options are
+`-Appearance scientific|observatory|cinematic`,
+`-ObservationSource simulation|spectral|coupled`, `-Exposure EV`,
+`-Quality 0|1|2|3`, and `-Optics` (see the next section).
 
 ```powershell
 # φ-aspect box recording (the theory's incommensurate bubble-lattice
 # periods — GRID_LAYOUT.md; removes the cubic box-mode straight-line lock)
 powershell -File record.ps1 -Out phi_box.avi -Duration 60 -Aspect 1.618,1,2.618
 ```
+
+## Observatory and Cinematic recordings
+
+```powershell
+powershell -File record.ps1 -Out observatory.avi -Duration 60 -Fps 30 -Resolution 1920x1080 -Appearance observatory -Exposure 0.5 -Quality 3 -Optics "thickness=1.0,emission=1.0,scattering=0.35,bloom=0.08,shutter=0.0"
+```
+
+```powershell
+# Prescribed 6500 K LTE/CIE spectral preview. This remains one-way and does
+# not infer material or temperature from the live Cosmos state.
+powershell -File record.ps1 -Out spectral.avi -Duration 60 -Fps 30 -Resolution 1920x1080 -Appearance observatory -ObservationSource spectral -Exposure 0.0 -Quality 3
+```
+
+- `-Appearance scientific|observatory|cinematic` selects the rendering profile.
+  Scientific preserves the existing rendering. Observatory and Cinematic use
+  the shared optical HDR compositor in both Particle and Field views.
+- `-ObservationSource simulation|spectral|coupled` selects the light source
+  independently. `spectral` is the immutable prescribed LTE/CIE formal
+  solution; `coupled` intentionally fails closed until its engine capabilities
+  qualify. Use Observatory or Cinematic appearance to display a non-Scientific
+  source.
+- `-Exposure` is a fixed EV offset. `-Quality 0|1|2|3` chooses Performance,
+  Balanced, High or Capture and **disables adaptive quality for the movie**.
+- `-Optics` accepts a bare optical thickness or comma-separated
+  `thickness`, `emission`, `scattering`, `point`, `bloom`, and `shutter`
+  values. These are optical assumptions in simulation units, not calibrated
+  astronomical material properties.
+- Cinematic starts with bloom 0.16 and shutter 0.02 seconds. Explicit optics
+  override those defaults. Shutter uses the state's velocities and simulation
+  speed; pausing for a still does not erase the selected exposure.
+- Appearance overrides do not reinitialize particles or change solver
+  settings. The existing recorder remains the camera owner.
+- `record.ps1` writes `<movie>.json` beside the AVI with source/model/snapshot
+  provenance, final step/time, camera, exposure, dimensions, frame count and
+  cadence. The sidecar is emitted before the recorder exits.
+
+## Interactive stills, sequences and saved views
+
+In **Visuals → Camera & capture**, save/restore any of three camera slots,
+choose **1×** or **2×** and press **Save PNG**, or start/stop a PNG sequence.
+Files are saved under `user://cassi_captures/`. Three view slots persist in
+`user://cassi_presentation_views.cfg`; they store camera pose and projection,
+not simulation state. Restoring a view requests manual camera takeover.
+
+A 2× still temporarily renders at twice the current viewport width and height,
+without enlarging the native window. Window/content-scale settings and the
+original playing state are restored afterward. Select Capture quality for
+the highest optical grid; supersampling alone does not increase that grid.
+Prescribed spectral stills add a JSON provenance sidecar and raw linear
+`RGBA32F` XYZ image beside each PNG. Sequence directories add
+`sequence.json` with per-frame metadata.
+
+Interactive PNG sequences are best-effort wall-clock capture, requesting
+30 fps from the UI. After the last in-flight frame finishes, the UI reports
+actual captured/dropped frames, elapsed time and achieved cadence. This final
+summary is frozen; idle time after stopping cannot change the reported rate.
+For fixed encoded cadence use Movie Maker.
+
+**Overlay** adds simulation time and a simulation-unit scale bar.
+Uncheck **Interface** to hide controls and overlays without changing the
+selected renderer; press **F9** to restore the interface.
+**Save appearance** and **Load appearance** store/load the rendering profile
+separately from the saved camera views.
 
 ## FPS and resolution (how it actually works)
 
@@ -51,6 +118,10 @@ AVI resolution are locked in at engine start, before any scene code runs:
   viewport settings in `project.godot` for the run and restores the file
   afterwards (a `.recbak` from a crashed run is cleaned up on the next
   launch).
+
+The verified Cinematic smoke contains 24 MJPEG frames at 640×360 and 12 fps
+(two seconds). The recorder logged a 1920×1080 runtime window during that run;
+the wrapper's patched project viewport correctly determined the encoded size.
 
 ## Time-lapse math
 

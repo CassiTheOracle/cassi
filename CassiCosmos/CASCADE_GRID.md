@@ -157,9 +157,11 @@ the grid pair, not bias reduction.
 1. **O4 gradient pass** (smallest change; gradient pass only). Pin new cube
    anchors in verify_river_isotropy.gd.
 2. **Dual (BCC) grid** — second deposit/solve/gradient chain + averaged nbody
-   sampling; `dual_grid` export (default on after the battery). New grad
-   buffer; md PC grows by the offset vector. Cube battery stays green at
-   dual_grid = false (bit-identical path).
+   sampling; `dual_grid` export (**default off**; the §2 battery measured the
+   averaged path, and `research/bh_dynamics/BH_DYNAMICS_PREREG.md` §3b later
+   measured the shift-window self-force that keeps the shipped default off).
+   New grad buffer; md PC grows by the offset vector. Cube battery stays green
+   at dual_grid = false (bit-identical path).
 3. **Multi-rung IC seeding** — `multi_rung_seed` export: k_n = k₀·φⁿ density
    perturbations on the IC. Verify: no NaN, occupancy sane, bubble-size
    distribution visibly multi-scale.
@@ -171,8 +173,9 @@ Each commit keeps the repo runnable; the verify battery pins the new numbers
 ## 6. Open items
 
 - Confirm the per-particle cost of the second gradient sample at N_particles =
-  2.5M (the nbody pass is the frame bottleneck; the dual may want a
-  `dual_grid` default-off until measured on this rig).
+  2.5M (the nbody pass is the frame bottleneck). Resolved: `dual_grid` ships
+  default off — the shifted-lattice average injects a grid-scale self-force
+  (`research/bh_dynamics/BH_DYNAMICS_PREREG.md` §3b).
 - The transition window shape for the coarse level (measure, don't guess —
   same discipline as §2).
 - Multi-rung seeding: pick k₀ and rung count from the resolved window

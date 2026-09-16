@@ -245,150 +245,13 @@ const float PHI_INV2 = 0.3819660112501051;  // φ⁻² — q decoherence thresho
 const float PHI_INV3 = 0.2360679774997898;  // φ⁻³ — attractor density scale
                                             // (RealSim drag reference ρ_ref)
 
-// ── Index helpers ──────────────────────────────────────────────────────
-int idx3_coarse(int i, int j, int k, int N) {
-    return i + N * (j + N * k);
-}
-
-vec3 sample_coarse_grad(vec3 wp) {
-    int N = max(int(pc.N_f * 0.5), 1);
-    float hn = float(N) * 0.5;
-    vec3 ext = max(bh[2].yzw, vec3(0.0001));
-    vec3 gc = ((wp - bh[0].yzw) / ext) * hn + hn;
-    int i0 = int(floor(gc.x));
-    int j0 = int(floor(gc.y));
-    int k0 = int(floor(gc.z));
-    float fx = gc.x - float(i0);
-    float fy = gc.y - float(j0);
-    float fz = gc.z - float(k0);
-    i0 = ((i0 % N) + N) % N;
-    j0 = ((j0 % N) + N) % N;
-    k0 = ((k0 % N) + N) % N;
-    int i1 = (i0 + 1) % N;
-    int j1 = (j0 + 1) % N;
-    int k1 = (k0 + 1) % N;
-    int c000 = idx3_coarse(i0, j0, k0, N);
-    int c100 = idx3_coarse(i1, j0, k0, N);
-    int c010 = idx3_coarse(i0, j1, k0, N);
-    int c110 = idx3_coarse(i1, j1, k0, N);
-    int c001 = idx3_coarse(i0, j0, k1, N);
-    int c101 = idx3_coarse(i1, j0, k1, N);
-    int c011 = idx3_coarse(i0, j1, k1, N);
-    int c111 = idx3_coarse(i1, j1, k1, N);
-    return mix(mix(mix(cgrad[c000].xyz, cgrad[c100].xyz, fx),
-                   mix(cgrad[c010].xyz, cgrad[c110].xyz, fx), fy),
-               mix(mix(cgrad[c001].xyz, cgrad[c101].xyz, fx),
-                   mix(cgrad[c011].xyz, cgrad[c111].xyz, fx), fy), fz);
-}
-
-int idx3(int i, int j, int k) {
-    int N = int(pc.N_f);
-    return i + N * (j + N * k);
-}
-
-// ── Fused field sample (river modes) ────────────────────────────────────
-// ONE neighborhood traversal at wp computes every field the river arm
-// needs — EY, EI (the chord/π/ρ inputs), the cell-centered ∇(g·Φ), and
-// (RealSim only) the medium velocity — from the SAME 8 corners with the
-// SAME trilinear weights. The previous code ran up to FIVE separate
-// trilinear samplers per particle per step in RealSim (∇(g·Φ), EY, EI,
-// then EY+EI AGAIN for ρ_local, then FieldVel): 5× the coordinate setup,
-// 5× the address math, and repeated loads of the same corners. Bit-
-// identical: each field's mix tree is EXACTLY the former sampler's
-// (same corner order, same mix(mix(mix)) tree), so this is a pure
-// constant-factor refactor of the sample pattern.
-struct FieldSmp {
-    float ey;      // EY trilinear at wp
-    float ei;      // EI trilinear at wp
-    vec3 gradS;    // ∇(g·Φ) trilinear at wp (base lattice)
-    vec3 gradS2;   // ∇(g·Φ) trilinear at wp (dual lattice; zeros when dual off)
-    vec3 gradSC;   // ∇(g·Φ) trilinear at wp (coarse; zeros when cascade off)
-    float cascade_w; // fine-force weight in the protected handoff window
-    vec4 fvel;     // FieldVel trilinear at wp (RealSim only; zeros otherwise)
-};
-FieldSmp sample_fields(vec3 wp) {
-    int N = int(pc.N_f);
-    float hn = float(N) * 0.5;
-    vec3 ext = bh[2].yzw;
-    vec3 inv_ext = 1.0 / max(ext, vec3(0.0001));
-    // Movable home-window (perf-decomp 2026-08-15): bh[0].yzw = the field
-    // grid's world-origin offset — the world→grid map becomes window-
-    // relative. Zero = the fixed-origin box, bit-identical. The dual-
-    // lattice cell↔cell map (chord_s_at_dual) is translation-invariant
-    // and intentionally unchanged.
-    vec3 gc = ((wp - bh[0].yzw) * inv_ext) * hn + hn;
-    int i0 = int(floor(gc.x));
-    int j0 = int(floor(gc.y));
-    int k0 = int(floor(gc.z));
-    float fx = gc.x - float(i0);
-    float fy = gc.y - float(j0);
-    float fz = gc.z - float(k0);
-    i0 = ((i0 % N) + N) % N;  j0 = ((j0 % N) + N) % N;  k0 = ((k0 % N) + N) % N;
-    int i1 = (i0 + 1) % N;    int j1 = (j0 + 1) % N;    int k1 = (k0 + 1) % N;
-    // The 8 corners — each address computed once, every field fetches it.
-    int c000 = idx3(i0, j0, k0);
-    int c100 = idx3(i1, j0, k0);
-    int c010 = idx3(i0, j1, k0);
-    int c110 = idx3(i1, j1, k0);
-    int c001 = idx3(i0, j0, k1);
-    int c101 = idx3(i1, j0, k1);
-    int c011 = idx3(i0, j1, k1);
-    int c111 = idx3(i1, j1, k1);
-    FieldSmp s;
-    // Each field is fetched and mixed IMMEDIATELY — its 8 corners die
-    // before the next field's loads, keeping register pressure at the old
-    // per-sampler level (materializing all 24+ corners up front dropped
-    // occupancy and hurt throughput).
-    s.ey = mix(mix(mix(ey[c000], ey[c100], fx), mix(ey[c010], ey[c110], fx), fy),
-               mix(mix(ey[c001], ey[c101], fx), mix(ey[c011], ey[c111], fx), fy), fz);
-    s.ei = mix(mix(mix(ei[c000], ei[c100], fx), mix(ei[c010], ei[c110], fx), fy),
-               mix(mix(ei[c001], ei[c101], fx), mix(ei[c011], ei[c111], fx), fy), fz);
-    s.gradS = mix(mix(mix(grad[c000].xyz, grad[c100].xyz, fx), mix(grad[c010].xyz, grad[c110].xyz, fx), fy),
-                  mix(mix(grad[c001].xyz, grad[c101].xyz, fx), mix(grad[c011].xyz, grad[c111].xyz, fx), fy), fz);
-    s.gradS2 = vec3(0.0);
-    if (bh[3].y > 0.5) {
-        // Dual (Yin/Yang) lattice sample: the SAME world point mapped with
-        // the shifted grid's map (gc = (wp + off)·scale + hn) — the deposit
-        // and the gradient pass of the shifted chain used the identical
-        // offset, so this closes the dual chain consistently.
-        vec3 off = bh[1].xyz;
-        vec3 gc2 = (wp + off) * inv_ext * hn + hn;
-        int d0 = int(floor(gc2.x));
-        int e0 = int(floor(gc2.y));
-        int f0 = int(floor(gc2.z));
-        float fx2 = gc2.x - float(d0);
-        float fy2 = gc2.y - float(e0);
-        float fz2 = gc2.z - float(f0);
-        d0 = ((d0 % N) + N) % N;  e0 = ((e0 % N) + N) % N;  f0 = ((f0 % N) + N) % N;
-        int d1 = (d0 + 1) % N;    int e1 = (e0 + 1) % N;    int f1 = (f0 + 1) % N;
-        int d000 = idx3(d0, e0, f0);
-        int d100 = idx3(d1, e0, f0);
-        int d010 = idx3(d0, e1, f0);
-        int d110 = idx3(d1, e1, f0);
-        int d001 = idx3(d0, e0, f1);
-        int d101 = idx3(d1, e0, f1);
-        int d011 = idx3(d0, e1, f1);
-        int d111 = idx3(d1, e1, f1);
-        s.gradS2 = mix(mix(mix(g2[d000].xyz, g2[d100].xyz, fx2), mix(g2[d010].xyz, g2[d110].xyz, fx2), fy2),
-                       mix(mix(g2[d001].xyz, g2[d101].xyz, fx2), mix(g2[d011].xyz, g2[d111].xyz, fx2), fy2), fz2);
-    }
-    if (bh[0].x > 0.5) {
-        s.gradSC = sample_coarse_grad(wp);
-        int Nc = max(N / 2, 1);
-        vec3 hc_vec = 2.0 * ext / float(Nc);
-        float hc = length(hc_vec) / sqrt(3.0);
-        float r = length(wp - bh[0].yzw);
-        s.cascade_w = 1.0 - smoothstep(4.0 * hc, 7.0 * hc, r);
-    }
-    s.fvel = vec4(0.0);
-    if (pc.gravity_mode > 3.5) {
-        // FieldVel corners only for RealSim (uniform branch — skipped by
-        // modes 0/3, so their load count matches the old path).
-        s.fvel = mix(mix(mix(fvel[c000], fvel[c100], fx), mix(fvel[c010], fvel[c110], fx), fy),
-                     mix(mix(fvel[c001], fvel[c101], fx), mix(fvel[c011], fvel[c111], fx), fy), fz);
-    }
-    return s;
-}
+// ── Sampler + river force assembly (SHARED) ────────────────────────────
+// The index helpers, the coarse-level sampler, the fused field sampler
+// (FieldSmp / sample_fields), the telemetry-free π/ρ guard, and the river
+// force assembly live in ONE definition shared with the BH field-channel
+// arm (compute/cassi_bh_finalize.glsl). The extraction out of this file
+// was a pure move — see the include header.
+#include "res://compute/cassi_river_force_common.glslinc"
 
 // ── Cell-centered gradient field of S = g·Φ (river-mode estimator) ────
 // The gradient pass (pass_mode == 1) evaluates S at CELL CENTERS from
@@ -569,21 +432,13 @@ float chord_g_from(float eyv, float eiv, out float q_out, out float pi_over_rho,
 // ── River-mode field force: a = −G_N·(π/ρ)·∇(g·Φ) ─────────────────────
 // ESTIMATOR: the cell-centered ∇(g·Φ) field (built once per step by
 // grad_pass) + g/π/ρ from the fused sample's EY/EI — the same clamp logic
-// and telemetry as before. With the dual grid on (bh[3].y), the two
-// lattice samples are averaged (CASCADE_GRID.md §3.1). The full chord
-// product is still computed whole on the grid — never hand-split.
+// and telemetry as before. The assembly itself (dual average + cascade
+// blend + the G_N prefactor) is river_field_acc_common, shared with the
+// BH field-channel arm so both consumers obey ONE definition of the law.
 vec3 river_field_acc_smp(FieldSmp fs, inout TeleStats st) {
     float q_unused; float pi_over_rho;
     chord_g_from(fs.ey, fs.ei, q_unused, pi_over_rho, st);
-    float G_N = bh[1].w;
-    vec3 gv = (bh[3].y > 0.5) ? 0.5 * (fs.gradS + fs.gradS2) : fs.gradS;
-    if (bh[0].x > 0.5) {
-        float N_f = max(pc.N_f, 1.0);
-        float N_c = max(floor(0.5 * pc.N_f), 1.0);
-        float coarse_volume = pow(N_c / N_f, 3.0);
-        gv = fs.cascade_w * gv + (1.0 - fs.cascade_w) * coarse_volume * fs.gradSC;
-    }
-    return -G_N * pi_over_rho * gv;
+    return river_field_acc_common(fs, pi_over_rho);
 }
 
 // ── TREE-RIVER arm (gravity_mode == 5, fmm_design.md Q6) ────────────────

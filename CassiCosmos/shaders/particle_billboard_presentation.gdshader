@@ -7,6 +7,9 @@ uniform float size : hint_range(0.0, 500.0) = 1.5;
 // Color-as-LUT contract shared with particle_billboard.gdshader.
 uniform sampler2D color_lut : source_color, filter_linear, repeat_disable;
 uniform float lut_enabled = 0.0;
+uniform sampler2D compact_data : filter_nearest, repeat_disable;
+uniform float compact_mode = 0.0;
+uniform float compact_tex_width = 4096.0;
 uniform vec3 glow_tint : source_color = vec3(0.95, 0.90, 0.98);
 uniform float glow_strength = 0.12;
 const float GLOW_A_MIN = 0.35;
@@ -45,44 +48,62 @@ vec3 presentation_particle_color(float u, vec3 source) {
 }
 
 
-varying vec3 v_lut_vfx; // (u, glow_boost, depth_fade)
+varying flat vec4 v_particle_color;
 
 void vertex() {
 	// Preserve the production camera-facing billboard convention.
 	vec3 cr = normalize(vec3(VIEW_MATRIX[0][0], VIEW_MATRIX[1][0], VIEW_MATRIX[2][0]));
 	vec3 cu = normalize(vec3(VIEW_MATRIX[0][1], VIEW_MATRIX[1][1], VIEW_MATRIX[2][1]));
-	vec3 v = cr * VERTEX.x * size + cu * VERTEX.y * size;
+	vec3 origin = vec3(0.0);
+	float instance_size = size;
+	vec4 c = COLOR;
+	if (compact_mode > 0.5) {
+		int texel = int(INSTANCE_ID) * 2;
+		int width = max(int(compact_tex_width), 1);
+		vec4 data = texelFetch(compact_data,
+				ivec2(texel % width, texel / width), 0);
+		c = texelFetch(compact_data,
+				ivec2((texel + 1) % width, (texel + 1) / width), 0);
+		mat4 compact_transform = mat4(
+				vec4(data.w, 0.0, 0.0, 0.0), vec4(0.0, data.w, 0.0, 0.0),
+				vec4(0.0, 0.0, data.w, 0.0), vec4(data.xyz, 1.0));
+		// Compact placement replaces, rather than compounds, the instance transform.
+		MODELVIEW_MATRIX = VIEW_MATRIX * compact_transform;
+		MODELVIEW_NORMAL_MATRIX = mat3(VIEW_MATRIX);
+	}
+	vec3 v = origin + cr * VERTEX.x * instance_size + cu * VERTEX.y * instance_size;
 
 	// Keep physical sizing nearby, then apply a bounded pixel floor at range.
 	// viewport_height is supplied by CassiSim because VIEWPORT_SIZE is not
 	// reliable in every Godot spatial vertex path on this renderer.
-	vec4 center_view = MODELVIEW_MATRIX * vec4(vec3(0.0), 1.0);
+	vec4 center_view = MODELVIEW_MATRIX * vec4(origin, 1.0);
 	float depth = max(-center_view.z, 1e-4);
 	float projection_y = max(abs(PROJECTION_MATRIX[1][1]), 1e-3);
 	float world_per_pixel = 2.0 * depth / max(projection_y * viewport_height, 1.0);
 	float model_scale = max(length(MODELVIEW_MATRIX[0].xyz), length(MODELVIEW_MATRIX[1].xyz));
-	float local_half = max(abs(VERTEX.x), abs(VERTEX.y)) * size;
+	float local_half = max(abs(VERTEX.x), abs(VERTEX.y)) * instance_size;
 	float physical_half = max(local_half * model_scale, 1e-5);
 	float projected_half = physical_half / max(world_per_pixel, 1e-5);
 	float target_half = clamp(projected_half, min_pixel_radius, max_pixel_radius) * world_per_pixel;
-	v *= target_half / physical_half;
-	VERTEX = v;
-	v_lut_vfx = vec3(INSTANCE_CUSTOM.x, INSTANCE_CUSTOM.y, INSTANCE_CUSTOM.z);
+	VERTEX = origin + (v - origin) * target_half / physical_half;
+
+	if (lut_enabled > 0.5) {
+		vec3 vfx = compact_mode > 0.5 ? c.xyz : INSTANCE_CUSTOM.xyz;
+		if (compact_mode > 0.5) {
+			c = textureLod(color_lut, vec2(vfx.x, 0.5), 0.0);
+		} else {
+			c = textureLod(color_lut, vec2(vfx.x, 0.5), 0.0);
+		}
+		float boost = vfx.y;
+		float fade = vfx.z;
+		c.a *= fade * mix(GLOW_A_MIN, GLOW_A_MAX, boost);
+		c.rgb = mix(c.rgb, glow_tint, boost * glow_strength);
+		c.rgb = presentation_particle_color(vfx.x, c.rgb);
+	}
+	v_particle_color = c;
 }
 
 void fragment() {
-	vec4 c;
-	if (lut_enabled > 0.5) {
-		c = texture(color_lut, vec2(v_lut_vfx.x, 0.5));
-		float boost = v_lut_vfx.y;
-		float fade = v_lut_vfx.z;
-		c.a *= fade * mix(GLOW_A_MIN, GLOW_A_MAX, boost);
-		c.rgb = mix(c.rgb, glow_tint, boost * glow_strength);
-		c.rgb = presentation_particle_color(v_lut_vfx.x, c.rgb);
-	} else {
-		c = COLOR;
-	}
-
 	// A signed-distance-like radial mote replaces the flat square QuadMesh.
 	// fwidth keeps the edge stable when a distant particle occupies only a few
 	// pixels, while discard avoids shading the fully transparent corners.
@@ -96,7 +117,7 @@ void fragment() {
 	float core = 1.0 - smoothstep(core_radius, min(core_radius + 0.32, 0.98), r);
 	float halo = pow(clamp(1.0 - r, 0.0, 1.0), 1.8) * halo_strength;
 
-	ALBEDO = c.rgb * (0.35 + 0.65 * core);
-	EMISSION = c.rgb * emission_strength * (0.18 + core + halo);
-	ALPHA = c.a * disc * mix(0.16, 1.0, core);
+	ALBEDO = v_particle_color.rgb * (0.35 + 0.65 * core);
+	EMISSION = v_particle_color.rgb * emission_strength * (0.18 + core + halo);
+	ALPHA = v_particle_color.a * disc * mix(0.16, 1.0, core);
 }

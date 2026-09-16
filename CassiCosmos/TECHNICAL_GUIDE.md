@@ -22,11 +22,11 @@ For editor use, open the project in Godot and press **F6** with
 `scenes/main.tscn` selected (or **F5** for the project main scene). Runtime
 scenes must be windowed on this machine; `--headless` is not a GPU path. The
 production scene uses the site-native field/force path
-(`gridless_physics=true`, `physics_decoupled=true`, `boxless_field=true`) and
-uses the source default of 2,500,000 particles unless a different preset is selected.
-The production scene keeps the tracking envelope enabled: the finite
-site window follows the compact particle envelope instead of becoming a fixed
-wall that the cloud can pile into.
+(`gridless_physics=true`, `physics_decoupled=true`, `boxless_field=true`) with
+250,000 particles. When physical matter is off, its tracking envelope follows
+the compact particle support. Physical matter instead retains the fixed
+Eulerian domain prepared at initialization; camera tracking remains independent
+and does not move that solver domain.
 
 The site window is a finite open-boundary computation domain, not a periodic
 render box: particles that leave it remain in world coordinates and stop
@@ -35,6 +35,57 @@ wall. If you raise
 `N_particles`, keep `particle_size` small and make sure the initial cluster
 separation fits the site window; startup now auto-fits an invalid Gaussian or
 Plummer support before GPU setup.
+
+## Qi flow inspection
+
+Open **Visuals → Qi flow inspection → Enable Qi flow**. This live,
+rendering-only view reads the committed native site fields and their CSR
+neighbours on the global RenderingDevice. It does not step, reinitialize,
+deposit into, or change the observation source of the simulation. The view
+is off at startup and allocates no renderer resources while off. Disabling
+it restores the selected ordinary appearance.
+
+**Frame field** fits the actual finite field window to the camera while
+retaining the viewing angle. Only the camera moves. The window has a soft
+display edge; there are no repeated tiles or invented samples beyond it.
+The line width remains readable at a distance, while a low-opacity scalar
+layer avoids obscuring the currents with bright site disks.
+
+| Control | Meaning |
+|--------|---------|
+| **Both** | Gold Yang and teal Yin paths together, retaining counterflow. |
+| **Yang / Yin** | The corresponding current alone, with the same geometry and palette used by Both. |
+| **Net** | Pale paths following the vector sum. Equal opposite currents cancel here. |
+| **Coherence** | Native bounded q, deep blue → cyan → white on a fixed 0–1 scale. |
+| **Signed imbalance** | `(EY − φ EI) / max(abs(EY + EI), 1e-6)`, teal for negative and gold for positive, display-clipped to ±1. |
+| **Field amplitude** | `abs(EY + EI)`, violet → gold, normalized to the current maximum. |
+| **Field layer** | Soft scalar samples across the native sites, including valid low-q sites. Invalid data is omitted rather than painted as low q. |
+| **Source markers** | Occupied black-hole records at their world positions; marker size is a display cue, not a horizon radius. |
+| **Particle backdrop** | Retain the ordinary particle cloud behind the current view. |
+| **Filament density / Light gain** | Display sampling and brightness only. |
+| **Core cutaway** | Progressively remove the camera-facing portion; at 1 the near half is removed. |
+
+The paths follow current-aligned real graph bonds. They are not continuous
+integral curves or trajectories of material parcels. Moving brightness
+pulses indicate direction, not speed, and freeze at the accepted simulation
+time when paused. Channel intensities use compressed, independent maxima,
+so brightness is not an absolute comparison of Yang and Yin flux.
+
+For each directed CSR edge, the renderer uses the native minimum-image
+displacement `d_ij` and
+`P_Y = -c² (EY_j − EY_i) (πY_i + πY_j) / (2 |d_ij|)`,
+with an additional factor of φ for Yin. The site vector is
+`J = sum(P_ij d_ij) / (2 V_i)` using the native guarded volume. This is the
+native c²-wave energy-current channel, not a transport law for the scalar
+q. A nonzero winding coupling does not make this a total conserved flux.
+Zero committed momenta or a spatially uniform field produce zero paths.
+
+The view requires published native site topology and the global RD path.
+An unavailable configuration is reported in the panel rather than replaced
+with procedural flow. Every site's current is evaluated; paths use
+102–1024 deterministic seeds per channel and at most 16 bonds each. Scalar
+display above 262,144 sites uses a uniform spatial-index sample rather
+than a coherence shortlist.
 
 ## Appearance and capture
 
@@ -46,27 +97,76 @@ Open **Visuals → Appearance** and select a view:
 | **Observatory** | Warm point light, cooler diffuse material, depth-correct absorption, shadowed single scattering and shared HDR exposure. |
 | **Cinematic** | Observatory with restrained additional bloom and a 20 ms shutter; camera direction remains an independent choice. |
 
-Appearance and observation source are independent. **Simulation-unit optics**
-retains the established renderer described below. **Prescribed spectral preview**
-uses the immutable `prescribed-homogeneous-lte-continuum` reference: a 6500 K
-LTE source, 16 visible groups, CIE 1931 2° observer data, explicit SI-to-simulation
-unit maps, and a one-way homogeneous-sphere formal solution. It reads a frozen
-geometry/time publication and never changes the solver. **Coupled physical
-radiation** is visible but unavailable; selecting it fails closed and lists the
-missing native material, thermal, exchange, transport, and checkpoint capabilities.
+Appearance remains independent of the selected source. The source selector is
+one coherent simulation/readout choice:
 
-The optical views work in **Particles** and **Field** modes. They reconstruct
-the live simulation without modifying its particles or solver. Their material
-and colors use simulation units; coherence is not interpreted as temperature
-or an astronomical spectrum. Brightness variation follows the source
-distribution rather than added procedural foreground clouds.
+- **Simulation-unit optics** runs the default solver. Its optical volume
+  reconstructs density and light with compact isotropic C2 radial weights in
+  physical world space. The distance metric includes the production
+  anisotropic box spacing rather than reconstructing tensor-product cell
+  faces. Zero-valued ghost support at the storage boundary and a smooth
+  ellipsoidal outer envelope ensure that the
+  rectangular texture allocation cannot become a visible cuboid. Its retained
+  point layer uses the radial Gaussian observatory billboard.
+- **Prescribed spectral preview** runs the default solver and displays the
+  immutable `prescribed-homogeneous-lte-continuum` reference: a 6500 K LTE
+  source, 16 visible groups, CIE 1931 2° observer data, explicit
+  SI-to-simulation unit maps, and a one-way homogeneous-sphere formal solution.
+  It reads a frozen geometry/time publication and does not reinterpret the
+  simulation as physical matter.
+- **Live physical matter** initializes the conservative H/H+ material and
+  multigroup-radiation solver. In Observatory or Cinematic view, the display
+  ray-marches the CIE-projected line/continuum formal solution with
+  compact isotropic C2 radial reconstruction in world space. Each finite-volume
+  cell has spherical visual support that fades outside the compute domain
+  instead of exposing grid-aligned rectangular support. Its
+  alpha is the CIE-Y-weighted
+  spectral transmittance, so empty rays remain transparent instead of being
+  filled with a synthetic wash; the world background, when it is enabled, shows
+  through at one-sixteenth scale. The legacy Qi/LUT particle layer is hidden in
+  this view rather than superimposed as synthetic bright rings. The low
+  physical radiance receives a fixed display-only +4 EV baseline before the
+  user Exposure adjustment. While the physical publication initializes—or if it is lost—
+  the compositor shuts down and the ordinary particle renderer remains visible
+  instead of leaving a stale black frame.
 
-Start with **Exposure (EV)**, **Optical thickness**, **Emission**, and
-**Quality**. Exposure is locked by default. **Advanced scattering** contains
-point/diffuse allocation, scattering, bloom, shutter, temporal reprojection,
-optional slow auto exposure, the world-stable background and adaptive quality.
-**Save appearance** / **Load appearance** persist settings locally; saving
-does not silently enable the optical renderer on the next launch.
+Selecting either non-physical source restores the default solver. The production
+scene starts with live physical matter selected because its physical solver is
+enabled in `main.tscn`; there is no second enable toggle that can disagree with
+the source selector.
+
+The **Scientific** view intentionally bypasses every optical compositor. Its
+Qi particle instances retain the efficient QuadMesh allocation, but the
+scientific shader discards the corners and applies an anti-aliased radial
+support mask, so the allocation is never displayed as a colored card. The view
+retains the rainbow Qi palette even when the selected solver/source is live
+physical matter. Select **Observatory** or **Cinematic** to see the
+physical-matter radiation rather than the Scientific diagnostic palette.
+
+Start with **Exposure (EV)**, **Optical thickness**, **Emission**, **View
+depth**, and **Quality**. The default view is emission 0.3 with auto exposure
+enabled: the meter averages the matter the active mode renders — the point
+layer in Particles, the medium in Field and Cosmology — ignores frame regions
+with no matter, holds its correction while nothing is lit, corrects within
+±8 EV, and settles over about two seconds, so framing and brightness changes do
+not move the rendered level. The **Auto-exposure target** row in the advanced
+group sets that level (0.03 by default, about 2.6 EV below a mid-grey
+exposure); lower is dimmer, and because the meter absorbs changes in emission,
+this row rather than Emission is what sets the picture's brightness. The
+medium's own glow appears in the Field and Cosmology modes only; in Particles
+the cloud renders over the medium's transmittance, which darkens the background
+behind dense matter. **View depth** is the maximum camera distance for the
+ordered particle layer, in world units; 0 keeps the whole occupied domain, and
+a smaller value shortens how far matter stays visible and bounds how many
+particles stack along one view ray. The world background is added after the
+exposure multiply, so it is never directly exposure-scaled and never enters the
+meter; where a pixel also carries matter, the shared highlight transform
+compresses its contribution. It ships off; enabled, it is a faint depth floor
+with a dim star field. **Advanced scattering** contains point/diffuse
+allocation, scattering, bloom, the auto-exposure target, shutter, temporal
+reprojection, auto exposure, the world-stable background and adaptive quality.
+**Save appearance** / **Load appearance** persist settings locally; saving does
+not silently enable the optical renderer on the next launch.
 
 | Quality | Optical grid | Maximum optical image height |
 |---------|--------------|------------------------------|

@@ -23,6 +23,13 @@
 ##     vec4(pos.xyz, mass) and `w <= 0.0` means DEAD — deposit / nbody /
 ##     merge / BH-accretion / instancer skip it; accretion writes w = 0.0
 ##     on swallow; merge writes w = 0.0 on coalesce.
+##   - Momentum convention (the BH field channel, BH_DYNAMICS_PLAN.md):
+##     `_bh_dyn_buf` is a PENDING account, never a state — accretion adds
+##     (Σm·v, Σm) into it and cassi_bh_finalize.glsl folds the impulse into
+##     the record's velocity and zeroes it in the same step, so nothing in
+##     it outlives one finalize. The BH record's own vel (bh[base+1].xyz)
+##     IS the live velocity; bh[base+1].w is its age. Each BH record also
+##     has a cached acceleration in `_bh_acc_buf` (the KDK a_prev).
 ##   - The window-origin convention (movable home-window, 3e3f9a6): the
 ##     field grid's world-origin offset rides bh[0].yzw (floats 4/8/12);
 ##     the per-axis half-extents ride bh[2].yzw. Zero origin = the legacy
@@ -61,6 +68,9 @@ const PC := {
 	"cassi_voronoi_fused_volume": 32, # 128 B — camera/ray, topology, traversal, reserved controls
 	"cassi_workbench_field": 14, # 56 B — bounded align selection
 	"cassi_workbench_particle": 14, # 56 B — bounded particle impulse
+	"cassi_bh_accretion": 5,      # 20 B — N_f, np, r_acc, mom_on (the field-channel momentum gate at slot 3), k_cap (capture: r_cap = max(r_acc, k_cap·M))
+	"cassi_bh_deposit": 9,        # 36 B — the mass-deposit layout, pushed verbatim (particle_N unused)
+	"cassi_bh_finalize": 16,      # 64 B — the nbody layout, pushed verbatim (pass_mode at slot 11 = the seed step) + self_mirror at slot 15 (byte 60)
 }
 
 
@@ -91,6 +101,7 @@ const HOST_PC_FLOATS := {
 	"_rotation_axis_pc": 4,
 	"_macro_lod_pc": 4,
 	"_trail_pc": 16,
+	"_bh_fin_pc_bytes": 16,   # nbody 15-float layout + self_mirror (byte 60)
 }
 const HOST_PC_BYTES := {
 	"_blend_pc": 20,   # 5 floats
@@ -105,6 +116,11 @@ const HOST_PC_BYTES := {
 ##   bh[2].yzw   = per-axis box half-extents (floats 36/40/44)
 ##   bh[3].xyzw  = black_holes_enabled, dual_grid, gradient_order, tree G_SCALE
 ##   bh[4..]     = BH records (vec4[pos.xyz, mass] + vec4[vel.xyz, age]; max 15)
+##   ── bh[3].x (float 48) is the analytic BH point-gravity enable every BH
+##      force site gates on. In the field channel (BH_DYNAMICS_PLAN.md §1.3)
+##      the host writes 0.0 while BH records are live: the BH's pull reaches
+##      matter through rho and ∇(g·Φ) instead, never through both routes at
+##      once. Outside the channel the flag is 1.0 and the legacy term runs.
 const BH_HEADER_VEC4S := 36
 const BH_WINDOW_ORIGIN_FLOAT := 4   # bh[0].y
 const BH_EXTENT_FLOAT := 36         # bh[2].y
@@ -143,6 +159,9 @@ const BINDINGS := {
 	"cassi_workbench_particle": {0: [0, 1]},
 	"cassi_site_shortlist": {0: [0, 1, 2, 3, 4]},
 	"cassi_site_hash": {0: [0, 1, 2, 3, 4]},
+	"cassi_bh_accretion": {0: [0, 1, 2, 3]},
+	"cassi_bh_deposit": {0: [0, 1]},
+	"cassi_bh_finalize": {0: [0, 1, 2, 3, 4, 5], 1: [0, 1, 2]},
 }
 
 ## The covered shader set (name -> GLSL file), all of which must carry the
@@ -159,4 +178,5 @@ const COVERED := [
 	"cassi_presentation_macro_lod", "cassi_presentation_trails",
 	"cassi_voronoi_optical_payload", "cassi_voronoi_fused_volume",
 	"cassi_workbench_field", "cassi_workbench_particle", "cassi_field_learn",
+	"cassi_bh_accretion", "cassi_bh_deposit", "cassi_bh_finalize",
 ]

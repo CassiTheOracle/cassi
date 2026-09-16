@@ -49,9 +49,15 @@ normal window.
 - **WASD** to move, **right-drag** to look, **Space** to pause or resume.
 - **Setup → Initial state** to choose a shape and initial motion.
 - **Visuals → Appearance** to choose Scientific, Observatory, or Cinematic.
+- **Visuals → Qi flow inspection** to follow the gold Yang and teal Yin
+  currents separately or together. **Frame field** brings the finite field
+  window into view; **Core cutaway** exposes its interior.
+- **Visuals → Appearance → Source** to choose the default simulation optics,
+  the fixed spectral preview, or the live physical-matter solver and readout.
 
-The default scene uses **2.5 million particles**. Lower **Setup → Compute
-budget → Particles** if your hardware needs a lighter workload.
+The default scene uses **250,000 particles** with live physical matter selected.
+Raise or lower **Setup → Compute budget → Particles** for the workload your
+hardware can sustain.
 
 - [Technical guide](TECHNICAL_GUIDE.md) — configuration, controls, engine
   details, and measured performance.

@@ -495,34 +495,55 @@ func compute_projection(k: int) -> Dictionary:
 	k = mini(k, 4096)
 	if k > cells:
 		k = cells
+	if k == 0:
+		return {"step": _step, "t": _t, "cells": []}
 	var rb := readback_ey_ei()
 	var ey: PackedFloat32Array = rb[0]
 	var ei: PackedFloat32Array = rb[1]
-	# O(N*k) top-k scan over {q, i} pairs. k is tiny; N=grid_n^3 = 262144 for
-	# the default N=64, so a manual scan beats a full Array sort hands-down.
-	var top: Array = []
-	top.resize(k)
-	for t in range(k):
-		top[t] = {"q": -1.0e30, "i": -1}
+	# Keep the worst retained pair at the heap root. This bounds the scan at
+	# O(cells*log(k)) while the final extraction restores q-desc/index-asc.
+	# Float64 q storage preserves the scalar computation and near-tie order.
+	var heap_q := PackedFloat64Array()
+	var heap_i := PackedInt32Array()
+	heap_q.resize(k)
+	heap_i.resize(k)
+	var heap_size: int = 0
 	for i in range(cells):
 		var qv: float = ey[i] * ey[i] + ei[i] * ei[i]
-		# Insertion position among the running top-k (kept sorted q DESC).
-		var pos: int = k - 1
-		while pos >= 0 and (qv > (top[pos]["q"] as float)
-				or (qv == (top[pos]["q"] as float) and i < (top[pos]["i"] as int))):
-			pos -= 1
-		if pos < k - 1:
-			# Shift [pos+1, k-1) right, drop the tail.
-			var t := k - 1
-			while t > pos + 1:
-				top[t] = top[t - 1]
-				t -= 1
-			top[pos + 1] = {"q": qv, "i": i}
+		if is_nan(qv):
+			continue
+		if heap_size < k:
+			heap_q[heap_size] = qv
+			heap_i[heap_size] = i
+			heap_size += 1
+			_projection_heap_sift_up(heap_q, heap_i, heap_size - 1)
+		elif _projection_pair_better(qv, i, heap_q[0], heap_i[0]):
+			heap_q[0] = qv
+			heap_i[0] = i
+			_projection_heap_sift_down(heap_q, heap_i, heap_size, 0)
+	while heap_size < k:
+		heap_q[heap_size] = -1.0e30
+		heap_i[heap_size] = -1
+		heap_size += 1
+		_projection_heap_sift_up(heap_q, heap_i, heap_size - 1)
+	var sorted_q := PackedFloat64Array()
+	var sorted_i := PackedInt32Array()
+	sorted_q.resize(k)
+	sorted_i.resize(k)
+	for slot in range(k - 1, -1, -1):
+		sorted_q[slot] = heap_q[0]
+		sorted_i[slot] = heap_i[0]
+		heap_size -= 1
+		if heap_size > 0:
+			heap_q[0] = heap_q[heap_size]
+			heap_i[0] = heap_i[heap_size]
+			_projection_heap_sift_down(heap_q, heap_i, heap_size, 0)
+
 	var out: Array = []
 	out.resize(k)
 	var n := grid_n
 	for t in range(k):
-		var idx: int = top[t]["i"] as int
+		var idx: int = sorted_i[t]
 		var gx: int = idx / (n * n)
 		var rem: int = idx % (n * n)
 		var gy: int = rem / n
@@ -534,9 +555,58 @@ func compute_projection(k: int) -> Dictionary:
 			"y": (2.0 * float(gy) / float(n - 1) - 1.0) * extent.y,
 			"z": (2.0 * float(gz) / float(n - 1) - 1.0) * extent.z,
 			"ey": ey[idx], "ei": ei[idx],
-			"q": top[t]["q"] as float,
+			"q": sorted_q[t],
 		}
 	return {"step": _step, "t": _t, "cells": out}
+
+
+func _projection_pair_worse(q_a: float, i_a: int, q_b: float, i_b: int) -> bool:
+	return q_a < q_b or (q_a == q_b and i_a > i_b)
+
+
+func _projection_pair_better(q_a: float, i_a: int, q_b: float, i_b: int) -> bool:
+	return q_a > q_b or (q_a == q_b and i_a < i_b)
+
+
+func _projection_heap_sift_up(heap_q: PackedFloat64Array,
+		heap_i: PackedInt32Array, node: int) -> void:
+	var child: int = node
+	while child > 0:
+		var parent: int = (child - 1) / 2
+		if not _projection_pair_worse(heap_q[child], heap_i[child],
+				heap_q[parent], heap_i[parent]):
+			break
+		var q_tmp: float = heap_q[parent]
+		var i_tmp: int = heap_i[parent]
+		heap_q[parent] = heap_q[child]
+		heap_i[parent] = heap_i[child]
+		heap_q[child] = q_tmp
+		heap_i[child] = i_tmp
+		child = parent
+
+
+func _projection_heap_sift_down(heap_q: PackedFloat64Array,
+		heap_i: PackedInt32Array, size: int, node: int) -> void:
+	var parent: int = node
+	while true:
+		var left: int = parent * 2 + 1
+		if left >= size:
+			break
+		var child: int = left
+		var right: int = left + 1
+		if right < size and _projection_pair_worse(heap_q[right], heap_i[right],
+				heap_q[left], heap_i[left]):
+			child = right
+		if not _projection_pair_worse(heap_q[child], heap_i[child],
+				heap_q[parent], heap_i[parent]):
+			break
+		var q_tmp: float = heap_q[parent]
+		var i_tmp: int = heap_i[parent]
+		heap_q[parent] = heap_q[child]
+		heap_i[parent] = heap_i[child]
+		heap_q[child] = q_tmp
+		heap_i[child] = i_tmp
+		parent = child
 
 
 func _sha256_hex(bytes: PackedByteArray) -> String:
@@ -603,26 +673,53 @@ func compute_qi_projection(k: int) -> Dictionary:
 	if k < 1:
 		k = 8
 	k = mini(k, QI_WAVE_MODE_COUNT)
-	var top: Array = []
-	top.resize(k)
-	for t in range(k):
-		top[t] = {"q": -1.0e30, "mode": -1, "p0": 0.0, "p1": 0.0}
+	var heap_q := PackedFloat64Array()
+	var heap_mode := PackedInt32Array()
+	heap_q.resize(k)
+	heap_mode.resize(k)
+	var heap_size: int = 0
 	for mode in range(QI_WAVE_MODE_COUNT):
 		var base: int = mode * QI_PLANE_COUNT * 4
 		var p0: float = _qi_state.decode_float(base)
 		var p1: float = _qi_state.decode_float(base + 4)
 		var q: float = p0 * p0 + p1 * p1
-		var pos: int = k - 1
-		while pos >= 0 and (q > float(top[pos]["q"]) \
-				or (q == float(top[pos]["q"]) and mode < int(top[pos]["mode"]))):
-			pos -= 1
-		if pos < k - 1:
-			var t: int = k - 1
-			while t > pos + 1:
-				top[t] = top[t - 1]
-				t -= 1
-			top[pos + 1] = {"q": q, "mode": mode, "p0": p0, "p1": p1}
-	return qi_state_info().merged({"cmd": "qi_project", "modes": top}, true)
+		if is_nan(q):
+			continue
+		if heap_size < k:
+			heap_q[heap_size] = q
+			heap_mode[heap_size] = mode
+			heap_size += 1
+			_projection_heap_sift_up(heap_q, heap_mode, heap_size - 1)
+		elif _projection_pair_better(q, mode, heap_q[0], heap_mode[0]):
+			heap_q[0] = q
+			heap_mode[0] = mode
+			_projection_heap_sift_down(heap_q, heap_mode, heap_size, 0)
+
+	var sorted_q := PackedFloat64Array()
+	var sorted_mode := PackedInt32Array()
+	sorted_q.resize(heap_size)
+	sorted_mode.resize(heap_size)
+	for slot in range(heap_size - 1, -1, -1):
+		sorted_q[slot] = heap_q[0]
+		sorted_mode[slot] = heap_mode[0]
+		heap_size -= 1
+		if heap_size > 0:
+			heap_q[0] = heap_q[heap_size]
+			heap_mode[0] = heap_mode[heap_size]
+			_projection_heap_sift_down(heap_q, heap_mode, heap_size, 0)
+
+	var modes: Array = []
+	modes.resize(sorted_mode.size())
+	for slot in range(sorted_mode.size()):
+		var mode: int = sorted_mode[slot]
+		var base: int = mode * QI_PLANE_COUNT * 4
+		modes[slot] = {
+			"q": sorted_q[slot],
+			"mode": mode,
+			"p0": _qi_state.decode_float(base),
+			"p1": _qi_state.decode_float(base + 4),
+		}
+	return qi_state_info().merged({"cmd": "qi_project", "modes": modes}, true)
 
 
 func _clear_qi_snapshot() -> void:

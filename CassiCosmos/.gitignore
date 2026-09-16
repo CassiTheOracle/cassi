@@ -6,6 +6,7 @@
 
 # Generated import metadata (tracked .import files stay tracked)
 *.import
+research/presentation/reference/*.translation
 
 # Diagnostic probes / run logs (never tracked)
 _diag/

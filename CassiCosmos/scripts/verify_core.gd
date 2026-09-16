@@ -53,6 +53,7 @@ const WINDOW_COUNT := 2                # windows after the pre-window baseline
 const BOOT_TIMEOUT_SEC := 240.0
 const WARMUP_MIN_STEPS := 2            # decoupled bootstrap: first publish needs steps
 const FREEZE_FRAMES := 3               # frames used to prove pacing is frozen
+const EXPLICIT_WINDOW_TIMEOUT_SEC := 60.0
 const SAMPLE_CHUNK := 65536            # particles per contiguous readback chunk
 const SAMPLE_CHUNKS := 3               # chunks spread across the particle buffer
 const FAST_PARTICLES := 65536
@@ -66,11 +67,22 @@ const MASS_DRIFT_TOL := 5.0e-3         # relative, sampled chunks, across all wi
 const CHARGE_DRIFT_TOL := 5.0e-2       # relative, full-field EY/EI sums (grid path only)
 const Q_ABS_MAX := 1.0e6               # blow-up guard on max |q| (grid path only)
 const MAX_MEAN_VELOCITY_DELTA := 1.0e3 # mean |Δv| per 8-step window (site path)
-const MIN_NONBACKGROUND := 0.002       # lit-pixel fraction of the captured frame
+const MIN_NONBACKGROUND := 0.002       # lit-pixel fraction with interface hidden
 const LIT_THRESHOLD := 0.02            # per-channel value counted as lit
+const MIN_MATTER_BACKGROUND_CONTRAST := 0.01
+const MAX_AXIS_ALIGNED_GRADIENT_FRACTION := 0.60
+const MAX_FOURFOLD_GRADIENT_ANISOTROPY := 0.55
+const MAX_AXIS_ALIGNED_RUN_FRACTION := 0.04
+const MAX_VISIBLE_AXIS_ALIGNED_RUN_FRACTION := 0.15
+const MAX_RECTANGULAR_COMPONENT_FILL := 0.92
+const RECTANGULAR_AXIS_PAIR_MIN := 0.85
+const MIN_RECTANGLE_COMPONENT_PIXELS := 16
+const RECTANGLE_NEGATIVE_CONTROL_MIN := 0.85
+const RECTANGLE_NEGATIVE_RUN_MIN := 0.30
 
 ## The pinned production contract: what main.tscn sets on its CassiSim node.
 const PINNED_OVERRIDES := {
+	"N_particles": 250000,
 	"dt": 0.05,
 	"num_clusters": 3,
 	"cluster_separation": 1500.0,
@@ -93,13 +105,13 @@ const PINNED_OVERRIDES := {
 	"qi_cycle": Vector2(0.005, 1.0),
 	"qi_approach": Vector2(0.8, 1.0),
 	"volume_dynamic_resolution": true,
+	"physical_matter_enabled": true,
 }
 
-## Defaults main.tscn does NOT override, so production inherits them. The
-## particle count is the only axis the named fast fixture is allowed to change.
+## Defaults main.tscn does NOT override, so production inherits them.
+## N_particles is pinned above; the named fast fixture is its only replacement.
 const PINNED_INHERITED := {
 	"grid_N": 64,
-	"N_particles": 2500000,
 	"gravity_mode": 4,
 	"meshless_gravity": true,
 	"physics_decoupled": true,
@@ -107,7 +119,6 @@ const PINNED_INHERITED := {
 	"particle_merge": false,
 	"black_holes_enabled": false,
 	"field_intelligence_enabled": false,
-	"physical_matter_enabled": false,
 	"field_particles": false,
 }
 
@@ -251,7 +262,7 @@ func _run_checks() -> void:
 
 	var windows: Array[Dictionary] = []
 	for index in WINDOW_COUNT:
-		if not _run_window(index + 1):
+		if not await _run_window(index + 1):
 			break
 		windows.append(_sample())
 	_receipt["windows"] = windows.map(func(entry: Dictionary) -> Dictionary:
@@ -274,11 +285,22 @@ func _run_checks() -> void:
 
 func _run_window(index: int) -> bool:
 	var before := _executed()
+	var target := before + STEP_WINDOW
 	_sim.call("_run_physics_steps", STEP_WINDOW)
+	var deadline := Time.get_ticks_msec() \
+			+ int(EXPLICIT_WINDOW_TIMEOUT_SEC * 1000.0)
+	while Time.get_ticks_msec() < deadline \
+			and (_executed() < target or _physical_transaction_pending()):
+		if bool(_sim.get("_gridless_failure")):
+			break
+		await get_tree().process_frame
 	var after := _executed()
+	var settled := not _physical_transaction_pending()
 	_check("explicit window %d executes exactly %d steps" % [index, STEP_WINDOW],
-			after - before == STEP_WINDOW, "executed %d -> %d" % [before, after])
-	return after - before == STEP_WINDOW
+			after == target and settled,
+			"executed %d -> %d; physical transaction settled=%s" % [
+				before, after, settled])
+	return after == target and settled
 
 
 func _check_finiteness(baseline: Dictionary, windows: Array[Dictionary]) -> void:
@@ -462,11 +484,11 @@ func _capture_config() -> Dictionary:
 func _check_fingerprint(declared: Dictionary) -> void:
 	var mismatches: Array[String] = []
 	for key in PINNED_OVERRIDES:
+		if _fast and key == "N_particles":
+			continue
 		if not _matches(declared[key], PINNED_OVERRIDES[key]):
 			mismatches.append("%s = %s (pinned %s)" % [key, str(declared[key]), str(PINNED_OVERRIDES[key])])
 	for key in PINNED_INHERITED:
-		if _fast and key == "N_particles":
-			continue
 		if not _matches(declared[key], PINNED_INHERITED[key]):
 			mismatches.append("%s = %s (inherited %s)" % [key, str(declared[key]), str(PINNED_INHERITED[key])])
 	_receipt["fingerprint_mismatches"] = mismatches
@@ -491,9 +513,18 @@ func _check_ui() -> void:
 			defaulted_on.append(control_name)
 	if _ui.find_child("field_particlesToggle", true, false) == null:
 		missing.append("field_particlesToggle")
-	_check("production UI builds with its default-off controls", missing.is_empty() and defaulted_on.is_empty(),
-			"missing: %s; defaulted on: %s" % [", ".join(missing) if not missing.is_empty() else "none",
-				", ".join(defaulted_on) if not defaulted_on.is_empty() else "none"])
+	var source_control := _ui.find_child("ObservationSource", true, false) as COptionParam
+	if source_control == null:
+		missing.append("ObservationSource")
+	var source := source_control.get_value() if source_control != null else -1
+	var obsolete_toggle_present := _ui.find_child("PhysicalMatterBtn", true, false) != null
+	var coherent_physical_control := not obsolete_toggle_present and source == 2
+	_check("production UI builds with coherent source and default-off controls",
+			missing.is_empty() and defaulted_on.is_empty() and coherent_physical_control,
+			"missing: %s; defaulted on: %s; source: %d; obsolete physical toggle: %s" % [
+				", ".join(missing) if not missing.is_empty() else "none",
+				", ".join(defaulted_on) if not defaulted_on.is_empty() else "none",
+				source, obsolete_toggle_present])
 	_check("production capture helper is wired to the UI", _capture != null,
 			"capture helper %s" % ("present" if _capture != null else "missing"))
 
@@ -624,14 +655,86 @@ func _alive_count(pos: PackedFloat32Array) -> int:
 # ── capture ────────────────────────────────────────────────────────────
 
 func _capture_frame() -> void:
+	var settings: Dictionary = _sim.call("get_observatory_settings")
+	var original_style := int(settings.get("style", 0))
+	var mmi: MultiMeshInstance3D = _sim.get("_mmi")
+	_sim.call("set_observatory_style", 0)
+	await _frames(2)
+	var scientific_settings: Dictionary = _sim.call("get_observatory_settings")
+	var scientific_statistics: Dictionary = _sim.call("get_observatory_statistics")
+	var scientific_shader_path := ""
+	var scientific_lut := false
+	if mmi != null and mmi.material_override is ShaderMaterial:
+		var scientific_material := mmi.material_override as ShaderMaterial
+		if scientific_material.shader != null:
+			scientific_shader_path = scientific_material.shader.resource_path
+		var lut_value: Variant = scientific_material.get_shader_parameter("lut_enabled")
+		scientific_lut = lut_value is float and float(lut_value) > 0.5
+	var scientific_contract := \
+			int(scientific_settings.get("observation_source", -1)) == 2 \
+			and int(scientific_settings.get("style", -1)) == 0 \
+			and not bool(scientific_statistics.get("active", true)) \
+			and String(scientific_statistics.get("particle_layer_kind", "")) == "none" \
+			and mmi != null and mmi.visible \
+			and scientific_shader_path \
+					== "res://shaders/particle_billboard.gdshader" \
+			and scientific_lut
+	_sim.call("set_observatory_style", original_style)
+	await _frames(2)
+	settings = _sim.call("get_observatory_settings")
+	var original_temporal := bool(settings.get("temporal", true))
+	var original_auto_exposure := bool(settings.get("auto_exposure", false))
+	_sim.call("set_observatory_setting", "temporal", false)
+	_sim.call("set_observatory_setting", "auto_exposure", false)
+	if _capture != null:
+		_capture.call("set_interface_visible", false)
+	await _frames(2)
 	await RenderingServer.frame_post_draw
 	var texture := get_viewport().get_texture()
-	if texture == null:
-		_check("production renderer draws a visible frame", false, "no viewport texture")
-		return
-	var image := texture.get_image()
+	var image: Image = texture.get_image() if texture != null else null
+	var particle_layer_visible := mmi != null and mmi.visible
+	var raw: Dictionary = _sim.call("capture_observation_raw_xyz")
+	var raw_bytes: PackedByteArray = raw.get("bytes", PackedByteArray())
+	var raw_values := raw_bytes.to_float32_array()
+	var raw_size: Vector2i = raw.get("size", Vector2i.ZERO)
+	var raw_finite := raw_values.size() > 0 and raw_values.size() % 4 == 0
+	var raw_nonzero_pixels := 0
+	var raw_max_xyz := 0.0
+	if raw_finite:
+		for pixel in raw_values.size() / 4:
+			var offset := pixel * 4
+			for channel in 3:
+				var value := raw_values[offset + channel]
+				if not is_finite(value) or value < 0.0:
+					raw_finite = false
+					break
+				raw_max_xyz = maxf(raw_max_xyz, value)
+			if not raw_finite:
+				break
+			if maxf(raw_values[offset],
+					maxf(raw_values[offset + 1], raw_values[offset + 2])) > 0.0:
+				raw_nonzero_pixels += 1
+	var statistics: Dictionary = _sim.call("get_observatory_statistics")
+	var source_style_matrix := await _capture_source_style_matrix(
+			int(settings.get("observation_source", 2)), original_style)
+	var source_style_matrix_valid := source_style_matrix.size() == 27
+	for row in source_style_matrix:
+		source_style_matrix_valid = source_style_matrix_valid \
+				and bool(row.get("settings_match", false)) \
+				and bool(row.get("image_valid", false)) \
+				and bool(row.get("shape_target_ok", false)) \
+				and float(row.get("lit_fraction", 0.0)) >= MIN_NONBACKGROUND \
+				and bool(row.get("rectangularity_rejected", false))
+	var volume: Dictionary = statistics.get("volume", {})
+	_sim.call("set_observatory_setting", "temporal", original_temporal)
+	_sim.call("set_observatory_setting", "auto_exposure", original_auto_exposure)
+	if _capture != null:
+		_capture.call("set_interface_visible", true)
+	await _frames(2)
+
 	if image == null or image.is_empty():
-		_check("production renderer draws a visible frame", false, "empty viewport image")
+		_check("production physical source renders visible live radiance", false,
+				"empty viewport image with interface hidden")
 		return
 	image.save_png(ProjectSettings.globalize_path(FRAME_PATH))
 	var step_x := maxi(image.get_width() / 64, 1)
@@ -645,15 +748,500 @@ func _capture_frame() -> void:
 			if maxf(pixel.r, maxf(pixel.g, pixel.b)) > LIT_THRESHOLD:
 				lit += 1
 	var fraction := 0.0 if sampled == 0 else float(lit) / float(sampled)
+	var matter_luma_sum := 0.0
+	var matter_luma_count := 0
+	var background_luma_sum := 0.0
+	var background_luma_count := 0
+	var display_shape_values := PackedFloat32Array()
+	if raw_finite and raw_size.x > 0 and raw_size.y > 0 \
+			and raw_size.x * raw_size.y * 4 == raw_values.size():
+		display_shape_values.resize(raw_values.size())
+	if raw_finite and raw_size.x > 0 and raw_size.y > 0 \
+			and raw_size.x * raw_size.y * 4 == raw_values.size():
+		for raw_y in raw_size.y:
+			for raw_x in raw_size.x:
+				var raw_pixel := raw_y * raw_size.x + raw_x
+				var raw_offset := raw_pixel * 4
+				var image_x := clampi(int(
+						(float(raw_x) + 0.5) * image.get_width() / raw_size.x),
+						0, image.get_width() - 1)
+				var image_y := clampi(int(
+						(float(raw_y) + 0.5) * image.get_height() / raw_size.y),
+						0, image.get_height() - 1)
+				var display_pixel := image.get_pixel(image_x, image_y)
+				var display_luma := 0.2126 * display_pixel.r \
+						+ 0.7152 * display_pixel.g + 0.0722 * display_pixel.b
+				var has_matter := maxf(raw_values[raw_offset],
+						maxf(raw_values[raw_offset + 1],
+								raw_values[raw_offset + 2])) > 0.0
+				if has_matter:
+					display_shape_values[raw_offset] = display_luma
+					display_shape_values[raw_offset + 1] = display_luma
+					display_shape_values[raw_offset + 2] = display_luma
+					matter_luma_sum += display_luma
+					matter_luma_count += 1
+				else:
+					background_luma_sum += display_luma
+					background_luma_count += 1
+	var matter_mean_luma := matter_luma_sum / maxf(float(matter_luma_count), 1.0)
+	var background_mean_luma := background_luma_sum \
+			/ maxf(float(background_luma_count), 1.0)
+	var matter_background_contrast := matter_mean_luma - background_mean_luma
+	var display_shape_max := 0.0
+	if display_shape_values.size() > 0:
+		for pixel_index in display_shape_values.size() / 4:
+			var offset := pixel_index * 4
+			var display_signal := maxf(
+					display_shape_values[offset] - background_mean_luma, 0.0)
+			display_shape_values[offset] = display_signal
+			display_shape_values[offset + 1] = display_signal
+			display_shape_values[offset + 2] = display_signal
+			display_shape_max = maxf(display_shape_max, display_signal)
+	var shape_metrics := _radiance_shape_metrics(
+			display_shape_values, raw_size, display_shape_max)
+	var rectangle_control := _radiance_shape_metrics(
+			_hard_rectangle_xyz_fixture(), Vector2i(64, 64), 1.0)
+	var radial_control := _radiance_shape_metrics(
+			_smooth_radial_xyz_fixture(), Vector2i(64, 64), 1.0)
+	var radial_control_accepted := _shape_metrics_reject_rectangle(radial_control)
+	var rectangle_rejection_fires := \
+			float(rectangle_control.get("axis_aligned_gradient_fraction", 0.0)) \
+					>= RECTANGLE_NEGATIVE_CONTROL_MIN \
+			and float(rectangle_control.get("fourfold_gradient_anisotropy", 0.0)) \
+					>= RECTANGLE_NEGATIVE_CONTROL_MIN \
+			and float(rectangle_control.get(
+					"max_axis_aligned_run_fraction", 0.0)) \
+					>= RECTANGLE_NEGATIVE_RUN_MIN
+	var rectangularity_rejected := _shape_metrics_reject_rectangle(shape_metrics) \
+			and rectangle_rejection_fires and radial_control_accepted
+	var source := int(settings.get("observation_source", -1))
+	var style := int(settings.get("style", -1))
+	var physical_contract := source == 2 and style > 0 \
+			and scientific_contract \
+			and bool(statistics.get("source_ready", false)) \
+			and String(statistics.get("source_name", "")) == "live_physical_matter" \
+			and String(statistics.get("particle_layer_kind", "")) == "none" \
+			and int(statistics.get("post_composition_kind", -1)) == 2 \
+			and String(volume.get("source_kind", "")) \
+					== "live_conditional_hydrogen_plasma" \
+			and String(volume.get("spatial_reconstruction", "")) \
+					== "isotropic_wendland_c2_world"
 	_receipt["frame"] = {
 		"path": FRAME_PATH,
 		"width": image.get_width(),
 		"height": image.get_height(),
 		"lit_fraction": fraction,
+		"matter_mean_luma": matter_mean_luma,
+		"background_mean_luma": background_mean_luma,
+		"matter_background_contrast": matter_background_contrast,
+		"interface_hidden": true,
+		"observation_source": source,
+		"observatory_style": style,
+		"scientific_source": int(
+				scientific_settings.get("observation_source", -1)),
+		"scientific_style": int(scientific_settings.get("style", -1)),
+		"scientific_shader": scientific_shader_path,
+		"scientific_lut_enabled": scientific_lut,
+		"scientific_contract": scientific_contract,
+		"naturalistic_particle_layer_hidden": not particle_layer_visible,
+		"physical_post_composition_kind": int(
+				statistics.get("post_composition_kind", -1)),
+		"physical_spatial_reconstruction": String(
+				volume.get("spatial_reconstruction", "")),
+		"physical_source_ready": bool(statistics.get("source_ready", false)),
+		"physical_source_kind": String(volume.get("source_kind", "")),
+		"raw_xyz_finite": raw_finite,
+		"raw_xyz_nonzero_pixels": raw_nonzero_pixels,
+		"raw_xyz_max": raw_max_xyz,
+		"axis_aligned_gradient_fraction": float(shape_metrics.get(
+				"axis_aligned_gradient_fraction", 1.0)),
+		"fourfold_gradient_anisotropy": float(shape_metrics.get(
+				"fourfold_gradient_anisotropy", 1.0)),
+		"max_axis_aligned_run_fraction": float(shape_metrics.get(
+				"max_axis_aligned_run_fraction", 1.0)),
+		"rectangularity_rejected": rectangularity_rejected,
+		"rectangle_negative_control_fires": rectangle_rejection_fires,
+		"radial_positive_control_accepted": radial_control_accepted,
+		"source_style_matrix": source_style_matrix,
 	}
-	_check("production renderer draws a visible frame", fraction >= MIN_NONBACKGROUND,
-			"%dx%d, lit fraction %.4f (floor %.4f), saved %s" % [
-				image.get_width(), image.get_height(), fraction, MIN_NONBACKGROUND, FRAME_PATH])
+	var visible := fraction >= MIN_NONBACKGROUND and physical_contract \
+			and not particle_layer_visible and bool(raw.get("ok", false)) \
+			and raw_finite and raw_nonzero_pixels > 0 and raw_max_xyz > 0.0 \
+			and matter_luma_count > 0 and background_luma_count > 0 \
+			and matter_background_contrast >= MIN_MATTER_BACKGROUND_CONTRAST \
+			and rectangularity_rejected
+	_check("production source/style boundary renders Qi and continuous physical radiance",
+			visible,
+			"%dx%d, Scientific source/style %d/%d shader=%s LUT=%s; naturalistic source/style %d/%d reconstruction=%s, matter/background luma %.4f/%.4f contrast %.4f (floor %.4f), raw XYZ nonzero %d max %.8f, axis-gradient fraction %.4f (ceiling %.4f), fourfold anisotropy %.4f (ceiling %.4f), longest axis run %.4f (ceiling %.4f), rectangle control fires=%s, legacy particles hidden=%s, saved %s" % [
+				image.get_width(), image.get_height(),
+				int(scientific_settings.get("observation_source", -1)),
+				int(scientific_settings.get("style", -1)),
+				scientific_shader_path, scientific_lut, source, style,
+				String(volume.get("spatial_reconstruction", "")),
+				matter_mean_luma, background_mean_luma,
+				matter_background_contrast, MIN_MATTER_BACKGROUND_CONTRAST,
+				raw_nonzero_pixels, raw_max_xyz,
+				float(shape_metrics.get("axis_aligned_gradient_fraction", 1.0)),
+				MAX_AXIS_ALIGNED_GRADIENT_FRACTION,
+				float(shape_metrics.get("fourfold_gradient_anisotropy", 1.0)),
+				MAX_FOURFOLD_GRADIENT_ANISOTROPY,
+				float(shape_metrics.get("max_axis_aligned_run_fraction", 1.0)),
+				MAX_AXIS_ALIGNED_RUN_FRACTION,
+				rectangle_rejection_fires,
+				not particle_layer_visible, FRAME_PATH])
+	_check("all production source/style/view combinations reject rectangular storage cards",
+			source_style_matrix_valid,
+			"%d/27 source/style/view captures valid, visibly populated, and accepted by the shared rectangle predicate; per-statistic values remain in the receipt because a rasterized radial disc need not satisfy the stricter physical-volume anisotropy ceilings" % source_style_matrix.size())
+	_check("rectangularity detector distinguishes radial support from a hard rectangle",
+			rectangle_rejection_fires and radial_control_accepted,
+			"rectangle axis/fourfold/run %.3f/%.3f/%.3f; radial axis/fourfold/run %.3f/%.3f/%.3f" % [
+				float(rectangle_control.get("axis_aligned_gradient_fraction", 0.0)),
+				float(rectangle_control.get("fourfold_gradient_anisotropy", 0.0)),
+				float(rectangle_control.get("max_axis_aligned_run_fraction", 0.0)),
+				float(radial_control.get("axis_aligned_gradient_fraction", 1.0)),
+				float(radial_control.get("fourfold_gradient_anisotropy", 1.0)),
+				float(radial_control.get("max_axis_aligned_run_fraction", 1.0))])
+
+
+func _capture_source_style_matrix(original_source: int,
+		original_style: int) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	var original_camera_transform := _camera.global_transform
+	var target: Vector3 = _sim.call("get_presentation_camera_target")
+	var original_offset := original_camera_transform.origin - target
+	var distance := maxf(original_offset.length(), 1.0)
+	var camera_positions: Array[Vector3] = [
+		original_camera_transform.origin,
+		target + Vector3(original_offset.z, original_offset.y,
+				-original_offset.x).normalized() * distance,
+		target + Vector3(0.24, 0.91, 0.34).normalized() * distance,
+	]
+	var view_names: Array[String] = ["production_oblique", "quarter_turn", "high_oblique"]
+	for view in range(camera_positions.size()):
+		if view == 0:
+			_camera.global_transform = original_camera_transform
+		else:
+			_camera.global_position = camera_positions[view]
+			_camera.look_at(target, Vector3.FORWARD if view == 2 else Vector3.UP)
+		await _frames(3)
+		for source in range(3):
+			for style in range(3):
+				_sim.call("set_observatory_source", source)
+				_sim.call("set_observatory_style", style)
+				await _frames(3)
+				await RenderingServer.frame_post_draw
+				var settings: Dictionary = _sim.call("get_observatory_settings")
+				var texture := get_viewport().get_texture()
+				var image: Image = texture.get_image() if texture != null else null
+				var image_valid := image != null and not image.is_empty()
+				var shape_capture: Dictionary = \
+						_sim.call("capture_observation_shape_target") \
+						if style > 0 else {}
+				var matrix_shape_metrics := _raw_capture_shape_metrics(shape_capture) \
+						if style > 0 else _image_shape_metrics(image)
+				var metric_space := String(shape_capture.get("units",
+						"display scientific particles")) \
+						if style > 0 else "display scientific particles"
+				var matrix_rectangularity_rejected := \
+						_shape_metrics_reject_visible_rectangle(matrix_shape_metrics)
+				var path := "%s/source_%d_style_%d_view_%d.png" % [
+						OUTPUT_DIR, source, style, view]
+				if image_valid:
+					image.save_png(ProjectSettings.globalize_path(path))
+				rows.append({
+					"source": source,
+					"style": style,
+					"view": view,
+					"view_name": view_names[view],
+					"resolved_source": int(settings.get("observation_source", -1)),
+					"resolved_style": int(settings.get("style", -1)),
+					"settings_match": int(settings.get("observation_source", -1)) == source \
+							and int(settings.get("style", -1)) == style,
+					"image_valid": image_valid,
+					"lit_fraction": _image_lit_fraction(image),
+					"shape_target_ok": style == 0 \
+							or bool(shape_capture.get("ok", false)),
+					"shape_target_error": String(shape_capture.get("error", "")),
+					"shape_target_size": shape_capture.get("size",
+							Vector2i(image.get_width(), image.get_height())
+							if image_valid else Vector2i.ZERO),
+					"metric_space": metric_space,
+					"axis_aligned_gradient_fraction": float(matrix_shape_metrics.get(
+							"axis_aligned_gradient_fraction", 1.0)),
+					"fourfold_gradient_anisotropy": float(matrix_shape_metrics.get(
+							"fourfold_gradient_anisotropy", 1.0)),
+					"max_axis_aligned_run_fraction": float(matrix_shape_metrics.get(
+							"max_axis_aligned_run_fraction", 1.0)),
+					"max_component_bounding_box_fill": float(matrix_shape_metrics.get(
+							"max_component_bounding_box_fill", 1.0)),
+					"rectangularity_rejected": matrix_rectangularity_rejected,
+					"path": path,
+				})
+	_camera.global_transform = original_camera_transform
+	_sim.call("set_observatory_source", original_source)
+	_sim.call("set_observatory_style", original_style)
+	await _frames(3)
+	return rows
+
+
+func _image_lit_fraction(image: Image) -> float:
+	if image == null or image.is_empty():
+		return 0.0
+	var step_x := maxi(image.get_width() / 64, 1)
+	var step_y := maxi(image.get_height() / 36, 1)
+	var sampled := 0
+	var lit := 0
+	for y in range(0, image.get_height(), step_y):
+		for x in range(0, image.get_width(), step_x):
+			sampled += 1
+			var pixel := image.get_pixel(x, y)
+			if maxf(pixel.r, maxf(pixel.g, pixel.b)) > LIT_THRESHOLD:
+				lit += 1
+	return 0.0 if sampled == 0 else float(lit) / float(sampled)
+
+
+func _raw_capture_shape_metrics(raw: Dictionary) -> Dictionary:
+	if not bool(raw.get("ok", false)):
+		return {}
+	var size: Vector2i = raw.get("size", Vector2i.ZERO)
+	var bytes: PackedByteArray = raw.get("bytes", PackedByteArray())
+	var values := bytes.to_float32_array()
+	if size.x < 1 or size.y < 1 or values.size() != size.x * size.y * 4:
+		return {}
+	var maximum := 0.0
+	for pixel_index in values.size() / 4:
+		var offset := pixel_index * 4
+		for channel in 3:
+			var value := values[offset + channel]
+			if not is_finite(value) or value < 0.0:
+				return {}
+			maximum = maxf(maximum, value)
+	return _radiance_shape_metrics(values, size, maximum)
+func _image_shape_metrics(image: Image) -> Dictionary:
+	if image == null or image.is_empty():
+		return {}
+	var step := maxi(maxi(image.get_width() / 240,
+			image.get_height() / 135), 1)
+	var size := Vector2i(
+			ceili(float(image.get_width()) / float(step)),
+			ceili(float(image.get_height()) / float(step)))
+	var values := PackedFloat32Array()
+	values.resize(size.x * size.y * 4)
+	var border_sum := 0.0
+	var border_count := 0
+	for y in size.y:
+		for x in size.x:
+			var pixel := image.get_pixel(
+					mini(x * step, image.get_width() - 1),
+					mini(y * step, image.get_height() - 1))
+			var luma := 0.2126 * pixel.r + 0.7152 * pixel.g + 0.0722 * pixel.b
+			var offset := (y * size.x + x) * 4
+			values[offset] = luma
+			values[offset + 1] = luma
+			values[offset + 2] = luma
+			if x == 0 or y == 0 or x == size.x - 1 or y == size.y - 1:
+				border_sum += luma
+				border_count += 1
+	var background := border_sum / maxf(float(border_count), 1.0)
+	var maximum := 0.0
+	for pixel_index in values.size() / 4:
+		var offset := pixel_index * 4
+		var luma_signal := maxf(values[offset] - background, 0.0)
+		values[offset] = luma_signal
+		values[offset + 1] = luma_signal
+		values[offset + 2] = luma_signal
+		maximum = maxf(maximum, luma_signal)
+	return _radiance_shape_metrics(values, size, maximum)
+
+
+
+
+func _shape_metrics_reject_rectangle(metrics: Dictionary) -> bool:
+	return int(metrics.get("gradient_samples", 0)) > 0 \
+			and float(metrics.get("axis_aligned_gradient_fraction", 1.0)) \
+					<= MAX_AXIS_ALIGNED_GRADIENT_FRACTION \
+			and float(metrics.get("fourfold_gradient_anisotropy", 1.0)) \
+					<= MAX_FOURFOLD_GRADIENT_ANISOTROPY \
+			and float(metrics.get("max_axis_aligned_run_fraction", 1.0)) \
+					<= MAX_AXIS_ALIGNED_RUN_FRACTION
+
+func _shape_metrics_reject_visible_rectangle(metrics: Dictionary) -> bool:
+	var axis_fraction := float(metrics.get(
+			"axis_aligned_gradient_fraction", 1.0))
+	var fourfold := float(metrics.get("fourfold_gradient_anisotropy", 1.0))
+	return int(metrics.get("gradient_samples", 0)) > 0 \
+			and float(metrics.get("max_axis_aligned_run_fraction", 1.0)) \
+					<= MAX_VISIBLE_AXIS_ALIGNED_RUN_FRACTION \
+			and float(metrics.get("max_component_bounding_box_fill", 1.0)) \
+					<= MAX_RECTANGULAR_COMPONENT_FILL \
+			and not (axis_fraction >= RECTANGULAR_AXIS_PAIR_MIN \
+					and fourfold >= RECTANGULAR_AXIS_PAIR_MIN)
+
+func _raw_xyz_scalar(values: PackedFloat32Array, pixel: int) -> float:
+	var offset := pixel * 4
+	return maxf(values[offset], maxf(values[offset + 1], values[offset + 2]))
+
+
+func _radiance_shape_metrics(values: PackedFloat32Array, size: Vector2i,
+		maximum: float) -> Dictionary:
+	if size.x < 3 or size.y < 3 or values.size() != size.x * size.y * 4 \
+			or not is_finite(maximum) or maximum <= 0.0:
+		return {}
+	var gradient_floor := maximum * 1.0e-3
+	var boundary_level := maximum * 0.08
+	var total_weight := 0.0
+	var axis_aligned_weight := 0.0
+	var fourfold_weighted := 0.0
+	var gradient_samples := 0
+	var max_horizontal_run := 0
+	var max_vertical_run := 0
+	var vertical_runs := PackedInt32Array()
+	vertical_runs.resize(size.x)
+	for y in range(1, size.y - 1):
+		var horizontal_run := 0
+		for x in range(1, size.x - 1):
+			var center := y * size.x + x
+			var left := _raw_xyz_scalar(values, center - 1)
+			var right := _raw_xyz_scalar(values, center + 1)
+			var up := _raw_xyz_scalar(values, center - size.x)
+			var down := _raw_xyz_scalar(values, center + size.x)
+			var gradient_x := right - left
+			var gradient_y := down - up
+			var gx2 := gradient_x * gradient_x
+			var gy2 := gradient_y * gradient_y
+			var magnitude_squared := gx2 + gy2
+			if magnitude_squared <= gradient_floor * gradient_floor:
+				horizontal_run = 0
+				vertical_runs[x] = 0
+				continue
+			var magnitude := sqrt(magnitude_squared)
+			var major := maxf(absf(gradient_x), absf(gradient_y))
+			var minor := minf(absf(gradient_x), absf(gradient_y))
+			var axis_aligned := minor <= 0.08 * major
+			if axis_aligned:
+				axis_aligned_weight += magnitude
+			var boundary_crossing := minf(minf(left, right), minf(up, down)) \
+					<= boundary_level \
+					and maxf(maxf(left, right), maxf(up, down)) >= boundary_level
+			var boundary_axis_aligned := axis_aligned and boundary_crossing
+			if boundary_axis_aligned and absf(gradient_y) >= absf(gradient_x):
+				horizontal_run += 1
+				vertical_runs[x] = 0
+			elif boundary_axis_aligned:
+				horizontal_run = 0
+				vertical_runs[x] += 1
+			else:
+				horizontal_run = 0
+				vertical_runs[x] = 0
+			max_horizontal_run = maxi(max_horizontal_run, horizontal_run)
+			max_vertical_run = maxi(max_vertical_run, vertical_runs[x])
+			var fourfold := (gx2 * gx2 - 6.0 * gx2 * gy2 + gy2 * gy2) \
+					/ maxf(magnitude_squared * magnitude_squared, 1.0e-30)
+			fourfold_weighted += magnitude * fourfold
+			total_weight += magnitude
+			gradient_samples += 1
+	if total_weight <= 0.0:
+		return {}
+	var max_component_fill := _max_support_component_bbox_fill(
+			values, size, boundary_level)
+	return {
+		"gradient_samples": gradient_samples,
+		"axis_aligned_gradient_fraction": axis_aligned_weight / total_weight,
+		"fourfold_gradient_anisotropy": absf(fourfold_weighted / total_weight),
+		"max_axis_aligned_run_fraction": maxf(
+				float(max_horizontal_run) / float(maxi(size.x, 1)),
+				float(max_vertical_run) / float(maxi(size.y, 1))),
+		"max_component_bounding_box_fill": max_component_fill,
+	}
+
+func _max_support_component_bbox_fill(values: PackedFloat32Array,
+		size: Vector2i, threshold: float) -> float:
+	var pixel_count := size.x * size.y
+	var occupied := PackedByteArray()
+	var visited := PackedByteArray()
+	occupied.resize(pixel_count)
+	visited.resize(pixel_count)
+	for pixel in pixel_count:
+		if _raw_xyz_scalar(values, pixel) >= threshold:
+			occupied[pixel] = 1
+	var max_fill := 0.0
+	for start in pixel_count:
+		if occupied[start] == 0 or visited[start] != 0:
+			continue
+		var queue: Array[int] = [start]
+		visited[start] = 1
+		var cursor := 0
+		var component_pixels := 0
+		var min_x := size.x
+		var max_x := -1
+		var min_y := size.y
+		var max_y := -1
+		while cursor < queue.size():
+			var pixel := queue[cursor]
+			cursor += 1
+			var x := pixel % size.x
+			var y := pixel / size.x
+			component_pixels += 1
+			min_x = mini(min_x, x)
+			max_x = maxi(max_x, x)
+			min_y = mini(min_y, y)
+			max_y = maxi(max_y, y)
+			if x > 0:
+				var left := pixel - 1
+				if occupied[left] != 0 and visited[left] == 0:
+					visited[left] = 1
+					queue.push_back(left)
+			if x + 1 < size.x:
+				var right := pixel + 1
+				if occupied[right] != 0 and visited[right] == 0:
+					visited[right] = 1
+					queue.push_back(right)
+			if y > 0:
+				var up := pixel - size.x
+				if occupied[up] != 0 and visited[up] == 0:
+					visited[up] = 1
+					queue.push_back(up)
+			if y + 1 < size.y:
+				var down := pixel + size.x
+				if occupied[down] != 0 and visited[down] == 0:
+					visited[down] = 1
+					queue.push_back(down)
+		if component_pixels >= MIN_RECTANGLE_COMPONENT_PIXELS:
+			var box_area := maxi((max_x - min_x + 1) * (max_y - min_y + 1), 1)
+			max_fill = maxf(max_fill,
+					float(component_pixels) / float(box_area))
+	return max_fill
+
+
+func _smooth_radial_xyz_fixture() -> PackedFloat32Array:
+	var values := PackedFloat32Array()
+	values.resize(64 * 64 * 4)
+	var center := Vector2(31.5, 31.5)
+	for y in 64:
+		for x in 64:
+			var q := Vector2(float(x), float(y)).distance_to(center) / 20.0
+			if q >= 1.0:
+				continue
+			var one_minus_q := 1.0 - q
+			var square := one_minus_q * one_minus_q
+			var radial_signal := square * square * (1.0 + 4.0 * q)
+			var offset := (y * 64 + x) * 4
+			values[offset] = radial_signal
+			values[offset + 1] = radial_signal
+			values[offset + 2] = radial_signal
+	return values
+
+
+func _hard_rectangle_xyz_fixture() -> PackedFloat32Array:
+	var values := PackedFloat32Array()
+	values.resize(64 * 64 * 4)
+	for y in range(20, 44):
+		for x in range(14, 50):
+			var offset := (y * 64 + x) * 4
+			values[offset] = 1.0
+			values[offset + 1] = 1.0
+			values[offset + 2] = 1.0
+	return values
 
 
 # ── plumbing ───────────────────────────────────────────────────────────
@@ -665,12 +1253,22 @@ func _matches(actual: Variant, expected: Variant) -> bool:
 		return actual is Vector2 and (actual as Vector2).is_equal_approx(expected)
 	return actual == expected
 
-
 func _executed() -> int:
 	var engine: Object = _sim.get("_physics_engine")
 	if bool(_sim.get("_decoupled_active")) and engine != null:
 		return int(engine.get("_executed"))
 	return int(_sim.get("_step_count"))
+
+
+func _physical_transaction_pending() -> bool:
+	if not bool(_sim.get("physical_matter_enabled")):
+		return false
+	var engine: Object = _sim.get("_physics_engine")
+	if engine == null:
+		return false
+	return bool(engine.call("physical_matter_initialization_incomplete")) \
+			or bool(engine.call("physical_matter_step_incomplete")) \
+			or bool(engine.call("physical_matter_has_pending_publication"))
 
 
 func _frames(count: int) -> void:

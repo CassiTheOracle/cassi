@@ -42,6 +42,14 @@ var _orbit_radius_cli := false
 # (or a MANUAL director) keeps the fixed orbit below unchanged.
 var _director: Node = null
 var _director_requested: bool = false
+# Presentation-only command-line overrides. These are applied after the
+# inherited physics reinitialization and never trigger a reseed/reinit.
+var _appearance_override: int = -1
+var _observation_source_override: int = -1
+var _exposure_override: float = NAN
+var _quality_override: int = -1
+var _capture_sidecar_path: String = ""
+var _optics_override: String = ""
 
 
 func _ready() -> void:
@@ -86,18 +94,15 @@ func _ready() -> void:
 		"realsim_friction", "river_calibrate_gn", "river_pi_ref",
 		"river_q_ref", "field_attractor_init", "freeze_field", "initial_radius_fraction",
 		"initial_condition", "initial_v_circ_factor", "box_aspect", "box_scale", "mode",
-		"gradient_order", "dual_grid", "multi_rung_seed", "multi_rung_count",
-		"multi_rung_amp", "multi_rung_base_scale", "meshless_mode", "meshless_gravity",
-		"gridless_physics", "boxless_field", "physics_decoupled", "color_lut_mode",
-		"particle_color_mode", "rainbow_count", "color_shares", "color_progress",
-		"qi_cycle", "qi_pinch", "qi_approach", "qi_approach_tracks_threshold",
-		"velocity_cycle", "velocity_pinch", "velocity_approach", "color_hue_offset",
+		"initial_arrangement", "initial_motion", "initial_speed", "initial_total_mass",
+		"initial_shape_settings", "ic_seed",
 		"presentation_profile", "presentation_color_scheme",
 		"presentation_macro_lod_enabled", "presentation_macro_min_coherence",
 		"presentation_lod_enter", "presentation_lod_exit",
 		"presentation_trails_enabled", "presentation_trail_speed_threshold",
 		"presentation_trail_shutter_seconds", "presentation_volume_history_enabled",
 		"presentation_volume_history_weight", "presentation_volume_history_depth_tolerance",
+		"observatory_style",
 		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
@@ -225,6 +230,24 @@ func _ready() -> void:
 				_orbit_radius_cli = true
 			"--presentation-director":
 				_director_requested = int(kv[1]) != 0
+			"--appearance":
+				_appearance_override = _parse_appearance(kv[1])
+			"--observation-source":
+				_observation_source_override = _parse_observation_source(kv[1])
+			"--exposure":
+				if kv[1].is_valid_float():
+					_exposure_override = kv[1].to_float()
+				else:
+					push_warning("[Recorder] --exposure needs a finite number")
+			"--quality":
+				if kv[1].is_valid_int():
+					_quality_override = clampi(int(kv[1]), 0, 3)
+				else:
+					push_warning("[Recorder] --quality needs an integer 0..3")
+			"--optics":
+				_optics_override = kv[1]
+			"--capture-sidecar":
+				_capture_sidecar_path = kv[1]
 
 	# ── Spawn-aware camera framing ──
 	# Aim the orbit at the actual spawn region and frame it: the default
@@ -240,6 +263,7 @@ func _ready() -> void:
 		if _director.has_method("configure_recorder_orbit"):
 			_director.call("configure_recorder_orbit",
 				_orbit_target, orbit_radius, orbit_elevation, orbit_speed)
+
 		_director.call("set_recorder_directing")
 
 	# The sim already ran _ready with script defaults; reinit applies the
@@ -247,12 +271,106 @@ func _ready() -> void:
 	# the new sizes).
 	if reinit_needed:
 		_sim.call("reinit")
+	# Presentation settings are live renderer inputs: applying them here does
+	# not reseed particles or call reinit, so a movie appearance override
+	# cannot perturb the inherited scientific state.
+	_apply_presentation_overrides()
 
 	print("[Recorder] frames=%d fps=%d size=%dx%d grid=%d particles=%d grav=%d init=%d steps=%d orbit=%.2f rad/s cam_r=%.1f target=(%.0f, %.0f, %.0f)" % [
 		record_frames, record_fps, recording_size.x, recording_size.y,
 		_sim.get("grid_N"), _sim.get("N_particles"), _sim.get("gravity_mode"),
 		_sim.get("initial_condition"), _sim.get("max_steps_per_frame"), orbit_speed,
 		orbit_radius, _orbit_target.x, _orbit_target.y, _orbit_target.z])
+
+
+func _parse_appearance(value: String) -> int:
+	match value.to_lower():
+		"scientific", "0":
+			return 0
+		"observatory", "1":
+			return 1
+		"cinematic", "2":
+			return 2
+		_:
+			push_warning("[Recorder] --appearance must be scientific, observatory, or cinematic")
+			return -1
+
+func _parse_observation_source(value: String) -> int:
+	match value.to_lower():
+		"simulation", "simulation-unit", "0":
+			return 0
+		"spectral", "prescribed", "1":
+			return 1
+		"coupled", "physical", "2":
+			return 2
+		_:
+			push_warning("[Recorder] --observation-source must be simulation, spectral, or coupled")
+			return -1
+
+
+func _set_observatory_setting(key: String, value: Variant) -> void:
+	if _sim.has_method("set_observatory_setting"):
+		_sim.call("set_observatory_setting", key, value)
+	else:
+		push_warning("[Recorder] CassiSim has no set_observatory_setting; ignored %s" % key)
+
+
+func _apply_presentation_overrides() -> void:
+	if _observation_source_override >= 0:
+		if _sim.has_method("set_observatory_source"):
+			_sim.call("set_observatory_source", _observation_source_override)
+		else:
+			push_warning("[Recorder] CassiSim has no set_observatory_source")
+	if _appearance_override >= 0:
+		if _sim.has_method("set_observatory_style"):
+			_sim.call("set_observatory_style", _appearance_override)
+		else:
+			push_warning("[Recorder] CassiSim has no set_observatory_style")
+	if is_finite(_exposure_override):
+		_set_observatory_setting("exposure_ev", _exposure_override)
+	if _quality_override >= 0:
+		_set_observatory_setting("quality", _quality_override)
+		_set_observatory_setting("adaptive_quality", false)
+	if not _optics_override.is_empty():
+		_apply_optics_override(_optics_override)
+
+
+func _apply_optics_override(spec: String) -> void:
+	# Accept either a bare optical thickness or comma-separated key=value
+	# pairs, e.g. thickness=1.4,emission=1.1,scattering=0.35,bloom=0.08,depth=300.
+	var fields := spec.split(",", false)
+	for field in fields:
+		var pair := field.split("=", true, 1)
+		if pair.size() == 1:
+			if pair[0].is_valid_float():
+				var thickness := pair[0].to_float()
+				if is_finite(thickness):
+					_set_observatory_setting("optical_thickness", thickness)
+			else:
+				push_warning("[Recorder] ignored malformed optics field: %s" % field)
+			continue
+		var key := pair[0].strip_edges().to_lower()
+		var value := pair[1].to_float()
+		if not is_finite(value):
+			push_warning("[Recorder] ignored non-finite optics value: %s" % field)
+			continue
+		match key:
+			"thickness", "optical_thickness":
+				_set_observatory_setting("optical_thickness", value)
+			"emission":
+				_set_observatory_setting("emission", value)
+			"scattering":
+				_set_observatory_setting("scattering", value)
+			"point", "point_fraction":
+				_set_observatory_setting("point_fraction", value)
+			"bloom":
+				_set_observatory_setting("bloom", value)
+			"shutter", "shutter_seconds":
+				_set_observatory_setting("shutter_seconds", value)
+			"depth", "view_depth":
+				_set_observatory_setting("view_depth", value)
+			_:
+				push_warning("[Recorder] unknown optics key: %s" % pair[0])
 
 
 ## Apply a --grad-* lo,hi pair to the ACTIVE source's band export (mode
@@ -285,37 +403,13 @@ func _apply_grad_pair(flag: String, value: String, kind: String) -> void:
 			_sim.set("velocity_pinch", Vector2(lo, hi))
 
 
-## Mean of the cluster centers, mirroring cassi_sim.gd::_init_particles
-## (ring for nc <= 8, Fibonacci sphere above). This is the spawn region's
-## center of mass; the previous fixed look-at(Vector3.ZERO) missed
-## single-cluster configs by cluster_separation.
+## Use the simulation's explicit arrangement and generated support bounds.
 func _spawn_centroid() -> Vector3:
-	var nc := maxi(1, int(_sim.get("num_clusters")))
-	var sep := float(_sim.get("cluster_separation"))
-	var acc := Vector3.ZERO
-	for i in range(nc):
-		if nc > 8:
-			var phi := acos(1.0 - 2.0 * (float(i) + 0.5) / float(nc))
-			var th := PI * (1.0 + sqrt(5.0)) * float(i)
-			acc += Vector3(sep * sin(phi) * cos(th), sep * sin(phi) * sin(th), sep * cos(phi))
-		else:
-			var angle := float(i) * PI * 2.0 / float(nc)
-			acc += Vector3(sep * cos(angle), 0.0, sep * sin(angle))
-	return acc / float(nc)
+	return _sim.call("_cluster_centroid")
 
 
-## Default orbit distance: the spawn extent — the cluster-ring radius
-## (multi-cluster; a single cluster's centroid is the center itself) plus
-## the per-cluster ball radius — so the region fills most of the vertical
-## FOV and the nearest orbit pass clears the ring by at least the ball
-## radius. Kept as a plain extent sum (not a FOV division) so the startup
-## frame sits CLOSER than the old fixed 150 for typical ring configs.
 func _framing_radius() -> float:
-	var nc := maxi(1, int(_sim.get("num_clusters")))
-	var sep := float(_sim.get("cluster_separation"))
-	var cluster_r := maxf(float(_sim.get("cluster_radius")), 1e-3)
-	var ring_r: float = sep if nc > 1 else 0.0
-	return maxf(maxf(ring_r, cluster_r) + cluster_r, 1.0)
+	return float(_sim.call("_camera_framing_radius"))
 
 
 ## Place the camera at the current orbit angle around the spawn centroid.
@@ -363,5 +457,70 @@ func _process(delta: float) -> void:
 		print("[Recorder] frame %d/%d (sim t=%.2f)" % [_frame_count, record_frames, sim_t])
 
 	if _frame_count >= record_frames:
+		_write_movie_sidecar()
 		print("[Recorder] done")
 		get_tree().quit(0)
+
+func _write_movie_sidecar() -> void:
+	if _capture_sidecar_path.is_empty():
+		return
+	var observation: Dictionary = {}
+	if _sim.has_method("get_observation_capture_metadata"):
+		var value: Variant = _sim.call("get_observation_capture_metadata")
+		if value is Dictionary:
+			observation = value
+	var transform: Transform3D = _cam.global_transform
+	var metadata: Dictionary = _json_safe({
+		"schema_version": "1.0.0",
+		"capture_kind": "movie",
+		"frames": _frame_count,
+		"fps": record_fps,
+		"actual_width": int(ProjectSettings.get_setting(
+				"display/window/size/viewport_width", recording_size.x)),
+		"actual_height": int(ProjectSettings.get_setting(
+				"display/window/size/viewport_height", recording_size.y)),
+		"executed_step": int(_sim.get("_step_count")),
+		"simulation_time": float(_sim.get("_time")),
+		"camera": {
+			"origin": transform.origin,
+			"basis": transform.basis,
+			"fov_degrees": _cam.fov,
+			"near": _cam.near,
+			"far": _cam.far,
+		},
+		"source": observation,
+	})
+	var file := FileAccess.open(_capture_sidecar_path, FileAccess.WRITE)
+	if file == null:
+		push_error("[Recorder] cannot write capture sidecar: " + _capture_sidecar_path)
+		return
+	file.store_string(JSON.stringify(metadata, "\t") + "\n")
+	file.close()
+
+
+func _json_safe(value: Variant) -> Variant:
+	if value is Dictionary:
+		var mapped := {}
+		for key: Variant in value:
+			mapped[str(key)] = _json_safe(value[key])
+		return mapped
+	if value is Array:
+		var mapped := []
+		for child: Variant in value:
+			mapped.append(_json_safe(child))
+		return mapped
+	if value is Vector2:
+		return [value.x, value.y]
+	if value is Vector2i:
+		return [value.x, value.y]
+	if value is Vector3:
+		return [value.x, value.y, value.z]
+	if value is Basis:
+		return [
+			value.x.x, value.x.y, value.x.z,
+			value.y.x, value.y.y, value.y.z,
+			value.z.x, value.z.y, value.z.z,
+		]
+	if value is AABB:
+		return {"position": _json_safe(value.position), "size": _json_safe(value.size)}
+	return value

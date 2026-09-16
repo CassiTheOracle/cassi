@@ -34,6 +34,13 @@ param(
     [string]$GradShares = "",
     [double]$GradOffset = 0.0,
     [string]$Aspect = "",
+    [ValidateSet("scientific", "observatory", "cinematic")]
+    [string]$Appearance = "",
+    [ValidateSet("simulation", "spectral", "coupled")]
+    [string]$ObservationSource = "",
+    [double]$Exposure = [double]::NaN,
+    [int]$Quality = -1,
+    [string]$Optics = "",
     [string]$Resolution = "1920x1080",
     [string]$Scene = "res://scenes/main_recorder.tscn",
     [string]$Exe = "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe"
@@ -82,6 +89,7 @@ if (Test-Path $proj) {
 }
 
 # -- Build the Godot command --
+$captureSidecar = [System.IO.Path]::GetFullPath($Out) + ".json"
 $userArgs = @("--record-frames=$([int]($Duration * $Fps))", "--record-fps=$Fps")
 if ($Grid -gt 0)      { $userArgs += "--grid=$Grid" }
 if ($Particles -gt 0) { $userArgs += "--particles=$Particles" }
@@ -94,7 +102,13 @@ if ($GradRanges -ne "")  { $userArgs += "--grad-ranges=$GradRanges" }
 if ($GradPinch -ne "")   { $userArgs += "--grad-pinch=$GradPinch" }
 if ($GradShares -ne "")  { $userArgs += "--grad-shares=$GradShares" }
 if ($GradOffset -ne 0.0) { $userArgs += "--grad-offset=$GradOffset" }
+if ($Appearance -ne "") { $userArgs += "--appearance=$Appearance" }
+if ($ObservationSource -ne "") { $userArgs += "--observation-source=$ObservationSource" }
+if (-not [double]::IsNaN($Exposure)) { $userArgs += "--exposure=$Exposure" }
+if ($Quality -ge 0) { $userArgs += "--quality=$Quality" }
+if ($Optics -ne "") { $userArgs += "--optics=$Optics" }
 if ($Aspect -ne "")   { $userArgs += "--aspect=$Aspect" }
+$userArgs += "--capture-sidecar=$captureSidecar"
 
 $argsList = @("--path", "$Pwd", "--write-movie", $Out, "--fixed-fps", "$Fps", $Scene, "--") + $userArgs
 

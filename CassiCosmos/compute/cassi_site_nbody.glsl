@@ -10,9 +10,9 @@
 // its chord factor approaches the vacuum attractor π/ρ = φ^-3 there instead
 // of switching gravity off on six rectangular faces.
 //
-// HashStart is an H^3+1 exclusive prefix and HashSites contains site indices
-// (not shortlist slots); the host publishes a valid hash together with the
-// topology generation before dispatching this pass.
+// HashStart is an H^3+1 exclusive prefix and HashSites contains original site
+// IDs (not shortlist slots); the host publishes a valid hash together with
+// the topology generation before dispatching this pass.
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 // ── Site-native state (set 0) ───────────────────────────────────────────
@@ -67,6 +67,10 @@ layout(set = 1, binding = 2, std430) restrict buffer Acc {
 layout(set = 1, binding = 3, std430) restrict readonly buffer TreeGrad {
     vec4 tree_grad[];
 };
+layout(set = 1, binding = 4, std430) coherent buffer SiteQueryCache {
+    uint query_cache[];
+};
+
 
 // ── BH/Plummer state (set 2) ─────────────────────────────────────────────
 layout(set = 2, binding = 0, std430) readonly buffer BHData {
@@ -100,14 +104,13 @@ const float PHI_INV3 = 0.2360679774997898;
 const float PI_RHO_HI = 0.72;
 const float RHO_GUARD = 1.0e-6;
 const int DEFAULT_HASH_H = 32;
-const int HASH_RING_MAX = 32;
-const uint HASH_BUCKET_SCAN_MAX = 65536u;
+const uint UINT_MAX_VALUE = 0xffffffffu;
 
 // The old tree-river KDK uses these shared counters so a dispatch with a
 // partial final workgroup still reaches both barriers.  The min/max values are
 // float bit patterns ordered as unsigned integers because q and pi/rho are
 // non-negative after their guards/clamps; no float atomics are used.
-shared uint shared_counts[4]; // pi_hi, pi_lo, rho_guard, samples
+shared uint shared_counts[16]; // 0-3 field stats; 4-14 nf_state..nf_ratio; 15 nf_bh_pos
 shared uint shared_min[2];    // q_min, pi_min
 shared uint shared_max[2];    // q_max, pi_max
 
@@ -120,6 +123,18 @@ struct TeleStats {
     uint pi_min;
     uint pi_max;
     uint samples;
+    uint nf_state;
+    uint nf_halfvel;
+    uint nf_force;
+    uint nf_output;
+    uint nf_sample_field;
+    uint nf_sample_mass;
+    uint nf_raw;
+    uint nf_bh_term;
+    uint nf_tree_term;
+    uint nf_hdr;
+    uint nf_ratio;
+    uint nf_bh_pos;
 };
 
 struct SiteSample {
@@ -178,6 +193,18 @@ void tele_begin(uint local_index) {
         shared_counts[1] = 0u;
         shared_counts[2] = 0u;
         shared_counts[3] = 0u;
+        shared_counts[4] = 0u;
+        shared_counts[5] = 0u;
+        shared_counts[6] = 0u;
+        shared_counts[7] = 0u;
+        shared_counts[8] = 0u;
+        shared_counts[9] = 0u;
+        shared_counts[10] = 0u;
+        shared_counts[11] = 0u;
+        shared_counts[12] = 0u;
+        shared_counts[13] = 0u;
+        shared_counts[14] = 0u;
+        shared_counts[15] = 0u;
         shared_min[0] = 0x7f800000u;
         shared_min[1] = 0x7f800000u;
         shared_max[0] = 0u;
@@ -196,6 +223,18 @@ TeleStats tele_new() {
     result.pi_min = 0x7f800000u;
     result.pi_max = 0u;
     result.samples = 0u;
+    result.nf_state = 0u;
+    result.nf_halfvel = 0u;
+    result.nf_force = 0u;
+    result.nf_output = 0u;
+    result.nf_sample_field = 0u;
+    result.nf_sample_mass = 0u;
+    result.nf_raw = 0u;
+    result.nf_bh_term = 0u;
+    result.nf_tree_term = 0u;
+    result.nf_hdr = 0u;
+    result.nf_ratio = 0u;
+    result.nf_bh_pos = 0u;
     return result;
 }
 
@@ -210,98 +249,165 @@ void tele_emit(uint local_index) {
         atomicMin(telemetry[5], shared_min[1]);
         atomicMax(telemetry[6], shared_max[1]);
         atomicAdd(telemetry[7], shared_counts[3]);
+        atomicAdd(telemetry[12], shared_counts[4]);
+        atomicAdd(telemetry[13], shared_counts[5]);
+        atomicAdd(telemetry[14], shared_counts[6]);
+        atomicAdd(telemetry[15], shared_counts[7]);
+        atomicAdd(telemetry[16], shared_counts[8]);
+        atomicAdd(telemetry[17], shared_counts[9]);
+        atomicAdd(telemetry[18], shared_counts[10]);
+        atomicAdd(telemetry[19], shared_counts[11]);
+        atomicAdd(telemetry[20], shared_counts[12]);
+        atomicAdd(telemetry[21], shared_counts[13]);
+        atomicAdd(telemetry[22], shared_counts[14]);
+        atomicAdd(telemetry[23], shared_counts[15]);
     }
 }
 
-// Query hash cells in non-wrapping Chebyshev shells. The live site window is
-// finite and open: outside particles are deliberately force-free rather than
-// sampling the opposite border through a periodic image.
+float point_aabb_distance2(vec3 p, vec3 lo, vec3 hi) {
+    vec3 d = max(max(lo - p, p - hi), vec3(0.0));
+    return dot(d, d);
+}
+
+void scan_hash_cell(uint cell, uint site_count, vec3 tile,
+        inout int nearest, inout float nearest_d2) {
+    uint raw_start = hash_start[cell];
+    uint raw_end = hash_start[cell + 1u];
+    if (raw_end < raw_start) return;
+    uint list_capacity = uint(hash_sites.length());
+    uint start = min(raw_start, list_capacity);
+    uint end = min(raw_end, list_capacity);
+    for (uint k = start; k < end; ++k) {
+        uint candidate = hash_sites[k];
+        if (candidate >= site_count) continue;
+        vec3 site_tile = sites[candidate].xyz;
+        if (!finite_vec3(site_tile)) continue;
+        vec3 delta = site_tile - tile;
+        float d2 = dot(delta, delta);
+        if (!(d2 >= 0.0) || !finite_float(d2)) continue;
+        if (d2 < nearest_d2 || (d2 == nearest_d2
+                && (nearest < 0 || int(candidate) < nearest))) {
+            nearest_d2 = d2;
+            nearest = int(candidate);
+        }
+    }
+}
+
+// Hash query in the finite open window. Every shell scans a complete
+// Chebyshev ring. Point-to-AABB lower bounds over the six unscanned slabs make
+// termination exact for sparse cells, anisotropic extents, and face queries.
 int nearest_site(vec3 particle_world, vec3 extent, out bool found) {
     found = false;
     vec3 span = 2.0 * extent;
-    if (!finite_vec3(span) || any(lessThanEqual(span, vec3(0.0)))) {
-        return 0;
-    }
-
-    vec3 window_center = bh[0].yzw;
-    vec3 local = particle_world - window_center;
-    if (!finite_vec3(local)
-            || any(lessThan(local, -extent))
-            || any(greaterThanEqual(local, extent))) {
-        return 0;
-    }
+    if (!finite_vec3(span) || any(lessThanEqual(span, vec3(0.0)))) return 0;
+    vec3 local = particle_world - bh[0].yzw;
+    if (!finite_vec3(local) || any(lessThan(local, -extent))
+            || any(greaterThanEqual(local, extent))) return 0;
     vec3 tile = local + extent;
     int h = hash_resolution(extent);
     vec3 cell_size = hash_cell_size(span, h);
-    if (!finite_vec3(cell_size) || any(lessThanEqual(cell_size, vec3(0.0)))) {
-        return 0;
-    }
-
-    ivec3 base = ivec3(floor(tile / cell_size));
-    base = clamp(base, ivec3(0), ivec3(h - 1));
-    int max_ring = min(h - 1, HASH_RING_MAX);
+    if (!finite_vec3(cell_size) || any(lessThanEqual(cell_size, vec3(0.0)))) return 0;
+    ivec3 base = clamp(ivec3(floor(tile / cell_size)), ivec3(0), ivec3(h - 1));
     int nearest = -1;
     float nearest_d2 = 1.0e30;
-
-    for (int ring = 0; ring <= max_ring; ++ring) {
-        for (int oz = -ring; oz <= ring; ++oz) {
-            for (int oy = -ring; oy <= ring; ++oy) {
-                for (int ox = -ring; ox <= ring; ++ox) {
-                    if (max(abs(ox), max(abs(oy), abs(oz))) != ring) {
-                        continue;
-                    }
-                    int raw_cx = base.x + ox;
-                    int raw_cy = base.y + oy;
-                    int raw_cz = base.z + oz;
-                    if (raw_cx < 0 || raw_cx >= h
-                            || raw_cy < 0 || raw_cy >= h
-                            || raw_cz < 0 || raw_cz >= h) {
-                        continue;
-                    }
-                    uint cell = uint(raw_cx) + uint(h) *
-                            (uint(raw_cy) + uint(h) * uint(raw_cz));
-                    uint raw_start = hash_start[cell];
-                    uint raw_end = hash_start[cell + 1u];
-                    if (raw_end < raw_start) {
-                        continue;
-                    }
-                    uint start = raw_start;
-                    uint end = min(raw_end, raw_start + HASH_BUCKET_SCAN_MAX);
-                    for (uint k = start; k < end; ++k) {
-                        uint candidate = hash_sites[k];
-                        vec3 site_tile = sites[candidate].xyz;
-                        if (!finite_vec3(site_tile)) {
-                            continue;
-                        }
-                        vec3 delta = site_tile - tile;
-                        float d2 = dot(delta, delta);
-                        if (!(d2 >= 0.0) || !finite_float(d2)) {
-                            continue;
-                        }
-                        if (d2 < nearest_d2
-                                || (d2 == nearest_d2
-                                    && (nearest < 0 || int(candidate) < nearest))) {
-                            nearest_d2 = d2;
-                            nearest = int(candidate);
-                        }
-                    }
-                }
-            }
+    uint site_count = uint(sites.length());
+    for (int ring = 0; ring < h; ++ring) {
+        ivec3 lo_cell = max(base - ivec3(ring), ivec3(0));
+        ivec3 hi_cell = min(base + ivec3(ring), ivec3(h - 1));
+        if (ring == 0) {
+            uint cell = uint(base.x) + uint(h) *
+                    (uint(base.y) + uint(h) * uint(base.z));
+            scan_hash_cell(cell, site_count, tile, nearest, nearest_d2);
+        } else {
+            ivec3 prev_lo = max(base - ivec3(ring - 1), ivec3(0));
+            ivec3 prev_hi = min(base + ivec3(ring - 1), ivec3(h - 1));
+            bool zlo_new = lo_cell.z < prev_lo.z;
+            bool zhi_new = hi_cell.z > prev_hi.z;
+            bool ylo_new = lo_cell.y < prev_lo.y;
+            bool yhi_new = hi_cell.y > prev_hi.y;
+            bool xlo_new = lo_cell.x < prev_lo.x;
+            bool xhi_new = hi_cell.x > prev_hi.x;
+            if (zlo_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int y = lo_cell.y; y <= hi_cell.y; ++y)
+                        scan_hash_cell(uint(x) + uint(h) * (uint(y) + uint(h) * uint(lo_cell.z)),
+                                site_count, tile, nearest, nearest_d2);
+            if (zhi_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int y = lo_cell.y; y <= hi_cell.y; ++y)
+                        scan_hash_cell(uint(x) + uint(h) * (uint(y) + uint(h) * uint(hi_cell.z)),
+                                site_count, tile, nearest, nearest_d2);
+            int zlo_inner = lo_cell.z + (zlo_new ? 1 : 0);
+            int zhi_inner = hi_cell.z - (zhi_new ? 1 : 0);
+            if (ylo_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(x) + uint(h) * (uint(lo_cell.y) + uint(h) * uint(z)),
+                                site_count, tile, nearest, nearest_d2);
+            if (yhi_new)
+                for (int x = lo_cell.x; x <= hi_cell.x; ++x)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(x) + uint(h) * (uint(hi_cell.y) + uint(h) * uint(z)),
+                                site_count, tile, nearest, nearest_d2);
+            int ylo_inner = lo_cell.y + (ylo_new ? 1 : 0);
+            int yhi_inner = hi_cell.y - (yhi_new ? 1 : 0);
+            if (xlo_new)
+                for (int y = ylo_inner; y <= yhi_inner; ++y)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(lo_cell.x) + uint(h) * (uint(y) + uint(h) * uint(z)),
+                                site_count, tile, nearest, nearest_d2);
+            if (xhi_new)
+                for (int y = ylo_inner; y <= yhi_inner; ++y)
+                    for (int z = zlo_inner; z <= zhi_inner; ++z)
+                        scan_hash_cell(uint(hi_cell.x) + uint(h) * (uint(y) + uint(h) * uint(z)),
+                                site_count, tile, nearest, nearest_d2);
         }
-        // After shell r, every not-yet-scanned cell is at least r cell
-        // widths away along one axis. This conservative bound preserves
-        // nearest-site correctness while sparse regions still terminate.
-        float min_cell = min(cell_size.x, min(cell_size.y, cell_size.z));
-        float unscanned_bound2 = float(ring) * min_cell;
-        unscanned_bound2 *= unscanned_bound2;
-        if (nearest >= 0 && nearest_d2 < unscanned_bound2) {
-            break;
-        }
+        float bound2 = 1.0e30;
+        if (lo_cell.x > 0)
+            bound2 = min(bound2, point_aabb_distance2(tile, vec3(0.0),
+                vec3(float(lo_cell.x) * cell_size.x, span.y, span.z)));
+        if (hi_cell.x < h - 1)
+            bound2 = min(bound2, point_aabb_distance2(tile,
+                vec3(float(hi_cell.x + 1) * cell_size.x, 0.0, 0.0), span));
+        if (lo_cell.y > 0)
+            bound2 = min(bound2, point_aabb_distance2(tile, vec3(0.0),
+                vec3(span.x, float(lo_cell.y) * cell_size.y, span.z)));
+        if (hi_cell.y < h - 1)
+            bound2 = min(bound2, point_aabb_distance2(tile,
+                vec3(0.0, float(hi_cell.y + 1) * cell_size.y, 0.0), span));
+        if (lo_cell.z > 0)
+            bound2 = min(bound2, point_aabb_distance2(tile, vec3(0.0),
+                vec3(span.x, span.y, float(lo_cell.z) * cell_size.z)));
+        if (hi_cell.z < h - 1)
+            bound2 = min(bound2, point_aabb_distance2(tile,
+                vec3(0.0, 0.0, float(hi_cell.z + 1) * cell_size.z), span));
+        if (nearest_d2 < bound2) break;
     }
     found = nearest >= 0;
     return nearest < 0 ? 0 : nearest;
 }
-SiteSample sample_site(vec3 particle_world, vec3 extent) {
+
+bool cache_read(uint particle_id, vec3 particle_position, uint site_count,
+        out uint site_id) {
+    uint epoch = query_cache[0];
+    if (epoch == 0u) return false;
+    uint base = 1u + particle_id * 5u;
+    if (query_cache[base] != floatBitsToUint(particle_position.x)
+            || query_cache[base + 1u] != floatBitsToUint(particle_position.y)
+            || query_cache[base + 2u] != floatBitsToUint(particle_position.z)
+            || query_cache[base + 4u] != epoch) return false;
+    site_id = query_cache[base + 3u];
+    return site_id == UINT_MAX_VALUE || site_id < site_count;
+}
+void cache_write(uint particle_id, vec3 particle_position, uint site_id) {
+    uint base = 1u + particle_id * 5u;
+    query_cache[base] = floatBitsToUint(particle_position.x);
+    query_cache[base + 1u] = floatBitsToUint(particle_position.y);
+    query_cache[base + 2u] = floatBitsToUint(particle_position.z);
+    query_cache[base + 3u] = site_id;
+    query_cache[base + 4u] = query_cache[0];
+}
+SiteSample sample_site(vec3 particle_world, vec3 extent, uint particle_id) {
     SiteSample result;
     result.found = false;
     result.index = 0u;
@@ -314,11 +420,20 @@ SiteSample sample_site(vec3 particle_world, vec3 extent) {
     result.grad = vec3(0.0);
     result.grad_defined = false;
 
+    uint site_count = uint(sites.length());
+    uint cached_id = UINT_MAX_VALUE;
+    bool cached = cache_read(particle_id, particle_world, site_count, cached_id);
     bool found;
-    int nearest = nearest_site(particle_world, extent, found);
-    if (!found) {
-        return result;
+    int nearest;
+    if (cached) {
+        found = cached_id != UINT_MAX_VALUE;
+        nearest = found ? int(cached_id) : 0;
+    } else {
+        nearest = nearest_site(particle_world, extent, found);
+        cache_write(particle_id, particle_world,
+                found ? uint(nearest) : UINT_MAX_VALUE);
     }
+    if (!found) return result;
 
     uint index = uint(nearest);
     float ey = psi_y[index];
@@ -328,17 +443,12 @@ SiteSample sample_site(vec3 particle_world, vec3 extent) {
     float rho2 = rho * rho;
     float q_formula = rho2 / max(rho2 + PHI_INV2 + eps * eps, 1.0e-30);
     float q_authoritative = site_q[index];
-    // SiteQ is the published site state.  Retain the exact river-law formula
-    // as a malformed-buffer fallback so an uninitialized q cannot poison a
-    // force or telemetry; valid SiteQ is already produced by that formula.
     float q = (finite_float(q_authoritative) && q_authoritative >= 0.0
             && q_authoritative <= 1.0) ? q_authoritative : q_formula;
-
     vec4 gy = grad_y[index];
     vec4 gi = grad_i[index];
     bool gradients_defined = gy.w > 0.5 && gi.w > 0.5
             && finite_vec3(gy.xyz) && finite_vec3(gi.xyz);
-
     result.found = true;
     result.index = index;
     result.ey = ey;
@@ -380,7 +490,8 @@ float site_pi_over_rho(SiteSample ss, inout TeleStats stats) {
     return pi_over_rho;
 }
 
-vec3 bh_point_gravity(vec3 particle_world, float eps2_value) {
+vec3 bh_point_gravity(vec3 particle_world, float eps2_value,
+        inout TeleStats stats) {
     float G_N = bh[1].w;
     float softened = max(eps2_value, 0.0);
     vec3 result = vec3(0.0);
@@ -388,6 +499,13 @@ vec3 bh_point_gravity(vec3 particle_world, float eps2_value) {
         int base = 4 + 2 * b;
         float mass = bh[base].w;
         if (!(mass > 0.0)) {
+            continue;
+        }
+        // One malformed record must never poison every particle: skip and
+        // count a non-finite record (position OR mass; +inf passes the sign
+        // test above) instead of propagating it into every particle's force.
+        if (!finite_float(mass) || !finite_vec3(bh[base].xyz)) {
+            stats.nf_bh_pos += 1u;
             continue;
         }
         vec3 delta = bh[base].xyz - particle_world;
@@ -446,6 +564,9 @@ vec3 site_tree_acc(SiteSample ss, vec3 particle_world, vec3 extent,
     }
     float G_N = bh[1].w;
     float tree_scale = bh[3].w;
+    if (!finite_float(pi_over_rho)) {
+        stats.nf_ratio += 1u;
+    }
     return G_N * tree_scale * pi_over_rho * tree_grad[particle_index].xyz;
 }
 
@@ -477,11 +598,31 @@ vec3 gravity_at(vec3 particle_world, int particle_index,
     // analytic Plummer fallback. Outside particles receive the explicit
     // no-site sample rather than wrapping across the box, so RealSim and tree
     // consume identical site state.
-    ss = sample_site(particle_world, extent);
+    ss = sample_site(particle_world, extent, uint(particle_index));
+    // Count non-finite site state at the source: the field pair and its
+    // derived rho/q, then the mass/eps pair, so the poisoned buffer is named.
+    if (!finite_float(ss.ey) || !finite_float(ss.ei) || !finite_float(ss.q)
+            || !finite_float(ss.rho)) {
+        stats.nf_sample_field += 1u;
+    }
+    if (!finite_float(ss.eps) || !finite_float(ss.mass)) {
+        stats.nf_sample_mass += 1u;
+    }
 
     vec3 result = vec3(0.0);
+    if (!finite_float(bh[1].w) || !finite_float(bh[3].w)
+            || !finite_vec3(bh[2].yzw) || !finite_vec3(bh[0].yzw)) {
+        stats.nf_hdr += 1u;
+    }
     if (bh[3].x > 0.5) {
-        result += bh_point_gravity(particle_world, pc.eps2);
+        vec3 bh_term = bh_point_gravity(particle_world, pc.eps2, stats);
+        if (!finite_vec3(bh_term)) {
+            // Counted at the source and contained here: one malformed term
+            // must not propagate into acc and freeze every particle forever.
+            stats.nf_bh_term += 1u;
+            bh_term = vec3(0.0);
+        }
+        result += bh_term;
     }
 
     if (pc.gravity_mode > 0.5 && pc.gravity_mode < 1.5) {
@@ -492,7 +633,18 @@ vec3 gravity_at(vec3 particle_world, int particle_index,
         // Modes 0/3/4/5 are the site-native tree family.  Mode 4 adds
         // RealSim dissipation in the caller; mode 5 is the explicit tree-river
         // selector used by meshless integration.
-        result += site_tree_acc(ss, particle_world, extent, particle_index, stats);
+        vec3 tree_term = site_tree_acc(ss, particle_world, extent, particle_index, stats);
+        if (!finite_vec3(tree_term)) {
+            // Same contract as the BH term: counted and contained.
+            stats.nf_tree_term += 1u;
+            tree_term = vec3(0.0);
+        }
+        result += tree_term;
+    }
+    // Raw pre-dissipation force: separates the site-force evaluation from the
+    // caller's RealSim dissipation term.
+    if (!finite_vec3(result)) {
+        stats.nf_raw += 1u;
     }
     return result;
 }
@@ -502,6 +654,18 @@ void add_stats_to_shared(TeleStats stats) {
     atomicAdd(shared_counts[1], stats.clamp_lo);
     atomicAdd(shared_counts[2], stats.rho_guard);
     atomicAdd(shared_counts[3], stats.samples);
+    atomicAdd(shared_counts[4], stats.nf_state);
+    atomicAdd(shared_counts[5], stats.nf_halfvel);
+    atomicAdd(shared_counts[6], stats.nf_force);
+    atomicAdd(shared_counts[7], stats.nf_output);
+    atomicAdd(shared_counts[8], stats.nf_sample_field);
+    atomicAdd(shared_counts[9], stats.nf_sample_mass);
+    atomicAdd(shared_counts[10], stats.nf_raw);
+    atomicAdd(shared_counts[11], stats.nf_bh_term);
+    atomicAdd(shared_counts[12], stats.nf_tree_term);
+    atomicAdd(shared_counts[13], stats.nf_hdr);
+    atomicAdd(shared_counts[14], stats.nf_ratio);
+    atomicAdd(shared_counts[15], stats.nf_bh_pos);
     atomicMin(shared_min[0], stats.q_min);
     atomicMax(shared_max[0], stats.q_max);
     atomicMin(shared_min[1], stats.pi_min);
@@ -515,10 +679,16 @@ void warmup_main() {
     if (gid < uint(max(pc.particle_N, 0.0) + 0.5)) {
         TeleStats stats = tele_new();
         SiteSample ss;
+        if (!finite_vec3(pos[gid].xyz) || !finite_vec3(vel[gid].xyz)) {
+            stats.nf_state += 1u;
+        }
         vec3 gravity_acceleration = gravity_at(pos[gid].xyz, int(gid), ss, stats);
         if (pc.gravity_mode > 3.5 && pc.gravity_mode < 4.5) {
             gravity_acceleration += realsim_dissipation(ss, vel[gid].xyz,
                     gravity_acceleration);
+        }
+        if (!finite_vec3(gravity_acceleration)) {
+            stats.nf_force += 1u;
         }
         acc[gid] = vec4(gravity_acceleration, 0.0);
         add_stats_to_shared(stats);
@@ -550,10 +720,20 @@ void kdk_main() {
         vec3 old_position = pos[gid].xyz;
         vec3 old_velocity = vel[gid].xyz;
         float half_dt = 0.5 * pc.dt;
+        // Count every non-finite source class so a silent fallback can never
+        // hide: state = inputs already poisoned, halfvel = first half-kick,
+        // force = gravity+RealSim kick, output = the fallback clamp fired.
+        if (!finite_vec3(old_position) || !finite_vec3(old_velocity)
+                || !finite_vec3(acc[gid].xyz)) {
+            stats.nf_state += 1u;
+        }
 
         // Cached-acc KDK: acc is the previous full-kick force at the current
         // position, so this is exactly the old first half-kick.
         vec3 half_velocity = old_velocity + acc[gid].xyz * half_dt;
+        if (!finite_vec3(half_velocity)) {
+            stats.nf_halfvel += 1u;
+        }
         vec3 new_position = old_position + half_velocity * pc.dt;
 
         SiteSample ss;
@@ -562,6 +742,9 @@ void kdk_main() {
             gravity_acceleration += realsim_dissipation(ss, half_velocity,
                     gravity_acceleration);
         }
+        if (!finite_vec3(gravity_acceleration)) {
+            stats.nf_force += 1u;
+        }
         vec3 new_velocity = half_velocity + gravity_acceleration * half_dt;
 
         if (pc.gravity_mode > 4.5) {
@@ -569,9 +752,11 @@ void kdk_main() {
         }
         if (!finite_vec3(new_position)) {
             new_position = old_position;
+            stats.nf_output += 1u;
         }
         if (!finite_vec3(new_velocity)) {
             new_velocity = vec3(0.0);
+            stats.nf_output += 1u;
         }
 
         pos[gid] = vec4(new_position, pos[gid].w);

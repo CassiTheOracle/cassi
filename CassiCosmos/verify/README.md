@@ -34,16 +34,18 @@ rows repeat per window):
 | 3 | simulation reaches setup ready | shaders ready, engine `setup_ready()`, no fail-closed state |
 | 4 | decoupled bootstrap completes | first publish lands; the `playing=true` warm-up window and its step count are recorded |
 | 5 | frame pacing is frozen | with `playing=false` the executed-step counter must not move over 3 frames |
-| 6 | UI builds with default-off controls | VFX check buttons, presentation-profile and field-particles toggles exist and default off |
+| 6 | UI builds with coherent controls | the physical production scene selects live physical matter through its sole source selector, has no conflicting physical-enable toggle, and retained VFX/presentation controls still default off |
 | 7 | capture helper wired | the production `CassiPresentationCapture` is present on the UI |
-| 8 | renderer draws a visible frame | viewport grab saved to `_diag/core/core_frame.png` with a lit-pixel floor |
-| 9 | explicit windows execute exactly | two 8-step windows driven via `_run_physics_steps`, each counted exactly |
-| 10 | sampled state is finite | positions, velocities, and field roles (when the grid path exposes them) |
-| 11 | particles stay alive and move | alive fraction, moving fraction, bounded mean displacement |
-| 12 | forces act | mean \|Δv\| over a window inside a bounded envelope (the velocity buffer is the authoritative site state) |
-| 13 | particle mass is conserved | sampled-chunk mass across the run |
-| 14 | field telemetry matches the mode contract | see below |
-| 15 | site-native field telemetry | the engine's own `readback_telemetry()` gridless branch: weighted \|q_mean\| and the site q range finite and nonzero and bounded, recorded per sample; the field-particle catalog branch reports zeros by design, so it is rejected as a source rather than read as a healthy field |
+| 8 | source/style boundary renders Qi and physical radiance | the production scene first switches source 2 to Scientific and proves the radial `particle_billboard.gdshader` with its Qi LUT remains active; it then restores Observatory, hides the interface and legacy particles, freezes temporal/auto exposure, requires matter to remain brighter than background by a measured floor, reports the live physical source identity and compact world-space isotropic C2 reconstruction, rejects axis-aligned rectangular color boundaries, and publishes finite nonzero raw XYZ; saved to `_diag/core/core_frame.png` |
+| 9 | every source/style/view rejects rectangular storage cards | all 3 sources × all 3 styles are captured from the production scene at the production-oblique, quarter-turn and high-oblique camera poses (27 frames). The shared visible-shape predicate measures axis/fourfold edge energy, longest straight axis-aligned boundary run, and connected-component fill relative to each component's bounding box. Scientific uses the displayed particle image; every optical source uses its pre-compositor floating-point radiance target. |
+| 10 | shape detector can fire without rejecting radial support | a fixed hard rectangle must exceed the rectangle signatures, while a fixed smooth radial Wendland-C2 disc must pass; both measured controls are printed and required |
+| 11 | explicit windows execute exactly | two queued 8-step windows settle through the renderer fence, including any physical-matter transaction, and each advances by exactly eight (two checks) |
+| 12 | sampled state is finite | positions, velocities, and field roles (when the grid path exposes them) |
+| 13 | particles stay alive and move | alive fraction, moving fraction, bounded mean displacement |
+| 14 | forces act | mean \|Δv\| over a window inside a bounded envelope (the velocity buffer is the authoritative site state) |
+| 15 | particle mass is conserved | sampled-chunk mass across the run |
+| 16 | field telemetry matches the mode contract | see below |
+| 17 | site-native field telemetry | the engine's own `readback_telemetry()` gridless branch: weighted \|q_mean\| and the site q range finite and nonzero and bounded, recorded per sample; the field-particle catalog branch reports zeros by design, so it is rejected as a source rather than read as a healthy field |
 
 Receipt: `res://_diag/core/core_receipt.json` (gitignored) with every check,
 its measured detail, the warm-up boundary, per-window sample statistics, the
@@ -57,7 +59,7 @@ runtime configuration, and the frame path.
   site buffer is authoritative. The gate therefore asserts the *mode contract*
   and reports the EY/EI/q aggregates **unavailable**, rather than passing a
   vacuous band check. The site path is judged where it can actually fail:
-  check 15 reads the engine's own `readback_telemetry()` gridless branch (the
+  check 17 reads the engine's own `readback_telemetry()` gridless branch (the
   site-stats buffer when published, otherwise the volume-weighted meshless site
   rows) and requires the weighted `q_mean` and the site q range to be finite and
   bounded, per sample, in the receipt — so the shipped path keeps a field
@@ -102,6 +104,9 @@ Exit code 0 is the probe's contract; most also dump JSON/raw artifacts to
 | verify_physical_radiation | Immutable model/unit/snapshot rejection contracts, grouped Planck/CIE references, real spectral formal solution vs the independent CPU value | — (in-flight workstream) |
 | verify_coupled_radiation_engine | Hash-bound supplied-material extensive-state solver, LTE/affine/frequency references, scheduler integration, fail-closed lifecycle | — (in-flight workstream) |
 | verify_observatory_integration | Production-scene mode switches, prescribed spectral pixels, capture + sidecar contracts | — (in-flight workstream) |
+| verify_physical_matter_engine | Hash-bound conditional hydrogen-plasma GPU engine: initialization, hydro/kinetics, radiation transfer, lifecycle, and observer checks (PM-G1–PM-G8) | — |
+| verify_physical_matter_production | 2,500,000-particle live physical-matter production acceptance (PM-G9/PM-G10), including publication telemetry and the selected fenced heating control | — |
+| verify_bh_dynamics | BH field channel: a planted BH's mass through the deposit (both lattices, both sides of the 606.81 source ceiling), the swallow's momentum hand-off, BH/test-particle law parity, the self-force bound, pair attraction, and the default-off bit-identity path | — (bounds frozen in `research/bh_dynamics/BH_DYNAMICS_PREREG.md`) |
 
 `scripts/verify_river_isotropy.gd` pins the default CUBE grid-river chain
 bit-identical with fixed numeric anchors — those anchors are load-bearing.

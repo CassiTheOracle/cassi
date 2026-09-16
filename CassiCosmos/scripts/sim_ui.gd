@@ -10,6 +10,7 @@ extends Control
 # ═══════════════════════════════════════════════════════════════════════
 
 var _info_label: Label
+var _step_rate_label: Label
 var _diag_label: Label
 var _conn_label: Label
 ## The floating status panel + its content VBox (used by _update_layout to
@@ -29,6 +30,20 @@ var _extra_toggles: Dictionary = {}       # id -> CheckButton
 var _param_rows: Dictionary = {}
 ## EXTRA_TOGGLES entries by id (for the generic toggle setter).
 var _extra_toggle_ids: Dictionary = {}
+## Shared particle geometry registry; all labels and metadata come from the
+## generator so the UI cannot drift from its stable contract.
+const ParticleInitialConditions = preload("res://scripts/cassi_particle_initial_conditions.gd")
+const SHAPE_NAMES: Array[String] = ParticleInitialConditions.SHAPE_NAMES
+const ARRANGEMENT_NAMES: Array[String] = ParticleInitialConditions.ARRANGEMENT_NAMES
+const MOTION_NAMES: Array[String] = ParticleInitialConditions.MOTION_NAMES
+const GRAVITY_NAMES: Array[String] = ["River", "Heuristic", "Plummer ref", "River self", "RealSim"]
+
+var _arrangement_opt: COptionParam
+var _motion_opt: COptionParam
+var _shape_setting_rows: Dictionary = {} # id -> CSpinParam
+var _shape_setting_meta: Dictionary = {} # id -> metadata row
+var _shuffle_seed_btn: CButton
+var _extra_options: Dictionary = {}       # id -> COptionParam
 
 var _mode_seg: CSegmentedV
 var _mode_btns: Array[CToggle] = []
@@ -55,10 +70,22 @@ var _falsify_label: Label
 var _save_colors_btn: Button
 var _reset_colors_btn: Button
 var _legend: Control
+
+## Observatory/Cinematic presentation controls. These are deliberately kept
+## in the UI layer: CassiSim owns the rendering contract and emits
+## observatory_changed whenever a setting is accepted.
+var _observatory_style_opt: COptionParam
+var _observation_source_opt: COptionParam
+var _observatory_rows: Dictionary = {}
+var _observatory_toggles: Dictionary = {}
+var _observatory_status: Label
+var _observatory_advanced: CGroupPanel
+var _capture_helper: Node
+var _capture_status: Label
+var _capture_scale_opt: COptionParam
 var _no_rb_btn: CheckButton
 var _bh_toggle_btn: CheckButton
 var _phi_box_btn: CheckButton
-var _dual_btn: CheckButton
 var _multirung_btn: CheckButton
 var _meshless_btn: CheckButton
 var _vsync_btn: CheckButton
@@ -70,6 +97,37 @@ var _vfx_size_btn: CheckButton
 var _vfx_glow_btn: CheckButton
 var _vfx_depth_btn: CheckButton
 var _vfx_twoaxis_btn: CheckButton
+
+## Native field-current inspection; presentation controls never reinitialize
+## the simulation or change its physical observation source.
+var _qi_enable_btn: CheckButton
+var _qi_channel_seg: CSegmented
+var _qi_scalar_opt: COptionParam
+var _qi_density_row: CParam
+var _qi_gain_row: CParam
+var _qi_cutaway_row: CParam
+var _qi_field_toggle: CheckButton
+var _qi_sources_toggle: CheckButton
+var _qi_particles_toggle: CheckButton
+var _qi_frame_btn: Button
+var _qi_status_label: Label
+## Cached: CassiSim exposes the COMPLETE qi_flow_* export family. Checked
+## once from its property list (that call allocates, so it never runs per
+## frame, and script exports are fixed at load — a one-shot result cannot go
+## stale mid-run). A missing or partial family leaves the group inert with
+## an explicit reason, instead of reading null exports and writing invalid
+## properties or falling back to another drawing mode.
+var _qi_props_checked: bool = false
+var _qi_props_present: bool = false
+## Last applied enable-state of the group's controls (1 enabled / 0 disabled,
+## -1 = never applied) so the 4 Hz sync never re-writes them unchanged.
+var _qi_controls_ready: int = -1
+## Cached: CassiSim reports the flow view actually drawing
+## (qi_flow_statistics().available). While true the UI's full-viewport field
+## TextureRect stays hidden so the new 3D current geometry is not covered by
+## the legacy field canvas — the sim mode and observation source are never
+## touched for this.
+var _qi_flow_active: bool = false
 
 var _workbench_page: VBoxContainer
 var _wb_status_label: Label
@@ -112,6 +170,9 @@ var _server_port_edit: LineEdit
 var _fps_accum: float = 0.0
 var _fps_count: int = 0
 var _fps_display: float = 0.0
+var _step_rate_display: float = 0.0
+var _step_rate_accum: float = 0.0
+var _step_rate_last: int = -1
 
 var _viz_texture_rect: TextureRect
 
@@ -122,6 +183,7 @@ var _viz_texture_rect: TextureRect
 ## interactive GradientLegend (outside the scroll body so its MOUSE_FILTER_STOP
 ## can never swallow scroll events).
 var _control_panel: CPanel
+var _presentation_interface_visible := true
 var _setup_page: VBoxContainer
 var _visuals_page: VBoxContainer
 var _system_page: VBoxContainer
@@ -164,14 +226,13 @@ const CASSI_THEME: Theme = preload("res://addons/cassi_ui/theme/cassi_theme.tres
 # array: adding a new parameter = one Dictionary entry here (new param =
 # one dict entry is the whole contract).
 #
-# Schema:  {id, kind, caption, token, min, max, step, default, changed,
-#           group, [width]}
-#   id       — stable string; also selects the direct-ref alias below
-#              (xi→_xi_slider/_xi_label, src→_src_slider/_src_label,
-#              grid→_grid_spin, particles→_particle_spin,
-#              clusters→_nclusters_spin, separation→_sep_spin, init→_init_opt).
-#   kind     — "slider" → CParam; "spin" → CSpinParam; "option" → COptionParam.
-#   caption  — the row's caption text; token — its "Cassi" color token.
+## Schema: {id, kind, caption, token, min, max, step, default, changed,
+##          group, [width], [options]}
+##   id       — stable string; also selects the direct-ref alias below
+##              (xi→_xi_slider/_xi_label, src→_src_slider/_src_label,
+##              clusters→_nclusters_spin, separation→_sep_spin, init→_init_opt).
+##   kind     — "slider" → CParam; "spin" → CSpinParam; "option" → COptionParam.
+##   caption  — the row's caption text; token — its "Cassi" color token.
 #   min/max/step/default — control range + initial value.
 #   changed  — the handler METHOD NAME (GDScript `const` can't hold bound
 #              Callables; resolved to Callable(self, name) at build time).
@@ -188,18 +249,11 @@ const PARAMS: Array[Dictionary] = [
 	{"id": "xi",         "kind": "slider", "caption": "xi:",        "token": "gold_soft", "min": 0.0,   "max": 100.0,    "step": 0.5,   "default": 18.0,   "changed": "_on_xi_changed",        "group": "Parameters"},
 	{"id": "src",        "kind": "slider", "caption": "Source:",    "token": "gold_soft", "min": 0.0,   "max": 2.0,      "step": 0.01,  "default": 0.5,    "changed": "_on_src_changed",       "group": "Parameters"},
 	{"id": "grid",       "kind": "spin",   "caption": "Grid N:",    "token": "gold",      "min": 64,    "max": 256,      "step": 64,    "default": 64,     "changed": "_on_grid_changed",      "group": "Parameters", "width": 120},
-	{"id": "particles",  "kind": "spin",   "caption": "Particles:", "token": "gold",      "min": 100,   "max": 5000000,  "step": 1000,  "default": 20000,  "changed": "_on_particles_changed", "group": "Parameters", "width": 150},
-	{"id": "clusters",   "kind": "spin",   "caption": "Clusters:",  "token": "cluster",   "min": 1,     "max": 20,       "step": 1,     "default": 1,      "changed": "_on_clusters_changed",  "group": "Parameters", "width": 120},
-	{"id": "separation", "kind": "spin",   "caption": "Separation:", "token": "sep",     "min": 10,    "max": 500,      "step": 10,    "default": 60,     "changed": "_on_separation_changed", "group": "Parameters", "width": 120},
-	{"id": "init",       "kind": "option", "caption": "Init:",      "token": "gold",      "min": 0,     "max": 2,        "step": 1,     "default": 0,      "changed": "_on_init_selected",      "group": "Parameters", "width": 120},
+	{"id": "particles",  "kind": "spin",   "caption": "Particles:", "token": "gold",      "min": 100,   "max": 5000000,  "step": 1000,  "default": 20000, "changed": "_on_particles_changed", "group": "Parameters", "width": 150},
+	{"id": "clusters",   "kind": "spin",   "caption": "Components:", "token": "cluster",  "min": 1,     "max": 20,       "step": 1,     "default": 1,      "changed": "_on_clusters_changed",  "group": "Parameters", "width": 120},
+	{"id": "separation", "kind": "spin",   "caption": "Component spacing:", "token": "sep", "min": 10, "max": 1000000, "step": 10, "default": 60, "changed": "_on_separation_changed", "group": "Parameters", "width": 132},
+	{"id": "init",       "kind": "option", "options": SHAPE_NAMES, "caption": "Shape:", "token": "gold", "min": 0, "max": 11, "step": 1, "default": 0, "changed": "_on_init_selected", "group": "Parameters", "width": 132},
 ]
-## Gravity-law segment labels (CSegmented options), matching the old
-## _build_gravity_buttons mapping (0=RIVER…4=REALSIM).
-const GRAVITY_NAMES: Array[String] = ["River", "Heuristic", "Plummer ref", "River self", "RealSim"]
-## Initial-condition profile choices for the Init option row.
-const INIT_CHOICES: Array[String] = ["Plummer", "Gaussian", "Uniform"]
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # Backed settings registry (2026-08-14) — UI-only exposure of existing
 # CassiSim exported properties the sim UI previously never surfaced. One
@@ -214,23 +268,28 @@ const INIT_CHOICES: Array[String] = ["Plummer", "Gaussian", "Uniform"]
 #   reinit — true → call sim.reinit() after setting (init-time / MultiMesh
 #            rebuild side effects); false → LIVE, applied next frame.
 # Backed toggles ride the generic toggle table (see EXTRA_TOGGLES below),
+## `kind: "option"` entries additionally provide an `options` Array[String].
 # with an optional tab route (System by default).
 const EXTRA_PARAMS: Array[Dictionary] = [
 	# ── Setup / Initial state (all reinit — they shape the IC draw) ──────
-	{"id": "cluster_radius",           "prop": "cluster_radius",           "caption": "Cluster radius:",   "token": "cluster", "min": 1.0,   "max": 500.0,     "step": 1.0,    "reinit": true,  "tooltip": "Initial sphere radius the cluster(s) are seeded within (world units)."},
-	{"id": "merger_speed",             "prop": "merger_speed",             "caption": "Merger speed:",     "token": "cluster", "min": 0.0,   "max": 20.0,      "step": 0.1,    "reinit": true,  "tooltip": "Bulk velocity toward the merger point (2=default). Reinit regenerates the velocities."},
-	{"id": "initial_radius_fraction",  "prop": "initial_radius_fraction",  "caption": "Init radius fr.:",  "token": "gold",    "min": 0.25,  "max": 1.0,       "step": 0.05,   "reinit": true,  "tooltip": "Fraction of the cluster radius where new particles are spawned (0.9 default)."},
-	{"id": "initial_v_circ_factor",    "prop": "initial_v_circ_factor",    "caption": "Circular support:", "token": "gold",    "min": 0.0,   "max": 2.0,       "step": 0.05,   "reinit": true,  "tooltip": "Fraction of circular velocity given to the ICs (0.85 default ≈ virialized; 0 = free-fall collapse)."},
+	{"id": "cluster_radius",           "prop": "cluster_radius",           "caption": "Support size:",     "token": "cluster", "min": 1.0,   "max": 1000000.0, "step": 1.0,    "reinit": true,  "tooltip": "Overall support size in world units. Larger values spread particles farther apart without changing their count. Original profiles use a spherical radius; designed shapes use it as their scale."},
+	{"id": "initial_arrangement",      "prop": "initial_arrangement",      "kind": "option", "options": ARRANGEMENT_NAMES, "caption": "Arrangement:", "token": "cluster", "min": 0, "max": 6, "step": 1, "default": 0, "reinit": true, "tooltip": "Component placement: Ring and Sphere retain explicit legacy layouts; Single and Pair ignore component count."},
+	{"id": "initial_motion",           "prop": "initial_motion",           "kind": "option", "options": MOTION_NAMES, "caption": "Initial motion:", "token": "gold", "min": 0, "max": 7, "step": 1, "default": 0, "reinit": true, "tooltip": "Profile default preserves original spherical support. Designed shapes start at rest; other modes are kinematic, not equilibrium claims."},
+	{"id": "initial_speed",            "prop": "initial_speed",            "caption": "Motion speed:",     "token": "gold",    "min": 0.0,   "max": 100.0,     "step": 0.1,    "default": 5.0,    "reinit": true,  "tooltip": "Speed scale for kinematic initial motion modes; At rest is exactly zero."},
+	{"id": "initial_total_mass",       "prop": "initial_total_mass",       "caption": "Total mass:",       "token": "gold",    "min": 0.0,   "max": 1000000000.0, "step": 100.0, "default": 0.0, "reinit": true, "tooltip": "Optional total mass override. 0 keeps the seeded Salpeter sum and >0 rescales the same relative masses."},
+	{"id": "merger_speed",             "prop": "merger_speed",             "caption": "Merger speed:",     "token": "cluster", "min": 0.0,   "max": 20.0,      "step": 0.1,    "default": 2.0,    "reinit": true,  "tooltip": "Legacy spherical-profile bulk velocity toward the merger point (2=default). Designed shapes use explicit kinematic motion."},
+	{"id": "initial_radius_fraction",  "prop": "initial_radius_fraction",  "caption": "Support fraction:",  "token": "gold",    "min": 0.25, "max": 1.0,       "step": 0.05,   "reinit": true,  "tooltip": "Fraction of the spherical support radius where original-profile particles are spawned (0.9 default)."},
+	{"id": "initial_v_circ_factor",    "prop": "initial_v_circ_factor",    "caption": "Circular support:", "token": "gold",    "min": 0.0,   "max": 2.0,       "step": 0.05,   "reinit": true,  "tooltip": "Fraction of circular velocity given to original spherical profiles (0.85 default); designed shapes use explicit motion."},
 	{"id": "ic_seed",                  "prop": "ic_seed",                  "caption": "Seed:",             "token": "gold",    "min": 0.0,   "max": 1000000000.0, "step": 1.0,  "reinit": true, "tooltip": "Initial-condition RNG seed; 0 = random. Set non-zero for reproducible runs (reinit redraws)."},
 	# ── Setup / Runtime scales ───────────────────────────────────────────
 	{"id": "dt",                       "prop": "dt",                       "caption": "dt:",               "token": "sep",     "min": 0.0001, "max": 0.01,   "step": 0.0001, "reinit": false, "tooltip": "Fixed physics timestep (s). LOW = stable, accurate, slow; HIGH = fast but coarse."},
 	{"id": "softening",                "prop": "softening",                "caption": "Softening:",        "token": "sep",     "min": 0.001, "max": 5.0,    "step": 0.001,  "reinit": false, "tooltip": "Gray softening length; epsilon² = softening² in the force kernels."},
-	{"id": "particle_size",            "prop": "particle_size",            "caption": "Particle size:",    "token": "sep",     "min": 0.05,  "max": 2.0,    "step": 0.05,   "reinit": true,  "tooltip": "Rendered particle size (px). Changing it rebuilds the MultiMesh — reinit applies."},
+	{"id": "particle_size",            "prop": "particle_size",            "caption": "Particle size:",    "token": "sep",     "min": 0.05,  "max": 1000.0, "step": 0.05,   "reinit": true,  "tooltip": "Rendered particle diameter scale in world units, not particle spacing. Changing it rebuilds the MultiMesh — reinit applies."},
 	{"id": "sim_speed",                "prop": "sim_speed",                "caption": "Sim speed ×:",      "token": "sep",     "min": 0.05,  "max": 10.0,   "step": 0.05,   "reinit": false, "tooltip": "Simulation time-rate multiplier (1.0 = real time). Live; changes the step accumulator rate."},
 	{"id": "physics_frame_budget",     "prop": "physics_frame_budget",     "caption": "Frame budget:",     "token": "sep",     "min": 0.0,   "max": 1.0,    "step": 0.05,   "reinit": false, "tooltip": "Fraction of measured frame time budgeted to physics steps per frame (0 = unlimited, default 0.6)."},
 	# ── Physics / color numeric ──────────────────────────────────────────
 	{"id": "qi_condensation_threshold","prop": "qi_condensation_threshold","caption": "Condensation:",    "token": "mint",    "min": 0.001, "max": 10.0,   "step": 0.001,  "reinit": false, "tooltip": "Qi density above which BH nucleation triggers (the white point when the approach tracks the threshold)."},
-	{"id": "bh_acc_rate",              "prop": "bh_acc_rate",              "caption": "BH acc. rate:",     "token": "mint",    "min": 0.0,   "max": 1.0,    "step": 0.001,  "reinit": false, "tooltip": "Black-hole mass growth per step from the field (0.01 default). Live."},
+	{"id": "bh_acc_rate",              "prop": "bh_acc_rate",              "caption": "BH acc. rate:",     "token": "mint",    "min": 0.0,   "max": 1.0,    "step": 0.001,  "reinit": false, "tooltip": "Black-hole mass growth per step from the field — OFF by default (0.0), because it manufactures mass with nothing drained; experiments only, capped at bh_edd_k·M·dt. Live."},
 	{"id": "bh_max_age",               "prop": "bh_max_age",               "caption": "BH max age:",       "token": "mint",    "min": 0.0,   "max": 1000000.0, "step": 100.0, "reinit": false, "tooltip": "Black-hole lifetime (steps); 0 = immortal. Live."},
 	{"id": "bh_accretion_radius",      "prop": "bh_accretion_radius",      "caption": "Accretion radius:", "token": "mint",    "min": 0.001, "max": 10.0,   "step": 0.001,  "reinit": false, "tooltip": "World-unit radius at which falling matter is marked for accretion (≈1× default softening). Live."},
 	{"id": "box_scale",                "prop": "box_scale",                "caption": "Box scale:",        "token": "gold",    "min": 0.25,  "max": 5.0,    "step": 0.05,   "reinit": true,  "tooltip": "Uniform rescale of all three box extents (aspect preserved). Reinit applies the new box extents."},
@@ -352,7 +411,6 @@ func _ready() -> void:
 	# House theme — every child inherits it (panels styled by type, labels
 	# via tokens). This is the ONE place the look is wired up.
 	theme = CASSI_THEME
-
 	# ── Full-viewport visualization texture (behind UI panels) ──
 	_viz_texture_rect = TextureRect.new()
 	_viz_texture_rect.name = "VizTexture"
@@ -362,16 +420,17 @@ func _ready() -> void:
 	_viz_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_viz_texture_rect.visible = false
 	add_child(_viz_texture_rect)
-	move_child(_viz_texture_rect, 0)  # Behind the UI panels
+	move_child(_viz_texture_rect, 0)
 
-	# Connect to CassiSim texture signals
+	# Connect to CassiSim texture and presentation signals.
 	var sim = _get_sim()
 	if sim:
 		if sim.has_signal("field_texture_updated"):
 			sim.field_texture_updated.connect(_on_field_texture_updated)
 		if sim.has_signal("workbench_cursor_changed"):
 			sim.workbench_cursor_changed.connect(_on_wb_cursor_changed)
-
+		if sim.has_signal("observatory_changed"):
+			sim.observatory_changed.connect(_on_observatory_changed)
 	# ── Floating status panel (top-left / right of the rail) ────
 	# Compact: FPS/Mode line, connection line, and the (hidden-until-on)
 	# falsification meter. The full diagnostics multi-line label lives in
@@ -389,9 +448,13 @@ func _ready() -> void:
 	info_panel.add_child(info_vbox)
 	_info_vbox = info_vbox
 
-	_info_label = _make_label("FPS: --  Mode: --", "text", "hud")
+	_info_label = _make_label("FPS: --  |  N: --  |  Step: --", "text", "hud")
 	_info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info_vbox.add_child(_info_label)
+
+	_step_rate_label = _make_label("-- steps/s", "text_hint", "param")
+	_step_rate_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(_step_rate_label)
 
 	_conn_label = _make_label("Connection: Local", "text_hint", "param")
 	_conn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -412,14 +475,23 @@ func _ready() -> void:
 	_build_rail()
 
 	# Build the four tab pages (Setup / Visuals / System / Workbench).
+	# Qi-flow inspection leads the Visuals tab (before Appearance, Color
+	# mapping and every Advanced group) so the new view is discoverable
+	# without opening anything; Appearance and capture stay render-only.
+	_build_qi_flow_controls()
+	_build_observatory_controls()
 	_build_setup_page()
 	_build_visuals_page()
 	_build_system_page()
 	_build_workbench_page()
+	_setup_capture_helper()
+	_sync_observatory_controls()
+	_sync_capture_helper()
 	_sync_extra_params()
 	_sync_presentation_director_control()
-	_tab_bar.set_selected_no_signal(0)
-	_show_tab(0)
+	# Boot sync of the Qi-flow group: push CassiSim's live qi_flow_* values
+	# with no-signal setters (same discipline as _sync_extra_params above).
+	_sync_qi_flow_controls(true)
 
 	# The three tab pages were already built by the _build_setup_page /
 	# _build_visuals_page / _build_system_page calls above (they construct
@@ -427,6 +499,10 @@ func _ready() -> void:
 	# GradientLegend in the footer, and the server fields). Layout is
 	# settled after the first frame so the status panel sizes to its content.
 	resized.connect(_update_layout)
+	if get_viewport() != null:
+		# The Control's own `resized` misses window/fullscreen transitions, which
+		# would leave the status panel at its small-viewport offset (under the rail).
+		get_viewport().size_changed.connect(_update_layout)
 	call_deferred("_update_layout")
 
 
@@ -443,6 +519,7 @@ func _ready() -> void:
 		_set_mode_highlight(sim.mode)
 		_set_grav_highlight(sim.gravity_mode)
 		_init_opt.set_value_no_signal(sim.initial_condition)
+		_update_shape_visibility(int(sim.initial_condition))
 		_multirung_btn.button_pressed = sim.multi_rung_seed
 
 		_meshless_btn.button_pressed = sim.meshless_mode
@@ -450,9 +527,11 @@ func _ready() -> void:
 		_no_rb_btn.button_pressed = sim.suppress_readbacks
 		_bh_toggle_btn.button_pressed = sim.black_holes_enabled
 		_phi_box_btn.button_pressed = (sim.box_aspect != Vector3(1.0, 1.0, 1.0))
-		_dual_btn.button_pressed = sim.dual_grid
 		_multirung_btn.button_pressed = sim.multi_rung_seed
 		_vsync_btn.button_pressed = sim.vsync_enabled
+		# Color sync above may touch legacy enabled-state; presentation sync
+		# is last so naturalistic mode always suppresses those widgets.
+		_sync_observatory_controls()
 
 	# Connect value_changed AFTER init to avoid spurious reinit() on startup.
 	# (Registry sliders + spins were wired at build time — their init sync
@@ -462,7 +541,6 @@ func _ready() -> void:
 	_no_rb_btn.toggled.connect(_on_suppress_readbacks_toggled)
 	_bh_toggle_btn.toggled.connect(_on_black_holes_toggled)
 	_phi_box_btn.toggled.connect(_on_phi_box_toggled)
-	_dual_btn.toggled.connect(_on_dual_grid_toggled)
 	_multirung_btn.toggled.connect(_on_multirung_toggled)
 	_vsync_btn.toggled.connect(_on_vsync_toggled)
 
@@ -475,25 +553,44 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_fps_accum += delta
 	_fps_count += 1
+	_step_rate_accum += delta
 	if _fps_accum < 0.25:
 		return
 	_fps_display = float(_fps_count) / _fps_accum
 	_fps_accum = 0.0
 	_fps_count = 0
+	var sim_for_rate = _get_sim()
+	var steps_now: int = int(sim_for_rate._step_count) if sim_for_rate else -1
+	if steps_now >= 0 and _step_rate_last >= 0 and _step_rate_accum > 0.0:
+		_step_rate_display = float(steps_now - _step_rate_last) / _step_rate_accum
+	_step_rate_last = steps_now
+	_step_rate_accum = 0.0
 	_update_info()
+	# Qi-flow group rides the same 4 Hz tick: no-signal re-sync (catches an
+	# inspector edit or a reinit) plus the cached statistics readout. No
+	# readback, no GPU query, no per-frame cost.
+	_sync_qi_flow_controls()
 
 
 ## Recompute the layout after build, on viewport resize, on rail toggle, on
 ## tab switch, and after the falsify meter's visibility flips. Anchors the
 ## left rail to full height with its responsive width, positions the status
 ## panel, sizes it to its children, and shows/hides the reopen button.
+func set_presentation_interface_visible(visible: bool) -> void:
+	_presentation_interface_visible = visible
+	var toggle := find_child("CaptureInterface", true, false) as CheckButton
+	if toggle != null:
+		toggle.set_pressed_no_signal(visible)
+	_update_layout()
+
+
 func _update_layout() -> void:
 	if not is_inside_tree():
 		return
 	var vw: float = get_viewport_rect().size.x if get_viewport() != null else RAIL_WIDTH
 	var rail_w: float = RAIL_WIDTH if vw >= 960.0 else maxf(RAIL_WIDTH_NARROW, vw - 16.0)
 	if _control_panel != null:
-		_control_panel.visible = not _rail_collapsed
+		_control_panel.visible = _presentation_interface_visible and not _rail_collapsed
 		if not _rail_collapsed:
 			_control_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 			_control_panel.offset_left = 0
@@ -502,7 +599,7 @@ func _update_layout() -> void:
 			_control_panel.offset_bottom = get_viewport_rect().size.y if get_viewport() != null else 0
 	# Small reopen button pinned to the left edge when the rail is hidden.
 	if _rail_reopen_btn != null:
-		_rail_reopen_btn.visible = _rail_collapsed
+		_rail_reopen_btn.visible = _presentation_interface_visible and _rail_collapsed
 		if _rail_collapsed:
 			_rail_reopen_btn.offset_left = 6
 			_rail_reopen_btn.offset_top = 6
@@ -511,6 +608,7 @@ func _update_layout() -> void:
 	# Status panel: to the right of the rail when open and there's room,
 	# else floating top-left over the viewport.
 	if _info_panel != null:
+		_info_panel.visible = _presentation_interface_visible
 		_info_panel.set_anchors_preset(PRESET_TOP_LEFT)
 		var side_room: float = vw - rail_w
 		var side: bool = (not _rail_collapsed) and side_room >= STATUS_MIN_SIDE_SPACE
@@ -746,15 +844,34 @@ func _build_setup_page() -> void:
 	init_grid.add_theme_constant_override("v_separation", 6)
 	init_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	init_sec.add_child(init_grid)
-	# Init profile (registry option) + the extra initial-state numerics.
+	# Shape, arrangement, motion, and mass remain independent controls.
 	_init_spin_row(init_grid, "init")
+	_init_spin_row(init_grid, "initial_arrangement")
+	_init_spin_row(init_grid, "initial_motion")
 	_init_spin_row(init_grid, "cluster_radius")
+	_init_spin_row(init_grid, "initial_speed")
+	_init_spin_row(init_grid, "initial_total_mass")
 	_init_spin_row(init_grid, "clusters")
 	_init_spin_row(init_grid, "separation")
 	_init_spin_row(init_grid, "merger_speed")
 	_init_spin_row(init_grid, "initial_radius_fraction")
 	_init_spin_row(init_grid, "initial_v_circ_factor")
 	_init_spin_row(init_grid, "ic_seed")
+	_shuffle_seed_btn = CButton.make("Shuffle seed", _on_shuffle_seed)
+	_shuffle_seed_btn.custom_minimum_size = Vector2(0, 26)
+	_shuffle_seed_btn.tooltip_text = "Choose a new non-zero seed and reinitialize exactly once."
+	init_grid.add_child(_shuffle_seed_btn)
+
+	# Nested shape controls are sourced directly from the geometry registry;
+	# no parallel UI parameter list is maintained here.
+	var shape_sec := _add_section(_setup_page, "Shape settings", "REINIT")
+	var shape_grid := GridContainer.new()
+	shape_grid.columns = 2
+	shape_grid.add_theme_constant_override("h_separation", 10)
+	shape_grid.add_theme_constant_override("v_separation", 6)
+	shape_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shape_sec.add_child(shape_grid)
+	_build_shape_setting_rows(shape_grid)
 
 	# ── Runtime scales ──────────────────────────────────────────
 	var rt_sec := _add_section(_setup_page, "Runtime scales", "LIVE")
@@ -787,25 +904,13 @@ func _build_setup_page() -> void:
 	_init_spin_row(cb_grid, "physics_frame_budget")
 
 
-## Look up a PARAMS registry entry by id.
-func _param_by_id(id: String) -> Dictionary:
-	for p in PARAMS:
-		if p.id == id:
-			return p
-	return {}
-
-
-## Add a single param (registry or extra) as a cell; the GridContainer
-## flows them two per row automatically.
 func _init_spin_row(grid: GridContainer, id: String) -> void:
 	var ctl: Control = _ensure_param(id)
 	grid.add_child(ctl)
 
 
 ## Construct (once) a param control for id. Registry params use the exact
-## existing _build_param_row path (aliases xi/src/grid/particles/...);
-## extra params use the generic backed-settings builder. Returns the row
-## Control, cached so rebuilds reuse it.
+## existing _build_param_row path; backed params use their generic builder.
 func _ensure_param(id: String) -> Control:
 	if _param_rows.has(id):
 		return _param_rows[id]
@@ -814,12 +919,22 @@ func _ensure_param(id: String) -> Control:
 		ctl = _build_param_row(_param_by_id(id))
 	else:
 		for e in EXTRA_PARAMS:
-			if e.id == id:
-				ctl = _build_extra_spin(e)
-				break
+			if e.id != id:
+				continue
+			ctl = _build_extra_option(e) if e.get("kind", "spin") == "option" else _build_extra_spin(e)
+			break
 	if ctl != null:
 		_param_rows[id] = ctl
 	return ctl
+
+
+
+
+func _param_by_id(id: String) -> Dictionary:
+	for p in PARAMS:
+		if p.id == id:
+			return p
+	return {}
 
 
 func _is_registry_id(id: String) -> bool:
@@ -844,7 +959,112 @@ func _build_extra_spin(e: Dictionary) -> Control:
 	spin.spin.tooltip_text = e.get("tooltip", "")
 	_extra_spins[id] = spin
 	return spin
+## Build a backed enum setting using the same EXTRA_PARAMS registry.
+func _build_extra_option(e: Dictionary) -> Control:
+	var id: String = String(e.id)
+	if _extra_options.has(id):
+		return _extra_options[id]
+	var opt := COptionParam.new()
+	opt.box_min_width = ROW_WIDTH
+	var options: Array[String] = []
+	for name_variant in e.get("options", []):
+		options.append(String(name_variant))
+	var changed := Callable(self, "_on_extra_option_changed").bind(id)
+	if id == "initial_arrangement":
+		changed = Callable(self, "_on_arrangement_selected")
+	elif id == "initial_motion":
+		changed = Callable(self, "_on_motion_selected")
+	opt.setup(String(e.caption), String(e.get("token", "text")),
+		options, int(e.get("default", 0)), changed)
+	if id == "initial_arrangement":
+		_arrangement_opt = opt
+	elif id == "initial_motion":
+		_motion_opt = opt
+	opt.tooltip_text = String(e.get("tooltip", ""))
+	# Keep the compact rail width while allowing the popup to show full names.
+	opt.option.custom_minimum_size = Vector2(0, 22)
+	opt.option.clip_text = true
+	_extra_options[id] = opt
+	return opt
 
+
+func _on_extra_option_changed(value: int, id: String) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	for e in EXTRA_PARAMS:
+		if e.id != id:
+			continue
+		sim.set(String(e.prop), value)
+		if id == "initial_arrangement":
+			_update_shape_dependent_controls(value)
+		if e.get("reinit", false):
+			sim.reinit()
+		break
+
+## Build the nested shape-settings rows from the generator's canonical
+## metadata. The rows are cached and only their visibility changes on shape
+## selection, so changing shape never resets arrangement, motion, count, or seed.
+func _build_shape_setting_rows(grid: GridContainer) -> void:
+	for meta_variant in ParticleInitialConditions.PARAMS:
+		var meta: Dictionary = meta_variant
+		var key := String(meta.get("key", ""))
+		if key == "":
+			continue
+		var id := String(meta.get("id", "ic_" + key))
+		var row := CSpinParam.new()
+		row.box_min_width = ROW_WIDTH
+		var step := float(meta.get("step", 0.1))
+		var default_value := float(meta.get("default", 0.0))
+		row.setup(String(meta.get("caption", key)), String(meta.get("token", "gold")),
+			float(meta.get("min", 0.0)), float(meta.get("max", 1.0)), step,
+			default_value, Callable(self, "_on_shape_setting_changed").bind(id))
+		row.spin.tooltip_text = String(meta.get("tooltip", ""))
+		_shape_setting_rows[id] = row
+		_shape_setting_meta[id] = meta
+		grid.add_child(row)
+
+
+func _shape_setting_is_visible(meta: Dictionary, shape: int) -> bool:
+	var shapes: Array = meta.get("shapes", [])
+	return shapes.is_empty() or shapes.has(shape)
+
+
+func _shape_setting_cast(value: float, meta: Dictionary) -> Variant:
+	var step := float(meta.get("step", 0.1))
+	return int(round(value)) if is_equal_approx(step, round(step)) else value
+
+
+func _on_shape_setting_changed(value: float, id: String) -> void:
+	var sim = _get_sim()
+	if sim == null or not _shape_setting_meta.has(id):
+		return
+	var current: Variant = sim.get("initial_shape_settings")
+	var settings: Dictionary = current.duplicate() if current is Dictionary else {}
+	settings[String(_shape_setting_meta[id].get("key", id))] = _shape_setting_cast(value, _shape_setting_meta[id])
+	sim.set("initial_shape_settings", settings)
+	sim.reinit()
+
+
+func _sync_shape_setting_rows(sim: Node3D) -> void:
+	var current: Variant = sim.get("initial_shape_settings")
+	var settings: Dictionary = current if current is Dictionary else {}
+	for id in _shape_setting_rows.keys():
+		var row: CSpinParam = _shape_setting_rows[id]
+		var meta: Dictionary = _shape_setting_meta[id]
+		var value := float(settings.get(String(meta.get("key", id)), meta.get("default", 0.0)))
+		row.set_value_no_signal(value)
+		row.visible = _shape_setting_is_visible(meta, int(sim.initial_condition))
+	_update_shape_dependent_controls(int(sim.get("initial_arrangement")))
+
+
+func _update_shape_dependent_controls(arrangement: int) -> void:
+	if _nclusters_spin == null:
+		return
+	var fixed_count := arrangement == 2 or arrangement == 3
+	_nclusters_spin.spin.editable = not fixed_count
+	_nclusters_spin.tooltip_text = "Component count is ignored by Single/Pair arrangements." if fixed_count \
+		else "Number of components in the selected arrangement."
 
 ## Generic no-signal setter for the backed numerics: writes the value into
 ## the sim and reinit()s only for reinit-marked entries. Never replaces the
@@ -868,12 +1088,13 @@ func _on_extra_param_changed(value: float, id: String) -> void:
 #  EXTRA_PARAMS entries carry their own captions/tooltips.)
 
 
-## Cast a numeric SpinBox value to the property's native type (ints for
-## ic_seed / counts; floats otherwise).
+## Cast a numeric SpinBox value to the property's native type.
 func _cast_extra(value: float, e: Dictionary) -> Variant:
 	var p: String = String(e.prop)
-	if p == "ic_seed":
-		return int(value)
+	# These exports are integer counters/IDs. Other step-1 controls such as
+	# cluster_radius remain floats by contract, so do not infer type from step.
+	if p == "ic_seed" or p == "bh_max_age":
+		return int(round(value))
 	return float(value)
 
 
@@ -928,7 +1149,7 @@ func _sync_presentation_director_control() -> void:
 	_presentation_director_opt.disabled = false
 	var director_mode := int(director.get("mode"))
 	var director_preset := int(director.get("preset"))
-	var selected := 0 if director_mode == 0 else clampi(director_preset + 1, 1, 3)
+	var selected := 0 if director_mode == 0 else clampi(director_preset + 1, 1, 4)
 	if director_mode == 2:
 		selected = 3
 	_presentation_director_opt.select(selected)
@@ -952,13 +1173,386 @@ func _on_presentation_director_selected(index: int) -> void:
 func _on_presentation_director_mode_changed(next_mode: int, next_preset: int) -> void:
 	if _presentation_director_opt == null:
 		return
-	var selected := 0 if next_mode == 0 else clampi(next_preset + 1, 1, 3)
+	var selected := 0 if next_mode == 0 else clampi(next_preset + 1, 1, 4)
 	if next_mode == 2:
 		selected = 3
 	_presentation_director_opt.select(selected)
 
 
 const ROW_WIDTH: int = 132
+
+
+# ── Qi flow inspection ─────────────────────────────────────────────────
+
+## Channel choices — the index order IS the qi_flow_channel contract.
+const QI_FLOW_CHANNELS: Array[String] = ["Both", "Yang", "Yin", "Net"]
+const QI_FLOW_CHANNEL_TIPS: Array[String] = [
+	"Both currents together: gold AND teal filaments are drawn at once — that is how counterflow stays visible.",
+	"Yang current only — the warm-gold filaments.",
+	"Yin current only — the teal filaments.",
+	"Summed Yang+Yin vector, drawn in a pale cool white. Equal and opposite currents cancel here, so Net can hide counterflow.",
+]
+## Scalar choices — the index order IS the qi_flow_scalar contract.
+const QI_FLOW_SCALARS: Array[String] = ["Coherence", "Signed imbalance", "Field amplitude"]
+## Match the renderer's channel palette.
+const QI_FLOW_YANG_COLOR: Color = Color(1.0, 0.79, 0.36)   # warm gold
+const QI_FLOW_YIN_COLOR: Color = Color(0.30, 0.85, 0.80)   # teal
+const QI_FLOW_NET_COLOR: Color = Color(0.78, 0.82, 1.0)    # pale cool white
+
+
+## Build the Visuals-tab "Qi flow inspection" group — built FIRST in the
+## page (before Appearance and Color mapping) so the view is reachable
+## without expanding any Advanced section. Reuses the house widgets only:
+## a CGroupPanel section, CParam sliders, COptionParam and CSegmented.
+func _build_qi_flow_controls() -> void:
+	var sec := _add_section(_visuals_page, "Qi flow inspection", "LIVE")
+	var intro := _make_label("Follow the Yang and Yin wave-energy currents through the native field.", "text_hint", "param")
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sec.add_child(intro)
+
+	# Compact filament color key — the three colors the renderer draws.
+	var key_row := HBoxContainer.new()
+	key_row.add_theme_constant_override("separation", 10)
+	sec.add_child(key_row)
+	var key_caption := _make_label("Currents:", "gold", "param")
+	key_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	key_row.add_child(key_caption)
+	key_row.add_child(_qi_flow_key_entry("Yang", QI_FLOW_YANG_COLOR,
+		"Yang current filaments (warm gold)."))
+	key_row.add_child(_qi_flow_key_entry("Yin", QI_FLOW_YIN_COLOR,
+		"Yin current filaments (teal)."))
+	key_row.add_child(_qi_flow_key_entry("Net", QI_FLOW_NET_COLOR,
+		"Summed current, drawn only in the Net channel (pale cool white)."))
+
+	_qi_enable_btn = _build_vfx_toggle("QiFlowEnableBtn", "Enable Qi flow",
+		"Draw the Qi-flow inspection layer over the authoritative meshless sites. Live and rendering-only: no reinit, and no change to the physics or the observation source.", _on_qi_flow_enabled_toggled)
+	_qi_enable_btn.custom_minimum_size = Vector2(0, 24)
+	sec.add_child(_qi_enable_btn)
+	_qi_frame_btn = Button.new()
+	_qi_frame_btn.name = "QiFlowFrameBtn"
+	_qi_frame_btn.text = "Frame field"
+	_qi_frame_btn.tooltip_text = "Fit the actual field window to the camera.\nMoves only the viewpoint; field size and physics are unchanged."
+	_qi_frame_btn.focus_mode = Control.FOCUS_NONE
+	_qi_frame_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_qi_frame_btn.disabled = true
+	_qi_frame_btn.pressed.connect(_on_qi_flow_frame_pressed)
+	sec.add_child(_qi_frame_btn)
+
+	var channel_label := _make_label("Channel", "gold", "param")
+	channel_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sec.add_child(channel_label)
+	_qi_channel_seg = CSegmented.new()
+	_qi_channel_seg.name = "QiFlowChannel"
+	_qi_channel_seg.button_min_width = 0
+	_qi_channel_seg.setup(QI_FLOW_CHANNELS, 0, Callable(self, "_on_qi_flow_channel_selected"))
+	for i in range(_qi_channel_seg.buttons.size()):
+		var b := _qi_channel_seg.buttons[i]
+		b.custom_minimum_size = Vector2(0, 24)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.tooltip_text = QI_FLOW_CHANNEL_TIPS[i]
+	sec.add_child(_qi_channel_seg)
+
+	_qi_scalar_opt = COptionParam.new()
+	_qi_scalar_opt.name = "QiFlowScalar"
+	_qi_scalar_opt.box_min_width = ROW_WIDTH
+	_qi_scalar_opt.setup("Scalar:", "gold", QI_FLOW_SCALARS, 0, Callable(self, "_on_qi_flow_scalar_selected"))
+	_qi_scalar_opt.tooltip_text = "Coherence q: deep blue → cyan → white, fixed 0–1 scale.\nSigned imbalance (EY−φEI)/|EY+EI|: teal (−) → dark → gold (+), clipped ±1.\nField amplitude |EY+EI|: violet → gold, scaled to the current maximum."
+	sec.add_child(_qi_scalar_opt)
+
+	# Layer toggles in one column so their labels never overflow a narrow rail.
+	var layers := GridContainer.new()
+	layers.columns = 1
+	layers.add_theme_constant_override("v_separation", 5)
+	sec.add_child(layers)
+	_qi_field_toggle = _build_vfx_toggle("QiFlowFieldBtn", "Field layer",
+		"Draw the site-field layer itself — the selected scalar ramp over every authoritative site.", _on_qi_flow_field_toggled)
+	layers.add_child(_qi_field_toggle)
+	_qi_sources_toggle = _build_vfx_toggle("QiFlowSourcesBtn", "Source markers",
+		"Mark occupied black-hole records at their actual world positions (up to 15).\nMarker size is a display cue for mass, not a horizon radius.", _on_qi_flow_sources_toggled)
+	layers.add_child(_qi_sources_toggle)
+	_qi_particles_toggle = _build_vfx_toggle("QiFlowParticlesBtn", "Particle backdrop",
+		"Keep the particle cloud drawn behind the current layer.", _on_qi_flow_particles_toggled)
+	layers.add_child(_qi_particles_toggle)
+
+	_qi_density_row = _add_qi_flow_param(sec, "QiFlowDensity", "Filament density:",
+		"Draw 102–1024 seeded graph paths per channel, up to 16 bonds each.\nDisplay density only; every site's current is still evaluated.", 0.1, 1.0, 0.05, 0.5, Callable(self, "_on_qi_flow_density_changed"))
+	_qi_gain_row = _add_qi_flow_param(sec, "QiFlowGain", "Light / gain:",
+		"Brightness of the current layer. Display-only exposure; the underlying quantities are unchanged.", 0.1, 4.0, 0.05, 1.0, Callable(self, "_on_qi_flow_gain_changed"))
+	_qi_cutaway_row = _add_qi_flow_param(sec, "QiFlowCutaway", "Core cutaway:",
+		"0 = whole field. Raise towards 1 to remove the camera-facing half and expose the interior. Display-only: the simulation is unchanged.", 0.0, 1.0, 0.05, 0.0, Callable(self, "_on_qi_flow_cutaway_changed"))
+
+	var note := _make_label("Pulses indicate direction, not speed. Pause freezes them. Low coherence remains visible; missing data does not.", "text_hint", "detail")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sec.add_child(note)
+
+	_qi_status_label = _make_label("", "text_hint", "param")
+	_qi_status_label.name = "QiFlowStatus"
+	_qi_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_qi_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sec.add_child(_qi_status_label)
+
+
+## One Qi-flow slider row (CParam) with the house caption/value formatting.
+func _add_qi_flow_param(parent: Control, id: String, caption: String, tooltip: String,
+		min_v: float, max_v: float, step_v: float, default_v: float,
+		changed: Callable) -> CParam:
+	var row := CParam.new()
+	row.name = id
+	row.setup(caption, "gold_soft", min_v, max_v, step_v, default_v, changed)
+	row.tooltip_text = tooltip
+	row.slider.tooltip_text = tooltip
+	parent.add_child(row)
+	return row
+
+
+## One compact color-key entry: swatch + name (the renderer's exact color).
+func _qi_flow_key_entry(label: String, color: Color, tip: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	row.tooltip_text = tip
+	var swatch := ColorRect.new()
+	swatch.color = color
+	swatch.custom_minimum_size = Vector2(12, 12)
+	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swatch.tooltip_text = tip
+	row.add_child(swatch)
+	var entry_label := _make_label(label, "text_hint", "detail")
+	entry_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(entry_label)
+	return row
+
+
+# ── Qi-flow callbacks (each writes exactly one CassiSim export) ─────────
+
+func _on_qi_flow_enabled_toggled(on: bool) -> void:
+	_qi_flow_set("qi_flow_enabled", on)
+	_update_qi_flow_status()
+
+
+func _on_qi_flow_channel_selected(index: int) -> void:
+	_qi_flow_set("qi_flow_channel", clampi(index, 0, QI_FLOW_CHANNELS.size() - 1))
+
+
+func _on_qi_flow_scalar_selected(index: int) -> void:
+	_qi_flow_set("qi_flow_scalar", clampi(index, 0, QI_FLOW_SCALARS.size() - 1))
+
+
+func _on_qi_flow_density_changed(value: float) -> void:
+	_qi_flow_set("qi_flow_density", clampf(value, 0.1, 1.0))
+
+
+func _on_qi_flow_gain_changed(value: float) -> void:
+	_qi_flow_set("qi_flow_gain", clampf(value, 0.1, 4.0))
+
+
+func _on_qi_flow_cutaway_changed(value: float) -> void:
+	_qi_flow_set("qi_flow_cutaway", clampf(value, 0.0, 1.0))
+
+
+func _on_qi_flow_field_toggled(on: bool) -> void:
+	_qi_flow_set("qi_flow_show_field", on)
+
+
+func _on_qi_flow_sources_toggled(on: bool) -> void:
+	_qi_flow_set("qi_flow_show_sources", on)
+
+
+func _on_qi_flow_particles_toggled(on: bool) -> void:
+	_qi_flow_set("qi_flow_show_particles", on)
+
+
+func _on_qi_flow_frame_pressed() -> void:
+	var sim := _get_sim()
+	if sim != null:
+		sim.call("frame_qi_flow_view")
+
+
+# ── Qi-flow sync / status ──────────────────────────────────────────────
+
+## Write one rendering-only qi_flow_* export. Never reinit()s, never touches
+## a physics or observation source; a missing export family is reported in
+## the status line instead of being worked around.
+func _qi_flow_set(prop: String, value: Variant) -> void:
+	var sim := _get_sim()
+	if sim == null or not _qi_prop_ready(sim):
+		return
+	sim.set(prop, value)
+
+
+## Qi-flow exports this group binds to — the whole set must exist before
+## any control is live: a partial integration would otherwise read null
+## exports and write invalid properties.
+const QI_FLOW_PROPS: Array[String] = [
+	"qi_flow_enabled", "qi_flow_channel", "qi_flow_scalar", "qi_flow_density",
+	"qi_flow_gain", "qi_flow_cutaway", "qi_flow_show_field",
+	"qi_flow_show_sources", "qi_flow_show_particles",
+]
+
+
+## One-shot check that CassiSim owns the WHOLE qi_flow_* export family
+## (cached — get_property_list() allocates, so this must never run per
+## frame). A build without the family leaves the group disabled and says so.
+func _qi_prop_ready(sim: Node3D) -> bool:
+	if _qi_props_checked:
+		return _qi_props_present
+	_qi_props_checked = true
+	var names := {}
+	for entry in sim.get_property_list():
+		names[String(entry.name)] = true
+	_qi_props_present = true
+	for prop in QI_FLOW_PROPS:
+		if not names.has(prop):
+			_qi_props_present = false
+			break
+	return _qi_props_present
+
+
+## Push CassiSim's live qi_flow_* values into the group with no-signal
+## setters — the boot / reinit / inspector cadence the backed registries
+## use. `force` writes every control (boot); otherwise only a control whose
+## value actually drifted is rewritten, so this can ride the HUD tick
+## without fighting a live slider drag. Rendering-only: no reinit, no
+## source switch, no GPU work.
+func _sync_qi_flow_controls(force: bool = false) -> void:
+	if _qi_status_label == null:
+		return
+	var sim := _get_sim()
+	if sim == null:
+		_qi_flow_refresh_enabled(false)
+		_set_qi_flow_active(false)
+		_set_qi_flow_status("Unavailable: CassiSim is not in the scene tree.", "disabled")
+		return
+	var family_ready := _qi_prop_ready(sim)
+	_qi_flow_refresh_enabled(family_ready)
+	if not family_ready:
+		if force:
+			_qi_enable_btn.set_pressed_no_signal(false)
+			_qi_channel_seg.set_selected_no_signal(0)
+			_qi_scalar_opt.set_value_no_signal(0)
+			_qi_density_row.set_value_no_signal(0.5)
+			_qi_gain_row.set_value_no_signal(1.0)
+			_qi_cutaway_row.set_value_no_signal(0.0)
+			_qi_field_toggle.set_pressed_no_signal(true)
+			_qi_sources_toggle.set_pressed_no_signal(true)
+			_qi_particles_toggle.set_pressed_no_signal(false)
+		_update_qi_flow_status()
+		return
+	var enabled := bool(sim.get("qi_flow_enabled"))
+	if force or _qi_enable_btn.button_pressed != enabled:
+		_qi_enable_btn.set_pressed_no_signal(enabled)
+	var channel := clampi(int(sim.get("qi_flow_channel")), 0, QI_FLOW_CHANNELS.size() - 1)
+	if force or _qi_channel_seg.selected_index != channel:
+		_qi_channel_seg.set_selected_no_signal(channel)
+	var scalar := clampi(int(sim.get("qi_flow_scalar")), 0, QI_FLOW_SCALARS.size() - 1)
+	if force or _qi_scalar_opt.get_value() != scalar:
+		_qi_scalar_opt.set_value_no_signal(scalar)
+	var show_field := bool(sim.get("qi_flow_show_field"))
+	if force or _qi_field_toggle.button_pressed != show_field:
+		_qi_field_toggle.set_pressed_no_signal(show_field)
+	var show_sources := bool(sim.get("qi_flow_show_sources"))
+	if force or _qi_sources_toggle.button_pressed != show_sources:
+		_qi_sources_toggle.set_pressed_no_signal(show_sources)
+	var show_particles := bool(sim.get("qi_flow_show_particles"))
+	if force or _qi_particles_toggle.button_pressed != show_particles:
+		_qi_particles_toggle.set_pressed_no_signal(show_particles)
+	_qi_sync_row(_qi_density_row, float(sim.get("qi_flow_density")), force)
+	_qi_sync_row(_qi_gain_row, float(sim.get("qi_flow_gain")), force)
+	_qi_sync_row(_qi_cutaway_row, float(sim.get("qi_flow_cutaway")), force)
+	_update_qi_flow_status()
+
+
+## Rewrite a slider only when CassiSim's value really differs from the one
+## shown (an inspector edit or a reinit) — not when the control's own step
+## quantization is the only difference.
+func _qi_sync_row(row: CParam, sim_value: float, force: bool) -> void:
+	if force or absf(row.get_value() - sim_value) > row.slider.step * 0.5:
+		row.set_value_no_signal(sim_value)
+
+
+## Enable or disable the whole group as one unit. `exports_present` is false
+## only when CassiSim does not expose the qi_flow_* family: the controls are
+## then inert, and the status line says why — nothing falls back to another
+## mode and no invalid property is ever written. Idempotent (-1 = never
+## applied): the 4 Hz sync calls this every tick, so it no-ops unless the
+## export family's availability actually flipped.
+func _qi_flow_refresh_enabled(exports_present: bool) -> void:
+	var state := 1 if exports_present else 0
+	if _qi_controls_ready == state:
+		return
+	_qi_controls_ready = state
+	_qi_enable_btn.disabled = not exports_present
+	_qi_scalar_opt.option.disabled = not exports_present
+	for b in _qi_channel_seg.buttons:
+		b.disabled = not exports_present
+	_qi_field_toggle.disabled = not exports_present
+	_qi_sources_toggle.disabled = not exports_present
+	_qi_particles_toggle.disabled = not exports_present
+	_qi_density_row.slider.editable = exports_present
+	_qi_gain_row.slider.editable = exports_present
+	_qi_cutaway_row.slider.editable = exports_present
+
+
+## Refresh the group's status line from CassiSim's cached
+## qi_flow_statistics() readout: whether the view is drawing, the site count
+## and the accepted field time when available, else Main's own reason. Reads
+## a Dictionary only — no buffer readback, no GPU query, no per-frame work.
+func _update_qi_flow_status() -> void:
+	if _qi_status_label == null:
+		return
+	# Every path below this line leaves the flow view either provably drawing
+	# (the available branch) or provably not — the texture gate is cleared
+	# first so no early return can strand the field canvas hidden.
+	_set_qi_flow_active(false)
+	var sim := _get_sim()
+	if sim == null:
+		_set_qi_flow_status("Unavailable: CassiSim is not in the scene tree.", "disabled")
+		return
+	if not _qi_prop_ready(sim):
+		_set_qi_flow_status("Unavailable: CassiSim does not expose the qi_flow_* inspection exports in this build.", "disabled")
+		return
+	if not sim.has_method("qi_flow_statistics"):
+		_set_qi_flow_status("Unavailable: CassiSim has no qi_flow_statistics() readout.", "disabled")
+		return
+	var stats: Variant = sim.call("qi_flow_statistics")
+	if not (stats is Dictionary):
+		_set_qi_flow_status("Unavailable: qi_flow_statistics() returned no readout.", "disabled")
+		return
+	var s: Dictionary = stats
+	if bool(s.get("available", false)):
+		_set_qi_flow_active(true)
+		_qi_status_label.tooltip_text = String(s.get("quantity", "Native field wave-energy current"))
+		_set_qi_flow_status("Native window · %d sites · t = %.3f" % [
+			int(s.get("sites", 0)), float(s.get("time", 0.0))], "mint")
+		return
+	_set_qi_flow_active(false)
+	var reason := String(s.get("reason", "")).strip_edges()
+	_set_qi_flow_status("Unavailable — %s" % (reason if not reason.is_empty() else "not ready yet"), "text_hint")
+
+
+## Write the status line only when it changes (the HUD tick must not churn
+## theme overrides every quarter second).
+func _set_qi_flow_status(text: String, token: String) -> void:
+	if _qi_status_label.text == text:
+		return
+	_qi_status_label.text = text
+	_qi_status_label.add_theme_color_override("font_color", _tok_color(token))
+
+
+## Track whether CassiSim reports the flow view actually drawing. While it
+## is, the UI hides its own full-viewport field TextureRect so the 3D current
+## geometry is not covered by the legacy field canvas; ordinary Field-mode
+## visibility returns as soon as the flow view stops. The sim mode and the
+## observation source are never touched for this, and nothing reinit()s.
+func _set_qi_flow_active(active: bool) -> void:
+	_qi_frame_btn.disabled = not active
+	if _qi_flow_active == active:
+		return
+	_qi_flow_active = active
+	_update_field_texture_visibility()
 
 
 ## Build the Visuals page: Color mapping, particle presentation controls,
@@ -1100,13 +1694,420 @@ func _build_visuals_page() -> void:
 	_presentation_director_opt.add_item("Wide envelope")
 	_presentation_director_opt.add_item("Focus core")
 	_presentation_director_opt.add_item("Record orbit")
+	_presentation_director_opt.add_item("Follow structure")
 	_presentation_director_opt.selected = 0
-	_presentation_director_opt.tooltip_text = "Manual always owns the camera. Choose a preset to let the presentation director supply an orbit; any camera input immediately returns to Manual."
+	_presentation_director_opt.tooltip_text = "Follow structure keeps the live cloud close and centered without orbiting. Other presets orbit. Any manual camera input immediately returns to Manual."
 	_presentation_director_opt.custom_minimum_size = Vector2(150, 22)
 	_presentation_director_opt.focus_mode = Control.FOCUS_NONE
 	_presentation_director_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_presentation_director_opt.item_selected.connect(_on_presentation_director_selected)
 	camera_row.add_child(_presentation_director_opt)
+
+## Observatory controls are backed exclusively by CassiSim's frozen
+## presentation API. A missing API leaves that row disabled rather than
+## inventing a second local state store.
+const OBSERVATORY_BASE_PARAMS: Array[Dictionary] = [
+	{"id": "exposure_ev", "caption": "Exposure (EV):", "min": -12.0, "max": 12.0, "step": 0.05, "default": 0.0},
+	{"id": "optical_thickness", "caption": "Optical thickness:", "min": 0.0, "max": 20.0, "step": 0.05, "default": 1.0},
+	{"id": "emission", "caption": "Emission:", "min": 0.0, "max": 20.0, "step": 0.01, "default": 0.3},
+	{"id": "view_depth", "caption": "View depth:", "min": 0.0, "max": 5000.0, "step": 5.0, "default": 0.0,
+		"tooltip": "Maximum camera distance for the ordered particle layer, in world units. 0 keeps the whole occupied domain; a smaller value shortens how far matter stays visible and bounds how many particles stack along one view ray."},
+	{"id": "quality", "kind": "option", "options": ["Performance", "Balanced", "High", "Capture"], "caption": "Quality:", "default": 1},
+]
+const OBSERVATORY_ADVANCED_PARAMS: Array[Dictionary] = [
+	{"id": "scattering", "caption": "Scattering:", "min": 0.0, "max": 1.0, "step": 0.01, "default": 0.35},
+	{"id": "point_fraction", "caption": "Point fraction:", "min": 0.0, "max": 1.0, "step": 0.01, "default": 0.65},
+	{"id": "bloom", "caption": "Bloom:", "min": 0.0, "max": 1.0, "step": 0.01, "default": 0.08},
+	{"id": "auto_exposure_target", "caption": "Auto-exposure target:", "min": 0.01, "max": 0.5, "step": 0.005, "default": 0.03,
+		"tooltip": "Luminance the auto exposure drives the lit matter toward, measured as the geometric mean of the metered samples before tone mapping. Lower is dimmer: 0.18 matches a mid-grey exposure; the default 0.03 sits about 2.6 EV below that. Regions with no matter are never metered."},
+	{"id": "shutter_seconds", "caption": "Shutter (s):", "min": 0.0, "max": 0.25, "step": 0.001, "default": 0.0},
+	{"id": "target_frame_ms", "caption": "Quality budget (ms):", "min": 8.0, "max": 100.0, "step": 0.5, "default": 20.0},
+]
+const OBSERVATORY_TOGGLES: Array[Dictionary] = [
+	{"id": "temporal", "caption": "Temporal reprojection", "default": true},
+	{"id": "auto_exposure", "caption": "Auto exposure", "default": true},
+	{"id": "adaptive_quality", "caption": "Adaptive quality", "default": true},
+	{"id": "background", "caption": "World background", "default": false},
+]
+
+
+func _build_observatory_controls() -> void:
+	var appearance := _add_section(_visuals_page, "Appearance", "LIVE")
+	_observatory_style_opt = COptionParam.new()
+	_observatory_style_opt.name = "ObservatoryStyle"
+	_observatory_style_opt.box_min_width = 150
+	_observatory_style_opt.setup("View:", "gold", ["Scientific", "Observatory", "Cinematic"], 0,
+		Callable(self, "_on_observatory_style_selected"))
+	appearance.add_child(_observatory_style_opt)
+	_observation_source_opt = COptionParam.new()
+	_observation_source_opt.name = "ObservationSource"
+	_observation_source_opt.box_min_width = 190
+	_observation_source_opt.setup("Source:", "gold",
+		["Simulation-unit optics", "Prescribed spectral preview", "Live physical matter"],
+		0, Callable(self, "_on_observation_source_selected"))
+	appearance.add_child(_observation_source_opt)
+	var intro := _make_label("Choose one source for both the simulation and its optical readout. Simulation-unit optics uses the default solver; spectral preview is a declared 6500 K reference; live physical matter initializes and renders the evolving H/H+ gas with line and continuum emission, absorption, and radiation coupling.", "text_hint", "param")
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	appearance.add_child(intro)
+	var base_grid := GridContainer.new()
+	base_grid.columns = 1
+	base_grid.add_theme_constant_override("h_separation", 6)
+	base_grid.add_theme_constant_override("v_separation", 5)
+	appearance.add_child(base_grid)
+	for entry in OBSERVATORY_BASE_PARAMS:
+		if String(entry.get("kind", "param")) == "option":
+			var options: Array[String] = []
+			options.assign(entry.options)
+			_add_observatory_option(base_grid, String(entry.id), String(entry.caption),
+				options, int(entry.default))
+		else:
+			_add_observatory_param(base_grid, String(entry.id), String(entry.caption),
+				float(entry.min), float(entry.max), float(entry.step), float(entry.default),
+				String(entry.get("tooltip", "")))
+	var appearance_actions := HBoxContainer.new()
+	appearance_actions.add_theme_constant_override("separation", 6)
+	appearance.add_child(appearance_actions)
+	appearance_actions.add_child(CButton.make("Save appearance", Callable(self, "_on_save_observatory_preset")))
+	appearance_actions.add_child(CButton.make("Load appearance", Callable(self, "_on_load_observatory_preset")))
+	_observatory_status = _make_label("", "text_hint", "param")
+	_observatory_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_observatory_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	appearance.add_child(_observatory_status)
+
+	_observatory_advanced = CGroupPanel.new()
+	_observatory_advanced.name = "AdvancedScattering"
+	_observatory_advanced.set_title("Advanced scattering")
+	_observatory_advanced.collapsed = true
+	_observatory_advanced.toggled.connect(_on_group_toggled)
+	_visuals_page.add_child(_observatory_advanced)
+	var advanced := _observatory_advanced.content()
+	var adv_grid := GridContainer.new()
+	adv_grid.columns = 1
+	adv_grid.add_theme_constant_override("h_separation", 6)
+	adv_grid.add_theme_constant_override("v_separation", 5)
+	advanced.add_child(adv_grid)
+	for entry in OBSERVATORY_ADVANCED_PARAMS:
+		_add_observatory_param(adv_grid, String(entry.id), String(entry.caption),
+			float(entry.min), float(entry.max), float(entry.step), float(entry.default),
+			String(entry.get("tooltip", "")))
+	for entry in OBSERVATORY_TOGGLES:
+		_add_observatory_toggle(adv_grid, String(entry.id), String(entry.caption), bool(entry.default))
+
+	var capture := _add_section(_visuals_page, "Camera & capture", "LIVE")
+	var capture_hint := _make_label("Manual camera remains the default owner. Saving/restoring a view stores only camera pose and FOV.", "text_hint", "param")
+	capture_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	capture_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capture.add_child(capture_hint)
+	var slots := VBoxContainer.new()
+	slots.add_theme_constant_override("separation", 4)
+	capture.add_child(slots)
+	for slot in range(3):
+		var slot_row := HBoxContainer.new()
+		slot_row.add_theme_constant_override("separation", 4)
+		slots.add_child(slot_row)
+		var save := CButton.make("Save %d" % (slot + 1),
+			Callable(self, "_on_capture_save_view").bind(slot))
+		var restore := CButton.make("Restore %d" % (slot + 1),
+			Callable(self, "_on_capture_restore_view").bind(slot))
+		save.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slot_row.add_child(save)
+		slot_row.add_child(restore)
+	var capture_row := VBoxContainer.new()
+	capture_row.add_theme_constant_override("separation", 4)
+	capture.add_child(capture_row)
+	var still_row := HBoxContainer.new()
+	still_row.add_theme_constant_override("separation", 5)
+	capture_row.add_child(still_row)
+	_capture_scale_opt = COptionParam.new()
+	_capture_scale_opt.name = "CaptureScale"
+	_capture_scale_opt.box_min_width = 72
+	_capture_scale_opt.setup("Still:", "gold", ["1x", "2x"], 0, Callable(self, "_on_capture_scale_selected"))
+	still_row.add_child(_capture_scale_opt)
+	still_row.add_child(CButton.make("Save PNG", Callable(self, "_on_capture_still_pressed")))
+	var action_grid := GridContainer.new()
+	action_grid.columns = 2
+	action_grid.add_theme_constant_override("h_separation", 4)
+	action_grid.add_theme_constant_override("v_separation", 4)
+	capture_row.add_child(action_grid)
+	action_grid.add_child(CButton.make("Start sequence", Callable(self, "_on_capture_sequence_started")))
+	action_grid.add_child(CButton.make("Stop sequence", Callable(self, "_on_capture_sequence_stopped")))
+	var overlay := CheckButton.new()
+	overlay.name = "CaptureOverlay"
+	overlay.text = "Overlay"
+	overlay.focus_mode = Control.FOCUS_NONE
+	overlay.toggled.connect(_on_capture_overlay_toggled)
+	action_grid.add_child(overlay)
+	var iface := CheckButton.new()
+	iface.name = "CaptureInterface"
+	iface.text = "Interface"
+	iface.tooltip_text = "Hide controls without hiding the field image. F9 restores the interface."
+	iface.button_pressed = true
+	iface.focus_mode = Control.FOCUS_NONE
+	iface.toggled.connect(_on_capture_interface_toggled)
+	action_grid.add_child(iface)
+	_capture_status = _make_label("Capture helper unavailable", "text_hint", "param")
+	_capture_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_capture_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capture.add_child(_capture_status)
+
+
+func _add_observatory_param(parent: Control, key: String, caption: String,
+		min_v: float, max_v: float, step_v: float, default_v: float,
+		tooltip_v: String = "") -> void:
+	var row := CParam.new()
+	row.name = "Observatory_" + key
+	row.setup(caption, "gold_soft", min_v, max_v, step_v, default_v,
+		func(value: float) -> void: _set_observatory_value(key, value))
+	if not tooltip_v.is_empty():
+		row.tooltip_text = tooltip_v
+	parent.add_child(row)
+	_observatory_rows[key] = row
+
+
+func _add_observatory_option(parent: Control, key: String, caption: String,
+		options: Array[String], default_i: int) -> void:
+	var row := COptionParam.new()
+	row.name = "Observatory_" + key
+	row.box_min_width = 150
+	row.setup(caption, "gold_soft", options, default_i,
+		func(value: int) -> void: _set_observatory_value(key, value))
+	parent.add_child(row)
+	_observatory_rows[key] = row
+
+
+func _add_observatory_toggle(parent: Control, key: String, caption: String, default_v: bool) -> void:
+	var toggle := _build_vfx_toggle("Observatory_" + key, caption, "Live presentation setting.", func(value: bool) -> void: _set_observatory_value(key, value))
+	toggle.set_pressed_no_signal(default_v)
+	parent.add_child(toggle)
+	_observatory_toggles[key] = toggle
+
+
+func _set_observatory_value(key: String, value: Variant) -> void:
+	var sim := _get_sim()
+	if sim == null or not sim.has_method("set_observatory_setting"):
+		return
+	sim.call("set_observatory_setting", key, value)
+
+
+func _on_observatory_style_selected(index: int) -> void:
+	var sim := _get_sim()
+	if sim != null and sim.has_method("set_observatory_style"):
+		sim.call("set_observatory_style", clampi(index, 0, 2))
+
+func _on_observation_source_selected(index: int) -> void:
+	var sim := _get_sim()
+	if sim == null or not sim.has_method("set_observatory_source"):
+		return
+	var source := clampi(index, 0, 2)
+	sim.call("set_observatory_source", source)
+	var physical_enabled := source == 2
+	if bool(sim.get("physical_matter_enabled")) != physical_enabled:
+		sim.set("physical_matter_enabled", physical_enabled)
+		if sim.has_method("reinit"):
+			sim.call("reinit")
+
+
+func _on_observatory_changed(settings: Dictionary) -> void:
+	_sync_observatory_controls(settings)
+
+
+func _sync_observatory_controls(incoming: Dictionary = {}) -> void:
+	var sim := _get_sim()
+	if sim == null:
+		return
+	var settings: Dictionary = incoming
+	if settings.is_empty() and sim.has_method("get_observatory_settings"):
+		var current: Variant = sim.call("get_observatory_settings")
+		if current is Dictionary:
+			settings = current
+	var style := clampi(int(settings.get("style", int(sim.get("observatory_style")) if sim.get("observatory_style") != null else 0)), 0, 2)
+	if _observatory_style_opt != null:
+		_observatory_style_opt.set_value_no_signal(style)
+	var source := clampi(int(settings.get("observation_source", 0)), 0, 2)
+	if _observation_source_opt != null:
+		_observation_source_opt.set_value_no_signal(source)
+	for key in _observatory_rows.keys():
+		var value: Variant = settings.get(key)
+		if value == null:
+			continue
+		var row: Control = _observatory_rows[key]
+		if row is COptionParam:
+			(row as COptionParam).set_value_no_signal(int(value))
+		elif row is CParam:
+			(row as CParam).set_value_no_signal(float(value))
+	for key in _observatory_toggles.keys():
+		if settings.has(key):
+			(_observatory_toggles[key] as CheckButton).set_pressed_no_signal(bool(settings[key]))
+	for key: String in ["optical_thickness", "emission", "scattering", "point_fraction"]:
+		if _observatory_rows.has(key) and _observatory_rows[key] is CParam:
+			var editable := source == 0 \
+					or (source == 2 and key in ["optical_thickness", "emission"])
+			(_observatory_rows[key] as CParam).slider.editable = editable
+	var naturalistic := style != 0
+	# Naturalistic styles own the palette and compositor. Legacy color controls
+	# and the legend are restored exactly when Scientific is selected.
+	_rainbow_btn.disabled = naturalistic
+	_color_src_opt.disabled = naturalistic
+	_fit_btn.disabled = naturalistic
+	_auto_align_btn.disabled = naturalistic
+	_presentation_color_opt.disabled = naturalistic
+	_save_colors_btn.disabled = naturalistic
+	_reset_colors_btn.disabled = naturalistic
+	if _legend != null:
+		_legend.visible = not naturalistic
+	if _scale_label != null:
+		_scale_label.visible = not naturalistic
+	if _observatory_status != null:
+		_refresh_observatory_status(sim, source, style, naturalistic)
+	_update_field_texture_visibility()
+
+
+func _refresh_observatory_status(
+		sim: Node3D, source: int, style: int, naturalistic: bool) -> void:
+	if source == 2:
+		var readiness: Dictionary = sim.call("get_physical_matter_readiness") \
+				if sim.has_method("get_physical_matter_readiness") else {}
+		if bool(readiness.get("ready", false)):
+			var grid: Vector3i = readiness.get("grid", Vector3i.ZERO)
+			var groups := int(readiness.get("groups", 0))
+			var angles := int(readiness.get("angles", 0))
+			_observatory_status.text = "Live H/H+ material · %d×%d×%d finite-volume grid · %d-group Lebedev-%d radiation · CIE 1931 camera" % [
+				grid.x, grid.y, grid.z, groups, angles]
+		elif bool(readiness.get("enabled", false)) \
+				and String(readiness.get("error", "")).is_empty():
+			_observatory_status.text = "Live physical matter initializing…"
+		else:
+			var missing: Array = readiness.get("missing", [])
+			var detail := ", ".join(missing)
+			if detail.is_empty():
+				detail = String(readiness.get("error", "physical engine unavailable"))
+			_observatory_status.text = "Live physical matter unavailable: " + detail
+	elif not naturalistic:
+		_observatory_status.text = "Scientific (legacy renderer)"
+	elif source == 1:
+		_observatory_status.text = "Prescribed material · 6500 K LTE · CIE 1931 · one-way frozen-state formal solution"
+	elif style == 1:
+		_observatory_status.text = "Observatory simulation-unit optics"
+	else:
+		_observatory_status.text = "Cinematic simulation-unit optics"
+
+
+func _update_field_texture_visibility() -> void:
+	if _viz_texture_rect == null:
+		return
+	var sim := _get_sim()
+	var field_mode := (int(sim.get("mode")) if sim != null else _mode_seg.selected_index) == 1
+	var style := int(sim.get("observatory_style")) if sim != null and sim.get("observatory_style") != null else 0
+	# While the Qi-flow view is actually drawing, the legacy full-viewport
+	# field canvas would cover the new 3D current geometry — keep it hidden.
+	# Only this UI-owned overlay is involved: the sim mode and the
+	# observation source are untouched (no reinit either way).
+	_viz_texture_rect.visible = field_mode and style == 0 and not _qi_flow_active
+
+
+func _on_save_observatory_preset() -> void:
+	var sim := _get_sim()
+	if sim != null and sim.has_method("save_observatory_preset"):
+		var err: int = int(sim.call("save_observatory_preset"))
+		_observatory_status.text = "Appearance saved." if err == OK else "Appearance save failed (%s)." % error_string(err)
+
+
+func _on_load_observatory_preset() -> void:
+	var sim := _get_sim()
+	if sim != null and sim.has_method("load_observatory_preset"):
+		var err: int = int(sim.call("load_observatory_preset"))
+		_observatory_status.text = "Appearance loaded." if err == OK else "Appearance load failed (%s)." % error_string(err)
+
+
+func _setup_capture_helper() -> void:
+	var script := load("res://scripts/cassi_presentation_capture.gd")
+	var sim := _get_sim()
+	if script == null or sim == null:
+		return
+	var camera: Camera3D = null
+	if sim.get_parent() != null:
+		camera = sim.get_parent().get_node_or_null("Camera3D") as Camera3D
+	if camera == null and get_viewport() != null:
+		camera = get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	_capture_helper = Node.new()
+	_capture_helper.name = "PresentationCapture"
+	_capture_helper.set_script(script)
+	add_child(_capture_helper)
+	_capture_helper.connect("sequence_finished", _on_capture_sequence_finished)
+	if _capture_helper.has_method("setup"):
+		_capture_helper.call("setup", sim, camera)
+
+
+func _sync_capture_helper() -> void:
+	if _capture_status == null:
+		return
+	_capture_status.text = "Capture helper ready (user:// captures)" if _capture_helper != null else "Capture helper unavailable"
+
+
+func _capture_call(method: String, args: Array = []) -> Variant:
+	if _capture_helper == null or not _capture_helper.has_method(method):
+		if _capture_status != null:
+			_capture_status.text = "Capture unavailable: %s" % method
+		return ERR_UNAVAILABLE
+	return _capture_helper.callv(method, args)
+
+
+func _on_capture_save_view(slot: int) -> void:
+	var err := int(_capture_call("save_view", [slot]))
+	if _capture_status != null:
+		_capture_status.text = "View %d saved." % (slot + 1) if err == OK else "Save view %d failed (%s)." % [slot + 1, error_string(err)]
+
+
+func _on_capture_restore_view(slot: int) -> void:
+	var err := int(_capture_call("restore_view", [slot]))
+	if _capture_status != null:
+		_capture_status.text = "View %d restored." % (slot + 1) if err == OK else "Restore view %d failed (%s)." % [slot + 1, error_string(err)]
+
+
+func _on_capture_scale_selected(_index: int) -> void:
+	if _capture_status != null:
+		_capture_status.text = "Still scale: %dx." % (2 if _index == 1 else 1)
+
+
+func _on_capture_still_pressed() -> void:
+	if _capture_helper == null or not _capture_helper.has_method("capture_still"):
+		_capture_status.text = "Capture helper unavailable"
+		return
+	var scale := 1
+	if _capture_scale_opt != null:
+		scale = 2 if _capture_scale_opt.get_value() == 1 else 1
+	var path: String = await _capture_helper.call("capture_still", scale)
+	_capture_status.text = "Saved PNG: %s" % path if path != "" else "Still capture failed."
+
+
+func _on_capture_sequence_started() -> void:
+	var err := int(_capture_call("start_sequence", [30]))
+	if _capture_status != null:
+		_capture_status.text = "Sequence started at 30 fps." if err == OK else "Sequence start failed (%s)." % error_string(err)
+
+
+func _on_capture_sequence_stopped() -> void:
+	var path: String = str(_capture_call("stop_sequence"))
+	if _capture_status != null:
+		_capture_status.text = "Finishing PNG sequence..." if path != "" else "No active sequence."
+
+func _on_capture_sequence_finished(summary: String) -> void:
+	if _capture_status != null:
+		_capture_status.text = "Sequence: %s" % summary
+
+
+
+func _on_capture_overlay_toggled(enabled: bool) -> void:
+	_capture_call("set_overlay_enabled", [enabled])
+
+
+func _on_capture_interface_toggled(enabled: bool) -> void:
+	_capture_call("set_interface_visible", [enabled])
+
 
 ## Build one VFX CheckButton with the house interaction defaults.
 func _build_vfx_toggle(name: String, text: String, tip: String, cb: Callable) -> CheckButton:
@@ -1140,9 +2141,6 @@ func _build_system_page() -> void:
 	_phi_box_btn = _build_system_toggle("φ box",
 		"φ-aspect box (x:y:z = φ:1:φ²) — the theory's incommensurate bubble-lattice periods; breaks the cubic box-mode straight-line lock; applies on reinit", _on_phi_box_toggled, false)
 	phys_grid.add_child(_phi_box_btn)
-	_dual_btn = _build_system_toggle("Dual grid",
-		"Yin/Yang dual (BCC) lattice gravity + 4th-order gradients — the force averages the base and half-cell-shifted lattices (placement bias ~4.6× down); live, no reinit", _on_dual_grid_toggled, false)
-	phys_grid.add_child(_dual_btn)
 	_multirung_btn = _build_system_toggle("Multi-rung",
 		"Seed the initial conditions with φ-spaced density modes so bubbles condense at several cascade scales; applies on reinit", _on_multirung_toggled, false)
 	phys_grid.add_child(_multirung_btn)
@@ -1805,16 +2803,19 @@ func _sync_extra_params() -> void:
 		return
 	for id in _extra_spins.keys():
 		var spin: CSpinParam = _extra_spins[id]
-		# Find the entry to read the native property.
 		for e in EXTRA_PARAMS:
 			if e.id != id:
 				continue
-			var v: Variant = sim.get(String(e.prop))
-			if v is int:
-				spin.set_value_no_signal(float(v))
-			else:
-				spin.set_value_no_signal(float(v))
+			spin.set_value_no_signal(float(sim.get(String(e.prop))))
 			break
+	for id in _extra_options.keys():
+		var opt: COptionParam = _extra_options[id]
+		for e in EXTRA_PARAMS:
+			if e.id != id:
+				continue
+			opt.set_value_no_signal(int(sim.get(String(e.prop))))
+			break
+	_sync_shape_setting_rows(sim)
 	for id in _extra_toggles.keys():
 		var t: CheckButton = _extra_toggles[id]
 		var e: Dictionary = _extra_toggle_ids.get(id, {})
@@ -1839,18 +2840,12 @@ func _build_param_row(p: Dictionary) -> Control:
 	var width: float = float(p.get("width", 120))
 	match p.kind:
 		"slider":
-			# CParam = caption CLabel above HBox[HSlider + live value CLabel];
-			# FOCUS_NONE + pointing hand are baked in. The callback is wired
-			# via setup — safe here because the init sync uses
-			# set_value_no_signal (geometry: today's row shows the value in
-			# BOTH the caption and the value label — parity kept below).
 			var param := CParam.new()
 			param.setup(caption, token, p.min, p.max, p.step, p.default,
 				Callable(self, String(p.changed)))
 			if id == "xi":
 				_xi_slider = param
 				_xi_label = param.caption_label
-				# Caption embeds the live value (parity with "xi: %.1f").
 				param.caption_label.text = "%s %.1f" % [caption, p.default]
 			elif id == "src":
 				_src_slider = param
@@ -1858,10 +2853,6 @@ func _build_param_row(p: Dictionary) -> Control:
 				param.caption_label.text = "%s %.2f" % [caption, p.default]
 			return param
 		"spin":
-			# CSpinParam = caption CLabel above a SpinBox. Its setup wires
-			# value_changed→callback and set_value_no_signal is no-emit, so
-			# the init sync is spurious-reinit-safe. The SpinBox keeps the
-			# library FOCUS_NONE default (see the component).
 			var spin_box := CSpinParam.new()
 			spin_box.box_min_width = int(width)
 			spin_box.setup(caption, token, p.min, p.max, p.step, p.default,
@@ -1873,19 +2864,18 @@ func _build_param_row(p: Dictionary) -> Control:
 				"separation":  _sep_spin = spin_box
 			return spin_box
 		"option":
-			# COptionParam = caption CLabel above an OptionButton. Its setup
-			# wires item_selected→callback and set_value_no_signal is
-			# no-emit, so the init sync is spurious-reinit-safe. The option
-			# keeps the library FOCUS_NONE default (see the component).
 			var opt_param := COptionParam.new()
 			opt_param.box_min_width = int(width)
-			opt_param.setup(caption, token, INIT_CHOICES, p.default,
+			var options: Array[String] = []
+			for name_variant in p.get("options", []):
+				options.append(String(name_variant))
+			opt_param.setup(caption, token, options, int(p.default),
 				Callable(self, String(p.changed)))
-			_init_opt = opt_param
+			if id == "init":
+				opt_param.tooltip_text = "Plummer/Gaussian/Uniform preserve the original spherical support. Designed shapes start at rest; choose Initial motion for explicitly kinematic velocities."
+				_init_opt = opt_param
 			return opt_param
 	return null
-
-
 func _sync_color_widgets(sim: Node3D) -> void:
 	var cm: int = int(sim.particle_color_mode)
 	var base: int = cm & 0xF
@@ -1966,9 +2956,7 @@ func _on_field_texture_updated(tex: Texture2D) -> void:
 
 func _set_mode_highlight(active: int) -> void:
 	_mode_seg.set_selected_no_signal(active)
-	# Field mode owns the full-frame visualization texture.
-	# Particles and Cosmology render particles directly.
-	_viz_texture_rect.visible = active == 1
+	_update_field_texture_visibility()
 
 
 func _set_grav_highlight(active: int) -> void:
@@ -1996,11 +2984,6 @@ func _falsify_tick(delta: float) -> void:
 		var site_eng = sim._physics_engine
 		if site_eng == null or not site_eng._ml_psi_y.is_valid() \
 				or not site_eng._ml_psi_i.is_valid() or not site_eng._ml_vol.is_valid():
-			return
-	else:
-		if sim._field_ey == null or sim._field_ei == null:
-			return
-		if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
 			return
 	if sim.suppress_readbacks:
 		return  # reading the live RD would stall — leave the last estimate
@@ -2066,15 +3049,16 @@ func _falsify_measure_r() -> float:
 		if n_ok < 64 or ei_sum <= 0.0:
 			return -1.0
 		return ey_sum / ei_sum
-	if not sim._field_ey.is_valid() or not sim._field_ei.is_valid():
+	var field_state: Dictionary = sim.get_field_role_state()
+	if not field_state.ey.is_valid() or not field_state.ei.is_valid():
 		return -1.0
 	var nc: int = sim.grid_N * sim.grid_N * sim.grid_N
 	if nc <= 0:
 		return -1.0
 	var sample_cells: int = mini(nc, FALSIFY_MAX_CELLS)
 	var offset: int = maxi((nc - sample_cells) / 2, 0)
-	var ey_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ey, offset * 4, sample_cells * 4)
-	var ei_d: PackedByteArray = sim._rd.buffer_get_data(sim._field_ei, offset * 4, sample_cells * 4)
+	var ey_d: PackedByteArray = sim._rd.buffer_get_data(field_state.ey, offset * 4, sample_cells * 4)
+	var ei_d: PackedByteArray = sim._rd.buffer_get_data(field_state.ei, offset * 4, sample_cells * 4)
 	if ey_d.size() < sample_cells * 4 or ei_d.size() < sample_cells * 4:
 		return -1.0
 	var ey := ey_d.to_float32_array()
@@ -2288,12 +3272,6 @@ func _on_gravity_mode_pressed(idx: int) -> void:
 	_set_grav_highlight(idx)
 
 
-func _on_init_selected(idx: int) -> void:
-	var sim = _get_sim()
-	if sim == null: return
-	sim.initial_condition = idx
-	sim.reinit()  # positions regenerate with the new profile
-
 
 func _on_rainbow_toggled(on: bool) -> void:
 	var sim = _get_sim()
@@ -2344,11 +3322,55 @@ func _on_vfx_twoaxis_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
 	if on and not _rainbow_btn.button_pressed:
-		# two-axis rides the rainbow engine — enable it so base mode 4 lands
-		_rainbow_btn.button_pressed = true
+		_rainbow_btn.set_pressed_no_signal(true)
 	_apply_particle_color_mode(sim)
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
+
+
+func _on_init_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	sim.initial_condition = clampi(idx, 0, SHAPE_NAMES.size() - 1)
+	_update_shape_visibility(sim.initial_condition)
+	sim.reinit()  # positions regenerate with the new profile/geometry
+
+func _update_shape_visibility(shape: int) -> void:
+	for id in _shape_setting_rows.keys():
+		var row: CSpinParam = _shape_setting_rows[id]
+		row.visible = _shape_setting_is_visible(_shape_setting_meta[id], shape)
+	_update_shape_dependent_controls(int(_arrangement_opt.get_value()) if _arrangement_opt != null else 0)
+
+
+func _on_shuffle_seed() -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	var seed := randi() & 0x3fffffff
+	if seed == 0:
+		seed = 1
+	sim.ic_seed = seed
+	if _extra_spins.has("ic_seed"):
+		(_extra_spins["ic_seed"] as CSpinParam).set_value_no_signal(float(seed))
+	sim.reinit()
+
+
+func _on_arrangement_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	sim.initial_arrangement = clampi(idx, 0, ARRANGEMENT_NAMES.size() - 1)
+	_update_shape_dependent_controls(sim.initial_arrangement)
+	sim.reinit()
+
+
+func _on_motion_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	sim.initial_motion = clampi(idx, 0, MOTION_NAMES.size() - 1)
+	sim.reinit()
 
 
 ## Recompute sim.particle_color_mode from the UI state. Encoding (matches
@@ -2493,15 +3515,6 @@ func _on_phi_box_toggled(on: bool) -> void:
 	sim.reinit()  # extents are init-time (bh header + PCs) — reinit applies
 
 
-func _on_dual_grid_toggled(on: bool) -> void:
-	var sim = _get_sim()
-	if sim == null: return
-	sim.dual_grid = on
-	# The measured preset pairs the dual with 4th-order gradients
-	# (CASCADE_GRID.md §2) — both ride the bh header, live, no reinit.
-	sim.gradient_order = 4 if on else 2
-
-
 func _on_multirung_toggled(on: bool) -> void:
 	var sim = _get_sim()
 	if sim == null: return
@@ -2561,6 +3574,7 @@ func _on_clusters_changed(value: float) -> void:
 	if sim == null: return
 	sim.num_clusters = int(value)
 	sim._step_count = 0  # trigger diagnostic on next frame
+	sim.reinit()
 
 
 func _on_separation_changed(value: float) -> void:
@@ -2595,14 +3609,14 @@ func _update_play_btn(is_playing: bool) -> void:
 func _update_info() -> void:
 	var sim = _get_sim()
 	if sim:
-		var mode_name = MODE_NAMES[sim.mode] if sim.mode >= 0 and sim.mode < MODE_NAMES.size() else "?"
-		_info_label.text = "FPS: %.0f  |  Mode: %s  |  Step: %d" % [_fps_display, mode_name, sim._step_count]
 		# Convert particle count to readable format
 		var p_str = str(sim.N_particles)
 		if sim.N_particles >= 1000000:
 			p_str = "%.1fM" % (sim.N_particles / 1e6)
 		elif sim.N_particles >= 1000:
 			p_str = "%.0fk" % (sim.N_particles / 1e3)
+		_info_label.text = "FPS: %.0f  |  N: %s  |  Step: %d" % [_fps_display, p_str, sim._step_count]
+		_step_rate_label.text = "%.1f steps/s" % _step_rate_display
 		var grav_name := "RIVER" if sim.gravity_mode == 0 else ("HEURISTIC" if sim.gravity_mode == 1 else ("PLUMMER" if sim.gravity_mode == 2 else ("RIVER-SELF" if sim.gravity_mode == 3 else "REALSIM")))
 		_diag_label.text = \
 			"q_mean: %.4f  ε²: %.6f\n" % [sim._q_mean, sim._eps_mean] + \
@@ -2614,8 +3628,16 @@ func _update_info() -> void:
 				sim._q_min, sim._q_max, sim._pi_min, sim._pi_max,
 				sim._pi_sat_hi_frac * 100.0, sim._pi_sat_lo_frac * 100.0]
 		_conn_label.text = "Connection: Local"
+		if _observatory_status != null and sim.has_method("get_observatory_settings"):
+			var observatory_settings: Dictionary = sim.call("get_observatory_settings")
+			var observation_source := int(observatory_settings.get("observation_source", 0))
+			if observation_source == 2:
+				var observation_style := int(observatory_settings.get("style", 0))
+				_refresh_observatory_status(
+						sim, observation_source, observation_style, observation_style != 0)
 	else:
-		_info_label.text = "FPS: %.0f  |  Mode: --" % _fps_display
+		_info_label.text = "FPS: %.0f  |  N: --  |  Step: --" % _fps_display
+		_step_rate_label.text = "-- steps/s"
 		_diag_label.text = "(CassiSim not found)"
 		_conn_label.text = "Connection: Disconnected"
 
