@@ -2321,6 +2321,84 @@ record supplies a finite-family pattern at two cutoffs in one truncation pair,
 one viscosity and one horizon; it carries no cutoff-uniform estimate, no
 data-controlled bound on $\mathcal D_S(T)$, and no continuation claim.
 
+## 62. Cutoff ladder of the vortex-stretching band split
+
+The frozen protocol
+`computations/navier-stokes-strain-band-split-cutoff-ladder-prereg.md` reads
+the two-cutoff statistic at the ladder $k_c\in\{1,2,3,4,6,8\}$ from one $N=32$
+primary trajectory per declared family at $\nu=1/10$, horizon $T=1/2$, grid
+$M=193$ and 1024 equal RK4 steps in float64. Six executions carry the ladder,
+because the split is a spectral reading of one flow: a further cutoff changes
+neither the trajectory nor any other band's accumulation. The declared levels
+are the frozen $r_{\mathrm{high}}>0.5$ and $r_{\mathrm{high}}\le0.1$, the
+monotonicity tolerance is $0.05$, and the frozen two-cutoff receipt supplies
+the reproduction gate.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Completed execution | `timeout 14400 python computations/verify_navier_stokes_strain_band_split_cutoff_ladder.py`, run unmodified from the repository root, exited 0 after 5447.87 s inside the declared 14400 s bound and wrote `runs/navier_stokes_strain_band_split_cutoff_ladder/verification.json` at `status=PASS` | `PASS` on the declared truncation and step size |
+| Integrity | Receipt checks 13 of 13: six declared executions, six readings per accepted state, kinetic normalization $3.33\times10^{-16}$, Fourier divergence $2.63\times10^{-17}$, band identity $0$, band Parseval $4.16\times10^{-17}$, positive kinetic-energy increment $0$, energy-balance ratio $1.05\times10^{-15}$, Beltrami band control $6.50\times10^{-34}$ against $10^{-10}$ | Every gate inside its frozen tolerance |
+| Frozen reproduction | Every $r_{\mathrm{high}}$ and $r_{\mathrm{low}}$ at $k_c\in\{2,4\}$ and every Beltrami band integral reproduces `runs/navier_stokes_strain_band_split/verification.json` with a difference of $0$, against tolerances $10^{-9}$ and $10^{-30}$ | The ladder is the frozen statistic read at four further cutoffs |
+| Band passage | Every family is high-band dominated at $k_c=1$, from $0.607004$ to $0.973303$, and low-band dominated from $k_c=6$ onward | Finite-family cutoff dependence |
+| Located crossovers | Wide and two-scale cross both levels inside the bracket $[1,2]$; narrow crosses the high level inside $[1,2]$ and the low level inside $[3,4]$ with $k_c=3$ intermediate; tight pitch crosses the high level inside $[3,4]$ and the low level inside $[4,6]$ with $k_c=4$ intermediate | Four located crossovers, two single-step and two gradual |
+| Reversal | The opposite-handed family falls from $0.879386$ at $k_c=1$ to $0.008912$ at $k_c=4$ and rises to $0.062442$ at $k_c=6$, a rise of $0.053529$ that clears the frozen $0.05$ tolerance by $0.003529$, then falls to $0.001522$ at $k_c=8$ | One `non-monotone` family |
+| Continuum boundary | Five declared families, one viscosity, one horizon and one truncation pair. The ladder supplies no cutoff-uniform estimate, no data-controlled bound on $\mathcal D_S(T)$ and no continuation statement | **UNRESOLVED**, separate analytical obligations |
+
+$r_{\mathrm{high}}$ on the ladder:
+
+| Tube family | $k_c=1$ | $k_c=2$ | $k_c=3$ | $k_c=4$ | $k_c=6$ | $k_c=8$ |
+|---|---:|---:|---:|---:|---:|---:|
+| Wide | 0.607004 | 0.080289 | 0.000000 | 0.000000 | $1.41\times10^{-20}$ | 0.000000 |
+| Narrow | 0.836992 | 0.493540 | 0.147895 | 0.049856 | 0.000000 | $2.67\times10^{-18}$ |
+| Tight pitch | 0.973303 | 0.874568 | 0.679457 | 0.403669 | 0.020242 | 0.021207 |
+| Two scale | 0.625918 | 0.093607 | 0.000000 | 0.000000 | 0.000000 | $1.13\times10^{-19}$ |
+| Opposite handed | 0.879386 | 0.760908 | 0.465760 | 0.008912 | 0.062442 | 0.001522 |
+
+$r_{\mathrm{low}}$ on the ladder, with the protocol's normalization by the
+positive part of the total production:
+
+| Tube family | $k_c=1$ | $k_c=2$ | $k_c=3$ | $k_c=4$ | $k_c=6$ | $k_c=8$ |
+|---|---:|---:|---:|---:|---:|---:|
+| Wide | 0.392996 | 0.919711 | 1.144395 | 1.102017 | 1.011395 | 1.000648 |
+| Narrow | 0.163008 | 0.506460 | 0.856587 | 0.986010 | 1.101164 | 1.054189 |
+| Tight pitch | 0.026697 | 0.125432 | 0.320543 | 0.596331 | 1.100187 | 1.003334 |
+| Two scale | 0.374082 | 0.906393 | 1.142274 | 1.103970 | 1.016723 | 1.002196 |
+| Opposite handed | 0.120614 | 0.239092 | 0.534240 | 1.491487 | 0.944954 | 1.056591 |
+
+The aggregate verdict read through the protocol's §4 rules is
+
+```text
+CONTRADICTS
+```
+
+One family carries the `non-monotone` class, the opposite-handed family, whose
+rise of $0.053529$ between $k_c=4$ and $k_c=6$ exceeds the frozen $0.05$
+tolerance after three earlier drops above it, so its passage is not a single
+crossing of the levels and the frozen disagreement between $k_c=2$ and
+$k_c=4$ is one segment of a curve that turns back up before it turns down
+again. The other four families carry located crossovers: the two families whose
+frozen classification agreed at both cutoffs, wide and two-scale, complete both
+crossings inside $[1,2]$, so their agreement at $\{2,4\}$ records a crossing
+that had already finished below $k_c=2$, while the narrow and tight-pitch
+families cross gradually, with $k_c=3$ and $k_c=4$ respectively inside the
+intermediate band. The verdict rule requires monotone cutoff dependence for
+`EMERGES`, so this ladder returns no such reading; the crossover locations
+stand as recorded above.
+
+The ladder carries no $k_c=5$ point, so the shape of the opposite-handed
+reversal between $k_c=4$ and $k_c=6$ is unresolved and its margin over the
+tolerance is $0.003529$. The tail readings of the wide, narrow and two-scale
+families are exact zeros and integrals at or below $10^{-19}$ of $I_P(T)$, so
+their descent is a statement about vanishing high-band work rather than about a
+measured tail. Low-band fractions above one, up to $1.491487$, follow from the
+§1 normalization of each band by the positive part of the total production. No
+outcome here changes the status of the active-dose and direction-coherence
+obligations of `turbulence/navier-stokes-coherence-dose-criterion.md`, and the
+near-field/far-field split of `turbulence/navier-stokes-stress-geometry.md`
+§8.1 is a physical-space chart split with its own radius rather than a Fourier
+band, so a crossing bracket locates a spectral reading and not a spatial
+support.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -2405,6 +2483,9 @@ data-controlled bound on $\mathcal D_S(T)$, and no continuation claim.
 - `computations/verify_navier_stokes_strain_band_split.py`—18-run band-split verifier with the packed-strain path, band identity and Parseval checks.
 - `runs/navier_stokes_strain_band_split/verification.json`—completed 18-run receipt at `status=PASS` with the five family verdicts and the `INCONCLUSIVE` classification (gitignored run artifact).
 - `runs/navier_stokes_strain_band_split/probe.log` and `probe_completed.log`—captured combined stdout and stderr of the bounded attempt and of the completed execution (gitignored run artifacts).
+- `computations/navier-stokes-strain-band-split-cutoff-ladder-prereg.md`—frozen six-cutoff ladder schedule, crossing brackets, decision rules and post-execution record.
+- `computations/verify_navier_stokes_strain_band_split_cutoff_ladder.py`—six-run ladder verifier that binds the frozen band machinery by digest and reproduces the frozen two-cutoff values exactly.
+- `runs/navier_stokes_strain_band_split_cutoff_ladder/verification.json`—completed six-run ladder receipt at `status=PASS` with the `CONTRADICTS` verdict, the ladder table and the crossing brackets (gitignored run artifact).
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.

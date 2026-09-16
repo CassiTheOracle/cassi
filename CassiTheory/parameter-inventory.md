@@ -255,6 +255,15 @@ $\varepsilon\downarrow0$ limit proves noncoercivity. Neither quantity is fitted
 or assigned a physical value. The follow-up introduces no physical parameter
 (`computations/navier-stokes-helical-spread-prereg.md`).
 
+The cutoff-ladder follow-up
+(`computations/navier-stokes-strain-band-split-cutoff-ladder-prereg.md`)
+introduces no physical parameter either. Its ladder $k_c\in\{1,2,3,4,6,8\}$,
+its single $N=32$ truncation on the $M=193$ grid and 1024-step RK4
+integrations are **N**-class declared numerical settings, and its levels
+$0.5$ and $0.1$, its $0.05$ monotonicity tolerance and its $10^{-9}$
+reproduction tolerance are decision rules rather than quantities of the
+theory.
+
 The second-order field-energy analysis introduces no physical parameter. Its
 conditional connection-sector map uses externally supplied fixed $v$ for the
 dimensional conversion. The source-free, charge-free, scale-flat Abelian slice
