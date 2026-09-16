@@ -1,4 +1,4 @@
-# Cassi Field Intelligence: A Grounded Variational Architecture
+# Cassi Field Intelligence: One Universal Regional Computer
 
 ## Design intent
 
@@ -6,7 +6,9 @@ Build one continuously learning intelligence whose memories, concepts, predictio
 
 The target is a complete cognitive architecture. A larger next-token predictor, a collection of agents around a field, and a router joining the prototype controllers are different designs and are not the target here.
 
-The mathematical starting point is the current root implementation, `cassi_variational_field.py`. It supplies a genuine common potential for its declared learning and inference flows. The next architecture extends that basis into a **grounded field atlas**: a growing, typed collection of overlapping relation charts, contexts, identities, and executable abstractions, with shared provisional workspaces and one adaptive owner.
+The target execution architecture is the [universal regional field computer in Section 32](#32-one-universal-regional-field-computer): one canonical tensor, typed regional state, shared representations, one automaton-guided instruction/event path, and one persistent publisher. The variational relation family supplies a mathematical basis for learning and inference inside that computer. It does not replace the need to lower symbolic, numerical, temporal, and language computation into the same runtime.
+
+The [world-model and lifelong-intelligence design in Section 33](#33-field-native-world-modeling-and-lifelong-general-intelligence) specifies the next cognitive target: shared uncertain belief, predictive-state acquisition, hybrid and causal mechanisms, representation discovery, contingent planning, grounded language, and continuous learning through that same computer.
 
 A full design must distinguish what has been established from what is being specified. This document uses four categories:
 
@@ -16,6 +18,12 @@ A full design must distinguish what has been established from what is being spec
 - **Research question:** an unresolved capability or mathematical property. Its interface and required behavior are designed; success is not assumed.
 
 These labels describe knowledge, not a sequence of bureaucratic approval stages. Development remains direct: implement a coherent behavior, exercise it, inspect its failure, and improve it. The design introduces no preregistration or frozen-verdict process.
+
+Read Section 32 for the regional execution architecture, its implemented core and specified extensions, migration inventory, and measured sustained episode. Read Section 33 for the complete world-model semantics, acquisition algorithms, source responsibilities, implementation dependencies, and end-to-end behavioral requirements. Sections 3–15 retain the mathematical and representational detail; Sections 26–31 preserve component-level evidence and standalone reference semantics. The normal production owner, CLI, and installed-runtime computation path uses the sole regional machine, while retained modules supply fixed codecs, bounded stateless kernels, independent references, and research scenarios.
+
+The [Universal Latent Reasoning System design](../CassiQwen/LATENT-REASONING-DESIGN.md) specifies model-instrument integration and the path to field-owned latent computation, state, and emission. It reuses this computer's state, semantic records, and owner lifecycle; model-specific execution remains an explicit external boundary rather than a hidden dependency of standalone field intelligence.
+
+Its [packet-aware reasoning extension](../CassiQwen/LATENT-REASONING-DESIGN.md#packet-aware-reasoning-scope-and-status) specifies how the implemented §26.18 numerical packets participate in resident multi-operation episodes, typed child-state return, lifetime resource accounting, semantic work selection, safe refinement, correction, and acquired interfaces. That extension remains specified; it does not change the current packet reconstruction/impulse evidence into a reasoning-performance claim. The regional image and semantic ownership rules in this document remain authoritative.
 
 `prototype/` remains the finalized paper implementation. The variational source and that paper bundle have distinct schemas and evidence. Designing the next system does not reinterpret their checkpoints or retroactively unify their equations.
 
@@ -46,13 +54,14 @@ The full ambition is their composition in one sustained intelligence. Individual
 
 ### 1.2 What unification means
 
-There are three substantive forms of unification:
+There are four substantive requirements for unification:
 
-- **Common adaptive ownership:** every experience-dependent relation, program, scope, support statistic, and learned computational preference belongs to the field.
+- **Common adaptive ownership:** every adaptive value and unfinished internal continuation belongs to the canonical `ComputerState.field` image.
 - **Common representational use:** the same relation identity and numerical content participate in recall, inference, planning, language, and explanation.
+- **Common execution:** every cognitive and solver capability executes as stored programs and bounded native operations through the same machine transition, automaton, event queue, and resource ledger.
 - **Common mathematical core:** the declared variational chart family uses the same potential for observed-memory updates and conditional workspace evolution.
 
-The third statement is exact for the implemented finite family and specified admissible extensions. It does not mean that arbitrary structure discovery, external action, string decoding, or every nonlinear computation inherits its descent theorem.
+The common-potential statement is exact for the implemented finite variational family and specified admissible extensions. It does not mean that arbitrary structure discovery, external action, string decoding, or every nonlinear computation inherits its descent theorem.
 
 A field is not unified merely because several private tensors are concatenated. Conversely, a unified intelligence does not require identical arithmetic for continuous covariance, an exact source identifier, and an authority decision.
 
@@ -72,14 +81,14 @@ Use the following conceptual decomposition:
 \mathcal X_t=(F_t,E_t,A_t,K).
 \]
 
-- \(F_t\): the sole adaptive field, including learned numerical relations, learned discrete structure, support and applicability, and typed provisional cognition.
+- \(F_t\): the sole canonical machine tensor, including learned numerical relations, discrete structure, support, provisional cognition, programs, automaton/routing state, and complete execution continuations.
 - \(E_t\): exact evidence and immutable computational history, subject to access and retention rules.
 - \(A_t\): nonlearned authority and operational control state, including scope, approvals, revocation generation, and durable operation identity.
-- \(K\): fixed codecs, typed primitive operations, numerical solvers, validation rules, and execution machinery.
+- \(K\): fixed codecs, instruction semantics, compiler bootstrap, bounded stateless arithmetic kernels, and validation rules.
 
-The archive and authority state can change over time. “Sole adaptive field” means sole owner of learned cognitive content, not that the program has only one mutable byte array or that access-control state must be learned.
+The archive and authority state can change over time without becoming learned cognition. The target has one canonical adaptive tensor; exact evidence bytes, access-control state, and durable external-operation journals remain separate nonlearned boundaries. Physical paging represents slices of that same tensor and does not permit independent adaptive page families.
 
-A working branch \(W_b\) is a scoped field view rooted at an exact predecessor. It contains provisional coordinates and discrete alternatives. It has no independently trained model. Physical copy-on-write storage does not create another adaptive owner.
+A working branch \(W_b\) is a scoped view rooted at an exact predecessor. Its assumptions, overlays, call frames, dependencies, and pending events are regions in the same canonical image. Physical copy-on-write storage is permitted only as a lossless representation of those regions; it cannot conceal another live solver or a missing continuation.
 
 ### 2.2 Epistemic type, lifetime, and persistence are independent
 
@@ -138,7 +147,7 @@ Y=\frac{D+\phi C}{1+\phi^2},\qquad
 I=\frac{C-\phi D}{1+\phi^2}.
 \]
 
-Memory writes affect the raw real lanes; workspace writes affect disjoint raw imaginary lanes. The remaining lanes are zero under this schema. Inference preserves memory bytes exactly in the current implementation.
+Memory writes affect the raw real lanes; workspace writes affect disjoint raw imaginary lanes. The remaining lanes are zero under this primitive's schema. Its inference preserves memory bytes exactly. Canonical atlas chart pages keep these provisional lanes zero; the retained resonant workspace uses the separate typed layout in §26.3.
 
 This is an explicitly new interpretation, not a compatible W3 or paper-provider checkpoint. \(\phi\) is a coordinate choice. No mathematical or measured necessity for the golden ratio is assumed.
 
@@ -611,7 +620,7 @@ A new subfactor can cover exactly the observed coordinates. Overlapping subfacto
 
 Deterministic feature computation is different from self-labeling. Computing a displacement from two observed positions is a derived representation of evidence. Filling in an unseen position from the current model and then teaching it as an observation is not.
 
-Learning from genuinely latent variables would require an explicitly justified additional statistical or variational model. It is a research extension, not an implicit interpretation of the current moment flow.
+Learning from genuinely latent variables requires an explicitly justified statistical model. Section 33.11 specifies a field-owned hypothesis and marginal-likelihood mechanism with that boundary. It does not reinterpret the current moment flow or permit inferred completions to become observations; practical latent-structure discovery remains a research question.
 
 ### 6.4 Interference, novelty, and regime separation
 
@@ -1293,26 +1302,26 @@ Audit retention is budgeted. The owner preserves enough exact lineage to reconst
 
 ### 15.1 One logical field, typed physical pages
 
-The next field is a logical adaptive state with stable variable, factor, program, and branch identities. It need not be one permanently resident dense allocation.
+The target field is one canonical `ComputerState.field` image with stable variable, factor, program, and branch identities. It need not be one permanently resident dense allocation. Section 32.4 specifies its versioned regional geometry; physical pages are storage slices, not independently authoritative cognitive objects.
 
-Physical pages group numerical and typed structural data for efficient access. Numeric covariance payloads, learned discrete descriptors, support, and provisional coordinates have declared ownership within the field. They are not assumed to share a physical interpretation merely because they share storage.
+Physical pages group slices of numerical and typed regional data for efficient access. Numeric covariance payloads, learned discrete descriptors, support, and provisional coordinates occupy declared regions in the canonical image. Mathematical payloads need not share a physical interpretation merely because they share storage.
 
 The current nine-lane source uses only common-real memory and differential-imaginary workspace. A next-generation profile that adds typed structural cells or support changes the interpretation and must have a new schema. It cannot populate currently forbidden padding and still claim compatibility with `cassifi.variational-field.v1`.
 
 Discrete identifiers and program tokens use exact fixed encodings and are not evolved as continuous variables. Full source digests are resolved at the evidence boundary. Numerical coordinate transforms must not round a semantic identifier into another identity.
 
-The proposed page roles make ownership and mutation boundaries concrete:
+The mathematical payload roles below map into the region kinds and codecs of Section 32.5:
 
 | Page role | Adaptive contents | Permitted mutation |
 |---|---|---|
-| Numerical memory | Declared SPD blocks in common-real covariance windows | Admitted observation flow or an explicit reconstruction/retraction |
-| Working state | Real or realified coordinates in differential-imaginary workspace windows | Scoped inference, branch initialization, and verified constraint operations |
-| Structure | Exact typed variable IDs, scope programs, guards, role bindings, macro recipes, and dependencies | Validated structural proposal or dependency revision |
+| Numerical memory | Encoded SPD blocks representing the declared covariance coordinates | Admitted observation flow or explicit reconstruction/retraction |
+| Working state | Encoded real or realified provisional coordinates | Scoped inference and bounded typed numerical/constraint operations |
+| Structure | Exact variable IDs, programs, guards, role bindings, macro recipes, and dependencies | Validated structural proposal or dependency revision |
 | Support | Prior/observed mass, epistemic and applicability data, and empirical residual summaries | Identified evidence, derivation, revision, or computational observation |
 
-All learned contents of these pages are part of the canonical field. Structure may use formerly unused lanes under the new profile; such lanes are typed discrete storage, not physical velocities. Exact integer descriptors use fixed encodings, for example 32-bit words represented exactly in float64 cells, rather than passage through an irrational common/differential transform. The profile declares permitted payload windows and requires unused cells to be zero.
+All adaptive payload and support are regions in the same machine image. New storage cannot populate padding forbidden by an existing profile. The regional format has a new schema/layout/fingerprint and exact word codecs; it does not reinterpret unused legacy lanes as structural cells or physical velocities.
 
-Page kind, logical ownership, lengths, and generation are validated against canonical descriptors. Host maps from logical IDs to pages, decoded scope gathers, and compiled pure programs are derived caches. Numerical kernels receive validated views of the relevant windows and cannot write across page roles.
+Region kind, ownership, lengths, generation, permissions, references, and non-overlap are validated against the canonical directory. Host lookup maps and decoded numerical views are disposable caches. Kernels receive bounded views and cannot write across roles. Section 32.19 records the completed production cutover; retained Atlas page objects are reference and compatibility views rather than regional runtime owners.
 
 This is one adaptive state with typed operations, not a claim that discrete topology itself follows the covariance gradient flow. Changes of learned structure are explicit hybrid transitions with their own provenance.
 
@@ -1428,7 +1437,7 @@ For the final conditional system, \(c^\mathsf Tu^*=p^\mathsf Tf\), so an adjoint
 
 ### 16.1 One owner publishes adaptive changes
 
-One owner serializes authoritative field commits. Numerical inference and candidate exploration can run concurrently on frozen field views. They do not race to mutate learned state.
+One owner serializes authoritative commits of the single canonical machine image. Bounded work may use frozen regional views and disposable private buffers; every suspended computation is represented by field-resident continuations. Neither concurrent computation nor checkpoint paging grants another adaptive object commit authority.
 
 A working view retains its predecessor field, goal, evidence, authority, and relevant catalog versions. A result can be reused after an unrelated commit only when its complete read dependencies remain valid. Those dependencies include candidate-generation and identity catalogs, not merely the winning chart: a newly available alternative can invalidate a decision without changing any value that the old winner read.
 
@@ -1487,12 +1496,12 @@ The scope of deletion is reported precisely. Adaptive forgetting, denial of sour
 
 The architecture needs four implementation responsibilities, not a framework of autonomous cognitive modules:
 
-1. **Field core:** typed state, SPD chart operations, working views, and numerical validation.
-2. **Structure and operator catalog:** field-resident programs and scopes, fixed primitive semantics, applicability, and structural proposals.
-3. **Cognitive owner:** query framing, branch scheduling, evidence admission, learning, authority-aware proposals, and durable publication.
-4. **Thin surfaces:** language interaction, exact evidence access, and authorized world adapters.
+1. **Regional machine:** canonical state, typed access, instruction execution, native automaton, one event queue, and numerical validation.
+2. **Field-resident structure and programs:** relation identities, scopes, procedures, guards, learning and search continuations, and dependency-aware revision.
+3. **Persistent owner:** admitted-input delivery, nonlearned authority checks, atomic publication, recovery, and effect acknowledgment.
+4. **Thin surfaces:** fixed input/output codecs, exact evidence access, authorized world adapters, and read-only inspection.
 
-Source-file boundaries can follow actual cohesion during implementation. They should not create separate learned owners or require a generic event framework before useful cognition exists.
+Source-file boundaries follow cohesion; they do not create state owners. The field-resident queue supports cross-region execution, not an external cognitive event framework. Section 32 records the implemented compiler/ISA and the production cutover from separate solver, policy, temporal, and language execution paths.
 
 The public operations are correspondingly small: admit an observation, continue a scoped inquiry, inspect a supported result, propose an effect, admit its acknowledgment, revise or forget authorized support, and checkpoint/recover. Their shared field and causal lifecycle matter more than having many endpoint names.
 
@@ -1551,7 +1560,7 @@ The logical owner need not forever occupy one device or process. However, distri
 
 Any distributed implementation must preserve observation identity, field version, authority, and deterministic or bounded numerical semantics. Remote proposals remain proposals until the owner can validate their dependencies and commit them. Duplicate remote delivery does not create new evidence.
 
-The initial implementation should establish one coherent owner and measured local behavior before adding distributed coordination.
+Establish one canonical adaptive tensor and machine-only execution across the capability inventory in Section 32.18 before distribution. One process or one owner around separate algorithms is insufficient.
 
 ## 18. Capacity, attention, and self-directed computation
 
@@ -1836,12 +1845,14 @@ These properties alone do not establish global convergence, truth, unlimited mem
 The implemented atlas owns and updates, in one canonical `AtlasState`:
 
 - versioned local relation charts, evidence occupancy, source applicability, stationary accumulation, and field-owned contextual recency;
-- guarded contradiction-preserving modes, affine constraints, active-component assembly, direct and matrix-free conditioning, block-local relaxation, exact Schur reductions, and dependency invalidation;
+- guarded contradiction-preserving modes, affine constraints, active-component assembly, constrained resonant refinement, exact static Schur reductions of relation objectives, and dependency invalidation;
 - typed programs, prequential future-outcome assessment, prefix-code selection, retained exceptions, and promoted productive constructions;
 - branch-local action certificates, solver allowances, decision-directed inquiry, multi-level plans, prediction identities, ambiguous outcome attribution, and local plan repair;
 - exact source references, access-filtered explanation, computational-experience records, and counterfactual chart removal without mutating learned memory;
 - one cross-process owner, exact content-addressed evidence, page-deduplicated atomic checkpoints, pending-operation recovery, capacity limits, revocation fences, and explicit nonlearned authority grants;
-- point-of-use action recomputation, durable pending operation identity, exactly-once adapter execution, and acknowledgment joined to the original prediction.
+- frozen prepared action readouts with point-of-use dependency and authority checks, durable pending operation identity, exactly-once adapter execution, and acknowledgment joined to the original prediction;
+- a persisted seven-pool, two-strand workspace with bounded heartbeat work, activity-modulated breathing, separate evidence time, sparse transport, and source/dissipation accounting;
+- explicit `think` transitions and read-only prepared `query`/explanation, immutable workspace pages, explicit v1 migration, and bounded optional real-time scheduling.
 
 The controlled scenario learns the relative-position program from predictions made before three future outcomes, acquires a bidirectional relocation construction, and uses the same chart chain for completion, fixed-readout action, planning, explanation, and counterfactual dependence. Its restart is byte-exact and its pre-revocation checkpoint is rejected after selective forgetting.
 
@@ -2004,10 +2015,10 @@ These finite mathematical checks establish identities, conservative bounds, and 
 
 ### 24.5 Implemented reference-runtime behavior
 
-The controlled 24-episode run admits 39 exact source events and reaches atlas generation 113. A prequential comparison over nine candidate relational programs promotes `relative-position:candidate:008:subtract` only after predictions were frozen before their outcomes. The same learned atlas then:
+The controlled 24-episode run admits 39 exact source events and reaches atlas generation 118. A prequential comparison over nine candidate relational programs promotes `relative-position:candidate:008:subtract` only after predictions were frozen before their outcomes. The same learned atlas then:
 
 - supports the held-out relational query;
-- selects `right` with an all-competitor action margin of approximately \(7.97169221483055\);
+- selects `right` with an all-competitor action margin of approximately \(7.971692214830245\);
 - changes that action under a field-only chart-removal counterfactual while leaving learned memory bit-identical during ordinary query;
 - interprets an unseen phrase and produces `move from 8 to 13.` from a promoted bidirectional construction;
 - chooses a resolving inquiry;
@@ -2018,15 +2029,28 @@ The controlled 24-episode run admits 39 exact source events and reaches atlas ge
 - selectively forgets one source, rejects rollback to its pre-revocation checkpoint, and retains independent support for the query; and
 - records zero model calls.
 
-The persisted state SHA-256 in that run is `c73ca92f2a1905da1620fc56f6a7112959e4a6b6f880bc173496cb62e55e7b4b`. Twenty-five focused behavioral tests exercise the corresponding boundaries, including defensive tensor and nested-value ownership, partial-evidence refusal, contradictory guarded alternatives, direct/matrix-free agreement, response-solver exhaustion, inferred-domain refusal, contextual recency persistence, single-use evidence-bound assessment, transitive derivation retraction, stale-promotion refusal, productive language, inquiry minimax behavior, accepted-operation recovery, terminal rejection recovery, durable exactly-once effect recovery, authority refusal, schema drift, process exclusivity and total-capacity failure.
+The current run's persisted state SHA-256 is
+`6ec2e03a8a2a15e80a9e9219b6470350f2e214884e73ee90893c95f2536e0df7`,
+and its exact retained-source SHA-256 is
+`d55c26c4c7faa5f551cf654252f70cbd1ca4ff3f8040e9e4e23bc262ca616e26`.
+Forty-seven focused behavioral tests and 29 subtests exercise the corresponding
+boundaries, including defensive tensor and nested-value ownership,
+partial-evidence refusal, contradictory guarded alternatives,
+direct/matrix-free agreement, response-solver exhaustion, inferred-domain
+refusal, contextual recency persistence, single-use evidence-bound assessment,
+transitive derivation retraction, stale-promotion refusal, productive language,
+inquiry minimax behavior, committed and pending operation recovery, complete
+acknowledgment-event binding, durable exactly-once effect recovery, authority
+refusal and reservation, schema drift, process exclusivity, and total-capacity
+failure.
 
 | Implemented source | SHA-256 |
 |---|---|
-| `cassi_field_atlas.py` | `3db73d94f23861772f83f251306253a4d952a49cfb797bc7d1e5835a437aff3e` |
-| `cassi_field_cognition.py` | `f97450dd34504f06180d1c2d1dfd983323a70ededc409371e44ae93dff2777b4` |
-| `cassi_field_owner.py` | `7345c0052445a3dc233cc4b8710bfe8c57378ea5639ab44db4ba67e41241184e` |
-| `run_field_intelligence_scenario.py` | `7ebad38080a478a8d38741fda668079ffd3b31dd5bba7a9ded922d76c48d4230` |
-| `test_field_intelligence.py` | `a8a189ed41d63cf2bfcc95ef4f565e9113b02fa1b439656691deb2901dba1e83` |
+| `cassi_field_atlas.py` | `6c7882856df247e49d163b92af08f76dc75406a32a9ea4014566a68045ad0b2b` |
+| `cassi_field_cognition.py` | `82216cbe6239bb47babeef8a70f2812a4ba7a4c102574d8b04467a144b5c4f92` |
+| `cassi_field_owner.py` | `7c5dc0831f35a3e6817324aa00a73193bc05a6b1b34c85fc3f2e931c0fe2ae0e` |
+| `run_field_intelligence_scenario.py` | `5caf861283d1ce034b06678a648dad19ab0cdbe65403ec995a8157a074e246a9` |
+| `test_field_intelligence.py` | `592b1d8be139e9d220cc04145e2c568710e39d0010c3f8ad7f2334b09c408f10` |
 
 Focused instrumentation also exercises the repaired cost boundaries. Thirty-two stationary admissions issue 32 field observations rather than replaying 528 historical observations. With 20 input roles and `max_candidates=1`, one program is constructed and retained rather than constructing 1,200 and discarding 1,199. A supported query with 64 active source revisions performs no per-source metadata reads, and one observation publication performs one full-state serialization.
 
@@ -2034,10 +2058,3763 @@ This is an executable bounded reference runtime, not evidence of unrestricted au
 
 ## 25. The final architectural decision
 
-Build the next generation around the common variational relation core, then make identity, evidence, context, structure, and provisional thought explicit parts of one adaptive field.
+Build the next generation as the universal regional field computer specified in Section 32. The variational relation core and the resonant dynamics in Section 26 become mathematical data and bounded operations inside that machine, alongside exact computation and learned programs. All adaptive content and unfinished execution belong to one canonical tensor.
 
 The intelligence should be able to learn a relationship once and use it to remember, predict, plan, explain, and communicate. It should know which observations support that relationship, where it applies, which conclusions depend on it, what remains uncertain, and what must change after a failed prediction.
 
 Its sophistication should come from shared meaning, compositional structure, selective revision, and disciplined interaction—not from an expanding collection of specialized learners.
 
 The ultimate design objective is a persistent field that continuously maintains, tests, and revises an executable understanding of the world while preserving exact evidence, user authority, and the distinction between what happened and what it has only imagined.
+
+## 26. Seven-pool resonant field upgrade
+
+### 26.1 Decision, scope, and present implementation boundary
+
+The upgrade consists of seven genuinely resonant pools inside one field, two oriented helical transport strands, an explicit heartbeat supplying bounded work, and an activity-modulated breath controlling phase rhythm and computational pacing. Each pool supports finer internal modes. Pools have no assigned cognitive faculty, independent learner, private memory, or model fallback.
+
+This section specifies the production resonant runtime implemented by `cassi_resonant_field.py` and the atlas, cognition, owner, and CassiPi modules. §26.24 records its direct numerical and runtime evidence. `run_resonant_field_design_math.py` remains an independent small mathematical reference; it is not the production owner or a capability benchmark.
+
+**Retained component-reference scope.** The page/object ownership and operations described in this numerical-family section remain executable reference semantics and research surfaces. The production path described in Section 32 encodes their advancing state in the shared machine image and routes work through its event path. The seven pools are numerical structure preserved where useful, not additional cognitive owners or a required number of regions.
+
+The retained v2 `AtlasState` reference stores `RelationChart` pages and a separately typed `resonant_workspace` in one checkpoint closure. Its owner-level `think` and read-only `query` methods remain available to historical scenarios and comparisons; normal v4 CassiPi computation does not dispatch them. The standalone variational primitive likewise remains a mathematical reference rather than a second production learner.
+
+The upgrade retains:
+
+- one source-supported learned relation system and one persistent publisher;
+- exact evidence and external authority outside numerical inference;
+- stationary accumulation, contextual adaptation, and structural revision as separate operations;
+- typed scopes, contradictory branches, dependency invalidation, and certified action selection;
+- a distinction between learned memory, provisional work, and an actual acknowledged world outcome.
+
+Seven is the selected architecture, not a derived biological number. Frequency-to-color mapping is an instrument design. No claim about human chakras, psychedelic imagery, consciousness, physical energy savings, or microscopic matter follows from this implementation.
+
+### 26.2 Relationship to the existing Cassi helix work
+
+The relevant source boundaries are:
+
+| Source | Constraint used here |
+|---|---|
+| `../CassiTheory/foundations/qi-flow-double-helix.md`, §§1.2 and 2.1 | The canonical density angle is a bounded conversion-relaxation coordinate. A density-plane gradient diagnostic is not an established scale current. |
+| `../CassiTheory/foundations/interscale-current-soliton.md`, §§3–4.5 | Complex phases, currents, a scale metric, and a driven closed circuit require an explicit extended law. Total flow and relative counterflow are different observables. |
+| `../CassiTheory/foundations/loop-to-bubble-projection-theorem.md`, §§6–7 | Passive direction exchange damps mean orientation. Persistent circulation with a positive relaxation gap requires a source. Temporal eigenvalues and decay rates determine resonance. |
+| `../CassiTheory/principles/de-resonance-principle.md`, §1.2 | A rational or irrational frequency ratio alone does not determine locking, transfer, stability, or useful computation. |
+| `../CassiTheory/hypotheses/two-strand-five-channel-matter-organization.md`, §1.3 | The selected five-sector construction and its projections do not determine the number of resonant pools in this architecture. |
+
+The equations below define computational generalized coordinates and port power. They do not assert that the workspace implements the conditional physical number currents in those documents. Neither a selected static Hessian spectrum nor a projected channel count substitutes for the upgraded system's temporal response.
+
+### 26.3 One field with explicit memory and workspace regions
+
+The retained component owner uses `cassifi.field-atlas.v2`; its chart pages and separately typed `resonant_workspace` share one generation, hash, checkpoint, revocation fence, and operation lineage. Section 32 maps the corresponding production state into the regional machine tensor.
+
+The workspace has schema `cassifi.resonant-workspace.v1`. Its numerical storage uses one declared `[1, 9M, 1]` field page, with mode-major offsets `9j + lane`. This is a new layout, not a reinterpretation accepted by the existing variational validator.
+
+| Mode | Active lanes | Meaning |
+|---|---|---|
+| `0 <= j < N` | 0, 1, 2, 3 | `q_Y[j]`, `q_I[j]`, `p_Y[j]`, `p_I[j]` |
+| `j = N` | 0, 1, 2 | heartbeat phase, breath phase, filtered activity |
+| All remaining lanes | none | Canonical zero; nonzero values are invalid |
+
+Here `M=N+1`, and `N` is the number of resolved paired ports, not the number of pools. The leading dimension is one workspace page; the variational factor count is not set to seven. Coordinates are signed realified phase-space values, not positive `E_Y/E_I` densities. Integer cycle counters and layout identities are typed metadata, not additional learned parameters.
+
+The descriptor contains:
+
+- seven pool identities and resolved port membership;
+- variable/component-to-port bindings and declared numeric normalizations;
+- oriented transport edges, metric/inertance profile, and layout identity;
+- arithmetic and integration profile identities;
+- active context/branch identities, fixed observations, and dependency roots;
+- field-time tick/subdivision counters, cycle counters, and pause/freeze state.
+
+Heartbeat phase, breath phase, activity, and wave coordinates are serialized in the field page. A learned controller gain, association, or routing preference can exist only as a supported relation in the field, never as an independently updated descriptor value.
+
+Decoded buffers are private until an owner transaction commits. Tensor views, sparse adjacency, factorizations, spectral estimates, and render buffers are reconstructible mechanics. They are not separately adaptive state. Exact source bytes stay in the evidence store.
+
+### 26.4 Seven pools, two strands, and finer detail
+
+Pools are numbered `0..6` in the computational longitudinal coordinate. Each contains at least four paired ports in the first spatially resolved implementation. A paired port holds both strand coordinates. Additional ports resolve internal spatial structure; they do not add new independent models.
+
+The primary circuit travels along Yang in increasing pool coordinate, crosses the upper endpoint, returns along Yin in decreasing pool coordinate, and crosses the lower endpoint. Intra-pool and neighboring-pool exchange edges can add shorter loops. Every edge has a declared orientation and antisymmetric reverse entry. Endpoint conversion is represented by actual graph edges; there is no disappearing endpoint flux.
+
+A helical embedding supplies arc lengths and permitted proximity couplings. The initial visual embedding uses two curves separated by a half turn, with one complete turn across the seven pool intervals. This pitch is an engineering geometry, not a canonical Cassi winding theorem. Edge weights are derived from the declared metric; a rigid motion or another drawing preserving that metric and graph leaves the computation unchanged.
+
+For mass-normalized port coordinates, a metric edge can use
+
+\[
+c_{uv}=\frac{c_0}{\ell_{uv}\sqrt{V_uV_v}},
+\qquad
+S_{vu}=c_{uv},\quad S_{uv}=-c_{uv}.
+\]
+
+The lengths, volumes, and positive inertances are part of the fixed profile. Nonuniform coordinates require this matching metric convention; a uniform-grid stencil is not pasted onto a stretched helix. Inter-pool neck conductance and cavity inertance determine localization and dwell time. Measured response establishes whether the regions actually behave as distinguishable resonant pools.
+
+Within a branch, each semantic scalar or vector component has one binding, not one copy per pool. The binding identity includes branch, variable, and component. Alternative branches may retain different provisional values while sharing the same learned chart pages. Transport never averages incompatible epistemic branches: cross-branch information transfer requires an explicit supported operation. They can share the public heartbeat/breath reference without sharing contradictory semantic coordinates. Boolean and symbolic alternatives remain typed branches; token identifiers are not treated as meaningful metric coordinates. Unbound carrier ports have a numerical anchor at zero and provide no evidence.
+
+New bindings use a deterministic allocator: prefer a pool containing the largest number of already bound variables from the new variable's admitted chart scopes, then the least occupied eligible pool, then the lowest pool identity. Existing bindings stay fixed during a transaction. Allocation is a reproducible placement rule, not a learned semantic classifier.
+
+Capacity expansion doubles the necessary pool's port allocation, initializes new coordinates to zero, and publishes an explicit layout transition. Seven macro-pools remain seven. Rebinding occupied ports requires the state transformation and error accounting in §26.18.
+
+### 26.5 Resonant lift of the existing inference problem
+
+Freeze learned memory, branch selection, admissible evidence, context, and observed constraints during an inference interval. Let the existing free-variable relation objective be
+
+\[
+U(x;\mathcal M)=\frac12x^\mathsf TKx-b^\mathsf Tx+\text{constant},
+\qquad K\succeq\mu I,\quad\mu>0.
+\]
+
+The matrix and force come from the selected field charts. Numerical priors may make a supported component solvable; they do not make an unsupported answer epistemically admissible.
+
+For paired strand positions define
+
+\[
+x=\frac{q_Y+q_I}{\sqrt2},
+\qquad
+d=\frac{q_Y-q_I}{\sqrt2},
+\qquad
+q=(q_Y,q_I),\quad p=(p_Y,p_I).
+\]
+
+The common coordinate `x` is the semantic workspace. The relative coordinate `d` and momentum provide the resonant lift. These are reversible coordinates in the same workspace, not duplicated learned facts.
+
+Use
+
+\[
+H(q,p;\mathcal M)
+=U(x;\mathcal M)
++\frac12d^\mathsf TK_dd
++\frac{\beta}{4}\sum_jd_j^4
++\frac12p^\mathsf TW^{-1}p,
+\tag{RU1}
+\]
+
+where `K_d` and `W` are positive definite, `beta >= 0`, and their engineering profile is explicit. A sparse quadratic relative-gradient term may be included in `K_d`. The quartic term supplies an actual nonlinear interaction without changing the unforced semantic minimizer.
+
+At equilibrium, `d=0`, `p=0`, and `Kx=b`. Therefore the upgrade does not silently replace the existing learned conditional relationship with a decorative geometric prior. Active phase and momentum can change the route, interference, candidate availability, and cost of inference. Whether they improve useful behavior remains an empirical question.
+
+The new computational energy `H` includes working motion and relative structure. It is not identical to the learned relation objective `U`, and neither is measured electrical energy.
+
+### 26.6 Directional transport and dissipation
+
+Let `S` be the sparse antisymmetric rail graph. Define
+
+\[
+J=
+\begin{pmatrix}
+S&I\\
+-I&S
+\end{pmatrix},
+\qquad
+\Gamma=\Gamma^\mathsf T\succ0,
+\qquad z=(q,p).
+\]
+
+For a frozen interval, outside explicit source kicks,
+
+\[
+\dot z=\nu(a,\theta_B)(J-\Gamma)\nabla H(z;\mathcal M).
+\tag{RU2}
+\]
+
+`J` supplies canonical oscillation plus oriented inter-port exchange. `Gamma` dissipates generalized motion; the positive mobility `nu` is controlled by breath. The identities `J^T=-J` and `Gamma>0` are checked after constraints, reduction, and every layout change.
+
+With `g=grad H`, port `u` contributes `g_u dot(z_u)` to the energy balance. An oriented rail edge has transfer power
+
+\[
+P_{u\to v}
+=\nu S_{vu}
+\left(g_{q,v}g_{q,u}+g_{p,v}g_{p,u}\right),
+\tag{RU3}
+\]
+
+with the reverse contribution equal and opposite. This is generalized port power, not number flux. Signed power can reverse during a computation even though the edge orientation is fixed.
+
+Report Yang and Yin rail powers in the same increasing longitudinal coordinate. Then report their sum and half-difference separately:
+
+\[
+P_{\rm common}=P_Y+P_I,\qquad
+P_{\rm counter}=(P_Y-P_I)/2.
+\]
+
+Do not infer zero common flow from visible opposite motion, and do not equate a sum of edge powers with a newly conserved particle charge. Spatially partitioned ledgers include endpoint and cut-boundary transfers. The full closed field has no undeclared boundary power.
+
+Circulation is measured separately from those rail averages. Assemble the oriented edge-power vector and project it onto the graph's divergence-free cycle space. For the single reference circuit this component is the mean signed power around all circuit edges, including both endpoint turners. For multiple loops use the declared metric-weighted cycle projection. A nonzero rail half-difference alone does not prove a closed circulating component. Report signed cycle power, its absolute activity, and source-off decay; a powered circulation can coexist with nonzero common-flow leakage.
+
+### 26.7 Heartbeat: a powered circulation source
+
+The heartbeat is a deterministic actuator inside the owner transition. It has a fixed reference angular frequency, a compact phase, a declared motor orientation, and a maximum positive work allocation per beat. It does not insert observations or raise confidence.
+
+Advance
+
+\[
+\dot\theta_H=\omega_H.
+\]
+
+Two fixed normalized motor vectors `b_0,b_1` address consecutive circuit ports on both strands. For the reference orientation,
+
+\[
+b_H(\theta_H)=\cos\theta_H\,b_0-\sin\theta_H\,b_1.
+\]
+
+The pump makes a momentum kick `p' = p + eta b_H`. With
+
+\[
+c=p^\mathsf TW^{-1}b_H,\qquad
+k=b_H^\mathsf TW^{-1}b_H>0,
+\]
+
+its exact work is
+
+\[
+\Delta H_H=c\eta+\frac12k\eta^2.
+\tag{RU4}
+\]
+
+Allocate positive work by the phase integral
+
+\[
+F(\theta)=\frac{\theta-\tfrac12\sin2\theta}{2\pi},
+\qquad
+w=W_H\left[F(\theta_{\rm next})-F(\theta_{\rm previous})\right].
+\tag{RU5}
+\]
+
+Unwrapped phase is used for this difference, so a full beat allocates at most `W_H` regardless of tick subdivision. Unused work is not carried forward as a larger later pulse. For the requested nonnegative kick `eta_req`, choose
+
+\[
+\eta=\min\!\left(
+\eta_{\rm req},
+\frac{-c+\sqrt{c^2+2kw}}{k}
+\right).
+\tag{RU6}
+\]
+
+For `c >= 0`, evaluate the second argument as `2w/(sqrt(c*c+2kw)+c)` to avoid cancellation. A zero allocation or zero requested pulse means exactly zero actuation, including when momentum is anti-aligned. An actuator can extract energy; positive injected and extracted work are recorded separately and extraction does not replenish the positive-work quota.
+
+The reference request is `eta_req=h A_H sin(theta_mid)^2`. Heartbeat support is a source mechanism, not a theorem that every learned field will circulate in the chosen direction. Idle signed counterflow, common-flow leakage, mode occupancy, and pulse work are measured. A jammed or detuned state is reported; the renderer does not animate missing current and the controller does not hide it by increasing the work limit.
+
+Turning the heartbeat off leaves the dissipative law. Persistent circulation then decays unless an explicitly identified undamped sector or another recorded source exists.
+
+### 26.8 Breath: phase rhythm, demand, and positive pacing
+
+Breath is an intrinsic deterministic regulator, not a learned external policy. Its activity state resides in the canonical field.
+
+For each ready task, compute the supported semantic residual relative to that task's requested numerical tolerance. Exclude prior-only unsupported answers, tasks blocked on unavailable observations, and raw carrier amplitude. Let `r_task` be the largest bounded normalized residual among ready tasks and `n_ready` their bounded count. The initial demand law is
+
+\[
+a_\star=\frac12\min(1,r_{\rm task})
++\frac12\min(1,n_{\rm ready}/n_{\rm ref}),
+\qquad 0\leq a_\star\leq1.
+\]
+
+An empty ready set gives zero demand. Heartbeat energy cannot create demand merely by making the field bright. Filter activity by
+
+\[
+\dot a=(a_\star-a)/\tau_a.
+\]
+
+For a frozen demand interval use the exact update
+
+\[
+a_{\rm next}
+=a_\star+(a-a_\star)e^{-h/\tau_a}.
+\tag{RU7}
+\]
+
+The reference breath and mobility laws are
+
+\[
+\dot\theta_B
+=\omega_H\left(\frac1{16}+\frac3{16}a\right),
+\qquad
+\nu(a,\theta_B)=0.5+1.5a+0.25(1+\cos\theta_B).
+\tag{RU8}
+\]
+
+Thus breath spans four to sixteen heartbeats and `0.5 <= nu <= 2.5`. These are dimensionless engineering choices. They are not human heart/breath rates or a frequency-to-color biological claim.
+
+The breath cycle prioritizes work:
+
+| Phase interval | Preferred work |
+|---|---|
+| `0 .. pi/2` | Bind incoming observations; open relevant scopes and candidate branches |
+| `pi/2 .. pi` | Propagate and refine; compare alternative constructions |
+| `pi .. 3pi/2` | Reduce forcing on precision-sensitive work; verify readout margins |
+| `3pi/2 .. 2pi` | Publish eligible results, consolidate already supported experience, retire inactive work |
+
+These are priorities, not permissions or mandatory latency. A certified urgent result need not wait for the next quarter. No phase permits an unsupported answer or external action.
+
+Breath changes the actual temporal operator through `nu`, not only a displayed clock. It also changes task scheduling priority within the same resource ceiling. Carrier natural frequencies relative to the heartbeat can therefore change during a breath; frozen spectra, modulation sidebands, and time-dependent response are distinct diagnostics.
+
+Increasing breath frequency does not make a processor faster. The claimed benefit, if any, is more useful settled work per measured cost. Report executed operator applications, certified results, wall time, memory traffic, persistence cost, and energy-source accounting separately.
+
+### 26.9 Three clocks and no accidental forgetting
+
+The implementation keeps these clocks separate:
+
+1. **Evidence logical tick:** the existing clock used by admitted observations, corrections, and contextual retention. Heartbeats and inference steps do not increment it.
+2. **Field time:** accepted integration intervals and compact physiological phases, with exact integer tick/subdivision identities.
+3. **Wall time:** actual host monotonic timestamps, deadlines, and resource measurements.
+
+The heartbeat does not speed up forgetting by advancing the evidence clock. Breathing does not multiply an observation's exposure or replay count.
+
+A host can request real-time operation, but it submits explicit bounded `advance` batches and records the accepted tick sequence. Deterministic replay uses those accepted inputs, not a fresh clock reading. Time spent stopped or crashed is paused field time by default; restart never silently simulates missed beats. A declared catch-up request is an ordinary budgeted transition.
+
+Reference phase accumulation uses reduced phases plus integer cycle counters. Work integration uses the corresponding unwrapped phase difference. Overflow, nonfinite values, or an invalid clock transition fail before publication.
+
+### 26.10 Energy accounting and boundedness
+
+Between explicit source, observation, learning, and layout events,
+
+\[
+\dot H=-\nu\,\nabla H^\mathsf T\Gamma\nabla H\leq0.
+\tag{RU9}
+\]
+
+With a smooth source `u`, add `grad H dot u`. With kicks, use their exact finite work. Observation/clamp changes and learned-parameter changes also alter `H`; record
+
+\[
+W_{\rm parameter}=H_{\rm new}(z)-H_{\rm old}(z)
+\]
+
+at the same workspace state rather than falsely claiming continuous descent across learning.
+
+For a fixed, strongly convex, coercive component, if `Gamma >= gamma I`, `nu >= nu_min`, and `H` has strong-convexity lower bound `mu_H`, then the continuous unforced energy above its minimum decays at least at rate `2 nu_min gamma mu_H`. A bounded positive power source gives the corresponding forced-energy bound. This statement requires those hypotheses; positive damping alone is not a complete proof for arbitrary changing topology or learned parameters.
+
+Runtime source allowance additionally respects a component energy ceiling and the host resource budget. If no conservative positive bound is available, the component receives no new heartbeat work until its state is checked. A high-energy component can continue unforced relaxation. The field is never clipped or normalized to conceal an unstable step.
+
+Each accepted batch reports:
+
+- start/end stored energy and learned-memory identity;
+- positive heartbeat work and extracted actuator work;
+- dissipated work;
+- observation, parameter, layout, and boundary work where applicable;
+- numerical residual work and the remaining balance defect.
+
+The computational ledger does not estimate joules. CPU/GPU power measurements, if later added, remain a separate empirical measurement.
+
+### 26.11 Numerical step and rollback
+
+The CPU/float64 reference uses an average-vector-field discrete gradient. For a frozen interval,
+
+\[
+z_1-z_0=h\nu(J-\Gamma)\bar\nabla H(z_0,z_1),
+\tag{RU10}
+\]
+
+where
+
+\[
+H(z_1)-H(z_0)
+=\bar\nabla H^\mathsf T(z_1-z_0).
+\]
+
+Quadratic terms use the midpoint gradient. For each quartic relative coordinate, use
+
+\[
+\overline{\partial_d(\beta d^4/4)}
+=\frac{\beta}{4}
+(d_1^3+d_1^2d_0+d_1d_0^2+d_0^3).
+\]
+
+This gives exact discrete dissipation in exact arithmetic. If the nonlinear solve has residual
+
+\[
+r=z_1-z_0-h\nu(J-\Gamma)\bar\nabla H,
+\]
+
+then
+
+\[
+H(z_1)-H(z_0)
+=-h\nu\,\bar\nabla H^\mathsf T\Gamma\bar\nabla H
++\bar\nabla H^\mathsf Tr.
+\tag{RU11}
+\]
+
+The residual term is measured, not omitted. Acceptance requires both a state-residual bound and an energy-defect bound. A failed solve rolls back the complete tick, including phase, activity, pulse quota, and provisional observation binding. Deterministic power-of-two subdivision retries the same interval within the original work quota. Exhausted effort returns unresolved numerical work; there is no silent direct-solver or language-model answer fallback.
+
+For quadratic `H`, the update is the Cayley transform of the frozen temporal generator. Stability is not frequency fidelity: large stable steps can badly warp phase. The implementation resolves the highest retained dynamic frequency and the heartbeat/breath waveform to the declared phase-error tolerance, and includes subdivision work in the measured cost.
+
+The dense construction in the mathematical checker is only a small reference. Production uses sparse `J`, field-chart Hessian-vector products, and a bounded Newton–Krylov solve with reconstructible preconditioning.
+
+### 26.12 Constraints and semantic readout
+
+Existing observed variables remain exactly fixed. Eliminate fixed common coordinates and their conjugate momentum, or equivalently use an orthonormal tangent basis and project the entire Hamiltonian system. Apply the same basis to `J`, `Gamma`, source vectors, and readout. Projecting only the values after a step is invalid.
+
+Fixed observations do not freeze every relative mode. Nevertheless, constraints can alter or interrupt a circuit. The measured constrained operator—not the unconstrained drawing—determines the available transport.
+
+The active common-coordinate estimate is the answer candidate. Its field residual is
+
+\[
+r_x=Kx-b.
+\]
+
+For a frozen admissible branch,
+
+\[
+\|x-x^\star\|\leq\|r_x\|/\mu,
+\qquad
+|c^\mathsf T(x-x^\star)|
+\leq\|c\|\|r_x\|/\mu.
+\tag{RU12}
+\]
+
+Use the existing sharper adjoint/readout bounds when available. Include numerical, observation, model, reduction, and domain uncertainty rather than letting low residual stand in for knowledge.
+
+Heartbeat forcing can prevent an arbitrarily small instantaneous residual. Precision-sensitive task ports therefore have a breath-prioritized quiet verification interval: their pump allocation is reduced to zero while passive relaxation and necessary boundary exchange continue. Other unfrozen components can keep circulating. If boundary forcing still prevents the requested certificate, reduce the coupled active component's source or return unresolved; do not average a colorful trajectory and assume it is the equilibrium.
+
+Action selection still requires an invariant supported winner across surviving branches and uncertainty sets. Neither a preferred phase nor an amplitude maximum grants authority, feasibility, causal identifiability, or truth.
+
+### 26.13 Learning from phase and sequence
+
+The wave changes computation immediately, but it becomes durable knowledge only through an admitted supported update.
+
+External observations are consumed once by the existing evidence/admission path. A computation episode can also record its actual field operation, predecessor/successor identities, cost, residual change, phase-space boundary values, and outcome. This is evidence of the performed computation, not a new independent observation of the outside world.
+
+Phase-dependent features use explicit typed coordinates, such as normalized quadrature pairs, amplitude, signed port power, and measured lag. Phase is undefined below an amplitude threshold; the result is missing phase, not a guessed zero. Use sine/cosine or raw quadratures for circular quantities, never ordinary subtraction across the phase wrap.
+
+Such features can enter supported scoped charts and executable programs through the existing representation and assessment machinery. Their source identity includes the arithmetic/layout profile and causal episode. A change to the representation invalidates dependent constructions rather than silently relabeling their meaning.
+
+No per-pool Hebbian matrix, oscillator-weight learner, neural routing head, or standalone memory bank is added. Learned applicability and causal use of phase live in the same field relation system. Replay and consolidation reorganize existing support without manufacturing fresh support mass.
+
+The required capability distinction is between two experiences with the same ingredients but different order or phase-sensitive relationships. A successful upgrade must use that difference in a supported held-out readout or action. Different pictures or transient vectors alone do not satisfy this requirement.
+
+### 26.14 Activity, rest, and interrupted work
+
+Persistent circulation means that an enabled owner supplies a bounded powered backbone while idle. It does not mean all learned memory stays hot, all modes remain occupied, or a stopped process continues computing.
+
+The body has a small continuously available coarse region. Hot task regions retain detailed wave state. Warm regions retain certified reduced boundary state. Cold learned charts retain their memory without compulsory oscillation.
+
+Rest lowers demand and breath rate. It may consolidate supported structure and retire obsolete provisional branches. It cannot execute a world action, create an observation, or increase source confidence. A fully paused owner has no heartbeat work.
+
+A cancellation stops the task's future work and source allocation at the next bounded integration boundary. An uncommitted batch is discarded. Already acknowledged external effects remain acknowledged; phase rollback never rewinds the world.
+
+### 26.15 Owner operations and caller cutover
+
+This subsection describes the retained v2 numerical-family surface. The production regional runtime routes its advancing operations through the same machine continuation/event path as exact solving, learning, and language; read-only operations remain projections.
+
+The v2 surface distinguishes advancing thought from reading an existing result:
+
+| Operation | Inputs and behavior |
+|---|---|
+| `think` | An operation identity, observed/requested variables, context, and bounded effort. Binds or resumes a canonical branch workspace, advances it, publishes one successor, and returns a query/certificate receipt. |
+| `advance` | An operation identity, expected predecessor, and tick budget. Advances already admitted work and body rhythm; it does not admit observations or change evidence time. |
+| `query` | Read-only projection of a specified already prepared query/workspace identity. Missing or stale prepared work returns unresolved. It does not secretly run an old inference path. |
+| `inspect_resonance` | Read-only, bounded snapshot of phases, activity, pool response/current diagnostics, source/dissipation ledger, layout, and workspace identity. |
+| Existing observation, exact-recall, and effect operations | Preserve their evidence and authority semantics, with explicit workspace dependency handling. |
+
+These are closed schemas. `cassifi.field-intelligence-request.v2` and the matching response version are a deliberate cutover, not optional extra keys silently accepted by the old RPC.
+
+`FieldAtlas` supplies pure state transitions for workspace creation, binding, advancing, freezing, and invalidation. `FieldIntelligenceOwner` serializes them under its existing process lock and publisher. A batch performs no external effect before publication. Maximum batch length bounds how long a correction, cancellation, or input must wait.
+
+The new numerical operator belongs in `cassi_resonant_field.py`; it owns fixed geometry and functions only, never a second adaptive instance. `cassi_variational_field.py` retains the existing learned relation primitive. The atlas and cognition modules consume the new operator through explicit state-in/state-out calls.
+
+The live CassiPi adapter's `_field_query` migrates to `think` plus receipt projection. Its retry identity includes the request, predecessor, and operation purpose. `_initial_state`, compatibility IDs, checkpoint inventory handling, and source-dependency checks migrate together. Host `_inventories` and `control.json` remain reconstructible or operational bookkeeping.
+
+`runtime/cassi_cassipi_worker.py` already owns a private threaded HTTP server. It gains a bounded scheduler in that same owner process, not a second publisher or service. A timer enqueues `advance` requests; request handlers enqueue mutations and wait outside the owner executor. One executor orders integration, correction, and publication. Existing read-only requests can observe an immutable committed snapshot. Runtime metadata locks are not held while waiting on the executor.
+
+An active `think` interval advances the same heartbeat/breath clock; an idle timer cannot double-advance it. The reference logical mode runs only requested bounded work. An explicitly enabled real-time mode declares its target field-time/wall-time ratio and maximum batch frequency, records achieved cadence, and reports backlog rather than executing unbounded catch-up. Shutdown stops new scheduling, finishes or rolls back the bounded current batch, joins the executor, then closes the server and releases the owner lock. Pause, detach policy, and crash recovery are declared in the runtime descriptor.
+
+The runtime descriptor uses an explicit running/paused/stopping body state. Pause halts physiological advance without losing the last committed wave. The default last-client detach stops the worker after the bounded shutdown sequence; continued idle operation requires an explicitly enabled host keep-alive policy. Merely inspecting a descriptor never restarts a paused body.
+
+`runtime/cassipi_closure.json` adds the new numerical module and a new runtime compatibility identity. `runtime/build_cassipi_runtime.py` continues to verify the actual import closure and build the distributable from it. The existing directory name containing `field-intelligence-v2` is not evidence that an on-disk atlas already has the new schema. Packaged-worker, import, restart, and forgetting scenarios exercise the migration and scheduler together.
+
+### 26.16 Atomicity, persistence, correction, and effects
+
+Every workspace that can affect later behavior is covered by the canonical `AtlasState` descriptor and its content-addressed object closure. The checkpoint hash covers the numerical page, layout, regulator state, active branch bindings, and dependencies. A timer in another process cannot supply hidden restart state.
+
+The existing staged object/manifest/current-head publication and operation-id journal are extended, not bypassed. A tick batch has one predecessor and one successor. Exact replay returns the recorded receipt; it never consumes the same input or pulse quota twice. Recovery either completes that same transition or leaves its predecessor current.
+
+Continuous working-state publication must not serialize the whole learned atlas on every batch. The v2 descriptor references immutable content-addressed chart/support pages and workspace pages in the existing checkpoint object store. Unchanged pages retain their hashes. A wave batch writes its changed working page(s), bounded transition receipt, and small root descriptor; it does not copy each chart tensor.
+
+This is an explicit persistence-format change. Pure state reconstruction receives an already verified page map; it does not perform hidden filesystem reads. Store loading verifies hashes, schemas, dependency closure, byte limits, and exact reconstruction before exposing a state. Standalone export includes the root plus all reachable required pages. A missing page is a corrupt/incomplete checkpoint, not an instruction to rebuild adaptive content from a cache.
+
+Every authoritative persistence reader applies a closed, versioned schema to nested records before use. Evidence startup validates the full index-to-source-to-byte-object and index-to-event closure; missing source bytes, mismatched source bytes, absent events, malformed records, stale lineage, and checkpoint corruption retain distinct error identities and never trigger reconstruction or overwrite. Operation receipts, pending admissions, history floors, revocation and authority ledgers, world-effect acknowledgments, runtime capture state, and import previews bind their semantic payloads to content digests. The CassiPi `cassipi.field-control.v3` ledger retains complete normalized requests and results for terminal lifecycle operations, migrates valid v2 ledgers explicitly, and treats terminal v2 replay as unverifiable rather than guessing the omitted request. A malformed or identity-inconsistent durable record is left byte-for-byte untouched for explicit repair.
+
+Checkpoint-operation startup scanning, ordinary retry, observation replay, temporal replay, transceiver replay, and staged recovery all pass through one strict operation-record validator. It binds the hashed filename, requested operation identity, manifest operation identity, predecessor link, and the digest of the manifest event, resulting state, and transition. A staged filename must likewise equal the SHA-256 path of its embedded operation identity before recovery can publish it. Temporal and transceiver replays additionally retain their history-floor and revocation checks.
+
+Each committed replay also validates the complete canonical caller request and the operation-specific stored-result schema before returning any value. Defaults whose resolution depends on live state are bound by the first publication: an omitted `think` source filter reuses that operation's recorded source closure on retry, while a later explicit, different source filter is an operation conflict. Newly admitted evidence therefore cannot turn a legitimate retry into either recomputation or a false request mismatch.
+
+Deterministic transceiver retries recompute the complete successor and semantic
+receipt from the authenticated predecessor. Comparisons omit only validated
+elapsed-time measurements; a changed intermediate step, final response, kernel,
+or successor state is checkpoint corruption. If a world effect is durably
+journaled after its prediction becomes pending but before the owner admits the
+acknowledgment, direct dispatch retry resolves and admits the journaled result
+before any second execution attempt or authority consumption.
+
+Atomic publication writes new pages first, then the manifest/current head and idempotency receipt. Orphan pages from an interrupted uncommitted write are not visible state. Capacity accounting counts unique reachable page bytes, not merely the small root descriptor. Garbage collection preserves every retained permitted checkpoint and pending operation; source-use revocation and explicit byte deletion keep their separate meanings.
+
+The logical workspace tensor can be divided into ordered fixed-size immutable storage blocks without changing its declared layout or creating separate adaptive owners. Transition history is likewise chunked: the root holds the recent bounded tail and hash links to retained history, not an ever-growing inlined heartbeat array. Old pure-advance retry records can be compacted only behind an explicit closed epoch/sequence floor; requests below that floor are rejected, never re-executed. Evidence and external-effect idempotency retain their stronger existing retention requirements.
+
+An inference advance leaves chart numerical bytes and support mass unchanged. It changes the explicit provisional workspace and owner generation. Receipts distinguish those two identities rather than claiming the entire atlas hash is unchanged.
+
+Corrections or source-use revocations invalidate affected predictions, programs, and workspace dependencies in the same owner transition. A wave can carry information across its component. Unless a smaller influence boundary is certified, invalidate the entire coupled workspace component; if influence is unknown, reset the whole provisional body and its activity/breath state. Retain unrelated supported learned charts. The revocation fence prevents an old checkpoint from reviving the removed working influence.
+
+An effect proposal freezes an immutable branch snapshot and its readout, source/chart versions, layout, relevant workspace hash, and authority identity. That branch receives no further pump or integration while the proposal is pending; other components may continue. Dispatch rechecks current evidence, applicability, feasibility, permission, and the frozen branch's validity. Unrelated heartbeat generations do not automatically invalidate an unchanged frozen dependency footprint, but a changed relevant observation does.
+
+This avoids both unsafe stale-phase dispatch and perpetual cancellation merely because the body has another heartbeat. Pending effect publication, external acknowledgment, and exactly-once recovery retain their existing order.
+
+### 26.17 Version migration
+
+This subsection records the earlier numerical-family v1-to-v2 migration, distinct from the completed regional-computer cutover in Section 32. The latter maps every cognitive, temporal, transceiver, program, policy, solver, prepared-query, and scheduling family in Section 32.18 into fixed-catalog regional tasks. For the numerical-family migration, the runtime never silently decodes a v1 atlas as a phase-bearing v2 state. Its one-time explicit migrator:
+
+1. acquires the existing owner lock and validates the current v1 head, evidence store, and revocation fence;
+2. preserves every retained chart tensor and support record, program, construction, plan, and exact-source identity;
+3. creates an empty typed workspace and deterministic layout, with zero momentum, relative displacement, and activity;
+4. initializes the public rhythm epoch without inventing elapsed field time or learned phase history;
+5. marks obsolete provisional numerical receipts stale and preserves acknowledged effects;
+6. writes and validates a v2 successor through the existing atomic publication machinery before changing the current head.
+
+The old data remains an immutable migration input, not a live fallback. A normal v2 open on an unmigrated v1 store reports that migration is required.
+
+Root scenarios, affected tests, the owner surface, runtime closure/package manifest, and CassiPi adapter must migrate in the same implementation cutover. The separately versioned paper implementation and the archive remain unchanged.
+
+### 26.18 Scaling without losing the wave
+
+The first scaling dimension is internal resolution within seven pools. The second is sparse active scope, not seven replicas of all knowledge. Workspace storage is `O(N)` in resolved ports; chart storage remains proportional to the sum of bounded scope sizes squared. Sparse rail exchange is `O(E)` per operator application.
+
+Static Schur reduction of a relation objective does not generally preserve resonant dynamics. For a frozen linear temporal generator partitioned into active and eliminated coordinates,
+
+\[
+\dot z_A=L_{AA}z_A+L_{AB}z_B,
+\qquad
+\dot z_B=L_{BA}z_A+L_{BB}z_B,
+\]
+
+elimination introduces the initial-state term and the memory kernel
+
+\[
+L_{AB}e^{L_{BB}(t-s)}L_{BA}.
+\]
+
+Replacing that kernel by a zero-frequency Schur complement loses delay and resonance. A warm component therefore retains explicit boundary modes or a certified passive reduced model over the task's frequency band.
+
+For a declared projection basis `V`, use `J_r=V^T J V` and `Gamma_r=V^T Gamma V`, preserving skew symmetry and positive dissipation. The reduced energy is evaluated in the same declared coordinates. Basis selection, reconstruction error, lost mode energy, and readout allowance are part of the reduction receipt. Reduced amplitudes remain canonical workspace state, not an adaptive cache.
+
+Expansion/regridding uses an explicit embedding. Exact permutations and zero-mode extension preserve existing represented state. Truncation or interpolation is approximate: account for lost energy and semantic error, and refuse it when the current task certificate cannot tolerate the change.
+
+The runtime also supplies `balanced-contiguous-haar-phase-space-v1`, a fixed
+localized packet basis over the ordered paired ports. A packet path is a string
+of `L` and `R` branches from the complete longitudinal support; every split
+divides the current contiguous interval as evenly as its integer port count
+permits. The transform acts independently on four orthogonal channels,
+`position-common`, `position-counterflow`, `momentum-common`, and
+`momentum-counterflow`. These are a deterministic view of the canonical
+`q_Y,q_I,p_Y,p_I` field words, not additional stored coordinates.
+
+For sibling scale coefficients \(a_L,a_R\) with support sizes \(n_L,n_R\) and
+\(n=n_L+n_R\), the parent scale \(c\) and localized detail \(\delta\) are
+
+\[
+c=\sqrt{\frac{n_L}{n}}a_L+\sqrt{\frac{n_R}{n}}a_R,
+\qquad
+\delta=\sqrt{\frac{n_R}{n}}a_L-\sqrt{\frac{n_L}{n}}a_R.
+\]
+
+The same orthogonal transformation gives the inverse. For equal children this
+reduces to \((a_L+a_R)/\sqrt2\) and \((a_L-a_R)/\sqrt2\). Retaining the parent
+scale and every descendant detail therefore retains the resolved packet to its
+declared floating-point roundoff allowance. Dropping details is a reduction and
+does not preserve future dynamics in general.
+
+`analyze_helical_packet`, `split_helical_packet`, and
+`compose_helical_packets` expose disposable packet views with profile, layout,
+basis, source-state, mode-table, and content digests. Composition accepts only
+ordered siblings from the same source field state. It is numerical regrouping,
+not cross-branch consensus or evidence deduplication. Coefficients remain
+`O(N)` and are not a compression claim.
+
+`apply_helical_packet_impulse` and the regional `packet-impulse` operation
+write a selected scale or detail mode back into the canonical field as bounded
+common/counterflow momentum. The transition measures its kinetic work and
+records it in the field ledger. The fixed packet codec is in the trusted
+operation boundary; all adaptive amplitudes and subsequent evolution remain in
+the one field image. The basis supplies locality and scale composition. Any
+advantage of helical transport over a matched straight paired graph still
+requires a task-level comparison of their actual operators.
+
+The initial reference uses CPU/float64. GPU work batches local gradient, sparse exchange, and nonlinear-solve operations after the selective CPU path is correct. It does not launch one tiny device job per pool. GPU arithmetic gets its own profile and measured phase/readout errors; it does not promise cross-device bit identity. Full memory copies, eigen-decompositions, and global atlas serialization are not performed every tick.
+
+### 26.19 Phase, frequency, and color instrumentation
+
+Local realified amplitudes can be displayed as `q_sigma + i p_sigma/sqrt(m)` under the declared coordinate normalization. Their argument is a quadrature angle, not automatically an eigenmode phase. A true mode estimate uses a frozen operator or a specified windowed response measurement. Degenerate modes are reported as a subspace rather than arbitrarily relabeled individual oscillators.
+
+For a frozen equilibrium, the temporal generator is
+
+\[
+L=\nu(J-\Gamma)\nabla^2H.
+\tag{RU13}
+\]
+
+Measure its complex eigenvalues and, more importantly, the input/output transfer
+
+\[
+T(\omega)=C(i\omega I-L)^{-1}B
+\]
+
+for declared ports. Report peak frequency, bandwidth, phase lag, localization, decay, and numerical frequency error. Positive eigenvalues of a static Hessian are stiffness information, not these frequencies.
+
+The read-only visual snapshot maps:
+
+- hue to measured frequency band on a fixed labeled scale;
+- brightness to declared amplitude or modal power;
+- internal texture to resolved spatial modes;
+- moving traces to measured oriented transfer;
+- a separate overlay to an explicitly defined phase-locking statistic.
+
+The user can isolate each pool, strand, band, and current sign. An RGB composite is not an invertible representation of the field. The viewer exposes its sampling/aliasing limit and cannot feed generated pixels back as new observations. Rendering frames can be dropped without changing a simulation tick.
+
+The root implementation exports bounded immutable snapshots. A Godot or other viewer consumes that surface as an external read-only integration; CassiCosmos is not made a hidden dependency of the field runtime.
+
+### 26.20 Initial engineering profile
+
+The mathematical reference uses the following values. They define a reproducible construction, not optimized constants or a biological frequency ladder.
+
+| Quantity | Reference value |
+|---|---|
+| Principal pools | 7 |
+| One-mode mathematical reduction | One paired port per pool; 28 phase-space coordinates |
+| Initial spatial implementation | At least four paired ports per pool |
+| Inertance per pool | `m_i = 1.3**i`, identical on both strands |
+| Relative quadratic term | Identity in the one-mode reduction |
+| Relative quartic coefficient | `0.08`; zero for the linear spectrum check |
+| Oriented link coefficient | `0.006` in the one-mode reduction |
+| Dissipation | `0.012 I` |
+| Base reference integration interval | `0.08` field-time units, subdivided as needed |
+| Heartbeat angular frequency | `0.75` per field-time unit |
+| Positive work allocation | At most `0.006` per full beat |
+| Requested pulse amplitude coefficient | `0.018` |
+| Activity filter time | `4.0` field-time units |
+| Breath and mobility | Equation RU8 |
+| Ready-task normalization | `n_ref=4` |
+
+Production profile selection measures the actual loaded field's response. It does not assume these synthetic peaks remain fixed after changing chart precision, geometry, constraints, or resolution. The seven-pool requirement concerns selected cavities with distinguishable useful responses; a coupled cavity can support multiple modes.
+
+### 26.21 Failure behavior and resource boundaries
+
+| Condition | Required behavior |
+|---|---|
+| Unsupported semantics despite strong resonance | Return unsupported or unresolved; retain the distinction from numerical settlement |
+| Pump work unavailable or component energy too high | Apply no new pump work; permit safe unforced relaxation |
+| Nonfinite state, invalid metric, failed skew/dissipation check | Reject the transition before publication |
+| Nonlinear solve or phase-resolution budget exhausted | Roll back the incomplete tick and return unresolved numerical work |
+| Source or representation dependency revoked | Invalidate affected coupled working state before another readout or effect |
+| Missing external observation | Mark the task blocked; do not turn uncertainty into endless high-activity breathing |
+| Workspace capacity exhausted | Refuse allocation or use an already certified reduction; never silently drop evidence or occupied modes |
+| Viewer delayed or disconnected | Continue independent owner operation; report snapshot age |
+| Owner stopped or crash recovery pending | No implied off-process heartbeat or invisible catch-up |
+| Seven responses merge or circulation detunes | Report the measured loss of separation/current; do not relabel plots to conceal it |
+
+Capacity limits cover workspace bytes, resolved ports, retained branches, ticks per batch, nonlinear iterations/operator applications, positive source work, pending operations, and checkpoint frequency. Existing evidence retention and source-byte deletion remain separately controlled.
+
+### 26.22 Implementation sequence and required behavioral evidence
+
+The numerical-family implementation sequence is scoped to the following changes. Section 32.21 defines the current regional-computer integration order:
+
+1. Add the typed workspace validator, layout, field-page encoding, and v1-to-v2 owner migration. Preserve chart/support bytes.
+2. Implement `cassi_resonant_field.py` with RU1–RU13, constraint projection, bounded pump, regulator, sparse transport, discrete-gradient solve, and receipts.
+3. Add pure atlas binding/advance/freeze/invalidate transitions, with source and representation dependency roots.
+4. Add owner batch publication, idempotent recovery, capacity checks, physiological clocks, and revocation handling.
+5. Migrate cognition to the common-coordinate readout and existing uncertainty/action certificates; add supported phase/sequence representations through the existing chart/program system.
+6. Cut over the closed RPC, CassiPi callers, root scenarios, packaging closure, and affected tests. Remove the old live answer path rather than retain a hidden fallback.
+7. Add bounded read-only resonance snapshots and the external visualization adapter.
+8. Add internal resolution and certified dynamic reduction, then measured GPU batching under a separate arithmetic profile.
+
+Each implemented path is exercised directly. Required evidence includes:
+
+- seven spatially resolved cavities with measured transfer/localization, not only assigned color labels;
+- passive decay, powered signed circulation, and source/dissipation/boundary balance;
+- actual breath response to ready workload, independent evidence time, and reported wall-time work;
+- fixed observed constraints, preserved unforced semantic solution, and unchanged learned chart bytes during inference;
+- a supported held-out task where phase/order or directional interaction changes the appropriate result;
+- corrections that remove both learned dependence and provisional wave influence;
+- exact same-profile restart, interrupted-batch recovery, retry idempotency, and no duplicated external effect;
+- action validity across heartbeat generations using the frozen relevant workspace footprint;
+- phase/resolution convergence, reduction error bounds, and CPU/GPU readout agreement within declared numerical allowances.
+
+Compare undivided, isolated, meaningfully coupled, and degree/strength-matched rewired organizations at matched bytes and actual computation. Compare sufficiently converged solutions as well as resource-limited runs. Hold evidence exposure and retention policy fixed when varying inference schedules. These are direct implementation checks and scenarios, not a preregistration or a frozen capability verdict.
+
+### 26.23 Executed design mathematics and its limits
+
+Run:
+
+```text
+python run_resonant_field_design_math.py --output _diag/resonant-field-design/math.json
+```
+
+The checker exercises the discrete-gradient identity and passive dissipation, unchanged unforced semantic target, a readout residual bound, the temporal generator and Cayley update, seven local transfer responses, bounded heartbeat work, activity-modulated breath, source-off decay, phase and transport interventions, and exact byte restoration of a small workspace on the same machine. It also checks affine constraint projection, subdivision-independent heartbeat allocation, and a counterexample in which a static Schur reduction matches DC response but loses the dynamic response.
+
+It uses a synthetic one-mode-per-pool relation objective. It does not import or mutate the live owner, validate a production migration, prove useful cognition, establish a physical number current, or render an actual interface.
+
+The measured receipt records the script's SHA-256. The reference construction resolves seven local transfer peaks near `0.998, 0.877, 0.769, 0.675, 0.592, 0.519, 0.453` angular units. Its 28-dimensional temporal generator has fourteen positive-frequency eigenvalues, illustrating why seven pools need not mean seven eigenmodes. Numerical energy and spectrum checks are summarized from the retained receipt when reporting this design.
+
+The independent mathematical construction establishes the stated identities for its small reference problem. The live implementation and its measured boundaries are summarized below.
+
+### 26.24 Implemented runtime and measured boundaries
+
+`cassi_resonant_field.py` implements the production numerical operator. The default body has seven pools, four paired spatial ports per pool, and 112 phase-space coordinates. Learned chart matrices enter as the relation objective; they remain canonical atlas state. Phase, momentum, regulator state, branch bindings, and numerical receipts are persisted working state. The numerical module does not retain a second learned model.
+
+`cassi_field_atlas.py`, `cassi_field_cognition.py`, and `cassi_field_owner.py` use explicit preparation and advancement. `think` publishes the retained wave and its certified readout. `query` and explanation consume a prepared query identity without another solve. A frozen action can remain valid across unrelated heartbeats; a relevant source or chart change invalidates it. The v2 root references immutable chart/support and workspace pages, and explicit migration validates the v1 source closure and revocation fence before publication.
+
+`runtime/cassi_cassipi_worker.py` serializes admitted work in one owner executor. Logical mode is the default. Optional real-time scheduling requests at most one bounded batch every 0.25 seconds, fences stale queued timer work, and reports achieved cadence and backlog. Pause and last-client detach have explicit persisted policies. `runtime/cassipi_closure.json` and the runtime builder include the resonant module and read-only viewer in the actual verified import closure.
+
+#### Direct numerical and behavioral measurements
+
+Run from this repository root:
+
+```text
+python run_resonant_field_scenario.py --output _diag/resonant-field-production/scenario.json
+python run_field_intelligence_scenario.py --horizon-episodes 24
+python -m pytest test_field_intelligence.py test_variational_field.py test_resonant_owner.py runtime/test_cassipi_worker.py runtime/test_cassipi_import.py runtime/test_cassipi_forget_generation.py runtime/test_cassipi_runtime_package.py -q
+```
+
+The retained production scenario records source hashes with its numerical results:
+
+| Measurement | Observed result and scope |
+|---|---|
+| Seven local transfer responses | Peaks at `0.979583, 0.855833, 0.750417, 0.658750, 0.576250, 0.507500, 0.434167` radians per field-time unit for the declared frozen-rest body; grid spacing `0.00458333` |
+| Spatial localization | Own-pool response fractions from `0.9153` to `0.9707` at those peaks |
+| Powered reference interval | Positive heartbeat work `0.00144872`; accumulated energy-balance defect `5.11e-19`; signed circuit-power sample `9.73e-8` in the declared generalized-power convention |
+| Learned held-out relation | Prediction `3.49999533` for target `3.5`, unchanged learned chart bytes, and independent evidence time |
+| Phase-conditioned held-out task | Maximum absolute error `1.18e-7` for the meaningful-helix condition; equal-amplitude opposite phases change the prediction by `2.574385` |
+| CPU/GPU numerical agreement | Maximum coordinate difference `1.73e-12` over the measured eight-tick run on the RX 7900 XTX, against a `1e-8` allowance |
+| Time-step refinement | Maximum quadrature-phase errors `1.437e-3`, `3.409e-4`, and `7.591e-5` at intervals `0.08`, `0.04`, and `0.02`, compared with the independently reconstructed linear trajectory |
+| Nested spatial reduction | Reconstruction trajectory errors `0.00252243` and `0.00130892` for four and eight ports per pool projected from the same fixed sixteen-port body |
+
+The owner scenario also exercises exact restart and retry, immutable page reuse and corruption rejection, one acknowledged external effect, frozen-action validity across a heartbeat, source-use revocation, and rejection of a checkpoint that would cross the revocation fence. The controlled world scenario still learns its relative-position program and bidirectional relocation construction, prepares a supported rightward action, explains the prepared result, and executes the controlled effect once.
+
+The phase comparison holds workspace bytes at `2088` in all four conditions and uses the same training phases and retention policy. The meaningful and rewired bodies both have 90 edges and total absolute edge strength `1.7134218127191345`. Receipts include actual operator applications and elapsed work. Limited-effort runs can remain unresolved; sufficiently converged meaningful, rewired, and undivided conditions all predict their own held-out controlled responses accurately. Isolated pools have zero remote response. Because the target response is generated separately by each controlled topology, this demonstrates phase-conditioned field learning and causal transport, not superior task performance from the seven-pool organization.
+
+The reduction scenario checks passivity, occupied-binding preservation, declared bounds, and rejection at zero error allowance. Its all-frequency response bounds are conservative (`3.41e4` and `4.87e4` in the declared energy-normalized induced norm); the run uses a permissive allowance to exercise the reconstruction. These bounds do not establish useful tight-tolerance compression. The spatial comparison concerns nested projections of one fixed body, not convergence to a continuum limit.
+
+GPU execution has a distinct arithmetic profile and measured agreement, not cross-device byte identity. The retained small run took approximately `6.34 ms` on CPU and `46.29 s` for the first GPU invocation, including that path's setup. It provides no throughput or energy advantage. Initialization, transfer, and useful workload size must be separated before making a scaling claim.
+
+#### Read-only display and interpretation
+
+`runtime/cassi_resonant_view.py` renders canonical spatial samples and signed generalized-power edges. Hue uses a fixed labeled scale for separately measured frozen-rest transfer peaks. Pool, strand, response band, instantaneous-rate band, and current-sign filters operate only on the received snapshot. A spatial pair-phase overlay reports `R = |mean exp(i(theta_Y - theta_I))|` over paired ports whose phases are defined. This is an instantaneous spatial statistic; it does not demonstrate temporal phase locking.
+
+The packaged browser smoke renders 56 strand samples, 90 signed-power edges, and seven measured pool summaries. Pool, strand, response-band, instantaneous-rate, current-sign, and phase-overlay controls were exercised against the canonical snapshot. With the owner paused, those operations left both state identities and both clocks unchanged; observed browser requests were read-only GETs. A separate real-time smoke resumed two heartbeat batches without changing evidence time, then paused with a stable owner hash and an empty queue. The persisted pause and field state also survived a packaged-owner restart. `_diag/resonant-field-production/viewer-smoke.json` retains these measurements without owner credentials.
+
+The viewer reports its snapshot identity, evidence and field clocks, source/dissipation ledger, sample limits, and calibration assumptions. It performs no interpolation or synthetic trajectory evolution and cannot turn rendered pixels into observations. Frozen-body calibration does not estimate eigenmodes of an arbitrary live task. These results do not establish biological chakras, consciousness, physical particle-number transport, open-domain cognition, or useful GPU superiority.
+
+## 27. Knowledge-bearing field transceivers
+
+### 27.1 Canonical knowledge and derived temporal realizations
+
+`cassi_field_transceiver.py` implements a temporal input/output realization of supported local field computation. `FieldTransceiver` in `cassi_field_atlas.py` retains the selected chart versions, supporting source revisions, applicability context, fixed observations, input and output variable identities, derived numerical kernel, and persistent working state. All of these belong to the canonical atlas checkpoint closure.
+
+Learning remains observation-driven chart adaptation. Condensation derives an executable numerical realization from that supported knowledge; it does not train separate weights, replace supporting charts with an independent model, or turn repeated computation into additional evidence. Ports refer to existing field variables. The current compiler selects explicitly requested charts and ports; it does not autonomously discover a useful decomposition.
+
+The neuron-like property is a stateful response: a structure receives bounded inputs, transforms them through learned relations and retained dynamics, and exposes outputs that can drive other structures. This is a computational analogy, not a biological-neuron implementation or a claim about subjective experience.
+
+### 27.2 Local execution and error-controlled condensation
+
+The local response uses the canonical wave potential, transport, and damping at a fixed field-time interval. Its temporal episode is separate from the body's heartbeat and evidence clock. A changing input is a boundary drive; passivity between such drives does not imply that externally driven motion has no energy input.
+
+For `beta = 0`, the compiler can build a Krylov basis of the constrained midpoint map in quadratic-energy coordinates. It removes constrained directions before constructing that energy representation and retains the affine contribution. The reduced state evolves in this derived basis rather than through an independently fitted transition model.
+
+The error accounting includes initial projection error, omitted-state transport, incoming input uncertainty, and numerical allowances. A small instantaneous output residual alone is insufficient: hidden omitted motion can reach an output later. Each compact step therefore propagates its enclosing state-error contribution into an output bound before publication. The retained uniform-horizon estimate is diagnostic; it is not substituted for the online bound.
+
+When the next compact step would exceed the requested error allowance, or the declared compact horizon is exhausted, execution expands before that step. Expansion preserves accumulated uncertainty. It cannot make a prior approximation exact by switching representations. Full execution with incoming uncertainty also retains an enclosing contribution; inability to construct the required bound is an explicit numerical error.
+
+Nonlinear `beta > 0` responses retain the complete average-vector-field wave operator. They are not compressed by fitting a linear map. Unsupported or noncoercive reductions likewise retain the full realization. The present compact compiler is a bounded CPU/float64 path; its dense construction is limited to 512 full phase-space coordinates and at most 64 retained coordinates. These are implementation limits, not demonstrated capacity optima.
+
+### 27.3 Composition and the evidence boundary
+
+`FieldIntelligenceOwner` and the authenticated CassiPi transport expose four operations:
+
+| Operation | State transition |
+|---|---|
+| `condense_transceiver` | Derive and publish a guarded temporal realization from named supported charts and ports |
+| `advance_transceivers` | Apply bounded inputs and advance a selected assembly for a bounded number of local ticks |
+| `reset_transceiver` | Restore a realization's initial temporal episode without altering learned chart support |
+| `inspect_transceivers` | Read retained responses and provenance without evolving state |
+
+Assembly connections use the previous tick's output, with a declared one-tick delay. Every receiver reads the same predecessor snapshot, so dictionary or iteration order cannot change the computation. The sender's output uncertainty accompanies its value. Conflicting drives and inapplicable contexts are rejected before a successor is published.
+
+Outputs are labeled `temporal-prediction`. Condensation, transmission, reset, and inspection add no observed support and do not advance the evidence clock. Observation admission remains the existing explicit owner operation. A transceiver response cannot authorize an external effect.
+
+### 27.4 Persistence, revision, and runtime scope
+
+Transceiver records form an immutable atlas page. An atlas with no transceivers omits that optional page, preserving the existing empty-extension v2 descriptor identity. Working coordinates and their uncertainty survive exact checkpoint and bundle round trips. Capacity accounting includes transceiver programs, retained workspace bytes, and ports alongside the existing variable and closure limits.
+
+Numeric kernels and working arrays are validated as field pages rather than small typed symbols. They may exceed the 64 KiB typed-value limit, while canonical finite-value validation and the owner's workspace and total checkpoint-closure limits still apply. A capacity rejection leaves the predecessor state and checkpoint head unchanged.
+
+A relevant chart-version change, superseded source, or source revocation removes the affected derived kernel and working state. The stale record retains its identity and dependency explanation; it is not executable until supported condensation is performed again. Unrelated transceivers remain available.
+
+Owner mutations use the existing lock, immutable publication, operation identities, and replay machinery. Repeating an operation with identical semantics returns its retained result without consuming the stimulus again. Conflicting semantics are rejected. Replay checks the retained checkpoint and revocation fence before exposing an old result, so a forgotten source cannot remain usable through a saved condensation, transmission, or reset receipt.
+
+The packaged adapter binds applicability to authenticated host scope. Inspection hides other scopes' transceivers; advancement and reset cannot operate on another scope's record. Field validation errors cross the HTTP boundary as explicit conflict responses instead of generic internal failures. No separate service, learned codec, model fallback, or external effect executor is added.
+
+### 27.5 Executed instrument and lifecycle scenarios
+
+Run the actual owner and numerical scenario from the repository root:
+
+```text
+python run_field_transceiver_scenario.py --output _diag/field-transceivers/scenario.json
+python -m pytest test_field_transceiver.py -q
+```
+
+The scenario learns controlled gain relations from retained observations and compares compact execution with the unreduced implementation on the same input sequence. Its measurements are:
+
+| Measurement | Observed result and scope |
+|---|---|
+| Linear realization | 16 evolving coordinates from 112 full coordinates; constrained tangent dimension 108 |
+| Linear trajectory agreement | Maximum output difference `3.552713678800501e-15` over 32 ticks |
+| Linear online allowance | Maximum reported output bound `2.0741977936686043e-7`; measured differences remain inside the enclosing bounds |
+| Avoided full-field work | 32 compact steps, zero full steps, and zero full wave-operator applications; unreduced comparison uses 296 applications |
+| Input-order dependence | Reversing the controlled pulse order changes the measured final linear response by `0.5377682406803815` |
+| Held-out relation | Prediction `3.4902023479447672` for target `3.5`; absolute error `0.009797652055232753` |
+| Nonlinear response | 32 full steps and 473 operator applications; exact agreement with the same unreduced path, with no nonlinear dimension reduction |
+| Selective knowledge intervention | Changing the supported first instrument changes its measured response by `2.9988190742743757`; the unrelated transceiver remains intact |
+| Owner lifecycle | Exact restart and bundle identity, exactly-once stimulus, conflicting-replay rejection, read-only inspection, atomic guard rejection, synchronous composition, revoked-realization removal, and revoked-checkpoint rejection |
+
+The measured linear construction takes approximately `0.0272 s`; its 32-step numerical episode takes `0.1158 s`, compared with `0.1719 s` for the unreduced episode. A separate two-transceiver owner publication takes `0.3894 s`. These are single-run wall times under concurrent regression load, with distinct numerical and persistence scopes. They do not establish a reproducible end-to-end speedup. The operation counts establish avoided full-wave work; compilation, stored kernel size, serialization, and checkpoint costs remain part of any scaling comparison.
+
+An isolated packaged-owner smoke, launched outside the checkout, exercises authenticated condensation, transmission, reset, exactly-once retry, foreign-scope rejection, malformed-input rejection, and exact process restart. `_diag/field-transceivers/runtime-smoke.json` retains the credential-free result. Focused regressions additionally check that uncertainty survives silence and expansion, that execution beyond the compact horizon remains enclosed, and that old results are rejected after source revocation.
+
+The affected root and runtime regression command listed in `README.md` completes with `76 passed, 3 subtests passed`. The rebuilt portable runtime verifies its ten-module import closure. Its isolated authenticated capacity smoke condenses and advances a five-input, 73,460-byte kernel, rejects a malformed request without publication, and preserves exact state, bundle identity, and exactly-once replay across process restart.
+
+All exercised paths use zero live language-model calls. The measured capability is reusable, guarded temporal computation derived from learned field relations. The results do not establish nonlinear compression, automatic transceiver discovery, broad skill acquisition, biological nervous-system equivalence, or consciousness.
+
+### 27.6 Sustained held-out learning curriculum
+
+`run_field_transceiver_scenario.py --curriculum` exercises learning through the existing owner with fixed architecture and dynamics. It retains observations, training and held-out identities, prediction arrays, numerical bounds, operation counts, timings, and restartable owners. Use an unused owner directory:
+
+```text
+python run_field_transceiver_scenario.py --curriculum --seeds 101 202 303 --output _diag/field-curriculum/replay/report.json --data-home _diag/field-curriculum/replay/owners
+```
+
+The retained run is `_diag/field-curriculum/completed/report.json`, with a pooled `summary.json`, independent `verification.json`, three `owners/` directories, and a rebuilt `runtime/` with `package-smoke.json`. Seeds 101, 202, and 303 each admit 336 observations into 11 charts, retain 166 distinct held-out records, and make zero live model calls. Some fixed instrument probes are shared across seeds. Independent verification reconstructs the training/holdout disjointness, checks all 1,008 source contributions against the retained owners, recomputes task metrics over 5,508 prediction positions including 96 missing predictions, and checks 42 recorded external trajectories.
+
+The comparison conditions are trained unreduced execution, trained transceiver execution, and an untrained numerical prior. All 33 attempts to condense unsupported charts through the production owner are refused. The prior's numerical predictions are diagnostic controls, not admissible production answers. Scalar roles, chart partitions, contexts, connection graphs, and optional history features are supplied by the scenario.
+
+#### Learning and transfer
+
+The three affine instruments receive interleaved observations at checkpoints of 0, 4, 12, and 32 samples per instrument. Held-out targets come from the external instrument laws. Six ordered two-instrument combinations per seed are evaluated through the public owner, using eight-tick publications that preserve the one-tick connection delay and total 64-tick budget. No observations of those new pairs are admitted.
+
+| Final held-out task | Prediction positions | Untrained-prior RMSE | Trained-transceiver RMSE |
+|---|---:|---:|---:|
+| Instrument interpolation and extrapolation | 90 | 1.95717196 | 0.01618704 |
+| Extrapolation subset | 36 | 2.63278924 | 0.02105749 |
+| Connected composition | 18 | 1.71134876 | 0.02564601 |
+
+All 90 final instrument predictions and all 18 composition predictions are within the declared absolute-error threshold of 0.05. These results establish transfer within the supplied affine representation and graph, not discovery of the representation or graph.
+
+#### Temporal learning and incomplete rollout
+
+An independent bounded delayed-affine world generates training and held-out episodes. Its law depends on current input, two input lags, previous output, and a supplied episode offset. The field observes either current input and offset only, or those features plus supplied history. The latter features are external sensing coordinates; they are not acquired temporal memory. Evaluation keeps the 64-field-tick conditional paths separate from one-field-tick raw carried dynamics.
+
+| Final temporal task | Untrained-prior RMSE | Trained-full RMSE | Trained-transceiver RMSE | Transceiver coverage |
+|---|---:|---:|---:|---:|
+| Current features, carried state, 64 ticks | 0.51616029 | 0.38666782 | 0.38666782 | 72/72 |
+| Supplied observed history, true past output | 0.51616029 | 0.04190734 | 0.04190734 | 72/72 |
+| Supplied input history, predicted past output | 0.51616029 | 0.05914590 | Undefined | 36/72 |
+| Current features, carried state, one raw tick | 0.51616029 | 0.41371975 | 0.41371975 | 72/72 |
+
+Raw one-tick RMSE improves in every seed between 16 and 64 observations: pooled RMSE moves from 0.45335711 to 0.41371975. Its final threshold success fraction is 15.28%, compared with 76.39% for supplied-history conditional prediction. There is measurable learning in the raw path, but these results do not establish reliable acquisition of the external delayed recurrence.
+
+The predicted-past rollout uses one observed previous output to initialize each episode and feeds back predictions thereafter. The compact path's propagated uncertainty leaves the declared input envelope after six answered steps in every final 12-step episode. Missing predictions remain in the success denominator, and complete-episode RMSE is undefined. The answered-only RMSE of 0.04454076 cannot replace that incomplete result.
+
+Matched pulse-order probes swap the same two pulses and then apply an identical zero-input tail under the same external recurrence. Over 36 tail differences, raw carried dynamics reduce difference RMSE from the prior's 0.16169113 to 0.14208222. The supplied-history full rollout reaches 0.01657576. Its compact counterpart answers only 24 of the 36 tail differences, so its complete comparison is undefined. Presentation-order sensitivity is also reported separately from this changed-world probe.
+
+#### Revision, exceptions, and retention
+
+The changing-environment comparison supplies identical new observation values to stationary and preconfigured recency-weighted charts, without retracting or correcting the historical sources. The recency condition reduces new-regime RMSE from 1.47081687 to 0.02663678; the stationary condition moves from 1.47236598 to 0.74998646. This measures the benefit of the supplied retention rule, not autonomous selection of that rule.
+
+Explicitly guarded normal and exception contexts reach RMSE 0.01972246 and 0.02942683 after exception learning. Unknown-context execution is refused atomically in every seed. The three original instrument charts retain exact identities through unrelated learning, revisions, and restarts; their pooled held-out RMSE remains 0.01618704. Every retained owner passes exact state and bundle restart, exact temporal continuation, and exactly-once retry while preserving learned chart bytes and evidence time.
+
+#### Numerical agreement and total costs
+
+Independent verification finds a maximum compact/full difference of 6.69220235e-12 over 1,740 jointly answered positions, inside the declared numerical enclosures. This agreement is separate from task error and excludes missing compact answers. The 57 supported constructions retain 16 evolving coordinates from 112 full coordinates. Serialized kernels range from 63,182 to 75,033 bytes.
+
+The complete curriculum takes 1,241.37 seconds. Measured observation admission accounts for 788.23 seconds; condensation plus owner publication takes 28.75 seconds, of which numerical construction accounts for 1.22 seconds. The 18 connected public-owner executions take 112.75 seconds on the compact path and 120.67 seconds on the full path. Compact composition uses 2,304 reduced steps and zero full-wave operator applications, versus 2,304 full steps and 21,520 operator applications. The prior's 4.97-second numerical-only comparison excludes owner publication and is not a production latency baseline.
+
+Each final active checkpoint closure occupies approximately 0.83 MB, including approximately 0.615 MB of workspace, while each retained owner directory occupies approximately 83.49 MB with its history. The largest learned-field absolute value across the three owners is 1.17117. These are observed resource levels for this bounded curriculum. Avoided wave operations do not establish a general end-to-end scaling advantage: admission, validation, serialization, checkpoint retention, compilation, and uncertainty propagation remain material costs.
+
+## 28. Learned temporal state and observation-driven skills
+
+`cassi_temporal_field.py` retains the bounded categorical predictive-state codec and its independent reference operations. In production, `temporal-memory` state occupies a typed regional task, exact source revision IDs are checked by the owner at admission, and induction, consumption, reset, skill construction, selection, pause, and resumption advance through the fixed catalog. The categorical relations remain distinct from the continuous resonant realization, but neither owns a separate production transition path.
+
+### 28.1 Representation and source admission
+
+A temporal memory has a fixed action codec \(A\), observation codec \(O\), capacity \(M\leq128\), and \(P\) working slices: one default slice plus one per bound participant. Its float64 tensor has shape
+
+\[
+  F\in\mathbb R^{P\times9M\times(|A||O|)}.
+\]
+
+For state \(s\), action \(a\), and observed outcome \(o\), the default slice's first two planes store an exposure \(N(s,a,o)\) and successor coordinate \(T(s,a,o)\). A third learned plane stores the active-state count, a representation marker, and a per-state action-coverage bitmap. A coverage entry is one only when that action was observed at every original prefix represented by the induced state; pooled exposure cannot turn a missing transition into coverage. Learned transition, coverage, and skill coordinates are stored once and shared by every participant. Working coordinates retain each participant's current state, last observation, bounded current-event history, candidate-state bitmap, and support marker: zero for supported context, one for a carried unknown successor, and minus one for unavailable replay after history overflow. The final plane holds history length, overflow, unknown-start, and prior-support-gap flags, event codes, and the candidate bitmap. History capacity is \(\max(0,M|A||O|-2-M)\) events per working slice. Entries are bounded exact integers even though storage uses float64.
+
+Admission takes canonical UTF-8 `cassifi.temporal-episode.v1` JSON containing an ordered `steps` array of current `action` and `observation` pairs. An independent episode has its own source identity. Extending an episode requires the current parent revision, unchanged provenance, and a strictly longer sequence with the exact prior prefix. Its new head replaces the old prefix in the active training corpus: each actual observation contributes once. Independent episodes with identical bytes remain separate observations. Invalid, forked, cross-memory, or revoked extensions are refused before publication; interrupted valid admissions resume through the owner's durable operation journal. Temporary prefix graphs and merge statistics exist only during induction. The persistent adaptive representation is the numeric field; live inference does not consult a retained prefix graph or replay source episodes.
+
+The deterministic red-blue merge resolves one canonical prefix boundary at a time and compares its observed continuations recursively. Conflicting shared outcome sets prevent a merge. For shared stochastic outcomes, the learner compares pooled and separate categorical likelihoods under a fixed Jeffreys prior rather than requiring exact equality of sample proportions. The prior supplies a model-comparison criterion; it does not add observed counts to the field. Among compatible targets, shared observed exposure ranks the alternatives. A nonempty continuation needs positive shared evidence, so a bare episode endpoint cannot inherit an arbitrary earlier future. Recursively encountered nonempty continuations with no shared action/outcome event remain distinct rather than transferring a future between unrelated contexts, except where the shared incoming event itself recurs into a proposed state and therefore supplies direct recurrence evidence. The induction also retains action coverage as the intersection over merged original prefixes. These constraints preserve learned sequential distinctions but can require more predictive states than an induction that freely merges complementary continuations.
+
+Every admission rebuilds the derived field from the complete active corpus, preserves each participant's consumed history and initial-context flags, and replays that history against the revised transitions. A missing action or successor marks the retained history as uncovered. Later supported observations continue narrowing its candidate set; uncertainty clears only when the admitted field supports the entire new transition and leaves one candidate. The prior support-gap flag remains available to skill and inquiry readout after that recovery. Existing skill identities, goals, and forbidden outcomes are retained while their policy and rank coordinates are recomputed against the new memory digest. Incomplete history, unsupported revised continuations, and non-unique candidate sets remain unresolved; an uncertain start never silently becomes a known root state. This reconstruction permits later observations to separate states whose earlier evidence was compatible, but admission work grows with the retained corpus. It is not an incremental sufficient-statistics update.
+
+### 28.2 Current-event inference and contextual distinctions
+
+At inference, the owner consumes one current pair \((a_t,o_t)\) for the selected participant. While the stream is not halted, its carried candidate set \(C_t\) advances by supported transitions:
+
+\[
+  C_{t+1}=\{T(s,a_t,o_t):s\in C_t,\;N(s,a_t,o_t)>0\}.
+\]
+
+Missing action evidence carries an unknown-successor flag. Later evidence may clear that uncertainty only by selecting a unique supported successor:
+
+\[
+  U_{t+1}=
+  \left[\exists s\in C_t:\sum_o N(s,a_t,o)=0\right]
+  \lor[C_{t+1}=\varnothing]
+  \lor[U_t\land |C_{t+1}|\ne1].
+\]
+
+Only when \(U_t=0\), \(C_t\ne\varnothing\), and every candidate has observed action support does the readout expose empirical probabilities:
+
+\[
+  \widehat p(o\mid C_t,a)=
+  \frac{\sum_{s\in C_t}N(s,a,o)}
+       {\sum_{s\in C_t}\sum_{o'}N(s,a,o')}.
+\]
+
+An absent action row cannot eliminate an alternative. A supported row whose observed outcomes contradict the actual observation can eliminate that candidate, but any missing transition keeps the immediate result unresolved. Unsupported predictions expose an empty probability mapping and explicit support-gap diagnostics. Further actual observations enter bounded working history and may recover a unique supported context; they do not clear uncertainty through time, repetition, or an arbitrary reset. The field retains a separate uncovered-history flag whenever any earlier transition lacked support. Admission can also repair the context by replaying that history against revised knowledge. `reset_temporal` starts a genuinely new stream at the root or, with `known_start=False`, at all learned states; it is not used to manufacture resolution within an unfinished episode. Reset is refused while that participant has an outstanding task proposal.
+
+The temporal memory digest binds the numeric transition planes and their interpretation: memory identity, codecs, capacity, context, active state count, and source revisions. The state digest also binds participant identities, working coordinates, and skill metadata. Relabeling a serialized codec without changing its stored digests is rejected.
+
+The controlled world in `run_temporal_field_scenario.py` contains a latch, a delayed release acknowledgment, and a jammed condition. Only the simulator owns those hidden variables. The learner receives current action/outcome events, including an initial sensed pulse. It receives no latch flag, pending counter, lag columns, or scenario history label. Its carried state can therefore distinguish an unconfirmed release request from a completed release after an identical quiet observation.
+
+Training interventions, action vocabulary, observation vocabulary, and episode boundaries are supplied. The new-context comparison admits observed episodes from the jammed condition after normal-condition training. It measures acquisition of distinctions supported by those episodes, not autonomous exploration, discovery of a new sensor, or unsupervised discovery of the symbolic vocabulary.
+
+### 28.3 Condensed skills and external authority
+
+`condense_temporal_skill` receives goal observations and forbidden observations. It derives a finite reachability rank and action for each supported state. An admissible action has observed support, has no observed forbidden outcome, and sends every supported non-goal outcome to a state of strictly smaller positive rank. This excludes an idle self-loop from masquerading as progress toward a goal.
+
+Skill policies occupy separately addressed numeric columns. Their metadata binds the goal, forbidden outcomes, column, and learned-memory digest. A skill action is re-read from the participant's carried candidates after each actual observation and requires agreement on a supported progress action. If the participant has traversed a support gap, the proposed action must additionally have universal action coverage in every candidate state; exposure inherited from only one merged prefix is insufficient. Completion requires consumption of a goal observation; prediction of success alone is insufficient. An unsupported outcome returns `unresolved`, and source revocation removes executable dependent memory and skills.
+
+These guarantees concern supported outcomes. They do not establish safety against unobserved world behavior. A proposed skill action is not an execution grant. The scenario executes proposals only in its bounded local simulator; host tools and external effects remain subject to explicit authority.
+
+### 28.4 Compact feedback uncertainty
+
+The continuous transceiver comparison uses the retained three-seed learned instrument fields from §27.6, without retraining or modifying that evidence. Compact execution transports input uncertainty by coordinate rather than repeatedly applying one scalar worst-case output gain:
+
+\[
+  q_{t+1}=|D_r|q_t+|P_{r,\mathrm{input}}|e_t,\qquad
+  e_{y,t}\leq |C_r|q_t+|D_{\mathrm{direct}}|e_t+e_{\mathrm{model},t}.
+\]
+
+Residual uncertainty, numerical roundoff, and a separate physical-state omission radius remain in the calculation. A small output error cannot erase uncertainty in hidden state when expanding to the full realization. A compact tick exceeding the declared allowance expands before that tick; full execution still reports unresolved uncertainty rather than silently admitting an answer.
+
+The retained comparison is `_diag/temporal-development/feedback-before.json` against `feedback-after.json`, with independently recomputed metrics and pairwise enclosures in `_diag/temporal-development/completed/feedback-verification.json`.
+
+| Feedback condition | Numeric predictions | Resolved predictions | RMSE over numeric predictions | Absolute error below 0.05 |
+|---|---:|---:|---:|---:|
+| Reference full execution | 72/72 | 72/72 | 0.05914590 | 43/72 |
+| Reference compact execution | 36/72 | 13/72 | 0.04454076 | 23/72 |
+| Current full execution | 66/72 | 48/72 | 0.05780482 | 39/72 |
+| Current compact execution | 72/72 | 72/72 | 0.05914590 | 43/72 |
+
+Incomplete-condition RMSE is answered-only; it is not a complete-task score. The current compact predictions differ from the 72 reference full predictions by at most \(1.82\times10^{-13}\). The largest current compact reported error bound is \(2.601\times10^{-5}\), and all 72 reference differences lie within the paired numerical enclosures. Compact execution uses 4,608 reduced ticks, zero full ticks, and zero full-wave operator applications for this comparison.
+
+This is improved numerical coverage with the same measured task error, not improved learning accuracy. The current full-mode uncertainty calculation remains conservative: 18 of its 66 numeric predictions exceed the resolution allowance, and six subsequent predictions are absent after input-envelope refusal. The reference full answers supply a numerical trajectory comparison; their earlier uncertainty accounting is not an independent proof of a sound enclosure.
+
+### 28.5 Publication and packaged execution
+
+The owner validates checkpoint pages and capacity before writing, flushes every immutable page and descriptor before publishing its manifest, and keeps manifest, publication-pointer, and evidence ordering serialized. After `CURRENT` is durable, it atomically promotes the already-flushed stage record into the operation replay directory instead of serializing and flushing that identity again. Recovery uses the same promotion path; directory durability barriers follow the move. A failed immutable flush leaves the prior canonical checkpoint current. Pending admission capacity is checked after same-operation replay handling, so a retry does not consume another pending slot.
+
+Pending owner envelopes bind the exact predecessor generation, logical tick,
+checkpoint manifest, atlas state, resonant workspace, and affected temporal
+memory. An already committed operation is identified from its durable replay
+record and its leftover envelope is removed without reapplying learning.
+Otherwise recovery and same-operation retry require the complete predecessor
+identity to remain unchanged. An unrelated publication cannot pass an
+uncommitted envelope, and a stale envelope against a later checkpoint fails
+closed with `LINEAGE_CONFLICT` without rewriting the pending request or
+evidence index.
+
+Before recovery dispatch, each envelope must match the complete key set for
+its operation kind and its nested source, workspace, temporal identity, or
+acknowledgment records must decode successfully. Canonical JSON with a
+missing or additional field, a malformed container, or inconsistent mirrored
+identities inside the envelope fails with `PENDING_OPERATION_CORRUPT`; the
+original pending bytes remain in place for inspection. A structurally valid
+envelope whose bound predecessor differs from the current owner instead fails
+with `LINEAGE_CONFLICT`, as above.
+
+Every committed replay validates the operation record's exact schema,
+operation identity, manifest identity, parent-manifest linkage, and semantic
+digest before it reads a result or constructs a receipt. Observation
+checkpoint transitions additionally bind a normalized digest of the complete
+request semantics, including source revision and content identities,
+admission weight, and target charts. A committed retry with either value
+changed fails with `OPERATION_CONFLICT` rather than returning the earlier
+receipt under altered parameters.
+
+The runtime preserves adapter HTTP status codes, checks temporal memory scope against host-bound context, and uses the owner's checkpoint identity for `expected_state_sha256`. The nested temporal memory identity is not an owner predecessor token. Operation identity replay returns the frozen receipt without consuming an observation twice.
+
+The rebuilt private runtime contains 12 modules, including the temporal field and inquiry selector. Its authenticated HTTP smoke verifies scope isolation, exact process restart, exactly-once acknowledgment, conflicting-retry refusal, pending-proposal preservation through admission, atomic pending-reset refusal, distinct participant completion, and two-step inquiry that resolves only after actual observations are consumed. No model fallback participates in this path.
+
+The isolated publication comparison uses 160 numeric observation admissions and 240 one-tick owner advances with a 4,096-entry history limit:
+
+| Owner implementation | Admission time | Advance publication time |
+|---|---:|---:|
+| Reference owner | 122.79 s | 121.68 s |
+| Concurrent immutable-flush candidate | 125.71 s | 116.33 s |
+| Retained durable stage-promotion owner | 106.20 s | 103.09 s |
+
+The concurrent-flush candidate offers no meaningful overall improvement and is not retained. The stage-promotion implementation reduces measured admission time by 13.5% and publication time by 15.3% relative to the reference in this single matched comparison. All three workloads retain identical learned chart identity, 160 evidence events, generation 403, 404 manifests, and a 91,511-byte active closure. Exact restart, learned-memory invariance during inference, and an unchanged evidence clock pass in every workload. That benchmark's source hashes match its retained runtime package.
+
+This is a fixed-workload wall-clock result, not a repeated statistical estimate or a general scaling result. It does not measure the growth of temporal corpus reconstruction. Raw timings, source identities, matched invariants, and the unsuccessful candidate remain in `_diag/temporal-development/completed/performance-verification.json` and its referenced reports.
+
+### 28.6 Measured temporal development
+
+The three-seed scenario admits 150 exact source episodes containing 2,649 action/outcome events. Training and held-out episode hashes are disjoint within each run. The independent verifier checks all 126 evaluation records against the external simulator, reconstructs the 81 final predictions from the exported numeric field, validates all 21 exported object digests, recounts every source event, and replays the skill action and reachability-rank choices. The revocation exercise prunes earlier checkpoints, so the pre-context numeric predictors are not independently reconstructed from this export.
+
+| Measurement across seeds 101, 202, and 303 | Observed result |
+|---|---:|
+| Normal-condition held-out predictions before new-context admission | 36/36 correct |
+| New-context predictions before its source episodes are admitted | 0/9 answered |
+| Final held-out predictions across both conditions and unfamiliar sequences | 81/81 answered and correct |
+| Current-observation-only diagnostic on the same final cases | 63/81 correct |
+| Observation-driven skill completions without forbidden outcomes | 12/12 |
+| Long-horizon carried-state steps | 4,096 per seed |
+| Temporal numeric field allocation | 497,664 bytes per owner |
+| Final pre-revocation active checkpoint closure | 706,058 bytes per owner |
+| Live language-model calls | 0 |
+
+The current-observation-only diagnostic counts observed outcomes by current observation and proposed action from the same admitted episodes. It is a comparison computed by the scenario, not a second production memory. Matched quiet observations require different predictions after an untouched latch, an unconfirmed request, and an acknowledged release. The carried field distinguishes these histories; the current-observation-only diagnostic loses that distinction.
+
+Admitting jammed-condition episodes increases the induced state count from 6 to 9, 6 to 9, and 5 to 8 across the three seeds. These are observed finite-data partitions, not identified biological or universally minimal states. A separate matched intervention swaps only the carried-state coordinate between two observed histories. With the current observation fixed at `quiet` and the proposed action fixed at `move`, the prediction changes from `blocked` to `arrived`; the learned transition planes and canonical owner remain unchanged.
+
+After the sensed context and an unfamiliar idle interval, the normal-condition skill proposes `release → wait → wait → move`, consuming `requested → quiet → released → arrived`. The jammed-condition skill first proposes `clear` and consumes `cleared`, then follows the supported release sequence. It does not treat a release request as its acknowledgment. An unknown actual outcome stops skill execution while retaining the ability to record further permitted observations.
+
+Each run preserves learned temporal memory during inference, retains unrelated instrument predictions through temporal learning and restart, resumes exactly after process-state reload, and handles operation retries exactly once. Source revocation removes the dependent temporal execution path; activation and export of its stale historical checkpoint are refused while unrelated knowledge remains available.
+
+Recorded pre-revocation work totals 735.19 seconds across the three seeds, including 99.59 seconds accounted to temporal admission, 519.88 seconds to inference publication, and 0.0464 seconds to explicit restart. These counters exclude owner initialization, the final revocation exercise, and owner closure; they are not complete end-to-end or isolated-kernel timings. Publication dominates the measured work because each owner transition is durable. The separate 4,096-step continuation checks exercise the numeric field without publishing each step.
+
+The repaired implementation's raw report and independent verification are `_diag/temporal-repair/retention-final/report.json` and `verification.json`; the independent reconstruction is `_diag/temporal-repair/verify_retention.py`. The results establish current-event temporal use, finite-data context separation, and supported observation-driven skill reuse in this controlled world. They do not establish autonomous exploration, open-vocabulary state discovery, calibrated probabilities under unseen outcomes, general reasoning, or integration of this categorical induction into the continuous seven-pool wave law.
+
+### 28.7 Inquiry and participant-bound composition
+
+`cassi_temporal_inquiry.py` is a pure bounded selector over the current temporal field. Its hypotheses are the participant's carried predictive states; outcomes and successors come from numeric learned support. It does not accept scenario-state alternatives from the simulator, learn its own policy, or persist an adaptive sidecar.
+
+The caller supplies operations with authorization, feasibility, cost, risk, and an optional `acquisition_allowed` boolean that defaults to false. The selector searches observation-contingent sequences within its horizon and node budget, rejects represented forbidden outcomes, and ranks decision resolution before hypothesis elimination and worst-case sequence burden. Carried uncertainty cannot be certified by a policy over only the surviving known candidates. Instead, the search may return a field-supported context-recovery sequence whose possible branches either converge on one universally covered skill decision or reduce the candidates to one through an actually distinguishing observation. Condensed skill readout includes its numeric remaining-step rank. When recovering previously uncovered history, every terminal proposed skill rank must be strictly lower than its blocked origin rank, so a supported cycle cannot certify restored progress. The root action remains `acquiring`, with `decision_resolved=False`; the caller must consume the real observation and invoke this function again. A known missing transition may instead return an explicitly permitted probe as `acquiring`, without treating the gap as evidence. Authorization and feasibility still apply, and represented forbidden outcomes block acquisition. Without acquisition permission the gap remains unresolved. No fixed probe sequence, hidden simulator state, or wall-clock clearing rule participates.
+
+`compose_temporal_task` binds memory, skill, and participant identities to ordered task steps. Different participants share the learned transition and skill planes but retain distinct working histories. The owner records issued proposals and acknowledges each exact task, participant, action, and proposal identity through its existing durable operation journal. Completed steps remain completed through learning; one participant's observation cannot complete another participant's step.
+
+Admission rebinds live task source dependencies while retaining outstanding proposals and completed work. Changed evidence recomputes remaining skill decisions rather than resetting participants or reissuing completed effects. Source revocation can invalidate the dependent task. These owner guarantees do not provide exactly-once effects in an arbitrary external system: the simulator deduplicates execution by proposal identity, and a real adapter needs equivalent idempotency. A proposal is never an authority grant.
+
+### 28.8 Causal guided-use learning measurements
+
+`run_temporal_learning_scenario.py` isolates one relationship that the initial
+field does not contain. The bootstrap corpus has six complete normal-mechanism
+episodes spanning the safe access variants, but no jammed-mechanism trajectory.
+The fixed field starts with 36 induced states and cannot resolve a jammed
+participant. This is a representational deficit rather than an artificially
+disabled action: the action and observation vocabulary, `release-connection`
+skill, acquisition permission, and participant-bound goal are already present.
+
+Every condition receives the same three actual guided uses of one twelve-action
+jammed sequence:
+
+`inspect → idle → read → probe → read → inspect → probe → read → clear → release → wait → wait`
+
+The simulator alone owns jam, probe arming, pending delay, attachment, and the
+external load. It emits only the current observation. No hidden state,
+predicted label, demonstrated next action, or wall-clock completion rule enters
+the field. The three arms differ only in admission:
+
+| Arm | Guided-use admission | Transfer admission |
+|---|---|---|
+| Online | Admit the growing participant episode after every real observation | Disabled |
+| One-shot oracle | Admit each complete guided episode once | Disabled |
+| Frozen | Admit nothing | Disabled |
+
+An online prefix revises one source chain; its new head replaces the earlier
+prefix in the active corpus, so each observed transition contributes once.
+The oracle is a constructive ceiling: if its complete episodes could not make
+the task solvable, a negative online result would not diagnose learning. The
+frozen arm is the causal counterfactual. All three then score the same two
+tasks under the same selector, permissions, 32-decision budget, and supplied
+skill: one jammed/jammed arrangement and one jammed/normal arrangement. The
+scored participants are new identities, distinct from the three guides.
+
+| Measurement across seeds 101, 202, and 303 | Online | One-shot oracle | Frozen |
+|---|---:|---:|---:|
+| Guided uses / real guided observations | 9 / 108 | 9 / 108 | 9 / 108 |
+| Guided admission revisions | 108 | 9 | 0 |
+| Retained guided source heads | 9 | 9 | 0 |
+| Initial induced state counts by seed | 36, 36, 36 | 36, 36, 36 | 36, 36, 36 |
+| Trained induced state counts by seed | 43, 43, 43 | 43, 43, 43 | 36, 36, 36 |
+| New-participant transfer tasks completed | 6/6 | 6/6 | 0/6 |
+| Transfer environment interactions | 135 | 135 | 204 |
+| Diagnostic / support-gap interactions | 48 / 48 | 48 / 48 | 180 / 180 |
+| Online predictions answered | 75/123 | 75/123 | 12/192 |
+| Correct among answered predictions | 75/75 | 75/75 | 6/12 |
+| Recovered participant contexts | 12 | 12 | 6 |
+| Supported recovery-sequence steps | 36 | 36 | 6 |
+| Represented forbidden outcomes | 0 | 0 | 0 |
+
+Within every seed, the arms begin from bit-identical learned numeric state.
+Online and one-shot admission finish with the same 43-state numeric field
+digest, while frozen memory retains the initial 36-state digest. Transfer
+scoring does not mutate any arm's learned memory, and an unrelated reference
+memory remains byte-exact through admission, scoring, restart, and owner
+closure. The result therefore separates acquisition, retention, and reuse:
+real guided observations change the learned field; the change survives
+restart; and fresh participants use it with admission disabled.
+
+The learned field changes behavior at the first unsupported jammed
+relationship. Frozen memory remains unresolved and exhausts the bounded
+diagnostic path. Both learned arms instead recover participant context, select
+the already supplied safe skill, and complete all six two-participant tasks.
+The online arm is not merely different from frozen memory: its final learned
+field and every scored outcome match the complete-episode oracle.
+
+| Recorded cost across three seeds | Online | One-shot oracle | Frozen |
+|---|---:|---:|---:|
+| Source admission, including bootstrap | 83.16 s | 25.05 s | 8.15 s |
+| Owner publication operations | 131.16 s | 147.16 s | 132.35 s |
+| Inquiry selection | 0.672 s | 0.665 s | 0.600 s |
+| Explicit restart | 0.461 s | 0.470 s | 0.450 s |
+| Complete arm elapsed time | 217.47 s | 179.99 s | 147.42 s |
+| Fixed temporal field per owner | 3,234,816 B | 3,234,816 B | 3,234,816 B |
+| Active checkpoint closure per owner | 4,350,789 B | 4,350,737 B | 4,348,255 B |
+| Retained data home per owner | 469,882,713 B | 326,323,557 B | 330,460,284 B |
+
+The nine arm timers total 544.88 seconds. They cover initialization, guided
+use, transfer scoring, restart, and owner closure on the shared workstation;
+they are end-to-end scenario costs rather than isolated kernel measurements.
+The nine retained data homes total 3,379,999,662 bytes. Observation-by-
+observation persistence is materially more expensive than one-shot admission,
+even though source-head replacement makes their active learned fields equal.
+Bounded numeric state still does not imply bounded checkpoint or evidence
+history.
+
+`verify_temporal_learning_scenario.py` independently verifies the emitted
+report using only the Python standard library. It imports no CassiFI production
+module. It replays the simulator, guided traces, and transfer traces; checks
+the matched arm configuration; reconstructs every stored field byte array and
+numeric digest; verifies online/oracle equality and frozen non-learning; walks
+1,302 manifest-parent links and their content-addressed objects; validates
+source records and revision chains; and checks exact restart identity, memory
+stability during scoring, and zero live-model calls. The retained receipts are
+`_diag/temporal-learning-corrected/completed/report.json`,
+`verification.json`, and `owners/`. The report SHA-256 is
+`f1b1c37ec9af4c3ebaafb77ebd408d1318648a6f7b4fe654864305e26904ee08`.
+
+This benchmark establishes causal same-session field learning, exact
+retention, and new-participant reuse for one deliberately withheld
+relationship in the closed simulator. The three seeds reorder the same finite
+bootstrap evidence; they are reproducibility repetitions, not independent
+worlds or statistical samples. Goals, safe guided actions, the vocabulary, and
+the reusable skill are supplied. Every admitted growing prefix reaches its
+complete guided episode; arbitrary abandoned or censored stream endings remain
+outside this result. The result does not establish autonomous
+action discovery, open-vocabulary acquisition, broad operation-order
+generalization, calibrated uncertainty, safety against unrepresented
+outcomes, general reasoning, or integration of categorical temporal induction
+into the continuous seven-pool wave law.
+
+### 28.9 Field-selected acquisition measurements
+
+`run_autonomous_temporal_learning_scenario.py` relaxes the guided-sequence
+assumption in §28.8 while holding the action vocabulary, observation
+vocabulary, goal, reusable skill, permissions, and simulator fixed. Each arm
+starts from the same six normal-mechanism bootstrap episodes and the same
+36-state numeric field. No jammed-mechanism trajectory is present. The
+simulator supplies the first current observation, `inspect -> closed`; every
+subsequent online action is selected by the temporal inquiry or the field's
+condensed skill.
+
+The acquisition surface is explicitly limited to the reversible or passive
+operations `probe`, `read`, `inspect`, `idle`, `clear`, and `wait`. Each has
+zero represented risk and requires authorization, feasibility, and
+`acquisition_allowed=True`. `release` can be proposed only by the already
+supplied `release-connection` skill. The learner receives the actual
+observation after each executed action. It receives no jammed-state label,
+predicted observation, demonstrated next action, or precomputed sequence.
+
+The first online acquisition segment reaches its 32-decision bound unresolved.
+Its 33 observed steps are:
+
+```text
+inspect -> idle -> read -> probe -> read -> inspect x 28
+```
+
+The corresponding observations include the previously unsupported `pulse-b`
+after the second `read`; all later `inspect` operations observe `closed`. The
+segment is admitted once at its explicit endpoint. It is not inserted
+observation by observation. Immediately after that first admission, a fresh
+participant runs a matched selector counterfactual under the same permissions
+and decision bound. Online and replay-oracle fields complete:
+
+```text
+inspect -> idle -> read -> probe -> read -> clear -> release -> wait -> wait
+closed     quiet   quiet   ready    pulse-b cleared  requested  quiet   released
+```
+
+This consumes nine real observations and ten task interactions. Frozen memory
+remains unresolved and exhausts 34 interactions. The same outcome occurs for
+all three bootstrap-order seeds. The next two online acquisition segments also
+complete in ten interactions each. Oracle and frozen controls replay the exact
+online actions and observations; the oracle admits each bounded segment, and
+frozen memory admits none. The replay controls therefore hold acquisition
+exposure fixed while separating field admission from observation alone.
+
+Transfer scoring uses fresh identities and disables all admission. Per seed,
+one task has two jammed mechanisms and one has a jammed and a normal mechanism.
+
+| Measurement across seeds 101, 202, and 303 | Online | Replay oracle | Frozen |
+|---|---:|---:|---:|
+| Field-selected acquisition segments | 9 | 0 | 0 |
+| Replayed acquisition segments | 0 | 9 | 9 |
+| Bounded-segment source revisions | 9 | 9 | 0 |
+| Retained bounded-segment source heads | 9 | 9 | 0 |
+| Matched post-admission counterfactuals completed | 3/3 | 3/3 | 0/3 |
+| Counterfactual interactions | 30 | 30 | 102 |
+| New-participant transfer tasks completed | 6/6 | 6/6 | 0/6 |
+| Transfer environment interactions | 108 | 108 | 204 |
+| Diagnostic / support-gap interactions | 57 / 48 | 57 / 48 | 180 / 180 |
+| Transfer predictions answered | 48/96 | 48/96 | 12/192 |
+| Correct among answered predictions | 48/48 | 48/48 | 6/12 |
+| Recovered participant contexts | 12 | 12 | 6 |
+| Supported recovery-sequence steps | 36 | 36 | 6 |
+| Represented forbidden outcomes | 0 | 0 | 0 |
+
+The first acquisition segment fails before its observations are admitted. The
+matched post-admission counterfactual changes from 0/3 completions under frozen
+memory to 3/3 under both learned fields. The online selector's next two
+segments then complete with no demonstrated sequence. This isolates a causal
+field-learning chain:
+
+1. Field-derived selection encounters an unsupported outcome.
+2. The bounded real trace is admitted at its endpoint.
+3. The numeric learned field changes from 36 to 39 induced states.
+4. A matched fresh participant changes from unresolved to complete.
+5. The learned change survives restart.
+6. New transfer participants complete with admission disabled.
+
+Within every seed, online and oracle admission produce the same learned numeric
+field SHA-256:
+`e4ef3b023b732d4ff810b88e158df0d57c2b2293005f5c23ef5fbf4532501e42`.
+Frozen memory remains at the initial 36-state digest
+`d2ab20f5e3e1a9cd5b03043b35a4ac09f586a67c8ea084ae54f412f5ebfb4f94`.
+Transfer scoring leaves learned memory unchanged, unrelated retained memory is
+byte-exact, and all nine runs report zero live-model calls.
+
+| Recorded cost across three seeds | Online | Replay oracle | Frozen |
+|---|---:|---:|---:|
+| Source admission, including bootstrap | 25.07 s | 18.08 s | 15.65 s |
+| Owner publication operations | 203.38 s | 163.97 s | 225.60 s |
+| Inquiry selection | 3.740 s | 2.316 s | 1.116 s |
+| Explicit restart | 0.645 s | 0.435 s | 0.417 s |
+| Complete arm elapsed time | 200.35 s | 161.83 s | 215.67 s |
+| Fixed temporal field per owner | 4,852,224 B | 4,852,224 B | 4,852,224 B |
+| Active checkpoint closure per owner | 6,557,532 B | 6,553,818 B | 6,552,152 B |
+| Retained data home per owner | 688,213,602 B | 687,685,554 B | 1,034,471,242 B |
+
+The nine arm timers total 577.86 seconds. The nine retained data homes total
+7,231,111,194 bytes. Frozen runs are larger and slower because both the matched
+counterfactual and transfer tasks exhaust their bounds and publish every
+intermediate working state. The numeric field remains fixed-size; durable
+checkpoint ancestry and repeated working-state publication dominate retained
+storage.
+
+`verify_temporal_learning_scenario.py` recognizes the autonomous report schema
+without importing a CassiFI production module. Using only the Python standard
+library, it reconstructs all acquisition, counterfactual, and transfer
+observations; confirms that online decision records reproduce each admitted
+source; checks the permitted action surface and identical control exposure;
+reconstructs every field payload and numeric digest; validates evidence blobs
+and source heads; walks 1,467 content-addressed checkpoint manifests; and
+checks exact restart identity, learned-memory stability, and zero live-model
+calls. The retained receipts are
+`_diag/temporal-autonomous-learning/completed/report.json`,
+`verification.json`, and `owners/`. The report SHA-256 is
+`8142d320929fea346f64817abfe0485ef4e5080a72de9d1904ba3e23f7cbcdfe`;
+the verification receipt SHA-256 is
+`1d5ec0fd767bb2d2f03da946b641fa7be5733fa3ba915566cc73c6fb9f23fd10`.
+The focused temporal regression suite passes 52 tests.
+
+This benchmark establishes autonomous next-action selection within one
+supplied closed acquisition surface. It does not establish action invention.
+The initial current observation, vocabulary, goal, skill, permissions,
+decision bound, and segment endpoint are supplied. Admission of one
+budget-bounded incomplete trace is measured here, but safe general treatment
+of arbitrary abandoned or censored streams is not established. The result
+does not establish open-vocabulary acquisition, broad operation-order
+generalization, calibrated uncertainty, safety against unrepresented
+outcomes, general reasoning, or integration of categorical temporal induction
+into the continuous seven-pool wave law.
+
+### 28.10 Experience-driven skill formation measurements
+
+`run_autonomous_skill_formation_scenario.py` measures formation rather than
+only post-experience policy extraction. It begins with a three-stage latch and
+two exact one-step background episodes:
+
+```text
+open  -> blocked
+align -> misaligned
+```
+
+The host supplies the fixed action vocabulary `prime`, `align`, and `open`,
+the fixed observation vocabulary, the goal observation `opened`, the
+forbidden observations `blocked` and `misaligned`, and explicit authorization,
+feasibility, and acquisition permission for every action. It does not supply
+a successful trajectory, a demonstrated next action, an action policy, a
+hidden latch state, or a predicted observation.
+
+Before discovery, `condense_temporal_skill` registers the prospective identity
+`release-three-stage-latch` and its bounded goal and forbidden-observation
+sets. The numeric field does not yet contain a supported safe root path.
+Policy and reachability coordinates for the registered slot therefore remain
+zero, the receipt status is `pending`, `start_state_supported` is false, and
+skill readout returns no action. Registration changes complete field-state
+identity because the goal binding exists, but it leaves learned-memory and
+transition digests unchanged.
+
+Registered skill goals are re-evaluated by the same `TemporalField.learn`
+transition that reconstructs the learned transition field. The old policy
+planes are not copied. `_condense_all` derives fresh safe reachability ranks
+and action codes from the revised transition coordinates. The learning receipt
+reports four disjoint views of this transition:
+
+- `formed_skills`: prospective skills that acquired a supported safe root path
+  in this revision;
+- `withdrawn_skills`: formerly usable skills whose path is no longer safe or
+  supported;
+- `available_skills`: all skills with a currently supported root policy; and
+- `pending_skills`: registered identities whose root policy remains
+  unavailable.
+
+Formation state is therefore derived from the skill rank at the numeric root,
+not maintained in a parallel flag or policy table. A contradictory learned
+outcome that is declared forbidden clears the affected decreasing-rank path,
+moves the identity back to `pending`, and reports it in `withdrawn_skills`.
+
+#### Temporal outcomes and status transitions as bounded wave work
+
+The learned temporal planes have one explicit causal bridge into the
+continuous resonant field. `TemporalField.episode_pool_signals` derives
+directions for newly admitted outcomes from transition, safe-rank, goal, and
+forbidden coordinates. `TemporalField.skill_pool_signal` reads the
+supported positive reachability ranks of one registered skill; it introduces
+no learned parameters or persistent side table. If \(r_s>0\) is the rank of a
+supported state and \(r_{\max}>1\), its pool index is
+
+\[
+j(r_s)=\left\lfloor
+6\,\frac{r_s-1}{r_{\max}-1}+\frac12
+\right\rfloor.
+\]
+
+States accumulate in their assigned bins and the resulting seven-vector is
+normalized in the Euclidean norm. When \(r_{\max}=1\), all support maps to
+pool zero. Rank one therefore occupies the first longitudinal pool, the
+largest represented temporal distance occupies the seventh, and intermediate
+distances are spaced linearly. This is a fixed bridge codec over field-owned
+rank coordinates, not a learned embedding.
+
+`FieldAtlas.couple_temporal_transition` couples only the newly admitted episode
+suffix, then compares the formed-skill sets before and after the same temporal
+revision. A stable pending or formed status emits no status event, although a
+newly admitted outcome can still emit an outcome event. Outcome events retain
+episode order. Formation and withdrawal identities are sorted before
+application, so every multi-event admission has deterministic order.
+
+`apply_pool_impulse` distributes a normalized signal equally across the four
+ports of each pool and across both strands in common mode. It changes only
+the conjugate momentum coordinates. For the resulting direction \(d\), it
+solves the scalar kinetic quadratic for an amplitude \(\alpha\) satisfying
+
+\[
+E(z+\alpha d)-E(z)=W_{\mathrm{event}},\qquad
+W_{\mathrm{event}}=\frac{10^{-3}}{N_{\mathrm{active}}}.
+\]
+
+Here \(N_{\mathrm{active}}\) is the number of nonzero outcome, formation, and
+withdrawal signals in that admission. The complete admission therefore has a
+fixed \(10^{-3}\) work budget rather than granting that amount to every event;
+zero signals apply zero work. Publication is rejected unless every measured
+event work equals its share within the recorded roundoff allowance, the
+complete energy balance closes, the workspace energy stays below its ceiling,
+and the evidence clock does not regress. A paused workspace rejects nonzero
+coupling. The ledger records total temporal coupling work together with
+formation, withdrawal, individual outcome-kind, and aggregate outcome work.
+
+The owner places the revised `TemporalField`, updated `ResonantWorkspace`, and
+coupling receipt in one atlas successor and one immutable checkpoint. If no
+resonant workspace exists, the first nonzero outcome or status event
+initializes it; a revision whose derived signals are all zero does not. This
+is direct event-to-wave coupling. The current
+per-skill categorical policy is still computed only from its temporal field
+planes: resonant state does not rewrite that policy. The separate multi-skill
+selector in §28.11 can use resonant compatibility after categorical and
+operational filtering.
+
+During discovery, transient goal-directed inquiry reads the current transition
+field. When no supported goal-directed action exists, it selects an explicitly
+authorized acquisition action. The actual observation is consumed, appended
+to one growing source episode, and admitted before the next inquiry. Across
+seeds 101, 202, and 303, this loop selects:
+
+```text
+prime -> align -> open
+primed   aligned  opened
+```
+
+The skill remains pending after the `primed` and `aligned` revisions. The
+revision containing the actual `opened` observation induces the complete
+four-state transition structure. That same learning operation returns
+`release-three-stage-latch` in `formed_skills`, with no separate
+post-experience condensation call. All three runs form at discovery tick 2
+and finish with the same learned-transition SHA-256:
+`a0f8a607e078b2d2a7cadc36da83cd0a891144a3997d4b6d98722c9fa9decd60`.
+
+The successful revision emits two nonzero events bound to its one evidence
+identity: the actual `goal-observation` and the skill `formation`. Both have
+the same normalized rank-derived pool direction in this environment. The
+fixed \(10^{-3}\) admission budget gives each event \(5\times10^{-4}\) work;
+their ordered impulses close at \(10^{-3}\) total work.
+
+Each run reconstructs an unregistered `TemporalField` from the same three
+episodes and exact source-revision identities. Its learned-memory and
+transition digests equal those of the registered field, while its skill
+registry is empty. This matched causal control isolates the additional skill
+planes and metadata from acquired categorical transition structure.
+
+Transfer receives neither goal observations nor a task-specific action
+sequence. A fresh participant reads the formed field policy, executes its
+proposed action, returns the actual observation, and carries the resulting
+numeric state into the next readout. It completes `prime -> align -> open` in
+three actions. The owner then closes and reloads from the durable checkpoint;
+the encoded bundle is byte-identical before and after restart, the formed
+skill remains available, the resonant page has the exact pre-restart
+workspace SHA-256, and a second fresh participant completes the same
+sequence.
+
+| Measurement across seeds 101, 202, and 303 | Observed result |
+|---|---:|
+| Goal-only field-selected discovery completions | 3/3 |
+| Discovery sequences matching `prime -> align -> open` | 3/3 |
+| Prospective skills initially pending | 3/3 |
+| Skills formed at the successful evidence boundary | 3/3 |
+| Premature skill formations | 0 |
+| Successful admissions with bound goal-outcome and formation events | 3/3 |
+| Goal-outcome / formation work across all runs | \(1.5\times10^{-3}\) / \(1.5\times10^{-3}\) |
+| Requested / measured total admission work | \(3\times10^{-3}\) / \(3\times10^{-3}\) |
+| Runs with power propagated into all seven pools after 8 ticks | 3/3 |
+| Matched no-impulse controls remaining quiescent | 3/3 |
+| Matched unregistered memory and transition controls | 3/3 |
+| Fresh-participant formed-skill transfers | 3/3 |
+| Post-restart fresh-participant transfers | 3/3 |
+| Exact temporal and resonant restarts | 3/3 |
+| Represented unsafe observations | 0 |
+| Live language-model calls | 0 |
+| Induced temporal states | 4 per owner |
+| Fixed temporal field allocation | 51,840 B per owner |
+| Fixed resonant field allocation | 2,088 B per owner |
+
+For the learned three-step path, the fixed projection produces
+
+\[
+\left(1/\sqrt3,\ 0,\ 0,\ 1/\sqrt3,\ 0,\ 0,\ 1/\sqrt3\right).
+\]
+
+Immediately after the ordered goal-outcome and formation impulses the field
+contains exactly `1e-3` energy. After eight source-free integration ticks, all
+seven pool powers are positive and field energy is
+`9.883666521626649e-4`; the ledger attributes
+`1.163334783793132e-5` to dissipation and closes with balance defect
+`1.1648225888795014e-19`. The same-profile, same-clock control receives no
+impulse and remains at exactly zero energy and pool power. All seeds produce
+the same propagated workspace SHA-256
+`8ac1425c79066dd0ac70a809197e7b79ba1a9f0c118a1f66d79d13feabf28a0d`.
+
+Recorded admission, owner publication, inquiry, and explicit-restart work
+totals 11.0983, 12.5894, 0.00413, and 0.03846 seconds, respectively. Complete
+end-to-end elapsed time is 26.47 seconds across the three runs. These are
+shared-workstation scenario timings rather than isolated kernel benchmarks.
+
+`verify_autonomous_skill_formation.py` uses only the Python standard library
+and imports no CassiFI production module. It independently replays discovery,
+fresh transfer, and post-restart transfer in its own latch simulator;
+reconstructs all 15 source revisions, their content-addressed blobs, and their
+source-bound evidence events; verifies that each discovery chain grows one
+observation at a time; checks pending registration;
+binds each goal-outcome and formation pair to one evidence identity; verifies
+both \(5\times10^{-4}\) impulse receipts, their ordered energy states, and the
+\(10^{-3}\) admission total; checks the skill identity, fixed rank projection,
+complete resonant profile, and categorical-policy flag; decodes each persisted
+resonant page without CassiFI serializers and recomputes its SHA-256, energy,
+and pool powers; reconstructs the matched no-impulse control from
+verifier-owned canonical profile, layout, and zero-ledger constants and checks
+its semantic advance-receipt fields, page, digest, and all propagation clocks;
+confirms exact temporal and wave restart and zero live-model calls; and walks
+63 manifest-parent links with every referenced descriptor and page hash.
+
+The retained evidence is
+`_diag/temporal-autonomous-skill-formation/coupled-field-v5/report.json`,
+`verification.json`, and `owners/`. The scenario source SHA-256 is
+`47d83cbdf826a21d20cab5a0e1149218202d50461b76338e69056be0a87b43dd`;
+the report SHA-256 is
+`f6e3e8493cfec926ecc8888dfd882fedec9f0235705af70b7f74e411d59906ec`;
+and the verification receipt SHA-256 is
+`4eb127b84987ee474277bb0f35b71129b0f6a01b35eb9b15808a8cf8a22dbd7c`.
+
+This benchmark establishes goal-directed action selection inside a supplied
+vocabulary, experience-driven transition induction, automatic formation and
+safety-driven withdrawal of a registered prospective skill, direct
+energy-accounted goal-outcome and formation coupling, source-free
+propagation through all seven pools, exact retention, and new-participant
+reuse in one closed environment. The host still supplies the skill identity,
+goal, forbidden set, vocabulary, and action authority.
+
+The temporal-event bridge does not rewrite a categorical per-skill policy.
+Section 28.11 measures whether repeated admitted outcomes can change selection
+among multiple categorically safe actions. The formation benchmark includes
+the actual goal outcome at the formation boundary, but does not by itself
+establish autonomous skill naming, goal invention, action invention,
+open-vocabulary acquisition, broad task generalization, calibrated
+uncertainty, safety against unrepresented outcomes, or general reasoning.
+
+### 28.11 Admitted-outcome wave learning and resonant action selection
+
+The bridge in §28.10 couples every newly admitted temporal episode, giving the
+following direction of influence:
+
+\[
+\text{admitted observation}
+\longrightarrow
+\text{field-derived pool impulse}
+\longrightarrow
+\text{persisted resonant state}
+\longrightarrow
+\text{later action choice}.
+\]
+
+The categorical temporal field remains responsible for inducing states,
+recognizing complete paths, deriving safe reachability ranks, and excluding
+unsupported policies. The resonant workspace does not replace those
+coordinates. It supplies a phase-bearing preference only after multiple
+categorically admissible skills survive all operational checks.
+
+#### Outcome projection from learned temporal coordinates
+
+For a registered skill \(k\), let \(u_k\in\mathbb R^7\) be the normalized
+safe-rank projection defined in §28.10. `TemporalField.episode_pool_signals`
+replays an admitted episode through the newly learned temporal field and,
+when available, through its immediate predecessor. For each step \(t\), it
+constructs coefficients from field-owned coordinates:
+
+1. A destination carrying the skill's represented goal contributes
+   \(+u_k\).
+2. A destination carrying its represented forbidden observation contributes
+   \(-u_k\).
+3. A nonterminal destination with supported positive ranks contributes
+   \(u_k/\min_{s\in D_t} r_{k,s}\).
+4. If the predecessor field cannot realize the observed transition, a
+   predecessor policy that selected the observed action contributes
+   \(-m_k u_k/|S^-_t|\), where \(m_k\) is the number of predecessor source
+   states with that supported action.
+
+The unnormalized event signal is the sum of all applicable registered-skill
+contributions:
+
+\[
+\widetilde u_t=\sum_k c_{k,t}u_k,\qquad
+u_t=
+\begin{cases}
+\widetilde u_t/\|\widetilde u_t\|_2,&\|\widetilde u_t\|_2>0,\\
+0,&\text{otherwise}.
+\end{cases}
+\]
+
+Every receipt retains the contributing skill identities, signed
+orientations, source and destination states, predecessor states, action,
+observation, pre-normalization norm, and normalized pool signal. Event kinds
+are classified, in precedence order, as forbidden observation, goal
+observation, predecessor mismatch, reachable context, or unrepresented
+observation. The complete episode must be represented by the new temporal
+field; an episode that cannot be replayed is rejected rather than converted
+into an arbitrary impulse.
+
+The owner compares the prior source revision with the new one and passes only
+the newly appended suffix to the coupling transaction. The retained evidence
+event identity binds those steps to the exact source revision. Replaying an
+already admitted prefix therefore emits no duplicate outcome work.
+
+`FieldAtlas.couple_temporal_transition` combines those outcome signals with
+any formation or withdrawal signals arising in the same temporal revision.
+If \(m\) signals are nonzero, one fixed admission budget
+
+\[
+W_{\mathrm{admit}}=10^{-3}
+\]
+
+is divided equally:
+
+\[
+W_i=W_{\mathrm{admit}}/m.
+\]
+
+Each signal is applied by `apply_pool_impulse`, which solves for the momentum
+amplitude whose measured field-energy increase is \(W_i\). The transaction
+rejects an over-budget result and records the exact applied work, energy
+roundoff allowance, and start/end workspace identities. A revision with no
+nonzero signal performs no wave operation. The revised temporal field,
+resonant page, source event, receipt, and ledger are published in one
+immutable atlas checkpoint.
+
+#### Read-only phase-space compatibility
+
+`score_pool_probes` compares a fixed seven-pool probe with the current
+common-mode resonant state without integrating, copying, or mutating the
+workspace. Let
+
+\[
+q_c=\frac{q_Y+q_I}{\sqrt2},\qquad
+p=(p_Y,p_I),\qquad
+v=\mathcal M^{-1}p,
+\]
+
+where \(\mathcal M^{-1}\) is the diagonal or projected inverse-inertance
+metric. A normalized seven-pool probe is repeated uniformly over the spatial
+ports of each pool to form \(\widehat u_q\), then lifted equally onto both
+momentum strands to form \(\widehat u_p\). At persisted heartbeat phase
+\(\phi\), define
+
+\[
+R(z)=
+\sqrt{q_c^\mathsf Tq_c+p^\mathsf T\mathcal M^{-1}p}
+\]
+
+and
+
+\[
+N_\parallel(u,\phi)=
+\sqrt{
+\sin^2\phi\,\widehat u_q^\mathsf T\widehat u_q+
+\cos^2\phi\,\widehat u_p^\mathsf T
+\mathcal M^{-1}\widehat u_p
+}.
+\]
+
+The signed compatibility used for action selection is
+
+\[
+C(u;z,\phi)=
+\frac{
+\sin\phi\,\widehat u_q^\mathsf Tq_c+
+\cos\phi\,\widehat u_p^\mathsf Tv
+}{
+R(z)N_\parallel(u,\phi)
+}.
+\]
+
+A zero reference or probe denominator returns zero rather than an undefined
+preference. The receipt also reports the orthogonal quadrature projection,
+but the current selector uses only \(C\). At \(\phi=0\), as in the retained
+comparison, the score is the normalized inverse-inertance-weighted momentum
+alignment. Outcome impulses can therefore alter the next selection without
+an intervening source-free integration step.
+
+#### Selection order and safety boundary
+
+`FieldIntelligenceOwner.select_temporal_action` applies the following order:
+
+1. Ask the categorical temporal field for every requested formed skill's
+   current action record.
+2. Exclude pending, unresolved, unsupported, or unsafe categorical skills.
+3. Exclude actions absent from the supplied operation set, represented as
+   forbidden, unauthorized, or infeasible.
+4. Resolve a single surviving candidate, or several skills proposing the same
+   action, categorically.
+5. Only when multiple distinct actions survive, score their current
+   safe-rank probes against the persisted resonant workspace.
+6. Select the highest compatibility only if its margin over the runner-up is
+   strictly greater than the caller's nonnegative minimum margin; otherwise
+   return unresolved.
+
+Candidate identities are content-addressed, scoring iterates in canonical
+probe order, and a zero-margin tie is unresolved. The selector records
+presentation-order, candidate-set, operation-set, scorer, workspace,
+categorical-memory, and final-decision identities. Before returning it
+asserts that the owner state, current manifest, temporal memory, and resonant
+workspace are all unchanged. The worker and packaged adapter expose this
+surface as `select_temporal_action` with request schema
+`cassipi.select-temporal-action.v1`; they do not create a protocol-specific
+policy owner.
+
+#### Matched online crossover measurement
+
+`run_online_resonant_learning_scenario.py` constructs two fully learned and
+formed policies in one memory:
+
+```text
+fast-release:   short -> done-fast
+staged-release: long  -> stage -> continue -> done-staged
+```
+
+Both are categorically safe at the common root. Their formation impulses
+produce an initial workspace that prefers `fast-release`. The online condition
+then admits four demonstrated successful `staged-release` episodes through
+the ordinary owner transaction. Each episode contains one reachable-context
+event and one goal event; the two signals divide the \(10^{-3}\) admission
+budget equally. The matched held-wave control scores the exact current
+categorical candidates from each round against the exact pre-feedback
+workspace. It is a counterfactual scorer, not another adaptive memory.
+
+Seeds 101, 202, and 303 permute the presented operation order. All three
+produce the same scores and crossover:
+
+| Successful staged episodes | \(C_{\mathrm{fast}}\) | \(C_{\mathrm{staged}}\) | Selection | Margin |
+|---:|---:|---:|---|---:|
+| 0 | 0.9915816022 | 0.9561326996 | fast | 0.0354489026 |
+| 1 | 0.9828218265 | 0.9709753650 | fast | 0.0118464615 |
+| 2 | 0.9762246300 | 0.9783122557 | staged | 0.0020876257 |
+| 3 | 0.9711480871 | 0.9826880968 | staged | 0.0115400098 |
+| 4 | 0.9671061425 | 0.9855945311 | staged | 0.0184883886 |
+
+The held-wave control remains at its initial fast preference and
+0.0354489026 margin in every round. In the held-out environment, `short`
+returns represented forbidden observation `jammed`, while
+`long -> continue` returns `stage -> done-staged`. The online fields complete
+3/3 held-out trials in two actions with zero represented unsafe observations.
+The held-wave controls choose `short`, complete 0/3, and encounter three
+represented unsafe observations. The current categorical candidate semantics,
+operation constraints, and candidate-set identities match within every
+online/control pair; only the resonant workspace differs.
+
+| Measurement across seeds 101, 202, and 303 | Observed result |
+|---|---:|
+| Online preference crossovers | 3/3 |
+| Crossover round | 2, 2, 2 |
+| Field-only decision counterfactuals | 3/3 |
+| Exact owner and resonant-workspace restarts | 3/3 |
+| Online held-out completions | 3/3 |
+| Held-wave control completions | 0/3 |
+| Online / control represented unsafe observations | 0 / 3 |
+| Total online outcome-feedback work | \(0.011999999999999997\) |
+| Final formation / outcome / total wave work per owner | \(0.002/0.004/0.006\) |
+| Final stored energy / balance defect per owner | \(0.006/0\) |
+| Reconstructed score sets | 33 |
+| Verified source records / checkpoint manifests | 18 / 45 |
+| Resonant field allocation | 2,088 B per owner |
+| Complete retained evidence allocation | 532,935 B per owner |
+| Live language-model calls | 0 |
+| End-to-end retained run time | 19.86 s |
+
+The owner closes and reloads after feedback. Its encoded bundle and resonant
+workspace identity are exact before and after restart, the changed preference
+survives, and a fresh held-out participant completes the staged policy.
+
+`verify_online_resonant_learning.py` uses only the Python standard library and
+imports no CassiFI production module. It reconstructs all 18 retained source
+records and their six independent chains per seed; walks 45 checkpoint
+manifests and their referenced objects; decodes each raw float64 resonant page;
+recomputes 33 complete candidate score sets with independent phase-space
+arithmetic; verifies online/control candidate equality and workspace
+separation; replays both held-out behaviors; and checks exact bundle and
+workspace restart identities. Deliberate score-only report modification is
+rejected by reconstructed arithmetic, and substitution of different source
+bytes is rejected by source identity.
+
+Retained evidence is
+`_diag/temporal-online-resonant-learning/closed-loop-v1/report.json`,
+`verification.json`, and `owners/`. The scenario source SHA-256 is
+`484e733aeefd15351e9b7aa8746331a28eed05aecb692173e2898a32a0463a0a`;
+the report file SHA-256 is
+`79e1547c9f012641abb2a48816dd31c1c8b728c10e4cbf32437dd31ffb690381`;
+and the verification file SHA-256 is
+`d0234f8cc0bb622c125bca488770fe9f5d9ae933ba4b76494fa7284cc2a353fd`.
+
+This comparison establishes that repeated represented outcomes can alter a
+persisted seven-pool field and thereby change later action selection while
+current categorical candidates are held matched. It does not establish
+autonomous discovery of the successful alternative: the staged successes are
+demonstrated during feedback. The fixed skill identities, goals, forbidden
+set, action and observation vocabularies, authority, feasibility, and
+held-out world are supplied. The result does not establish action invention,
+open-vocabulary learning, calibrated uncertainty, safety under unrepresented
+outcomes, broad-world generalization, or subjective experience.
+## 29. Compiled constraint fields over finite Boolean sources
+
+`cassi_constraint_field.py` closes the gap between the clause and hybrid proof fields and the structures that actually pose constraints: circuits and bounded transition systems. It compiles a declared finite Boolean source into a checked Tseitin CNF with explicit relation provenance, and then runs one of three inference configurations over the existing field tensors. Every adaptive quantity remains in a float64 field block: the clause field owns assignments, propagation, decision stack, learned nogoods, and proof counters; the hybrid field owns inequalities, parity equations, cardinality bridges, and extension definitions; the excitable controller owns the decision schedule. The journal is evidence, not state: it records refutation pieces and deliberate interventions so a resumed run can present them, and its capacity is a declared bound.
+
+### 29.1 Source vocabulary and canonical compilation
+
+A circuit source declares `inputs`, `gates`, `assertions`, `relations`, and source `clauses`. A transition source declares `state`, `inputs`, `gates`, `next_state`, `horizon`, `initial`, `input_assertions`, `final`, `relations`, and source `clauses`. Gate operations are `const`, `buf`, `not`, `and`, `or`, `xor`, `nand`, `nor`, `xnor`, and `mux`; each is defined by its complete clause set, so the encoding is exact rather than implicational. Relations are exact GF(2) equations
+
+\[
+  \bigoplus_{v\in A}x_v=r,\qquad r\in\{0,1\},
+\]
+
+and exact cardinality bounds \(\min\le\sum_{v\in A}x_v\le\max\). A parity equation over support
+
+\[
+  S=\{v\in A: |\{a\in A:a=v\}|\equiv1\pmod2\}
+\]
+
+is encoded as a Tseitin chain over \(|S|-1\) fresh variables; repeated arguments cancel in pairs, so `xor(a,a,b)=1` compiles to the unit clause \(b=1\) rather than to a wider chain. Cardinality bounds are compiled to subset clauses, with
+
+\[
+  \binom{|A|}{\max+1}+\binom{|A|}{|A|-\min+1}
+\]
+
+checked against a hard relation capacity before any clause is materialized. Transition sources replicate state and input signals per time index, with gates resolved inside each time slice and `next_state` rows emitted as the two equivalence clauses of the successor equation \(x_{t+1}=f(x_t,u_t)\).
+
+The compiled payload has a fixed key set: `schema`, `kind`, `source`, `variables`, `signals`, `witness_signals`, `clauses`, `native_relations`, and `work`, bound to the SHA-256 of its canonical JSON. `source` is canonicalized with every encoding-irrelevant ordering removed — gates by output name, clauses and unit boundaries sorted and deduplicated, `next_state` by target — while declared order stays significant exactly where it fixes the variable numbering (`inputs`, transition `state`, relations). Equivalent declarations therefore share one digest, and the digest is invariant under reordering or duplication that cannot change the encoding.
+
+Variable numbering is deliberate: circuit inputs first, then gates in a deterministic heap-ordered topological order, then relation auxiliaries; transition state@0, then inputs and gates per time index, then relation auxiliaries. Witness signals are the declared unknowns — circuit inputs, and `{state}@0` plus `{input}@{t}` for transitions. A SAT verdict reports only those, so the host evaluates its own assertions and gate graph from the witness rather than trusting an internal assignment. A circuit with no inputs, gates, or relations still receives one constant dummy variable, so the field never has to represent a zero-variable problem.
+
+### 29.2 Evidence classes
+
+Three outcomes are distinct and never conflated.
+
+* `sat` carries a witness over the witness signals; the host or an independent checker evaluates the original source on it.
+* `unsat` carries a certificate. A backend refutation is a resolution DAG: each conflict contributes a linear resolution derivation from its conflicting and reason clauses, a sound weakening to its decision nogood, and closed sibling branches resolve on their decision pivot until the empty clause is derived. An algebraic refutation is the hybrid proof: clause-to-inequality translation, nonnegative scaling, addition, exact-coefficient division, GF(2) imports and additions, cardinality-parity bridges, extension definitions, and resolution lines.
+* `exhausted` carries neither. A capacity, transition, or journal bound was reached, and the run states exactly which bound.
+
+Recursive integration covers both certificate types: `verify_p_vs_np_clause_field_probe.audit_proof` replays resolution derivations against the backend's clause database in order, and `verify_hybrid_inference.audit_proof` replays every stored hybrid inference against the canonical source clauses. Both require the certificate's premises to be lines that actually exist and its closures to be sound and leaf-disjoint.
+
+### 29.3 Inference configurations
+
+`local` runs the clause field with propagation only. The field cannot branch, so a resolved contradiction reports `unsat`/`propagation-refutation` and any unresolved propagation stall reports `exhausted`/`local-stall`. It never guesses.
+
+`conflict` runs the complete bounded chronological search with resolution-derived conflict learning. Because every decision is recorded with its phase and every conflict derives its decision nogood, a closed run yields the auditable certificate described above; the search is complete for the declared bounds, so `sat` and `unsat` are decisions about the compiled source, not heuristics.
+
+`algebraic` inserts one exact hybrid prepass. The prepass advances the hybrid field to completion inside a single constraint step, because the hybrid field is itself an exact bounded prover: if it derives a root line, the constraint field reports `unsat`/`hybrid-refutation` without ever constructing a search field. A source whose compiled CNF already contains the contradictory clause never reaches the prepass: the hybrid field refuses to load a contradiction as an input line, and no prepass deduction can matter for a source refuted at load time, so the algebraic configuration reports the same search refutation as `conflict`. The result's `prepass` work entry records `skipped` with that reason, so the receipt never presents a configuration that did not run as one that did. Otherwise its proof lines are scanned for entailed facts. The default `max_augmentation_arity=1` admits singleton facts — unit clauses, single-support parity equations, and single-term inequalities — each carrying its line id as provenance. An explicit `max_augmentation_arity=2` additionally admits two-literal clause lines, the exact two-clause CNF of a two-variable parity line, and the exact blocking clauses of a two-term inequality. Inequality rows are read as \(\sum_v c_v x_v\le r\), matching the backend convention, so a single-term row \(c\,x\le r\) entails \(x=1\) when \(0<r<c\) and \(x=0\) when \(c\le r<0\). Admission is bounded by a reserve declared before any allocation: the backend profile carries `max_original_clauses = |source| + min(max_augmentations, max_clauses - |source|)`, so capacity is checked once at construction and a prepass never allocates past the declared bound. Facts that do not fit are simply not admitted; the search remains exact and complete on the unaugmented remainder.
+
+### 29.4 Transition law and controller coupling
+
+One `step` advances exactly one configuration-specific transition. In `conflict` and `local` it advances the backend once; in `algebraic` it either performs the prepass or advances the backend. A terminal state is absorbing: `step` returns it unchanged with `action = terminal` and `state_unchanged = true`.
+
+The controller is the one place where a decision is scheduled rather than derived. Before a step that would decide, the field reads a transient decision context — pending class, current assignment, per-variable positive and negative occurrence activity, and the eligible set — from the clause tensor. When the pending class is `decide`, the excitable controller advances its four-lane fixed-point ring, scores every eligible variable as
+
+\[
+  \text{score}(v)=(2s+1)\,(p_v+n_v)+E_{(v-1)\bmod m}-R_{(v-1)\bmod m},
+\]
+
+and returns the signed literal of the highest-scoring eligible variable, breaking remaining ties by the lowest variable index. Activity is the primary key, so the controller reorders and rephases decisions without ever overruling logical work the field can already do; the ring's excitation-minus-refractory state decides equal-activity ties. The chosen site's excitation is consumed to zero and its refractory lane saturated, so the schedule carries forward. The controller only ever receives the field's eligible set, so a literal the field cannot legally take is never forced.
+
+`intervene(state, variable=v, excitation=e)` writes one bounded excitation onto one site, increments the controller's intervention counter, records a journal event, and returns a state whose digest differs from its predecessor. It cannot change a verdict by itself: the selection remains a legal decision, and every resulting verdict still carries the same evidence class. When the tick budget is spent the ring freezes and selection continues from the frozen lanes, which bounds total controller work in a run.
+
+### 29.5 Storage, checkpoints, and fail-closed bounds
+
+A profile declares `max_variables`, `max_clauses`, `max_transitions`, `max_learned_clauses`, `max_proof_bytes`, `max_field_bytes`, `mode`, controller geometry, and the hybrid line, transition, parity, inference, and augmentation budgets. Construction checks field-byte footprints from the backend and hybrid profile geometries before allocating anything, and refuses a controller in `local` mode: that configuration never schedules a decision, so a controller there would have no legal work and could only be a configuration error.
+
+The state digest binds the profile fingerprint, the compiled digest, both profile geometries, status, reason, the journal bytes by digest and length, the backend, hybrid, and controller state digests, and the controller counters. `descriptor()` emits the complete field bytes plus the compiled payload, and `from_descriptor` reconstructs the identical state: profile digest, compiled digest, nested field digests, and the top-level state digest are each revalidated, and any altered byte, altered profile, altered geometry, or unknown key is refused with `ConstraintFieldError`. A checkpoint therefore resumes the identical computation rather than an approximation of it, and a tampered checkpoint cannot be silently accepted.
+
+### 29.6 Work accounting
+
+`result()['work']` reports the compile ledger (inputs, gates, auxiliary variables, per-class clause counts, total clauses), the hybrid ledger (transitions, input, inequality, parity, extension, and resolution lines, maximum coefficient, resolved status), the backend ledger (transitions, decisions, propagations, conflicts, backtracks, learned clauses, scans, writes, peak trail and depth, proof resolutions and literal scans), the controller ledger (ticks, selections, interventions, enabled), the prepass ledger (`none` for the search-only configurations, `running`, `complete`, or `skipped` with the reason), the journal bytes, and the admitted augmentation count. SAT results report the partial trail as the backend assignment and the witness separately; `unsat` results report no witness, and `exhausted` results report neither witness nor certificate.
+
+### 29.7 Scope
+
+This subsystem is exact for the finite sources it compiles: every gate, relation, boundary, and transition row is encoded as an exact constraint, and every verdict is decided or explicitly bounded. It is not a complexity result. It does not claim a polynomial worst-case bound, and it does not claim that continuous field dynamics perform the reasoning: the ring schedules decisions and the hybrid prepass derives deductions, while both remain fixed, exactly-represented, non-learned machinery over persisted tensors. The unification claim is narrower and checkable — all evolving search, proof, and scheduling state of the subsystem lives in field tensors, and every claim it makes is either a witness against the original source or a certificate an independent checker can replay.
+
+## 30. Query implications and relational augmentation
+
+`cassi_constraint_implication.py` lifts the finite constraint field from
+instance decisions to candidate-rule decisions. An `ImplicationQuery` contains
+one declared circuit or bounded transition source, a sequence of Boolean
+assumptions, and one Boolean consequence. The engine decides
+
+\[
+  \mathrm{source}\land\mathrm{assumptions}\land\lnot\mathrm{consequence}.
+\]
+
+Assumptions on witness signals are routed into the source boundary, so the
+returned witness remains complete over the source's declared unknowns.
+Assumptions on derived signals — a gate output or a successor state such as
+`p@2` — are routed as source clause rows at their declared time. The same
+route is used for the negated consequence. The source is evaluated again from
+the returned witness, never from an internal assignment, before a `refuted`
+result is exposed.
+
+The query result separates four evidence classes:
+
+* `vacuous` means a declared boundary fact contradicts an assumption, so the
+  premise is impossible before the candidate rule is considered. The clash is
+  recorded without a certificate or witness.
+* `holds` means the negated query was refuted and carries the complete
+  resolution or hybrid certificate, including the exact compiled clause lists
+  required by an independent auditor. A consequence already forced by a
+  relation is still a certified `holds` result, not a vacuity label.
+* `refuted` carries a witness satisfying the original source and assumptions
+  while evaluating the consequence to the opposite bit.
+* `unresolved` means a declared transition or work bound stopped the run; it
+  carries neither a certificate nor a witness.
+
+The algebraic profile now has `max_augmentation_arity`. Its default value of
+one preserves the previous singleton-only prepass. With value two, each
+audited hybrid line may additionally contribute only consequences supported by
+two original variables: a two-literal clause itself, the two blocking clauses
+of a two-variable parity equation, or the blocking clause for each Boolean
+assignment falsifying a two-term inequality
+
+\[
+  c_1x_1+c_2x_2\le r.
+\]
+
+Every admitted row records its source `line_id` and extraction kind (`clause`,
+`xor`, or `pb`). Rows already present in the compiled source are deduplicated,
+and the predeclared augmentation reserve remains the sole capacity boundary.
+Consequently the extension adds exact consequences to the backend without
+changing the source model set or the verdict evidence class.
+
+### 30.1 Candidate-rule screen
+
+`run_implication_screen.py` screens 13 deterministic sources spanning
+alias/exact-one, parity/GF(2), cubic/Schaefer, and bounded transitions. It
+enumerates every small source's witness space independently, replays every
+counterexample through an independent evaluator, and audits every available
+certificate. The receipt contains 298 candidate rules:
+
+| Screen measurement | Result |
+|---|---:|
+| `holds` / `refuted` / `vacuous` / `unresolved` | 124 / 159 / 14 / 1 |
+| Audited `holds` certificates | 124 |
+| Independently replayed counterexamples | 159 |
+| Enumeration disagreements | 0 |
+| Failures | 0 |
+| Deliberate unresolved transition bound | 1 step |
+
+The cubic control has incidence rank 1, nullity 2, and a connected incidence
+graph. The unresolved candidate is the bounded `schaefer-local-bound` control;
+it remains unresolved rather than being promoted to a rule. The full receipt is
+`_diag/implication_screen.json`.
+
+### 30.2 Arity comparison and independent verification
+
+`run_relation_augmentation_comparison.py` runs the same 31-instance matrix
+under arities one and two for algebraic, controller-enabled algebraic,
+conflict, and local configurations. Across 124 matched pairs, arity two
+increases admitted rows in 34 pairs by 350 rows in total, while changing zero
+verdicts. The non-algebraic controls remain inert. The arity-one run matches
+113 available baseline rows in every semantic and work field, including all
+113 profile, state, and checkpoint digests in the regenerated baseline. The
+arity-two profile, state, and checkpoint digests differ because the selected
+arity is declared in the profile. The independent row audit covers 490
+admitted rows with no mismatch or non-entailment, and the receipt reports zero
+`_diag/relation_augmentation_comparison.json`.
+
+`verify_implication_engine.py` drives the public compiler, field, and result
+surfaces while reconstructing source semantics independently. Its current
+receipt checks 148 rules, audits 47 certificates, rechecks 28 augmentation
+rows across four augmentation instances, exercises four transition clause-time
+cases, and verifies 12 refusal boundaries. All checks pass:
+`_diag/implication_engine_verify.json`.
+
+These paths screen finite candidate rules and measure an exact relational
+augmentation boundary. They do not establish a general identification
+algorithm, a polynomial worst-case bound, or a P-versus-NP result. Binary
+consequences are admitted only when the single audited line entails them over
+its own support, and every larger claim remains subject to the same finite
+source and explicit-bound limits as Section 29.
+
+## 31. Stored-program computation and learning execution costs
+
+### 31.1 Computational model and scope
+
+`cassi_field_computer.py` implements a fixed two-stack interpreter. Its program,
+program counter, accumulator, stacks, cumulative execution ledger, and
+per-program-counter observations occupy one exact-integer float64 field tensor.
+Public states are immutable. `step` copies and seals a successor for one
+instruction; `run` applies the same transition function in one bounded working
+copy and seals one successor for the batch. The public logical-copy ledger
+remains step-equivalent, while the run receipt separately exposes the physical
+working-copy and seal work. Internal instruction application allocates public
+detail records only for `step`; a batch derives program tuples and block maps
+only after it reaches a hot program counter.
+
+The observation plane counts executed instruction boundaries with a bounded
+exact integer. Once a program counter is hot, the machine may execute a derived
+safe fall-through block. Blocks come only from the immutable primitive program,
+stop before control, stack-fault, and terminal boundaries, and call the same
+instruction implementation as ordinary stepping. Cold execution does not
+derive those blocks. There is no generated host code or parallel learned cache.
+
+The programming model is Turing-complete under the usual expandable-storage
+idealization. Every allocated field and actual execution is finite. Practical
+address, exact-integer, memory, and transition limits remain explicit; reaching
+a limit produces exhaustion, not a completed result or an infinite-storage
+claim. This construction does not establish general intelligence, polynomial
+time for arbitrary problems, or optimal algorithms.
+
+Instructions are five-integer rows. The unused operands are zero; all branch
+targets must name existing instruction rows.
+
+| Opcode | Operands | Effect |
+|---|---|---|
+| `0`—HALT | `0, 0, 0, 0` | Stop at this program counter |
+| `1`—PUSH | `stack, symbol, next, 0` | Push a byte onto stack 0 or 1 |
+| `2`—POP | `stack, next, 0, 0` | Pop into the accumulator; an empty stack yields 256 |
+| `3`—BRANCH | `symbol, yes, no, 0` | Compare the accumulator, including empty symbol 256 |
+| `4`—PUSH_ACC | `stack, next, 0, 0` | Push the accumulator; empty is an explicit fault |
+| `5`—JUMP | `target, 0, 0, 0` | Continue at the target |
+| `6`—PROPAGATE | `stack, next, 0, 0` | Apply at most one automaton-selected unit deduction in the top stack frame; put a result byte in the accumulator |
+
+Stack arrays are ordered bottom-to-top. A running boundary whose next opcode
+is HALT is valid: executing that instruction stops the machine. Loading a
+program directly at HALT admits an already halted configuration.
+
+`PROPAGATE` uses a `CFP1` byte frame at the top of the selected stack.
+Its little-endian header is `<4sHHBHQQQ`: magic, variable count, clause count,
+result, one-based selected row (zero for none), calls, clause visits, and
+literal visits. The header is followed by one byte per assignment
+(`0` unknown, `1` true, `2` false), uint16 clause lengths, canonical signed
+int32 literals, the exact float64 automaton lane block, and a uint32 total
+frame length. Each clause has unique literals ordered by absolute variable
+then positive before negative; clause order is retained. Prefix stack bytes
+below the frame are untouched. `propagation_workspace` encodes this data
+without deriving assignments.
+
+The shared lane kernel in `cassi_constraint_dynamics.py` operates directly on
+transient views of these machine-owned bytes; no `ExcitableConstraintState`
+is instantiated by the machine. Clause sites use scale 1,024 and a lifetime
+tick bound `max(4, 4 * variable_count)`. A call scans the resident clauses,
+reports any conflict first, otherwise selects one ready unit clause through
+the automaton's existing synchronous law and applies that deduction.
+Accumulator results are `1` progress, `2` unresolved fixed point, `3` conflict
+under the current assignment, and `4` all clauses satisfied. A fixed point
+does not establish SAT. With supplied assumptions, a conflict rules out that
+assignment branch, not every assignment of the original formula.
+
+Each operation performs linear frame decoding/validation and one clause scan,
+plus at most four automaton ticks. The stored visit counters count the clause
+scan, not decoding, validation, allocations, or scalar instructions. The
+ordinary stack ledger charges frame reads and mutable-region writes. A bad
+frame faults at the current PC without changing either stack or accumulator.
+Pausing, growth, digest chaining, and reload use the same machine operations.
+There is no host-side search loop or whole-solver opcode.
+
+Descriptors declare the instruction set required by the immutable stored
+program: programs containing opcode 6 use `cassifi.field-computer.v2`; programs
+containing only the original six opcodes retain byte-identical v1 descriptors.
+The nine-plane layout and profile digest are unchanged. Loading checks the
+declared version against the entire program and authenticates its field and
+profile digests; a v1 descriptor containing opcode 6 is rejected. Ordinary
+stack bytes have no propagation meaning unless the program invokes opcode 6.
+
+`cassi_field_program.py` is a deterministic frontend to the original six
+primitive instructions. A strict JSON document may define constants, nonrecursive
+functions, conditionals, source-bounded `repeat`, step-budget-bounded
+`while_acc`, modulo-byte addition/subtraction, stack operations, and immutable
+lexical values. Validation models each lexical right-stack frame and requires
+balanced branch, loop, function, and nested-scope effects before lowering; an
+unknown byte increment wraps 255 to zero through the ordinary instruction
+semantics. A compile-time known-accumulator pass folds consecutive set, add,
+and subtract operations and resolves statically known conditionals, loops,
+repeats, calls, lexical bindings, and loads. The optimized and unoptimized
+paths compile the same source into the same six-instruction subset and are
+checked for terminal-field equivalence. Compilation cannot invoke host files,
+processes, networks, or an alternate evaluator. Source-node and
+emitted-instruction limits are checked before a program is admitted.
+
+### 31.2 Turing-machine simulation construction
+
+`compile_turing_machine` translates a finite deterministic tape-machine table,
+including left, right, and stationary moves, into the instruction vocabulary.
+The table is total on every referenced nonhalting state and declared alphabet
+symbol. Distinct halting states retain distinct terminal program counters.
+
+At a translated state entry, maintain this invariant:
+
+1. Stack 0 contains the cells left of the tape head, with the nearest cell on top.
+2. Stack 1 contains the current cell and cells to its right, with the current
+   cell on top.
+3. Missing cells on either side denote the declared blank symbol.
+4. The program counter identifies the tape machine's control state.
+
+Pop the current symbol from stack 1, interpreting empty as blank, and dispatch
+on the table's state and symbol. For a transition that writes `b`:
+
+- **Stationary:** push `b` back onto stack 1.
+- **Right:** push `b` onto stack 0; the remaining stack 1 supplies the new
+  current cell, materializing a blank if needed.
+- **Left:** push `b` onto stack 1, pop the nearest cell from stack 0, and push
+  that symbol or an implicit blank onto stack 1 as the new current cell.
+
+Each case preserves the invariant and jumps to the next control-state entry.
+Induction therefore gives a finite instruction simulation of every finite
+tape-machine execution prefix within the available bounds. The abstract
+unbounded two-stack model can simulate a universal binary tape machine;
+allowing byte symbols does not restrict that construction. This is the
+universality argument. Finite verification runs check implementations of the
+construction, not all executions of all programs.
+
+`verify_field_computer.py` independently models primitive instructions and a
+sparse single tape. It compares complete fields for step versus batch execution
+at ordinary, branch, fault, pause, and exhaustion boundaries; proves that cold
+execution defers block derivation; compares complete fields and work ledgers
+for plain and actually invoked hot-block execution; checks heat-preserving
+restart and exact copy accounting; and verifies checkpoint and growth
+boundaries. Its tape-machine screen enumerates all 144 one-work-state/two-symbol
+transition tables on both initial symbols, then checks multi-state,
+distinct-halt, and nonhalting cases.
+
+### 31.3 One persistent owner
+
+**Implemented regional ownership.** `LearningComputer` is now a task-oriented
+view of one `cassifi.field-computer.v3` image. Its profile, fixed instruction
+tape, typed `task`, `session`, `policy`, `arguments`, `outcome`, and `result`
+regions, automaton state, queues, clocks, and ledgers share the machine digest.
+There is no separately owned `PolicyState` or `SolverContinuation` in the v3
+record.
+
+The closed `computer` surface accepts `configure`, `load`, `advance`, `submit`,
+`invoke`, `authorized-invoke`, `restart`, `grow`, `solve`, and
+`continue-solve`; inspection is read-only. Structured, primitive, and
+Turing-machine documents compile to `scalar-computer` task state. Exact sources
+compile to `exact.constraint`; selection and terminal feedback run as
+`learning.computation-policy` tasks. `_run_solver` is a bounded driver over the
+resident catalog task, not a callback to an independently live solver object.
+
+An episode-limited solve retains its complete regional constraint task, source
+digest, selected method, lifetime budget, spent work, and deferred-learning
+identity in the same image. `continue-solve` checks the recompiled source digest
+and resumes that task. A pause carries no witness, proof, or learning update.
+Terminal SAT/UNSAT output is independently audited before one policy feedback
+task may update the retained policy region. Exhaustion is typed noncompletion,
+never evidence of unsatisfiability.
+
+Operation identity, evidence dependencies, revocation generation, predecessor
+checks, machine successor, and receipt use one owner publication. A committed
+retry returns its retained receipt without running another transition or
+learning twice. Restart and growth preserve the declared retained regions and
+cumulative work. Legacy v1/v2 records require explicit migration; active legacy
+solver continuations are refused rather than reconstructed.
+
+### 31.4 Learned exact-method selection
+
+**Implemented regional policy.** The measurements below retain the policy family's component evidence. In production every policy value and selection/update transition occupies the regional machine; the module supplies its codec and bounded stateless kernel rather than a policy-only adaptive owner.
+
+`cassi_computation_policy.py` records actual computational experience in one
+`9 × 320 × 6` exact float64 field (138,240 bytes). Sixty-four structural
+contexts are independent of source identity and naming. Each has five budget
+slots: one budget-unknown slot for migrated evidence and four execution classes
+bounded at 64, 512, 4,096, and above 4,096 operations. Evidence from materially
+different ceilings therefore cannot silently share a completion rate.
+
+Seven evidence planes retain bounded long-window support, completion, elapsed,
+and work totals plus recent-window support, completion, and elapsed totals.
+Two additional planes retain each context epoch and each method's most recent
+observed epoch. Recent evidence decays synchronously across all six candidates
+every 16 context epochs; long support is capped at 4,096 and compressed before
+overflow. Observed time and work are clipped to explicit per-observation bounds
+before admission, and every aggregate invariant is checked while loading a
+descriptor. Version-two budgeted evidence migrates in place with derived epoch
+coordinates. Version-one structural evidence migrates into the unscoped budget
+slot.
+
+A cold context starts from its declared structural incumbent. It schedules one
+unseen challenger at context epoch 1 and every fourth epoch thereafter, uses
+empirical ranking between those epochs, and can reevaluate a stale observed
+method after 24 epochs. Ranking compares checked completion conservatively
+before recent and long elapsed/work evidence. A migrated unscoped prior is
+consulted only when the matching real budget class has no evidence. All state
+used by this decision is in the policy field; no source digest, benchmark
+family, answer, learned side table, or random choice participates. The public
+explanation surface projects these exact supports, ages, schedule boundaries,
+and scores without mutating the owner.
+
+The fixed portfolio comprises conflict search, controller-guided conflict
+search, and algebraic inference with augmentation arity one or two, with and
+without the controller. Learning admits only the method actually executed.
+SAT requires a source-replayed witness, UNSAT requires an independently audited
+certificate, and exhaustion carries no decision. Preferences change scheduling
+only; they do not alter inference or proof acceptance. This layer does not
+synthesize stack programs or discover transceiver decompositions.
+
+### 31.5 Resource comparisons
+
+`run_computation_policy_scenario.py` constructs 20 sources before execution,
+makes two deterministic source-order permutations from seeds 20260941 and
+20260967, and runs three named cycles per permutation. Cycle zero is cold,
+cycle one reuses the learned field, and cycle two reloads the exact canonical
+policy descriptor before continuing. Each source keeps one budget from 64,
+512, or 2,000 operations. Adaptive selection, the declared structural
+selector, and all six fixed methods receive identical source/order/budget
+requests. Execution order rotates per request.
+
+The timed boundary includes fresh compilation, selection, bounded solving,
+evidence audit, optional learning, canonical policy serialization, and policy
+reload. Every strategy pays the descriptor boundary. Comparison is
+lexicographic: checked completion first, then cumulative wrapper latency.
+Per-request values and p50/p90/p99/max distributions remain in the receipt.
+Break-even is the first retained prefix after which adaptive selection
+maintains at least the baseline completion count and no greater cumulative
+latency; the evaluator does not extrapolate an unobserved crossing. Aggregates
+remain separately visible by cohort, budget class, structural context, and
+joint context/budget class as well as in the pooled total.
+
+`verify_computation_policy_scenario.py` independently rebuilds all 960 solver
+rows, contexts, exploration/aging decisions, bounded window updates, policy
+digests, descriptor-reload boundaries, proof evidence, resource ledgers,
+request pairing, distributions, cumulative prefixes, and every retained slice.
+Losslessly compressed terminal descriptors are restored through
+`ConstraintField.from_descriptor`, so compact evaluation storage does not
+remove terminal-state validation. Re-signed mutations exercise
+source/request, selection, terminal-field, restart-boundary, and aggregate
+rejection paths.
+
+### 31.6 Executed evidence
+
+The independent machine receipt passes 9/9 checks. It covers primitive and
+generated tape-machine execution, cold deferred derivation, complete hot-block
+field/work equivalence with a measured block invocation, pause boundaries,
+restart, growth, and the one-working-copy accounting path.
+
+The persistent CLI compiles and executes the optimized structured counter and
+reaches `left=[5]`, accumulator `5`, and halt. Focused compiler checks compare
+optimized and unoptimized terminal fields for nested functions, lexical
+bindings, repeated operations, and control flow, and separately exercise
+invalid lexical stack effects and byte wrapping.
+
+The machine-resident propagation smoke constructs its frame with ordinary
+`PUSH` instructions, pauses after one deduction, reloads, and emits the
+satisfied result through `PUSH_ACC`. It reaches the same complete field digest
+as uninterrupted execution: 235 machine transitions, four propagation calls,
+and 12 automaton ticks for `(x1) ∧ (x2) ∧ (¬x1 ∨ x3)`. The existing CLI also
+executes this path across process boundaries and preserves the retained
+execution receipt on an identical operation retry. A native-only call guard
+admits the computer and shared automaton modules and rejects its explicit
+off-machine negative control. Independent two-variable enumeration checks
+2,304 formula/partial-assignment cases and 2,816 propagation transitions,
+including unresolved fixed points and conflicts.
+
+The policy receipt contains 120 requests per strategy and 960 audited solver
+rows. Adaptive selection completes 111; the structural selector completes 108;
+fixed algebraic arity one and two each complete 114; controller-enabled
+algebraic variants each complete 96; and the conflict variants each complete
+90. Adaptive selection completes 38/40 cold requests, 38/40 warm requests, and
+35/40 requests after descriptor reload. Its 120 choices comprise 26 cold-start
+selections, 38 scheduled explorations, and 56 empirical selections.
+
+Against the conflict variants, adaptive selection completes 21 more requests
+and takes 10.681 and 18.432 seconds less. It completes 15 more than either
+controller-enabled algebraic variant while taking 0.448 and 0.254 seconds more.
+It completes three more than the structural selector while taking 2.632
+seconds more, and three fewer than either non-controller algebraic variant
+while taking 0.604 and 1.005 seconds less. Completion-first comparison therefore
+does not identify one overall winner. Stable observed break-even occurs only
+against the conflict baselines.
+
+All decided cross-method verdicts agree. The independent verifier reconstructs
+all 960 terminal solver fields and policy transitions, recomputes every pooled
+and stratified aggregate, and rejects five re-signed mutations. The retained
+report digest is
+`1594cf74b5e4d02d47610142b918b1b4ad3d0fbb5bab2d34c50ffd7f4c0e717b`;
+the local receipt is `_diag/computation_policy_refinement_scenario.json`.
+
+Focused continuation checks split one exact solve across serialization and
+owner restart, reject a changed source without publication, preserve policy
+bytes across pauses, admit one terminal observation, and replay a duplicate
+terminal operation without advancing again.
+
+These measurements establish bounded stored-program execution, same-source
+static folding, exact heat-preserving reuse, resumable solver fields, and
+field-owned budget-scoped method adaptation. They do not establish arbitrary
+program optimization, a wall-clock guarantee, an asymptotic complexity gain,
+or superiority of the current adaptive schedule.
+
+## 32. One universal regional field computer
+
+### 32.1 Architectural decision and maximum ambition
+
+**Implemented architecture.** CassiFI uses one persistent, programmable field computer whose typed regions carry representations, procedures, explicit assumptions, outcome learning, and shared relationships used by recall, prediction, planning, language, and explanation. Specialization occurs through typed regions, connectivity, programs, and timescales within that computer. A region has no private interpreter, independent learned model, or separately authoritative adaptive state.
+
+This section is the production execution and ownership architecture. Sections 3–15 supply mathematical families, representational mechanisms, and their assumptions; Sections 26–31 retain component implementations and measured reference boundaries. Each production family is encoded as regional task state and advanced by one closed catalog. The retained standalone implementations remain source semantics and independent references, not adaptive runtime alternatives.
+
+Reuse `FieldComputer`, `ComputerState`, the structured compiler, and `FieldIntelligenceOwner`. Do not introduce a parallel `UniversalComputer`, cognitive executive model, per-region learner, or whole-solver callback. The central transition is
+
+\[
+(\Pi_{t+1},F_{t+1})=T_K(\Pi_t,F_t,\iota_t).
+\]
+
+Here \(F_t\) is the complete canonical machine tensor, \(\Pi_t\) is its active resource/arithmetic profile, and \(K\) is the fixed trusted instruction and validation catalog. An ordinary transition preserves \(\Pi_t\); authorized growth is an explicit catalogued transition \(G_{\Pi\rightarrow\Pi'}\) that preserves identities and spent-resource history and binds both profile hashes in its receipt. A changed arithmetic or word interpretation requires explicit conversion, not ordinary storage growth.
+
+The admitted input \(\iota_t\) contains any identified observation/request plus the authenticated evidence-generation and authority-view versions relevant to that transition. Absence of a new observation does not mean absence of those boundary checks. Changed external generations enter as explicit control inputs. Receipts bind the admitted views; replay uses their recorded decisions without treating historical permission as current permission to act. The owner still checks current \(A_t\) immediately before an external effect. Programs, routing preferences, candidate procedures, learned relations, active continuations, and unfinished hypotheses are values in \(F_t\). Improving those values changes subsequent computation without rewriting \(K\).
+
+The destination includes:
+
+- useful exact and numerical computation through one programming model;
+- grounded, shared identities and relations across modalities;
+- persistent, selectively revisable knowledge and unfinished thought;
+- discovery of representations, guarded procedures, and better computation strategies;
+- nonverbal planning, reversible alternatives, and decision-directed inquiry;
+- acquired interpretation and expression through the same semantic structures;
+- continual learning with attribution, retention, correction, and explicit resource costs;
+- deterministic recovery and authority-preserving interaction with the world.
+
+The bounded architecture is implemented. Open-ended language acquisition, broadly useful representation discovery, unrestricted intelligence, universal performance improvement, and an automaton-only universality theorem remain unestablished research capabilities.
+
+### 32.2 Current implementation and ownership
+
+**Implemented basis.** `RegionalMachineImage` uses schema `cassifi.field-computer.v3` and layout `field-computer-regional-nine-plane-v1`. It stores typed directory entries and payloads, a fixed instruction tape, program counter, event queue, native automaton state, logical clock, ledgers, continuation, invocation arguments, and result. `LearningComputer` owns this single image; `FieldIntelligenceOwner` persists it in the canonical checkpoint and operation journal.
+
+`load`, `advance`, `solve`, `continue-solve`, `submit`, `invoke`, and `authorized-invoke` all prepare or resume tasks in this machine. The closed catalog supplies bounded stateless operations for the scalar, exact, numerical, atlas, cognition, language, resonant, transceiver, temporal, inquiry, and policy families. Family objects decoded during a transition are disposable views of regional bytes. They are returned as updated task state and cannot survive as a second adaptive owner.
+
+The old scalar, solver, and family implementations remain as compiler inputs, state codecs, bounded kernel code, scenarios, and independent references. Normal CLI and CassiPi dispatch do not select a whole-family evaluator. The package verifier makes `FieldProgram.execute` fail, proves that guard can fire with an attempted call, and then completes cognition through the regional machine.
+
+The implemented execution path is narrower than the full shared-semantic target below. Reserved descriptor references and frozen family task payloads do not by themselves implement the complete capability/dependency graph or general world modeling. Section 33.23 identifies these integration boundaries; Section 33 specifies the additional acquisition and cross-use semantics.
+
+### 32.3 One tensor and explicit nonlearned boundaries
+
+All adaptive and unfinished internal computation belongs to one `ComputerState.field` of logical shape `[1, 9*M, 1]`. This includes numeric memories, semantic identities, learned programs, policy observations, candidate frontiers, proof-construction cursors, branch overlays, automaton lanes, routing, pending internal events, and all counters that influence future computation. `AtlasState` becomes a logical view and persistence envelope over this image; it cannot retain independently evolving cognitive pages beside it.
+
+The decomposition \(\mathcal X_t=(F_t,E_t,A_t,K)\) remains useful:
+
+| Boundary | Authority and permitted contents |
+|---|---|
+| \(F_t\) | Sole authoritative adaptive state and complete internal continuation |
+| \(E_t\) | Exact source bytes, admitted observation records, immutable completed evidence and computation receipts |
+| \(A_t\) | Nonlearned permissions, revocation fences, durable external-operation identities and publication control |
+| \(K\) | Fixed codecs, compiler bootstrap, instruction semantics, validators, and bounded arithmetic kernels |
+
+Evidence bytes may reside outside the tensor, but references, relevance, hypotheses about them, partially assembled certificates, and unfinished audit state belong inside it. An external evidence log must never be scanned on restart to reconstruct missing adaptive state. Completed immutable proof bytes may be archived in \(E_t\) after publication; their digest, source binding, conclusion, and validity dependencies remain represented in the field.
+
+Receipt or telemetry content admitted for learning is represented in \(F_t\), with its identity, values and dependencies, before any adaptive update consumes it. External receipts remain immutable evidence; restoration cannot scan them to fill gaps in policy, credit, or learned state.
+
+Host caches may decode regions, build disposable address maps, or retain deterministic numerical factorizations keyed by complete field dependencies. Deleting every cache must preserve the next logical transition. Cache hits, wall time, and physical transfers are measurements, not implicit learning signals.
+
+One logical tensor does not require one permanently resident allocation. Losslessly paged storage and read-only replicas may represent slices of that image. They have no independent semantic clock or commit authority. Dirty pages publish under one root; regional digests are derived integrity data, not competing state roots.
+
+### 32.4 Versioned regional layout
+
+**Implemented format.** The regional machine uses `cassifi.field-computer.v3` and layout `field-computer-regional-nine-plane-v1`. Its profile fingerprints geometry, directory capacity, record codecs, instruction catalog, arithmetic/replay rules, and all resource ceilings. Every regional descriptor uses this identity, independent of which instructions happen to be present.
+
+The old nine-plane meanings, including the AUX execution-observation plane, remain accepted compiler/migration inputs where declared. The regional format does not write into their padding or claim layout compatibility. Conversion is explicit and versioned.
+
+Let \(W=9M\) be the flattened cell capacity and \(R\) the directory capacity. The first regional encoding uses:
+
+| Window | Cells | Meaning |
+|---|---:|---|
+| Header | `[0, 64)` | Machine identity, global counters, status, distinguished references |
+| Region directory | `[64, 64 + 16*R)` | One fixed-width descriptor per region slot |
+| Payload arena | `[64 + 16*R, W)` | Non-overlapping allocated regional ranges |
+
+Require positive integers \(M,R\), \(64+16R\leq W\leq2^{32}-1\), and enough directory/payload capacity for the complete bootstrap closure and reserved control space. Every address and length must fit the profile. Nine-plane packing is a storage convention, not nine faculties or an imposed physical connectivity graph.
+
+Each tensor cell is a canonical nonnegative u32 word represented exactly in float64. Byte streams pack four bytes per word in little-endian order; unused final bytes are zero. A u64 counter or IEEE-754 binary64 value occupies two words, low word first. Signed integers use a declared signed codec; larger exact coefficients use bounded multiword records. Numeric payloads preserve their declared bit patterns, reject nonfinite values where the operation requires finite arithmetic, and are never passed through irrational coordinate transforms to encode identifiers. Numeric kernels decode into temporary working views and commit back to the same image.
+
+This representation has a cost: the resident reference tensor uses eight bytes per word; an encoded binary64 payload uses sixteen resident bytes. Packed persistence can reduce storage traffic but does not erase resident or decoding cost. A later packed backend must preserve the same logical words and digest semantics rather than silently change arithmetic.
+
+Header coordinates are fixed:
+
+| Cells | Meaning |
+|---|---|
+| `0..3` | Magic `0xC5FC0003`, layout revision, total cell count, directory capacity |
+| `4..5` | Committed logical transition clock |
+| `6..7` | Next internal event sequence |
+| `8..9` | Committed base-data epoch used for conservative stale-read detection |
+| `10..11` | Active continuation reference: slot and generation |
+| `12` | Deterministic free-slot search cursor |
+| `13..14` | Event-queue reference |
+| `15..16` | Admitted root-program catalog reference |
+| `17..20` | Left and right stack references for lowered scalar programs |
+| `21..23` | Scheduler phase, machine status, reason |
+| `24..25` | Resource-ledger reference |
+| `26..33` | Profile SHA-256 as eight u32 words |
+| `34..41` | Trusted instruction-catalog SHA-256 as eight u32 words |
+| `42..43` | Protected reference-registry reference |
+| `44..45` | Committed root-scope reference |
+| `46..63` | Canonical zero |
+
+Every two-word distinguished header reference is a `(slot, generation)` pair of its declared kind. Slot IDs are directory indices plus one; zero is the null reference. A directory entry has sixteen words:
+
+| Word | Meaning |
+|---|---|
+| `0..3` | Generation, kind, codec, flags |
+| `4..7` | Base, used length, allocated capacity, owning scope ID |
+| `8..9` | Data version as u64 |
+| `10..13` | Read-capability-set reference ID, write-capability-set reference ID, parent-region reference ID, type-record reference ID |
+| `14` | Dependency-list reference ID |
+| `15` | Canonical zero |
+
+**Specified descriptor extensions.** The current `cassi_field_regions.py` validator requires words `10..14` to be zero. Their meanings in this table define the intended extension, not active capability/type/dependency records. Nonzero use requires versioned admission, resolution, and validation together; reserved words confer no permissions.
+
+Nonzero descriptor reference IDs, scope IDs and logical object IDs are non-reused u32 indices into the protected reference registry. Each registry entry binds a full typed target reference, including slot and generation, and cannot be rebound to a new identity. Retired identities remain tombstoned; registry capacity is an explicit limit. Zero means absent/empty, never unrestricted access. Registry contents and allocation progress belong to the image.
+
+Free directory slots retain their last generation and zero every other word. Reuse increments the generation; exhaustion refuses reuse rather than wrapping. `RELEASE` first makes storage unreachable to live execution and quarantines it. Large payload scrubbing and reclamation are bounded field-resident continuations; only fully scrubbed storage becomes allocatable. Allocation metadata, quarantine and partial compaction progress are field-resident. Only the free-slot search cursor uses explicitly defined modulo-\(R\) arithmetic.
+
+A transition increments a changed region's semantic data version once, regardless of its number of writes. A semantically identical write leaves that version unchanged but still consumes work and a committed transition. Changes to committed base values, bindings, catalogs or permissions increment the base-data epoch once; scheduler bookkeeping and private staged progress do not. Every increment is checked before publication. Growth additionally changes the profile dependency, so preserving payload values cannot make a prepared operation valid under unexamined geometry.
+
+The canonical digest domain includes schema, layout, profile identity, arithmetic identity, shape, and the complete little-endian float64 image. Canonical tensor words have unique positive-zero/integer encodings. The digest itself lives in the external descriptor, avoiding a self-hash. A region's content hash, when cached, excludes no authoritative state from the root.
+
+### 32.5 Region roles, references, and validation
+
+Region kinds distinguish data and permitted mutation, not independent components:
+
+| Role | Examples | Mutation boundary |
+|---|---|---|
+| Admitted program | Instructions, constants, procedure signatures, effects | Validated program admission; immutable while active |
+| Working values | Assignments, arrays, inference iterates, call frames | Typed execution in the owning scope |
+| Hypothetical values | Assumptions, branch overlays, candidate results | Scoped execution and checked publication |
+| Retained relations | Covariance words, categorical support, identities, constructions | Identified learning, revision, or consolidation |
+| Scheduling | Automaton lanes, routing, readiness, queue cursors | Fixed scheduling transitions and admitted preference updates |
+| Dependencies | Premise versions, guards, derivation links, invalidation cursors | Typed creation, revision, and invalidation |
+| Computational experience | Context support, cost observations, procedure assessments | Once-only admitted computational feedback |
+| Evidence construction | Partial witness/proof records and audit continuations | Exact append/check operations; archival only after completion |
+
+Types may share arena capacity and be relocated without changing logical identities. No fixed number of memory, reasoning, or language regions is prescribed. Domain specialization follows actual representations and workloads.
+
+A direct value reference contains `(slot, generation, offset, length, requested_rights)`; offsets are relative to the region base, so physical relocation does not alter the reference. Resolution checks generation, liveness, bounds, codec/type compatibility, scope visibility, and the intersection of program effects, delegated scope capabilities, and regional permissions. The first rights mask assigns `READ=1`, `WRITE=2`, `EXECUTE=4`, `EMIT=8`, `MANAGE=16`; unknown bits are invalid. Capability sets are canonical sorted, duplicate-free u32 registry-ID sequences of typed capability records. Fabricated reference bits cannot exceed the executing program's validated capabilities.
+
+Mutable logical values use typed handles naming a non-reused object ID and a visible scope ID. The scope's versioned binding map resolves that identity to a current value version and direct backing reference. This indirection is field-resident, not a host lookup authority. Direct slices are explicit snapshot views; they do not silently follow later replacement. Consumers of current meaning resolve logical handles and record binding versions. This permits a large staged binding-map replacement to preserve identities without rewriting every stored handle.
+
+Scope and ownership-parent ancestry must be acyclic and fit the declared depth bound. Resolution checks every ancestor's liveness; an invalidated ancestor invalidates its descendants. Ordinary data graphs may contain declared cycles, but ownership traversal cannot. References cannot escape into a surviving scope without checked rebinding and visibility validation.
+
+The validator checks header/profile agreement; unique live slots; disjoint payload ranges; directory/header exclusion; checked integer arithmetic on base plus capacity; occupancy, quarantine and zero padding; reference-registry closure, generations and tombstones; scope/ownership ancestry; canonical capability sets and rights; logical binding maps; admitted instruction targets; type/effect validity; branch visibility; queue selection invariants; counter bounds; and numeric invariants appropriate to each kind. Immutable programs and protected scheduling/directory/registry records are not generic writable arrays.
+
+Admission and restoration validate the complete authoritative closure. During execution, a previously validated immutable predecessor permits incremental validation of changed regions and their affected invariants. Full-image validation need not run after every byte instruction, but incremental validation cannot ignore aliases, newly created references, or stale dependencies. Physical chunk hashes support incremental persistence, not a weaker semantic validator.
+
+Growth is an explicit profiled operation. It preserves logical IDs, all pending state, and spent work; changes the geometry/profile identity; charges copying and validation; and publishes atomically. Its receipt binds old and new profiles and image roots. A profile change cannot reset resource history, revive a tombstoned identity, or reinterpret a forbidden value.
+
+### 32.6 Shared representation and meaning
+
+The target record vocabulary consists of entities, variables, values, relations, role bindings, contexts, procedures, goals, claims, events, and derivations. These are typed records and references, not learned host dictionaries.
+
+Identity is independent of physical position. A relation use names its participants by stable entity/variable IDs, its semantic type or procedure, its context, its supported value or allowed set, its source/derivation references, and its validity dependencies. Reusing an address cannot make a new object inherit an old identity.
+
+In the target machine, one instrument-location relation can constrain a retrieval plan, answer a location query, ground an utterance, and explain a revised route. These consumers subscribe to the same relation identity. Updating four separately encoded copies is not shared meaning.
+
+Programs manipulate explicit values such as known, unknown, conflicting alternatives, bounded numeric intervals, unresolved search, and typed errors. Zero remains a value. Missing support, empty sequence, null reference, and contradiction have distinct representations.
+
+Epistemic type, retention lifetime, activity level, and permission are independent fields. Observed, asserted, derived, hypothetical, and desired contents cannot become interchangeable because they share a codec. Permission remains an external authority decision referenced through \(A_t\), not a learned truth label.
+
+Entity correspondence, context splitting, and concept formation operate on these records through stored programs. A learned concept is a parameterized relational pattern with guards and consequences; a procedure supplies executable use. Language and planning bind the same roles. A renderer or byte tokenizer may expose fixed syntax, but cannot supply a second learned semantic interpretation.
+
+Entity correspondence has an explicit binding record: candidate identities, modality/role, context, evidence references, ambiguity state and dependency versions. Alias, merge and split are versioned changes to supported correspondence, not rewrites of historical entity IDs. Old observations keep their original identities and interpretations; current consumers follow the applicable binding. A merge, split, correction or revocation invalidates all dependent interpretations, plans and explanations, including consumers in child scopes.
+
+### 32.7 Regional language and instruction semantics
+
+Extend the compiler and machine together. Region metadata around an unchanged stack-only frontend is insufficient. The existing structured source remains a migration input and a scalar-program frontend; regional source adds typed parameters, references, records, sequences, runtime calls, scope constructs, internal events, and explicit effects.
+
+The regional IR is a canonical field-resident sequence of instruction records. Each record has an opcode-catalog identity, typed operand-record references, and explicit successor labels. Procedure records contain their parameter/result types, bounded frame requirements, read/write/emit effects, and code version. One versioned instruction catalog generates compiler validation and runtime operand decoding; an independent semantic checker still tests their agreement. Numeric opcode allocation is a serialization detail of that catalog, not a second hand-maintained language definition.
+
+| Operation | Required behavior |
+|---|---|
+| Scalar stack/control | Preserve the six existing primitive meanings when lowering old programs |
+| `REF`, `READ`, `WRITE`, `WRITE_EMIT` | Resolve a typed bounded view; read or mutate authorized values; publish a required explicit notification atomically with its write |
+| `ALLOC`, `RELEASE` | Reserve checked storage or quarantine it for bounded reclamation; no silent overwrite |
+| `CALL`, `RETURN` | Push/pop a field-resident call frame; pass references under effect constraints |
+| `BEGIN`, `COMMIT`, `ROLLBACK` | Create, publish, or discard a scoped hypothetical view |
+| `EMIT`, `AWAIT`, `YIELD` | Enqueue an internal event, suspend on explicit dependencies, or return control |
+| Bounded native operation | Perform one cataloged arithmetic, automaton, proof, or propagation quantum |
+| Typed stop/result | Distinguish completed, unresolved, blocked, exhausted, stale, and faulted execution |
+
+Runtime recursion is permitted through bounded call frames; it is not compile-time unrolling or an unbounded host call stack. A nonterminating program consumes fuel and yields. Source-node, emitted-code, call-depth, allocation, and event limits are separate.
+
+The compiler checks type correctness, reference lifetime, scope escape, effect compatibility, control-flow targets, operand canonicality, and statically available bounds. The runtime checks dynamic values, current versions, capabilities, and remaining resources. Compile-time acceptance never replaces runtime validation of mutable data.
+
+Effects compose across calls: the callee's instantiated footprint must fit the caller's permitted footprint, argument views and delegated scope capabilities. Dynamic indexing and aliases are checked against that same intersection. A signature is not permission to touch arbitrary regions of a compatible type. Required write notifications are part of `WRITE`'s dependency effects, bounded `WRITE_EMIT`, or a scoped `COMMIT`; separate `WRITE` then `EMIT` instructions are not an atomic substitute.
+
+Native operations have a closed catalog. Each declares operand kinds, read/write footprints, numerical/result semantics, maximum indivisible work, and continuation representation. Examples are one CNF scan/deduction quantum, one proof-rule application, a bounded matrix panel, one graph frontier expansion, or one automaton relaxation quantum. Long RREF, matching, inference, search, and learning loops are stored-program continuations. No opcode invokes an arbitrary Python callable, old `solve` method, external model, or unbounded algorithm.
+
+The existing `CFP1` propagation law is reused as a stateless bounded kernel, with machine-owned operands and progress. Imported raw programs that construct a frame on a byte stack retain those semantics through a deterministic lowering into typed byte views and the same kernel. This is an input-format translation, not a live old interpreter.
+
+A runtime `CALL` returns through its saved continuation; cross-region calls do not start another computer. `EMIT` creates an internal event only. An external effect requires the separate request and acknowledgment boundary in Section 32.14.
+
+Admitted programs are immutable. Candidate code resides in non-executable regions until type/effect validation and its declared assessment complete. Learning cannot rewrite the trusted instruction catalog, verifier, user's objective, or authority rules. A self-hosted compiler is a later stored program using the same IR; the fixed bootstrap remains sufficient to load and inspect it.
+
+During bootstrap, external-source parsing and compilation use a deterministic, bounded \(K\) codec with source/IR hashes, compiler identity and charged work. Compilation exceeding one quantum carries an explicit machine continuation, or refuses the declared bound. Compiling learned candidates follows the same rule; no hidden host optimizer may choose programs or solve their tasks. A later self-hosted compiler replaces this work with an admitted program, not a second language/runtime.
+
+### 32.8 Automaton-native coordination and meaningful topology
+
+The existing excitable law is the starting implementation, not an unused reference beside a replacement scheduler. Excitation, recovery, trace, and delayed excitation remain machine-owned state. The shared stateless kernel advances them at explicit instruction boundaries; its result selects eligible computation that then changes the same image. In the target, every runnable continuation and native quantum has a field-resident, versioned work-site binding and follows this scheduling path. No family can bypass it through an owner callback or host scheduler.
+
+The current ring connects sites by array adjacency. Regional topology instead represents computational dependencies. The first graph is compiler-derived and sparse: variables connect to operations that read them, operations connect to outputs, and invalidation links connect premises to dependent claims. Its dependency inventory also includes guards and branch predicates; code, call frames and effects; scope ancestry; event payload/version; evidence/authority views and revocation; fuel and capacity reservations; candidate catalogs; shared entity bindings; and automaton lanes, recovery and edge versions used in priority. Every input to eligibility or priority must have a declared dependency. Use bipartite variable/operation incidence rather than materializing a clique among every pair of clauses sharing a variable. Physical relocation cannot change edges.
+
+A region may contain several work sites and a site may refer to several regions; site identity is not region identity. Routing distinguishes data dependency, activation transport, and validity dependency. These edges have different effects and cannot be collapsed into one untyped strength. Creation, rebinding and retirement of sites or edges are canonical field transitions that invalidate affected scheduling snapshots. Dynamic references must extend the dependency graph before their consumers become runnable.
+
+The graph extension uses the existing synchronous lane law with a specified bounded neighborhood operator. Its versioned profile declares edge weights, degree/normalization bounds, integer rounding, saturation, and tick budget. Before adoption, compare degree-two ring instances with the current law and verify the new graph's own bounds; ring equivalence alone does not establish useful scheduling on arbitrary graphs.
+
+Eligibility and priority are separate. The exact predicate `eligible(event, field, admitted_views)` requires a ready event; current code and continuation; live, visible, well-typed references; current payload, binding and dependency versions; satisfied control preconditions and an applicable guard; permitted effects/capabilities; and sufficient reserved fuel/capacity. Relevant evidence/authority views must be current at the checked boundary. Automaton activity ranks only this set; it cannot manufacture a deduction, change a proof rule, turn an assumption into an observation, or grant a capability.
+
+Each event has one primary state/reason selected by fixed precedence: malformed code/reference (`fault`), closed scope (`scope-closed`), invalidated dependency or stale guard (`stale`), denied/unavailable permission (`permission-denied`/`waiting-authority`), missing input/dependency (`waiting-input`/`waiting-dependency`), current guard evaluation error (`fault`), inapplicable/unknown guard (`guard-false`/`guard-unknown`), insufficient reservation (`resource-exhausted`), otherwise `ready`. Guard evaluation occurs only after its inputs are valid. Secondary unmet conditions may be retained for explanation, but none is an alternative permission to run. A false branch predicate enables its declared alternative successor, not the rejected branch.
+
+A scheduling cycle captures a versioned predecessor view, advances the declared synchronous automaton ticks using frozen incoming values, computes exact eligibility, freezes the eligible set and priority keys, and selects one bounded quantum. Large tick/frontier scans are themselves charged, resumable scheduling transitions with field-resident cursors and scratch; they are not an unbounded prelude to one instruction. An intervening admitted input or relevant topology/data change invalidates the snapshot. Final dispatch rechecks its versions and reservations; internal scheduler progress may consume only its declared reserved resources. Owner-side effect authorization is still checked at the point of use, not inferred from a cached grant.
+
+The trace currently records activation history. Outcome-driven preference requires the explicit learning mechanism in Section 32.12. Naming a trace plasticity does not establish that it learns useful computation.
+
+The causal check in Sections 1.3 and 32.20 holds semantic inputs, \(K\), admitted observations and exact eligibility fixed while intervening on automaton activity. It must change a real eligible-work choice. The complementary control raises activity on an ineligible operation: that operation must remain unexecuted. Priority and trace cannot supply their own eligibility oracle.
+
+### 32.9 One event queue, clock, and liveness rule
+
+An internal event names its stable event identity, source and target identities, kind, payload reference and version, owning scope, dependency versions, ready-entry transition, and unique queue sequence. Queue storage, ready/waiting/active status, cursors, next sequence, dispatch count, and routing preferences all belong to the canonical image. Event identity survives suspension; queue sequence and ready age identify each new ready interval.
+
+The global transition clock increments once per committed machine transition, including a committed fault/status transition. Automaton ticks, solver visits, physical time, and observation timestamps remain separately named quantities. A wall timer is an input source that requests bounded work; it does not advance an independent cognitive clock.
+
+For the u64 clock, reserve \(U=2^{64}-1\) as terminal. At clock \(U-1\), the next committed transition sets clock \(U\) and `counter-exhausted` without executing instruction data/event effects. At \(U\), execution returns a read-only exhaustion report and publishes no successor. Other monotonic sequences, versions, generations, IDs and ledgers never wrap or silently saturate. Preflight reserves representable quantum and failure-bookkeeping headroom; an exhausted counter produces a typed stop through reserved control/accounting space while the clock has room. Resource-denied work is not attempted. Terminal state admits inspection/export only; widening requires an explicit new-format migration rather than resetting a counter. Bounded traversal cursors terminate at their bound; the free-slot cursor's declared modulo-\(R\) search is the stated exception.
+
+After the scheduling cycle in Section 32.8 has frozen the eligible set and bounded priority scores, ordinary dispatch selects by the lexicographic key:
+
+\[
+(-p,\ t_{\rm ready},\ {\rm sourceID},\ {\rm targetID},\ {\rm sequence}).
+\]
+
+Here larger integer \(p\) wins; IDs have fixed canonical ordering, and the unique sequence makes the key total. Physical queue storage need not be priority-sorted. A dispatch captures the eligible-set digest, primary blocked reasons and priority snapshot used for that decision. Later learning cannot retroactively reorder it. Replay includes all tie-breaks and sequence/cursor state.
+
+Priority alone does not prevent starvation. Every \(B\)-th dispatch, where the profile fixes finite \(B\geq1\), selects the oldest continuously ready eligible event by ready-entry transition and sequence, ignoring priority. Blocking, suspension or requeue ends that ready interval; re-entry receives the current transition and a fresh sequence after reservation. A priority-only change does not reset age. Each dispatch grants at most a fixed work quantum; an unfinished continuation requeues. For a continuously ready event with at most \(N\) older ready intervals and no authority/resource interruption, service occurs within at most \(B(N+1)\) dispatches. This is a dispatch-count bound, not a wall-time, external-observation or program-termination guarantee; scheduling work and each kernel remain separately bounded and charged.
+
+Blocked events identify what is missing: an input, completed dependency, valid premise, resource allocation, or authorization. A closed wait cycle with no admissible producer is reported as blocked/deadlocked rather than treated as a solution or hidden background activity.
+
+Queue growth is bounded. Required write/invalidation/notification effects publish together through `WRITE`, bounded `WRITE_EMIT`, or `COMMIT`; a separately committed write followed by an overflowing `EMIT` does not satisfy this rule. Dispatch reserves every emitted/requeued event, sequence increment, continuation slot, directory entry, arena word and ledger update before committing. The triggering event remains in its active queue slot until success. Failure either preserves its identity/order with no commit or commits an explicit blocked/fault continuation through its reserved control slot; it never silently consumes awakened work. Queue exhaustion cannot half-publish data.
+
+Coalescing is allowed only for a catalogued idempotent invalidation with identical target, scope, dependency domain, version and cursor coverage, using a canonical merge. Otherwise retain separate events. Observations, external acknowledgments, distinct payloads and ordering-sensitive events are never merged. Coalescing decisions remain replay-visible.
+
+A high-fan-out update need not allocate every notification at once. It publishes one field-resident invalidation/dispatch continuation after reserving its queue slot; that continuation carries the exact cursor and dependencies. Dependent reads check versions immediately, so a queued notification is not the sole defense against stale data.
+
+### 32.10 Atomic transitions, receipts, and replay
+
+A transition follows one lifecycle: resolve inputs; check type, scope, versions and authority references; preflight all writes, counters, events and capacity; execute bounded work in private views; validate the resulting changed closure; publish one successor containing data, continuation, events and ledger changes together. Counter overflow is checked before any authoritative lane is written.
+
+An instruction cannot publish a result but lose the work it awakened. A failed operation preserves its data operands and other scopes; its typed failure, clock advance, and bounded attempted work may commit through reserved control/accounting space, subject to the terminal protocol in Section 32.9. If no transition commits, reservations and selection cursors retain their predecessor values. A malformed stored image is rejected before execution rather than repaired by guessing.
+
+Step and batch execution have the same logical boundaries, event order, pause/fault behavior, and final logical image for identical admitted input/telemetry streams, arithmetic profile and transition count. A batch may use one private working copy and one physical seal, but a later instruction fault does not roll back its earlier successful logical transitions. It stops at the same required observation/authority/external-effect boundary as single stepping. Physical copies and elapsed time are reported separately, not fabricated to match repeated single-step allocation.
+
+An operation receipt identifies predecessor/successor hashes; old/new profile and catalog identities; admitted evidence/authority views; event and logical-transition ranges; program and continuation; consumed/produced region and binding versions; result/output; eligibility/blocked-reason digest and priority snapshot; automaton choices; touched-state work; numerical allowances; and publication/replay identity. A batched receipt binds the ordered logical transition records, not a fictitious single instruction. Receipt construction, retention and checking have explicit capacity/work costs. Hashes provide integrity, not mathematical truth or permission.
+
+Elapsed time requires special treatment because the existing policy learns from measured host time. The deterministic transition function never reads a wall clock. Host timing is diagnostic by default; an explicitly identified telemetry event supplies timing scope, backend, measured values and uncertainty. If admitted for learning, those values enter \(F_t\) as recorded inputs; replay does not remeasure. Batching may not silently synthesize different per-step observations. Replaying recorded events is distinct from repeating a workload with new timing measurements and therefore potentially different adaptive state.
+
+The owner extends its durable publication machinery to bind operation ID, request/predecessor identity, committed success or typed failure, successor and receipt-recovery data in one recoverable commit. Recovery resolves that binding before permitting execution; a published successor cannot lose its deduplication identity. Repeating a committed ID returns its retained receipt without re-executing, reenqueuing or relearning. Noncommitting refusals and terminal inspection are explicitly distinguished from committed outcomes. Batch size and restart cannot split one observation into several training examples.
+
+### 32.11 Reversible hypotheses and dependency-aware revision
+
+`BEGIN` allocates a scoped view with explicit assumptions, a parent scope/root, read dependencies, permitted effects, and resource limits. Immutable base values are referenced; changed values are overlays in the same tensor. No branch clones an independently running machine, and no branch-local host stack survives as authority.
+
+Reads resolve through the bounded scope chain. Writes target owned overlays. Calls inherit or narrow capabilities. Branch events remain scoped; external requests are hypothetical, non-dispatchable proposals. `ROLLBACK` atomically tombstones the scope root, making all descendant references, frames and events ineligible through ancestor checks. Bounded reclamation then retires overlays and unsent requests using the scope's reserved cursor; it does not scan an arbitrarily large subtree in one transition. Immutable evidence, independent base data and spent task/work history survive rollback.
+
+`COMMIT` checks read dependencies, source/authority generations, effects, result type and permitted promotion. Its prepared escape map validates/rebinds every surviving logical reference, event and nested scope into the surviving owner; a branch-local dangling target refuses publication. Nested commit merges into its parent. No assumption or dependency may be dropped by promotion, and commit cannot upgrade epistemic type. Only an appropriate evidence-admission operation creates observed/asserted content. Assumption-dependent results remain conditional/hypothetical; a SAT branch may publish a source-checked witness without turning its chosen values into observations. Only a request published into a committed scope can reach the separate point-of-effect authority check.
+
+The first implementation bounds each indivisible publish's read/write set. Larger operations construct immutable staged binding maps and values through resumable instructions, then swap a bounded set of scope-root bindings. Logical handles resolve through that map; raw snapshot references do not silently retarget. Preparation binds the committed base-data epoch, source/authority views, profile/catalog identities, relevant scope/binding roots, and the exact directory/allocator/queue/ledger reservations needed for publication. Staging captures its own completed allocations before sealing this token. Only declared private progress and consumption of its own reservations may proceed without invalidating it; interfering changes require revalidation or make it stale.
+
+Any intervening committed base change conservatively invalidates the first implementation's preparation. Finer dependency checks can later avoid unrelated invalidation. Clock advancement alone is not a base-value change. All preparation, copying, checking, retries and failed publication consume the original task budget; staged publication cannot reset work or bypass a changed profile.
+
+Every derived claim or reusable result retains its relevant premise, program, type-catalog, and context versions. Candidate catalogs are dependencies too: a newly admitted alternative can invalidate a choice without modifying its old winner. An invalidation wave marks affected claims and continuations stale and reopens only necessary computation. Consumers refuse stale results before the wave finishes.
+
+Retraction differs from rollback. Removing admitted support invalidates or rebuilds durable relationships through their contribution semantics; it does not merely discard a branch. Exact contribution removal, source-driven rebuild, applicability change, and inability to reconstruct are distinct outcomes. Incomplete reconstruction marks every affected claim/plan/result `retraction-incomplete` or unsupported and blocks serving it as valid. Rebuilding uses admissible contribution records and current \(E_t\), through explicit machine work. No cached projection or old checkpoint can restore revoked support.
+
+Exact search is a stored program over this machinery: select a legal assumption, begin a scope, propagate, audit conflict, rollback or retain a witness, and advance the remaining frontier. Exhausted search remains exhausted. Matching barriers, hybrid root contradictions, and implication vacuity retain their own evidence meanings.
+
+### 32.12 Timescales, learning, and credit assignment
+
+Fast activity, working retention, and durable learning are different update modes within the same image. Excitation and recovery coordinate current work; scoped values retain unresolved computation; supported relations and procedures survive quiet periods. Coldness alone cannot erase knowledge. Decay, retirement and consolidation are explicit support-tracked operations; exact code, identifiers, constraints and evidence types never decay as activation. Neither trace nor recovery state becomes durable knowledge without an admitted learning update.
+
+The learning episode binds a context and budget, available alternatives, selected computation, frozen predictions/cost expectations, executed work, outcome and admitted feedback identity. Its canonical credit record names operation/procedure/continuation IDs; pre-outcome input and dependency versions; contribution span; outcome ID and class; attribution status (`direct`, `matched`, `intervention`, `ambiguous`, `no-credit`); full cost vector and allocation rule; and the resulting update identity. Pauses, requeues and resumed fragments retain the same lineage.
+
+Outcome classes distinguish an internally certified result, an acknowledged adapter observation, unknown/no feedback, and fault/resource denial. A transport acknowledgment is not automatically a world outcome. An attempted comparison is counted even when it yields no useful preference. Missing feedback is not failure evidence; ambiguous outcomes earn no causal or world-model credit, although independently measured, correctly scoped cost can still be recorded. Resource exhaustion may inform bounded noncompletion/cost estimates, never unsatisfiability or a negative world fact.
+
+Begin with the existing policy's bounded support, recent/long windows, synchronized aging, exploration and deterministic ties, lowered into stored programs. Preserve budget-class distinctions and learn only from the method actually executed. Source identity, benchmark name, hidden answer, and test membership remain excluded from preference inputs. The measurements in Section 31.6 do not establish an overall winning policy.
+
+An eligibility trace can identify earlier activity that might deserve credit; it is not proof of causation. Update narrow contextual preferences from typed outcomes first; use matched alternatives or authorized interventions for stronger attribution. A branch eliminates an alternative only through a checked contradiction or valid negative observation under its explicit assumptions. Timeout, numerical fault, denied authority and missing observation do not eliminate it. Raw firing count or immediate positive output is not the reward definition.
+
+The optimization objective preserves correctness and checked completion under declared limits, then compares total work, latency, peak memory, and measured energy separately. Learning, selection, candidate search, auditing, persistence, and unsuccessful attempts count. A method that drops hard cases or changes the stopping rule has not earned a speed improvement.
+
+Actual shared work is charged once in the global ledger. The initial deterministic allocation assigns construction/search cost to its originating task; later consumers pay their own lookup, transfer, guard/revalidation and execution costs. A declared shared sponsor can replace that rule only without duplicating or losing global cost. Accounting includes failed branches, requeues, caching, invalidation, compilation, learning and persistence. Claimed counterfactual savings are separate comparisons, not negative charges. All learned timing/cost observations use the identified admission path in Section 32.10.
+
+Consolidation runs as a budgeted stored program when useful work and authorized resource headroom exist. It may reorganize storage, rebuild a bounded index, replay admitted evidence, derive a reduction, or assess a procedure. Replay preserves observation identity and cannot manufacture independent support. Consolidation is interruptible and does not need a new heartbeat, sleep subsystem, or background learner.
+
+### 32.13 Procedure, representation, and improvement learning
+
+The strongest ambition is learning ways of computing and representing that transfer beyond previously solved inputs. Four nested activities use the same program/assessment machinery:
+
+1. Select a useful legal computation in the present context.
+2. Discover reusable decomposition and a cheaper representation of repeated work.
+3. Construct and check guarded procedures that implement those decompositions.
+4. Improve the bounded proposal and assessment strategies themselves.
+
+Candidate generation has a concrete substrate: typed program edits, composition of admitted procedures, parameter extraction, dependency factoring, context splitting, alternate relation scopes, and exact reductions whose assumptions are available. The candidate frontier, parentage, guards, counterexamples, assessment results, and search costs are field regions. No external optimizer owns the search.
+
+Promotion separates two claims. A heuristic preference is evidence that a procedure may be useful in a context. An exact substitution additionally needs a proof or a complete check over its declared finite domain. For total, pure Boolean procedures \(P,Q\) on that bounded encoded domain under guard \(G\), an independently checked refutation of
+
+\[
+\exists x:\ G(x)\land(P(x)\ne Q(x))
+\]
+
+establishes that finite encoded equivalence, not arbitrary program equivalence. Numerical replacements require propagated error bounds and preserved readout/guard assumptions. Restricted semantics-preserving compiler transformations can provide stronger general guarantees than sampled success.
+
+Stateful replacement must additionally preserve the declared return, mutation, event, epistemic/error and termination behavior at observable yield and authority boundaries. Matching one scalar output is insufficient. Any permitted cost/timing difference has an explicit comparison rule and remains charged; optimization cannot conceal an externally visible reordering or skip a required pause. The existing exact hot-block path keeps its stronger complete-successor-field comparison.
+
+A reusable procedure records its interface, applicability guard, source/parent versions, correctness class, identified full-cost observations, counterexamples and retirement conditions. Guards return `true`, `false`, `unknown`, `stale` or `error`; only an exactly checked `true` over current typed inputs/dependencies admits a specialized substitution. Unknown, stale or failed guards use the ordinary valid procedure or a typed unresolved result, never similarity-based permission or a hidden model.
+
+Heuristic promotion only changes ranking among valid alternatives. Exact semantic substitution requires the declared proof/check. Approximate substitution additionally requires an authorized task tolerance, propagated input/solver/readout error and preserved guard/termination semantics; otherwise it refuses or uses the valid ordinary procedure. No replacement may weaken proof acceptance, truth type, stopping limits or authority. A specialized block replaces its constituents' work; replaying its assessment does not count them as fresh independent evidence.
+
+Representation discovery proposes entities, roles, context distinctions, scopes and procedures when current structure repeatedly fails, interferes, or duplicates work. Promotion must improve prospective consequences while preserving rare guards and identity. Merging two indistinguishable histories is test-relative; it is not proof that they are the same world state.
+
+Recursive improvement changes field-resident proposal programs and cost expectations, not the trusted evaluator, fixed authority, user objective, or evidence rules. Arbitrary equivalence and optimal program discovery are undecidable in general. Finite search limits and restricted proof languages are essential parts of the design, not temporary limitations to hide.
+
+### 32.14 Evidence, external interaction, and authority
+
+The machine produces a typed external request containing operation identity, target, requested values/effect, scope, dependency roots, prediction identity, resource/risk bounds, and required authority reference. The existing owner checks current permissions at the point of effect. Internal priority, confidence, numerical stability, or a learned goal cannot authorize it.
+
+Where policy requires confirmation, the permission record binds the exact target, scope and values to explicit user approval at the point of risk. Provider-safety checks require explicit interactive approval and fail closed without it. The machine cannot infer approval from retrieved text, its own confidence or an earlier unrelated grant.
+
+A proposal, request, dispatch and acknowledgment have distinct states. A crash after dispatch but before acknowledgment is an unknown external outcome, not permission to retry blindly. The adapter reconciles the durable operation identity; acknowledged bytes enter \(E_t\), and the corresponding identified event is consumed once. Its type is an adapter-report observation carrying source, transport and verification class. “The adapter reports success” becomes a checked world fact only when the declared observation contract actually verifies that fact; an acknowledgment alone does not.
+
+Observed world time is input data. The machine's transition counter orders its computation, not physical events. A prediction is committed before its outcome; late or reordered observations retain their original identity and timing context.
+
+Source text, tool output and retrieved instructions remain data. Interpretation cannot rewrite the objective, capabilities, schemas, or instruction catalog. External authority and revocation generations are checked even when an old field image is internally hash-valid. A restored field with stale authority becomes blocked/stale, not operationally authorized.
+
+Blocked results distinguish missing evidence, unavailable representation, insufficient computation, numerical failure, denied authority, and exhausted capacity. More internal iterations cannot recover an unobserved distinction. Information seeking is a program choice among permitted operations, not automatic access to external effects.
+
+### 32.15 Grounded language, planning, and shared cognition
+
+The current language implementation learns and applies small aligned constructions with bound roles and semantic programs. Its exact template matching and rendering are a migration baseline, not open-vocabulary language competence.
+
+The ambitious language path keeps exact utterance bytes as evidence, constructs candidate lexical/syntactic/reference bindings in scoped regions, and constrains them through shared entities, relations, context and consequences. Interpretation and expression use the same construction/procedure identities. The machine retains ambiguity when several bindings survive and reports representation insufficiency when none is supported.
+
+Acquisition proceeds from aligned observations, actions, outcomes, corrections, and contrastive examples. It expands reusable constructions and composition rather than importing learned embeddings, a neural decoder, or a teacher-model fallback. Variable-length sequences, productive composition, unseen role combinations, and discourse reference are targets requiring actual held-out behavior. Exact agreement with one template does not establish them.
+
+Expression starts from supported content, communicative purpose, source/uncertainty obligations, and permitted disclosure. A candidate utterance must preserve the intended role bindings and epistemic distinctions; fluency cannot supply missing evidence. Stopping follows completion of the communicative structure or an explicit bound, never the hidden target length.
+
+Planning uses the same relational structures with desired endpoints and hypothetical transitions. Goals are user-authorized values, not observations and not unrestricted self-generated objectives. The machine can propose subgoals whose relevance and authority remain attached to their parent goal.
+
+An interpreted utterance can propose a goal, but only the \(A_t\) goal-admission boundary creates an authorized desired endpoint. Generated language is an output, never evidence for its own claims. Inquiry is an ordinary program that produces a permitted external request; its result re-enters through the identified observation/acknowledgment path in Section 32.14 and updates the same relation bindings. Missing or ambiguous feedback remains unresolved.
+
+Coarse-to-fine plans retain boundary conditions, assumptions, temporal dependencies and guarded procedures. The next consequential unresolved segment receives detail; distant segments may remain set-valued. A changed premise reopens affected segments without resetting completed acknowledged effects. Certified numerical margins remain conditional on their represented model.
+
+Entity binding, temporal prediction, inquiry, planning, language and explanation therefore share representations and the same instruction/event path. There is no dedicated semantic memory for each output surface and no text-only reasoning loop required for intermediate computation.
+
+### 32.16 Capacity, performance, and selective execution
+
+The profile bounds total words, live regions and non-reused registry identities; code and call frames; scope depth and overlays; event count, reservations and fan-out work; graph edges and automaton sites; proof/assessment journals; numeric coefficient width and matrix dimensions; and task/learning/consolidation fuel. Every counter and reservation is checked before publication, including reserved failure bookkeeping. Saturation cannot silently reinterpret a value or erase useful state; Section 32.9 specifies terminal counter behavior.
+
+Per-transition accounting distinguishes logical instructions, native scalar/site work, bytes decoded/read/written, physical copies, proof checks, queue/dependency work, transfers, and elapsed time. A scan over a million rows is not one scalar operation because it has one opcode. Migration preserves spent resource history and cannot create a zero-work infinite continuation.
+
+The field's logical ledger uses deterministic reference charges independent of cache and batch strategy. Actual host timing, physical copies/transfers and energy are receipt telemetry by default, entering \(F_t\) only through identified admission. A cache hit cannot silently alter logical fuel or create adaptive feedback. Both logical work and measured physical cost are reported, so deterministic replay does not hide an inefficient implementation.
+
+Capacity pressure has explicit alternatives: finish or defer work, compact exact storage, retire an invalidated derived artifact, archive immutable completed evidence, request authorized growth, or report exhaustion. Lossy semantic consolidation is a separate assessed operation. Forgetting has an exact target and revocation effect; it is never hidden allocator behavior.
+
+Event-driven execution begins with exact dependencies and a correct full-work reference. Updating one variable can awaken affected constraints instead of rescanning every unrelated constraint. Sparse execution must include all incoming coupling and validity dependencies. For continuous dynamics, skipping a region requires a valid frozen-state, analytic advancement, or bounded-error argument; apparent quietness is insufficient.
+
+Retain one-working-copy batches and valid hot-block execution rather than replacing them. Add region-local decoding, incremental validation/persistence, bounded native panels, and sparse active sets only where measured total cost improves. A prototype packed backend or GPU kernel must include transfer, synchronization, decoding, checking and memory costs.
+
+The exact reference profile fixes reduction order, rounding, integer overflow, native-library/kernel identity and replay behavior. A backend with different floating arithmetic has a distinct profile and numerical comparison criteria; it cannot claim byte-identical replay by tolerance. Exact identifiers, proofs, and authority rules remain exact on every backend.
+
+Distribution is a physical execution extension of one logical machine. Workers receive immutable regional views and return bounded proposals; one logical publisher checks dependencies and commits. Independent learned workers, divergent regional clocks, and eventual-consistency cognition are outside this design.
+
+### 32.17 Universality and the research frontier
+
+The existing abstract two-stack construction supplies the starting universal-machine argument. Regional memory, runtime calls, exact computation and numerical kernels extend its practical vocabulary; they are not needed to claim an unproved stronger form of computability.
+
+Every fixed regional profile is finite. Universality refers to the abstract machine with expandable storage and counters, not to one fixed u32 directory or finite tensor. A uniform implementation family must widen address/counter representations explicitly when approaching a profile limit; actual overflow is exhaustion. No finite workload proves all programs correct or establishes a complexity-class separation.
+
+Two ambitions remain distinct:
+
+- **Automaton-guided universal computation:** the native automaton coordinates all eligible stored-program work under exact instruction semantics. This is the implementation destination specified above.
+- **Automaton-implemented universal computation:** local field transitions themselves realize storage, control and universal instruction behavior. This requires a separate simulation construction, not merely causal scheduling.
+
+The latter research path must exhibit a finite alphabet or exact local encoding, uniform local rules and boundary conditions, an encoding/decoding map, simulation invariants for each primitive, and explicit time/space overhead. Demonstrating a gate or useful wave is insufficient. A finite step comparison tests an implementation of that construction; the general simulation argument remains mathematical. Failure to embed the current ring law does not justify an unnoticed alternative field or a false universality claim.
+
+Other open questions are useful representation discovery from bounded evidence, transferable credit assignment, retention under lifelong interference, grounded productive language, safe planning under missing world outcomes, and whether field-directed execution repays its full cost. Brain-like specialization, oscillation, or shared state establishes none of these automatically. The design makes their computations, evidence and failure states inspectable.
+
+### 32.18 Complete capability migration inventory
+
+**Implemented migration.** Every row below has a fixed-catalog regional task, bounded transition behavior, restart coverage, and a retained reference comparison. The table records the cutover contract that those implementations continue to satisfy; its imperative wording is an acceptance boundary, not future status. Research runners and legacy object methods remain independent references, not normal runtime dispatch.
+
+| Migrated family and source semantics | Canonical image data | Regional computation and preserved behavior | Exercised completion boundary |
+|---|---|---|---|
+| Scalar machine and compiler: `cassi_field_computer.py`, `cassi_field_program.py` | Program, stacks, accumulator, PC, hot observations, call frames and work | Preserve scalar meanings, raw/Turing/structured input translation, pause/fault/budget behavior; extend regional compiler and execution together | Generated tape programs and structured programs retain observable results; regional calls/events/scopes run with identical same-version step/batch/reload images |
+| Native automaton: `cassi_constraint_dynamics.py` | All excitation/recovery/trace/delay lanes, counters, topology and pending relaxation | Reuse bounded synchronous law; extend declared topology; eligibility remains exact | With two eligible operations, an excitation-only intervention changes the selected operation; exact result checking still rejects illegal deductions; ring/topology and restart comparisons |
+| Clause search: `cassi_clause_field.py` | Clauses, assignment, levels, reasons, trail, decision phases, learned clauses, proof-construction state and counters | Replace direct `ClauseField.step/solve` control with stored propagation/decision/conflict/backtracking programs and bounded rule kernels | Compare decoded transition state and proof prefixes; source-check witnesses, independently audit refutations, preserve evidence-free exhaustion |
+| Hybrid inference: `cassi_hybrid_inference.py` | Exact line coefficients, kinds, RHS, premises, auxiliary definitions, plan/frontier cursor and budgets | Enumerate and append bounded PB/GF(2)/resolution rules as programs; no hidden `_Plan` or whole prepass | Compare each rule/premise line and root contradiction; unfinished and exhausted runs never invent a proof root |
+| Circuit and bounded-transition sources: `cassi_constraint_field.py` | Compiled source/ID map, native relations, prepass/search phases, augmentation provenance, journals and budget partition | Keep canonical nonlearned source translation; lower prepass, augmentation and search orchestration; preserve local/conflict/algebraic distinctions | Same canonical compiled digest and witness mapping; source-replayed SAT, audited UNSAT, explicit local stall and every capacity failure |
+| Implication and relational augmentation: `cassi_constraint_implication.py` | Assumptions, consequence bindings, candidate/query frontier, augmented-source references and audit progress | Stored implication/query enumeration over shared solving procedures | Preserve `vacuous`, `holds`, `refuted`, `unresolved`; check boundary clash, certificate or source counterexample as appropriate |
+| Cubic kernel/basis analysis: `cubic_kernel_decision.py` | Incidence/RREF rational words, pivot/free IDs, basis/geometry search frontier, 2-SAT or enumeration cursor and work | Lower exact elimination, projective/basis recognition, finite-domain propagation and decision loops; retain declared cubic domain and exponential cases | Canonical system/pivot mappings and decoded prefixes agree; independently check assignments/basis evidence and profile refusal; no unrestricted polynomial claim |
+| Cubic reduction: `cassi_cubic_reduction.py` | Residual affine systems, recursive frontier, invocation-local preferences, memo records, progress potential, lift maps and proof nodes | Replace `_Context`, host recursion and residual memo with scoped regions/programs; bounded RREF/projection/reduction operations | Check every transformation/lift on the original source; preserve finite-rule `unresolved`; preferences and memo do not leak into later tasks without a separately assessed learning change |
+| Degree-two/three alias enumeration: `cassi_alias_exact_one_field.py` | Incidence/degrees/cubic IDs, branch cursor, assignments, matching workspace and barriers | Stored enumeration over bounded matching/obstruction operations | A selected SAT branch matches its bits and source; UNSAT covers every required branch and obstruction |
+| Alias obstruction derivation: `cassi_alias_obstruction.py` | Resumable residual graph, component/barrier/cut construction and work, when suspended | Lower matching and cut derivation into bounded operations; retain overfill and Tutte justification | Every projected cut excludes its triggering assignment and has checked source/obstruction premises |
+| Cut-guided alias search: `cassi_alias_cut_field.py` | Source, cuts, clause-search state, conflict journal, restarts, assignment and coupled capacities | Stored alternation of clause search, matching evaluation and verified cut insertion; no nested live backend | Preserve cuts/alias clauses/backend-source correspondence and conflict counts; restart mid-cut; audit terminal witness/proof and each exhausted reason |
+| Connected matched exact-one/parity: `cassi_general_matched_field.py` | Blocks, parity/auxiliary graph, blossom/BFS frontier, matching, barrier, assignment and root cursor | Stored matching/root schedule with bounded edge/frontier kernels | Check exact-one/parity witness or independent Tutte deficiency; preserve partial matching across restart |
+| Canonical mixed exact-one: `cassi_mixed_exact_one_field.py` | Cycle/chord labels, pair cursor, reachability/predecessor layers and assignment | Stored pair-wise dynamic program and bounded candidate update | Compare all reachable/parent layers; SAT path checks source, UNSAT has no accepting boundary |
+| Method learning: `cassi_computation_policy.py` | All policy planes, context epochs, recent/long support, frozen selections, assessments and feedback identities | Context extraction, ranking, exploration, decay and once-only observation updates become machine programs | Same decoded preference updates for recorded timing/work events; only executed method learns; retain budget distinctions and the measured absence of an overall winner |
+| Computer record and continuation: `cassi_learning_computer.py` | Machine/task IDs, policy references, complete solver phase, source/method/policy bindings, episode and lifetime budgets, cumulative work | Remove independent `PolicyState` and `SolverContinuation` ownership; `solve/continue-solve` prepare/resume the same machine path | Mid-prepass/search restart with old objects unavailable; reject changed source/method, stale policy boundary and underfunded resume; no learning on pause |
+| Atlas identities and charts: `cassi_field_atlas.py` (`VariableSpec`, `RelationChart`, `AtlasState`) | Every identity, chart numeric word, contribution reference, guard, mode, support, version and applicability record | Atlas becomes a regional view; observation/rebuild/retraction are stored programs and bounded numeric operations | Preserve decoded chart/support values and contribution identities; scoped inference leaves retained memory unchanged; selective source revision propagates correctly |
+| Variational arithmetic: `cassi_variational_field.py` | Factor geometry references, covariance/workspace words, numeric continuation and allowances | Reuse fixed arithmetic over machine views; decompose long solves into bounded panels/iterations | Preserve declared SPD/norm/precision properties, output bounds and fixed-model action margins under the named arithmetic profile |
+| Stored cognitive programs and assessments: `cassi_field_atlas.py`, `cassi_field_cognition.py` | Primitive programs, candidates, guards, prediction-before-outcome records, assessments and promotion state | Replace the separate `FieldProgram.execute` evaluator with regional IR; proposal/assessment loops are stored programs | Same finite baseline predictions, losses, promotion/refusal and support identities; old evaluator is unavailable in the live path |
+| Language constructions: `cassi_field_atlas.py`, `cassi_field_cognition.py` | Patterns, lexical/role bindings, semantic-program references, support, context, status and parse/generation frontier | Lower exact baseline tokenize/interpret/render and then expand shared compositional programs | Preserve baseline role round-trip and ambiguous/unsupported results; checkpoint during interpretation/expression; open-language competence requires separate held-out evidence |
+| Predictions, branches, plans and explanations: `cassi_field_atlas.py`, `cassi_field_cognition.py` | All prepared/frozen query branches, responses, assumptions, goals, segments, dependencies, prediction/actual joins and explanation cursors | One scoped query/planning/revision program path; explanation reads actual support | Restart mid-branch; one premise change updates the affected answer/plan/explanation and preserves unrelated or acknowledged work |
+| Inquiry and conditional certificates: `cassi_field_cognition.py`, `cassi_temporal_inquiry.py` | Survivor sets, policy trees, candidate readouts, numeric/proof cursors and unresolved obligations | Bounded inquiry search and fixed arithmetic checks over regional state; root external action remains a proposal | Same baseline choices/margins/refusals; failed assumptions fire checks; no model-conditional bound becomes world truth or authority |
+| Resonant dynamics: `cassi_resonant_field.py` | Wave words, bindings, phases, local ticks/subdivisions, activity, objective dependencies, pending integration and ledger | Lower numerical advance/impulse programs; retain shared stateless integration kernels and one machine clock | Preserve named-profile wave/energy/work behavior and pause/restart; phase states are regions, not another `ResonantWorkspace` owner |
+| Transceivers and reductions: `cassi_field_transceiver.py`, `cassi_field_atlas.py` | Admitted realization/reduction recipes, parent versions, full/reduced state, inputs, error radii, horizon and construction/advance cursors | Lower construction, condensation, advance and expansion; bounded matrix operations only, no whole numerical builder callback | Preserve boundary readout/guards, reduced-to-full expansion and accumulated uncertainty; resume during construction and execution |
+| Temporal memory and skills: `cassi_temporal_field.py` | Transition exposures/destinations/coverage, participant histories/candidates, learned ranks/policies, projection scopes and learning frontier | Lower induction, consumption, reset, skill construction and selection into shared programs/events | Same baseline source replay, participant independence, supported decreasing rank and unknown-support refusal; no parallel `TemporalField` continuation |
+| Owner, evidence and publication: `cassi_field_owner.py` | Internal tasks, admission/revision cursors, adaptive inventories, pending learning and cognitive scheduling; external \(E/A\) remain separate | Keep one publisher; replace family-specific execution with event/program submission; retain exact store, grants and durable effects | Complete image closure; checkpoint at admission/acknowledgment boundaries; duplicate operation never reexecutes or relearns; stale authority cannot act |
+| CLI, CassiPi and runtime surfaces: `run_cassi_computer.py`, `runtime/cassi_cassipi_worker.py`, `runtime/cassi_cassipi_v2.py` | Any behavior-affecting internal task/timer continuation and cognitive routing | Fixed codecs, authentication, transport, nonlearned lifecycle and disposable view caches remain outside learning; timers deliver identified bounded-work requests to the resident machine | Separate-process load/run/pause/reopen/resume/retry; read-only inspection does not compute; the v4 installed runtime has the same image/catalog, rejects retired operations, and does not ship the legacy importer |
+
+Source codecs remain fixed and nonadaptive, but computational builders are not automatically codecs. RREF, Krylov construction, matching, candidate search and learned-language interpretation must carry explicit bounded progress if they run as part of a task. A host source compiler may parse/canonicalize declarations and emit code; it may not solve the task while pretending to encode it.
+
+Research runners, independent verifiers and read-only mathematical probes remain external test clients. They are not hidden runtime services. `prototype/` and `legacy/` remain reference/paper/archive material and are not imported as live capabilities or migrated into a fallback.
+
+### 32.19 Cutover, restoration, and public surfaces
+
+The migration is explicit, source-bound and lossless for retained meanings:
+
+1. Acquire the existing owner lock, resolve the exact current head, and validate the entire existing state/evidence/authority closure. Refuse partial or corrupt input without advancing it.
+2. Inventory every adaptive and unfinished value in Section 32.18, including currently invocation-local recursion, memoization and cursors. A nonserializable active host computation must reach a defined safe boundary or be explicitly reported as unsupported migration; it cannot be silently dropped or restarted.
+3. Compute required words, directory entries, continuation/code sizes and work ceilings before allocation. Choose an authorized regional profile with a new fingerprint. Insufficient space refuses the import; it never truncates records.
+4. Allocate typed regions and encode all retained values and identities. Preserve exact source/witness mappings, numeric payload bits under their codec, scope/guard dependencies, program origins, event histories that affect decisions, policy support and unfinished budget partitions.
+5. Translate admitted programs and execution positions into regional IR and continuations. Bind each translated position to its source program/algorithm phase. Preserve spent logical work as imported lineage; charge conversion and new execution work explicitly. If old and new atomic-work units differ, establish a conservative conversion or require a new authorized fuel allowance while retaining the old spent/remaining record. Do not silently reset lifetime limits.
+6. Verify the new image and region/reference closure, compare decoded retained values, and bind the input descriptor hashes to the new image in the migration receipt. Byte-identical old and new whole-image hashes are neither possible nor required across a layout change.
+7. Flush the new immutable image/chunks and receipt through the existing publication machinery; only then move the current head. The original input remains an immutable migration source. Normal regional startup refuses an unmigrated head instead of falling back to an old engine.
+8. Remove the old live adaptive containers and dispatch paths after their rows are exercised. `AtlasState` and any retained computer record are logical views/references only. Legacy readers belong to explicit offline import or independent reference verification, not runtime alternatives.
+
+No policy, solver, temporal, chart, branch, transceiver or wave state is regenerated from its source when reopening the regional machine. Reopening decodes the complete image and checks its external evidence/authority references. Ordinary explicit learning/rebuild programs may later use admitted evidence; restoration itself cannot manufacture a new learned history.
+
+Public commands remain task-oriented. `load` admits a program; `advance` executes bounded transitions; `solve` compiles a source plus a solving procedure and schedules it; `continue-solve` resumes its field-resident task identity. They do not route to different evaluators. `think`, observation learning, temporal work, interpretation and expression similarly submit admitted programs/events. `query` and inspection only project a prepared result.
+
+`restart` names a task/program scope and its permitted reset set. It cannot clear the global event sequence, retained policy, unrelated work, or the machine's cumulative resource history. `grow` changes storage through the profiled operation. Destructive task replacement is explicit and cannot abandon an unresolved external effect.
+
+Runtime request/response identities, compatibility IDs, compiler output, profile/schema readers, CLI callers, owner methods, package closure/builders, installed adapters, and relevant existing tests change in the same implementation cutover. `runtime/build_cassipi_runtime.py` and `runtime/cassipi_closure.json` must bind the actual shipped source and instruction catalog. No old compatibility launcher or broad family callback remains as an undocumented path.
+
+### 32.20 Verification through actual behavior
+
+The migration checks run actual machine programs. Each family has focused pause,
+serialization, restoration, continuation, source-semantic comparison, fault,
+capacity, and replay coverage appropriate to its state. The common installed
+runtime check builds the declared closure, starts it from an unrelated working
+directory, pauses a temporal induction after one transition, closes the process,
+reopens the same image in a fresh process, completes it, invokes a second typed
+operation, and verifies exactly-once retry. It also confirms that retired worker
+operations return `UNSUPPORTED_OPERATION`.
+
+The no-fallback guard is exercised rather than inferred from a zero counter.
+The package probe replaces `FieldProgram.execute` with a throwing guard, calls
+it once to prove the guard fires, and then completes the same cognition task
+through `cognition.field`. The isolated installed-process check attempts to
+import `cassi_cassipi_import` and receives `ModuleNotFoundError`; that module is
+absent from the 33-file closure.
+
+Concrete behavioral checks cover:
+
+| Boundary | Failure that must be observable |
+|---|---|
+| Layout and references | Overlap, aliasing, truncation, stale generation/registry identity, cyclic ancestry, noncanonical words, forged rights and counter wrap reject; terminal-clock attempts return exhaustion without another transition; quarantined bytes cannot be reused |
+| Regional composition | A result written in one region is consumed by a different procedure/region; scope escape and incompatible effects fail |
+| Event ordering | Equal priorities and same-time events replay in the specified total order; queues/cursors survive restart; overflow never loses an observation or half-publishes data |
+| Liveness | A continuously ready low-priority operation is serviced under the finite fairness rule; waiting/deadlocked/exhausted states remain distinct |
+| Automaton causality | Two simultaneously legal operations change order under a field-only excitation intervention; an ineligible operation still cannot run under increased excitation |
+| Transactions | Parent rollback disables descendant events before bounded reclamation; stale/profile-changed commits reject; staged root publication preserves logical handles without exposing half an update |
+| Dependencies | A changed premise invalidates every affected result, including choices dependent on candidate catalogs, without erasing unrelated valid results |
+| Learning | Recorded outcome/timing events update once; ambiguous feedback and faults supply no world credit; pause/retry/replay cannot add support; preference ablation changes a real choice without changing truth |
+| Procedures | Unknown/stale guards cannot authorize substitution; a counterexample rejects an exact replacement; approximate execution preserves declared uncertainty and stopping; all discovery/checking work is charged |
+| Numeric execution | Incoming uncertainty, omitted state and solver error remain in the output allowance; switching to full execution cannot erase accumulated error |
+| Evidence and authority | Hypothetical requests cannot dispatch; commit cannot drop assumptions; transport acknowledgment is not world truth; revoked authority blocks a valid old image; uncertain effects are reconciled rather than repeated |
+| Capacity and cost | Every declared bound can stop actual work; instruction counts do not hide unbounded kernels, queue scans, copying or compilation |
+| Replay and publication | A crash between image/receipt publication cannot reexecute a committed success or typed failure; identical recorded input streams preserve step/batch results despite different diagnostic host timings |
+
+Migration first compares each family with its retained reference semantics. Once equivalence is established, scheduling and representation changes receive separate comparisons; an intentional new choice must not be disguised as migration fidelity. Timings are fresh measurements with retained scope and workload identity, not promises to reproduce a historical duration.
+
+Broader capability assessment uses unseen compositions, source renamings, changed order/budgets, longer dependency chains, larger sizes within limits, corrections, and counterfactual field interventions. Report checked completions, unresolved/exhausted cases, total cost, memory, retention and disclosure boundaries. Do not replace these with a single coherence score or claim that additional regions establish intelligence.
+
+No new preregistration, frozen verdict, or separate protocol-document system is introduced. Implement a concrete behavior, run it, preserve meaningful regressions, inspect the failure, and update this implementation boundary from observed results.
+
+### 32.21 Implemented sequence and continuing research
+
+The implementation followed these dependencies without redefining the destination:
+
+1. **Regional state and executable access.** The versioned profile/image, directory validator, typed references, compiler/ISA access, and cross-region execution landed together.
+2. **One routed continuation path.** The field queue, total ordering, native automaton, bounded dispatch, and effects share one transition path.
+3. **Solver and policy ownership.** Clause search, constraint solving, policy learning, and continuation state are regional tasks; `solve` and `continue-solve` resume the same image.
+4. **Exact families.** Hybrid inference, implication, cubic kernel/reduction, alias enumeration/cuts, general matching, and mixed dynamic programming use bounded catalog kernels with retained source semantics.
+5. **Cognitive and numerical families.** Atlas, variational, cognition, language, inquiry, resonant, transceiver, and temporal state use the same image and catalog.
+6. **Sustained episode.** The Section 32.22 episode pauses, reopens, revises a premise, crosses the authority boundary, incorporates acknowledgment, expresses the result, and survives revocation with the old evaluator unavailable.
+7. **Learning and representation.** The machine retains shared entity identities and assesses restricted straight-line scalar procedures with explicit guards and work.
+8. **Sparse storage.** Sparse paging and profiled growth preserve exact descriptors and values across restart.
+
+Continuing research expands productive language, representation discovery,
+longer-horizon repair, useful transfer, sparse performance, numerical backends,
+distribution, and the deeper automaton-implemented construction. These remain
+empirical or mathematical questions, not missing runtime cutover work.
+
+### 32.22 Sustained episode and observable ambition
+
+The exercised bounded episode combines the design's capabilities without giving each one a separate model:
+
+1. An authorized observation identifies an instrument, its location and an access condition. Exact bytes enter the evidence store; one shared relation is admitted in the machine.
+2. A small acquired construction binds a user's request to those same entity and goal IDs. An unsupported or ambiguous binding remains explicit.
+3. A stored planning procedure calls retained relations and temporal knowledge, creates hypothetical alternatives, propagates constraints and uses the automaton to schedule eligible unresolved work.
+4. The machine pauses with a pending branch, queue events and partial proof/numerical work. A fresh process restores the image and continues without any old solver, atlas evaluator or temporal object.
+5. A permitted observation changes the access premise. The dependency mechanism invalidates the affected plan segment, query answer and explanation; unrelated knowledge and acknowledged completed effects remain unchanged.
+6. The machine refines alternatives, checks a proposed action's model/evidence obligations, and emits an external request. The owner authorizes it separately; its actual acknowledgment becomes an identified observation.
+7. The same machine compares the prior prediction with the outcome, admits one justified update, and records the computation's full cost. A useful procedure may later be proposed and assessed on new cases; replay does not count as a fresh observation.
+8. Expression uses the same updated relationships to communicate the result, remaining uncertainty and source support. The explanation traces actual dependencies, not a second narrative model.
+9. A requested source revocation prevents old checkpoints and cached procedures from restoring that support. The machine retains unaffected useful knowledge and states exactly what can no longer be answered.
+
+The engineering result is one regional image and one executable causal path throughout this bounded episode. `test_strict_sustained_episode_stays_in_one_machine_and_checks_authority` verifies the pause/reopen boundary, premise revision, authorization refusal and success, exactly-once acknowledgment assessment, source revocation, stale-checkpoint rejection, retained unrelated knowledge, and accumulated work while `FieldProgram.execute` is unavailable. The cognitive ambition is that learned relationships and procedures make unfamiliar episodes more capable and economical; that broader claim requires continuing evidence rather than architectural assertion.
+
+## 33. Field-native world modeling and lifelong general intelligence
+
+### 33.1 Decision, ambition, and present boundary
+
+**Specified mechanism.** World modeling becomes a shared use of the regional computer, with one learned representation serving perception, prediction, causal inquiry, action, language, explanation, and computational improvement. It has no separate model checkpoint, hidden-state owner, planner service, or learned sensory front end. Section 32 supplies the execution architecture; this section specifies the cognitive semantics and acquisition mechanisms that architecture must support.
+
+Unless a paragraph is explicitly labeled as implemented basis, the records, algorithms, and lifecycle in this section are specifications. Their source map names implementation responsibility, not already available generic world-model operations.
+
+The destination is an intelligence that enters an unfamiliar interactive environment, discovers useful distinctions and mechanisms from accessible observations, learns what its actions can change, maintains uncertainty about what it cannot observe, and acquires reusable ways of investigating and solving problems. Its competence should improve across a continuing lifetime and transfer to genuinely different situations. It must also recognize when its observations, concepts, causal assumptions, or computation cannot answer a question.
+
+The scope includes physical objects, continuous fields, organisms and other agents, language, software, tools, and its own computation. No privileged list of everyday object categories or complete library of tasks is built into the target. A typed computational vocabulary is necessary; a fixed inventory of all useful concepts is not.
+
+**Implemented basis.** The production path already supplies the single regional image, bounded kernels, retained continuation, generic identity/scope storage, and the exercised evidence and authority behavior described in Section 32. The full typed shared-semantic graph remains an integration target. The canonical temporal kernel in `cassi_temporal_field.py` supplies bounded categorical induction and consumption over declared action and observation vocabularies. Its induction path creates a successor for a previously unseen state/action/observation triple. An observation can distinguish successors after the same action; this is not a general continuous transition law or an acquired predictive-state quotient.
+
+That temporal profile has finite vocabulary and state limits. A history representation that retains distinct prefixes is a legitimate starting representation: identical current observations can conceal different future timers or hidden causes. The required advance is to learn useful, guarded predictive abstractions over histories, not to merge every repeated token or to rename the existing graph a general world model.
+
+**Research question.** The mechanisms below are implementable choices, not a claim that their combination already yields unrestricted intelligence. Efficient discovery of useful latent structure, high-dimensional perception, long-horizon planning, and reliable transfer remain empirical and mathematical questions. Computational universality alone establishes none of them.
+
+### 33.2 One image, several semantic views
+
+At machine transition \(k\), let \(F_k\) denote the sole adaptive field image. Use four logical views:
+
+- \(M_k\): representations, mechanisms, observation models, learned programs, and their applicability;
+- \(B_k\): current beliefs about entities, processes, histories, parameters, and correspondences;
+- \(H_k\): explicitly hypothetical branches, including rollouts, competing explanations, and candidate revisions;
+- \(C_k\): candidate frontiers, assessments, coverage, calibration, and learned computation-cost relationships.
+
+These letters name addressable records and dependencies in \(F_k\). They are not four tensors, separately trained modules, or independent persistence roots. The same mechanism reference can participate in all four views. A temporary decoded host object is a discardable view of identified field content.
+
+The external boundary remains \(E\), exact authorized evidence, and \(A\), nonlearned authority and source-access policy. Fixed kernel semantics \(K\) transform bounded regions of \(F\). Exact source bytes may reside in \(E\); learned source relevance, interpretation, uncertainty, and pending work reside in \(F\). Restoring \(E\) and an empty field is not restoring the intelligence.
+
+All durable semantic records share a header:
+
+|Field|Meaning|
+|---|---|
+|`id`, `kind`, `schema_version`|Stable identity and typed interpretation; identity is distinct from content equality.|
+|`content_version`, `created_at`, `supersedes`|Immutable semantic revision, machine-time creation, and explicit revision lineage.|
+|`scope`, `valid_time`, `frame`, `units`|World, branch, perspective, time interval, coordinate frame, and measurement interpretation where applicable.|
+|`dependencies`|Versioned references to premises, programs, models, transforms, sources, and assumptions actually used.|
+|`support_roots`, `derivation`|Identified observations or exact premises, plus the computation deriving this record.|
+|`epistemic_kind`, `applicability`, `status`|Observed, asserted, derived, hypothesized, assumed, or assessed meaning; supported domain; freshness and completion.|
+
+The minimum future semantic substrate is deliberately small. It specifies six structural record kinds with extensible, versioned typed payloads:
+
+|Core record|Required role|
+|---|---|
+|`Value`|A typed payload for a referent, variable, relation, belief factor, goal, or other semantic value. Kernel code does not enumerate every possible world category.|
+|`Binding`|A stable logical identity resolved to a current `Value` or `Program` version in an identified scope.|
+|`Event`|An observation, delivery, episode boundary, action phase, correction, or other occurrence with evidence and time semantics.|
+|`Program`|A typed representation, mechanism, procedure, query, plan, or migration with declared arguments, effects, guards, and bounds.|
+|`Assessment`|A frozen prediction, linked outcome, evidence contribution, candidate comparison, calibration row, or computation-cost observation.|
+|`Obligation`|A durable requirement to observe, reconcile an external effect, complete invalidation or migration, assess an issued prediction, or resolve another identified pending duty.|
+
+Referents, entity states, representations, mechanisms, alternatives, action intents, plans, and migrations are payload profiles composed from these six core records, not additional directory kinds or a closed upper ontology. Existing queue, continuation, scope, and resource-ledger records carry unfinished execution of an `Obligation` or `Program` rather than duplicating its semantic identity.
+
+Every payload schema has a versioned type/program reference and a bounded encoded length or bounded page sequence. Unknown schema versions, unavailable directory/reference capacity, and allocation exhaustion fail closed with a typed unsupported or `resource-exhausted` result and retained continuation where progress is resumable. They never trigger an untyped host object, implicit ontology expansion, or fabricated unknown outcome.
+
+The acceptance boundary is causal closure, not the number of nouns represented. One admitted-observation publication binds one `Event` version, all immediately changed canonical `Binding` versions, the dependency-invalidation frontier, and exactly-once `Obligation` records for assessment and credit in one committed field transition. Longer recomputation may remain queued, but every consumer sees either the predecessor closure or the successor closure and can detect that derived work is stale.
+
+### 33.3 Events, three clocks, and ongoing worlds
+
+The design distinguishes:
+
+1. **Machine time \(k\):** ordered field transitions, commits, dependency revisions, and resumable computation.
+2. **World time \(\tau\):** the event time or interval described by an observation or action, in an identified clock domain.
+3. **Receipt time \(\rho\):** when an adapter receives a message, including its clock domain and uncertainty.
+
+A sensor timestamp is not automatically trusted world time. Clock synchronization is an identified transform with an error bound. Machine work does not advance the modeled world unless a particular environment interface explicitly couples elapsed external time to it.
+
+Existing source metadata and acknowledgment identities do not by themselves supply these three clocks. Without an adapter's declared occurrence-time meaning, `valid_interval` is unknown or bounded; an acknowledgment ID must not be interpreted as a timestamp. Receipt \(\rho\) and owner admission \(k\) remain separate.
+
+An observation carries `event_id`, source revision and span, valid interval, receipt stamp, admission transition, measurement program, observed-coordinate mask, precision or censoring interval, and links to related action and episode identities. The field can answer both “what is supported about that time now?” and “what did this prediction know when it was made?” A late observation changes the first answer without rewriting the second.
+
+A delivery receipt is an observation only of delivery unless an identified adapter contract says which environment variable or occurrence it measures. `delivery_id` deduplicates transport; `event_id` identifies the claimed or measured occurrence; `event_version` identifies a correction or retraction of that occurrence. Replaying the same delivery and payload creates no new event or support. Reusing a delivery ID with conflicting bytes is rejected or quarantined without learning. A late correction publishes a new version under the same event identity and revises dependent support; two genuinely distinct occurrences require distinct event IDs even when their values are equal.
+
+Actions are intervals with start, progress, completion, interruption, acknowledgment, and unresolved-effect states. Their arguments include duration or termination conditions where the environment exposes them. Several actions and background processes may overlap. Causal ordering is a partial order grounded in the interface and evidence; equal timestamps and arrival order do not establish causal precedence.
+
+The transition model must support:
+
+- autonomous evolution during a wait or while the computer is paused;
+- observations without an immediately preceding action;
+- actions with delayed, partial, repeated, or absent observations;
+- continuous controls and overlapping action intervals;
+- source-clock uncertainty and out-of-order delivery;
+- reset, regime boundary, and episode continuation as distinct events.
+
+A failed tool call, a missing sensor packet, and an observed “nothing happened” are different observations. Silence becomes evidence only under an explicit observation-opportunity and detection model. Canceling a plan does not cancel an already issued effect or remove its pending outcome from assessment.
+
+The categorical episode format remains a narrow input profile. General events receive typed event records and are lowered into the same regional instruction path; they are not encoded by inventing an ever-growing string token for each continuous state or complete history.
+
+### 33.4 Correlated belief and open-world alternatives
+
+The computer does not need an oracle label for the world's true hidden state. Its internal state is a representation of distinctions needed to predict and act under accessible information. A latent variable is a model hypothesis about such distinctions, not an observed physical fact.
+
+Belief supports three explicit semantics:
+
+- **Constraint/set belief:** admissible assignments or intervals, without invented probabilities.
+- **Probabilistic belief:** a normalized measure under a named model, prior, observation law, and reference measure.
+- **A family of beliefs:** alternative representations, parameters, identities, or causal structures that the evidence does not distinguish.
+
+Numerical compatibility energy is not automatically a negative log likelihood. A Gaussian or other probability interpretation must specify its normalization, noise assumptions, units, support, and observation boundary. Comparing densities across frames requires the corresponding measure transformation.
+
+The representation is a sparse joint structure: shared variables, local factors, exact constraints, conditional mechanisms, and explicit alternative assignments. It preserves dependence without eagerly materializing their full Cartesian product. For example, uncertainty between \((x,y)=(0,0)\) and \((1,1)\) must not become independent marginals that admit \((0,1)\). An XOR relation may require a higher-order factor; covariance alone cannot preserve it.
+
+Inference uses bounded elimination, propagation, branch refinement, or justified local approximation. The frontier, unresolved separators, branch mass bounds where available, and numerical continuation are field-resident. A discarded alternative is either ruled out by a stated premise, summarized with a valid bound, or recorded as unresolved. A beam cutoff is not evidence that its discarded possibilities are impossible.
+
+The family also retains a **representation-inadequacy obligation**: evidence may fall outside every modeled alternative. This is not a fabricated probability assigned to “everything else.” Probability conditional on the current family is labeled conditional; model-family adequacy is assessed separately. Normalizing the surviving hypotheses cannot erase unexplained observations.
+
+Answer status is compositional:
+
+|Status|Observable meaning|
+|---|---|
+|`supported`|An answer or bound with an identified domain, evidence, and model semantics.|
+|`alternatives`|Several admissible answers or models remain; dependence and separating questions are exposed.|
+|`support-gap`|The representation can express the question, but the relevant context/action/outcome support is missing.|
+|`representation-insufficient`|The current variables or mechanisms cannot express an observed distinction or requested consequence.|
+|`non-identifiable`|Available evidence and assumptions cannot distinguish the requested causal or latent claim.|
+|`pending-observation`|A known outcome or measurement opportunity remains unresolved.|
+|`resource-exhausted`|The retained computation is incomplete under its allocation; this says nothing about existence of an answer.|
+
+A numerical estimate can coexist with a support gap or conditional-model warning. These statuses are not collapsed into one confidence number.
+
+This status algebra is part of the specification. An existing generic unresolved/unsupported result cannot be relabeled `non-identifiable` without the additional causal or latent-identification basis. Similarly, normalized exposure summaries are empirical support summaries, not a posterior mixture over ambiguous states without a stated state prior and observation/selection law.
+
+### 33.5 Perception, identity, and shared grounding
+
+A fixed sensor codec may decode bytes, expose sampling geometry and units, perform an identified deterministic transform, and report its information loss. It may not quietly supply semantic segmentation, persistent object labels, or simulator state and then count those as learned perception. A labeled observation profile is useful for development, but its supplied structure must be stated.
+
+Perceptual representation programs are ordinary field-owned programs. They propose repeatable patches, changes, boundaries, co-moving groups, role bindings, and multiscale features from accessible measurements. Their utility is assessed by subsequent prediction and use, not by similarity to an unavailable ground-truth concept name.
+
+Referents may denote discrete objects and parts, extended fluid regions, continuous scalar or vector fields, ongoing processes, document spans, transactions, and programs. Spatial and temporal granularity are representation choices. A material object, its visible image, and the region it currently occupies have different identities.
+
+Correspondence is a joint inference problem. An occluded object can persist through predicted dynamics while its visibility changes. Two similar objects crossing behind a screen require alternative assignments, not a permanent arbitrary match. Splitting a visible group, joining parts, or revising an identity hypothesis preserves the old observations and their unresolved mappings.
+
+Each correspondence proposal records the features, motion model, exclusion constraints, and source views it uses. Repeated views of the same event share evidence roots. Cross-modal agreement is evidence only to the extent that the sensors and derivations supply distinct information.
+
+Units, coordinate frames, reference origins, and clock domains are versioned types. Transform programs carry domains and exact or approximate error semantics. Known translation, rotation, permutation, or renaming identities can support canonicalization; learned approximate invariances retain tests and exceptions. A symmetry of observation is not automatically a symmetry of actuation or cost.
+
+This identity structure is shared across uses. Revising which object was seen must invalidate dependent location answers, predictions, language bindings, and unexecuted plan segments. A language-only entity table or planner-local tracking map would violate the design even if serialized into the same checkpoint.
+
+### 33.6 Hybrid mechanisms and observation models
+
+Mechanisms separate what changes in the environment from how that change becomes observable. A camera's exposure, a tool's response delay, and a physical object's motion are different mechanisms with connected roles.
+
+A transition family may combine:
+
+- finite modes and guarded mode transitions;
+- affine or piecewise numerical relations learned over actually observed coordinates;
+- bounded polynomial, relational, or other typed program constructions from Section 8;
+- interval or finite parameter alternatives;
+- continuous-time evolution under a declared numerical scheme;
+- jumps, contact events, process creation or termination, and discrete software effects;
+- named noise and observation models when stochastic semantics are justified.
+
+The initial library provides a small fixed language for expressing these families, not a table of completed worlds. A proposed differential law is a stored program with parameter hypotheses; its integration method and local error controls are fixed computation. A grid-based field uses explicit discretization and boundary conditions. Neither finite resolution nor an integrator's local error bound establishes that the proposed law describes reality.
+
+Write a model's transition kernel as
+
+\[
+T_m^\iota(z'\mid z,\Delta\tau,c),
+\]
+
+where \(z\) is its internal state representation, \(c\) the admitted context, and \(\iota\) the specified action/intervention regime. The observation law is \(O_m(o\mid z',r)\), where \(r\) contains sensor configuration, availability, and measurement context. Set-valued versions use relations instead of probabilities.
+
+Durations, background processes, concurrency, and termination conditions are part of these semantics. A model of instantaneous categorical steps is one profile, not the default interpretation of all environments.
+
+Mechanisms record their valid state/action region, scale, horizon, regime, known failure modes, and which variables were observed during acquisition. A learned local law remains local until transfer is assessed. Composition requires compatible time, units, state roles, and disturbance assumptions; the joint, conditional, causal, and exact-program distinctions of Section 5.1 remain in force.
+
+### 33.7 Filtering, prediction, and bounded joint inference
+
+For a justified probabilistic model, a declared intervention regime, and a time-ordered observation sequence indexed by \(t\) rather than machine transition \(k\), a filtering step has the form
+
+\[
+b^-_{m,t+1}(z')
+=\int T_m^{\iota_t}(z'\mid z,\Delta\tau_t,c_t)b_{m,t}(z)\,dz,
+\]
+\[
+L_{m,t+1}
+=\int O_m(o_{t+1}\mid z',r_{t+1})b^-_{m,t+1}(z')\,dz',
+\qquad
+b_{m,t+1}(z')
+=\frac{O_m(o_{t+1}\mid z',r_{t+1})b^-_{m,t+1}(z')}{L_{m,t+1}}.
+\]
+
+Sums replace integrals for discrete variables. The displayed posterior requires finite integrals and \(L_{m,t+1}>0\), normalized input measures, and the stated conditional independence structure. A zero or undefined normalizer provides no posterior; retain the contradiction/model-inadequacy obligation instead of flooring it. If an observed action itself carries information about an unobserved cause, the model must include that selection mechanism; it cannot silently treat the action as externally randomized. Concurrent or late data require the corresponding joint interval model or smoothing, not arbitrary receipt-order filtering.
+
+The probabilistic factor graph specifies where each prior, shared-noise term, and observation contribution enters its normalized joint law. Overlapping quadratic charts and their ridge terms do not automatically supply that law. Without justified normalization and reference measures, their result remains compatibility/set inference.
+
+The set-valued counterpart propagates admissible states through the transition relation and intersects them with observation constraints. Empty support triggers contradiction or model inadequacy, not an invented nearest state. An uncertain clock interval or identity assignment is propagated jointly where it changes the answer.
+
+Each update is an ordinary bounded program:
+
+1. Resolve the admitted evidence and dependency versions; identify which observation information is genuinely new.
+2. Resolve the prediction's frozen pre-outcome model, parameter/latent prior, observation law, policy context, and information boundary. If no prediction was issued, record that fact rather than manufacture a retrospectively scored prediction.
+3. Propagate only the affected temporal and factor neighborhood, retaining continuation if incomplete.
+4. Condition on the measured coordinates through their observation semantics; preserve unmeasured alternatives.
+5. Publish a new belief version and dependent invalidations atomically within the existing machine publication discipline.
+6. Assess the outcome using the frozen pre-update prediction or marginal likelihood before any parameter fit to that outcome; then schedule justified parameter updates and unresolved representation work as distinct dependent operations.
+
+For partial measurements, only a candidate with a justified normalized observation law marginalizes missing coordinates. Default relation-chart learning still requires fully observed local coordinates or identified deterministic derivatives. Neither path fills a missing coordinate with the current estimate and labels the completion observed. Censoring requires an interval/event likelihood; unknown missingness is not automatically ignorable.
+
+Rollout advances a hypothetical belief without admitting observations. Observation-conditioned smoothing may revise beliefs about earlier times when late evidence arrives; historical predictions remain immutable. Exact proof, numerical approximation, finite hypothesis search, and empirical model validity retain separate statuses and work accounting.
+
+### 33.8 Causal queries and action-context coverage
+
+The public question must name one of three meanings:
+
+|Query|Required interpretation|
+|---|---|
+|Observation conditioning|What follows from observing \(X=x\) in the admitted setting?|
+|Intervention|What follows if the specified mechanism is replaced or controlled by `do(X=x)` under the stated action semantics?|
+|Unit-level counterfactual|For this particular observed episode, what would have happened under a different intervention, under a stated coupling of hidden causes?|
+
+An action token in a log does not establish any of these meanings by itself. Causal mechanism records identify controlled variables, affected equations, confounders considered, invariance assumptions, and the evidence or design supporting identification.
+
+Intervention coverage is indexed by context, parameterized action, duration, observation process, horizon, and regime. It records tested values or regions, relevant untested alternatives, selection policy, and outcome availability. Extrapolating to a new action combination or a longer horizon is a new obligation.
+
+The computer distinguishes a causal structure compatible with observations from a causally identified answer. Hidden confounding, absence of action overlap, selection on unobserved outcomes, and indistinguishable mechanisms can require `non-identifiable`. A unique winner inside an arbitrarily restricted candidate family does not remove those limitations.
+
+For a stochastic unit-level counterfactual, abduction conditions the model's exogenous variables on the actual episode; action modifies the relevant mechanism; prediction reuses those variables under the declared coupling. Independent fresh noise answers a different, population-level question. Several observationally equivalent models may imply different counterfactuals, so the answer can be a family rather than a single trajectory.
+
+Simulator paired branches can evaluate a counterfactual against that simulator's coupling when the evaluator controls it. They do not establish the corresponding coupling in the real world. The learning computer sees only the adapter's permitted observations, never the evaluator's privileged latent state.
+
+### 33.9 Collection policy, correlated evidence, and absent outcomes
+
+An episode's collection record identifies the acting policy version, context available at decision time, available alternatives when known, selected action, actual randomization probability when it exists, and constraints imposed by authority or the environment. A deterministic policy must not fabricate a nonzero propensity for an action it never selected.
+
+Policy logs make selection inspectable; they do not alone remove confounding or restore positivity. Inverse-propensity or other adjustment is permitted only under the estimator's stated assumptions, actual recorded probabilities, and overlap conditions. Large weights, unknown selection mechanisms, and unsupported target policies remain visible limitations.
+
+The evidence model separates:
+
+- delivery identity, so retransmission is not a new event;
+- observation identity, so repeated processing is not new learning support;
+- source and derivation roots, so copies and deterministic transforms are not independent corroboration;
+- episode and shared-cause dependence, so many measurements of one event are not reported as many independent trials.
+
+One observation may legitimately condition a belief, update several compatible factors, assess a prediction, and help construct a candidate. Its information is used once within each specified statistical computation, and its reuse across those uses is recorded. Multiplying overlapping factor likelihoods is justified only by their joint model, not by having different factor IDs.
+
+Every issued prediction and action-outcome obligation ends in an explicit state: observed and scored; partially observed; censored under a stated rule; canceled before effect; abandoned with unresolved effect; observation unavailable; or still pending. Planning elsewhere, stopping a run, or timing out does not delete difficult cases.
+
+Assessment reports the whole attempt population and its unresolved subset. A conditional accuracy among observed outcomes is not accuracy over all attempts when missingness may depend on the outcome. Learning can continue from available evidence while preserving that limitation.
+
+### 33.10 Predictive states and guarded history compression
+
+A useful state is a compact account of history sufficient for a declared set of future questions. It need not reconstruct every physical microstate or every past observation. It must retain distinctions that affect those questions.
+
+Let \(h\) include the accessible observation/action history, timing, collection context, and unresolved outcomes. Let \(\mathcal T\) be an identified family of finite-horizon tests: observation queries, permitted action sequences or contingent policies, durations, and consequence readouts. A predictive representation approximates the test-indexed map
+
+\[
+h\longmapsto
+\left\{\mathcal P(\text{outcome of }t\mid h):t\in\mathcal T\right\}.
+\]
+
+Here \(\mathcal P\) can be a justified distribution, a set of outcomes, or a family of model-conditional answers. The representation does not acquire probability semantics merely by using this notation.
+
+Store a finite active test registry and a versioned predictive signature for each retained history/class. The signature fixes the action/context/clock boundary, horizon, output measure, comparison metric, and tolerance. Sets use declared consequence containment or diameter; distributions use a metric on the same outcome measure, with units where required. Model-family predictions remain model-indexed unless a justified bound permits their aggregation. Preserve the first separating test and its split mapping; raw densities in different frames are not comparable signatures.
+
+The induction procedure is:
+
+1. Retain accessible histories through shared event references and a bounded detailed frontier.
+2. Propose classes using aligned transition neighborhoods, repeated relational features, and similar predictions over the same test boundary.
+3. Record a class's horizon, context/action domain, timing resolution, tolerated consequence error, supported comparisons, and unresolved separating tests.
+4. Assess the proposed substitution prospectively, including held-out actions, longer traces within its claimed horizon, and rare guards.
+5. Promote it as an approximate predictive hypothesis where its requirements hold; preserve required counterexamples, boundary summaries, and an expansion route.
+6. On a distinguishing observation or changed premise, split or refine the class, rebind current beliefs through explicit mappings, and invalidate dependent unexecuted uses.
+
+Finite agreement is evidence for a tested abstraction, not proof of global equivalence. An empirical threshold relation need not be transitive. The bounded-diameter requirement and conditional \(2\epsilon\) decision consequence in Section 8.7 apply only when their hypotheses are established; a collection of close neighboring pairs is insufficient.
+
+The crucial contrast is a recurring quiet state versus a hidden countdown that emits “quiet” until it fires. Equal current observations do not distinguish them. A compact class may predict quiet within a supported horizon while retaining an unresolved longer-horizon timer alternative. It cannot infer eternal quiet from finite experience.
+
+Compression is query-relative, but shared use protects the union of distinctions required by active consumers. A planner's coarse state must not erase an identity distinction needed by language or a rare safety-relevant outcome. Separate compatible projections can share one underlying detailed support structure.
+
+Repeated interaction should make representational growth depend increasingly on acquired distinctions and mechanisms rather than simply episode length. That is a measured objective for recurring environments, not a universal bounded-memory theorem. If the world's relevant distinctions continue to grow, the computer must allocate more storage, retain a coarser explicitly limited representation, or report a capacity boundary.
+
+### 33.11 Parameter learning and latent hypotheses
+
+Section 6.3's observed-coordinate rule remains the default for relation charts. Fully observed local vectors and identified deterministic derivatives use the existing support-weighted flow or a declared sufficient-statistic update. Missing cross-moments are not guessed.
+
+Latent learning is an additional, explicit **specified statistical mechanism**. A candidate \(m\) names a typed generative program, parameter domain, initial-state prior or admissible set, observation law, selection assumptions, and update rule. Its latent paths and parameter alternatives live in \(F\); they do not become labels in \(E\).
+
+For a probabilistic candidate, score each new observation through its frozen pre-update predictive marginal likelihood from Section 33.7. With a fixed candidate family, nonnegative normalized initial model weights, and a finite positive denominator,
+
+\[
+w_{m,t+1}
+=\frac{w_{m,t}L_{m,t+1}}
+{\sum_jw_{j,t}L_{j,t+1}}.
+\]
+
+This is inference conditional on that family. It is not a proof that the family includes the world, that its prior is empirically calibrated, or that its most probable latent explanation is physically identified.
+
+Model mass \(w_m\), the within-model parameter measure \(\pi_m(\theta)\), and latent-state/path mass are distinct levels of one joint model. A parameter-cell refinement is a disjoint partition whose child masses sum to the parent's mass. Exact latent-label symmetries may be canonicalized only when the prior and likelihood respect them, pushing the prior forward to the quotient. Duplicate enumerations must not multiply prior mass or observed support; merely observationally equivalent causal structures can remain distinct hypotheses.
+
+Every normalized posterior is indexed by `candidate_family_version`, activation transition, and evidence prefix. Adding a candidate never silently edits the fixed family in the displayed update. It creates a new family version with one of three declared semantics:
+
+- **Prospective activation:** before the next outcome, assign a justified new-family prior mass \(\alpha\); scale incumbent masses by \(1-\alpha\), give the candidate \(\alpha\), and score only subsequent outcomes under the frozen new family.
+- **Retrospective reconstruction:** replay each identified historical event once through every complete candidate rule from a declared common initialization and prior, publishing a separate reconstructed analysis. Historical predictions and assessments remain attached to the family that issued them.
+- **Unweighted expansion:** when no prior-mass rule is justified, retain the candidate as a set-valued alternative and assess it prospectively without calling its support a posterior probability.
+
+If a candidate belonged from the start to a fixed countable class with a declared prefix prior, delayed computation reveals already specified mass rather than inventing it; its activation and historical-use rule must still match Section 8.8. Family expansion never turns reused evidence into new support.
+
+The first implementable parameter paths are deliberately explicit:
+
+- **Observed sufficient statistics:** update bounded counts, sums, and cross-products for fully observed local variables, with contribution lineage and a specified likelihood or compatibility interpretation.
+- **Finite alternatives:** enumerate or progressively refine typed parameter and latent assignments; retain their joint constraints or likelihoods and the unresolved search frontier.
+- **Continuous parameter cells:** maintain intervals or cells with stated integration or enclosure semantics. Splitting a probabilistic cell conserves its prior measure; replacing it with convenient point guesses does not.
+- **Analytic local updates:** use a closed-form update only for a model family whose conditional assumptions justify it. Store the rule and assumptions with the parameters.
+
+Every one of these paths executes through fixed bounded kernels and field-owned programs. There is no gradient-trained sidecar, neural encoder, backpropagation service, or optimizer state outside the field.
+
+For latent paths, a forward recursion, factor elimination, or bounded branch program sums or bounds their contribution. It must not score the same observation again when revisiting a hidden-state explanation. New deterministic views of old evidence do not multiply its likelihood. Multiple sensors require the joint observation law appropriate to their shared causes.
+
+Rank deficiency, insufficient excitation, and confounding remain parameter uncertainty. If all measured inputs satisfy \(x=0\) in \(y=\theta x\), the data do not identify \(\theta\). A prior can express an assumption; it cannot turn the resulting point estimate into measured identification.
+
+An approximate likelihood carries its numerical error or unresolved remainder when available. If that error can change model ordering, the ordering remains unresolved. If all exact candidate marginal likelihoods are zero, preserve contradiction/model inadequacy and do not normalize or add a floor. Numerical underflow, unfinished integration, or an enclosure containing zero is computational uncertainty instead: compute in log space or retain bounds and continuation rather than declaring empirical impossibility.
+
+A newly constructed candidate may fit retained evidence, but that fit is construction evidence. It earns prospective assessment after its initialization and activation boundary are fixed. The complete-online-rule requirements in Section 8.8 prevent free post-hoc parameters from masquerading as a short, previously specified hypothesis.
+
+The unresolved question is whether these field-native search and update mechanisms learn useful latent structure at practical scale. The design makes that question testable without teaching the system its own inferred hidden states as observations.
+
+### 33.12 Discovery of representations, mechanisms, and procedures
+
+Structural learning follows the concrete cycle in Section 8.5, extended to the shared world records. Its trigger is a retained unresolved distinction: systematic prediction error, unexplained observation, failed correspondence, action-dependent surprise, costly repeated inference, or recurrent plan repair.
+
+The candidate grammar permits typed local edits:
+
+|Edit family|Example and obligation|
+|---|---|
+|Add or remove an observed role|Include elapsed time in a transition; demonstrate that removing a role preserves required predictions.|
+|Construct a relational variable|Relative position, rate, ratio with a nonzero-domain guard, order, contact, or role equality.|
+|Split or combine contexts|Separate a recurring regime while preserving mixed/unknown assignments at its boundary.|
+|Change factor scope|Add an XOR-like joint constraint when pairwise moments lose a required dependence.|
+|Introduce a latent mode or identity alternative|Name its generative meaning, observation consequences, and unresolved identification.|
+|Compose mechanisms|Check time, units, parent roles, side effects, disturbances, and applicability rather than chaining conditional means blindly.|
+|Change temporal or spatial scale|Preserve boundary queries and retain a finer expansion where the approximation fails.|
+|Extract a reusable procedure|Generalize consistently bound parameters, preconditions, effects, and failure behavior from actual computation.|
+|Propose a symmetry or shared law|Separate exact operator identities from empirical invariances and test transfer outside the construction examples.|
+
+Each candidate record contains its program, parent versions, input/output question, support roots, parameter initialization, proposal history, current inference frontier, prospective predictions, exceptions, and measured cost. Proposed programs and proposal-order preferences are learned state in \(F\). The grammar, type checker, and bounded interpreter are \(K\).
+
+Search proceeds in small deterministic quanta with persistent frontiers. It prioritizes field-supported promising neighborhoods while reserving work for unresolved families under the existing fair scheduler. It does not enumerate every program first, discard failed work on restart, or claim that exhausting the current allocation rules out a better representation.
+
+Candidates are compared on the same observable question and information boundary. A richer latent model cannot improve its score by changing the measured output, dropping censored cases, or hiding parameters outside its description length. Where likelihood is justified, description length includes the complete model, parameter encoding, and data encoding on the same observation measure. Set-valued candidates instead report coverage, precision, abstention, and resource tradeoffs explicitly.
+
+Promotion requires preserved distinctions, valid lineage, prospective adequacy in its claimed domain, and acceptable rare-case behavior. Description and execution cost decide among adequate alternatives under declared units; lower internal energy alone is not success. Incompatible domains or error tradeoffs can retain several guarded alternatives.
+
+A discovered abstraction must be usable by ordinary perception, planning, language, and explanation programs through its shared reference. A proposal that wins a private benchmark but cannot replace a repeated computation in the live computer has not completed acquisition.
+
+### 33.13 Revision, regime change, and representation migration
+
+Revision has distinct causes and effects:
+
+|Event|What changes|What must remain distinct|
+|---|---|---|
+|Observed state change|Belief about the environment at a new valid time.|Earlier state and what was known then.|
+|Retrospective measurement correction|Support for a claim about an earlier time.|A correction is not a second physical event.|
+|Mechanism or regime change hypothesis|Applicability, onset uncertainty, and competing transition laws.|Noise, sensor change, and representation failure remain alternatives.|
+|Representation migration|How evidence and beliefs are encoded and queried.|Referent identity, original measurement meaning, and prediction history.|
+|Source retraction or revocation|Admissible support and dependent derivations.|Completed external effects and unrelated knowledge.|
+|Goal revision|Which consequences are preferred and which plans remain relevant.|Environmental transition and observation laws.|
+|Authority revision|Which source accesses and effects are permitted now.|What happened, what was predicted, and what the model believes.|
+
+Record versions carry valid-world intervals and the machine-transition interval during which that version was admitted as current. Receipt timestamps remain provenance. This supports retrospective correction without confusing reception, knowledge, and world evolution.
+
+Failure attribution preserves candidates rather than automatically modifying the strongest convenient parameter. The same residual may come from an identity error, a delayed measurement, a changed actuator, an omitted variable, or a faulty mechanism. Credit follows the actual prediction and dependency path from Section 32.12.
+
+A representation migration is a stored computation with:
+
+- old and new schema/program versions and affected bindings;
+- a typed old-to-new mapping, possibly many-to-many or set-valued;
+- exact preserved queries, approximate error bounds, or explicitly lost distinctions;
+- re-encoding progress and resource bounds;
+- source-access requirements and an expansion/recovery route where available.
+
+Migration does not force a one-to-one latent-state mapping. If an old state could denote two new states, current belief branches over both until evidence separates them. If a coarse stored summary lacks the needed information, the new representation reports that loss or requests authorized evidence; it does not reconstruct fictitious detail.
+
+Old predictions retain their original model, representation, information boundary, and output decoder identity. A new representation may create a separate comparison projection, but cannot rewrite the prediction to improve its historical score. The old decoder is fixed interpretation code, not a revived adaptive runtime.
+
+Publication updates canonical versions and queues dependency invalidations as one bounded machine transaction. Consumers re-resolve references; they do not independently patch copied world states. Large migrations proceed through explicit versions and retained continuation, with affected answers marked stale or incomplete until their required mappings are available.
+
+A shared update record binds the observation identity/revision, affected relation IDs, predecessor versions, and a retained notification cursor. Publication changes each affected canonical relation version once and installs the invalidation frontier atomically. Query, plan, language, and explanation consumers check those versions even before all notifications have run. Assessment work is deduplicated per prediction/outcome/assessment-kind identity: several genuinely issued predictions may be assessed against one observation without counting it as several independent observations. A correction revises the corresponding assessment rather than creating a fresh successful trial.
+
+### 33.14 Uncertainty, calibration, and useful refusal
+
+The computer exposes at least five distinct uncertainties:
+
+1. **State uncertainty:** which current or past world/identity assignment is compatible with the observations.
+2. **Mechanism and parameter uncertainty:** which represented laws, regimes, or coefficients remain plausible.
+3. **Observation and process variability:** stochastic noise under a named model, or bounded disturbances without a probability claim.
+4. **Computational uncertainty:** incomplete search, approximation error, conditioning, discretization, or unfinished numerical work.
+5. **Representation uncertainty:** missing variables, wrong scope, inadequate model families, or unexpressed distinctions.
+
+Source quality, time uncertainty, causal identification, and applicability are additional annotations, not automatically interchangeable probabilities. Inverse Hessians, solver residuals, and resonant workspaces describe a computation or model. They do not establish empirical reliability.
+
+Every assessed prediction freezes the model and representation versions, belief boundary, query kind, target variable and units, horizon, context/action region, collection-policy version and actual propensity or deterministic-selection status, issued set or distribution, intended observation window, and missing/censoring rule before the outcome is admitted. Candidate comparison uses a common eligible assessment population, or an explicitly justified target-policy adjustment with its missingness accounting; a candidate assessed on one easy case cannot win by comparing its total loss with another candidate's broad history.
+
+Evaluation reports, together:
+
+- attempted, answered, abstained, unresolved, censored, and observed counts;
+- set/interval coverage with set size or interval width;
+- error and proper score where the probability semantics justify one;
+- out-of-family observations and representation failures;
+- calibration by horizon, regime, action/context support, and relevant rare conditions;
+- collection-policy and correlated-root limitations;
+- the full cost of producing, learning from, and revising predictions.
+
+An answer covering every possible outcome is not useful calibrated prediction. A system that abstains on every hard case is not accurate over the workload. Both are exposed by the joint coverage/precision/answer-rate accounting and by scenarios that require supported answers when discriminating evidence is available.
+
+Prospective calibration is conditional on the measured process. Temporal dependence, policy change, repeated model selection, and distribution shift limit extrapolation. Section 8.8's concentration statement applies under its complete predictable-rule assumptions and concerns accumulated conditional risk; it does not certify a future regime.
+
+Planning creates an additional selection problem: searching many alternatives can select the action for which the model is most optimistic. Therefore assess the predictions attached to the plans actually selected, alongside nonselected comparison cases when available. Model error under optimization is a distinct measurement, not inferred from one-step average accuracy.
+
+### 33.15 Reversible rollout and goal-independent prediction
+
+A rollout branches from an identified field/model/belief version into \(H\). It binds a candidate action policy, time horizon, hypothetical observations or disturbance choices, and numerical profile. All derived states remain hypothetical even if a solver computes them exactly.
+
+Branches share immutable base records and retain only their changed bindings, workspaces, and continuation. They can be paused, expanded, compared, or discarded through the existing scope machinery. Rolling back a hypothetical branch is different from undoing an external effect.
+
+For the same model, evidence, action regime, question, and numerical allocation, changing the goal must not change the environmental predictive law. A goal may choose a different action, sensor request, horizon, or computation allocation; these changed inputs are explicit. It cannot alter a fixed action's predicted outcome merely to make the action desirable.
+
+The rollout program composes transition, observation, and uncertainty semantics over time. It includes autonomous processes, action overlap, termination, delayed outcomes, and observation-contingent branches. If required coupling or intervention support is absent, it retains alternatives or stops with a typed limitation.
+
+Longer horizons accumulate model and approximation obligations. A one-step fit does not imply stable multistep dynamics. Rollout retains the earliest unsupported transition and dependent consequences so a planner can shorten its commitment or seek an observation rather than bury uncertainty in a distant point forecast.
+
+Simulation can discover inconsistencies, counterexamples within a model, and useful experiments. It does not add observed support, calibration trials, or causal intervention coverage. Learning a faster exact computation from a rollout is derived procedural learning; learning a physical law from the rollout as though it happened is prohibited.
+
+### 33.16 Affordances and the external-action lifecycle
+
+An affordance is a parameterized action relationship between an agent, environment, resources, and effects. Its record includes:
+
+- typed argument roles, units, bounds, and binding constraints;
+- observable and latent preconditions, with uncertainty distinguished;
+- duration, termination, concurrency, and resource occupancy;
+- intended effects, possible side effects, expected observations, and failure modes;
+- applicability and action-context support;
+- reversibility or compensation possibilities;
+- risk, disclosure, source-access, and authority obligations.
+
+An affordance is not a permission. A model can predict an effect while the owner forbids attempting it. No learned preference or confidence score can compensate for missing authority.
+
+The lifecycle uses one durable operation identity:
+
+1. **Propose:** freeze the exact target, parameters, relevant context, model, prediction, and expected observation window.
+2. **Authorize:** check current \(A\) at the point of risk, including explicit interactive approval wherever the external action requires it.
+3. **Dispatch:** publish the intent and send it through the identified adapter under the existing effect boundary.
+4. **Track:** retain in-flight, partial, interrupted, expired, or unknown-external status without treating timeout as failure.
+5. **Acknowledge:** attach the adapter's acknowledgment to that operation and distinguish transport success from a verified world observation.
+6. **Assess and learn:** compare the frozen prediction with the identified available outcome once, preserve unresolved attribution, and update only justified support.
+
+Each immutable phase transition records `operation_id`, `phase`, `predecessor_phase`, world-time interval/bounds, `receipt_rho`, `admitted_k`, known progress/effect range, concurrency/episode IDs, and interruption/cancellation/expiry reason. Preparing an effect may itself take many quanta; the prepared prediction and bindings remain in \(F\), and authorization and dispatch have separate durable completion boundaries. Cancellation after dispatch leaves effects in their supported partial, in-flight, or unknown state until resolved; a cancellation request cannot establish `canceled-before-effect`.
+
+The owner can provide exactly-once local admission, intent accounting, and assessment. Exactly-once external effect requires adapter idempotency or an authoritative external operation ledger. If a crash leaves dispatch uncertain and neither is available, the computer reconciles or asks for resolution; it does not blindly retry an irreversible action.
+
+Reopen preserves in-flight operations, missing observation intervals, source/authority revisions, and spent computation. Revocation can prevent further access or dispatch without erasing an effect already sent. Cancellation of a goal cannot silently discard these obligations.
+
+### 33.17 Hierarchical, contingent planning
+
+Planning is a stored program over shared mechanisms, belief, goals, and affordances. It has no private transition model. Goals state desired consequences, priority and resource bounds, forbidden outcomes, and termination conditions; hard authority restrictions remain outside learned optimization.
+
+The planner:
+
+1. Resolves the goal and current belief, including pending external effects and resource commitments.
+2. Retrieves applicable learned procedures or composes bounded action alternatives.
+3. Expands hypothetical consequences with the same world-model programs used for prediction.
+4. Retains observation-contingent policies when the next useful action depends on what will be learned.
+5. Compares supported alternatives using the goal's declared preference/risk semantics.
+6. Commits only a bounded executable prefix, with monitoring and repair conditions.
+
+Expected-value planning requires justified probabilities and utility units. Set-valued belief instead supports dominance, constraint satisfaction, minimax or other explicitly selected robust criteria. These can be conservative or inconclusive; the planner must not invent a distribution to force a winner.
+
+Hierarchical procedures summarize subgoals, role bindings, preconditions, effects, observations, failure exits, and resource use. Their abstraction boundary identifies the distinctions and time horizon they preserve. A new context can reuse a procedure while checking its guards; literal similarity to a previous task is insufficient.
+
+Plans retain causal dependencies per segment. A changed premise invalidates the affected suffix or branches while preserving completed effects and independent work. Local repair is preferred when its retained assumptions hold; broad replanning is explicit when shared support fails.
+
+The planner treats model exploitation as a failure mode. Excessive unsupported horizon, compounded optimistic assumptions, or action combinations outside coverage trigger shorter commitments, alternatives, or inquiry. Goal achievement, incurred harm/risk obligations, prediction error, repair cost, and unresolved outcomes are all measured in actual episodes.
+
+### 33.18 Inquiry, computational self-modeling, and learning to learn
+
+The same control program can choose among acting, observing, waiting, retrieving exact evidence, refining inference, proposing a representation, testing a procedure, or reporting a limitation. These are typed alternatives with different effects and authority requirements.
+
+An inquiry record names the unresolved distinction, candidate explanations, separating outcomes, required source or intervention, expected cost, stopping condition, and how each possible result would alter a decision. Information gain is meaningful only under a specified probability model. With set-valued alternatives, use explicit possible partitions and decision sensitivity rather than invented entropy.
+
+A useful experiment changes a controllable distinction while preserving an interpretable comparison. It records dose/duration, background and interference assumptions, observation opportunities, and abort conditions. Prefer reversible and low-risk investigations where they answer the question. Any consequential intervention still requires exact authorization; a curiosity objective cannot grant it. These are executable action records, not an additional preregistration-document workflow.
+
+The computational self-model describes the computer's own programs, admissible inputs, guards, effects, resource costs, failure classes, and observed usefulness. Its data come from identified machine executions and outcomes. It can learn when a cheaper representation suffices, when more search is productive, which proposal neighborhoods help, and which procedures transfer.
+
+The measured cost includes work spent on failed candidates, compilation, inference, learning, retrieval, copying, migration, and plan repair. Repeated execution of the same evidence is not new environmental experience, though a genuinely different computation can produce a new measured cost observation.
+
+Meta-learning changes field-owned proposal ordering, stored procedures, applicability, and resource-allocation relationships. It does not modify \(K\), redefine success after seeing an outcome, weaken evidence rules, grant authority, or replace the owner's goals. Fixed interpreters can execute increasingly capable learned programs without becoming a second adaptive system.
+
+Exploration retains a bounded allocation for unresolved candidate families so a mistaken utility estimate does not permanently suppress a useful representation. The allocation is itself accounted work, not a claim of efficient universal search. A self-model is useful only when its predictions improve actual decisions or computation on subsequent unfamiliar cases.
+
+### 33.19 Grounded language and other-agent models
+
+Language is another observation and action surface over the shared representations. Exact utterance bytes, speaker/source identity, time, and permitted context enter through \(E\). A fixed byte or symbol codec supplies syntax boundaries; learned constructions, meanings, discourse state, and ambiguity live in \(F\).
+
+Acquisition relates utterances to accessible situations, actions, consequences, and explicit corrections. It preserves role bindings rather than memorizing a completed answer string. A learned construction can refer to an uncertain entity, a temporal relation, a mechanism, an intended action, or a hypothetical branch using the same IDs employed outside language.
+
+The representation distinguishes speech acts: assertion, question, request, commitment, prediction, quotation, hypothesis, and refusal. A speaker's assertion is evidence that the speaker asserted something; accepting its content as a world claim requires the source and evidence rules. A request is neither a true description nor permission for every means of satisfying it.
+
+Discourse tracks referents, perspective, temporal scope, unresolved pronouns, presuppositions, and commitments as versioned field records. Ambiguous interpretation retains alternative bindings and can ask a separating question. Correcting a referent or premise updates the related plan and prediction as well as the sentence interpretation.
+
+Other-agent models represent beliefs, information access, goals, and policies in explicitly nested perspectives. “Agent B believes the key is in the drawer” is not “the key is in the drawer.” False belief, deception, ignorance, and differing observations remain representable without treating an inferred private motive as established fact. Perspective depth and uncertainty are bounded by the same resource rules.
+
+Shared revision follows actual dependencies and information access. Learning where the key really is does not automatically update another agent's belief if that agent has not observed the change. A corrected observation about that agent's access or reasoning can revise the corresponding belief hypothesis; the computer does not assume universal shared knowledge.
+
+Expression plans a supported semantic content and realizes it through learned constructions. It can communicate an answer, alternatives, a missing observation, a model assumption, or an unidentifiable claim. It does not use a fluent language model to fill a representational gap. Explanations refer to the actual dependency and decision path, distinguishing evidence, inference, simulated consequences, and authorized actions.
+
+The ambition includes productive syntax, compositional meaning, dialogue, grounded abstraction, and communication about unfamiliar situations. Current exact variable-span constructions are a bounded basis, not evidence that open-domain language acquisition has been solved. Progress must be measured through new role combinations, longer constructions, altered contexts, and cross-use consequences rather than paraphrase fluency alone.
+
+### 33.20 Lifelong retention, interference, and consolidation
+
+A continuing intelligence needs more than recency-weighted fitting. Its retention policy distinguishes immutable evidence identity, reversible working belief, long-lived mechanisms, recurring context-specific knowledge, rare exceptions, and discardable numerical scratch.
+
+Activation may decay to allocate attention; source identity, causal support, exact proof validity, and authority do not decay into new meanings. A rarely used but valid relation can remain dormant. A frequently used but revoked relation cannot remain valid because its activation is high.
+
+For stable relations, retain cumulative sufficient support where appropriate. For changing settings, maintain regime applicability and alternative onset hypotheses. For recurring regimes, reuse identified mechanisms after checking their guards instead of relearning them from nothing or averaging incompatible modes together.
+
+Consolidation compresses shared event structure, predictive states, factors, and procedures while preserving their declared distinctions and contribution lineage. It records which raw details remain recoverable, which support has only a sufficient summary, and which questions can no longer be answered. A description-length gain that destroys a rare required exception is not acceptable consolidation.
+
+Corrections and revocations require an explicit reconstruction strategy:
+
+- additive sufficient statistics retain removable contribution partitions where feasible;
+- nonlinear updates retain enough authorized input and initialization lineage to recompute affected state;
+- inseparable compressed support is marked unusable if its revoked contribution cannot be removed soundly;
+- unaffected regions and derivations remain intact.
+
+Recomputation after an identified revision is ordinary retained machine work. It is different from scanning external evidence on restart to reconstruct adaptive state that was never checkpointed. Reopening restores \(F\) and its continuation; it does not replay the intelligence into existence.
+
+Capacity management may retire unsupported candidates, page cold records, summarize histories, or request explicitly authorized source access. It must preserve open external-effect obligations, active prediction identities, required exceptions, and revocation fences. Storage pressure cannot silently turn unknown into false or forget a pending irreversible action.
+
+Lifelong evaluation measures retention, interference, recurrence, transfer, and recovery after long gaps, with the full learning and storage cost. New-task success is reported alongside degradation of old supported tasks. A finite successful stream does not establish unlimited memory or interference-free learning.
+
+### 33.21 Native execution, the automaton, and physical cost
+
+Every capability above must lower to the existing regional execution path. Adding world-model JSON to a checkpoint without making its semantic records shared and executable is insufficient.
+
+The native boundary has five requirements:
+
+1. **Typed operands:** logical IDs, versions, scopes, units, and explicit read/write/effect footprints.
+2. **Bounded steps:** declared maximum indivisible work, numerical profile, allocation bound, and a continuation for larger work.
+3. **Shared dependencies:** record which bindings, model versions, evidence, guards, and authority-sensitive premises determine eligibility and freshness.
+4. **Atomic publication:** commit changed records, version changes, notifications, ledger charges, and continuation consistently.
+5. **No hidden adaptation:** all learned coefficients, candidate priorities, caches that affect semantics, random-stream continuation when used, and unfinished search remain in \(F\).
+
+The automaton schedules eligible regional work derived from these dependencies. Observation arrival activates affected belief and assessment sites; unresolved alternatives activate inference or proposal sites; new guards activate or invalidate dependent plan work. Learned utility can influence priority within the fixed fairness and authority rules. The automaton does not infer a causal edge merely from the fact that two regions are scheduled near each other.
+
+The closed catalog remains a small language of fixed operations. Extend it only when an irreducible bounded operation is missing: typed factor contraction, interval propagation, contribution update, branch refinement, event indexing, or another specified numerical primitive. A native call that runs an arbitrary complete `world_model.solve` loop would recreate the architecture the design excludes.
+
+There is no monolithic world-model service or unrestricted `world_model.solve` kernel. A learned transition law is a `Program` record. Its first specified native lowering is a catalogued bounded `MECHANISM_STEP` regional operation over the existing `LearningComputer` image. It consumes typed references to a mechanism/version, source belief or hypothetical branch, action/intervention regime, world-time interval, invocation arguments, and prior continuation. One quantum reads and stages only its declared regions, advances at most the catalogued work bound, and returns the ordinary kernel result with updated task state, typed outcome or limitation, and field-resident continuation. It cannot fetch evidence, grant authority, or dispatch an external effect; owner admission and `authorized-invoke` remain those boundaries.
+
+`submit` or `invoke` admits the containing program/event, and `advance` resumes `MECHANISM_STEP` through the existing program counter, event queue, receipt, and work-ledger path. Pause checkpoints the exact task and continuation. Growth preserves logical IDs, queue state, spent work, and continuation while changing the profile identity; prepared reads are revalidated against that profile. Restore validates the complete image, reference generations, types, dependencies, profile, and catalog digest before exact same-profile replay can resume. Capacity exhaustion returns a typed incomplete/refusal state without resetting work or falling back to a host model.
+
+Verification interrupts the same mechanism program after every reachable quantum, serializes and reopens it in a fresh process, exercises an allowed growth boundary, and compares the final logical records, event identities, work ledger, and result with uninterrupted execution under the same arithmetic profile. Stale generations, wrong types, altered dependencies, and changed catalog/profile identities must fail closed. Duplicate delivery must not produce a second event, update, assessment, or external dispatch.
+
+Exact clause, constraint, matching, and related kernels remain available to the same programs. They can solve a represented constraint problem, test a candidate's consistency, or construct a certificate. Their exactness concerns that encoded problem. An UNSAT result for a model's constraints is not proof that the real world has no explanation outside the model family.
+
+The execution implementation should reuse immutable pages, sparse factors, shared event references, and cached fixed factorizations keyed by complete dependencies. It should avoid full-image or whole-history copying for a local update. This is a performance target to measure, not an assumption that the current JSON task codecs already achieve it.
+
+Record actual work, affected words/pages, allocation, peak live state, serialization and transfer bytes, kernel time, and end-to-end latency. Include candidate construction, failed search, learning, consolidation, revision, and recovery. A faster inference step that moves its cost into unreported learning or copying is not a gain.
+
+Later CPU/GPU backends may batch independent fixed operations or move cold pages. Different arithmetic and ordering profiles require explicit comparison semantics; bitwise replay is claimed only within a profile that actually supports it. Device throughput does not establish world-model accuracy.
+
+Later distribution uses immutable work proposals and one logical publication authority for the adaptive image. A worker returns a version-bound result; the publisher checks dependencies and admits it once. Workers do not own drifting learned replicas, separate clocks, or private optimizers. Out-of-order completion cannot silently change evidence identity, authority, or the declared replay semantics.
+
+### 33.22 One public lifecycle
+
+The following names describe stored program operations, not new network endpoints or a new runtime:
+
+|Operation|Inputs and observable result|
+|---|---|
+|`observe`|Admitted evidence/event reference and measurement context; publishes or resumes a justified shared update, retaining missingness and ambiguity.|
+|`predict`|Query kind, target, context/belief/model references, action regime and horizon; returns a version-bound prediction or typed limitation.|
+|`explain`|A particular claim, prediction, plan, or refusal; resolves its actual permitted dependencies and assumptions.|
+|`plan`|Goal, resources, current belief and admissible action domain; returns a contingent proposal with evidence and authority obligations.|
+|`inquire`|An unresolved distinction and allocation; proposes or executes permitted internal work and separately proposes external observations/actions.|
+|`learn` / `consolidate`|Identified evidence or computation feedback and affected references; advances parameter, structure, or retention work without creating samples.|
+|`revise`|Correction, regime hypothesis, representation migration, source, goal, or authority revision; performs the corresponding dependency update.|
+|`interpret` / `express`|Utterance or semantic content plus perspective; uses shared constructions and referents while preserving uncertainty and source obligations.|
+
+In the specified lifecycle these programs enter through `submit` and `invoke`; `advance` resumes their retained computation; `authorized-invoke` crosses the existing owner effect boundary. These operation names do not assert that today's family-specific task schemas already implement the generic behavior. Inspecting already published state is a read. An explanation that requires new inference is metered internal work, not an unaccounted read-only call into a separate evaluator.
+
+A complete interactive cycle is:
+
+```text
+adapter measurement -> admitted evidence/event identity
+  -> shared belief update + frozen-prediction assessment
+  -> mechanism/representation learning where justified
+  -> prediction, language, inquiry, and plan programs over the same refs
+  -> exact action proposal -> current owner authorization -> adapter
+  -> acknowledgment and observed outcome -> same shared revision path
+```
+
+The cycle can pause at any bounded transition. Reopen restores active branches, events, candidate frontiers, outcome obligations, and work already spent. Stale source, model, profile, or authority dependencies are checked before the corresponding use. A stale result is recomputed or explicitly unavailable; it is never silently relabeled current.
+
+The public result includes its question and semantic status, evidence/model/representation references, applicability and uncertainty, relevant unresolved obligations, and measured work. Raw host objects and diagnostic layouts are not a second public meaning surface.
+
+### 33.23 Existing-file ownership and clean integration
+
+The implementation extends the current root computer rather than creating `world_model.py`, a second owner, or a parallel agent stack. The source responsibilities are:
+
+|Existing source|Current basis and specified responsibility|
+|---|---|
+|`cassi_field_regions.py`|Current regional image, directory, pages, queue, continuation, scopes, and atomic transitions; specified typed semantic references, capabilities, and dependency-bound execution.|
+|`cassi_field_program.py`|Current fixed program/tape lowering; specified canonical `Program` payloads with typed record operands, bounded control flow, parameters, effects, and checked procedure composition.|
+|`cassi_regional_catalog.py`|Current closed bounded stateless kernel catalog; specified registration and work semantics for irreducible typed operations such as `MECHANISM_STEP`.|
+|`cassi_learning_computer.py`|Current one-image wrapper whose generated instruction seed is fixed catalog `NATIVE`/`COPY`/`HALT` execution scaffolding over named JSON values; specified admission and dispatch of the six canonical semantic record families rather than ownership of a separate model.|
+|`cassi_field_atlas.py`|Current record schemas, `AtlasState` family collections, and bounded numerical/reference operations; specified future canonical `Value`, `Binding`, and `Assessment` payloads. The current collections are transitional state to migrate, not an already shared semantic graph.|
+|`cassi_temporal_field.py`|Current bounded categorical action/observation/history kernel; specified canonical `Event` payloads, event-time semantics, predictive-state acquisition, hybrid mechanisms, and retained inference programs.|
+|`cassi_field_cognition.py`|Current bounded construction/assessment operations and regional JSON task codecs; specified shared representation, planning, revision, and explanation programs over canonical references.|
+|`cassi_temporal_inquiry.py`|Current bounded set/interval inquiry basis; specified question and experiment-selection programs over temporal and causal alternatives.|
+|`cassi_computation_policy.py`|Current bounded computation-selection basis; specified field-owned cost/usefulness observations over permitted alternatives.|
+|`cassi_field_owner.py`|Current exact evidence and authority boundaries, publisher, operation identity, and family-specific transitions; specified canonical `Obligation` payloads and unified event/effect/recovery publication lifecycle.|
+|`run_cassi_computer.py`, `runtime/cassi_cassipi_worker.py`, `runtime/cassi_cassipi_v2.py`|Current transport, regional task admission, presentation, and process lifecycle; no semantic or adaptive ownership.|
+
+This table assigns source responsibility, not independent adaptive components. Record definitions may be shared, but their live values and continuation belong to \(F\).
+
+
+Sensory ingress uses owner evidence admission plus fixed codecs and ordinary field representation programs. The external environment and adapter own their real-world state and idempotency ledger; they are not learned world-model pages. Exact acknowledgments belong at \(E\), nonlearned authorization/publication controls at \(A\), and request IDs, frozen predictions, grant references, dependency roots, and unfinished acknowledgment handling at \(F\). CassiCosmos and software adapters use the same separation. Later backend profiles and logical references remain regional concerns; distributed transport belongs to the runtime boundary.
+
+Three present source boundaries matter. First, the regional descriptor validator currently requires its capability, parent, type, and dependency reference extension words to be zero, so those layout positions do not yet implement the Section 32 reference semantics. Second, `LearningComputer.initial()` seeds `arguments`, `config`, `outcome`, `result`, `policy`, `session`, and `task` as named JSON values, while regional cognition preparation freezes complete query/plan source mappings into family task payloads; storage inside the image is not canonical cross-consumer identity. Third, direct owner language projections and family-specific learning/inference routes are not yet the generic event-to-shared-update lifecycle specified here. All three are migration boundaries, not evidence of an implemented world model.
+
+Concretely, `_program_and_entries()` currently generates the catalog-dispatch `NATIVE` row, result `COPY`, and `HALT` sequence. Those rows make bounded regional tasks executable; they are not the six future semantic record families and do not normalize task JSON into a shared world graph.
+
+The existing normal regional dispatch is therefore an execution basis. The shared world-record semantics in this section require completing typed resolution and replacing copied semantic inputs with canonical references where live identity and revision are required. JSON remains acceptable as a wire codec, an immutable snapshot, or a field-resident encoded record with explicit references; serialization format alone neither proves nor violates field ownership.
+
+Retained direct atlas/cognition methods and `FieldProgram.execute` are reference/compiler/kernel support, not a route for implementing these new capabilities. Their existence is not evidence that normal dispatch uses them. New production behavior must be exercised through the owner/CLI path with whole-family evaluators unavailable, as in the current regional-path verification.
+
+Each cutover migrates the consumers of its semantic record together: belief, query, plan, language, assessment, and explanation. It removes the obsolete production dispatch and adaptive copy rather than synchronizing old and new world models indefinitely. Historical evidence retains its original scope; `prototype/` and `legacy/` do not become runtime dependencies.
+
+### 33.24 Integrated behavior and evaluation worlds
+
+Development uses direct implementations, focused tests for uncertain behavioral boundaries, and actual interactive scenarios. No new preregistration, approval-stage, or frozen-verdict document system is introduced.
+
+The evaluator must distinguish accessible observations from privileged diagnostics. Simulator latent state can judge an outcome or known causal structure outside the learning process; it cannot supply state labels, correspondence, mechanism parameters, or future noise to the computer. Exact tool/software records are likewise separated from information the acting agent was permitted to access.
+
+Required scenario families are:
+
+|Family|Behavior that must be visible|
+|---|---|
+|Recurring histories and hidden timers|Compress genuinely reusable predictive structure while retaining a timer alternative or supported horizon; split when a future observation separates histories.|
+|Occlusion and identity ambiguity|Maintain an object/process through absent visibility; preserve correlated correspondence alternatives; revise every dependent use after identification.|
+|Joint dependence|Preserve equality/XOR and exclusion constraints that independent marginals or pairwise moments would lose.|
+|Hybrid dynamics|Learn or retain uncertainty over numerical parameters, discrete modes, duration, background evolution, and overlapping actions from permitted measurements.|
+|Observation-process change|Distinguish changed sensor delay, censoring, or visibility from changed environmental dynamics where evidence permits; otherwise retain alternatives.|
+|Causal alias and selected data|Separate passive agreement from intervention consequences; expose missing action support, hidden confounding, and selection into observation.|
+|Counterfactual coupling|Keep fresh-noise forecasts distinct from unit-level shared-cause branches; report when the coupling is not identified.|
+|Representation failure and discovery|Encounter a distinction absent from the initial useful representation, propose a new role/factor/program, and improve subsequent predictions without oracle labels.|
+|Hierarchical action and inquiry|Use observations to choose a contingent plan, act only with authority, repair local premises, and account for model optimism on selected actions.|
+|Grounded communication|Interpret and express new role combinations using the same uncertain entities, mechanisms, plans, and evidence as nonlanguage tasks.|
+|Other-agent perspective|Represent a false belief and different information access without promoting it to a world fact or permission.|
+|Continuity and revision|Pause mid-inference or with an unresolved external effect; reopen, receive late data or a correction, and continue without duplicate support or dispatch.|
+|Lifelong recurrence and interference|Acquire new regimes and tasks, return to old ones, retain rare exceptions, and expose any loss caused by capacity or consolidation.|
+|Computational transfer|Use an acquired guarded procedure on unfamiliar programs or environments with lower complete cost and preserved outcomes.|
+
+World diversity must vary causal and representational structure, not only seeds. Withhold combinations of mechanisms, action ranges, horizons, entity counts, referent names, sensor frames, observation schedules, and task goals. Include worlds requiring a new representation, as well as worlds in which no accessible observation identifies the requested hidden cause.
+
+Use controls that answer specific questions:
+
+- a frozen-field condition to isolate improvement due to learning;
+- a reactive observation-only condition to expose the value of retained predictive state;
+- disabled structural adaptation to distinguish parameter fitting from representation discovery;
+- deliberately separated consumer copies to demonstrate why one shared correction path matters;
+- an evaluator-only oracle ceiling for the value of otherwise inaccessible information.
+
+These are isolated evaluation conditions, never fallback components of the deployed computer. Compare equal observation access and authority; report complete work rather than granting one condition free planning or learning.
+
+Negative cases make the semantics discriminating. A repeated delivery must not increase support; an all-unknown policy must fail tasks with sufficient evidence; an always-broad prediction must lose precision; a hypothetical outcome must not become evidence; a changed goal must not alter a fixed-action predictive law; a late acknowledgment must remain tied to the original prediction. Mutating one of those real scenario conditions should produce the expected observable failure, not merely a reassuring zero count.
+
+The first environments can expose small numerical and relational observations to isolate world-learning mechanisms. Subsequent environments add rawer sensory streams, more ambiguous correspondence, continuous controls, asynchronous software effects, and longer horizons. Reports state what structure the adapter supplied at every point. Removing privileged structure is part of demonstrating acquisition, not a cosmetic benchmark change.
+
+Real CassiCosmos and software/tool adapters are eventual instances of the same event/action boundary. A successful scripted world does not establish live CassiCosmos integration; live bridge use must be exercised. A physics simulator provides an environment and observations. Its PDE is not automatically the computer's learned cognition, and success there does not automatically transfer to software, language, or unfamiliar physical systems.
+
+### 33.25 Dependency-ordered implementation
+
+The implementation sequence is end-to-end: each addition must become an ordinary use of the same computer and preserve its existing execution, evidence, and authority behavior.
+
+|Workstream|Dependencies and concrete deliverable|Observable completion|
+|---|---|---|
+|Shared semantic substrate|Complete typed references, semantic versions, footprints, dependency records, and canonical event/prediction identities; migrate affected consumers together.|One admitted correction changes query, plan, language, and explanation through one relation version, while unrelated support survives.|
+|Ongoing time and joint belief|Use that substrate for interval events, observation masks, correlated alternatives, filtering, smoothing, and pending outcomes.|An occluded delayed-observation episode pauses/reopens correctly and preserves the joint alternatives needed for a later decision.|
+|Predictive-state acquisition|Add guarded history classes, finite test obligations, prospective comparison, and retained split/expansion.|Recurring behavior compresses; a hidden timer or new action separates a class without rewriting past predictions.|
+|Hybrid and latent mechanism learning|Add the explicit observed/latent parameter paths, observation models, mode changes, and bounded likelihood/set inference.|Unseen parameter/action cases receive supported estimates or correctly retained uncertainty; no latent completion becomes an observation.|
+|Causal inquiry and planning|Use the same models for action-context coverage, intervention questions, contingent plans, safe inquiry, and effect reconciliation.|A selected-policy causal alias is recognized; an authorized discriminating action improves a subsequent decision; uncertain dispatch is not retried blindly.|
+|Representation and procedure discovery|Extend the typed grammar and candidate frontier across temporal, spatial, relational, language, and computational uses.|A representation absent from the initial useful vocabulary improves unfamiliar subsequent cases and replaces repeated work through its shared program identity.|
+|Lifelong language and social use|Extend acquired constructions, perspective, retention, recurrence, and migration over continuing cross-world episodes.|A new mechanism learned through interaction supports a later explanation and plan, while old tasks and other-agent uncertainty remain correct.|
+|Scaled sensing and execution|Apply sparse/packed execution, measured backend work, richer sensors, actual environment adapters, and later version-bound worker distribution.|The full cycle runs on real interfaces with reported cost and capability boundaries; scaling preserves semantic, recovery, and authority behavior.|
+
+Within a workstream, implementation and direct scenarios proceed together. Schema, instruction, and consumer changes are coordinated; performance work follows measured bottlenecks. Source maps and scenario requirements are part of this design, not an excuse to ship a second runtime while integration waits.
+
+Important dependency crossings remain explicit. Planning needs usable models but can begin with set-valued uncertainty. Language can acquire bounded constructions before raw perception is solved, provided supplied grounding is disclosed. Structural search can improve procedures before it discovers physical laws. None of these partial achievements is renamed the complete destination.
+
+### 33.26 Full ambition and unresolved frontier
+
+The strongest target is a single persistent computer that increasingly discovers what is worth representing, learns how the represented world changes, invents useful computational procedures, and uses that knowledge across perception, action, explanation, and communication. Scientific investigation, tool use, and algorithm acquisition should become different workloads of that shared intelligence.
+
+Its long-term trajectory should show:
+
+- fewer repeated mistakes after identified evidence and correction;
+- more useful predictions per unit of acquired experience;
+- better abstraction and transfer beyond construction examples;
+- longer competent plans with fewer unsupported commitments;
+- lower complete computation cost from learned procedures and representations;
+- preserved knowledge and rare distinctions over a changing lifetime;
+- increasingly expressive grounded communication;
+- better recognition of questions that remain unrepresented or unidentifiable.
+
+These objectives do not imply unlimited competence. Some latent structures are observationally equivalent. Some causal questions require unavailable interventions. Some worlds cannot be compressed usefully at the needed horizon. Some searches remain intractable, and arbitrary program equivalence is not generally decidable. No fixed finite experiment establishes unrestricted intelligence or universal calibration.
+
+The central research wager is precise: a bounded typed program language, shared relational and predictive state, explicit latent hypotheses, prospective structural selection, and field-owned computational improvement can acquire useful new abstractions without importing a separate learned model. The design specifies where such abstractions live, how evidence changes them, how every cognitive use shares them, and how their benefits and failures become observable. Whether that process scales to the full destination is the work to be measured.
+
+## 34. Cumulative training and evaluation program
+
+### 34.1 Objective and status
+
+**Executed measurement; broad general intelligence remains unestablished.** The complete default run uses three continuing lifetimes, four blocks, four external worlds, and 192 field-owned training events. Its retained receipt is `_diag/general_intelligence_program.json` with identity `bbffe584e917a9baac31da48834cc9715d2b8bbcde55e319230f768023b2f35f`.
+
+At the final frozen checkpoint, each of the four world families reaches `48/48` across the three seeds (`16/16` per seed). The learning curves are `0/48` at checkpoint zero and `48/48` at checkpoints 16, 32, 48, and 64. The cold, structural-disabled, and irrelevant-pretraining controls are `0/48` per family. The shared-belief challenge reaches `21/27`; recurrence reaches `64/64` at every trained checkpoint; six reduced-sensory modalities reach `18/18`; and three permissioned repository sources reach `9/9`.
+
+The retained resource boundary is explicit. The default profile reaches its execution-resource limit after 16 completed feedback events and three acquisitions, so the continuation uses the declared `393216`-mode, `524288`-word profile, increasing value capacity by `128x`. The full run takes `7h24m0.6s`, reaches a peak process working set of `691,949,568` bytes, and retains `3,846,158,186` data-home bytes. The source codec, fixed semantic grammar, acquisition schedule, and supplied answer-bearing alignments remain experimental structure; automatic task understanding and open-ended curriculum discovery are not claimed.
+
+The primary comparison is the same computer before and after experience, at matched observation access, authority, and resource allocations. Success on an already implemented exact solver is useful computational competence; improvement beyond that fixed competence requires a learning-dependent comparison. Neither a Turing-complete instruction set nor seven input codecs establishes general intelligence.
+
+The implementation uses `cassi_field_input.py`, `cassi_field_cognition.py`, `cassi_field_owner.py`, `cassi_learning_computer.py`, and `run_cassi_computer.py`, with `run_general_intelligence_program.py` as the end-to-end driver, `verify_general_intelligence_program.py` as an independent verifier, and `test_general_intelligence_program.py` for focused regressions. The full receipt verifier passes all `3,538` checks with zero failures. The shared-belief result is partial (`21/27`), the intervention-after result is `0/16` for each seed after revocation, and no language-model or teacher fallback is used.
+
+### 34.2 One learner and a separate world/evaluator boundary
+
+Each training lifetime has one owner and one continuing resident `cognition.field` task in its regional machine image. Moving between domains changes the observations, context, and goals; it does not create a domain-specific adaptive model or replace the resident task with a new empty one.
+
+Three responsibilities remain distinct:
+
+|Component|Permitted responsibility|Excluded responsibility|
+|---|---|---|
+|Resident computer|Retain beliefs, acquired representations and procedures, learning frontiers, assessments, and continuations; select permitted actions and inquiries.|Use a second adaptive checkpoint, learned host cache, model fallback, or evaluator answer store.|
+|Environment and episode driver|Maintain the external world's state; deliver exact accessible sources; expose legal actions, goals, acknowledgments, and observed feedback; execute a declared schedule.|Supply hidden state, the correct latent feature, a private action plan, or a solution-specific sequence of reasoning calls.|
+|Evaluator|Keep target outcomes and split membership outside learner-visible requests; score predictions and consequences; compare isolated checkpoints and controls.|Return final-test answers to training, retrieve privileged state on behalf of the learner, or use the learner's own claimed status as the correctness oracle.|
+
+Environment state and evaluator bookkeeping are external experimental state, not additional intelligence. They must not become undeclared inputs to the next learner decision. Evaluation branches are isolated copies of an identified owner checkpoint, never cooperating learners or an ensemble whose answers are merged.
+
+A single thin training/evaluation runner is sufficient. Its adapters supply worlds and transport, not competing cognition engines. It drives the public owner/surface lifecycle; performance comparisons do not bypass the owner by calling a private kernel directly. Existing exact kernels remain fixed prior machinery, and any use through the common computer must be reported. Starting a different task must not silently erase the knowledge being evaluated.
+
+### 34.3 What training means on the current implementation
+
+Training is identified experience admitted through the owner, followed by explicit field-owned acquisition and revision operations. There is no optimizer, learned codec, neural head, or teacher model in the learner.
+
+The input path currently constructs an `observe` request. Reading a file alone does not automatically discover representations, train language constructions, or choose a curriculum. The driver must explicitly invoke the existing operations such as `learn-representation`, `learn-parameters`, `learn-mechanism`, `learn-procedure`, and `learn-construction` when the declared training condition provides their required evidence.
+
+The initial condition uses a fixed, domain-independent acquisition schedule. It reports that scheduling assistance. A separate autonomy condition lets field-owned inquiry and control choose among accessible opportunities and bounded learning operations; its action-selection trace must show that the driver only executes the selected alternative. If that production control path is unavailable for a task, the result remains assisted rather than being described as autonomous.
+
+Every interactive learning event follows the same order:
+
+1. Admit accessible context and a task or prediction question, without its answer.
+2. Issue and retain the computer's prediction, supported alternatives, inquiry, or action proposal with its current model and information boundary.
+3. Execute only an authorized sandbox action, or deliver the next scheduled external observation.
+4. Score the previously issued prediction against the newly available outcome outside the learner.
+5. Admit the observed outcome once with its source identity, world time, delivery identity, and action acknowledgment where applicable.
+6. Assess the discrepancy and perform the bounded acquisition/revision allowed in that condition.
+7. Retain the successor field and full work account for the next event.
+
+Parameter fitting, structural proposal search, consolidation, and rehearsal use existing evidence identities. Reusing an observation can consume computation but cannot count as new environmental experience or multiply independent support. Hypothetical rollouts remain hypothetical. An action acknowledgment establishes dispatch/execution status only to the extent it actually reports; it does not automatically establish the predicted world consequence.
+
+When representation examples require a feature map, the driver may expose identified current measurements or a declared supervised alignment. It may not compute the hidden target feature and call that acquisition. Role names, IDs, filenames, and ordering are varied so that labels such as `correct_delta`, a solver name, or a goal-specific construction ID cannot reveal the answer.
+
+### 34.4 Separating supplied structure from acquired competence
+
+Every result identifies one of three input conditions:
+
+|Condition|What is supplied|What the result can establish|
+|---|---|---|
+|Explicitly taught|Typed measurements, selected training alignments, or demonstrated procedures, with the teaching counted.|Acquisition, retention, and transfer under the stated supervision.|
+|Structure discovery|Accessible measurements with neutral roles, legal action descriptions, and outcomes; no target transformation, correct candidate program, hidden identity, or mechanism label.|Useful discovery within the implemented candidate language and observation surface.|
+|Reduced sensory assistance|Exact text, small raster/tensor/audio packets, or code syntax with only declared codec geometry and provenance; semantic correspondence must be acquired.|The sensory/semantic distinctions actually learned, including failures to represent them.|
+
+The same abstract task appears at more than one assistance level, but a transformed copy remains in the same data split. Removing assistance is measured as a separate comparison, not credited merely because a different codec is used.
+
+Raw raster support means raw samples with declared shape, not a pretrained vision model or arbitrary image-file understanding. Audio support means declared numeric samples, not acquired speech recognition. Python syntax decoding does not supply program meaning or execution. Opaque byte admission can correctly produce no useful semantic generalization.
+
+Representation discovery currently searches a bounded built-in grammar. Include both unfamiliar combinations within that grammar and mechanisms outside it. A good search result within the grammar is distinguished from invention of a new algorithm or language primitive. An answerable task outside the represented family is still an unmet capability, even when refusal is appropriately calibrated.
+
+### 34.5 Curriculum: increasing dependence on shared learned knowledge
+
+The curriculum introduces difficulty progressively, while interleaving old work and beginning grounded language early. It does not complete one domain and discard its learner before moving to another.
+
+|Stream|Training experience|Unfamiliar evaluation|Main capability and failure signal|
+|---|---|---|---|
+|Measurements and relational abstraction|Small JSON/tensor measurements; irrelevant coordinates; repeated relations; units and frames; equivalent descriptions.|New values, neutral role names, offsets, scale ranges, sensor frames, and combinations of relations.|Useful representation versus memorized examples; encoded-state computation is scored separately from supported outcome prediction.|
+|Temporal and partially observed processes|Recurring histories, delayed effects, quiet periods, hidden timers, and missing readings.|Longer horizons, unfamiliar schedules, ambiguous current observations, and changed observation delay.|Value of retained predictive state; distinguish unknown, delayed, changed, and exhausted.|
+|Causal and hybrid mechanisms|Safe controlled interventions alongside passive observations; discrete modes with numerical effects.|Confounded passive twins, held-out action/context pairs, sensor changes, and mechanism changes.|Intervention prediction and decision-relevant inquiry; preserve unidentifiable alternatives.|
+|Grounded language and perspectives|Accessible situations paired with utterances, corrections, requests, questions, and source attribution.|New referents and role combinations, ambiguous instructions, withheld construction combinations, false belief, and conflicting source reports.|Language-driven task consequences and shared revision; fluency alone receives no competence credit.|
+|Software, data, and computational practice|Tiny sandbox files/tables, explicit I/O examples, documented toy interfaces, and successful/failed execution traces.|New parameter values, renamed APIs with an accessible specification, new data layouts, and held-out procedure compositions.|Execution correctness, learned procedure transfer, interface learning, and full cost savings; AST decoding or a supplied solution is insufficient.|
+|Integrated tasks|A persistent workspace in which measurements, objects, descriptions, mechanisms, and tools affect one common goal.|New goals requiring knowledge acquired through another modality or task; delayed failure and local plan repair.|Cross-use transfer through the same learned reference rather than separately trained answers.|
+|Recurrence, revision, and interference|Interleaved older regimes, rare exceptions, corrected measurements, source retractions, distractors, and continuing new tasks.|Return after long gaps; separate obsolete facts from recurring valid mechanisms; resume after interruption.|Retention, selective revision, negative transfer, consolidation loss, and finite-capacity boundaries.|
+
+Within a stream, training moves from short identified demonstrations to outcome feedback, then to goal-only opportunities with field-selected inquiry where supported. Report the dose of each kind separately. Demonstrations may contain a correct solution because they are teaching; they are not evidence of independent discovery.
+
+Difficulty varies causal structure, representational demands, composition depth, delay, ambiguity, and action costs, as well as surface details. Predictive horizons initially use 1, 2, 4, and 8 world transitions; longer horizons are a resource-indexed extension. Numeric and symbolic labels are randomized independently of correctness. Paired sensor views share an event identity so that they do not become two independent physical trials.
+
+### 34.6 Training sources and episode selection
+
+Begin with small generated worlds whose observable consequences can be scored independently and exactly. Use several distinct mechanisms rather than one template with many seeds. Examples include a measurement relation, a delayed device, a changing inventory with attributed descriptions, and a small software/data interface. Each has real learner-visible ambiguity and a useful consequence to predict or achieve.
+
+After the integrated synthetic comparison is informative, add bounded real sources: permissioned/licensed text and tables, small numerical logs, and sandbox software documentation with executable checks. Keep an attributable source inventory and reserve entire source families for evaluation. Private messages, personal files, live accounts, and third-party services are not default training corpora.
+
+Longer curricula use a declared initial mix of 50% new acquisition opportunities, 25% recurrence, 15% cross-task composition, and 10% rare exceptions or correction. These are sampling shares, not measured optimal values. Counts of unique observations, reused observations, demonstrations, and learner-selected inquiries are reported separately. No rehearsal engine outside the field learns which memories to select.
+
+Adaptation may choose among the available training opportunities only from the computer's retained uncertainty, errors, or cost estimates. Developer-visible final-test scores never select its next exercise. A fixed balanced ordering and counterbalanced domain orders remain comparison conditions; an apparently good curriculum should not owe its result to one favorable ordering.
+
+### 34.7 Construction, selection, and untouched evaluation data
+
+The program uses three distinct data roles:
+
+1. **Construction/training:** observations and demonstrated examples used to acquire candidates and parameters.
+2. **Selection/validation:** evidence used to choose a candidate, stop a search, or tune the acquisition schedule.
+3. **Untouched evaluation:** unseen episodes and answers used only to measure the selected computer.
+
+The existing `learn-representation(..., holdout=...)` argument participates in candidate selection. It belongs to role 2. It must never receive the final evaluation set. The same rule applies to other learner operations that inspect validation examples.
+
+Split at the world/source family and latent episode root, before rendering, naming, chunking, augmentation, or modality conversion. Exact-source hashes alone do not detect the same underlying world rendered twice. Group generator structure, causal mechanism, source lineage, and transformations so that near-duplicates do not cross roles. Keep evaluator seeds, split tags, future noise, and answer-bearing metadata outside the accessible source envelope.
+
+Evaluation has separately labeled partitions:
+
+- new instances of acquired structure;
+- unseen compositions of acquired components;
+- numeric, temporal, size, and observation-schedule extrapolation;
+- surface and modality changes;
+- genuinely new mechanism/representation families;
+- sufficient-evidence versus deliberately insufficient-evidence questions;
+- recurring old regimes and genuinely changed regimes.
+
+Repeatedly consulted development evaluations become validation. Each comparison also needs fresh, unconsulted evaluation roots. Changing code, candidate grammar, task construction, or score interpretation after inspecting results creates a new comparison version; it does not improve the historical result retroactively.
+
+### 34.8 Three evaluation modes
+
+|Mode|State and feedback rule|Question answered|
+|---|---|---|
+|Retained-knowledge evaluation|Branch from the training checkpoint; permit working belief and task execution to evolve, but prohibit parameter, representation, construction, or procedure learning; withhold answer feedback.|What has this checkpoint learned and what transfers without new teaching?|
+|Few-shot adaptation|Start every trial from the same training checkpoint; allow a declared 1, 4, or 16 accessible teaching events; score a disjoint query batch; discard the branch afterward.|How quickly does prior knowledge help acquire a new task?|
+|Continuing online evaluation|Predict before each new outcome, then allow normal learning; keep the lifetime state and all pre-update errors.|Does the computer improve while operating, recover after change, and preserve old competence?|
+
+Snapshot evaluation never changes the training owner or returns test labels to it. A frozen knowledge condition still needs new observations, inference, clocks, and action reconciliation; freezing the entire machine would test a broken agent. Verify that learned state stays unchanged while permitted working state evolves. If an operation inherently learns and cannot be separated through the current production path, it cannot be used in the frozen condition until that boundary is implemented.
+
+The CLI's `solve --no-learn` option concerns the computation policy. It is not a general cognition-freeze switch. A control is defined by exercised behavior, not by an unrelated flag.
+
+Adaptive agents can choose different trajectories. For action comparisons, use matched initial worlds and declared exogenous-event rules, then score each actual trajectory. Do not force identical post-action observations on agents that performed different actions. A separate teacher-forced replay comparison may isolate prediction under common observations, but cannot stand in for closed-loop action competence.
+
+### 34.9 Measurements and analysis
+
+Report a scorecard for every domain, assistance level, evaluation partition, resource allocation, and mode. The central measurements are:
+
+|Dimension|Required measurement|
+|---|---|
+|Learning efficiency|Pre-update error and task success versus unique teaching events, source bytes, and total work; zero/one/few-shot performance; acquisition cost to a declared task-specific useful level.|
+|Transfer|Performance on an unfamiliar task before teaching and after matched small teaching doses, compared with a cold computer; negative transfer remains visible.|
+|Prediction|Categorical correctness or numerical error in declared units, by horizon and selected action; encoded representation output and predicted environmental outcome remain distinct targets.|
+|Action and inquiry|Goal attainment, forbidden consequences, unnecessary actions, observation cost, repair cost, and value of an inquiry versus acting or waiting under the same available information.|
+|Uncertainty|Attempted, answered, correct, incorrect, abstained, exhausted, unsupported, delayed, and censored counts; prediction-set coverage together with set size or interval width and answer rate.|
+|Language|Correct grounding and resulting decisions, new role/construction composition, ambiguity resolution, source/perspective separation, and support of expressed claims.|
+|Retention and revision|Old-task performance after each learning block, recurrence/reacquisition cost, rare-exception retention, affected-consumer correction, and unintended changes to unrelated knowledge.|
+|Computational improvement|Complete cost of acquisition plus subsequent uses against fixed execution; report the measured reuse count at which learning pays for itself, or that it has not paid back.|
+|Continuity and capacity|Outcomes after exact reopen, duplicate-delivery handling, pending effects, state/storage growth, source retrieval, consolidation losses, and explicit resource exhaustion.|
+
+For a task score where higher is better, let \(R_{i,j}\) be performance on task family \(i\) after learning block \(j\). Publish the matrix, not only its average. Final forgetting for a previously learned family is \(\max_{j<T} R_{i,j}-R_{i,T}\). A transfer comparison uses the trained and cold checkpoints with the same target teaching dose and budget. Legitimate correction of an obsolete fact is not scored as forgetting; valid old-regime knowledge is evaluated in its applicable regime.
+
+Probability scores such as log loss or Brier score are used only for outputs with a declared probabilistic interpretation. Field energy, support counts, and heuristic ranking scores do not acquire probability semantics. Set-valued outputs use coverage and precision jointly; always returning the full outcome set or always abstaining cannot win a task requiring a useful supported decision.
+
+Timeouts, cap hits, unsupported representations, and failed actions stay in the workload denominator. Missing external outcomes are reported explicitly rather than imputed as correct. A model that refuses an unidentifiable cause can succeed at epistemic calibration while still leaving an external goal unsatisfied; those are two measurements.
+
+Use matched differences and uncertainty intervals clustered by independent world/source roots, with training-lifetime variation reported separately. Multiple queries, sensor views, and replays from one world are correlated observations, not independent sample inflation. A three-lifetime pilot is exploratory; reserve additional fresh roots and counterbalanced orders before claiming a stable gain. Report per-family and worst-family behavior alongside any explicitly weighted summary.
+
+### 34.10 Controls that isolate the source of improvement
+
+All controls are evaluation conditions of the same implementation where possible, with the same fixed grammar, accessible observations, legal actions, and declared allowances. They are not new deployed systems.
+
+|Control|Changed factor|Inference supported by a useful contrast|
+|---|---|---|
+|Cold computer|No accumulated task learning; fixed kernels and codecs unchanged.|Benefit beyond built-in machinery and supplied structure.|
+|Frozen acquired knowledge|Retain a chosen checkpoint's models but suppress further acquisition, while allowing current belief updates.|Contribution of subsequent online learning.|
+|Structural adaptation disabled|Retain the same initial representation language and permitted parameter updates, but do not promote new structures.|Contribution of representation/procedure discovery beyond fitting existing models.|
+|Reactive working state|Retain comparable fixed/acquired mechanisms but remove prior observation-history information from the decision boundary.|Value of predictive memory over the current observation.|
+|Matched irrelevant pretraining|Same experience/work allocation from unrelated tasks.|Specific transfer versus more compute or generic extra activity.|
+|Learning-state intervention|On an isolated checkpoint, remove or disable an actually acquired representation/procedure using valid field operations, then repeat matched consequences.|Whether the learned object causally affects behavior rather than merely appearing in a record.|
+|Evaluator-only ceilings|An accessible-information reference for bounded tasks, plus a separately labeled full-state oracle when useful.|Distance from attainable competence and the cost of inaccessible information; the oracle is never a learner fallback.|
+
+A control that cannot be expressed validly in the current machine is recorded as an implementation prerequisite, not approximated by corrupting field bytes or silently changing the task. Control traces disclose which adaptive records may change. Learning-state interventions use a real retained learned object, not a planted mock.
+
+Budget comparisons include both equal-lifetime-work and equal-test-time views. The former charges training and rejected search; the latter discloses accumulated training cost. An oracle's privileged observations exclude it from an equal-information ranking.
+
+### 34.11 The integrated shared-belief challenge
+
+The central demonstration is a continuing workshop/inventory world. Objects have changing locations, a small device has a partly observed mechanism, and people or software endpoints provide attributed reports. Measurements arrive as tables or numeric samples; grounded utterances refer to the same events and participants. A sandbox goal needs the resulting knowledge.
+
+One evaluation sequence is:
+
+1. Acquire a useful relation or device behavior from permitted experience, without a supplied solution program in the discovery condition.
+2. Use it on an unfamiliar participant or setting, with different surface names.
+3. Receive a language request whose fulfillment depends on that learned relation.
+4. Predict a consequence and choose a permitted action or a useful separating observation.
+5. Receive a delayed result or a measurement correction that changes one relevant premise.
+6. Update the ordinary query, outstanding prediction, unexecuted plan, and explanation through that shared premise; preserve unrelated facts and acknowledged effects.
+7. Continue after checkpoint reopen, then return to an older task and a rare exception.
+
+The evaluator checks consequences, not merely record linkage: the appropriate answer/action must change, unrelated supported answers must stay stable, and a removed learned representation must change the expected matched result. Include cases where an inquiry is necessary, unnecessary, and incapable of identifying the requested cause.
+
+This is a stronger unity test than passing independent language, solver, and memory examples. A relation learned through numerical interaction should help a later language-mediated action without separately teaching the answer in each modality. Supplying a complete meaning program remains a supervised condition and cannot be reported as spontaneous grounding.
+
+### 34.12 Resource-bounded first run
+
+The first execution is a sizing and capability pilot, not a large corpus training job. Current semantic defaults are 2,048 records, 2,048 operations, 2,048 timeline entries, eight versions per record, 128 alternatives, and 4,096 semantic work units; these are distinct from regional-machine and owner allocations. Exhaustion of one limit is not cured by increasing an unrelated CLI step allowance.
+
+The source page limit is 256 observations, but current codec implementations materialize decoded items before taking a page. Small pages therefore do not establish bounded source-decoding memory or constant-cost pagination. Bound source bytes, decoded item count, nesting/depth where applicable, and admitted observation count separately. Start with small scalar packets, tiny arrays, short text, and small syntax trees. Do not begin with video, large images, whole repositories, or a bulk text corpus.
+
+The proposed pilot is:
+
+|Item|Initial allocation|
+|---|---|
+|Training lifetimes|Three independent, explicitly recorded seeds with counterbalanced domain order; one persistent owner per lifetime.|
+|Domains|Measurement relations; a temporal device; changing inventory with grounded language; a small software/data interface.|
+|Teaching budget|At most 64 unique feedback events per lifetime, introduced in four balanced blocks of 16. Each block has four events per domain: three construction events and one selection/validation event. Total planned allocation is 48 construction plus 16 selection events.|
+|Checkpoint observations|Before training and after 16, 32, and 64 feedback events, or at the actual earlier resource boundary.|
+|Snapshot evaluation|Four fresh world roots per domain at each checkpoint, with four scored decisions per root; this is 16 roots and 64 correlated-within-root decisions per checkpoint.|
+|First controls|Cold and structural-adaptation-disabled comparisons on matched roots, plus a valid learned-object intervention at the final attained checkpoint. Broader controls follow measured pilot cost.|
+|Packet sizing|Start with at most four scalar-equivalent observations per feedback event, sources no larger than 4 KiB and at most 32 decoded items; larger conditions are separate measured runs.|
+|Allocation discipline|Record the actual owner, regional, and semantic bounds before execution; use identical allowances for matched conditions and stop at the first exhausted bound without resetting the lifetime.|
+
+The first eight events establish actual admission, candidate-growth, serialization, and persistence cost before committing the remainder of the 64-event allowance. This is resource sizing within the declared maximum, not selection of an attractive capability result. If the default allocation cannot support the planned lifetime, publish the shorter curve and the exhausted bound; an enlarged allocation is a separately identified continuation/comparison.
+
+Evaluate scaling along one axis at a time: unique events, number of distinctions/entities, composition depth, horizon, or field/work allocation. A subsequent schedule may use 256 and 1,024 events after the production bounds and retention path support them. These are proposed workload sizes, not claims that the current defaults accommodate them. Compare matched 1x, 2x, and 4x resource allocations without hiding the extra allocation inside a reported learning gain.
+
+Cost includes source decoding, candidate generation and rejection, semantic execution, regional scheduling, retrieval, copies, serialization, checkpoint writes, reopening, consolidation, and evaluation branches. Report logical work and wall time separately, plus peak host memory and on-disk bytes for the adaptive field, exact sources, checkpoints, and receipts. No GPU acceleration or energy advantage is assumed from the workstation hardware; energy is reported only if measured.
+
+### 34.13 Failure-driven iteration and discriminating scoring
+
+Unexpected outcomes are classified before adding more training:
+
+- **Acquisition:** a useful available distinction is not learned.
+- **Representation:** the required variable or program is outside the available grammar or observation boundary.
+- **Transfer:** training performance is good but unfamiliar composition or use fails.
+- **Interference:** later learning damages still-valid earlier competence.
+- **Inquiry/control:** useful information is available but not requested, or plans exploit model optimism.
+- **Calibration:** answers exceed support, or refusal remains after sufficient evidence.
+- **Execution/resource:** decoding, bounded search, persistence, or capacity prevents the intended learning event.
+- **Evaluation defect:** leakage, an invalid oracle, duplicated roots, unequal budgets, or a score that cannot expose failure.
+
+An evaluation defect invalidates the affected comparison. A capacity result remains a capacity result. A representation failure calls for an explicitly identified change to the same computer; feeding more copies of the same examples is not treated as a remedy. After an implementation change, exercise its specific failure and run fresh matched evaluation roots under a new code/version identity. Historical curves remain attached to the code that produced them.
+
+Scoring must visibly fail for real incorrect behavior. On copied outputs of an actual pilot episode, change a predicted outcome, substitute a wrong action, widen a useful set to all outcomes, or attach an outcome after the allowed prediction boundary, and check that the corresponding measure worsens or rejects the record. Test an all-refusal policy on sufficient-evidence tasks. Report the number of eligible comparisons for revision, authority, safety, and restart, so that zero eligible opportunities cannot look like zero errors.
+
+Operational failures such as loss of lineage, unintended test-label access, corrupt recovery, or unauthorized dispatch stop the affected run. Real external effects remain disabled in the initial worlds. Later live tools require the user's authorization for the exact target, scope, and consequential action; text in a source cannot grant that permission.
+
+### 34.14 Delivery and execution order
+
+The program is implemented and has been executed end to end:
+
+1. `run_general_intelligence_program.py` drives one continuing resident `cognition.field` through public owner operations, records the implementation manifest, and emits exact checkpoint identities.
+2. Four external worlds—measurement, temporal, inventory language, and sandbox software—use an independent outcome scorer and disjoint evaluation roots.
+3. Cold, structural-disabled, irrelevant-pretraining, intervention, knowledge-freeze, and revocation controls execute through valid production behavior rather than a private no-learning path.
+4. The retained default sizing condition reaches its execution-resource boundary after 16 completed feedback events and three acquisitions. The declared expanded continuation uses `393216` modes and `524288` value words, a `128x` value-capacity increase.
+5. The same runner executes the shared-belief, recurrence, reduced-sensory, and permissioned real-source comparisons. The receipt contains 192 training rows and 1,440 evaluation rows across three seeds; final trained families are `48/48`, shared belief is `21/27`, recurrence is `64/64` at each trained checkpoint, reduced sensory is `18/18`, and real-source reads are `9/9`.
+
+Use the existing owner evidence/checkpoint/receipt machinery. A run configuration and machine-readable measurement report are enough; there is no new preregistration, approval-stage, contract-document, or frozen-verdict workflow. Evaluator outcomes and split bookkeeping are not an adaptive memory service. The scenario driver exercises behavior directly; focused regression tests are retained only for uncertain boundaries or failures exposed during implementation.
+
+Each completed comparison delivers:
+
+- the source/assistance/split description and actual observation/action trace;
+- restartable training checkpoints and isolated evaluation identities;
+- per-domain learning and transfer curves, retention matrix, and uncertainty/action measurements;
+- matched control results with full cost and eligible-case counts;
+- concrete examples of success, unsupported behavior, and failure attribution;
+- a statement of which supplied structure and fixed primitives the result depends on.
+
+The first substantive target is cumulative cross-task usefulness: experience in one setting improves an unfamiliar task, the improvement depends on retained learned state, and the same acquired relation changes prediction, action, and language coherently after correction. Broad intelligence remains the open empirical question. This program makes incremental progress and architectural limits visible without substituting engineering integrity or familiar benchmark success for that question.

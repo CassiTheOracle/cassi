@@ -6,6 +6,7 @@ import argparse
 import json
 import tempfile
 from pathlib import Path
+from time import perf_counter_ns
 from typing import Any, Mapping, Sequence
 
 import torch
@@ -283,12 +284,17 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
             sequence=sequence,
         )
 
-    query_before = owner.query(
+    query_started = perf_counter_ns()
+    query_before = owner.think(
+        operation_id="think:direction:before",
         observed={"destination": 6.0, "source": 2.0},
         requested=("displacement", "left_score", "right_score"),
         context={"domain": "line"},
-        method="direct",
     )
+    query_elapsed_ns = perf_counter_ns() - query_started
+    prepared = owner.query(query_id=query_before["query_id"])
+    if prepared["branches"] != query_before["branches"]:
+        raise RuntimeError("prepared query changed its committed wave readout")
     if query_before["status"] != "supported":
         raise RuntimeError(f"field query did not settle: {query_before['status']}")
 
@@ -307,6 +313,7 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
         readout=readout,
         context={"domain": "line"},
         authority_current=True,
+        prepared_query=prepared,
     )
     if decision.committed_action != "right":
         raise RuntimeError("learned field did not certify the rightward action")
@@ -382,6 +389,10 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
         target="controlled-cart",
         scope="scenario",
     )
+    evidence_tick_before = owner.state.logical_tick
+    body_advance = owner.advance(operation_id="advance:pending-effect", ticks=2)
+    if owner.state.logical_tick != evidence_tick_before:
+        raise RuntimeError("heartbeat changed observation time")
     dispatched = owner.dispatch_effect(
         prediction_id=proposal["prediction"]["prediction_id"],
         grant=action_grant,
@@ -390,11 +401,18 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
     if adapter.execute_count != 1 or dispatched["status"] != "acknowledged":
         raise RuntimeError("world effect lifecycle did not close exactly once")
 
+    prepared_after = owner.think(
+        operation_id="think:direction:after-effect",
+        observed={"destination": 6.0, "source": 2.0},
+        requested=("displacement", "left_score", "right_score"),
+        context={"domain": "line"},
+    )
     decision_after = owner.action_decision(
         observed={"destination": 6.0, "source": 2.0},
         readout=readout,
         context={"domain": "line"},
         authority_current=True,
+        prepared_query=prepared_after,
     )
     plan = owner.create_plan(
         operation_id="plan:goal:001",
@@ -406,9 +424,7 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
         future_macros=("macro.direction",),
     )
     explanation = owner.explain_query(
-        observed={"destination": 6.0, "source": 2.0},
-        requested=("displacement", "left_score", "right_score"),
-        context={"domain": "line"},
+        query_id=prepared_after["query_id"],
         allowed_labels=frozenset({"scenario"}),
     )
     owner.record_computation(
@@ -416,7 +432,7 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
         operation="condition-and-certify",
         inputs={"charts": 2, "variables": 6},
         outcome="supported",
-        elapsed_ns=1000,
+        elapsed_ns=query_elapsed_ns,
         work_units=6,
         residual_before=1.0,
         residual_after=query_before["branches"][0]["residual_norm"],
@@ -470,7 +486,8 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
     if not rollback_rejected:
         raise RuntimeError("revocation fence accepted an older learned state")
 
-    query_after_forget = restarted.query(
+    query_after_forget = restarted.think(
+        operation_id="think:direction:after-forget",
         observed={"destination": 6.0, "source": 2.0},
         requested=("displacement", "left_score", "right_score"),
         context={"domain": "line"},
@@ -499,6 +516,8 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
         "interpretation_status": interpreted["status"],
         "learned_program": promoted["program_id"],
         "memory_unchanged_during_query": query_before["memory_unchanged"],
+        "query_elapsed_ns": query_elapsed_ns,
+        "body_advance": body_advance,
         "one_world_execution": adapter.execute_count == 1,
         "plan_status": plan["plan"]["status"],
         "productive_expression": expressed["text"],

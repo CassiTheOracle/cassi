@@ -4150,6 +4150,21 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _discard_bounded_request_body(self, length: int) -> None:
+        absolute_ingress_limit = (
+            ((DEFAULT_INGRESS_MAX_BYTES + 2) // 3) * 4
+            + _INGRESS_REQUEST_METADATA_BYTES
+        )
+        if length > max(MAX_REQUEST_BYTES, absolute_ingress_limit):
+            self.close_connection = True
+            return
+        remaining = length
+        while remaining:
+            chunk = self.rfile.read(min(remaining, 64 * 1024))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+
     def do_GET(self) -> None:
         if self.path == "/health":
             controller = self.provider.controller
@@ -4293,7 +4308,12 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 if self.path == "/v1/ingress/append"
                 else MAX_REQUEST_BYTES
             )
-            if length < 0 or length > request_limit:
+            if length < 0:
+                raise ProviderError(
+                    "request body is missing or exceeds the route limit"
+                )
+            if length > request_limit:
+                self._discard_bounded_request_body(length)
                 raise ProviderError(
                     "request body is missing or exceeds the route limit"
                 )

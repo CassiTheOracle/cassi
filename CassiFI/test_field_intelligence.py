@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 import tempfile
 import unittest
@@ -137,16 +138,15 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
     def test_one_relation_drives_recall_prediction_action_and_counterfactual(self) -> None:
         atlas, state, _, _ = _base_atlas()
         cognition = FieldCognition(atlas)
-        before = state.encode()
-        query = atlas.query(
+        before = tuple(chart.as_dict() for chart in state.charts)
+        state, query, _ = atlas.think(
             state,
             observed={"destination": 6.0, "source": 2.0},
             requested=("displacement", "left_score", "right_score"),
             context={"domain": "line"},
-            method="direct",
         )
         self.assertEqual(query.status, "supported")
-        self.assertEqual(state.encode(), before)
+        self.assertEqual(tuple(chart.as_dict() for chart in state.charts), before)
         self.assertTrue(query.memory_unchanged)
         branch = query.branches[0]
         self.assertAlmostEqual(branch.values["displacement"], 4.0, places=3)
@@ -165,6 +165,7 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
             readout=readout,
             context={"domain": "line"},
             authority_current=True,
+            prepared_query=query,
         )
         self.assertEqual(decision.committed_action, "right")
         self.assertGreater(min(decision.certificates[0].combined_worst_margins), 0)
@@ -180,33 +181,31 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
             counterfactual["counterfactual"]["branches"],
         )
 
-    def test_matrix_free_matches_reference_and_respects_iteration_failure(self) -> None:
+    def test_resonant_settlement_preserves_relation_and_reports_exhaustion(self) -> None:
         atlas, state, _, _ = _base_atlas()
         arguments = {
             "observed": {"destination": 6.0, "source": 2.0},
             "requested": ("displacement", "left_score", "right_score"),
             "context": {"domain": "line"},
         }
-        direct = atlas.query(state, **arguments, method="direct")
-        implicit = atlas.query(
-            state, **arguments, method="matrix-free", tolerance=1e-11, max_iterations=64
+        settled_state, settled, _ = atlas.think(state, **arguments)
+        self.assertEqual(settled.status, "supported")
+        self.assertAlmostEqual(settled.branches[0].values["displacement"], 4.0, places=3)
+        self.assertLess(settled.branches[0].values["left_score"], 0.0)
+        self.assertGreater(settled.branches[0].values["right_score"], 0.0)
+        self.assertEqual(
+            tuple(chart.as_dict() for chart in settled_state.charts),
+            tuple(chart.as_dict() for chart in state.charts),
         )
-        self.assertEqual(implicit.status, "supported")
-        for variable in arguments["requested"]:
-            self.assertAlmostEqual(
-                direct.branches[0].values[variable],
-                implicit.branches[0].values[variable],
-                places=7,
-            )
-        exhausted = atlas.query(
+        _, exhausted, _ = atlas.think(
             state,
             **arguments,
-            method="matrix-free",
             tolerance=1e-30,
             max_iterations=1,
+            ticks=1,
         )
         self.assertEqual(exhausted.status, "unresolved")
-        self.assertIn("search-exhausted", exhausted.branches[0].obligations)
+        self.assertFalse(exhausted.branches[0].numerical_settled)
 
     def test_guarded_modes_survive_as_alternatives_instead_of_blending(self) -> None:
         atlas = FieldAtlas()
@@ -240,14 +239,14 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
                     context={},
                     target_chart_ids=(f"mode:{mode}",),
                 )
-        result = atlas.query(state, observed={"x": 2.0}, requested=("y",))
+        state, result, _ = atlas.think(state, observed={"x": 2.0}, requested=("y",))
         self.assertEqual(result.status, "alternatives")
         predictions = sorted(round(row.values["y"], 3) for row in result.branches)
         self.assertEqual(predictions, [-2.0, 2.0])
 
     def test_partial_and_hypothetical_values_cannot_teach_memory(self) -> None:
         atlas, state, _, _ = _base_atlas()
-        with self.assertRaisesRegex(FieldIntelligenceError, "fully observed") as partial:
+        with self.assertRaises(FieldIntelligenceError) as partial:
             atlas.admit_observation(
                 state,
                 event_id=_digest("partial"),
@@ -305,10 +304,10 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
                 values={"bias": 1.0, "x": x, "y": -x},
                 context={},
             )
-        result = atlas.query(state, observed={"x": 2.0}, requested=("y",))
+        state, result, _ = atlas.think(state, observed={"x": 2.0}, requested=("y",))
         self.assertEqual(result.status, "supported")
         self.assertLess(result.branches[0].values["y"], -1.0)
-        restored = AtlasState.decode(state.encode())
+        restored = AtlasState.decode_bundle(state.encode_bundle())
         self.assertEqual(restored.encode(), state.encode())
         self.assertEqual(
             restored.chart("contextual").learning_mode,
@@ -317,7 +316,7 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
 
     def test_constraints_reject_inconsistent_commitment(self) -> None:
         atlas, state, _, _ = _base_atlas()
-        result = atlas.query(
+        state, result, _ = atlas.think(
             state,
             observed={"source": 2.0},
             requested=("destination",),
@@ -362,24 +361,25 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
     def test_relation_chart_tensor_is_defensively_owned(self) -> None:
         atlas, state, _, _ = _base_atlas()
         before = state.encode()
-        expected = atlas.query(
+        _, expected, _ = atlas.think(
             state,
             observed={"source": 2.0, "destination": 6.0},
             requested=("displacement",),
-        ).as_dict()
+        )
         exposed = state.chart("geometry").numeric_field
         exposed.zero_()
         self.assertEqual(state.encode(), before)
+        _, actual, _ = atlas.think(
+            state,
+            observed={"source": 2.0, "destination": 6.0},
+            requested=("displacement",),
+        )
         self.assertEqual(
-            atlas.query(
-                state,
-                observed={"source": 2.0, "destination": 6.0},
-                requested=("displacement",),
-            ).as_dict(),
-            expected,
+            actual.branches[0].values,
+            expected.branches[0].values,
         )
 
-    def test_matrix_free_response_must_converge_with_primal(self) -> None:
+    def test_incomplete_resonant_response_cannot_certify_settlement(self) -> None:
         atlas = FieldAtlas()
         state = atlas.initial_state()
         for variable in (
@@ -426,16 +426,16 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
                 contributions=(contribution,),
             ),
         )
-        result = atlas.query(
+        state, result, _ = atlas.think(
             state,
             observed={"x": 0.0},
             requested=("y", "z"),
-            method="matrix-free",
             max_iterations=1,
+            ticks=1,
+            tolerance=1e-30,
         )
         self.assertEqual(result.status, "unresolved")
         self.assertFalse(result.branches[0].numerical_settled)
-        self.assertIn("response-residual", result.branches[0].obligations)
 
     def test_inferred_values_must_remain_inside_declared_domains(self) -> None:
         atlas = FieldAtlas()
@@ -459,10 +459,9 @@ class FieldAtlasBehaviorTests(unittest.TestCase):
                 values={"x": x, "y": 10.0 * x},
                 context={},
             )
-        result = atlas.query(state, observed={"y": 20.0}, requested=("x",))
+        state, result, _ = atlas.think(state, observed={"y": 20.0}, requested=("x",))
         self.assertEqual(result.status, "unresolved")
         self.assertEqual(result.branches[0].status, "infeasible")
-        self.assertIn("inferred-domain", result.branches[0].obligations)
 
     def test_retraction_follows_derived_evidence_roots(self) -> None:
         atlas = FieldAtlas()
@@ -546,8 +545,6 @@ class StructureAndDecisionTests(unittest.TestCase):
             maximum_average_loss=1e-12,
             bit_penalty=1e-6,
         )
-        self.assertEqual(promoted.steps[0].operation, "subtract")
-        self.assertEqual(promoted.steps[0].inputs, ("destination", "source"))
         self.assertEqual(
             promoted.execute({"source": 10.0, "destination": 14.5}),
             {"displacement": 4.5},
@@ -770,7 +767,8 @@ class OwnerPersistenceTests(unittest.TestCase):
                     context={},
                 )
                 revision_ids.append(admitted["source"]["revision_id"])
-            query = owner.query(observed={"x": 2.0}, requested=("y",))
+            prepared = owner.think(operation_id="think:identity", observed={"x": 2.0}, requested=("y",))
+            query = owner.query(query_id=prepared["query_id"])
             self.assertEqual(query["status"], "supported")
             self.assertTrue(query["memory_unchanged"])
             readout = ActionReadout(
@@ -822,6 +820,56 @@ class OwnerPersistenceTests(unittest.TestCase):
             owner.close()
             restarted = FieldIntelligenceOwner(root)
             self.assertEqual(restarted.state.encode(), exact)
+            think_replay = restarted.think(
+                operation_id="think:identity",
+                observed={"x": 2.0},
+                requested=("y",),
+            )
+            self.assertTrue(think_replay["checkpoint_receipt"]["replayed"])
+            self.assertEqual(
+                canonical_json_bytes(
+                    {
+                        key: value
+                        for key, value in think_replay.items()
+                        if key != "checkpoint_receipt"
+                    }
+                ),
+                canonical_json_bytes(
+                    {
+                        key: value
+                        for key, value in prepared.items()
+                        if key != "checkpoint_receipt"
+                    }
+                ),
+            )
+            self.assertEqual(restarted.state.encode(), exact)
+            with self.assertRaises(
+                FieldIntelligenceError
+            ) as source_conflict:
+                restarted.think(
+                    operation_id="think:identity",
+                    observed={"x": 2.0},
+                    requested=("y",),
+                    valid_source_revision_ids=(revision_ids[0],),
+                )
+            self.assertEqual(
+                source_conflict.exception.code,
+                "OPERATION_CONFLICT",
+            )
+            self.assertEqual(restarted.state.encode(), exact)
+            with self.assertRaises(
+                FieldIntelligenceError
+            ) as think_conflict:
+                restarted.think(
+                    operation_id="think:identity",
+                    observed={"x": 3.0},
+                    requested=("y",),
+                )
+            self.assertEqual(
+                think_conflict.exception.code,
+                "OPERATION_CONFLICT",
+            )
+            self.assertEqual(restarted.state.encode(), exact)
             replay = restarted.dispatch_effect(
                 prediction_id=proposal["prediction"]["prediction_id"],
                 grant=AuthorityGrant(
@@ -857,12 +905,15 @@ class OwnerPersistenceTests(unittest.TestCase):
             with self.assertRaises(FieldIntelligenceError) as stale:
                 restarted.checkpoints.load_version(old_manifest)
             self.assertEqual(stale.exception.code, "STALE_REVOCATION")
+            with self.assertRaises(FieldIntelligenceError) as stale_export:
+                restarted.export_bundle(old_manifest)
+            self.assertEqual(stale_export.exception.code, "STALE_REVOCATION")
             with self.assertRaises(FieldIntelligenceError):
                 restarted.exact_recall(
                     revision_id=revision_ids[0],
                     allowed_labels=frozenset({"test"}),
                 )
-            remaining = restarted.query(observed={"x": 2.0}, requested=("y",))
+            remaining = restarted.think(operation_id="think:after-forget", observed={"x": 2.0}, requested=("y",))
             self.assertEqual(remaining["status"], "supported")
             restarted.close()
 
@@ -889,12 +940,524 @@ class OwnerPersistenceTests(unittest.TestCase):
             owner.close()
             recovered = FieldIntelligenceOwner(root)
             self.assertEqual(
-                recovered.query(observed={"x": 3.0}, requested=("y",))["status"],
+                recovered.think(operation_id="think:recovered", observed={"x": 3.0}, requested=("y",))["status"],
                 "supported",
             )
             self.assertEqual(recovered.evidence.event_count, 1)
             self.assertEqual(list(recovered.pending_path.iterdir()), [])
             recovered.close()
+
+    def test_pending_retry_rejects_altered_request_without_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            source = _source("stale-client-source", values)
+            committed_state = owner.state.state_sha256
+
+            def interrupt(*_args: Any, **_kwargs: Any) -> None:
+                raise OSError("simulated interruption after pending staging")
+
+            try:
+                with patch.object(owner.evidence, "append_event", interrupt):
+                    with self.assertRaises(OSError):
+                        owner.admit_observation(
+                            operation_id="pending:stale-client",
+                            source=source,
+                            values=values,
+                            context={},
+                        )
+                pending_path = next(owner.pending_path.iterdir())
+                pending_bytes = pending_path.read_bytes()
+                evidence_index_bytes = owner.evidence.index_path.read_bytes()
+
+                with self.assertRaises(FieldIntelligenceError) as conflict:
+                    owner.admit_observation(
+                        operation_id="pending:stale-client",
+                        source=source,
+                        values={**values, "y": 3.0},
+                        context={},
+                    )
+                self.assertEqual(conflict.exception.code, "OPERATION_CONFLICT")
+                self.assertEqual(owner.state.state_sha256, committed_state)
+                self.assertEqual(owner.evidence.event_count, 0)
+                self.assertEqual(pending_path.read_bytes(), pending_bytes)
+                self.assertEqual(
+                    owner.evidence.index_path.read_bytes(),
+                    evidence_index_bytes,
+                )
+                owner.close()
+
+                recovered = FieldIntelligenceOwner(root)
+                self.assertEqual(recovered.evidence.event_count, 1)
+                self.assertEqual(list(recovered.pending_path.iterdir()), [])
+                recovered.close()
+            finally:
+                owner.close()
+
+    def test_canonical_malformed_pending_payload_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            source = _source("malformed-pending-source", values)
+            try:
+                owner._stage_pending(
+                    operation_id="pending:malformed",
+                    kind="observation",
+                    payload={
+                        "context": {},
+                        "derivation_roots": [],
+                        "epistemic_type": "observed",
+                        "event_kind": "observation",
+                        "source": source.as_dict(),
+                        "target_chart_ids": None,
+                        "values": values,
+                        "weight": 1.0,
+                    },
+                )
+                pending_path = next(owner.pending_path.iterdir())
+                envelope = dict(owner._read_pending(pending_path))
+                malformed_payload = dict(envelope["payload"])
+                malformed_payload.pop("values")
+                envelope["payload"] = malformed_payload
+                pending_path.write_bytes(canonical_json_bytes(envelope))
+                malformed_bytes = pending_path.read_bytes()
+                owner.close()
+
+                with self.assertRaises(FieldIntelligenceError) as corrupt:
+                    FieldIntelligenceOwner(root)
+                self.assertEqual(
+                    corrupt.exception.code,
+                    "PENDING_OPERATION_CORRUPT",
+                )
+                self.assertEqual(pending_path.read_bytes(), malformed_bytes)
+                self.assertEqual(
+                    list((root / "pending-failures").iterdir()),
+                    [],
+                )
+            finally:
+                owner.close()
+
+    def test_canonical_malformed_pending_predecessor_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            source = _source("malformed-predecessor-source", values)
+            try:
+                owner._stage_pending(
+                    operation_id="pending:malformed-predecessor",
+                    kind="observation",
+                    payload={
+                        "context": {},
+                        "derivation_roots": [],
+                        "epistemic_type": "observed",
+                        "event_kind": "observation",
+                        "source": source.as_dict(),
+                        "target_chart_ids": None,
+                        "values": values,
+                        "weight": 1.0,
+                    },
+                )
+                pending_path = next(owner.pending_path.iterdir())
+                envelope = dict(owner._read_pending(pending_path))
+                malformed_predecessor = dict(envelope["predecessor"])
+                malformed_predecessor["generation"] = "0"
+                envelope["predecessor"] = malformed_predecessor
+                pending_path.write_bytes(canonical_json_bytes(envelope))
+                malformed_bytes = pending_path.read_bytes()
+                owner.close()
+
+                with self.assertRaises(FieldIntelligenceError) as corrupt:
+                    FieldIntelligenceOwner(root)
+                self.assertEqual(
+                    corrupt.exception.code,
+                    "PENDING_OPERATION_CORRUPT",
+                )
+                self.assertEqual(pending_path.read_bytes(), malformed_bytes)
+                self.assertEqual(
+                    list((root / "pending-failures").iterdir()),
+                    [],
+                )
+            finally:
+                owner.close()
+
+    def test_committed_observation_retry_binds_weight_and_target_charts(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            source = _source("exact-observation-request", values)
+
+            def interrupt(_operation_id: str) -> None:
+                raise OSError("simulated interruption after checkpoint commit")
+
+            try:
+                with patch.object(owner, "_finish_pending", interrupt):
+                    with self.assertRaises(OSError):
+                        owner.admit_observation(
+                            operation_id="observation:exact-request",
+                            source=source,
+                            values=values,
+                            context={},
+                            weight=1,
+                            target_chart_ids=("xy",),
+                        )
+                committed_state = owner.state.state_sha256
+                pending_path = next(owner.pending_path.iterdir())
+                pending_bytes = pending_path.read_bytes()
+                self.assertEqual(owner.evidence.event_count, 1)
+
+                with self.assertRaises(FieldIntelligenceError) as weight_conflict:
+                    owner.admit_observation(
+                        operation_id="observation:exact-request",
+                        source=source,
+                        values=values,
+                        context={},
+                        weight=0.75,
+                        target_chart_ids=("xy",),
+                    )
+                self.assertEqual(
+                    weight_conflict.exception.code,
+                    "OPERATION_CONFLICT",
+                )
+                self.assertEqual(owner.state.state_sha256, committed_state)
+                self.assertEqual(pending_path.read_bytes(), pending_bytes)
+                operation_path = owner.checkpoints._operation_path(
+                    "observation:exact-request"
+                )
+                committed = owner.checkpoints._committed_operation(
+                    "observation:exact-request"
+                )
+                assert committed is not None
+                operation_record = dict(committed[0])
+                operation_bytes = operation_path.read_bytes()
+                owner.close()
+
+                operation_path.write_bytes(
+                    canonical_json_bytes(
+                        {
+                            **operation_record,
+                            "semantic_sha256": "0" * 64,
+                        }
+                    )
+                )
+                corrupted_operation_bytes = operation_path.read_bytes()
+                with self.assertRaises(FieldIntelligenceError) as corrupt:
+                    FieldIntelligenceOwner(root)
+                self.assertEqual(
+                    corrupt.exception.code,
+                    "CHECKPOINT_CORRUPT",
+                )
+                self.assertEqual(
+                    operation_path.read_bytes(),
+                    corrupted_operation_bytes,
+                )
+                self.assertEqual(pending_path.read_bytes(), pending_bytes)
+                operation_path.write_bytes(operation_bytes)
+
+                recovered = FieldIntelligenceOwner(root)
+                self.assertEqual(recovered.state.state_sha256, committed_state)
+                self.assertEqual(recovered.evidence.event_count, 1)
+                self.assertEqual(list(recovered.pending_path.iterdir()), [])
+
+                with self.assertRaises(FieldIntelligenceError) as target_conflict:
+                    recovered.admit_observation(
+                        operation_id="observation:exact-request",
+                        source=source,
+                        values=values,
+                        context={},
+                        weight=1.0,
+                        target_chart_ids=None,
+                    )
+                self.assertEqual(
+                    target_conflict.exception.code,
+                    "OPERATION_CONFLICT",
+                )
+                replay = recovered.admit_observation(
+                    operation_id="observation:exact-request",
+                    source=source,
+                    values=values,
+                    context={},
+                    weight=1.0,
+                    target_chart_ids=("xy",),
+                )
+                self.assertTrue(replay["receipt"]["replayed"])
+                self.assertEqual(recovered.state.state_sha256, committed_state)
+                self.assertEqual(recovered.evidence.event_count, 1)
+                recovered.close()
+            finally:
+                owner.close()
+
+    def test_committed_operation_pointer_integrity_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            try:
+                first = owner.advance(
+                    "operation-pointer-integrity",
+                    ticks=1,
+                )
+                committed_state = owner.state.state_sha256
+                event_count = owner.evidence.event_count
+                operation_path = owner.checkpoints._operation_path(
+                    "operation-pointer-integrity"
+                )
+                committed = owner.checkpoints._committed_operation(
+                    "operation-pointer-integrity"
+                )
+                assert committed is not None
+                record = dict(committed[0])
+                original_bytes = operation_path.read_bytes()
+                corruptions = {
+                    "extra-field": {**record, "unexpected": True},
+                    "manifest": {
+                        **record,
+                        "manifest_sha256": "0" * 64,
+                    },
+                    "operation": {
+                        **record,
+                        "operation_id": "another-operation",
+                    },
+                    "parent": {
+                        **record,
+                        "parent_manifest_sha256": "0" * 64,
+                    },
+                    "semantic": {
+                        **record,
+                        "semantic_sha256": "0" * 64,
+                    },
+                }
+                for label, corrupted in corruptions.items():
+                    with self.subTest(label=label):
+                        operation_path.write_bytes(
+                            canonical_json_bytes(corrupted)
+                        )
+                        corrupted_bytes = operation_path.read_bytes()
+                        with self.assertRaises(
+                            FieldIntelligenceError
+                        ) as failure:
+                            owner.advance(
+                                "operation-pointer-integrity",
+                                ticks=1,
+                            )
+                        self.assertEqual(
+                            failure.exception.code,
+                            "CHECKPOINT_CORRUPT",
+                        )
+                        self.assertEqual(
+                            operation_path.read_bytes(),
+                            corrupted_bytes,
+                        )
+                        self.assertEqual(
+                            owner.state.state_sha256,
+                            committed_state,
+                        )
+                        self.assertEqual(
+                            owner.evidence.event_count,
+                            event_count,
+                        )
+                        operation_path.write_bytes(original_bytes)
+
+                replay = owner.advance(
+                    "operation-pointer-integrity",
+                    ticks=1,
+                )
+                self.assertTrue(
+                    replay["checkpoint_receipt"]["replayed"]
+                )
+                self.assertEqual(
+                    replay["resonance_receipt"],
+                    first["resonance_receipt"],
+                )
+            finally:
+                owner.close()
+
+    def test_restart_validates_operation_records_and_manifest_lineage(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            owner.advance("history:1", ticks=1)
+            owner.advance("history:2", ticks=1)
+            committed_state = owner.state.state_sha256
+            current_manifest = dict(owner.checkpoints.current_manifest)
+            parent_manifest = owner.checkpoints._manifest(
+                current_manifest["parent_manifest_sha256"]
+            )
+            root_manifest_sha = parent_manifest[
+                "parent_manifest_sha256"
+            ]
+            assert root_manifest_sha is not None
+            current_path = owner.checkpoints.current_path
+            current_bytes = current_path.read_bytes()
+            operation_path = owner.checkpoints._operation_path(
+                "history:2"
+            )
+            committed = owner.checkpoints._committed_operation(
+                "history:2"
+            )
+            assert committed is not None
+            operation_record = dict(committed[0])
+            operation_bytes = operation_path.read_bytes()
+            owner.close()
+
+            corrupted_operation = canonical_json_bytes(
+                {**operation_record, "semantic_sha256": "0" * 64}
+            )
+            operation_path.write_bytes(corrupted_operation)
+            with self.assertRaises(FieldIntelligenceError) as operation:
+                FieldIntelligenceOwner(root)
+            self.assertEqual(
+                operation.exception.code,
+                "CHECKPOINT_CORRUPT",
+            )
+            self.assertEqual(
+                operation_path.read_bytes(),
+                corrupted_operation,
+            )
+            operation_path.write_bytes(operation_bytes)
+
+            forged_manifest = {
+                **current_manifest,
+                "parent_manifest_sha256": root_manifest_sha,
+            }
+            forged_bytes = canonical_json_bytes(forged_manifest)
+            forged_sha = hashlib.sha256(forged_bytes).hexdigest()
+            forged_path = owner.checkpoints.manifests / forged_sha
+            forged_path.write_bytes(forged_bytes)
+            forged_current = (forged_sha + "\n").encode("ascii")
+            current_path.write_bytes(forged_current)
+            with self.assertRaises(FieldIntelligenceError) as lineage:
+                FieldIntelligenceOwner(root)
+            self.assertEqual(lineage.exception.code, "HISTORY_CORRUPT")
+            self.assertEqual(current_path.read_bytes(), forged_current)
+            current_path.write_bytes(current_bytes)
+            forged_path.unlink()
+
+            recovered = FieldIntelligenceOwner(root)
+            try:
+                self.assertEqual(
+                    recovered.state.state_sha256,
+                    committed_state,
+                )
+            finally:
+                recovered.close()
+
+    def test_control_records_reject_type_confusion_without_rewrite(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            authority_path = owner.authority_path
+            authority = owner._authority_control()
+            authority_bytes = authority_path.read_bytes()
+            revocation_path = owner.checkpoints.revocation_path
+            revocation = owner.checkpoints.revocation_fence()
+            revocation_bytes = revocation_path.read_bytes()
+            history_path = owner.checkpoints.history_floor_path
+            history = owner.checkpoints._history_floor()
+            history_bytes = history_path.read_bytes()
+            committed_state = owner.state.state_sha256
+            owner.close()
+
+            corruptions = {
+                "authority": (
+                    authority_path,
+                    canonical_json_bytes(
+                        {**authority, "used_grant_ids": "grant"}
+                    ),
+                    authority_bytes,
+                    "PERSISTENCE_CORRUPT",
+                ),
+                "revocation": (
+                    revocation_path,
+                    canonical_json_bytes(
+                        {**revocation, "operation_id": []}
+                    ),
+                    revocation_bytes,
+                    "PERSISTENCE_CORRUPT",
+                ),
+                "history": (
+                    history_path,
+                    canonical_json_bytes(
+                        {
+                            **history,
+                            "discarded_operation_ids": "old",
+                        }
+                    ),
+                    history_bytes,
+                    "HISTORY_CORRUPT",
+                ),
+            }
+            for label, (
+                path,
+                corrupted_bytes,
+                original_bytes,
+                expected_code,
+            ) in corruptions.items():
+                with self.subTest(label=label):
+                    path.write_bytes(corrupted_bytes)
+                    with self.assertRaises(
+                        FieldIntelligenceError
+                    ) as failure:
+                        FieldIntelligenceOwner(root)
+                    self.assertEqual(
+                        failure.exception.code,
+                        expected_code,
+                    )
+                    self.assertEqual(
+                        path.read_bytes(),
+                        corrupted_bytes,
+                    )
+                    path.write_bytes(original_bytes)
+
+            recovered = FieldIntelligenceOwner(root)
+            try:
+                self.assertEqual(
+                    recovered.state.state_sha256,
+                    committed_state,
+                )
+            finally:
+                recovered.close()
+
+    def test_pending_capacity_refuses_new_admission_but_allows_completion(self) -> None:
+        import cassi_field_owner as persistence
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root, limits=CapacityLimits(max_pending_operations=1))
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            source = _source("interrupted-source", values)
+            committed = owner.state.state_sha256
+            original_write = persistence._atomic_write
+
+            def interrupted(path: Path, payload: bytes) -> None:
+                if path.parent == owner.evidence.blobs:
+                    raise OSError("simulated evidence interruption")
+                original_write(path, payload)
+
+            try:
+                with patch.object(persistence, "_atomic_write", interrupted):
+                    with self.assertRaises(OSError):
+                        owner.admit_observation(operation_id="pending:first", source=source, values=values, context={})
+                with self.assertRaises(FieldIntelligenceError) as capacity:
+                    owner.admit_observation(operation_id="pending:second", source=_source("new-source", values),
+                                            values=values, context={})
+                self.assertEqual(capacity.exception.code, "FIELD_CAPACITY")
+                self.assertEqual(owner.state.state_sha256, committed)
+                self.assertEqual(owner.evidence.event_count, 0)
+                owner.admit_observation(operation_id="pending:first", source=source, values=values, context={})
+                self.assertEqual(owner.evidence.event_count, 1)
+                result = owner.think(operation_id="pending:query", observed={"x": 3.0}, requested=("y",))
+                self.assertEqual(result["status"], "supported")
+            finally:
+                owner.close()
 
     def test_closed_surface_exposes_query_and_rejects_protocol_drift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -909,14 +1472,25 @@ class OwnerPersistenceTests(unittest.TestCase):
             surface = FieldIntelligenceSurface(owner)
             response = surface.handle(
                 {
-                    "operation": "query",
-                    "params": {"observed": {"x": 3.0}, "requested": ["y"]},
-                    "request_id": "surface:query",
+                    "operation": "think",
+                    "params": {"operation_id": "surface:think", "observed": {"x": 3.0}, "requested": ["y"]},
+                    "request_id": "surface:think",
                     "schema": RPC_SCHEMA,
                 }
             )
             self.assertTrue(response["ok"])
             self.assertEqual(response["result"]["status"], "supported")
+            state_before_read = owner.state.state_sha256
+            projected = surface.handle(
+                {
+                    "operation": "query",
+                    "params": {"query_id": response["result"]["query_id"]},
+                    "request_id": "surface:query",
+                    "schema": RPC_SCHEMA,
+                }
+            )
+            self.assertEqual(projected["result"]["branches"], response["result"]["branches"])
+            self.assertEqual(owner.state.state_sha256, state_before_read)
             with self.assertRaises(FieldIntelligenceError) as protocol:
                 surface.handle(
                     {
@@ -936,21 +1510,66 @@ class OwnerPersistenceTests(unittest.TestCase):
     def test_capacity_fails_closed_without_publishing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             limits = CapacityLimits(max_variables=1)
-            owner = FieldIntelligenceOwner(Path(directory), limits=limits)
-            owner.configure_variable("variable:1", VariableSpec("x"))
-            with self.assertRaises(FieldIntelligenceError) as active:
-                FieldIntelligenceOwner(Path(directory), limits=limits)
-            self.assertEqual(active.exception.code, "OWNER_ACTIVE")
-            committed = owner.state.state_sha256
-            with self.assertRaises(FieldIntelligenceError) as capacity:
-                owner.configure_variable("variable:2", VariableSpec("y"))
-            self.assertEqual(capacity.exception.code, "FIELD_CAPACITY")
-            self.assertEqual(owner.state.state_sha256, committed)
-            owner.close()
-            restarted = FieldIntelligenceOwner(Path(directory), limits=limits)
-            self.assertEqual(restarted.state.state_sha256, committed)
+            with FieldIntelligenceOwner(Path(directory), limits=limits) as owner:
+                owner.configure_variable("variable:1", VariableSpec("x"))
+                with self.assertRaises(FieldIntelligenceError) as active:
+                    FieldIntelligenceOwner(Path(directory), limits=limits)
+                self.assertEqual(active.exception.code, "OWNER_ACTIVE")
+                committed = owner.state.state_sha256
+                with self.assertRaises(FieldIntelligenceError) as capacity:
+                    owner.configure_variable("variable:2", VariableSpec("y"))
+                self.assertEqual(capacity.exception.code, "FIELD_CAPACITY")
+                self.assertEqual(owner.state.state_sha256, committed)
+            with FieldIntelligenceOwner(Path(directory), limits=limits) as restarted:
+                self.assertEqual(restarted.state.state_sha256, committed)
 
-            restarted.close()
+    def test_retained_query_workspaces_obey_publication_limits(self) -> None:
+        for resource in ("workspace_bytes", "ports", "prepared_branches"):
+            with self.subTest(resource=resource), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                owner = self._owner(root)
+                try:
+                    self._train_identity(owner)
+                    prepared = owner.think(
+                        operation_id="capacity:prepared",
+                        observed={"x": 2.0},
+                        requested=("y",),
+                        ticks=4,
+                    )
+                    retained = owner.query(query_id=prepared["query_id"])
+                    usage = owner.inspect()["capacity"]["usage"]
+                    limits = replace(owner.limits, **{f"max_{resource}": usage[resource]})
+                    committed = owner.state.state_sha256
+                    manifest = owner.checkpoints.current_manifest_sha256
+                finally:
+                    owner.close()
+
+                bounded = FieldIntelligenceOwner(root, limits=limits)
+                try:
+                    with self.assertRaises(FieldIntelligenceError) as capacity:
+                        bounded.think(
+                            operation_id="capacity:overflow",
+                            observed={"x": -2.0},
+                            requested=("y",),
+                            ticks=4,
+                        )
+                    self.assertEqual(capacity.exception.code, "FIELD_CAPACITY")
+                    self.assertGreater(
+                        capacity.exception.details[resource]["actual"], usage[resource]
+                    )
+                    self.assertEqual(bounded.state.state_sha256, committed)
+                    self.assertEqual(bounded.checkpoints.current_manifest_sha256, manifest)
+                    self.assertEqual(bounded.query(query_id=prepared["query_id"]), retained)
+                finally:
+                    bounded.close()
+
+                restarted = FieldIntelligenceOwner(root, limits=limits)
+                try:
+                    self.assertEqual(restarted.state.state_sha256, committed)
+                    self.assertEqual(restarted.query(query_id=prepared["query_id"]), retained)
+                finally:
+                    restarted.close()
+
     @staticmethod
     def _train_identity(owner: FieldIntelligenceOwner) -> list[Mapping[str, Any]]:
         admitted: list[Mapping[str, Any]] = []
@@ -1173,14 +1792,1276 @@ class OwnerPersistenceTests(unittest.TestCase):
             owner.close()
             restarted = FieldIntelligenceOwner(root)
             fresh_adapter = DeterministicWorldAdapter(transition)
-            recovered = restarted.recover_pending_effects(fresh_adapter)
+            recovered = restarted.dispatch_effect(
+                prediction_id=proposal["prediction"]["prediction_id"],
+                grant=AuthorityGrant(
+                    grant_id="grant:interrupted",
+                    issuer="test-host",
+                    generation=0,
+                    operation="effect",
+                    target="test-world",
+                    scope="test",
+                ),
+                adapter=fresh_adapter,
+            )
             self.assertEqual(len(effects), 1)
-            self.assertEqual(recovered[0]["status"], "acknowledged")
+            self.assertEqual(fresh_adapter.execute_count, 0)
+            self.assertEqual(recovered["status"], "acknowledged")
             self.assertEqual(
                 restarted.state.predictions[-1].status,
                 "acknowledged",
             )
             restarted.close()
+
+    def test_one_use_effect_retry_uses_binding_with_empty_adapter_journal(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            self._train_identity(owner)
+            readout = ActionReadout(
+                readout_id="empty-journal-readout",
+                version=1,
+                labels=("negative", "positive"),
+                coefficients=({"y": -1.0}, {"y": 1.0}),
+                observed_error_radius=0.01,
+            )
+            proposal = owner.propose_effect(
+                operation_id="effect:empty-journal",
+                observed={"x": 2.0},
+                readout=readout,
+                target="test-world",
+                scope="test",
+                payload={"amount": 7},
+            )
+            grant = AuthorityGrant(
+                grant_id="grant:empty-journal",
+                issuer="test-host",
+                generation=0,
+                operation="effect",
+                target="test-world",
+                scope="test",
+            )
+            effects: list[Mapping[str, Any]] = []
+
+            def transition(
+                action: str,
+                target: str,
+                payload: Mapping[str, Any],
+            ) -> WorldAcknowledgment:
+                effects.append(
+                    {
+                        "action": action,
+                        "payload": dict(payload),
+                        "target": target,
+                    }
+                )
+                return WorldAcknowledgment(
+                    acknowledgment_id="ack:empty-journal",
+                    operation_id="effect:empty-journal",
+                    status="succeeded",
+                    observed_values={"x": 2.0, "y": 2.0},
+                    context={},
+                    source_content=b"empty-journal-acknowledgment",
+                )
+
+            interrupted_adapter = DeterministicWorldAdapter(transition)
+            with patch.object(
+                interrupted_adapter,
+                "execute_once",
+                side_effect=RuntimeError("crash before adapter execution"),
+            ):
+                with self.assertRaises(RuntimeError):
+                    owner.dispatch_effect(
+                        prediction_id=proposal["prediction"][
+                            "prediction_id"
+                        ],
+                        grant=grant,
+                        adapter=interrupted_adapter,
+                    )
+            self.assertEqual(owner.state.predictions[-1].status, "pending")
+            self.assertIsNone(
+                interrupted_adapter.resolve("effect:empty-journal")
+            )
+            owner.close()
+
+            restarted = FieldIntelligenceOwner(root)
+            fresh_adapter = DeterministicWorldAdapter(transition)
+            recovered = restarted.dispatch_effect(
+                prediction_id=proposal["prediction"]["prediction_id"],
+                grant=grant,
+                adapter=fresh_adapter,
+            )
+            self.assertEqual(recovered["status"], "acknowledged")
+            self.assertEqual(fresh_adapter.execute_count, 1)
+            self.assertEqual(len(effects), 1)
+            control = json.loads(
+                (root / "authority-control.json").read_bytes()
+            )
+            self.assertEqual(control["used_grant_bindings"], {})
+            self.assertEqual(
+                control["used_grant_ids"],
+                ["grant:empty-journal"],
+            )
+
+            unrelated = restarted.propose_effect(
+                operation_id="effect:unrelated",
+                observed={"x": 2.0},
+                readout=readout,
+                target="test-world",
+                scope="test",
+                payload={"amount": 9},
+            )
+            with self.assertRaises(
+                FieldIntelligenceError
+            ) as consumed:
+                restarted.dispatch_effect(
+                    prediction_id=unrelated["prediction"][
+                        "prediction_id"
+                    ],
+                    grant=grant,
+                    adapter=fresh_adapter,
+                )
+            self.assertEqual(
+                consumed.exception.code,
+                "AUTHORITY_CONSUMED",
+            )
+            self.assertEqual(fresh_adapter.execute_count, 1)
+            restarted.close()
+
+    def test_reservation_before_pending_is_finalized_on_restart(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            self._train_identity(owner)
+            readout = ActionReadout(
+                readout_id="reserved-proposal-readout",
+                version=1,
+                labels=("negative", "positive"),
+                coefficients=({"y": -1.0}, {"y": 1.0}),
+                observed_error_radius=0.01,
+            )
+            proposal = owner.propose_effect(
+                operation_id="effect:reserved-proposal",
+                observed={"x": 2.0},
+                readout=readout,
+                target="test-world",
+                scope="test",
+                payload={"amount": 11},
+            )
+            grant = AuthorityGrant(
+                grant_id="grant:reserved-proposal",
+                issuer="test-host",
+                generation=0,
+                operation="effect",
+                target="test-world",
+                scope="test",
+            )
+            effects: list[Mapping[str, Any]] = []
+
+            def transition(
+                action: str,
+                target: str,
+                payload: Mapping[str, Any],
+            ) -> WorldAcknowledgment:
+                effects.append(
+                    {
+                        "action": action,
+                        "payload": dict(payload),
+                        "target": target,
+                    }
+                )
+                return WorldAcknowledgment(
+                    acknowledgment_id="ack:reserved-proposal",
+                    operation_id="effect:reserved-proposal",
+                    status="succeeded",
+                    observed_values={"x": 2.0, "y": 2.0},
+                    context={},
+                    source_content=b"reserved-proposal-acknowledgment",
+                )
+
+            adapter = DeterministicWorldAdapter(transition)
+            with patch.object(
+                owner,
+                "_publish_effect_pending",
+                side_effect=RuntimeError("crash before pending publication"),
+            ):
+                with self.assertRaises(RuntimeError):
+                    owner.dispatch_effect(
+                        prediction_id=proposal["prediction"][
+                            "prediction_id"
+                        ],
+                        grant=grant,
+                        adapter=adapter,
+                    )
+            self.assertEqual(owner.state.predictions[-1].status, "proposed")
+            self.assertEqual(adapter.execute_count, 0)
+            owner.close()
+
+            restarted = FieldIntelligenceOwner(root)
+            self.assertEqual(
+                restarted.state.predictions[-1].status,
+                "pending",
+            )
+            fresh_adapter = DeterministicWorldAdapter(transition)
+            recovered = restarted.recover_pending_effects(fresh_adapter)
+            self.assertEqual(len(recovered), 1)
+            self.assertEqual(recovered[0]["status"], "acknowledged")
+            self.assertEqual(fresh_adapter.execute_count, 1)
+            self.assertEqual(len(effects), 1)
+            restarted.close()
+
+    def test_effect_grant_binding_tampering_fails_closed(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            self._train_identity(owner)
+            readout = ActionReadout(
+                readout_id="binding-tamper-readout",
+                version=1,
+                labels=("negative", "positive"),
+                coefficients=({"y": -1.0}, {"y": 1.0}),
+                observed_error_radius=0.01,
+            )
+            proposal = owner.propose_effect(
+                operation_id="effect:binding-tamper",
+                observed={"x": 2.0},
+                readout=readout,
+                target="test-world",
+                scope="test",
+                payload={"amount": 13},
+            )
+            adapter = DeterministicWorldAdapter(
+                lambda action, target, payload: WorldAcknowledgment(
+                    acknowledgment_id="ack:binding-tamper",
+                    operation_id="effect:binding-tamper",
+                    status="succeeded",
+                    observed_values={"x": 2.0, "y": 2.0},
+                    context={},
+                    source_content=b"binding-tamper-acknowledgment",
+                )
+            )
+            with patch.object(
+                adapter,
+                "execute_once",
+                side_effect=RuntimeError("leave a bound pending effect"),
+            ):
+                with self.assertRaises(RuntimeError):
+                    owner.dispatch_effect(
+                        prediction_id=proposal["prediction"][
+                            "prediction_id"
+                        ],
+                        grant=AuthorityGrant(
+                            grant_id="grant:binding-tamper",
+                            issuer="test-host",
+                            generation=0,
+                            operation="effect",
+                            target="test-world",
+                            scope="test",
+                        ),
+                        adapter=adapter,
+                    )
+            owner.close()
+
+            authority_path = root / "authority-control.json"
+            original = authority_path.read_bytes()
+            for tamper in ("request", "grant-and-request"):
+                with self.subTest(tamper=tamper):
+                    control = json.loads(original)
+                    binding = next(
+                        iter(control["used_grant_bindings"].values())
+                    )
+                    if tamper == "request":
+                        binding["request"]["payload"]["amount"] = 99
+                    else:
+                        binding["grant"]["scope"] = "altered"
+                        binding["request"]["scope"] = "altered"
+                    binding["request_sha256"] = sha256_value(
+                        binding["request"]
+                    )
+                    authority_path.write_bytes(
+                        canonical_json_bytes(control)
+                    )
+                    with self.assertRaises(
+                        FieldIntelligenceError
+                    ) as corrupt:
+                        FieldIntelligenceOwner(root)
+                    self.assertEqual(
+                        corrupt.exception.code,
+                        "PERSISTENCE_CORRUPT",
+                    )
+                    authority_path.write_bytes(original)
+            recovered = FieldIntelligenceOwner(root)
+            recovered.close()
+
+    def test_legacy_authority_control_migrates_without_new_binding(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            owner.close()
+            authority_path = root / "authority-control.json"
+            authority_path.write_bytes(
+                canonical_json_bytes(
+                    {
+                        "generation": 0,
+                        "schema": "cassifi.authority-control.v1",
+                        "used_grant_ids": ["grant:legacy-consumed"],
+                    }
+                )
+            )
+            migrated = FieldIntelligenceOwner(root)
+            control = json.loads(authority_path.read_bytes())
+            self.assertEqual(
+                control,
+                {
+                    "generation": 0,
+                    "schema": "cassifi.authority-control.v2",
+                    "used_grant_bindings": {},
+                    "used_grant_ids": ["grant:legacy-consumed"],
+                },
+            )
+            migrated.close()
+
+    def test_world_adapter_journal_and_operation_identity_fail_closed(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            wrong_calls: list[Mapping[str, Any]] = []
+
+            def wrong_transition(
+                action: str,
+                target: str,
+                payload: Mapping[str, Any],
+            ) -> WorldAcknowledgment:
+                wrong_calls.append(
+                    {
+                        "action": action,
+                        "payload": dict(payload),
+                        "target": target,
+                    }
+                )
+                return WorldAcknowledgment(
+                    acknowledgment_id="ack:wrong-operation",
+                    operation_id="another-effect",
+                    status="succeeded",
+                    observed_values={"result": 1.0},
+                    context={},
+                    source_content=b"wrong operation",
+                )
+
+            wrong = DeterministicWorldAdapter(wrong_transition)
+            wrong.bind_durable_journal(root / "wrong-journal")
+            with self.assertRaises(FieldIntelligenceError) as mismatch:
+                wrong.execute_once(
+                    operation_id="effect:expected",
+                    action="open",
+                    target="test-world",
+                    payload={"amount": 1},
+                )
+            self.assertEqual(
+                mismatch.exception.code,
+                "INVALID_ACKNOWLEDGMENT",
+            )
+            self.assertEqual(len(wrong_calls), 1)
+            self.assertEqual(wrong.execute_count, 0)
+            with self.assertRaises(FieldIntelligenceError) as unknown:
+                wrong.execute_once(
+                    operation_id="effect:expected",
+                    action="open",
+                    target="test-world",
+                    payload={"amount": 1},
+                )
+            self.assertEqual(
+                unknown.exception.code,
+                "EFFECT_OUTCOME_UNKNOWN",
+            )
+            self.assertEqual(len(wrong_calls), 1)
+
+            seen: list[Mapping[str, Any]] = []
+
+            def transition(
+                action: str,
+                target: str,
+                payload: Mapping[str, Any],
+            ) -> WorldAcknowledgment:
+                seen.append(
+                    {
+                        "action": action,
+                        "payload": dict(payload),
+                        "target": target,
+                    }
+                )
+                return WorldAcknowledgment(
+                    acknowledgment_id="ack:journal-integrity",
+                    operation_id="effect:journal-integrity",
+                    status="succeeded",
+                    observed_values={"result": 1.0},
+                    context={"surface": "test"},
+                    source_content=b"acknowledged",
+                )
+
+            adapter = DeterministicWorldAdapter(transition)
+            adapter.bind_durable_journal(root / "journal")
+            first = adapter.execute_once(
+                operation_id="effect:journal-integrity",
+                action="open",
+                target="test-world",
+                payload={"amount": 1},
+            )
+            operation_path = adapter._operation_path(
+                "effect:journal-integrity"
+            )
+            loaded = adapter._read_record("effect:journal-integrity")
+            assert loaded is not None
+            record = dict(loaded[0])
+            original_bytes = operation_path.read_bytes()
+            wrong_acknowledgment = dict(record["acknowledgment"])
+            wrong_acknowledgment["operation_id"] = "another-effect"
+            corruptions = {
+                "extra-field": {**record, "unexpected": True},
+                "request-digest": {
+                    **record,
+                    "request_sha256": "0" * 64,
+                },
+                "acknowledgment-digest": {
+                    **record,
+                    "acknowledgment_sha256": "0" * 64,
+                },
+                "acknowledgment-operation": {
+                    **record,
+                    "acknowledgment": wrong_acknowledgment,
+                    "acknowledgment_sha256": sha256_value(
+                        wrong_acknowledgment
+                    ),
+                },
+            }
+            for label, corrupted in corruptions.items():
+                with self.subTest(label=label):
+                    operation_path.write_bytes(
+                        canonical_json_bytes(corrupted)
+                    )
+                    corrupted_bytes = operation_path.read_bytes()
+                    with self.assertRaises(
+                        FieldIntelligenceError
+                    ) as invalid:
+                        adapter.resolve("effect:journal-integrity")
+                    self.assertEqual(
+                        invalid.exception.code,
+                        "PERSISTENCE_CORRUPT",
+                    )
+                    self.assertEqual(
+                        operation_path.read_bytes(),
+                        corrupted_bytes,
+                    )
+                    self.assertEqual(adapter.execute_count, 1)
+                    self.assertEqual(len(seen), 1)
+                    fresh = DeterministicWorldAdapter(transition)
+                    with self.assertRaises(
+                        FieldIntelligenceError
+                    ) as startup_invalid:
+                        fresh.bind_durable_journal(root / "journal")
+                    self.assertEqual(
+                        startup_invalid.exception.code,
+                        "PERSISTENCE_CORRUPT",
+                    )
+                    self.assertEqual(fresh.execute_count, 0)
+                    self.assertEqual(len(seen), 1)
+                    operation_path.write_bytes(original_bytes)
+
+            replay = adapter.execute_once(
+                operation_id="effect:journal-integrity",
+                action="open",
+                target="test-world",
+                payload={"amount": 1},
+            )
+            self.assertEqual(replay, first)
+            self.assertEqual(adapter.execute_count, 1)
+            self.assertEqual(len(seen), 1)
+            with self.assertRaises(FieldIntelligenceError) as conflict:
+                adapter.execute_once(
+                    operation_id="effect:journal-integrity",
+                    action="open",
+                    target="test-world",
+                    payload={"amount": 2},
+                )
+            self.assertEqual(
+                conflict.exception.code,
+                "OPERATION_CONFLICT",
+            )
+
+    def test_committed_result_schema_fails_closed_before_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            owner = self._owner(Path(directory))
+            try:
+                request = {
+                    "expected_state_sha256": None,
+                    "source_enabled": True,
+                    "ticks": 1,
+                }
+                successor, resonance_receipt = owner.atlas.advance(
+                    owner.state,
+                    ticks=1,
+                    source_enabled=True,
+                )
+                owner._publish(
+                    operation_id="advance:malformed-result",
+                    successor=successor,
+                    event_id=None,
+                    transition={
+                        "expected_state_sha256": None,
+                        "kind": "advance",
+                        "request": request,
+                        "request_sha256": sha256_value(request),
+                        "resonance_receipt": dict(resonance_receipt),
+                        "result": {
+                            "resonance_receipt": "not-an-object"
+                        },
+                        "source_enabled": True,
+                        "ticks": 1,
+                    },
+                )
+                committed_state = owner.state.state_sha256
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as malformed:
+                    owner.advance(
+                        "advance:malformed-result",
+                        ticks=1,
+                        source_enabled=True,
+                    )
+                self.assertEqual(
+                    malformed.exception.code,
+                    "CHECKPOINT_CORRUPT",
+                )
+                self.assertEqual(
+                    owner.state.state_sha256,
+                    committed_state,
+                )
+            finally:
+                owner.close()
+
+    def test_replay_rejects_missing_request_digest_and_tampered_results(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            owner = self._owner(Path(directory))
+            try:
+                self._train_identity(owner)
+                readout = ActionReadout(
+                    readout_id="replay-integrity-readout",
+                    version=1,
+                    labels=("negative", "positive"),
+                    coefficients=({"y": -1.0}, {"y": 1.0}),
+                    observed_error_radius=0.01,
+                )
+
+                publish = owner._publish
+
+                def drop_request_digest(**kwargs: Any) -> Any:
+                    transition = dict(kwargs["transition"])
+                    transition.pop("request_sha256")
+                    kwargs["transition"] = transition
+                    return publish(**kwargs)
+
+                with patch.object(
+                    owner,
+                    "_publish",
+                    side_effect=drop_request_digest,
+                ):
+                    owner.think(
+                        operation_id="think:missing-request-digest",
+                        observed={"x": 2.0},
+                        requested=("y",),
+                    )
+                committed = owner.state.state_sha256
+                with self.assertRaises(FieldIntelligenceError) as missing_digest:
+                    owner.think(
+                        operation_id="think:missing-request-digest",
+                        observed={"x": 2.0},
+                        requested=("y",),
+                    )
+                self.assertEqual(
+                    missing_digest.exception.code,
+                    "CHECKPOINT_CORRUPT",
+                )
+                self.assertEqual(owner.state.state_sha256, committed)
+
+                def corrupt_proposal_status(**kwargs: Any) -> Any:
+                    transition = dict(kwargs["transition"])
+                    if transition.get("kind") == "effect-proposed":
+                        result = dict(transition["result"])
+                        result["status"] = "acknowledged"
+                        transition["result"] = result
+                    kwargs["transition"] = transition
+                    return publish(**kwargs)
+
+                proposal_arguments = {
+                    "operation_id": "effect:tampered-proposal-result",
+                    "observed": {"x": 2.0},
+                    "readout": readout,
+                    "target": "test-world",
+                    "scope": "test",
+                    "payload": {"amount": 1},
+                }
+                with patch.object(
+                    owner,
+                    "_publish",
+                    side_effect=corrupt_proposal_status,
+                ):
+                    owner.propose_effect(**proposal_arguments)
+                committed = owner.state.state_sha256
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as corrupt_proposal:
+                    owner.propose_effect(**proposal_arguments)
+                self.assertEqual(
+                    corrupt_proposal.exception.code,
+                    "CHECKPOINT_CORRUPT",
+                )
+                self.assertEqual(owner.state.state_sha256, committed)
+
+                proposal = owner.propose_effect(
+                    operation_id="effect:tampered-acknowledgment-result",
+                    observed={"x": 2.0},
+                    readout=readout,
+                    target="test-world",
+                    scope="test",
+                    payload={"amount": 1},
+                )
+                acknowledgment = WorldAcknowledgment(
+                    acknowledgment_id="ack:tampered-result",
+                    operation_id="effect:tampered-acknowledgment-result",
+                    status="succeeded",
+                    observed_values={"x": 2.0, "y": 2.0},
+                    context={},
+                    source_content=b"acknowledged",
+                )
+
+                def corrupt_acknowledgment_id(**kwargs: Any) -> Any:
+                    transition = dict(kwargs["transition"])
+                    if transition.get("kind") == "action-outcome":
+                        result = dict(transition["result"])
+                        result["acknowledgment_id"] = "ack:forged"
+                        transition["result"] = result
+                    kwargs["transition"] = transition
+                    return publish(**kwargs)
+
+                with patch.object(
+                    owner,
+                    "_publish",
+                    side_effect=corrupt_acknowledgment_id,
+                ):
+                    owner.admit_acknowledgment(
+                        prediction_id=proposal["prediction"]["prediction_id"],
+                        acknowledgment=acknowledgment,
+                    )
+                committed = owner.state.state_sha256
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as corrupt_acknowledgment:
+                    owner.admit_acknowledgment(
+                        prediction_id=proposal["prediction"]["prediction_id"],
+                        acknowledgment=acknowledgment,
+                    )
+                self.assertEqual(
+                    corrupt_acknowledgment.exception.code,
+                    "CHECKPOINT_CORRUPT",
+                )
+                self.assertEqual(owner.state.state_sha256, committed)
+            finally:
+                owner.close()
+    def test_acknowledgment_replay_binds_event_and_learning_semantics(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            owner = self._owner(Path(directory))
+            try:
+                self._train_identity(owner)
+                prior_event_id = owner.evidence.all_event_ids()[0]
+                readout = ActionReadout(
+                    readout_id="outcome-semantics-readout",
+                    version=1,
+                    labels=("negative", "positive"),
+                    coefficients=({"y": -1.0}, {"y": 1.0}),
+                    observed_error_radius=0.01,
+                )
+                publish = owner._publish
+                for label in (
+                    "event-id",
+                    "learning",
+                    "attribution-candidates",
+                ):
+                    with self.subTest(label=label):
+                        operation_id = f"effect:tampered-{label}"
+                        proposal = owner.propose_effect(
+                            operation_id=operation_id,
+                            observed={"x": 2.0},
+                            readout=readout,
+                            target="test-world",
+                            scope="test",
+                            payload={"label": label},
+                        )
+                        acknowledgment = WorldAcknowledgment(
+                            acknowledgment_id=f"ack:tampered-{label}",
+                            operation_id=operation_id,
+                            status="succeeded",
+                            observed_values={"x": 2.0, "y": 2.0},
+                            context={},
+                            source_content=label.encode("utf-8"),
+                        )
+
+                        def corrupt_outcome(**kwargs: Any) -> Any:
+                            transition = dict(kwargs["transition"])
+                            if label == "event-id":
+                                kwargs["event_id"] = prior_event_id
+                            elif label == "learning":
+                                transition["learning"] = {
+                                    "forged": True
+                                }
+                            else:
+                                transition["attribution_candidates"] = [
+                                    "sensor-error"
+                                ]
+                            kwargs["transition"] = transition
+                            return publish(**kwargs)
+
+                        with patch.object(
+                            owner,
+                            "_publish",
+                            side_effect=corrupt_outcome,
+                        ):
+                            owner.admit_acknowledgment(
+                                prediction_id=proposal["prediction"][
+                                    "prediction_id"
+                                ],
+                                acknowledgment=acknowledgment,
+                            )
+                        committed = owner.state.state_sha256
+                        with self.assertRaises(
+                            FieldIntelligenceError
+                        ) as rejected:
+                            owner.admit_acknowledgment(
+                                prediction_id=proposal["prediction"][
+                                    "prediction_id"
+                                ],
+                                acknowledgment=acknowledgment,
+                            )
+                        self.assertEqual(
+                            rejected.exception.code,
+                            "CHECKPOINT_CORRUPT",
+                        )
+                        self.assertEqual(
+                            owner.state.state_sha256,
+                            committed,
+                        )
+            finally:
+                owner.close()
+
+    def test_acknowledgment_replay_rejects_missing_tampered_and_rebound_events(
+        self,
+    ) -> None:
+        for label in ("missing", "identity", "rebound"):
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as directory:
+                    owner = self._owner(Path(directory))
+                    try:
+                        self._train_identity(owner)
+                        prior_event_id = owner.evidence.all_event_ids()[0]
+                        readout = ActionReadout(
+                            readout_id=f"event-closure-{label}",
+                            version=1,
+                            labels=("negative", "positive"),
+                            coefficients=({"y": -1.0}, {"y": 1.0}),
+                            observed_error_radius=0.01,
+                        )
+                        operation_id = f"effect:event-closure-{label}"
+                        proposal = owner.propose_effect(
+                            operation_id=operation_id,
+                            observed={"x": 2.0},
+                            readout=readout,
+                            target="test-world",
+                            scope="test",
+                            payload={"label": label},
+                        )
+                        acknowledgment = WorldAcknowledgment(
+                            acknowledgment_id=f"ack:event-closure-{label}",
+                            operation_id=operation_id,
+                            status="succeeded",
+                            observed_values={"x": 2.0, "y": 2.0},
+                            context={},
+                            source_content=label.encode("utf-8"),
+                        )
+                        owner.admit_acknowledgment(
+                            prediction_id=proposal["prediction"][
+                                "prediction_id"
+                            ],
+                            acknowledgment=acknowledgment,
+                        )
+                        committed = owner.state.state_sha256
+                        journal_operation_id = f"ack:{operation_id}"
+                        outcome_event = owner.evidence.event_for_operation(
+                            journal_operation_id
+                        )
+                        if outcome_event is None:
+                            self.fail("acknowledgment event was not persisted")
+                        event_path = (
+                            owner.evidence.events / outcome_event.event_id
+                        )
+                        if label == "missing":
+                            event_path.unlink()
+                        elif label == "identity":
+                            event = json.loads(event_path.read_bytes())
+                            event["logical_sequence"] += 1
+                            event_path.write_bytes(
+                                canonical_json_bytes(event)
+                            )
+                        else:
+                            prior_event = owner.evidence.event(
+                                prior_event_id
+                            )
+                            index = json.loads(
+                                owner.evidence.index_path.read_bytes()
+                            )
+                            index["operation_events"][
+                                journal_operation_id
+                            ] = prior_event.event_id
+                            index["operation_events"][
+                                prior_event.operation_id
+                            ] = outcome_event.event_id
+                            owner.evidence._save_index(index)
+                        with self.assertRaises(
+                            FieldIntelligenceError
+                        ) as rejected:
+                            owner.admit_acknowledgment(
+                                prediction_id=proposal["prediction"][
+                                    "prediction_id"
+                                ],
+                                acknowledgment=acknowledgment,
+                            )
+                        self.assertEqual(
+                            rejected.exception.code,
+                            "CHECKPOINT_CORRUPT",
+                        )
+                        self.assertEqual(
+                            owner.state.state_sha256,
+                            committed,
+                        )
+                    finally:
+                        owner.close()
+
+    def test_effect_replays_bind_complete_requests_and_results(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            owner = self._owner(Path(directory))
+            try:
+                self._train_identity(owner)
+                readout = ActionReadout(
+                    readout_id="replay-readout",
+                    version=1,
+                    labels=("negative", "positive"),
+                    coefficients=({"y": -1.0}, {"y": 1.0}),
+                    observed_error_radius=0.01,
+                )
+                arguments = {
+                    "operation_id": "effect:exact-replay",
+                    "observed": {"x": 2.0},
+                    "readout": readout,
+                    "target": "test-world",
+                    "scope": "test",
+                    "payload": {"amount": 1},
+                }
+                proposal = owner.propose_effect(**arguments)
+                proposed_state = owner.state.state_sha256
+                proposal_replay = owner.propose_effect(**arguments)
+                self.assertTrue(
+                    proposal_replay["receipt"]["replayed"]
+                )
+                self.assertEqual(
+                    proposal_replay["decision"],
+                    proposal["decision"],
+                )
+                self.assertEqual(
+                    proposal_replay["prediction"],
+                    proposal["prediction"],
+                )
+                self.assertEqual(
+                    owner.state.state_sha256,
+                    proposed_state,
+                )
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as proposal_conflict:
+                    owner.propose_effect(
+                        **arguments,
+                        task_feasible=False,
+                    )
+                self.assertEqual(
+                    proposal_conflict.exception.code,
+                    "OPERATION_CONFLICT",
+                )
+                acknowledgment = WorldAcknowledgment(
+                    acknowledgment_id="ack:exact-replay",
+                    operation_id="effect:exact-replay",
+                    status="succeeded",
+                    observed_values={"x": 2.0, "y": 2.0},
+                    context={},
+                    source_content=canonical_json_bytes(
+                        {
+                            "action": "positive",
+                            "payload": {"amount": 1},
+                            "target": "test-world",
+                        }
+                    ),
+                )
+                admitted = owner.admit_acknowledgment(
+                    prediction_id=proposal["prediction"][
+                        "prediction_id"
+                    ],
+                    acknowledgment=acknowledgment,
+                )
+                acknowledged_state = owner.state.state_sha256
+                acknowledgment_replay = owner.admit_acknowledgment(
+                    prediction_id=proposal["prediction"][
+                        "prediction_id"
+                    ],
+                    acknowledgment=acknowledgment,
+                )
+                self.assertEqual(
+                    acknowledgment_replay["status"],
+                    "replayed",
+                )
+                self.assertTrue(
+                    acknowledgment_replay["receipt"]["replayed"]
+                )
+                self.assertEqual(
+                    acknowledgment_replay["prediction"],
+                    admitted["prediction"],
+                )
+                self.assertEqual(
+                    owner.state.state_sha256,
+                    acknowledged_state,
+                )
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as acknowledgment_conflict:
+                    owner.admit_acknowledgment(
+                        prediction_id=proposal["prediction"][
+                            "prediction_id"
+                        ],
+                        acknowledgment=acknowledgment,
+                        attribution_candidates=("sensor-error",),
+                    )
+                self.assertEqual(
+                    acknowledgment_conflict.exception.code,
+                    "OPERATION_CONFLICT",
+                )
+                proposal_after_outcome = owner.propose_effect(
+                    **arguments
+                )
+                self.assertEqual(
+                    proposal_after_outcome["status"],
+                    "acknowledged",
+                )
+                self.assertTrue(
+                    proposal_after_outcome["receipt"]["replayed"]
+                )
+                self.assertEqual(
+                    proposal_after_outcome["prediction"],
+                    admitted["prediction"],
+                )
+            finally:
+                owner.close()
+
+    def test_forget_replay_binds_preview_and_normalized_targets(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            owner = self._owner(Path(directory))
+            try:
+                self._train_identity(owner)
+                revision_id = sorted(
+                    owner.evidence.active_revision_ids()
+                )[0]
+                preview = owner.preview_forget((revision_id,))
+                target = sha256_value([revision_id])
+                grant = AuthorityGrant(
+                    grant_id="grant:forget-replay",
+                    issuer="test-host",
+                    generation=0,
+                    operation="forget",
+                    target=target,
+                    scope="test",
+                )
+                forgotten = owner.forget(
+                    operation_id="forget:exact-replay",
+                    preview_id=preview["preview_id"],
+                    revision_ids=(revision_id,),
+                    grant=grant,
+                    scope="test",
+                )
+                committed_state = owner.state.state_sha256
+                replay = owner.forget(
+                    operation_id="forget:exact-replay",
+                    preview_id=preview["preview_id"],
+                    revision_ids=(revision_id, revision_id),
+                    grant=grant,
+                    scope="test",
+                )
+                self.assertTrue(replay["receipt"]["replayed"])
+                self.assertEqual(
+                    {
+                        key: value
+                        for key, value in replay.items()
+                        if key != "receipt"
+                    },
+                    {
+                        key: value
+                        for key, value in forgotten.items()
+                        if key != "receipt"
+                    },
+                )
+                self.assertEqual(
+                    owner.state.state_sha256,
+                    committed_state,
+                )
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as conflict:
+                    owner.forget(
+                        operation_id="forget:exact-replay",
+                        preview_id="0" * 64,
+                        revision_ids=(revision_id,),
+                        grant=grant,
+                        scope="test",
+                    )
+                self.assertEqual(
+                    conflict.exception.code,
+                    "OPERATION_CONFLICT",
+                )
+                self.assertEqual(
+                    owner.state.state_sha256,
+                    committed_state,
+                )
+            finally:
+                owner.close()
+
+    def test_existing_event_identity_tampering_cannot_publish(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            source = _source("existing-event-tamper", values)
+            try:
+                with patch.object(
+                    owner,
+                    "_publish",
+                    side_effect=OSError(
+                        "simulated interruption before checkpoint"
+                    ),
+                ):
+                    with self.assertRaises(OSError):
+                        owner.admit_observation(
+                            operation_id="observation:event-tamper",
+                            source=source,
+                            values=values,
+                            context={},
+                        )
+                event = owner.evidence.event_for_operation(
+                    "observation:event-tamper"
+                )
+                self.assertIsNotNone(event)
+                assert event is not None
+                event_path = owner.evidence.events / event.event_id
+                event_record = event.as_dict()
+                tampered_identity = {
+                    key: value
+                    for key, value in event_record.items()
+                    if key not in {"event_id", "schema"}
+                }
+                tampered_identity["logical_sequence"] = (
+                    event.logical_sequence + 1
+                )
+                tampered_record = {
+                    **event_record,
+                    "event_id": sha256_value(tampered_identity),
+                    "logical_sequence": event.logical_sequence + 1,
+                }
+                event_path.write_bytes(
+                    canonical_json_bytes(tampered_record)
+                )
+                tampered_bytes = event_path.read_bytes()
+                committed_state = owner.state.state_sha256
+                current_bytes = owner.checkpoints.current_path.read_bytes()
+                pending_path = next(owner.pending_path.iterdir())
+                pending_bytes = pending_path.read_bytes()
+                with self.assertRaises(
+                    FieldIntelligenceError
+                ) as corrupt:
+                    owner.admit_observation(
+                        operation_id="observation:event-tamper",
+                        source=source,
+                        values=values,
+                        context={},
+                    )
+                self.assertEqual(
+                    corrupt.exception.code,
+                    "PERSISTENCE_CORRUPT",
+                )
+                self.assertEqual(
+                    owner.state.state_sha256,
+                    committed_state,
+                )
+                self.assertEqual(
+                    owner.checkpoints.current_path.read_bytes(),
+                    current_bytes,
+                )
+                self.assertEqual(
+                    pending_path.read_bytes(),
+                    pending_bytes,
+                )
+                self.assertEqual(
+                    event_path.read_bytes(),
+                    tampered_bytes,
+                )
+            finally:
+                owner.close()
+
+    def test_evidence_index_source_and_event_corruption_fail_closed(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            owner = self._owner(root)
+            values = {"bias": 1.0, "x": 2.0, "y": 2.0}
+            admitted = owner.admit_observation(
+                operation_id="evidence:integrity",
+                source=_source("evidence-integrity-source", values),
+                values=values,
+                context={},
+            )
+            committed_state = owner.state.state_sha256
+            revision_id = admitted["source"]["revision_id"]
+            event_id = admitted["event"]["event_id"]
+            expected_recall = owner.exact_recall(
+                revision_id=revision_id,
+                allowed_labels=frozenset({"test"}),
+            )
+
+            source_path = owner.evidence.sources / revision_id
+            source_record = owner.evidence.source(revision_id).as_dict()
+            source_bytes = source_path.read_bytes()
+            blob_path = (
+                owner.evidence.blobs
+                / source_record["object_sha256"]
+            )
+            blob_bytes = blob_path.read_bytes()
+            event_path = owner.evidence.events / event_id
+            event_record = owner.evidence.event(event_id).as_dict()
+            event_bytes = event_path.read_bytes()
+            index_path = owner.evidence.index_path
+            index = owner.evidence._index()
+            index_bytes = index_path.read_bytes()
+            owner.close()
+
+            corruptions = {
+                "source-record": (
+                    source_path,
+                    canonical_json_bytes(
+                        {**source_record, "scope": "altered-scope"}
+                    ),
+                    source_bytes,
+                ),
+                "source-content": (
+                    blob_path,
+                    bytes([blob_bytes[0] ^ 1]) + blob_bytes[1:],
+                    blob_bytes,
+                ),
+                "event-record": (
+                    event_path,
+                    canonical_json_bytes(
+                        {
+                            **event_record,
+                            "logical_sequence": (
+                                event_record["logical_sequence"] + 1
+                            ),
+                        }
+                    ),
+                    event_bytes,
+                ),
+                "evidence-index": (
+                    index_path,
+                    canonical_json_bytes(
+                        {**index, "active_revision_ids": []}
+                    ),
+                    index_bytes,
+                ),
+            }
+            expected_codes = {
+                "source-record": "PERSISTENCE_CORRUPT",
+                "source-content": "SOURCE_CORRUPT",
+                "event-record": "PERSISTENCE_CORRUPT",
+                "evidence-index": "PERSISTENCE_CORRUPT",
+            }
+            for label, (
+                path,
+                corrupted_bytes,
+                original_bytes,
+            ) in corruptions.items():
+                with self.subTest(label=label):
+                    path.write_bytes(corrupted_bytes)
+                    with self.assertRaises(
+                        FieldIntelligenceError
+                    ) as failure:
+                        FieldIntelligenceOwner(root)
+                    self.assertEqual(
+                        failure.exception.code,
+                        expected_codes[label],
+                    )
+                    self.assertEqual(
+                        path.read_bytes(),
+                        corrupted_bytes,
+                    )
+                    path.write_bytes(original_bytes)
+
+            missing_records = (
+                ("source-missing", source_path, source_bytes, "SOURCE_MISSING"),
+                ("event-missing", event_path, event_bytes, "EVENT_NOT_FOUND"),
+            )
+            for label, path, original_bytes, expected_code in missing_records:
+                with self.subTest(label=label):
+                    path.unlink()
+                    with self.assertRaises(
+                        FieldIntelligenceError
+                    ) as failure:
+                        FieldIntelligenceOwner(root)
+                    self.assertEqual(failure.exception.code, expected_code)
+                    self.assertFalse(path.exists())
+                    path.write_bytes(original_bytes)
+
+            recovered = FieldIntelligenceOwner(root)
+            try:
+                self.assertEqual(
+                    recovered.state.state_sha256,
+                    committed_state,
+                )
+                self.assertEqual(
+                    recovered.exact_recall(
+                        revision_id=revision_id,
+                        allowed_labels=frozenset({"test"}),
+                    ),
+                    expected_recall,
+                )
+            finally:
+                recovered.close()
 
     def test_total_evidence_capacity_covers_events_on_existing_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

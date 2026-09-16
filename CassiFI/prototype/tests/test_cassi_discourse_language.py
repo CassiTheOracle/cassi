@@ -67,7 +67,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
                             agent.controller,
                             agent.engine.law,
                             agent.discourse_codec,
-                            agent._route_state,
+                            agent.state,
                             prompt,
                         )
                         self.assertEqual(decision.target, expected)
@@ -184,6 +184,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
     def test_consecutive_bindings_keep_frame_reference_slots_independent(self) -> None:
         agent = self._open("consecutive-bindings")
         try:
+            route_state = agent.state
             first = agent.turn("use Juniper to mean red")
             self.assertFalse(first.abstained, first.receipt_dict())
             self.assertEqual(first.reference, "reference.red")
@@ -191,7 +192,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
                 agent.controller,
                 agent.engine.law,
                 agent.discourse_codec,
-                agent._route_state,
+                route_state,
                 "make Kestrel refer to blue",
             )
             current_frame = select_discourse_frame(
@@ -220,7 +221,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
                 agent.controller,
                 agent.engine.law,
                 agent.discourse_codec,
-                agent._route_state,
+                route_state,
                 "use Lumen to mean green",
             )
             current_frame = select_discourse_frame(
@@ -248,6 +249,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
     def test_raw_prediction_uses_fixed_slots_after_field_route(self) -> None:
         agent = self._open("raw-fixed-slot")
         try:
+            route_state = agent.state
             memory_before = agent.engine.law.memory_sha256(agent.state)
             world_before = agent.world.snapshot()["snapshot_sha256"]
             for prompt, expected_action in (
@@ -268,7 +270,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
                 agent.controller,
                 agent.engine.law,
                 agent.discourse_codec,
-                agent._route_state,
+                route_state,
                 "move your looking direction up",
             )
             self.assertEqual(action_frame.target.route_id, "route.action")
@@ -277,7 +279,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
                 agent.controller,
                 agent.engine.law,
                 agent.discourse_codec,
-                agent._route_state,
+                route_state,
                 "state the change just observed",
             )
             self.assertEqual(
@@ -288,7 +290,7 @@ class CassiDiscourseLanguageTests(unittest.TestCase):
                 agent.controller,
                 agent.engine.law,
                 agent.discourse_codec,
-                agent._route_state,
+                route_state,
                 "resolve the distance relation from it to red",
             )
             self.assertEqual(frame.target.route_id, "route.reference")
