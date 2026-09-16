@@ -1,0 +1,503 @@
+"""Measure exact quotient behavior for the four Result AA basis families.
+
+The probe selects the lexicographically first formula in each canonical
+width-two family, applies every measured exclusive-pair quotient, checks the
+complete Boolean solution projection, and follows deterministic reductions to
+a constructive width-two terminal.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import itertools
+import json
+from collections import Counter
+from fractions import Fraction
+from pathlib import Path
+from typing import Any, Sequence
+
+import cubic_kernel_decision as production
+
+SCHEMA = "cassifi.cubic-degeneracy-quotient-probe.v1"
+ROOT = Path(__file__).resolve().parent
+AA_PATH = ROOT / "_diag/cubic_degeneracy_structure_probe.json"
+LIFT_PATH = ROOT / "_diag/cubic_lift_realization_probe.json"
+OUTPUT = ROOT / "_diag/cubic_degeneracy_quotient_probe.json"
+
+Vector = tuple[Fraction, ...]
+
+
+def digest(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, separators=(",", ":"), sort_keys=True).encode("ascii")
+    ).hexdigest()
+
+
+def affine_profile(
+    matrix: Sequence[Sequence[Fraction]], rhs: Sequence[Fraction]
+) -> dict[str, Any]:
+    column_count = len(matrix[0]) if matrix else 0
+    augmented = [list(row) + [value] for row, value in zip(matrix, rhs, strict=True)]
+    reduced, pivots, _ = production._rref(augmented)
+    if column_count in pivots:
+        return {
+            "consistent": False,
+            "rank": len(pivots) - 1,
+            "nullity": 0,
+            "particular": tuple(),
+            "vectors": tuple(),
+        }
+    coefficient_pivots = tuple(pivot for pivot in pivots if pivot < column_count)
+    free = tuple(
+        column for column in range(column_count) if column not in coefficient_pivots
+    )
+    pivot_rows = {pivot: row for row, pivot in enumerate(coefficient_pivots)}
+    particular = []
+    vectors = []
+    free_positions = {column: index for index, column in enumerate(free)}
+    for column in range(column_count):
+        if column in free_positions:
+            index = free_positions[column]
+            particular.append(Fraction(0))
+            vectors.append(
+                tuple(Fraction(int(position == index)) for position in range(len(free)))
+            )
+        else:
+            row = pivot_rows[column]
+            particular.append(reduced[row][-1])
+            vectors.append(tuple(-reduced[row][free_column] for free_column in free))
+    return {
+        "consistent": True,
+        "rank": len(coefficient_pivots),
+        "nullity": len(free),
+        "particular": tuple(particular),
+        "vectors": tuple(vectors),
+    }
+
+
+def basis_rows(vectors: tuple[Vector, ...]) -> tuple[tuple[tuple[int, ...], int], ...]:
+    if not vectors:
+        return ((tuple(), 0),)
+    dimension = len(vectors[0])
+    if dimension == 0:
+        return ((tuple(), 0),)
+    rows = []
+    for selected in itertools.combinations(range(len(vectors)), dimension):
+        selected_vectors = tuple(vectors[index] for index in selected)
+        if production._vector_rank(selected_vectors) != dimension:
+            continue
+        width = max(
+            sum(coordinate != 0 for coordinate in production._basis_coordinates(selected_vectors, vector))
+            for vector in vectors
+        )
+        rows.append((tuple(index + 1 for index in selected), width))
+    return tuple(rows)
+
+
+def exclusive_pairs(rows: Sequence[tuple[tuple[int, ...], int]], size: int) -> list[tuple[int, int]]:
+    width_two = tuple(basis for basis, width in rows if width <= 2)
+    pairs = []
+    for left, right in itertools.combinations(range(1, size + 1), 2):
+        states = {
+            f"{int(left in basis)}{int(right in basis)}" for basis in width_two
+        }
+        if states == {"01", "10"}:
+            pairs.append((left, right))
+    return pairs
+
+
+def boolean_solutions(
+    matrix: Sequence[Sequence[Fraction]], rhs: Sequence[Fraction]
+) -> tuple[tuple[int, ...], ...]:
+    size = len(matrix[0]) if matrix else 0
+    solutions = []
+    for assignment in itertools.product((0, 1), repeat=size):
+        if all(
+            sum(coefficient * value for coefficient, value in zip(row, assignment, strict=True))
+            == target
+            for row, target in zip(matrix, rhs, strict=True)
+        ):
+            solutions.append(assignment)
+    return tuple(solutions)
+
+
+def pair_projection_allowed(profile: dict[str, Any], left: int, right: int) -> tuple[tuple[int, int], ...]:
+    particular = profile["particular"]
+    vectors = profile["vectors"]
+    allowed = []
+    for pair in itertools.product((0, 1), repeat=2):
+        equations = (vectors[left], vectors[right])
+        targets = (
+            Fraction(pair[0]) - particular[left],
+            Fraction(pair[1]) - particular[right],
+        )
+        coefficient_rank = production._vector_rank(equations)
+        augmented_rank = production._vector_rank(
+            tuple(vector + (target,) for vector, target in zip(equations, targets, strict=True))
+        )
+        if coefficient_rank == augmented_rank:
+            allowed.append(pair)
+    return tuple(allowed)
+
+
+def substitute_pair(
+    matrix: Sequence[Sequence[Fraction]],
+    rhs: Sequence[Fraction],
+    left: int,
+    right: int,
+    category: str,
+    profile: dict[str, Any],
+) -> tuple[list[list[Fraction]], list[Fraction], dict[str, Any]]:
+    size = len(matrix[0])
+    survivors = [index for index in range(size) if index not in (left, right)]
+    old_to_new = {old: new for new, old in enumerate(survivors)}
+    offset = [Fraction(0) for _ in range(size)]
+    transform = [
+        [Fraction(0) for _ in range(len(survivors) + 1)] for _ in range(size)
+    ]
+    for old, new in old_to_new.items():
+        transform[old][new] = Fraction(1)
+    relation: dict[str, Any]
+    if category == "primal_twins":
+        transform[left][-1] = Fraction(1)
+        relation = {
+            "kind": "twin_sum_canonical_lift",
+            "allowed_original_pairs": [[0, 0], [1, 0], [0, 1]],
+            "canonical_parameter_pairs": [[0, 0], [1, 0]],
+        }
+    else:
+        allowed = pair_projection_allowed(profile, left, right)
+        if len(allowed) > 2:
+            raise AssertionError(f"parallel pair has nonfunctional Boolean projection {allowed}")
+        if not allowed:
+            return [[Fraction(0)]], [Fraction(1)], {
+                "kind": "contradiction",
+                "allowed_original_pairs": [],
+            }
+        if len(allowed) == 1:
+            transform = [row[:-1] for row in transform]
+            offset[left] = Fraction(allowed[0][0])
+            offset[right] = Fraction(allowed[0][1])
+            relation = {"kind": "forced_pair", "allowed_original_pairs": [list(allowed[0])]}
+        else:
+            first, second = allowed
+            offset[left] = Fraction(first[0])
+            offset[right] = Fraction(first[1])
+            transform[left][-1] = Fraction(second[0] - first[0])
+            transform[right][-1] = Fraction(second[1] - first[1])
+            relation = {
+                "kind": "affine_boolean_pair",
+                "allowed_original_pairs": [list(first), list(second)],
+            }
+    new_matrix = []
+    new_rhs = []
+    for row, target in zip(matrix, rhs, strict=True):
+        new_matrix.append(
+            [
+                sum(row[old] * transform[old][new] for old in range(size))
+                for new in range(len(transform[0]) if transform else 0)
+            ]
+        )
+        new_rhs.append(target - sum(row[old] * offset[old] for old in range(size)))
+    relation["survivor_old_indices"] = survivors
+    relation["offset"] = [str(value) for value in offset]
+    relation["transform"] = [[str(value) for value in row] for row in transform]
+    return new_matrix, new_rhs, relation
+
+
+def project_solution(
+    assignment: tuple[int, ...], left: int, right: int, relation: dict[str, Any]
+) -> tuple[int, ...]:
+    projected = [assignment[index] for index in relation["survivor_old_indices"]]
+    if relation["kind"] == "twin_sum_canonical_lift":
+        projected.append(assignment[left] + assignment[right])
+    elif relation["kind"] == "affine_boolean_pair":
+        allowed = [tuple(pair) for pair in relation["allowed_original_pairs"]]
+        projected.append(allowed.index((assignment[left], assignment[right])))
+    return tuple(projected)
+
+
+def row_signature(row: Sequence[Fraction], rhs: Fraction) -> str:
+    active = sorted(coefficient for coefficient in row if coefficient)
+    return json.dumps({"coefficients": [str(value) for value in active], "rhs": str(rhs)}, sort_keys=True)
+
+
+def terminal_details(
+    matrix: list[list[Fraction]],
+    rhs: list[Fraction],
+    rows: Sequence[tuple[tuple[int, ...], int]],
+) -> dict[str, Any]:
+    return {
+        "final_solution_count": len(boolean_solutions(matrix, rhs)),
+        "final_width_two_basis_count": sum(width <= 2 for _, width in rows),
+        "final_row_signature_histogram": dict(
+            sorted(
+                Counter(
+                    row_signature(row, target)
+                    for row, target in zip(matrix, rhs, strict=True)
+                ).items()
+            )
+        ),
+        "final_matrix": [[str(value) for value in row] for row in matrix],
+        "final_rhs": [str(value) for value in rhs],
+    }
+
+
+def reduction_trace(
+    initial_matrix: list[list[Fraction]],
+    initial_rhs: list[Fraction],
+) -> dict[str, Any]:
+    matrix = [row[:] for row in initial_matrix]
+    rhs = initial_rhs[:]
+    steps = []
+    for _ in range(16):
+        profile = affine_profile(matrix, rhs)
+        size = len(matrix[0]) if matrix else 0
+        if not profile["consistent"]:
+            return {"steps": steps, "terminal": "contradiction"}
+        rows = basis_rows(profile["vectors"])
+        if profile["nullity"] <= 2:
+            return {
+                "steps": steps,
+                "terminal": "nullity_at_most_two",
+                "final_variable_count": size,
+                "final_nullity": profile["nullity"],
+                **terminal_details(matrix, rhs, rows),
+            }
+        pairs = exclusive_pairs(rows, size)
+        if not pairs:
+            return {
+                "steps": steps,
+                "terminal": "width_two_basis_without_exclusive_pair",
+                "final_variable_count": size,
+                "final_nullity": profile["nullity"],
+                **terminal_details(matrix, rhs, rows),
+            }
+        left, right = (pairs[0][0] - 1, pairs[0][1] - 1)
+        column_equal = all(row[left] == row[right] for row in matrix)
+        dual_parallel = production._vector_rank(
+            (profile["vectors"][left], profile["vectors"][right])
+        ) < 2
+        if dual_parallel:
+            category = "dual_parallel"
+        elif column_equal:
+            category = "primal_twins"
+        else:
+            return {
+                "steps": steps,
+                "terminal": "stuck_nondegenerate_exclusive_pair",
+                "ports": [left + 1, right + 1],
+            }
+        original_solutions = boolean_solutions(matrix, rhs)
+        if category == "primal_twins" and any(
+            solution[left] == solution[right] == 1
+            for solution in original_solutions
+        ):
+            return {
+                "steps": steps,
+                "terminal": "stuck_twin_allows_double_one",
+                "ports": [left + 1, right + 1],
+            }
+        new_matrix, new_rhs, relation = substitute_pair(
+            matrix, rhs, left, right, category, profile
+        )
+        quotient_solutions = boolean_solutions(new_matrix, new_rhs)
+        projected = {
+            project_solution(solution, left, right, relation)
+            for solution in original_solutions
+        }
+        if projected != set(quotient_solutions):
+            raise AssertionError("recursive quotient solution projection failed")
+        steps.append(
+            {
+                "variable_count_before": size,
+                "nullity_before": profile["nullity"],
+                "ports": [left + 1, right + 1],
+                "category": category,
+                "relation_kind": relation["kind"],
+                "solution_count_before": len(original_solutions),
+                "solution_count_after": len(quotient_solutions),
+            }
+        )
+        matrix, rhs = new_matrix, new_rhs
+    return {"steps": steps, "terminal": "step_limit"}
+
+
+def build_receipt(
+    aa_path: Path = AA_PATH,
+    lift_path: Path = LIFT_PATH,
+) -> dict[str, Any]:
+    aa = json.loads(aa_path.read_text(encoding="utf-8"))
+    source = json.loads(lift_path.read_text(encoding="utf-8"))
+    if digest(source) != aa["source"]["receipt_sha256"]:
+        raise AssertionError("retained lift receipt does not match Result AA source digest")
+    formulas = {
+        target["formula_sha256"]: tuple(tuple(clause) for clause in target["formula"])
+        for order in source["orders"]
+        for target in order["targets"]
+        if target["status"] == "analyzed"
+    }
+    representatives = {}
+    for target in aa["targets"]:
+        family = target["canonical_width_two_family_sha256"]
+        representatives.setdefault(family, target)
+
+    results = []
+    for family, target in sorted(representatives.items()):
+        formula = formulas[target["formula_sha256"]]
+        size = len(formula)
+        matrix = [
+            [Fraction(int(variable + 1 in clause)) for variable in range(size)]
+            for clause in formula
+        ]
+        rhs = [Fraction(1) for _ in formula]
+        profile = affine_profile(matrix, rhs)
+        original_solutions = boolean_solutions(matrix, rhs)
+        for pair in target["exclusive_pairs"]:
+            left, right = (pair["ports"][0] - 1, pair["ports"][1] - 1)
+            new_matrix, new_rhs, relation = substitute_pair(
+                matrix, rhs, left, right, pair["category"], profile
+            )
+            quotient_profile = affine_profile(new_matrix, new_rhs)
+            quotient_rows = (
+                basis_rows(quotient_profile["vectors"])
+                if quotient_profile["consistent"]
+                else tuple()
+            )
+            quotient_solutions = boolean_solutions(new_matrix, new_rhs)
+            projected = {
+                project_solution(solution, left, right, relation)
+                for solution in original_solutions
+            }
+            if projected != set(quotient_solutions):
+                raise AssertionError("quotient Boolean solutions disagree with projection")
+            trace = reduction_trace(new_matrix, new_rhs)
+            results.append(
+                {
+                    "canonical_family_sha256": family,
+                    "formula_sha256": target["formula_sha256"],
+                    "category": pair["category"],
+                    "ports": pair["ports"],
+                    "relation": relation,
+                    "original": {
+                        "variable_count": size,
+                        "rank": profile["rank"],
+                        "nullity": profile["nullity"],
+                        "solution_count": len(original_solutions),
+                    },
+                    "quotient": {
+                        "variable_count": len(new_matrix[0]) if new_matrix else 0,
+                        "rank": quotient_profile["rank"],
+                        "nullity": quotient_profile["nullity"],
+                        "solution_count": len(quotient_solutions),
+                        "width_two_basis_count": sum(width <= 2 for _, width in quotient_rows),
+                        "exclusive_pairs": [list(pair) for pair in exclusive_pairs(quotient_rows, len(new_matrix[0]) if new_matrix else 0)],
+                        "row_signature_histogram": dict(sorted(Counter(row_signature(row, target_rhs) for row, target_rhs in zip(new_matrix, new_rhs, strict=True)).items())),
+                    },
+                    "projected_solution_set_matches": True,
+                    "recursive_reduction": trace,
+                }
+            )
+    constructive_terminals = {
+        "nullity_at_most_two",
+        "width_two_basis_without_exclusive_pair",
+    }
+    summary = {
+        "representative_family_count": len(representatives),
+        "quotient_case_count": len(results),
+        "category_histogram": dict(
+            sorted(Counter(row["category"] for row in results).items())
+        ),
+        "relation_histogram": dict(
+            sorted(Counter(row["relation"]["kind"] for row in results).items())
+        ),
+        "quotient_nullity_histogram": dict(
+            sorted(
+                Counter(
+                    str(row["quotient"]["nullity"]) for row in results
+                ).items()
+            )
+        ),
+        "quotients_with_width_two_basis": sum(
+            row["quotient"]["width_two_basis_count"] > 0 for row in results
+        ),
+        "quotients_with_exclusive_pair": sum(
+            bool(row["quotient"]["exclusive_pairs"]) for row in results
+        ),
+        "projected_solution_set_mismatches": sum(
+            not row["projected_solution_set_matches"] for row in results
+        ),
+        "recursive_terminal_histogram": dict(
+            sorted(
+                Counter(
+                    row["recursive_reduction"]["terminal"] for row in results
+                ).items()
+            )
+        ),
+        "maximum_recursive_steps_after_first_quotient": max(
+            len(row["recursive_reduction"]["steps"]) for row in results
+        ),
+        "constructive_recursive_terminals": sum(
+            row["recursive_reduction"]["terminal"] in constructive_terminals
+            and row["recursive_reduction"]["final_width_two_basis_count"] > 0
+            for row in results
+        ),
+    }
+    if len(representatives) != 4 or len(results) != 9:
+        raise AssertionError("canonical representative or quotient-case count changed")
+    if summary["projected_solution_set_mismatches"] != 0:
+        raise AssertionError("a quotient changed the projected Boolean solution set")
+    if summary["quotients_with_width_two_basis"] != len(results):
+        raise AssertionError("a first quotient lost every width-two basis")
+    if summary["constructive_recursive_terminals"] != len(results):
+        raise AssertionError("a recursive path did not reach a constructive terminal")
+    return {
+        "schema": SCHEMA,
+        "sources": {
+            "degeneracy_structure_schema": aa["schema"],
+            "degeneracy_structure_receipt_sha256": digest(aa),
+            "lift_schema": source["schema"],
+            "lift_receipt_sha256": digest(source),
+        },
+        "selection": {
+            "representative_rule": (
+                "lexicographically first retained target per canonical "
+                "width-two family"
+            ),
+            "pair_rule": "every exclusive pair of each representative",
+        },
+        "cases": results,
+        "case_stream_sha256": digest(results),
+        "summary": summary,
+        "assessment": {
+            "bounded_result": (
+                "Every quotient preserves the projected Boolean solution set "
+                "and a width-two basis; every deterministic recursive path "
+                "reaches a constructive terminal on the four representatives."
+            ),
+            "scope": (
+                "Four canonical order-nine representatives and their nine "
+                "exclusive pairs; not an arbitrary-order closure theorem."
+            ),
+        },
+    }
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--structure-receipt", type=Path, default=AA_PATH)
+    parser.add_argument("--lift-receipt", type=Path, default=LIFT_PATH)
+    parser.add_argument("--output", type=Path, default=OUTPUT)
+    args = parser.parse_args()
+    receipt = build_receipt(args.structure_receipt, args.lift_receipt)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print(json.dumps(receipt["summary"], sort_keys=True))
+    print(f"wrote {args.output}")
+
+
+if __name__ == "__main__":
+    main()
