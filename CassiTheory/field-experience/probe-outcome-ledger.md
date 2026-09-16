@@ -2281,6 +2281,27 @@ and
 the receipt SHA-256 is
 `5f04aa74490e32ca20ce101dafd634c38e6581e2ca3b62a3bb428bfcc21fc2bb`.
 
+## 61. Band split of vortex-stretching production
+
+The frozen protocol
+`computations/navier-stokes-strain-band-split-prereg.md` splits the signed
+stretching production of six declared families between the spectral strain
+bands $|k|\le k_c$ and $|k|>k_c$ at the cutoffs $k_c\in\{2,4\}$, and reads its
+classification from the $N=32$ primary run of every helical-tube family. The
+schedule declares 18 executions: a primary run at each $N\in\{16,32\}$ and a
+2048-step $N=32$ refinement for each family.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Recorded execution | `timeout 3300 python computations/verify_navier_stokes_strain_band_split.py`, run from the repository root, completed five of the 18 declared executions—the three `beltrami` declarations and both `helix_wide` primary declarations—and its bound expired at 3300.12 s with exit code 124 inside the sixth, at the printed progress `helix_wide N=32 time_refined step 1920/2048 (980s, 2.0 states/s)` | No classification—the bounded invocation terminated; 13 declarations did not run |
+| Beltrami control | The three completed control declarations printed positive-stretching integrals $1.799751\times10^{-34}$, $1.913839\times10^{-34}$ and $1.914922\times10^{-34}$ with band productions between $7.840078\times10^{-35}$ and $1.132862\times10^{-34}$ | The exact heat-flow control requires these to vanish; the receipt that carries the $10^{-10}$ band gate was not assembled |
+| Raw artifact | The declared receipt `runs/navier_stokes_strain_band_split/verification.json` is written only after `run_probe()` returns and was not written, leaving `runs/navier_stokes_strain_band_split/probe.log` as the only artifact | No receipt binds the schedule |
+
+The terminal classification is `INCONCLUSIVE`: four of the five tube families
+have no $N=32$ primary record, so the frozen decision rules were never applied.
+This record supplies no low-band or high-band dominance statement, no
+cutoff-uniform estimate, and no conditional continuation claim.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -2361,6 +2382,9 @@ the receipt SHA-256 is
 - `computations/navier-stokes-helical-dynamic-depletion-prereg.md`—frozen eight-family helical stress-test schedule, observables and decision rules.
 - `computations/verify_navier_stokes_helical_dynamic_depletion.py`—24-run signed-production, alignment and direction-diagnostic verifier.
 - `turbulence/navier-stokes-helical-dynamic-depletion.md`—finite helical families and the contradicted universal sign depletion.
+- `computations/navier-stokes-strain-band-split-prereg.md`—frozen six-family spectral band-split schedule, decision rules and recorded inconclusive execution.
+- `computations/verify_navier_stokes_strain_band_split.py`—18-run band-split verifier with the packed-strain path, band identity and Parseval checks.
+- `runs/navier_stokes_strain_band_split/probe.log`—captured stdout of the bounded band-split execution; the declared receipt was not written (gitignored run artifact).
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.

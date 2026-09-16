@@ -221,6 +221,40 @@ The schedule stops after the 18 declared executions. Its output supplies no
 arbitrary-data continuation theorem, singularity construction, or
 constitutive identification beyond the original Navier–Stokes equation.
 
+## 7. Post-execution record
+
+The schedule ran as written from the repository root:
+
+```text
+timeout 3300 python computations/verify_navier_stokes_strain_band_split.py
+```
+
+The invocation was terminated by its bound after 3300.12 s with exit code 124.
+Five of the 18 declared executions completed—the three `beltrami` declarations
+and both `helix_wide` primary declarations—and the sixth, the `helix_wide`
+$N=32$ timestep refinement, was killed with its last printed progress at
+
+```text
+helix_wide N=32 time_refined step 1920/2048 (980s, 2.0 states/s)
+```
+
+The declared receipt `runs/navier_stokes_strain_band_split/verification.json`
+is written only after `run_probe()` returns, so it was not written; the run's
+only artifact is the captured stdout at
+`runs/navier_stokes_strain_band_split/probe.log`. The three completed
+`beltrami` declarations printed positive-stretching integrals of
+$1.799751\times10^{-34}$, $1.913839\times10^{-34}$ and
+$1.914922\times10^{-34}$ with band productions between
+$7.840078\times10^{-35}$ and $1.132862\times10^{-34}$, which the exact
+heat-flow control requires to vanish; the band-identity, Parseval and
+refinement checks were never assembled into a receipt.
+
+The classification is `INCONCLUSIVE`. Four of the five tube families have no
+$N=32$ primary record, so the decision rules of §5 cannot be applied and no
+statement about low-band or high-band production follows from this execution.
+The statistic, decision tree and stopping rule of §5 are the frozen rules of
+this schedule, and this record adds the execution outcome only.
+
 ## References
 
 - `turbulence/navier-stokes-helical-dynamic-depletion.md`—measured signed production, direction variation, and the contradicted sign depletion in the same tube families
