@@ -131,6 +131,11 @@ def frame_search(
     independent covering set; ``None`` with ``capped`` false means no ground
     basis frames the dual, so ``omega >= 3``.
     """
+    if rank == 0:
+        return [], 1, False
+    if rank == 1:
+        return ([] if not classes else [0]), 1, False
+
 
     pair_masks, pairs_by_target, full = span_masks(classes)
     pair_elements = list(itertools.combinations(range(len(classes)), 2))
@@ -254,6 +259,10 @@ def evaluate_case(
         basis = extend_to_basis(classes, chosen, rank)
         covered = all(
             any(
+                in_span(classes[index], classes[index], point)
+                for index in basis
+            )
+            or any(
                 in_span(classes[left], classes[right], point)
                 for left, right in itertools.combinations(basis, 2)
             )

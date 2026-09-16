@@ -222,6 +222,11 @@ def search(
     classes: Sequence[tuple[int, ...]], rank: int, node_cap: int = NODE_CAP
 ) -> tuple[list[int] | None, int, bool]:
     """Own complete search: highest uncovered class first, pairs descending."""
+    if rank == 0:
+        return [], 1, False
+    if rank == 1:
+        return ([] if not classes else [0]), 1, False
+
 
     masks, full = pair_masks(classes)
     nodes = 0
@@ -302,6 +307,8 @@ def width_of(columns: Sequence[Sequence[Fraction]], free: Sequence[int]) -> int:
     """Exact coordinates in a free basis: largest support over all elements."""
 
     width = len(free)
+    if not free:
+        return 0
     basis = [[columns[free[column]][coordinate] for column in range(width)] for coordinate in range(width)]
     inverse = invert(basis)
     largest = 0
@@ -509,7 +516,11 @@ def check_certificate(
         f"{name}: claimed frame is not a full ground basis",
     )
     covered = all(
-        any(in_span(left, right, point) for left, right in itertools.combinations(claimed, 2))
+        any(in_span(candidate, candidate, point) for candidate in claimed)
+        or any(
+            in_span(left, right, point)
+            for left, right in itertools.combinations(claimed, 2)
+        )
         for point in classes
     )
     require(covered, f"{name}: claimed frame does not cover every class")

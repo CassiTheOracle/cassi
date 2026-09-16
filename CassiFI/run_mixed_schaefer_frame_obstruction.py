@@ -100,17 +100,103 @@ def dual_columns(formula: Sequence[Sequence[int]]) -> tuple[tuple[int, ...], ...
     """Exact integer kernel-coordinate columns of the dual column matroid."""
 
     profile = cubic_kernel_profile(formula)
+    kernel_basis = profile["kernel_basis"]
+    if not kernel_basis:
+        return tuple(() for _ in formula)
     rows: list[tuple[int, ...]] = []
-    for vector in profile["kernel_basis"]:
+    for vector in kernel_basis:
         values = [Fraction(value) for value in vector]
         scale = 1
         for value in values:
             scale = math.lcm(scale, value.denominator)
         rows.append(tuple(int(value * scale) for value in values))
     return tuple(
-        tuple(row[column] for row in rows) for column in range(len(profile["kernel_basis"][0]))
+        tuple(row[column] for row in rows) for column in range(len(kernel_basis[0]))
     )
 
+def coverage_screen(
+    columns: tuple[tuple[int, ...], ...], bound: int
+) -> dict[str, Any]:
+    """Decide whether a free basis is spanned by ``bound``-subsets of itself.
+
+    A full-rank source has no nontrivial free coordinates.  Its empty basis
+    spans every zero-dimensional dual column, so the result is a complete
+    width-zero witness rather than an empty or failed search.
+
+    The subset bitsets keep exactly the free subsets whose internal
+    ``bound``-subsets already cover the ground set, so an empty intersection is
+    complete over all free subsets. Survivors are ranked until one
+    independent survivor is found; a positive answer normally stops at the
+    first independent survivor.
+    """
+
+    size = len(columns)
+    nullity = len(columns[0]) if size else 0
+    if nullity == 0:
+        return {
+            "exists": True,
+            "complete": True,
+            "ground_size": size,
+            "nullity": 0,
+            "candidates_after_filter": 1,
+            "candidates_examined": 0,
+            "witness_free_columns": [],
+        }
+    effective_bound = min(bound, nullity)
+    covers, subset_masks = covering_subsets(columns, effective_bound)
+    bits = subset_bits(size, nullity, effective_bound)
+    candidates = (1 << math.comb(size, nullity)) - 1
+    for element in sorted(range(size), key=lambda item: len(covers[item])):
+        mask = 0
+        for subset in covers[element]:
+            mask |= bits[subset]
+        candidates &= mask
+        if not candidates:
+            return {
+                "exists": False,
+                "complete": True,
+                "ground_size": size,
+                "nullity": nullity,
+                "candidates_after_filter": 0,
+                "candidates_examined": 0,
+                "witness_free_columns": None,
+            }
+
+    subsets = free_subsets(size, nullity)
+    candidates_examined = 0
+    remaining = candidates
+    while remaining:
+        low = remaining & -remaining
+        index = low.bit_length() - 1
+        remaining ^= low
+        free_columns = subsets[index]
+        candidates_examined += 1
+        if nullity <= bound or rank_int(
+            tuple(columns[column] for column in free_columns)
+        ) == nullity:
+            covered = 0
+            for subset in itertools.combinations(free_columns, effective_bound):
+                covered |= subset_masks[subset]
+            if covered != (1 << size) - 1:
+                raise AssertionError("subset bitset filter admitted an uncovered free set")
+            return {
+                "exists": True,
+                "complete": False,
+                "ground_size": size,
+                "nullity": nullity,
+                "candidates_after_filter": bin(candidates).count("1"),
+                "candidates_examined": candidates_examined,
+                "witness_free_columns": [column + 1 for column in free_columns],
+            }
+    return {
+        "exists": False,
+        "complete": True,
+        "ground_size": size,
+        "nullity": nullity,
+        "candidates_after_filter": bin(candidates).count("1"),
+        "candidates_examined": candidates_examined,
+        "witness_free_columns": None,
+    }
 
 def _build_subset_bits(
     size: int, nullity: int, bound: int
@@ -223,67 +309,6 @@ def covering_subsets(
     return covers, masks
 
 
-def coverage_screen(
-    columns: tuple[tuple[int, ...], ...], bound: int
-) -> dict[str, Any]:
-    """Decide whether a free basis is spanned by ``bound``-subsets of itself.
-
-    The subset bitsets keep exactly the free subsets whose internal
-    ``bound``-subsets already cover the ground set, so an empty intersection is
-    complete over all free subsets. Survivors are ranked until one is
-    independent; a positive answer stops at the first independent survivor.
-    """
-
-    size = len(columns)
-    nullity = len(columns[0]) if size else 0
-    covers, subset_masks = covering_subsets(columns, bound)
-    bits = subset_bits(size, nullity, bound)
-    candidates = (1 << math.comb(size, nullity)) - 1
-    for element in sorted(range(size), key=lambda item: len(covers[item])):
-        mask = 0
-        for subset in covers[element]:
-            mask |= bits[subset]
-        candidates &= mask
-        if not candidates:
-            return {
-                "exists": False,
-                "complete": True,
-                "candidates_after_filter": 0,
-                "candidates_examined": 0,
-                "witness_free_columns": None,
-            }
-
-    subsets = free_subsets(size, nullity)
-    candidates_examined = 0
-    remaining = candidates
-    while remaining:
-        low = remaining & -remaining
-        index = low.bit_length() - 1
-        remaining ^= low
-        free_columns = subsets[index]
-        candidates_examined += 1
-        if nullity <= bound or rank_int(
-            tuple(columns[column] for column in free_columns)
-        ) == nullity:
-            covered = 0
-            for subset in itertools.combinations(free_columns, bound):
-                covered |= subset_masks[subset]
-            if covered != (1 << size) - 1:
-                raise AssertionError("subset bitset filter admitted an uncovered free set")
-            return {
-                "exists": True,
-                "complete": False,
-                "candidates_after_filter": bin(candidates).count("1"),
-                "candidates_examined": candidates_examined,
-                "witness_free_columns": [column + 1 for column in free_columns],
-            }
-    return {
-        "exists": False,
-        "complete": True,
-        "candidates_after_filter": bin(candidates).count("1"),
-        "candidates_examined": candidates_examined,
-        "witness_free_columns": None,
-    }
 
 
 def basis_width(
@@ -298,6 +323,9 @@ def basis_width(
     """
 
     size = len(columns)
+    if not free_columns:
+        return 0
+
     width_of = len(free_columns)
     matrix = [
         [Fraction(columns[free_columns[index]][coordinate]) for index in range(width_of)]
@@ -352,7 +380,7 @@ def frame_screen(formula: Sequence[Sequence[int]]) -> dict[str, Any]:
             raise AssertionError("width-two witness failed exact width validation")
         return {
             "width_two_basis_exists": True,
-            "width_two_search_complete": False,
+            "width_two_search_complete": width_two["complete"],
             "width_two_candidates_after_filter": width_two["candidates_after_filter"],
             "width_two_candidates_examined": width_two["candidates_examined"],
             "width_three_basis_exists": None,
