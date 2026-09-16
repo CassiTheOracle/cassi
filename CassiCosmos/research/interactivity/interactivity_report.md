@@ -91,7 +91,7 @@ The failures were not localized to the new workbench. They included pre-existing
 - `verify_gravity_modes`, `verify_meshless_sim`, `verify_meshless_stability`, and `verify_particle_vfx` exposed unrelated engine/fixture errors or missing symbols;
 - several arms timed out or failed during decoupled-engine shutdown.
 
-Because the full battery did not finish green, the report does not claim whole-simulator regression clearance. The focused command, replay, transport, measurement, default no-op, and UI contracts are verified; broader CassiCosmos battery health remains an independent repository concern.
+Because the full battery did not finish green, the report does not claim whole-simulator regression clearance. The focused command, replay, transport, measurement, default no-op, and UI contracts are verified; broader CassiCosmos battery health remains a concern of the CassiCosmos tree on its own terms.
 
 ## 6. Current boundaries
 

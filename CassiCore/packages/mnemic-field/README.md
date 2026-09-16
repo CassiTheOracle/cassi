@@ -31,7 +31,7 @@ provides the encoder — the seam is left deliberately unoccupied.**
   `feature-index-lmdb.ts` (LIVE) requires `lmdb`; the constructor falls back to
   the SQLite `FeatureIndex` when LMDB open throws (index.ts:632-638), so the
   LMDB path is optional at runtime.
-- `cassi-larql` — **optional peerDependency** (the Rust nested repo; the native
+- `cassi-larql` — **optional peerDependency** (the native
   `index.node` N-API addon). NOT shipped by this package. `backfill-worker.ts`
   resolves it package-relatively via `createRequire(import.meta.url)`; the host
   (or the D: daemon at P7) provides it. The backfill path is not exercised by the

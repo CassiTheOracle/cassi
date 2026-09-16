@@ -417,7 +417,7 @@ fresh, separately authenticated world/session start with no copied outbox,
 acknowledgement, or external-effect assumption.
 
 
-### Loopback and cross-repository boundaries
+### Loopback and cross-project boundaries
 
 The canonical provider process owns both the HTTP server at
 `127.0.0.1:8086` and, only when `world.enabled=true` and `--world-server` are
@@ -443,7 +443,7 @@ enhancement. Before any CassiCosmos edit, W13C writes the exact target brief
 paths/symbols, non-goals, source/profile/protocol/schema/fixture hashes,
 Python/Godot conformance vectors, port/startup/readiness interface, raw artifact
 paths, battery baseline identity, and acceptance commands. Because it crosses
-an independent repository, the owner must authorize that exact brief; until
+into another project's tree, the owner must authorize that exact brief; until
 then G13C is `BLOCKED`, never reduced to the reference world.
 
 The target adapter owns raw sensor capture, fixed-step world transition,
