@@ -38,12 +38,23 @@ struct llama_memory_buffer {
 };
 
 using llama_memory_buffers = std::map<ggml_backend_buffer_type_t, llama_memory_buffer>;
+struct llama_cassi_capture {
+    ggml_tensor * embedding = nullptr;
+    std::vector<ggml_tensor *> attention_input;
+    std::vector<ggml_tensor *> attention_delta;
+    std::vector<ggml_tensor *> ffn_input;
+    std::vector<ggml_tensor *> ffn_delta;
+    ggml_tensor * head_input = nullptr;
+    ggml_tensor * head_output = nullptr;
+};
+
 
 struct llama_context {
     // init scheduler and compute buffers, reserve worst-case graphs
     llama_context(
             const llama_model & model,
-                  llama_context_params params);
+                  llama_context_params params,
+                  bool exact_n_ctx = false);
 
     ~llama_context();
 
@@ -131,10 +142,31 @@ struct llama_context {
                 int32_t   il_end);
 
     size_t cassi_qi_state_size() const;
+    int64_t cassi_qi_flux_size() const;
+    const float * cassi_qi_flux_data() const;
+    int64_t cassi_qi_state_field_width() const;
+    int64_t cassi_qi_state_row_width() const;
     int32_t cassi_qi_graph_node_count() const;
+    bool set_cassi_qi_coupling(uint32_t steps, float injection_scale);
     bool set_cassi_qi_state(llama_seq_id seq_id, const float * data, size_t count);
     bool get_cassi_qi_state(llama_seq_id seq_id, float * data, size_t count);
     float score_cassi_qi_token(llama_seq_id seq_id, llama_token token);
+    int32_t cassi_begin_token(llama_token token, llama_pos pos);
+    ggml_tensor * cassi_service(const llm_cassi_service_config & config);
+    int32_t cassi_end_token();
+    int32_t cassi_service_graph_nodes() const;
+    int32_t cassi_last_graph_nodes() const;
+    uint64_t cassi_last_graph_weight_bytes() const;
+    int32_t cassi_graph_nodes_between(
+            const ggml_tensor * output,
+            const ggml_tensor * boundary) const;
+    uint64_t cassi_graph_weight_bytes_between(
+            const ggml_tensor * output,
+            const ggml_tensor * boundary,
+            bool embedding_row = false) const;
+    void enable_cassi_capture();
+    bool cassi_capture_get(llama_cassi_capture & capture);
+
 
     // process a single ubatch with a specific graph type
     // if memory_context is provided, it will be applied first to the context's memory
@@ -299,7 +331,18 @@ private:
 
     llm_cassi_qi_field_config cassi_qi;
     std::vector<float> cassi_qi_state;
+    std::vector<float> cassi_qi_flux_last;
+    int64_t cassi_qi_seam_field_width = 0;
+    int64_t cassi_qi_seam_row_width = 0;
     int32_t cassi_qi_graph_nodes_tg = -1;
+    llm_cassi_service_config cassi_service_config;
+    llama_memory_context_ptr cassi_service_mctx;
+    llama_ubatch cassi_service_ubatch = {};
+    bool cassi_service_active = false;
+    bool cassi_service_mctx_applied = false;
+    llama_pos cassi_service_next_pos = 0;
+    uint64_t cassi_service_epoch = 0;
+    int32_t cassi_service_nodes = 0;
 
     struct cassi_modal_pending {
         bool valid = false;
@@ -317,6 +360,7 @@ private:
         bool valid = false;
         std::vector<llama_seq_id> seq_ids;
         std::vector<float> state;
+        std::vector<float> flux;
     } cassi_qi_pending;
 
     llama_adapter_cvec_ptr  cvec;
@@ -430,3 +474,7 @@ private:
 
     mutable int32_t n_reused = 0; // number of times the previous graph was reused
 };
+
+llama_context * llama_init_from_model_exact(
+                 llama_model * model,
+        llama_context_params   params);

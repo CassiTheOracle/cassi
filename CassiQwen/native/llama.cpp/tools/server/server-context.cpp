@@ -8,6 +8,8 @@
 #include "server-stream.h"
 
 #include "build-info.h"
+#include "cassi.h"
+#include "llama-cassi.h"
 #include "common.h"
 #include "fit.h"
 #include "llama.h"
@@ -25,6 +27,9 @@
 #include <filesystem>
 #include <utility>
 #include <fstream>
+#include <atomic>
+#include <mutex>
+#include <optional>
 
 // fix problem with std::min and std::max
 #if defined(_WIN32)
@@ -36,6 +41,93 @@
 #endif
 
 using json = nlohmann::ordered_json;
+
+static json cassi_server_error(
+        const std::string & message,
+        const std::string & error_code,
+        const json & receipt = nullptr) {
+    json result = format_error_response(message, ERROR_TYPE_INVALID_REQUEST);
+    result["error_code"] = error_code;
+    if (!receipt.is_null()) {
+        result["cassi"] = receipt;
+    }
+    return result;
+}
+
+static std::optional<json> validate_cassi_completion_request(const json & body) {
+    constexpr const char * error_code = "apprentice_request_unsupported";
+    const auto present = [&body](const char * key) {
+        const auto it = body.find(key);
+        return it != body.end() && !it->is_null();
+    };
+    const auto reject = [error_code](const std::string & detail) {
+        return std::optional<json>(cassi_server_error(detail, error_code));
+    };
+    const auto neutral_number = [&body, &present](const char * key, double expected) {
+        if (!present(key) || !body.at(key).is_number()) {
+            return !present(key);
+        }
+        return std::abs(body.at(key).get<double>() - expected) <= 1e-12;
+    };
+
+    for (const char * key : {
+            "tools", "tool_choice", "parallel_tool_calls",
+            "grammar", "grammar_lazy", "grammar_triggers", "json_schema" }) {
+        if (present(key)) {
+            return reject(string_format("Cassi apprentice requests do not support '%s'", key));
+        }
+    }
+    if (present("response_format")) {
+        const json expected = { { "type", "text" } };
+        if (body.at("response_format") != expected) {
+            return reject("Cassi apprentice requests support only response_format={\"type\":\"text\"}");
+        }
+    }
+    if ((present("logprobs") && body.at("logprobs") != false) ||
+            present("top_logprobs") ||
+            (present("n_probs") && (!body.at("n_probs").is_number_integer() || body.at("n_probs").get<int64_t>() > 0))) {
+        return reject("Cassi apprentice requests do not expose log probabilities");
+    }
+    for (const char * key : { "n", "n_cmpl" }) {
+        if (present(key) && (!body.at(key).is_number_integer() || body.at(key).get<int64_t>() != 1)) {
+            return reject("Cassi apprentice requests support exactly one completion");
+        }
+    }
+    if (present("cache_prompt") && body.at("cache_prompt") != false) {
+        return reject("Cassi apprentice requests do not support prompt caching");
+    }
+
+    const std::pair<const char *, double> neutral_controls[] = {
+        { "temperature",       0.0 },
+        { "top_k",             0.0 },
+        { "top_p",             1.0 },
+        { "min_p",             0.0 },
+        { "repeat_penalty",    1.0 },
+        { "presence_penalty",  0.0 },
+        { "frequency_penalty", 0.0 },
+    };
+    for (const auto & control : neutral_controls) {
+        if (!neutral_number(control.first, control.second)) {
+            return reject(string_format(
+                "Cassi apprentice request has non-neutral sampling control '%s'", control.first));
+        }
+    }
+
+    for (const char * key : {
+            "samplers", "seed", "dynatemp_range", "dynatemp_exponent",
+            "typical_p", "top_n_sigma", "xtc_probability", "xtc_threshold",
+            "repeat_last_n", "dry_multiplier", "dry_base", "dry_allowed_length",
+            "dry_penalty_last_n", "dry_sequence_breakers", "mirostat",
+            "mirostat_tau", "mirostat_eta", "logit_bias", "ignore_eos",
+            "preserved_tokens", "backend_sampling", "post_sampling_probs",
+            "min_keep", "speculative", "speculative.n_max", "draft",
+            "draft_model", "draft_tokens" }) {
+        if (present(key)) {
+            return reject(string_format("Cassi apprentice requests do not support '%s'", key));
+        }
+    }
+    return std::nullopt;
+}
 
 constexpr int HTTP_POLLING_SECONDS = 1;
 
@@ -199,8 +291,14 @@ struct server_slot {
     llama_context * ctx_tgt = nullptr;
     llama_context * ctx_dft = nullptr;
 
+    bool cassi_apprentice = false;
+    const llama_vocab * vocab_tgt = nullptr;
+    llama_cassi_token cassi_pending = {};
+    bool cassi_has_pending = false;
+    json cassi_receipt = nullptr;
     common_memory mem;
 
+    llama_tokens cassi_emitted;
     // multimodal
     mtmd_context * mctx = nullptr;
     mtmd::batch_ptr mbatch = nullptr;
@@ -253,6 +351,9 @@ struct server_slot {
     server_prompt prompt;
 
     bool prompt_save(server_prompt_cache & prompt_cache) const {
+        if (cassi_apprentice) {
+            return false;
+        }
         if (prompt.tokens.size() == 0) {
             return false;
         }
@@ -279,6 +380,9 @@ struct server_slot {
     }
 
     bool prompt_load(server_prompt_cache & prompt_cache, const server_tokens & tokens) {
+        if (cassi_apprentice) {
+            return false;
+        }
         bool res = prompt_cache.load(prompt, tokens, ctx_tgt, ctx_dft, id);
         if (!res) {
             SLT_WRN(*this, "%s", "failed to load prompt from cache\n");
@@ -288,6 +392,10 @@ struct server_slot {
     }
 
     void prompt_clear() {
+        if (cassi_apprentice) {
+            prompt.tokens.clear();
+            return;
+        }
         SLT_TRC(*this, "clearing prompt with %zu tokens\n", prompt.tokens.size());
 
         mem.seq_rm(id, -1, -1);
@@ -343,6 +451,10 @@ struct server_slot {
         generated_tokens.clear();
         generated_token_probs.clear();
         json_schema = json();
+        cassi_pending = {};
+        cassi_has_pending = false;
+        cassi_emitted.clear();
+        cassi_receipt = nullptr;
 
         task_prev = std::move(task);
         task.reset();
@@ -353,7 +465,9 @@ struct server_slot {
 
         n_predict_max = -1;
 
-        llama_set_sampler(ctx_tgt, id, nullptr);
+        if (!cassi_apprentice) {
+            llama_set_sampler(ctx_tgt, id, nullptr);
+        }
 
         // clear alora start
         alora_invocation_start = -1;
@@ -363,6 +477,9 @@ struct server_slot {
     }
 
     void init_sampler() const {
+        if (cassi_apprentice) {
+            return;
+        }
         common_sampler_reset(smpl.get());
 
         if (!task->need_sampling()) {
@@ -395,6 +512,9 @@ struct server_slot {
     // also we cannot split if the pooling would require any past tokens
     // (MTP supports splitting — uses task->need_embd() not need_embd())
     bool can_split() const {
+        if (cassi_apprentice) {
+            return false;
+        }
         GGML_ASSERT(task);
 
         return
@@ -424,6 +544,9 @@ struct server_slot {
     }
 
     bool can_speculate() const {
+        if (cassi_apprentice) {
+            return false;
+        }
         return !!spec;
     }
 
@@ -667,7 +790,9 @@ struct server_slot {
             };
 
             if (!only_metrics) {
-                res["prompt"] = ptask->tokens.detokenize(ctx_tgt, true);
+                res["prompt"] = cassi_apprentice
+                        ? ptask->tokens.detokenize(vocab_tgt, true)
+                        : ptask->tokens.detokenize(ctx_tgt, true);
                 res["generated"] = generated_text.empty() ? debug_generated_text : generated_text;
             }
         }
@@ -828,6 +953,14 @@ private:
     common_init_result_ptr llama_init;
 
     llama_context * ctx_tgt = nullptr;
+    // Declared after llama_init so the field owner releases its borrowed model
+    // before the common model result is destroyed.
+    std::unique_ptr<common_cassi_owner> cassi_owner;
+    llama_cassi_info cassi_info = {};
+    std::atomic<int64_t> cassi_active_task_id { -1 };
+    std::atomic<bool> cassi_cancel_requested { false };
+    std::mutex cassi_snapshot_mutex;
+    json cassi_last_completed_receipt = nullptr;
 
     server_batch batch;
 
@@ -882,6 +1015,32 @@ private:
     void destroy() {
         spec.reset();
         spec_init.reset();
+        if (cassi_owner) {
+            const bool cancelled = cassi_active_task_id.load(std::memory_order_acquire) >= 0;
+            if (cancelled) {
+                cassi_cancel_requested.store(true, std::memory_order_release);
+                llama_cassi_cancel(cassi_owner->context());
+            }
+            llama_cassi_finish(cassi_owner->context(), cancelled);
+            if (!cassi_owner->write_failed() && !cassi_owner->publish()) {
+                SRV_ERR("failed to publish Cassi apprentice state during shutdown: %s\n", cassi_owner->error().c_str());
+            }
+            if (cancelled) {
+                const llama_tokens emitted = slots.empty() ? llama_tokens{} : slots.front().cassi_emitted;
+                const json receipt = cassi_owner->receipt(
+                    "cancelled",
+                    cassi_owner->write_failed() ? "apprentice_checkpoint_publish_failed" : nullptr,
+                    emitted);
+                cassi_owner->write_receipt(receipt);
+                {
+                    std::lock_guard<std::mutex> lock(cassi_snapshot_mutex);
+                    cassi_last_completed_receipt = receipt;
+                }
+            }
+            cassi_owner.reset();
+            cassi_active_task_id.store(-1, std::memory_order_release);
+        }
+
 
         ctx_dft   = nullptr;
         model_dft = nullptr;
@@ -941,6 +1100,112 @@ private:
         return true;
     }
 
+    bool load_cassi_model(common_params & params, bool is_resume, load_progress_data & progress) {
+        if (is_resume) {
+            SRV_ERR("%s", "Cassi apprentice mode cannot resume from server sleep\n");
+            return false;
+        }
+
+        progress.stages = { "text_model" };
+        load_progress_callback(0.0f, &progress);
+        params_base.load_progress_callback = load_progress_callback;
+        params_base.load_progress_callback_user_data = &progress;
+
+        try {
+            // Acquire the checkpoint lock before loading any Qwen weights.
+            cassi_owner = std::make_unique<common_cassi_owner>(
+                params_base.cassi_apprentice_state,
+                params_base.cassi_apprentice_init,
+                params_base.cassi_apprentice_teacher == LLAMA_CASSI_NEVER,
+                params_base.cassi_apprentice_receipt);
+        } catch (const std::exception & error) {
+            SRV_ERR("failed to acquire Cassi apprentice owner: %s\n", error.what());
+            return false;
+        }
+
+        llama_init = common_init_from_params(params_base, true);
+        if (!llama_init || llama_init->model() == nullptr) {
+            SRV_ERR("failed to load Cassi apprentice model, '%s'\n", params_base.model.path.c_str());
+            cassi_owner.reset();
+            return false;
+        }
+
+        model_tgt = llama_init->model();
+        vocab = llama_model_get_vocab(model_tgt);
+        ctx_tgt = nullptr;
+
+        llama_cassi_params apprentice = llama_cassi_default_params();
+        apprentice.memory_bytes = static_cast<uint64_t>(params_base.cassi_apprentice_memory_mib) * 1024ULL * 1024ULL;
+        apprentice.audit_interval = params_base.cassi_apprentice_audit_interval;
+        apprentice.teacher_policy = params_base.cassi_apprentice_teacher;
+        apprentice.route_policy = params_base.cassi_apprentice_route;
+        apprentice.field_device = params_base.cassi_apprentice_device.c_str();
+        apprentice.model_path = params_base.model.path.c_str();
+
+        if (!cassi_owner->load(model_tgt, common_context_params_to_llama(params_base), apprentice)) {
+            const std::string error = cassi_owner->error();
+            const json receipt = cassi_owner->receipt("error", error.c_str(), {});
+            cassi_owner->write_receipt(receipt);
+            SRV_ERR("failed to initialize Cassi apprentice owner: %s\n", error.c_str());
+            cassi_owner.reset();
+            return false;
+        }
+        if (llama_cassi_get_info(cassi_owner->context(), &cassi_info) != 0 || cassi_info.context_limit == 0) {
+            const std::string error = llama_cassi_last_error(cassi_owner->context());
+            const json receipt = cassi_owner->receipt(
+                "error", "apprentice_metadata_unavailable", {});
+            cassi_owner->write_receipt(receipt);
+            SRV_ERR("failed to read Cassi apprentice metadata: %s\n", error.c_str());
+            cassi_owner.reset();
+            return false;
+        }
+
+        n_ctx = static_cast<int32_t>(cassi_info.context_limit);
+        n_swa = 0;
+        add_bos_token = llama_vocab_get_add_bos(vocab);
+        slot_prompt_similarity = 0.0f;
+        prompt_cache.reset();
+        spec.reset();
+        spec_init.reset();
+
+        slots.clear();
+        slots.emplace_back();
+        server_slot & slot = slots.front();
+        slot.id = 0;
+        slot.cassi_apprentice = true;
+        slot.vocab_tgt = vocab;
+        slot.n_ctx = n_ctx;
+        slot.ctx_tgt = nullptr;
+        slot.ctx_dft = nullptr;
+        slot.spec = nullptr;
+        slot.prompt.tokens.has_mtmd = false;
+        slot.callback_on_release = [this](int id_slot) {
+            cassi_active_task_id.store(-1, std::memory_order_release);
+            cassi_cancel_requested.store(false, std::memory_order_release);
+            queue_tasks.pop_deferred_task(id_slot);
+        };
+        slot.callback_on_reset = [this](const server_slot & completed) {
+            if (completed.stats.n_gen > 0) {
+                metrics_on_prediction(completed);
+            }
+        };
+        slot.reset();
+
+        if (!params_base.model_alias.empty()) {
+            model_name = *params_base.model_alias.begin();
+        } else if (!params_base.model.get_name().empty()) {
+            model_name = params_base.model.get_name();
+        } else {
+            model_name = std::filesystem::path(params_base.model.path).filename().string();
+        }
+        model_aliases = params_base.model_alias;
+        model_tags = params_base.model_tags;
+        params = params_base;
+
+        load_progress_callback(1.0f, &progress);
+        return init();
+    }
+
     // load the model and initialize llama_context
     // this may also be called to resume from sleeping state
     bool load_model(common_params & params) {
@@ -954,6 +1219,9 @@ private:
         const auto output_limits = server_output_limits(params_base);
         params_base.n_outputs_max = output_limits.total;
         params_base.n_outputs_max_per_seq = output_limits.per_seq;
+        if (params_base.cassi_apprentice) {
+            return load_cassi_model(params, is_resume, load_progress_text);
+        }
 
         const bool has_mmproj = !params.mmproj.path.empty();
         const bool has_draft = params.speculative.has_dft();
@@ -1350,7 +1618,7 @@ private:
 
     // unlike load_model(), this is only called once during initialization
     bool init() {
-        GGML_ASSERT(ctx_tgt   != nullptr);
+        GGML_ASSERT(ctx_tgt != nullptr || cassi_owner != nullptr);
         GGML_ASSERT(model_tgt != nullptr);
 
         GGML_ASSERT(!sleeping);
@@ -1650,8 +1918,86 @@ private:
         }
         return output;
     }
+    bool launch_cassi_slot(server_slot & slot, server_task && task) {
+        if (!task.params.cassi_apprentice || cassi_owner == nullptr) {
+            send_error(
+                task,
+                "Cassi apprentice task reached an unavailable owner",
+                ERROR_TYPE_SERVER,
+                "apprentice_owner_unavailable");
+            return false;
+        }
+        if (!task.tokens.validate(vocab) || task.tokens.empty()) {
+            send_error(
+                task,
+                "Prompt contains invalid or multimodal tokens",
+                ERROR_TYPE_INVALID_REQUEST,
+                "apprentice_invalid_prompt");
+            return false;
+        }
+        if (task.tokens.size() >= static_cast<size_t>(n_ctx)) {
+            send_error(
+                task.id,
+                "Prompt exceeds the Cassi apprentice context limit",
+                ERROR_TYPE_EXCEED_CONTEXT_SIZE,
+                task.tokens.size(),
+                n_ctx,
+                "apprentice_context_limit");
+            return false;
+        }
+
+        const int32_t remaining = n_ctx - static_cast<int32_t>(task.tokens.size());
+        const int32_t requested = task.params.n_predict < 0
+            ? remaining
+            : std::min(task.params.n_predict, remaining);
+        task.params.n_predict = std::max<int32_t>(0, requested);
+
+        slot.prompt.clear();
+        slot.prompt.tokens = task.tokens.clone();
+        slot.n_predict_max = task.params.n_predict;
+        slot.task = std::make_unique<const server_task>(std::move(task));
+        slot.stats.update_prompt_start();
+
+        if (llama_cassi_begin(
+                cassi_owner->context(),
+                slot.task->tokens.get_tokens().data(),
+                slot.task->tokens.get_tokens().size(),
+                slot.n_predict_max) != 0) {
+            const std::string error = llama_cassi_last_error(cassi_owner->context());
+            send_error(
+                *slot.task,
+                error.empty() ? "Cassi apprentice failed to begin the request" : error,
+                ERROR_TYPE_SERVER,
+                "apprentice_begin_failed");
+            slot.task.reset();
+            slot.prompt.clear();
+            return false;
+        }
+
+        slot.stats.n_prompt_processed = slot.task->tokens.size();
+        slot.stats.update_prompt_last();
+        metrics.add_prompt(slot.stats.n_prompt_processed, slot.stats.t_prompt_last - slot.stats.t_start);
+        slot.state = SLOT_STATE_GENERATING;
+        cassi_cancel_requested.store(false, std::memory_order_release);
+        cassi_active_task_id.store(slot.task->id, std::memory_order_release);
+        n_empty_consecutive = 0;
+
+        if (slot.task->params.stream) {
+            if (slot.task->params.return_progress) {
+                send_partial_response(slot, {}, true);
+            } else {
+                send_partial_response(slot, {}, false, true);
+            }
+        }
+        SLT_INF(slot, "%s", "processing Cassi apprentice task\n");
+        return true;
+    }
+
 
     bool launch_slot_with_task(server_slot & slot, server_task && task) {
+        if (task.params.cassi_apprentice) {
+            return launch_cassi_slot(slot, std::move(task));
+        }
         // process per-request lora adapters
         if (!task.params.lora.empty()) {
             auto task_loras = construct_lora_list(task.params.lora);
@@ -1958,15 +2304,39 @@ private:
         }
     }
 
-    void send_error(const server_task & task, const std::string & error, const enum error_type type = ERROR_TYPE_SERVER) {
-        send_error(task.id, error, type);
+    void send_error(
+            const server_task & task,
+            const std::string & error,
+            const enum error_type type = ERROR_TYPE_SERVER,
+            const std::string & error_code = {},
+            const json & cassi = nullptr) {
+        send_error(task.id, error, type, 0, 0, error_code, cassi);
     }
 
-    void send_error(const server_slot & slot, const std::string & error, const enum error_type type = ERROR_TYPE_SERVER) {
-        send_error(slot.task->id, error, type, slot.task->n_tokens(), slot.n_ctx);
+    void send_error(
+            const server_slot & slot,
+            const std::string & error,
+            const enum error_type type = ERROR_TYPE_SERVER,
+            const std::string & error_code = {},
+            const json & cassi = nullptr) {
+        send_error(
+            slot.task->id,
+            error,
+            type,
+            slot.task->n_tokens(),
+            slot.n_ctx,
+            error_code,
+            cassi.is_null() ? slot.cassi_receipt : cassi);
     }
 
-    void send_error(const int id_task, const std::string & error, const enum error_type type = ERROR_TYPE_SERVER, const int32_t n_prompt_tokens = 0, const int32_t n_ctx = 0) {
+    void send_error(
+            const int id_task,
+            const std::string & error,
+            const enum error_type type = ERROR_TYPE_SERVER,
+            const int32_t n_prompt_tokens = 0,
+            const int32_t n_ctx = 0,
+            const std::string & error_code = {},
+            const json & cassi = nullptr) {
         SRV_ERR("task id = %d, error: %s\n", id_task, error.c_str());
 
         if (type == ERROR_TYPE_EXCEED_CONTEXT_SIZE) {
@@ -1979,6 +2349,8 @@ private:
         res->err_msg         = error;
         res->n_prompt_tokens = n_prompt_tokens;
         res->n_ctx           = n_ctx;
+        res->error_code      = error_code;
+        res->cassi           = cassi;
 
         queue_results.send(std::move(res));
     }
@@ -2048,7 +2420,9 @@ private:
             res->tokens      = std::move(slot.generated_tokens);
         }
         res->stats           = slot.stats;
-        res->prompt          = slot.task->tokens.detokenize(ctx_tgt, true);
+        res->prompt          = slot.cassi_apprentice
+                                    ? slot.task->tokens.detokenize(vocab, true)
+                                    : slot.task->tokens.detokenize(ctx_tgt, true);
         res->response_fields = std::move(slot.task->params.response_fields);
 
         res->truncated             = slot.truncated;
@@ -2067,6 +2441,7 @@ private:
         res->res_type          = slot.task->params.res_type;
         res->oaicompat_model   = slot.task->params.oaicompat_model;
         res->oaicompat_cmpl_id = slot.task->params.oaicompat_cmpl_id;
+        res->cassi               = slot.cassi_receipt;
 
         // populate res.probs_output
         if (slot.task->params.sampling.n_probs > 0) {
@@ -2085,9 +2460,160 @@ private:
         }
 
         res->generation_params = slot.task->params; // copy the parameters
-
         queue_results.send(std::move(res));
     }
+
+    void finish_cassi_slot(
+            server_slot & slot,
+            std::string status,
+            std::string error_code,
+            std::string error_message,
+            bool cancelled) {
+        GGML_ASSERT(cassi_owner != nullptr);
+        GGML_ASSERT(slot.task != nullptr);
+        const bool publication_failed = cassi_owner->write_failed();
+
+        if (llama_cassi_finish(cassi_owner->context(), cancelled || status != "complete") != 0) {
+            const std::string detail = llama_cassi_last_error(cassi_owner->context());
+            status = "error";
+            error_code = "apprentice_finish_failed";
+            error_message = detail.empty() ? "Cassi apprentice failed to finish the request" : detail;
+        }
+
+        if (!publication_failed && !cassi_owner->publish()) {
+            status = "error";
+            error_code = "apprentice_checkpoint_publish_failed";
+            error_message = cassi_owner->error();
+        }
+
+        json receipt = cassi_owner->receipt(
+            status.c_str(),
+            error_code.empty() ? nullptr : error_code.c_str(),
+            slot.cassi_emitted);
+        if (!cassi_owner->write_receipt(receipt)) {
+            status = "error";
+            error_code = "apprentice_receipt_write_failed";
+            error_message = cassi_owner->error();
+            receipt = cassi_owner->receipt(status.c_str(), error_code.c_str(), slot.cassi_emitted);
+        }
+
+        slot.cassi_receipt = receipt;
+        {
+            std::lock_guard<std::mutex> lock(cassi_snapshot_mutex);
+            cassi_last_completed_receipt = receipt;
+        }
+
+        if (status == "complete") {
+            send_final_response(slot);
+        } else if (status == "error") {
+            send_error(
+                slot,
+                error_message.empty() ? "Cassi apprentice request failed" : error_message,
+                ERROR_TYPE_SERVER,
+                error_code,
+                receipt);
+        }
+
+        slot.release();
+    }
+
+    void update_cassi_slot() {
+        GGML_ASSERT(cassi_owner != nullptr);
+        GGML_ASSERT(slots.size() == 1);
+        server_slot & slot = slots.front();
+        if (!slot.is_processing()) {
+            return;
+        }
+        if (slot.state != SLOT_STATE_GENERATING || slot.task == nullptr) {
+            finish_cassi_slot(
+                slot,
+                "error",
+                "apprentice_invalid_server_state",
+                "Cassi apprentice slot entered an invalid server state",
+                true);
+            return;
+        }
+
+        llama_cassi_token pending = {};
+        llama_cassi_status status = LLAMA_CASSI_ERROR;
+        queue_tasks.yield_to_queue([&]() {
+            status = llama_cassi_next(cassi_owner->context(), &pending);
+        });
+
+        if (cassi_cancel_requested.load(std::memory_order_acquire) || status == LLAMA_CASSI_CANCELLED) {
+            finish_cassi_slot(slot, "cancelled", {}, {}, true);
+            return;
+        }
+        if (status == LLAMA_CASSI_DONE) {
+            finish_cassi_slot(slot, "complete", {}, {}, false);
+            return;
+        }
+        if (status != LLAMA_CASSI_TOKEN) {
+            std::string error = llama_cassi_last_error(cassi_owner->context());
+            finish_cassi_slot(
+                slot,
+                "error",
+                "apprentice_next_failed",
+                error.empty() ? "Cassi apprentice failed to produce the next token" : error,
+                true);
+            return;
+        }
+
+        slot.cassi_pending = pending;
+        slot.cassi_has_pending = true;
+        if (pending.token < 0 || pending.token >= llama_vocab_n_tokens(vocab)) {
+            finish_cassi_slot(
+                slot,
+                "error",
+                "apprentice_invalid_token",
+                "Cassi apprentice produced an invalid token ID",
+                true);
+            return;
+        }
+        if (cassi_cancel_requested.load(std::memory_order_acquire)) {
+            finish_cassi_slot(slot, "cancelled", {}, {}, true);
+            return;
+        }
+        if (llama_cassi_accept(cassi_owner->context(), pending.token) != 0) {
+            std::string error = llama_cassi_last_error(cassi_owner->context());
+            finish_cassi_slot(
+                slot,
+                cassi_cancel_requested.load(std::memory_order_acquire) ? "cancelled" : "error",
+                cassi_cancel_requested.load(std::memory_order_acquire) ? "" : "apprentice_accept_failed",
+                error.empty() ? "Cassi apprentice failed to accept its token" : error,
+                true);
+            return;
+        }
+        if (!cassi_owner->publish()) {
+            finish_cassi_slot(
+                slot,
+                "error",
+                "apprentice_checkpoint_publish_failed",
+                cassi_owner->error(),
+                true);
+            return;
+        }
+
+        slot.cassi_has_pending = false;
+        slot.cassi_pending = {};
+        slot.cassi_emitted.push_back(pending.token);
+        slot.stats.n_gen++;
+        slot.stats.update_gen_last();
+
+        completion_token_output result = {};
+        result.tok = pending.token;
+        const bool special = params_base.special ||
+            slot.task->params.sampling.preserved_tokens.find(pending.token) !=
+                slot.task->params.sampling.preserved_tokens.end();
+        result.text_to_send = common_token_to_piece(vocab, pending.token, special);
+
+        const bool has_next = process_token(result, slot);
+        slot.prompt.tokens.push_back(pending.token);
+        if (!has_next) {
+            finish_cassi_slot(slot, "complete", {}, {}, false);
+        }
+    }
+
 
     void send_embedding(const server_slot & slot, const llama_batch & batch) {
         auto res = std::make_unique<server_task_result_embd>();
@@ -2297,10 +2823,21 @@ private:
 
     // returns false to decline the task, it is offered again after the decode is done
     bool process_single_task(server_task && task, bool is_yielding) {
-        // while yielding, an encode / decode is running and only accessing metrics is safe
-        if (is_yielding && task.type != SERVER_TASK_TYPE_METRICS) {
-            SRV_DBG("decoding, decline task, id_task = %d\n", task.id);
-            return false;
+        // During Cassi inference the queue worker may only signal the session's
+        // atomic cancellation flag or read copied metrics. It never owns the
+        // slot, model, or mutable field state.
+        if (is_yielding) {
+            if (params_base.cassi_apprentice &&
+                    task.type == SERVER_TASK_TYPE_CANCEL &&
+                    task.id_target == cassi_active_task_id.load(std::memory_order_acquire)) {
+                cassi_cancel_requested.store(true, std::memory_order_release);
+                llama_cassi_cancel(cassi_owner->context());
+                return true;
+            }
+            if (task.type != SERVER_TASK_TYPE_METRICS) {
+                SRV_DBG("decoding, decline task, id_task = %d\n", task.id);
+                return false;
+            }
         }
 
         switch (task.type) {
@@ -2308,6 +2845,14 @@ private:
             case SERVER_TASK_TYPE_INFILL:
             case SERVER_TASK_TYPE_EMBEDDING:
             case SERVER_TASK_TYPE_RERANK:
+                    if (params_base.cassi_apprentice && task.type != SERVER_TASK_TYPE_COMPLETION) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode supports completion tasks only",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                 {
                     // special case: if input is provided via CLI, tokenize it first
                     // otherwise, no need to tokenize as it's already done inside the HTTP thread
@@ -2377,6 +2922,13 @@ private:
                 } break;
             case SERVER_TASK_TYPE_CANCEL:
                 {
+                    if (params_base.cassi_apprentice) {
+                        if (task.id_target == cassi_active_task_id.load(std::memory_order_acquire)) {
+                            cassi_cancel_requested.store(true, std::memory_order_release);
+                            llama_cassi_cancel(cassi_owner->context());
+                        }
+                        break;
+                    }
                     // release slot linked with the task id
                     for (auto & slot : slots) {
                         if (slot.task && slot.task->id == task.id_target) {
@@ -2387,6 +2939,14 @@ private:
                 } break;
             case SERVER_TASK_TYPE_CONTROL:
                 {
+                    if (params_base.cassi_apprentice) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode does not support completion controls",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                     auto res = std::make_unique<server_task_result_control>();
                     res->id = task.id;
 
@@ -2424,6 +2984,36 @@ private:
                 } break;
             case SERVER_TASK_TYPE_METRICS:
                 {
+                    if (params_base.cassi_apprentice) {
+                        json receipt;
+                        {
+                            std::lock_guard<std::mutex> lock(cassi_snapshot_mutex);
+                            receipt = cassi_last_completed_receipt;
+                        }
+                        const bool processing =
+                            cassi_active_task_id.load(std::memory_order_acquire) >= 0;
+                        json slots_data = json::array({
+                            {
+                                { "id", 0 },
+                                { "n_ctx", static_cast<int32_t>(cassi_info.context_limit) },
+                                { "speculative", false },
+                                { "is_processing", processing },
+                                { "cassi", receipt },
+                            }
+                        });
+                        auto res = std::make_unique<server_task_result_metrics>();
+                        res->id = task.id;
+                        res->slots_data = std::move(slots_data);
+                        res->n_idle_slots = processing ? 0 : 1;
+                        res->n_processing_slots = processing ? 1 : 0;
+                        res->n_tasks_deferred = queue_tasks.queue_tasks_deferred_size();
+                        res->metrics = metrics;
+                        if (task.metrics_reset_bucket) {
+                            metrics.reset_bucket();
+                        }
+                        queue_results.send(std::move(res));
+                        break;
+                    }
                     json slots_data = json::array();
 
                     int n_idle_slots       = 0;
@@ -2457,6 +3047,14 @@ private:
                 } break;
             case SERVER_TASK_TYPE_SLOT_SAVE:
                 {
+                    if (params_base.cassi_apprentice) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode does not support slot save",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                     const int id_slot = task.slot_action.id_slot;
                     server_slot * slot = get_slot_by_id(id_slot);
                     if (slot == nullptr) {
@@ -2507,6 +3105,14 @@ private:
                 } break;
             case SERVER_TASK_TYPE_SLOT_RESTORE:
                 {
+                    if (params_base.cassi_apprentice) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode does not support slot restore",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                     const int id_slot = task.slot_action.id_slot;
                     server_slot * slot = get_slot_by_id(id_slot);
                     if (slot == nullptr) {
@@ -2572,6 +3178,14 @@ private:
                 } break;
             case SERVER_TASK_TYPE_SLOT_ERASE:
                 {
+                    if (params_base.cassi_apprentice) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode does not support slot erase",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                     const int id_slot = task.slot_action.id_slot;
                     server_slot * slot = get_slot_by_id(id_slot);
                     if (slot == nullptr) {
@@ -2598,6 +3212,14 @@ private:
                 } break;
             case SERVER_TASK_TYPE_GET_LORA:
                 {
+                    if (params_base.cassi_apprentice) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode does not support LoRA adapters",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                     // TODO @ngxson : make lora_adapters a dedicated member of server_context
                     auto & loras = params_base.lora_adapters;
                     auto res = std::make_unique<server_task_result_get_lora>();
@@ -2624,6 +3246,14 @@ private:
                 } break;
             case SERVER_TASK_TYPE_SET_LORA:
                 {
+                    if (params_base.cassi_apprentice) {
+                        send_error(
+                            task,
+                            "Cassi apprentice mode does not support LoRA adapters",
+                            ERROR_TYPE_INVALID_REQUEST,
+                            "apprentice_endpoint_unsupported");
+                        break;
+                    }
                     auto new_loras = construct_lora_list(task.set_lora);
                     // logging
                     for (size_t i = 0; i < new_loras.size(); ++i) {
@@ -2742,6 +3372,10 @@ private:
                 task.id = queue_tasks.get_new_id();
                 queue_tasks.post(std::move(task));
             }
+        }
+        if (params_base.cassi_apprentice) {
+            update_cassi_slot();
+            return;
         }
 
         try {
@@ -3930,8 +4564,11 @@ private:
         });
     }
 
-    int get_slot_n_ctx() {
-        return slots.back().n_ctx;
+    int get_slot_n_ctx() const {
+        if (params_base.cassi_apprentice) {
+            return static_cast<int>(cassi_info.context_limit);
+        }
+        return slots.empty() ? n_ctx : slots.back().n_ctx;
     }
 
     server_response_reader get_response_reader() {
@@ -4021,8 +4658,9 @@ private:
         if (n_prompt_queued == 0) {
             return;
         }
-
-        llama_synchronize(ctx_tgt);
+        if (!params_base.cassi_apprentice) {
+            llama_synchronize(ctx_tgt);
+        }
         metrics_flush_prompt();
     }
 
@@ -4081,8 +4719,8 @@ server_response_reader server_context::get_response_reader() {
 server_context_meta server_context::get_meta() const {
     auto bos_id = llama_vocab_bos(impl->vocab);
     auto eos_id = llama_vocab_eos(impl->vocab);
-    auto bos_token_str = bos_id != LLAMA_TOKEN_NULL ? common_token_to_piece(impl->ctx_tgt, bos_id, true) : "";
-    auto eos_token_str = eos_id != LLAMA_TOKEN_NULL ? common_token_to_piece(impl->ctx_tgt, eos_id, true) : "";
+    auto bos_token_str = bos_id != LLAMA_TOKEN_NULL ? common_token_to_piece(impl->vocab, bos_id, true) : "";
+    auto eos_token_str = eos_id != LLAMA_TOKEN_NULL ? common_token_to_piece(impl->vocab, eos_id, true) : "";
 
     const char * ftype_name = llama_ftype_name(llama_model_ftype(impl->model_tgt));
 
@@ -4098,7 +4736,9 @@ server_context_meta server_context::get_meta() const {
         /* has_inp_video          */ impl->chat_params.allow_video,
         /* json_ui_settings       */ impl->json_ui_settings,
         /* slot_n_ctx             */ impl->get_slot_n_ctx(),
-        /* pooling_type           */ llama_pooling_type(impl->ctx_tgt),
+        /* pooling_type           */ impl->params_base.cassi_apprentice
+                                            ? LLAMA_POOLING_TYPE_NONE
+                                            : llama_pooling_type(impl->ctx_tgt),
 
         /* chat_params            */ impl->chat_params,
         /* chat_template_caps     */ common_chat_templates_get_caps(impl->chat_params.tmpls.get()),
@@ -4116,8 +4756,12 @@ server_context_meta server_context::get_meta() const {
 
         /* model_vocab_type       */ llama_vocab_type(impl->vocab),
         /* model_vocab_n_tokens   */ llama_vocab_n_tokens(impl->vocab),
-        /* model_n_ctx_train      */ llama_model_n_ctx_train(impl->model_tgt),
-        /* model_n_embd_inp       */ llama_model_n_embd(impl->model_tgt),
+        /* model_n_ctx_train      */ impl->params_base.cassi_apprentice
+                                            ? static_cast<int32_t>(impl->cassi_info.training_context_limit)
+                                            : llama_model_n_ctx_train(impl->model_tgt),
+        /* model_n_embd_inp       */ impl->params_base.cassi_apprentice
+                                            ? static_cast<int32_t>(impl->cassi_info.embedding_width)
+                                            : llama_model_n_embd(impl->model_tgt),
         /* model_n_params         */ llama_model_n_params(impl->model_tgt),
         /* model_size             */ llama_model_size(impl->model_tgt),
         /* model_ftype            */ ftype_name,
@@ -4176,6 +4820,17 @@ std::unique_ptr<server_res_generator> server_routes::handle_completions_impl(
     res->set_req(&req); // will also set spipe if needed
 
     int32_t sse_ping_interval = params.sse_ping_interval;
+    if (params.cassi_apprentice &&
+            (type != SERVER_TASK_TYPE_COMPLETION ||
+             !files.empty() ||
+             (res_type != TASK_RESPONSE_TYPE_NONE &&
+              res_type != TASK_RESPONSE_TYPE_OAI_CMPL &&
+              res_type != TASK_RESPONSE_TYPE_OAI_CHAT))) {
+        res->error(cassi_server_error(
+            "Cassi apprentice mode supports text completion and chat requests only",
+            "apprentice_endpoint_unsupported"));
+        return res;
+    }
 
     try {
         std::vector<server_task> tasks;
@@ -4222,6 +4877,9 @@ std::unique_ptr<server_res_generator> server_routes::handle_completions_impl(
                     params,
                     meta->logit_bias_eog,
                     data);
+            if (params.cassi_apprentice) {
+                task.params.cassi_apprentice = true;
+            }
 
             task.params.message_spans = task.tokens.find_message_spans(delimiters);
 
@@ -4539,6 +5197,12 @@ void server_routes::init_routes() {
 
     this->post_slots = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support slot state actions",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         if (params.slot_save_path.empty()) {
             res->error(format_error_response("This server does not support slots action. Start it with `--slot-save-path`", ERROR_TYPE_NOT_SUPPORTED));
             return res;
@@ -4636,6 +5300,12 @@ void server_routes::init_routes() {
 
     this->post_infill = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support infill",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         // check model compatibility
         std::string err;
         if (llama_vocab_fim_pre(ctx_server.vocab) == LLAMA_TOKEN_NULL) {
@@ -4716,6 +5386,12 @@ void server_routes::init_routes() {
         auto res = create_response();
         std::vector<raw_buffer> files; // dummy
         const json body = json::parse(req.body);
+        if (params.cassi_apprentice) {
+            if (const auto error = validate_cassi_completion_request(body)) {
+                res->error(*error);
+                return res;
+            }
+        }
         return handle_completions_impl(
             req,
             SERVER_TASK_TYPE_COMPLETION,
@@ -4728,6 +5404,12 @@ void server_routes::init_routes() {
         auto res = create_response();
         std::vector<raw_buffer> files; // dummy
         const json body = json::parse(req.body);
+        if (params.cassi_apprentice) {
+            if (const auto error = validate_cassi_completion_request(body)) {
+                res->error(*error);
+                return res;
+            }
+        }
         return handle_completions_impl(
             req,
             SERVER_TASK_TYPE_COMPLETION,
@@ -4740,6 +5422,12 @@ void server_routes::init_routes() {
         auto res = create_response();
         std::vector<raw_buffer> files;
         json body = json::parse(req.body);
+        if (params.cassi_apprentice) {
+            if (const auto error = validate_cassi_completion_request(body)) {
+                res->error(*error);
+                return res;
+            }
+        }
         json body_parsed = oaicompat_chat_params_parse(
             body,
             meta->chat_params,
@@ -4758,6 +5446,12 @@ void server_routes::init_routes() {
 
     this->post_control = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support completion control actions",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         const json body = json::parse(req.body);
 
         const std::string cmpl_id = json_value(body, "id", std::string());
@@ -4795,6 +5489,12 @@ void server_routes::init_routes() {
 
     this->post_responses_oai = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support the OpenAI Responses endpoint",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         std::vector<raw_buffer> files;
         json body = server_chat_convert_responses_to_chatcmpl(json::parse(req.body));
         SRV_DBG("%s\n", "Request converted: OpenAI Responses -> OpenAI Chat Completions");
@@ -4817,6 +5517,12 @@ void server_routes::init_routes() {
 
     this->post_transcriptions_oai = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support transcription",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
 
         if (!meta->has_mtmd || !meta->chat_params.allow_audio) {
             res->error(format_error_response("The current model does not support audio input.", ERROR_TYPE_NOT_SUPPORTED));
@@ -4845,6 +5551,12 @@ void server_routes::init_routes() {
 
     this->post_anthropic_messages = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support the Anthropic endpoint",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         std::vector<raw_buffer> files;
         json body = server_chat_convert_anthropic_to_oai(json::parse(req.body));
         SRV_DBG("%s\n", "Request converted: Anthropic -> OpenAI Chat Completions");
@@ -4975,15 +5687,35 @@ void server_routes::init_routes() {
     };
 
     this->post_embeddings = [this](const server_http_req & req) {
+        if (params.cassi_apprentice) {
+            auto res = create_response();
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support embeddings",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         return handle_embeddings_impl(req, TASK_RESPONSE_TYPE_NONE);
     };
 
     this->post_embeddings_oai = [this](const server_http_req & req) {
+        if (params.cassi_apprentice) {
+            auto res = create_response();
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support embeddings",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         return handle_embeddings_impl(req, TASK_RESPONSE_TYPE_OAI_EMBD);
     };
 
     this->post_rerank = [this](const server_http_req & req) {
         auto res = create_response();
+        if (params.cassi_apprentice) {
+            res->error(cassi_server_error(
+                "Cassi apprentice mode does not support reranking",
+                "apprentice_endpoint_unsupported"));
+            return res;
+        }
         if (!params.embedding || params.pooling_type != LLAMA_POOLING_TYPE_RANK) {
             res->error(format_error_response("This server does not support reranking. Start it with `--reranking`", ERROR_TYPE_NOT_SUPPORTED));
             return res;

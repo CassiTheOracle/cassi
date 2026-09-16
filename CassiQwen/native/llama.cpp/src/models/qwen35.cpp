@@ -142,6 +142,11 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     const int64_t n_embd_head = hparams.n_embd_head_v();
 
     GGML_ASSERT(n_embd_head == hparams.n_embd_head_k());
+    if (params.gtype == LLM_GRAPH_TYPE_CASSI_SERVICE) {
+        build_cassi_service(params);
+        return;
+    }
+
 
     int sections[4];
     std::copy(std::begin(hparams.rope_sections), std::begin(hparams.rope_sections) + 4, sections);
@@ -152,15 +157,138 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     inpL = build_inp_embd(model.tok_embd);
 
     cb(inpL, "model.input_embed", -1);
+    if (cparams.cassi_capture) {
+        res->t_cassi_capture_embed = inpL;
+        cb(inpL, "cassi_capture_embed", -1);
+        ggml_build_forward_expand(gf, inpL);
+    }
 
     auto * inp = build_inp_mem_hybrid();
 
     ggml_tensor * inp_pos     = build_inp_pos();
     ggml_tensor * inp_out_ids = build_inp_out_ids();
+    llm_graph_input_cassi_modal * qi_inp = nullptr;
+    ggml_tensor * t_qi = nullptr;
+    auto build_qi_correction = [&](ggml_tensor * source) -> ggml_tensor * {
+        GGML_ASSERT(params.cassi_qi != nullptr && params.cassi_qi->enabled);
+        const uint32_t state_mode_count = params.cassi_qi->mode_count;
+        const uint32_t wave_mode_count = params.cassi_qi->wave_mode_count;
+        const uint32_t n_tokens = ubatch.n_tokens;
+        const uint32_t n_seqs = std::max(1u, ubatch.n_seqs_unq);
+        GGML_ASSERT(2 * wave_mode_count >= (uint32_t) hparams.n_embd);
+        GGML_ASSERT(wave_mode_count <= state_mode_count);
+
+        auto inp_qi = std::make_unique<llm_graph_input_cassi_modal>(
+            static_cast<const llm_cassi_modal_config *>(params.cassi_qi), n_seqs);
+        inp_qi->state = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
+                params.cassi_qi->state_stride, n_seqs, 1, 1);
+        inp_qi->mode_params = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
+                state_mode_count, 1, 1, 1);
+        inp_qi->seq_ids = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, n_tokens);
+        ggml_set_input(inp_qi->state);
+        ggml_set_input(inp_qi->mode_params);
+        ggml_set_input(inp_qi->seq_ids);
+        qi_inp = static_cast<llm_graph_input_cassi_modal *>(res->add_input(std::move(inp_qi)));
+
+        ggml_tensor * sense = ggml_reshape_2d(ctx0, source, hparams.n_embd, n_tokens);
+        sense = ggml_rms_norm(ctx0, sense, hparams.f_norm_rms_eps);
+        sense = ggml_scale(ctx0, sense, 1.0f / std::sqrt((float) hparams.n_embd));
+        if (params.cassi_qi->memory_fill && n_seqs == 1) {
+            // Add the field's own memory to the content channels, so the memory reaches the
+            // low modes that the model reads and modulates the content instead of replacing it.
+            const int64_t mem_width = (int64_t) hparams.n_embd;
+            ggml_tensor * mem = ggml_cont(ctx0, ggml_view_2d(ctx0, qi_inp->state,
+                    mem_width, 1, (size_t) params.cassi_qi->state_stride * sizeof(float), 0));
+            mem = ggml_rms_norm(ctx0, mem, hparams.f_norm_rms_eps);
+            mem = ggml_scale(ctx0, mem, 1.0f / std::sqrt((float) hparams.n_embd));
+            ggml_tensor * wide = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, mem_width, n_tokens);
+            sense = ggml_add(ctx0, sense, ggml_repeat(ctx0, mem, wide));
+        }
+        const int64_t sense_width = 2 * (int64_t) wave_mode_count;
+        const int64_t fill_width = sense_width - (int64_t) hparams.n_embd;
+        if (fill_width > 0) {
+            if (!params.cassi_qi->fill_modes) {
+                sense = ggml_pad(ctx0, sense, fill_width, 0, 0, 0);
+            } else {
+                // Upper modes take the input content: envelope, edges, flipped sense, tiled. The
+                // field's own memory is added when the memory fill is on, so memory modulates the
+                // content and the content still seeds every mode.
+                const int64_t pair_width = (int64_t) hparams.n_embd - 1;
+                ggml_tensor * low_in = ggml_cont(ctx0, ggml_view_2d(ctx0, sense,
+                        pair_width, n_tokens, sense->nb[1], 0));
+                ggml_tensor * high_in = ggml_cont(ctx0, ggml_view_2d(ctx0, sense,
+                        pair_width, n_tokens, sense->nb[1], sizeof(float)));
+                ggml_tensor * envelope = ggml_scale(ctx0, ggml_add(ctx0, low_in, high_in), 0.5f);
+                ggml_tensor * edges = ggml_scale(ctx0, ggml_sub(ctx0, high_in, low_in), 0.5f);
+                envelope = ggml_pad(ctx0, envelope, 1, 0, 0, 0);
+                edges = ggml_pad(ctx0, edges, 1, 0, 0, 0);
+                ggml_tensor * flipped = ggml_scale(ctx0, sense, -1.0f);
+                ggml_tensor * block = ggml_concat(ctx0, envelope, edges, 0);
+                block = ggml_concat(ctx0, block, flipped, 0);
+                const int64_t block_width = 2 * (int64_t) hparams.n_embd;
+                if (fill_width > block_width) {
+                    const int64_t passes = (fill_width + block_width - 1) / block_width;
+                    ggml_tensor * target = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32,
+                            block_width * passes, n_tokens);
+                    block = ggml_repeat(ctx0, block, target);
+                }
+                ggml_tensor * tail = ggml_cont(ctx0, ggml_view_2d(ctx0, block, fill_width, n_tokens,
+                        block->nb[1], 0));
+                sense = ggml_concat(ctx0, sense, tail, 0);
+            }
+            sense = ggml_cont(ctx0, sense);
+        }
+        cb(sense, "cassi_qi_sense_l2_padded", qi_layer);
+        t_qi = ggml_cassi_qi_field_step(
+            ctx0, sense, qi_inp->state, qi_inp->mode_params, qi_inp->seq_ids,
+            params.cassi_qi->scale_count,
+            params.cassi_qi->phi,
+            params.cassi_qi->dt,
+            params.cassi_qi->coupling,
+            params.cassi_qi->damping_min,
+            params.cassi_qi->damping_max,
+            params.cassi_qi->epsilon_tau,
+            params.cassi_qi->scale_ratio,
+            params.cassi_qi->energy_floor,
+            params.cassi_qi->read_floor,
+            params.cassi_qi->steps);
+        cb(t_qi, "cassi_qi_field_step", qi_layer);
+        res->t_cassi_qi = t_qi;
+        ggml_build_forward_expand(gf, t_qi);
+        // The view is bounded by the flux block the field actually holds.
+        const int64_t block_width = (int64_t) 2 * wave_mode_count;
+        const int64_t view_width = params.cassi_qi->row_width > 0
+            ? std::min<int64_t>(params.cassi_qi->row_width, block_width)
+            : (int64_t) hparams.n_embd;
+        return ggml_view_2d(
+            ctx0, t_qi, view_width, n_tokens,
+            (size_t) 2 * wave_mode_count * sizeof(float), 0);
+    };
 
     // MTP/NextN layers are loaded as extra decoder blocks but not executed in the main pass.
     for (int il = 0; il < n_layer; ++il) {
+        if (params.cassi_qi != nullptr && params.cassi_qi->enabled &&
+                (params.cassi_qi->intervention == 1 || cparams.cassi_qi_substitute > 0.0f) && (uint32_t) il == qi_layer) {
+            ggml_tensor * correction = build_qi_correction(inpL);
+            // The seam consumes this same readout where the suppressed state write is
+            // filled, so the field steps once per decode and keeps one channel per layer.
+            res->t_cassi_qi_flux = correction;
+            if (params.cassi_qi->intervention == 1 && params.cassi_qi->injection_scale > 0.0f) {
+                // The injection adds to the n_embd-wide residual, so it reads the first n_embd
+                // channels of the readout and materializes them.
+                ggml_tensor * inject = ggml_cont(ctx0, ggml_view_2d(ctx0, correction,
+                    hparams.n_embd, n_tokens, correction->nb[1], 0));
+                correction = ggml_scale(ctx0, inject, params.cassi_qi->injection_scale);
+                inpL = ggml_add(ctx0, inpL, correction);
+                cb(inpL, "cassi_qi_mid_trunk_injected", il);
+            }
+        }
         res->t_layer_inp[il] = inpL;
+        if (cparams.cassi_capture) {
+            res->t_cassi_capture_attention_input[il] = inpL;
+            cb(inpL, "cassi_capture_attention_input", il);
+            ggml_build_forward_expand(gf, inpL);
+        }
         const bool bypass_attention = qi_displacement >= 4 && (uint32_t) il >= qi_layer;
         const bool bypass_block = qi_displacement >= 5 && (uint32_t) il >= qi_layer;
 
@@ -174,6 +302,11 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
                 cur = build_layer_attn_linear(inp->get_recr(), cur, il);
             } else {
                 cur = build_layer_attn(inp->get_attn(), cur, inp_pos, sections, il);
+            }
+            if (cparams.cassi_capture) {
+                res->t_cassi_capture_attention_delta[il] = cur;
+                cb(cur, "cassi_capture_attention_delta", il);
+                ggml_build_forward_expand(gf, cur);
             }
 
             if (il == n_layer - 1 && inp_out_ids && cparams.embeddings_nextn_masked) {
@@ -191,12 +324,22 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
         }
 
         if (!bypass_block) {
+        if (cparams.cassi_capture) {
+            res->t_cassi_capture_ffn_input[il] = cur;
+            cb(cur, "cassi_capture_ffn_input", il);
+            ggml_build_forward_expand(gf, cur);
+        }
             ggml_tensor * ffn_residual = cur;
             ggml_tensor * attn_post_norm = build_norm(
                 cur, model.layers[il].attn_post_norm, nullptr, LLM_NORM_RMS, il);
             cb(attn_post_norm, "attn_post_norm", il);
             cur = build_layer_ffn(attn_post_norm, il);
             cb(cur, "ffn_out", il);
+            if (cparams.cassi_capture) {
+                res->t_cassi_capture_ffn_delta[il] = cur;
+                cb(cur, "cassi_capture_ffn_delta", il);
+                ggml_build_forward_expand(gf, cur);
+            }
             cur = ggml_add(ctx0, cur, ffn_residual);
             cb(cur, "post_ffn", il);
         } else {
@@ -209,56 +352,14 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     }
     cur = inpL;
 
-    if (params.cassi_qi != nullptr && params.cassi_qi->enabled) {
-        const uint32_t state_mode_count = params.cassi_qi->mode_count;
+    if (params.cassi_qi != nullptr && params.cassi_qi->enabled &&
+            params.cassi_qi->intervention == 0 && cparams.cassi_qi_substitute <= 0.0f) {
         const uint32_t wave_mode_count = params.cassi_qi->wave_mode_count;
         const uint32_t n_tokens = ubatch.n_tokens;
         const uint32_t n_seqs = std::max(1u, ubatch.n_seqs_unq);
-        const uint32_t qi_layer = params.cassi_qi->layer_index;
         GGML_ASSERT(qi_layer < (uint32_t) n_layer);
         GGML_ASSERT(res->t_layer_inp[qi_layer] != nullptr);
-        GGML_ASSERT(2 * wave_mode_count >= (uint32_t) hparams.n_embd);
-        GGML_ASSERT(wave_mode_count <= state_mode_count);
-
-        auto inp_qi = std::make_unique<llm_graph_input_cassi_modal>(
-            static_cast<const llm_cassi_modal_config *>(params.cassi_qi), n_seqs);
-        inp_qi->state = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
-                params.cassi_qi->state_stride, n_seqs, 1, 1);
-        inp_qi->mode_params = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
-                state_mode_count, 1, 1, 1);
-        inp_qi->seq_ids = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, n_tokens);
-        ggml_set_input(inp_qi->state);
-        ggml_set_input(inp_qi->mode_params);
-        ggml_set_input(inp_qi->seq_ids);
-        auto * qi_inp = static_cast<llm_graph_input_cassi_modal *>(res->add_input(std::move(inp_qi)));
-
-        // The bridge uses the exact CassiFI boundary: one L2-unit Qwen residual
-        // packed into the first 2560 complex modes and zero-padded to W=3072.
-        ggml_tensor * sense_raw = ggml_reshape_2d(
-            ctx0, res->t_layer_inp[qi_layer], hparams.n_embd, n_tokens);
-        ggml_tensor * sense = ggml_rms_norm(ctx0, sense_raw, hparams.f_norm_rms_eps);
-        sense = ggml_scale(ctx0, sense, 1.0f / std::sqrt((float) hparams.n_embd));
-        sense = ggml_pad(ctx0, sense, 2 * wave_mode_count - hparams.n_embd, 0, 0, 0);
-        cb(sense, "cassi_qi_sense_l2_padded", qi_layer);
-        ggml_tensor * t_qi = ggml_cassi_qi_field_step(
-            ctx0, sense, qi_inp->state, qi_inp->mode_params, qi_inp->seq_ids,
-            params.cassi_qi->scale_count,
-            params.cassi_qi->phi,
-            params.cassi_qi->dt,
-            params.cassi_qi->coupling,
-            params.cassi_qi->damping_min,
-            params.cassi_qi->damping_max,
-            params.cassi_qi->epsilon_tau,
-            params.cassi_qi->scale_ratio,
-            params.cassi_qi->energy_floor,
-            params.cassi_qi->read_floor,
-            params.cassi_qi->steps);
-        cb(t_qi, "cassi_qi_field_step", qi_layer);
-        res->t_cassi_qi = t_qi;
-
-        ggml_tensor * correction = ggml_view_2d(
-            ctx0, t_qi, hparams.n_embd, n_tokens,
-            (size_t) 2 * wave_mode_count * sizeof(float), 0);
+        ggml_tensor * correction = build_qi_correction(res->t_layer_inp[qi_layer]);
         if (params.cassi_qi->displacement_level >= 6) {
             const size_t flux_bytes = (size_t) 2 * wave_mode_count * n_tokens * sizeof(float);
             ggml_tensor * state_after = ggml_view_2d(
@@ -272,7 +373,9 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
                 cur = ggml_get_rows(ctx0, cur, inp_out_ids);
                 correction = ggml_get_rows(ctx0, correction, inp_out_ids);
             }
-            res->t_embd = correction;
+            // The embedding contract is n_embd wide, so the logits mode keeps that width.
+            res->t_embd = ggml_view_2d(ctx0, correction, hparams.n_embd, correction->ne[1],
+                correction->nb[1], 0);
             cb(cur, "cassi_qi_field_logits", -1);
             res->t_logits = cur;
             ggml_build_forward_expand(gf, cur);
@@ -288,7 +391,14 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
         if (cur->ne[1] != correction->ne[1] && inp_out_ids != nullptr) {
             correction = ggml_get_rows(ctx0, correction, inp_out_ids);
         }
-        cur = ggml_add(ctx0, cur, correction);
+        if (params.cassi_qi->injection_scale > 0.0f) {
+            // The seam adds to the n_embd-wide normed state, so it reads the first n_embd
+            // channels of the readout and materializes them.
+            ggml_tensor * inject = ggml_cont(ctx0, ggml_view_2d(ctx0, correction,
+                hparams.n_embd, correction->ne[1], correction->nb[1], 0));
+            correction = ggml_scale(ctx0, inject, params.cassi_qi->injection_scale);
+            cur = ggml_add(ctx0, cur, correction);
+        }
         cb(cur, "cassi_qi_injected", -1);
         res->t_embd = cur;
         cur = build_lora_mm(model.output, cur, model.output_s);
@@ -435,6 +545,11 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     }
 
     cur = inpL;
+    if (cparams.cassi_capture) {
+        res->t_cassi_capture_head_input = cur;
+        cb(cur, "cassi_capture_head_input", -1);
+        ggml_build_forward_expand(gf, cur);
+    }
     cur = build_norm(cur, model.output_norm, nullptr, LLM_NORM_RMS, -1);
 
     cb(cur, "h_nextn", -1);
@@ -453,6 +568,78 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     cb(cur, "result_output", -1);
     res->t_logits = cur;
 
+    ggml_build_forward_expand(gf, cur);
+}
+
+void llama_model_qwen35::graph::build_cassi_service(const llm_graph_params & params) {
+    if (params.cassi_service == nullptr || ubatch.n_tokens != 1 || ubatch.n_seq_tokens != 1 ||
+            ubatch.n_seqs != 1 || ubatch.n_seqs_unq != 1) {
+        throw std::runtime_error("invalid Cassi apprenticeship service request");
+    }
+    const llm_cassi_service_config & service = *params.cassi_service;
+    if (service.kind == LLAMA_CASSI_TEXT) {
+        throw std::runtime_error("TEXT is not a native service");
+    }
+
+    ggml_tensor * cur = nullptr;
+    if (service.kind == LLAMA_CASSI_EMBED) {
+        if (service.layer != -1 || service.input != nullptr) {
+            throw std::runtime_error("invalid embedding service request");
+        }
+        cur = build_inp_embd(model.tok_embd);
+        cb(cur, "cassi_service_embed_output", -1);
+    } else {
+        if (service.input == nullptr || service.input->type != GGML_TYPE_F32 ||
+                !ggml_is_contiguous(service.input) || service.input->ne[0] != hparams.n_embd ||
+                service.input->ne[1] != 1 || service.input->ne[2] != 1 || service.input->ne[3] != 1) {
+            throw std::runtime_error("invalid Cassi apprenticeship service input");
+        }
+        auto input = std::make_unique<llm_graph_input_cassi_service>(&service);
+        input->value = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, hparams.n_embd, 1);
+        ggml_set_input(input->value);
+        cur = static_cast<llm_graph_input_cassi_service *>(res->add_input(std::move(input)))->value;
+        cb(cur, "cassi_service_input", service.layer);
+
+        if (service.kind == LLAMA_CASSI_ATTENTION) {
+            if (service.layer < 0 || service.layer >= n_layer || params.mctx == nullptr) {
+                throw std::runtime_error("invalid attention service request");
+            }
+            const int il = service.layer;
+            auto * memory_input = build_inp_mem_hybrid();
+            cur = build_norm(cur, model.layers[il].attn_norm, nullptr, LLM_NORM_RMS, il);
+            cb(cur, "cassi_service_attn_norm", il);
+            if (hparams.is_recr(il)) {
+                cur = build_layer_attn_linear(memory_input->get_recr(), cur, il);
+            } else {
+                int sections[4];
+                std::copy(std::begin(hparams.rope_sections), std::begin(hparams.rope_sections) + 4, sections);
+                ggml_tensor * inp_pos = build_inp_pos();
+                cur = build_layer_attn(memory_input->get_attn(), cur, inp_pos, sections, il);
+            }
+            cb(cur, "cassi_service_attention_delta", il);
+        } else if (service.kind == LLAMA_CASSI_FFN) {
+            if (service.layer < 0 || service.layer >= n_layer) {
+                throw std::runtime_error("invalid FFN service request");
+            }
+            const int il = service.layer;
+            cur = build_norm(cur, model.layers[il].attn_post_norm, nullptr, LLM_NORM_RMS, il);
+            cb(cur, "cassi_service_ffn_norm", il);
+            cur = build_layer_ffn(cur, il);
+            cb(cur, "cassi_service_ffn_delta", il);
+        } else if (service.kind == LLAMA_CASSI_HEAD) {
+            if (service.layer != -1) {
+                throw std::runtime_error("invalid head service request");
+            }
+            cur = build_norm(cur, model.output_norm, nullptr, LLM_NORM_RMS, -1);
+            cb(cur, "cassi_service_head_norm", -1);
+            cur = build_lora_mm(model.output, cur, model.output_s);
+            cb(cur, "cassi_service_head_logits", -1);
+        } else {
+            throw std::runtime_error("invalid Cassi apprenticeship service kind");
+        }
+    }
+    res->t_cassi_service = cur;
+    cb(cur, "cassi_service_output", service.layer);
     ggml_build_forward_expand(gf, cur);
 }
 

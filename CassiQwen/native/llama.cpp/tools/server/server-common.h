@@ -224,6 +224,7 @@ public:
     void keep_first(size_t n);
 
     std::string detokenize(const llama_context * ctx, bool special) const;
+    std::string detokenize(const llama_vocab * vocab, bool special) const;
 
     size_t get_common_prefix(const server_tokens & b) const;
 
@@ -232,6 +233,7 @@ public:
 
     // check text token IDs and the mapping between media chunks and token ranges
     bool validate(const struct llama_context * ctx) const;
+    bool validate(const llama_vocab * vocab) const;
 
     server_tokens clone() const;
 };

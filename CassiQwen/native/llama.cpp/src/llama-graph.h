@@ -4,6 +4,7 @@
 #include "llama-batch.h"
 #include "llama-hparams.h"
 #include "llama-adapter.h"
+#include "../include/llama-cassi.h"
 
 #include <cstdint>
 #include <vector>
@@ -37,6 +38,7 @@ enum llm_graph_type {
     LLM_GRAPH_TYPE_ENCODER,
     LLM_GRAPH_TYPE_DECODER,
     LLM_GRAPH_TYPE_DECODER_MTP,
+    LLM_GRAPH_TYPE_CASSI_SERVICE,
 };
 
 enum llm_fused_op {
@@ -750,11 +752,16 @@ struct llm_cassi_modal_config {
 struct llm_cassi_qi_field_config : llm_cassi_modal_config {
     uint32_t n_embd          = 0;
     uint32_t wave_mode_count = 3072;
+    uint32_t row_width       = 0; // channels the seam addresses; 0 selects n_embd
+    bool fill_modes          = false; // fill the sense above n_embd with input content
+    bool memory_fill         = false; // fill the sense above n_embd with the field's own memory
     uint32_t scale_count     = 4;
     uint32_t displacement_level = 0;
     uint32_t layer_index     = 32;
     uint32_t profile_id      = 2; // cassi.qi.native-bridge.v1 over canonical Qi state layout
     uint32_t steps           = 1;
+    uint32_t intervention     = 0; // 0 final hidden/output seam; 1 before layer_index
+    float injection_scale    = 1.0f;
     float damping_min        = 0.01f;
     float damping_max        = 0.5f;
     float epsilon_tau        = 0.618033988749895f;
@@ -768,6 +775,26 @@ struct llm_cassi_qi_field_config : llm_cassi_modal_config {
 struct llm_cassi_field_config : llm_cassi_modal_config {
     uint32_t layer_index = 32;
 };
+struct llm_cassi_service_config {
+    llama_cassi_service_kind kind = LLAMA_CASSI_TEXT;
+    int32_t layer = -1;
+    ggml_tensor * input = nullptr;
+    uint64_t request_epoch = 0;
+};
+
+class llm_graph_input_cassi_service : public llm_graph_input_i {
+public:
+    explicit llm_graph_input_cassi_service(const llm_cassi_service_config * config);
+
+    void set_input(const llama_ubatch * ubatch) override;
+    bool can_reuse(const llm_graph_params & params) override;
+
+    ggml_tensor * value = nullptr;
+
+private:
+    const llm_cassi_service_config * config;
+};
+
 
 
 class llm_graph_input_cassi_modal : public llm_graph_input_i {
@@ -818,6 +845,7 @@ struct llm_graph_params {
     const llm_cassi_modal_config * cassi;
     const llm_cassi_field_config * cassi_field;
     const llm_cassi_qi_field_config * cassi_qi;
+    const llm_cassi_service_config * cassi_service;
 
     std::map<llama_seq_id, llama_sampler *> samplers;
 
@@ -962,11 +990,16 @@ struct llm_graph_params {
                     cassi_qi->n_embd == other.cassi_qi->n_embd &&
                     cassi_qi->mode_count == other.cassi_qi->mode_count &&
                     cassi_qi->wave_mode_count == other.cassi_qi->wave_mode_count &&
+                    cassi_qi->fill_modes == other.cassi_qi->fill_modes &&
+                    cassi_qi->memory_fill == other.cassi_qi->memory_fill &&
+                    cassi_qi->row_width == other.cassi_qi->row_width &&
                     cassi_qi->scale_count == other.cassi_qi->scale_count &&
                     cassi_qi->layer_index == other.cassi_qi->layer_index &&
                     cassi_qi->profile_id == other.cassi_qi->profile_id &&
                     cassi_qi->state_stride == other.cassi_qi->state_stride &&
                     cassi_qi->steps == other.cassi_qi->steps &&
+                    cassi_qi->intervention == other.cassi_qi->intervention &&
+                    cassi_qi->injection_scale == other.cassi_qi->injection_scale &&
                     cassi_qi->phi == other.cassi_qi->phi &&
                     cassi_qi->dt == other.cassi_qi->dt &&
                     cassi_qi->coupling == other.cassi_qi->coupling &&
@@ -978,6 +1011,14 @@ struct llm_graph_params {
                     cassi_qi->read_floor == other.cassi_qi->read_floor &&
                     cassi_qi->mode_param_min == other.cassi_qi->mode_param_min &&
                     cassi_qi->mode_param_max == other.cassi_qi->mode_param_max;
+            }() &&
+            [&]() {
+                if (cassi_service == nullptr || other.cassi_service == nullptr) {
+                    return cassi_service == other.cassi_service;
+                }
+                return cassi_service->kind == other.cassi_service->kind &&
+                    cassi_service->layer == other.cassi_service->layer &&
+                    cassi_service->request_epoch == other.cassi_service->request_epoch;
             }();
     }
 };
@@ -1001,10 +1042,25 @@ public:
     ggml_tensor * get_h_nextn()     const { return t_h_nextn; }
 
     ggml_tensor * get_layer_inp(int il) const { return t_layer_inp[il]; }
+    ggml_tensor * get_cassi_capture_embed() const { return t_cassi_capture_embed; }
+    ggml_tensor * get_cassi_capture_attention_input(int il) const { return t_cassi_capture_attention_input[il]; }
+    ggml_tensor * get_cassi_capture_attention_delta(int il) const { return t_cassi_capture_attention_delta[il]; }
+    ggml_tensor * get_cassi_capture_ffn_input(int il) const { return t_cassi_capture_ffn_input[il]; }
+    ggml_tensor * get_cassi_capture_ffn_delta(int il) const { return t_cassi_capture_ffn_delta[il]; }
+    ggml_tensor * get_cassi_capture_head_input() const { return t_cassi_capture_head_input; }
 
     ggml_tensor * get_cassi()       const { return t_cassi; }
     ggml_tensor * get_cassi_field() const { return t_cassi_field; }
     ggml_tensor * get_cassi_qi()    const { return t_cassi_qi; }
+    ggml_tensor * get_cassi_qi_flux() const { return t_cassi_qi_flux; }
+    int64_t get_cassi_qi_state_field_width() const { return t_cassi_qi_state_field_width; }
+    int64_t get_cassi_qi_state_row_width() const { return t_cassi_qi_state_row_width; }
+    // Recorded by the seam as it builds, so a refused or capped seam is visible in the receipt
+    void set_cassi_qi_state_ownership(int64_t field_width, int64_t row_width) {
+        t_cassi_qi_state_field_width = field_width;
+        t_cassi_qi_state_row_width = row_width;
+    }
+    ggml_tensor * get_cassi_service() const { return t_cassi_service; }
     ggml_context * get_ctx() const { return ctx_compute.get(); }
 
     ggml_cgraph * get_gf() const { return gf; }
@@ -1039,6 +1095,16 @@ public:
     ggml_tensor * t_cassi       = nullptr; // packed [correction 2*M*T, state 8*M*S]
     ggml_tensor * t_cassi_field = nullptr; // packed [correction 2*M*T, state 8*M*S]
     ggml_tensor * t_cassi_qi    = nullptr; // packed [flux 2*M*T, state 9*M*S, diag 10*S]
+    ggml_tensor * t_cassi_qi_flux = nullptr; // [n_embd, n_tokens] view of the flux block, for the substitution seam
+    int64_t t_cassi_qi_state_field_width = 0; // channels the seam addressed on this build
+    int64_t t_cassi_qi_state_row_width = 0;   // channels in the suppressed state row
+    ggml_tensor * t_cassi_service = nullptr; // typed native apprenticeship service result
+    ggml_tensor * t_cassi_capture_embed = nullptr;
+    std::vector<ggml_tensor *> t_cassi_capture_attention_input;
+    std::vector<ggml_tensor *> t_cassi_capture_attention_delta;
+    std::vector<ggml_tensor *> t_cassi_capture_ffn_input;
+    std::vector<ggml_tensor *> t_cassi_capture_ffn_delta;
+    ggml_tensor * t_cassi_capture_head_input = nullptr;
 
     std::vector<ggml_tensor *> t_layer_inp;
 
@@ -1064,6 +1130,10 @@ private:
     // we will use this to determine whether the graph can be reused by comparing them with the new parameters
     // note: these are updated after constructing the new graph
     llm_graph_params params;
+    // Service parameters are owned here because the caller reuses and mutates its
+    // request object between graphs. Keeping only that pointer would make the old
+    // and new topology keys alias and incorrectly reuse a graph of another kind.
+    llm_cassi_service_config cassi_service_params;
     // env: LLAMA_GRAPH_RESULT_DEBUG
     int debug = 0;
 };

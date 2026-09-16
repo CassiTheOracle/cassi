@@ -213,6 +213,8 @@ if (NOT TARGET ggml AND NOT LLAMA_USE_SYSTEM_GGML)
     add_subdirectory(ggml)
     # ... otherwise assume ggml is added by a parent CMakeLists.txt
 endif()
+add_subdirectory(vendor/hash)
+
 
 #
 # build the library
@@ -227,7 +229,6 @@ add_subdirectory(src)
 if (LLAMA_BUILD_COMMON)
     add_subdirectory(common)
     add_subdirectory(vendor/cpp-httplib)
-    add_subdirectory(vendor/hash)
 endif()
 
 if (LLAMA_BUILD_COMMON AND LLAMA_BUILD_TESTS AND NOT CMAKE_JS_VERSION)
@@ -271,7 +272,8 @@ set(LLAMA_BIN_INSTALL_DIR     ${CMAKE_INSTALL_BINDIR}     CACHE PATH "Location o
 
 set(LLAMA_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/llama.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/llama-cpp.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/llama-cpp.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/llama-cassi.h)
 
 set_target_properties(llama
     PROPERTIES

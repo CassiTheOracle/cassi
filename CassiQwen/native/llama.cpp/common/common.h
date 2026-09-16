@@ -7,6 +7,7 @@
 #include "ggml-opt.h"
 #include "ggml.h"
 #include "llama.h"
+#include "llama-cassi.h"
 
 #include <set>
 #include <sstream>
@@ -504,7 +505,24 @@ struct common_params {
     bool cassi_qi_field = false;
     int32_t cassi_qi_field_layer = 32;
     int32_t cassi_qi_field_scales = 4;
+    int32_t cassi_qi_field_wave_modes = 3072;
+    int32_t cassi_qi_field_row_width = 0;
     std::string cassi_qi_field_state;
+    int32_t cassi_qi_intervention = 0;
+    int32_t cassi_qi_displacement = 0;
+    int32_t cassi_qi_field_steps = 1;
+    float cassi_qi_injection_scale = 1.0f;
+    float cassi_qi_field_dt = 0.005f;
+    float cassi_qi_substitute = 0.0f;
+    bool cassi_apprentice = false;
+    std::string cassi_apprentice_state;
+    bool cassi_apprentice_init = false;
+    uint32_t cassi_apprentice_memory_mib = 1024;
+    std::string cassi_apprentice_device = "Vulkan0";
+    llama_cassi_teacher_policy cassi_apprentice_teacher = LLAMA_CASSI_ADAPTIVE;
+    llama_cassi_route_policy cassi_apprentice_route = LLAMA_CASSI_AUTO;
+    uint32_t cassi_apprentice_audit_interval = 8;
+    std::string cassi_apprentice_receipt;
 
 
     struct common_params_model model;

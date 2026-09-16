@@ -660,6 +660,13 @@ std::string server_tokens::detokenize(const llama_context * ctx, bool special) c
     return common_detokenize(ctx, text_tokens, special);
 }
 
+std::string server_tokens::detokenize(const llama_vocab * vocab, bool special) const {
+    if (has_mtmd || !map_idx_to_media.empty()) {
+        throw std::runtime_error("Multimodal tokens are not supported by the Cassi apprentice");
+    }
+    return common_detokenize(vocab, tokens, special);
+}
+
 size_t server_tokens::get_common_prefix(const server_tokens & b) const {
     const size_t max_idx = std::min(tokens.size(), b.tokens.size());
 
@@ -752,6 +759,16 @@ bool server_tokens::validate(const struct llama_context * ctx) const {
         }
     }
     return n_media == map_idx_to_media.size();
+}
+
+bool server_tokens::validate(const llama_vocab * vocab) const {
+    if (vocab == nullptr || has_mtmd || !map_idx_to_media.empty()) {
+        return false;
+    }
+    const int32_t n_vocab = llama_vocab_n_tokens(vocab);
+    return std::all_of(tokens.begin(), tokens.end(), [n_vocab](llama_token token) {
+        return token >= 0 && token < n_vocab;
+    });
 }
 
 server_tokens server_tokens::clone() const {

@@ -122,6 +122,29 @@ bool llm_graph_input_embd_h::can_reuse(const llm_graph_params & params) {
 
     return res;
 }
+llm_graph_input_cassi_service::llm_graph_input_cassi_service(const llm_cassi_service_config * config) :
+    config(config) {
+}
+
+void llm_graph_input_cassi_service::set_input(const llama_ubatch *) {
+    GGML_ASSERT(config != nullptr && config->input != nullptr && value != nullptr);
+    GGML_ASSERT(config->input->type == GGML_TYPE_F32 && value->type == GGML_TYPE_F32);
+    GGML_ASSERT(ggml_are_same_shape(config->input, value));
+    GGML_ASSERT(ggml_is_contiguous(config->input) && ggml_is_contiguous(value));
+    if (config->input->buffer == nullptr || value->buffer == nullptr) {
+        throw std::runtime_error(config->input->buffer == nullptr
+            ? "apprentice_service_input_source_unallocated"
+            : "apprentice_service_input_destination_unallocated");
+    }
+    ggml_backend_tensor_copy(config->input, value);
+}
+
+bool llm_graph_input_cassi_service::can_reuse(const llm_graph_params & params) {
+    config = params.cassi_service;
+    return config != nullptr && config->input != nullptr && value != nullptr &&
+        config->input->type == GGML_TYPE_F32 && ggml_are_same_shape(config->input, value);
+}
+
 
 llm_graph_input_cassi_modal::llm_graph_input_cassi_modal(
         const llm_cassi_modal_config * config,
@@ -1170,26 +1193,28 @@ void llm_graph_input_attn_cross::set_input(const llama_ubatch * ubatch) {
 }
 
 void llm_graph_input_mem_hybrid::set_input(const llama_ubatch * ubatch) {
-    mctx->get_attn()->set_input_k_idxs(inp_attn->self_k_idxs, ubatch);
-    mctx->get_attn()->set_input_v_idxs(inp_attn->self_v_idxs, ubatch);
-
-    mctx->get_attn()->set_input_kq_mask(inp_attn->self_kq_mask, ubatch, cparams.causal_attn);
-
-    if (inp_attn->self_k_rot) {
+    // A service graph contains one layer, so the other hybrid branch is dead
+    // and its input leaves are intentionally not allocated by the scheduler.
+    if (inp_attn->self_k_idxs && inp_attn->self_k_idxs->buffer) {
+        mctx->get_attn()->set_input_k_idxs(inp_attn->self_k_idxs, ubatch);
+    }
+    if (inp_attn->self_v_idxs && inp_attn->self_v_idxs->buffer) {
+        mctx->get_attn()->set_input_v_idxs(inp_attn->self_v_idxs, ubatch);
+    }
+    if (inp_attn->self_kq_mask && inp_attn->self_kq_mask->buffer) {
+        mctx->get_attn()->set_input_kq_mask(inp_attn->self_kq_mask, ubatch, cparams.causal_attn);
+    }
+    if (inp_attn->self_k_rot && inp_attn->self_k_rot->buffer) {
         mctx->get_attn()->set_input_k_rot(inp_attn->self_k_rot);
     }
-
-    if (inp_attn->self_v_rot) {
+    if (inp_attn->self_v_rot && inp_attn->self_v_rot->buffer) {
         mctx->get_attn()->set_input_v_rot(inp_attn->self_v_rot);
     }
 
-    const int64_t n_rs = mctx->get_recr()->get_n_rs();
-
-    if (inp_rs->s_copy) {
+    if (inp_rs->s_copy && inp_rs->s_copy->buffer) {
+        const int64_t n_rs = mctx->get_recr()->get_n_rs();
         GGML_ASSERT(ggml_backend_buffer_is_host(inp_rs->s_copy->buffer));
         int32_t * data = (int32_t *) inp_rs->s_copy->data;
-
-        // assuming copy destinations ALWAYS happen ONLY on the cells between head and head+n
         for (uint32_t i = 0; i < n_rs; ++i) {
             data[i] = mctx->get_recr()->s_copy(i);
         }
@@ -1223,17 +1248,17 @@ bool llm_graph_input_mem_hybrid::can_reuse(const llm_graph_params & params) {
 // Instead of creating a hybrid input, the graph can simply create 2 separate inputs.
 // Refactoring is required in the future.
 void llm_graph_input_mem_hybrid_k::set_input(const llama_ubatch * ubatch) {
-    mctx->get_attn()->set_input_k_idxs(inp_attn->self_k_idxs, ubatch);
+    if (inp_attn->self_k_idxs && inp_attn->self_k_idxs->buffer) {
+        mctx->get_attn()->set_input_k_idxs(inp_attn->self_k_idxs, ubatch);
+    }
+    if (inp_attn->self_kq_mask && inp_attn->self_kq_mask->buffer) {
+        mctx->get_attn()->set_input_kq_mask(inp_attn->self_kq_mask, ubatch, cparams.causal_attn);
+    }
 
-    mctx->get_attn()->set_input_kq_mask(inp_attn->self_kq_mask, ubatch, cparams.causal_attn);
-
-    const int64_t n_rs = mctx->get_recr()->get_n_rs();
-
-    if (inp_rs->s_copy) {
+    if (inp_rs->s_copy && inp_rs->s_copy->buffer) {
+        const int64_t n_rs = mctx->get_recr()->get_n_rs();
         GGML_ASSERT(ggml_backend_buffer_is_host(inp_rs->s_copy->buffer));
         int32_t * data = (int32_t *) inp_rs->s_copy->data;
-
-        // assuming copy destinations ALWAYS happen ONLY on the cells between head and head+n
         for (uint32_t i = 0; i < n_rs; ++i) {
             data[i] = mctx->get_recr()->s_copy(i);
         }
@@ -1285,29 +1310,26 @@ void llm_graph_input_mem_hybrid_iswa::set_input(const llama_ubatch * ubatch) {
         attn_ctx->get_swa()->set_input_kq_mask(inp_attn->self_kq_mask_swa, ubatch, cparams.causal_attn);
     }
 
-    if (inp_attn->self_k_rot) {
+    if (inp_attn->self_k_rot && inp_attn->self_k_rot->buffer) {
         attn_ctx->get_base()->set_input_k_rot(inp_attn->self_k_rot);
     }
 
-    if (inp_attn->self_v_rot) {
+    if (inp_attn->self_v_rot && inp_attn->self_v_rot->buffer) {
         attn_ctx->get_base()->set_input_v_rot(inp_attn->self_v_rot);
     }
 
-    if (inp_attn->self_k_rot_swa) {
+    if (inp_attn->self_k_rot_swa && inp_attn->self_k_rot_swa->buffer) {
         attn_ctx->get_swa()->set_input_k_rot(inp_attn->self_k_rot_swa);
     }
 
-    if (inp_attn->self_v_rot_swa) {
+    if (inp_attn->self_v_rot_swa && inp_attn->self_v_rot_swa->buffer) {
         attn_ctx->get_swa()->set_input_v_rot(inp_attn->self_v_rot_swa);
     }
 
-    const int64_t n_rs = mctx->get_recr()->get_n_rs();
-
-    if (inp_rs->s_copy) {
+    if (inp_rs->s_copy && inp_rs->s_copy->buffer) {
+        const int64_t n_rs = mctx->get_recr()->get_n_rs();
         GGML_ASSERT(ggml_backend_buffer_is_host(inp_rs->s_copy->buffer));
         int32_t * data = (int32_t *) inp_rs->s_copy->data;
-
-        // assuming copy destinations ALWAYS happen ONLY on the cells between head and head+n
         for (uint32_t i = 0; i < n_rs; ++i) {
             data[i] = mctx->get_recr()->s_copy(i);
         }
@@ -1412,6 +1434,17 @@ void llm_graph_result::reset() {
     t_cassi       = nullptr;
     t_cassi_field = nullptr;
     t_cassi_qi    = nullptr;
+    t_cassi_service = nullptr;
+    t_cassi_capture_embed = nullptr;
+    t_cassi_capture_head_input = nullptr;
+    t_cassi_capture_attention_input.resize(LLAMA_MAX_LAYERS + 1);
+    t_cassi_capture_attention_delta.resize(LLAMA_MAX_LAYERS + 1);
+    t_cassi_capture_ffn_input.resize(LLAMA_MAX_LAYERS + 1);
+    t_cassi_capture_ffn_delta.resize(LLAMA_MAX_LAYERS + 1);
+    std::fill(t_cassi_capture_attention_input.begin(), t_cassi_capture_attention_input.end(), nullptr);
+    std::fill(t_cassi_capture_attention_delta.begin(), t_cassi_capture_attention_delta.end(), nullptr);
+    std::fill(t_cassi_capture_ffn_input.begin(), t_cassi_capture_ffn_input.end(), nullptr);
+    std::fill(t_cassi_capture_ffn_delta.begin(), t_cassi_capture_ffn_delta.end(), nullptr);
     t_layer_inp.resize(LLAMA_MAX_LAYERS + 1);
     std::fill(t_layer_inp.begin(), t_layer_inp.end(), nullptr);
 
@@ -1465,6 +1498,25 @@ void llm_graph_result::set_outputs(const llm_graph_params & params) {
     }
     if (t_cassi_qi != nullptr) {
         ggml_set_output(t_cassi_qi);
+    }
+    if (t_cassi_service != nullptr) {
+        ggml_set_output(t_cassi_service);
+    }
+    if (params.cparams.cassi_capture) {
+        GGML_ASSERT(t_cassi_capture_embed != nullptr);
+        GGML_ASSERT(t_cassi_capture_head_input != nullptr);
+        ggml_set_output(t_cassi_capture_embed);
+        ggml_set_output(t_cassi_capture_head_input);
+        for (uint32_t il = 0; il < params.hparams.n_layer(); ++il) {
+            GGML_ASSERT(t_cassi_capture_attention_input[il] != nullptr);
+            GGML_ASSERT(t_cassi_capture_attention_delta[il] != nullptr);
+            GGML_ASSERT(t_cassi_capture_ffn_input[il] != nullptr);
+            GGML_ASSERT(t_cassi_capture_ffn_delta[il] != nullptr);
+            ggml_set_output(t_cassi_capture_attention_input[il]);
+            ggml_set_output(t_cassi_capture_attention_delta[il]);
+            ggml_set_output(t_cassi_capture_ffn_input[il]);
+            ggml_set_output(t_cassi_capture_ffn_delta[il]);
+        }
     }
     {
         const auto & embeddings_layer_inp = params.cparams.embeddings_layer_inp;
@@ -1540,6 +1592,10 @@ void llm_graph_result::add_fused_node(llm_graph_fused_node result) {
 
 void llm_graph_result::set_params(const llm_graph_params & params) {
     this->params = params;
+    if (params.cassi_service != nullptr) {
+        cassi_service_params = *params.cassi_service;
+        this->params.cassi_service = &cassi_service_params;
+    }
 }
 
 //

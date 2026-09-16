@@ -23,8 +23,11 @@ struct llm_build_mamba_base : public llm_graph_context {
 
 struct llm_build_delta_net_base : public llm_graph_context {
     llm_build_delta_net_base(const llm_graph_params & params);
-
     virtual ~llm_build_delta_net_base() = default;
+
+    // the field's share of a suppressed recurrent-state write (cassi_qi_substitute);
+    // nullptr means the seam is off and the caller keeps the plain suppression
+    ggml_tensor * build_cassi_qi_state_source(ggml_tensor * conv_state_last, int il);
 
     // returns pair of output and new state
     std::pair<ggml_tensor *, ggml_tensor *> build_delta_net_chunking(
@@ -2192,6 +2195,7 @@ struct llama_model_qwen35 : public llama_model_base {
     struct graph : public llm_build_delta_net_base {
         graph(const llama_model & model, const llm_graph_params & params);
     private:
+        void build_cassi_service(const llm_graph_params & params);
         ggml_tensor * build_layer_attn(
         llm_graph_input_attn_kv * inp_attn,
                     ggml_tensor * cur,

@@ -66,7 +66,21 @@ struct llama_cparams {
     uint32_t cassi_field_layer;
     uint32_t cassi_qi_field_layer;
     uint32_t cassi_qi_field_scales;
+    uint32_t cassi_qi_field_wave_modes;
+    bool cassi_qi_field_fill_modes;
+    bool cassi_qi_field_memory_fill;
+    uint32_t cassi_qi_field_row_width;
     uint32_t cassi_qi_displacement;
+    uint32_t cassi_qi_intervention;
+    uint32_t cassi_qi_field_steps;
+    float    cassi_qi_injection_scale;
+    float    cassi_qi_field_dt;
+    float    cassi_qi_substitute;
+    float    cassi_qi_energy_floor;
+    float    cassi_qi_read_floor;
+    bool     cassi_apprentice;
+    bool     cassi_capture;
+    std::vector<uint8_t> cassi_attention_owned;
 
     std::vector<bool> embeddings_layer_inp; // [n_layer()] extract input embeddings for layer
 

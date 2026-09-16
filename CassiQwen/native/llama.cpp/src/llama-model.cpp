@@ -2279,6 +2279,14 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                             cparams.n_rs_seq,
                             nullptr);
                 } else if (llm_arch_is_hybrid(arch) && !mtp_on_hybrid_qwen && !mtp_on_hybrid_nemotron) {
+                    if (arch == LLM_ARCH_QWEN35 && cparams.cassi_apprentice &&
+                            std::all_of(
+                                cparams.cassi_attention_owned.begin(),
+                                cparams.cassi_attention_owned.end(),
+                                [](uint8_t value) { return value != 0; })) {
+                        res = nullptr;
+                        break;
+                    }
                     // The main difference between hybrid architectures is the
                     // layer filters, so pick the right one here
                     llama_memory_hybrid::layer_filter_cb filter_attn = nullptr;
@@ -2295,10 +2303,14 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                         };
                     } else if (arch == LLM_ARCH_QWEN3NEXT || arch == LLM_ARCH_QWEN35 || arch == LLM_ARCH_QWEN35MOE || arch == LLM_ARCH_MINIMAX_01) {
                         filter_attn = [&](uint32_t il) {
-                            return il < hparams.n_layer() && !hparams.is_recr(il);
+                            return il < hparams.n_layer() && !hparams.is_recr(il) &&
+                                !(arch == LLM_ARCH_QWEN35 && cparams.cassi_apprentice &&
+                                  cparams.cassi_attention_owned[il] != 0);
                         };
                         filter_recr = [&](uint32_t il) {
-                            return il < hparams.n_layer() && hparams.is_recr(il);
+                            return il < hparams.n_layer() && hparams.is_recr(il) &&
+                                !(arch == LLM_ARCH_QWEN35 && cparams.cassi_apprentice &&
+                                  cparams.cassi_attention_owned[il] != 0);
                         };
                     }
 
@@ -2453,6 +2465,10 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
 
 ggml_cgraph * llama_model::build_graph(const llm_graph_params & params) const {
     std::unique_ptr<llm_graph_context> llm = build_arch_graph(params);
+    if (params.gtype == LLM_GRAPH_TYPE_CASSI_SERVICE) {
+        llm->res->set_outputs(params);
+        return llm->res->get_gf();
+    }
 
     // add on pooling layer
     llm->build_pooling(cls, cls_b, cls_out, cls_out_b, cls_norm);

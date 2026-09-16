@@ -1708,6 +1708,8 @@ struct llama_model_params common_model_params_to_llama(common_params & params) {
     mparams.progress_callback           = params.load_progress_callback;
     mparams.progress_callback_user_data = params.load_progress_callback_user_data;
     mparams.no_alloc                    = params.no_alloc;
+    mparams.vocab_only                  = params.cassi_apprentice &&
+        params.cassi_apprentice_teacher == LLAMA_CASSI_NEVER;
     mparams.load_mtp                    = std::find(params.speculative.types.begin(), params.speculative.types.end(), COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params.speculative.types.end();
 
     return mparams;
@@ -1751,6 +1753,14 @@ struct llama_context_params common_context_params_to_llama(const common_params &
     cparams.cassi_qi_field    = params.cassi_qi_field;
     cparams.cassi_qi_field_layer = (uint32_t) params.cassi_qi_field_layer;
     cparams.cassi_qi_field_scales = (uint32_t) params.cassi_qi_field_scales;
+    cparams.cassi_qi_field_wave_modes = (uint32_t) params.cassi_qi_field_wave_modes;
+    cparams.cassi_qi_field_row_width = (uint32_t) params.cassi_qi_field_row_width;
+    cparams.cassi_qi_intervention = (uint32_t) params.cassi_qi_intervention;
+    cparams.cassi_qi_displacement = (uint32_t) params.cassi_qi_displacement;
+    cparams.cassi_qi_field_steps = (uint32_t) params.cassi_qi_field_steps;
+    cparams.cassi_qi_injection_scale = params.cassi_qi_injection_scale;
+    cparams.cassi_qi_field_dt = params.cassi_qi_field_dt;
+    cparams.cassi_qi_substitute = params.cassi_qi_substitute;
     cparams.cassi_modal_retained_weight = params.cassi_modal_retained_weight;
     cparams.cassi_modal_phi   = params.cassi_modal_phi;
     cparams.cassi_modal_dt    = params.cassi_modal_dt;
@@ -1760,6 +1770,20 @@ struct llama_context_params common_context_params_to_llama(const common_params &
 
     cparams.type_k = params.cache_type_k;
     cparams.type_v = params.cache_type_v;
+
+    if (params.cassi_apprentice) {
+        cparams.cassi_modal = false;
+        cparams.cassi_field_step = false;
+        cparams.cassi_qi_field = false;
+        cparams.cassi_apprentice = false;
+        cparams.cassi_attention_owned = nullptr;
+        cparams.cassi_attention_owned_count = 0;
+        cparams.samplers = nullptr;
+        cparams.n_samplers = 0;
+        cparams.embeddings = false;
+        cparams.pooling_type = LLAMA_POOLING_TYPE_UNSPECIFIED;
+        cparams.no_perf = false;
+    }
 
     return cparams;
 }

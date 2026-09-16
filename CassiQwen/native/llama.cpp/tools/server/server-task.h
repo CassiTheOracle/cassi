@@ -48,6 +48,7 @@ enum stop_type {
 };
 
 struct task_params {
+    bool cassi_apprentice = false;
     bool stream          = false;
     bool include_usage   = false;
     bool cache_prompt    = true; // remember the prompt to avoid reprocessing all prompt
@@ -194,6 +195,9 @@ struct server_task {
     }
 
     bool need_logits() const {
+        if (params.cassi_apprentice) {
+            return false;
+        }
         switch (type) {
             case SERVER_TASK_TYPE_COMPLETION:
             case SERVER_TASK_TYPE_INFILL:
@@ -204,6 +208,9 @@ struct server_task {
     }
 
     bool need_sampling() const {
+        if (params.cassi_apprentice) {
+            return false;
+        }
         switch (type) {
             case SERVER_TASK_TYPE_COMPLETION:
             case SERVER_TASK_TYPE_INFILL:
@@ -347,6 +354,7 @@ struct server_task_result_cmpl_final : server_task_result {
     std::string        oaicompat_model;
     std::string        oaicompat_cmpl_id;
     common_chat_msg    oaicompat_msg; // to be populated by update()
+    json cassi = nullptr;
 
     std::vector<common_chat_msg_diff> oaicompat_msg_diffs; // to be populated by update()
     bool is_updated = false;
@@ -481,6 +489,8 @@ struct server_task_result_error : server_task_result {
     // for ERROR_TYPE_EXCEED_CONTEXT_SIZE
     int32_t n_prompt_tokens = 0;
     int32_t n_ctx           = 0;
+    std::string error_code;
+    json cassi = nullptr;
 
     virtual bool is_error() override {
         return true;

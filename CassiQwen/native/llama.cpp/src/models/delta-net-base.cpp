@@ -472,7 +472,7 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
 
     ggml_tensor * conv_input = ggml_concat(ctx0, conv_states, qkv_mixed, 0);
     cb(conv_input, "conv_input", il);
-    if (!write_state) {
+    if (!write_state && cparams.n_rs_seq != 0) {
         return conv_input;
     }
 
@@ -496,6 +496,19 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
                     row_count, n_seqs, conv_states_all->nb[1],
                     (s_slot * mem_size + kv_head) * row_size);
         cb(conv_state_update, "conv_state_update", il);
+
+        if (!write_state) {
+            // Suppressing the write is a lesion: the layer's recurrent window stops
+            // updating and keeps whatever it held.  The substitution seam fills that
+            // window from the field's own readout of this layer's input instead, so the
+            // computation reads field state rather than model history.
+            ggml_tensor * substituted = build_cassi_qi_state_source(conv_state_last, il);
+            if (substituted != nullptr) {
+                cb(substituted, "cassi_qi_state_substituted", il);
+                ggml_build_forward_expand(gf, ggml_cpy(ctx0, substituted, conv_state_update));
+            }
+            return conv_input;
+        }
 
         ggml_build_forward_expand(gf, ggml_cpy(ctx0, conv_state_last, conv_state_update));
     } else {
@@ -526,6 +539,73 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
     }
 
     return conv_input;
+}
+
+// The field's share of the suppressed recurrent-state write.  Null when the seam is
+// off, the readout is absent, the step is a prefill, or the layer is not the qi layer.
+ggml_tensor * llm_build_delta_net_base::build_cassi_qi_state_source(ggml_tensor * conv_state_last, int il) {
+    const float field_share = cparams.cassi_qi_substitute;
+    if (!(field_share > 0.0f) || res == nullptr) {
+        return nullptr;
+    }
+    // The qi readout exists only for the qi layer.  A deeper displacement suppresses
+    // many layers at once, and only that one layer may take the field's write.
+    if ((uint32_t) il != cparams.cassi_qi_field_layer) {
+        return nullptr;
+    }
+    ggml_tensor * flux = res->get_cassi_qi_flux();
+    if (flux == nullptr || ubatch.n_seq_tokens != 1) {
+        return nullptr;
+    }
+    const int64_t rows     = conv_state_last->ne[0];
+    const int64_t channels = conv_state_last->ne[1];
+    const int64_t n_seqs   = conv_state_last->ne[2];
+    if (rows < 1 || flux->ne[0] < 1 || flux->ne[1] != n_seqs) {
+        return nullptr;
+    }
+    // The field addresses what its readout holds, and never more channels than the row has.
+    const int64_t field_width = std::min<int64_t>(flux->ne[0], channels);
+    res->set_cassi_qi_state_ownership(field_width, channels);
+
+    ggml_tensor * field_row = ggml_cont(ctx0, flux);  // [field_width, n_seqs]
+    field_row = ggml_reshape_3d(ctx0, field_row, field_width, 1, n_seqs);
+    field_row = ggml_view_3d(ctx0, field_row, 1, field_width, n_seqs,
+            field_row->nb[0], field_row->nb[1], 0);
+    cb(field_row, "cassi_qi_state_field", il);
+
+    ggml_tensor * newest = ggml_cont(ctx0, ggml_view_3d(ctx0, conv_state_last,
+            1, channels, n_seqs,
+            conv_state_last->nb[1], conv_state_last->nb[2],
+            (rows - 1) * conv_state_last->nb[0]));
+    cb(newest, "cassi_qi_state_window_newest", il);
+
+    // The field row addresses field_width channels.  The remaining channels keep the
+    // write the model would have made, so the seam owns only what the field can read.
+    ggml_tensor * blended = ggml_add(ctx0,
+            ggml_scale(ctx0, ggml_cont(ctx0, ggml_view_3d(ctx0, newest,
+                    1, field_width, n_seqs, newest->nb[1], newest->nb[2], 0)), 1.0f - field_share),
+            ggml_scale(ctx0, field_row, field_share));
+    cb(blended, "cassi_qi_state_row_head_blended", il);
+
+    ggml_tensor * row = blended;
+    if (channels > field_width) {
+        ggml_tensor * tail_keep = ggml_cont(ctx0, ggml_view_3d(ctx0, newest,
+                1, channels - field_width, n_seqs, newest->nb[1], newest->nb[2],
+                field_width * newest->nb[0]));
+        row = ggml_concat(ctx0, row, tail_keep, 1);
+        cb(row, "cassi_qi_state_row_joined", il);
+    }
+
+    if (rows == 1) {
+        return row;
+    }
+
+    ggml_tensor * window_head = ggml_view_3d(ctx0, conv_state_last,
+            rows - 1, channels, n_seqs,
+            conv_state_last->nb[1], conv_state_last->nb[2], 0);
+    cb(window_head, "cassi_qi_state_window_head", il);
+
+    return ggml_concat(ctx0, window_head, row, 0);
 }
 
 ggml_tensor * llm_build_delta_net_base::build_recurrent_attn(

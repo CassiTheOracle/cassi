@@ -16,12 +16,14 @@
 #include "llama-sampler.h"
 #include "llama.h"
 
+#include <algorithm>
 #include <cinttypes>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 //
 // llama_context
@@ -85,7 +87,8 @@ static const llm_fused_op_probe llm_fused_op_dsv4_hc_post_probe = {
 
 llama_context::llama_context(
         const llama_model & model,
-              llama_context_params params) :
+              llama_context_params params,
+              bool exact_n_ctx) :
     model(model),
     cvec(std::make_unique<llama_adapter_cvec>()),
     loras(std::make_unique<llama_adapter_loras>()),
@@ -131,17 +134,48 @@ llama_context::llama_context(
     cparams.cassi_field_layer = params.cassi_field_layer;
     cparams.cassi_qi_field_layer = params.cassi_qi_field_layer;
     cparams.cassi_qi_field_scales = params.cassi_qi_field_scales;
+    cparams.cassi_qi_field_wave_modes = params.cassi_qi_field_wave_modes;
+    cparams.cassi_qi_field_fill_modes = params.cassi_qi_field_fill_modes;
+    cparams.cassi_qi_field_memory_fill = params.cassi_qi_field_memory_fill;
+    cparams.cassi_qi_field_row_width = params.cassi_qi_field_row_width;
     cparams.cassi_qi_displacement = params.cassi_qi_displacement;
+    cparams.cassi_qi_intervention = params.cassi_qi_intervention;
+    cparams.cassi_qi_field_steps = params.cassi_qi_field_steps;
+    cparams.cassi_qi_injection_scale = params.cassi_qi_injection_scale;
+    cparams.cassi_qi_field_dt = params.cassi_qi_field_dt;
+    cparams.cassi_qi_substitute = params.cassi_qi_substitute;
+    cparams.cassi_qi_energy_floor = params.cassi_qi_energy_floor;
+    cparams.cassi_qi_read_floor = params.cassi_qi_read_floor;
     cparams.cassi_modal_retained_weight = params.cassi_modal_retained_weight;
     cparams.cassi_modal_phi             = params.cassi_modal_phi;
     cparams.cassi_modal_dt              = params.cassi_modal_dt;
     cparams.cassi_modal_omega2          = params.cassi_modal_omega2;
     cparams.cassi_modal_coupling        = params.cassi_modal_coupling;
     cparams.cassi_modal_steps_per_layer = params.cassi_modal_steps_per_layer;
+    cparams.cassi_apprentice = params.cassi_apprentice;
+    cparams.cassi_capture = false;
+    if (cparams.cassi_apprentice) {
+        if (model.arch != LLM_ARCH_QWEN35 || params.cassi_attention_owned == nullptr ||
+                params.cassi_attention_owned_count != hparams.n_layer()) {
+            throw std::runtime_error("invalid Cassi apprenticeship service configuration");
+        }
+        cparams.cassi_attention_owned.assign(
+            params.cassi_attention_owned,
+            params.cassi_attention_owned + params.cassi_attention_owned_count);
+        if (std::any_of(
+                cparams.cassi_attention_owned.begin(),
+                cparams.cassi_attention_owned.end(),
+                [](uint8_t value) { return value > 1; })) {
+            throw std::runtime_error("invalid Cassi apprenticeship attention mask");
+        }
+    } else if (params.cassi_attention_owned != nullptr || params.cassi_attention_owned_count != 0) {
+        throw std::runtime_error("Cassi apprenticeship attention mask requires its service context");
+    }
 
-    const int enabled_paths = int(cparams.cassi_modal) + int(cparams.cassi_field_step) + int(cparams.cassi_qi_field);
+    const int enabled_paths = int(cparams.cassi_modal) + int(cparams.cassi_field_step) +
+        int(cparams.cassi_qi_field) + int(cparams.cassi_apprentice);
     if (enabled_paths > 1) {
-        throw std::runtime_error("Cassi modal, field-step, and Qi field execution are mutually exclusive");
+        throw std::runtime_error("Cassi execution paths are mutually exclusive");
     }
 
     cassi_modal.enabled        = cparams.cassi_modal;
@@ -173,22 +207,28 @@ llama_context::llama_context(
     cassi_qi.n_seq_max        = cparams.n_seq_max;
     cassi_qi.n_embd           = hparams.n_embd;
     cassi_qi.mode_count       = 6144;
-    cassi_qi.wave_mode_count  = 3072;
+    cassi_qi.wave_mode_count  = cparams.cassi_qi_field_wave_modes > 0
+        ? cparams.cassi_qi_field_wave_modes : 3072;
+    cassi_qi.fill_modes       = cparams.cassi_qi_field_fill_modes;
+    cassi_qi.memory_fill      = cparams.cassi_qi_field_memory_fill;
+    cassi_qi.row_width        = cparams.cassi_qi_field_row_width;
     cassi_qi.layer_index      = cparams.cassi_qi_field_layer;
     cassi_qi.scale_count      = cparams.cassi_qi_field_scales;
     cassi_qi.profile_id       = 2;
     cassi_qi.displacement_level = cparams.cassi_qi_displacement;
-    cassi_qi.steps            = 1;
+    cassi_qi.steps            = cparams.cassi_qi_field_steps;
+    cassi_qi.intervention     = cparams.cassi_qi_intervention;
+    cassi_qi.injection_scale  = cparams.cassi_qi_injection_scale;
     cassi_qi.state_stride     = 9 * cassi_qi.mode_count * cassi_qi.scale_count;
     cassi_qi.phi              = 1.618033988749895f;
-    cassi_qi.dt               = 0.005f;
+    cassi_qi.dt               = cparams.cassi_qi_field_dt;
     cassi_qi.coupling         = 0.5f;
     cassi_qi.damping_min      = 0.01f;
     cassi_qi.damping_max      = 0.5f;
     cassi_qi.epsilon_tau      = 0.618033988749895f;
     cassi_qi.scale_ratio      = 4.2360679775f;
-    cassi_qi.energy_floor     = 1.0e-6f;
-    cassi_qi.read_floor       = 0.05f;
+    cassi_qi.energy_floor     = params.cassi_qi_energy_floor;
+    cassi_qi.read_floor       = params.cassi_qi_read_floor;
     cassi_qi.mode_param_min   = cassi_qi.damping_min;
     cassi_qi.mode_param_max   = cassi_qi.damping_max;
 
@@ -212,9 +252,16 @@ llama_context::llama_context(
         throw std::runtime_error("invalid Cassi modal configuration");
     }
     if (cassi_qi.enabled && (cassi_qi.mode_count == 0 || cassi_qi.wave_mode_count == 0 ||
-            cassi_qi.displacement_level > 6 ||
+            cassi_qi.displacement_level > 6 || cassi_qi.intervention > 1 || cassi_qi.steps == 0 ||
+            (cassi_qi.intervention == 1 && cassi_qi.displacement_level != 0) ||
+            // the substitution fills a state write the displacement suppressed, so a
+            // positive share below level 3 would run the field with a dead seam
+            (cparams.cassi_qi_substitute > 0.0f && cassi_qi.displacement_level < 3) ||
+            !std::isfinite(cparams.cassi_qi_substitute) ||
+            cparams.cassi_qi_substitute < 0.0f || cparams.cassi_qi_substitute > 1.0f ||
             2 * cassi_qi.wave_mode_count < hparams.n_embd || cassi_qi.wave_mode_count > cassi_qi.mode_count ||
             cassi_qi.layer_index >= hparams.n_layer() || cassi_qi.scale_count < 1 || cassi_qi.scale_count > 4 ||
+            !std::isfinite(cassi_qi.injection_scale) || cassi_qi.injection_scale < 0.0f ||
             !std::isfinite(cassi_qi.phi) || cassi_qi.phi <= 0.0f ||
             !std::isfinite(cassi_qi.dt) || cassi_qi.dt <= 0.0f ||
             !std::isfinite(cassi_qi.coupling) || cassi_qi.coupling < 0.0f ||
@@ -400,14 +447,19 @@ llama_context::llama_context(
         }
     }
 
-    // ref: https://github.com/ggml-org/llama.cpp/pull/17046#discussion_r2503085732
-    cparams.n_ctx = GGML_PAD(cparams.n_ctx, 256);
+    // Ordinary contexts retain the backend-friendly cache padding. The apprenticeship
+    // protocol uses the caller's exact one-sequence position limit.
+    if (!cparams.cassi_apprentice && !exact_n_ctx) {
+        cparams.n_ctx = GGML_PAD(cparams.n_ctx, 256);
+    }
 
     if (cparams.kv_unified) {
         cparams.n_ctx_seq = cparams.n_ctx;
     } else {
         cparams.n_ctx_seq = cparams.n_ctx / cparams.n_seq_max;
-        cparams.n_ctx_seq = GGML_PAD(cparams.n_ctx_seq, 256);
+        if (!cparams.cassi_apprentice && !exact_n_ctx) {
+            cparams.n_ctx_seq = GGML_PAD(cparams.n_ctx_seq, 256);
+        }
 
         if (cparams.n_ctx_seq == 0) {
             throw std::runtime_error("n_ctx_seq == 0");
@@ -486,12 +538,10 @@ llama_context::llama_context(
 
         llama_set_abort_callback(this, params.abort_callback, params.abort_callback_data);
 
-        // graph outputs buffer
-        {
+        if (!cparams.cassi_apprentice) {
             if (output_reserve(params.n_seq_max) < params.n_seq_max) {
                 throw std::runtime_error("failed to reserve initial output buffer");
             }
-
             LLAMA_LOG_INFO("%s: %10s  output buffer size = %8.2f MiB\n", __func__,
                     ggml_backend_buffer_name    (buf_output.get()),
                     ggml_backend_buffer_get_size(buf_output.get()) / 1024.0 / 1024.0);
@@ -718,6 +768,9 @@ void llama_context::sched_reserve() {
     gf_res_reserve.reset(new llm_graph_result(max_nodes));
 
     sched.reset(ggml_backend_sched_new(backend_ptrs.data(), backend_buft.data(), backend_ptrs.size(), max_nodes, cparams.pipeline_parallel, cparams.op_offload));
+    if (cparams.cassi_apprentice) {
+        return;
+    }
 
     llama_memory_context_ptr mctx;
     if (memory) {
@@ -974,6 +1027,10 @@ void llama_context::complete_cassi_field_state() {
 }
 
 void llama_context::queue_cassi_qi_field_state(const llm_graph_result * res, const llama_ubatch & ubatch) {
+    if (res != nullptr) {
+        cassi_qi_seam_field_width = res->get_cassi_qi_state_field_width();
+        cassi_qi_seam_row_width = res->get_cassi_qi_state_row_width();
+    }
     if (!cassi_qi.enabled || cassi_qi_pending.valid) {
         return;
     }
@@ -993,6 +1050,11 @@ void llama_context::queue_cassi_qi_field_state(const llm_graph_result * res, con
     GGML_ASSERT(backend != nullptr);
     cassi_qi_pending.seq_ids.assign(ubatch.seq_id_unq, ubatch.seq_id_unq + n_seqs);
     cassi_qi_pending.state.resize((size_t) n_seqs * cassi_qi.state_stride);
+    // The seam reads the flux region, so the newest token's block is kept for inspection.
+    const size_t flux_block = (size_t) 2 * cassi_qi.wave_mode_count;
+    cassi_qi_pending.flux.resize(flux_block);
+    ggml_backend_tensor_get_async(backend, t_qi, cassi_qi_pending.flux.data(),
+        (ubatch.n_tokens - 1) * flux_block * sizeof(float), flux_block * sizeof(float));
     const size_t state_offset = flux_count * sizeof(float);
     for (uint32_t s = 0; s < n_seqs; ++s) {
         ggml_backend_tensor_get_async(
@@ -1018,9 +1080,11 @@ void llama_context::complete_cassi_qi_field_state() {
             cassi_qi_pending.state.data() + s * cassi_qi.state_stride,
             (size_t) cassi_qi.state_stride * sizeof(float));
     }
+    cassi_qi_flux_last = cassi_qi_pending.flux;
     cassi_qi_pending.valid = false;
     cassi_qi_pending.seq_ids.clear();
     cassi_qi_pending.state.clear();
+    cassi_qi_pending.flux.clear();
 }
 
 const llama_model & llama_context::get_model() const {
@@ -1609,12 +1673,47 @@ bool llama_context::set_adapter_cvec(
     return res;
 }
 
+int64_t llama_context::cassi_qi_flux_size() const {
+    return (int64_t) cassi_qi_flux_last.size();
+}
+
+const float * llama_context::cassi_qi_flux_data() const {
+    return cassi_qi_flux_last.empty() ? nullptr : cassi_qi_flux_last.data();
+}
+
 size_t llama_context::cassi_qi_state_size() const {
     return cassi_qi.enabled ? cassi_qi.state_stride : 0;
 }
 
 int32_t llama_context::cassi_qi_graph_node_count() const {
     return cassi_qi.enabled ? cassi_qi_graph_nodes_tg : -1;
+}
+
+int64_t llama_context::cassi_qi_state_field_width() const {
+    return cassi_qi_seam_field_width;
+}
+
+int64_t llama_context::cassi_qi_state_row_width() const {
+    return cassi_qi_seam_row_width;
+}
+
+bool llama_context::set_cassi_qi_coupling(uint32_t steps, float injection_scale) {
+    if (!cassi_qi.enabled || steps == 0 || !std::isfinite(injection_scale) ||
+            injection_scale < 0.0f) {
+        return false;
+    }
+    if (cassi_qi.steps == steps && cassi_qi.injection_scale == injection_scale) {
+        return true;
+    }
+    complete_cassi_qi_field_state();
+    cassi_qi.steps = steps;
+    cassi_qi.injection_scale = injection_scale;
+    cparams.cassi_qi_field_steps = steps;
+    cparams.cassi_qi_injection_scale = injection_scale;
+    // The reserved graph count described the coupling held at construction time.
+    // the reserved node count described the construction-time coupling
+    cassi_qi_graph_nodes_tg = -1;
+    return true;
 }
 
 bool llama_context::set_cassi_qi_state(llama_seq_id seq_id, const float * data, size_t count) {
@@ -1680,11 +1779,300 @@ float llama_context::score_cassi_qi_token(llama_seq_id seq_id, llama_token token
     return std::isfinite(score) ? score : -INFINITY;
 }
 
+int32_t llama_context::cassi_begin_token(llama_token token, llama_pos pos) {
+    if (!cparams.cassi_apprentice || cassi_service_active || pos != cassi_service_next_pos ||
+            pos < 0 || static_cast<uint32_t>(pos) >= cparams.n_ctx ||
+            token < 0 || token >= model.vocab.n_tokens()) {
+        LLAMA_LOG_ERROR("%s: invalid apprenticeship token transaction\n", __func__);
+        return -1;
+    }
+
+    int32_t n_seq_id = 1;
+    llama_seq_id seq = 0;
+    llama_seq_id * seq_ptr = &seq;
+    int8_t logits = 0;
+    llama_batch batch = {};
+    batch.n_tokens = 1;
+    batch.token = &token;
+    batch.pos = &pos;
+    batch.n_seq_id = &n_seq_id;
+    batch.seq_id = &seq_ptr;
+    batch.logits = &logits;
+    if (!balloc->init(batch, model.vocab, memory.get(), model.hparams.n_embd, 1, false)) {
+        LLAMA_LOG_ERROR("%s: failed to initialize apprenticeship batch\n", __func__);
+        return -1;
+    }
+    balloc->split_reset();
+    cassi_service_mctx.reset();
+    if (memory != nullptr) {
+        // False also means that the memory module had no pending update.
+        memory_update(false);
+        cassi_service_mctx = memory->init_batch(*balloc, 1, false);
+        if (!cassi_service_mctx || llama_memory_status_is_fail(cassi_service_mctx->get_status())) {
+            cassi_service_mctx.reset();
+            LLAMA_LOG_ERROR("%s: failed to prepare apprenticeship memory transaction\n", __func__);
+            return -1;
+        }
+        cassi_service_ubatch = cassi_service_mctx->get_ubatch();
+    } else {
+        cassi_service_ubatch = balloc->split_simple(1);
+    }
+    if (cassi_service_ubatch.n_tokens != 1 || cassi_service_ubatch.n_seq_tokens != 1 ||
+            cassi_service_ubatch.n_seqs != 1 || cassi_service_ubatch.n_seqs_unq != 1 ||
+            cassi_service_ubatch.pos == nullptr || cassi_service_ubatch.pos[0] != pos) {
+        cassi_service_mctx.reset();
+        LLAMA_LOG_ERROR("%s: invalid apprenticeship microbatch\n", __func__);
+        return -1;
+    }
+    cassi_service_active = true;
+    cassi_service_mctx_applied = false;
+    cassi_service_epoch++;
+    cassi_service_nodes = 0;
+    return 0;
+}
+
+ggml_tensor * llama_context::cassi_service(const llm_cassi_service_config & config) {
+    if (!cparams.cassi_apprentice || !cassi_service_active ||
+            config.request_epoch != cassi_service_epoch || config.kind == LLAMA_CASSI_TEXT) {
+        LLAMA_LOG_ERROR("%s: invalid apprenticeship service transition\n", __func__);
+        return nullptr;
+    }
+    if (config.kind == LLAMA_CASSI_ATTENTION) {
+        if (config.layer < 0 || static_cast<uint32_t>(config.layer) >= cparams.cassi_attention_owned.size() ||
+                cparams.cassi_attention_owned[config.layer] != 0 || cassi_service_mctx == nullptr) {
+            LLAMA_LOG_ERROR("%s: invalid native attention service\n", __func__);
+            return nullptr;
+        }
+    }
+    cassi_service_config = config;
+    ggml_status status = GGML_STATUS_FAILED;
+    llama_memory_context_i * mctx =
+        config.kind == LLAMA_CASSI_ATTENTION ? cassi_service_mctx.get() : nullptr;
+    llm_graph_result * result =
+        process_ubatch(cassi_service_ubatch, LLM_GRAPH_TYPE_CASSI_SERVICE, mctx, status);
+    if (result == nullptr || status != GGML_STATUS_SUCCESS || result->get_cassi_service() == nullptr) {
+        LLAMA_LOG_ERROR("%s: apprenticeship service graph failed\n", __func__);
+        return nullptr;
+    }
+    ggml_backend_sched_synchronize(sched.get());
+    cassi_service_nodes = ggml_graph_n_nodes(result->get_gf());
+    return result->get_cassi_service();
+}
+
+int32_t llama_context::cassi_end_token() {
+    if (!cparams.cassi_apprentice || !cassi_service_active) {
+        LLAMA_LOG_ERROR("%s: no apprenticeship token transaction\n", __func__);
+        return -1;
+    }
+    if (cassi_service_mctx_applied && cassi_service_mctx != nullptr && cassi_service_mctx->next()) {
+        LLAMA_LOG_ERROR("%s: apprenticeship transaction produced more than one microbatch\n", __func__);
+        return -1;
+    }
+    cassi_service_mctx.reset();
+    cassi_service_ubatch = {};
+    cassi_service_active = false;
+    cassi_service_mctx_applied = false;
+    cassi_service_next_pos++;
+    return 0;
+}
+
+int32_t llama_context::cassi_service_graph_nodes() const {
+    return cassi_service_nodes;
+}
+
+int32_t llama_context::cassi_last_graph_nodes() const {
+    return gf_res_prev == nullptr ? 0 : ggml_graph_n_nodes(gf_res_prev->get_gf());
+}
+
+uint64_t llama_context::cassi_last_graph_weight_bytes() const {
+    if (gf_res_prev == nullptr) {
+        return 0;
+    }
+    std::unordered_set<const ggml_tensor *> model_tensors;
+    model_tensors.reserve(model.tensors_by_name.size());
+    for (const auto & item : model.tensors_by_name) {
+        model_tensors.insert(item.second);
+    }
+    std::unordered_set<const ggml_tensor *> visited;
+    std::unordered_set<const ggml_tensor *> used_weights;
+    std::vector<const ggml_tensor *> stack;
+    ggml_cgraph * graph = gf_res_prev->get_gf();
+    stack.reserve(static_cast<size_t>(ggml_graph_n_nodes(graph)));
+    for (int node = 0; node < ggml_graph_n_nodes(graph); ++node) {
+        stack.push_back(ggml_graph_node(graph, node));
+    }
+    while (!stack.empty()) {
+        const ggml_tensor * tensor = stack.back();
+        stack.pop_back();
+        if (tensor == nullptr || !visited.insert(tensor).second) {
+            continue;
+        }
+        if (model_tensors.count(tensor) != 0) {
+            used_weights.insert(tensor);
+            continue;
+        }
+        if (tensor->view_src != nullptr) {
+            stack.push_back(tensor->view_src);
+        }
+        for (const ggml_tensor * source : tensor->src) {
+            if (source != nullptr) {
+                stack.push_back(source);
+            }
+        }
+    }
+    uint64_t total = 0;
+    for (const ggml_tensor * weight : used_weights) {
+        const uint64_t bytes = weight == model.tok_embd && weight != model.output
+            ? static_cast<uint64_t>(ggml_row_size(weight->type, weight->ne[0]))
+            : static_cast<uint64_t>(ggml_nbytes(weight));
+        total = bytes > UINT64_MAX - total ? UINT64_MAX : total + bytes;
+    }
+    return total;
+}
+
+int32_t llama_context::cassi_graph_nodes_between(
+        const ggml_tensor * output,
+        const ggml_tensor * boundary) const {
+    if (output == nullptr) {
+        return 0;
+    }
+    std::unordered_set<const ggml_tensor *> model_tensors;
+    model_tensors.reserve(model.tensors_by_name.size());
+    for (const auto & item : model.tensors_by_name) {
+        model_tensors.insert(item.second);
+    }
+    std::unordered_set<const ggml_tensor *> visited;
+    std::vector<const ggml_tensor *> stack = { output };
+    int32_t nodes = 0;
+    while (!stack.empty()) {
+        const ggml_tensor * tensor = stack.back();
+        stack.pop_back();
+        if (tensor == nullptr || tensor == boundary || !visited.insert(tensor).second) {
+            continue;
+        }
+        if (model_tensors.count(tensor) != 0) {
+            continue;
+        }
+        if (tensor->op != GGML_OP_NONE) {
+            nodes++;
+        }
+        if (tensor->view_src != nullptr) {
+            stack.push_back(tensor->view_src);
+        }
+        for (const ggml_tensor * source : tensor->src) {
+            if (source != nullptr) {
+                stack.push_back(source);
+            }
+        }
+    }
+    return nodes;
+}
+
+uint64_t llama_context::cassi_graph_weight_bytes_between(
+        const ggml_tensor * output,
+        const ggml_tensor * boundary,
+        bool embedding_row) const {
+    if (output == nullptr) {
+        return 0;
+    }
+    std::unordered_set<const ggml_tensor *> model_tensors;
+    model_tensors.reserve(model.tensors_by_name.size());
+    for (const auto & item : model.tensors_by_name) {
+        model_tensors.insert(item.second);
+    }
+    std::unordered_set<const ggml_tensor *> visited;
+    std::unordered_set<const ggml_tensor *> used_weights;
+    std::vector<const ggml_tensor *> stack = { output };
+    while (!stack.empty()) {
+        const ggml_tensor * tensor = stack.back();
+        stack.pop_back();
+        if (tensor == nullptr || tensor == boundary || !visited.insert(tensor).second) {
+            continue;
+        }
+        if (model_tensors.count(tensor) != 0) {
+            used_weights.insert(tensor);
+            continue;
+        }
+        if (tensor->view_src != nullptr) {
+            stack.push_back(tensor->view_src);
+        }
+        for (const ggml_tensor * source : tensor->src) {
+            if (source != nullptr) {
+                stack.push_back(source);
+            }
+        }
+    }
+    uint64_t total = 0;
+    for (const ggml_tensor * weight : used_weights) {
+        const uint64_t bytes = embedding_row && weight == model.tok_embd
+            ? static_cast<uint64_t>(ggml_row_size(weight->type, weight->ne[0]))
+            : static_cast<uint64_t>(ggml_nbytes(weight));
+        total = bytes > UINT64_MAX - total ? UINT64_MAX : total + bytes;
+    }
+    return total;
+}
+
+void llama_context::enable_cassi_capture() {
+    if (cparams.cassi_apprentice) {
+        throw std::runtime_error("apprentice_capture_requires_teacher");
+    }
+    if (cparams.cassi_capture) {
+        return;
+    }
+    cparams.cassi_capture = true;
+    graph_reuse_disable = true;
+    sched_need_reserve = true;
+    sched_reserve();
+}
+
+bool llama_context::cassi_capture_get(llama_cassi_capture & capture) {
+    if (!cparams.cassi_capture || gf_res_prev == nullptr) {
+        return false;
+    }
+    synchronize();
+    llm_graph_result * result = gf_res_prev.get();
+    const uint32_t layers = model.hparams.n_layer();
+    const auto valid_vector = [&](ggml_tensor * tensor) {
+        return tensor != nullptr && tensor->type == GGML_TYPE_F32 &&
+            ggml_nelements(tensor) == model.hparams.n_embd &&
+            (tensor->buffer != nullptr || (tensor->view_src != nullptr && tensor->view_src->buffer != nullptr));
+    };
+    capture.embedding = result->get_cassi_capture_embed();
+    capture.head_input = result->get_cassi_capture_head_input();
+    capture.head_output = result->get_logits();
+    capture.attention_input.resize(layers);
+    capture.attention_delta.resize(layers);
+    capture.ffn_input.resize(layers);
+    capture.ffn_delta.resize(layers);
+    if (!valid_vector(capture.embedding) || !valid_vector(capture.head_input) ||
+            capture.head_output == nullptr || capture.head_output->type != GGML_TYPE_F32) {
+        return false;
+    }
+    for (uint32_t layer = 0; layer < layers; ++layer) {
+        capture.attention_input[layer] = result->get_cassi_capture_attention_input(layer);
+        capture.attention_delta[layer] = result->get_cassi_capture_attention_delta(layer);
+        capture.ffn_input[layer] = result->get_cassi_capture_ffn_input(layer);
+        capture.ffn_delta[layer] = result->get_cassi_capture_ffn_delta(layer);
+        if (!valid_vector(capture.attention_input[layer]) ||
+                !valid_vector(capture.attention_delta[layer]) ||
+                !valid_vector(capture.ffn_input[layer]) ||
+                !valid_vector(capture.ffn_delta[layer])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, llm_graph_type gtype, llama_memory_context_i * mctx, ggml_status & ret) {
-    if (mctx && !mctx->apply()) {
+    const bool apply_memory = mctx != nullptr &&
+        (gtype != LLM_GRAPH_TYPE_CASSI_SERVICE || !cassi_service_mctx_applied);
+    if (apply_memory && !mctx->apply()) {
         LLAMA_LOG_ERROR("%s: failed to apply memory context\n", __func__);
         ret = GGML_STATUS_FAILED;
         return nullptr;
+    }
+    if (apply_memory && gtype == LLM_GRAPH_TYPE_CASSI_SERVICE) {
+        cassi_service_mctx_applied = true;
     }
 
     auto * res = gf_res_prev.get();
@@ -1758,6 +2146,10 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
 }
 
 int llama_context::encode(const llama_batch & batch_inp) {
+    if (cparams.cassi_apprentice) {
+        LLAMA_LOG_ERROR("%s: apprentice_use_session_api\n", __func__);
+        return -1;
+    }
     // MTP hook batches carry both token (next-token id) and embd (h_nextn row),
     // so accept either present rather than requiring exactly one.
     GGML_ASSERT(batch_inp.token || batch_inp.embd);
@@ -1996,6 +2388,10 @@ static bool needs_raw_logits(const llama_ubatch & ubatch, const std::map<llama_s
 }
 
 int llama_context::decode(const llama_batch & batch_inp) {
+    if (cparams.cassi_apprentice) {
+        LLAMA_LOG_ERROR("%s: apprentice_use_session_api\n", __func__);
+        return -1;
+    }
     // MTP hook batches carry both token (next-token id) and embd (h_nextn row),
     // so accept either present rather than requiring exactly one.
     GGML_ASSERT(batch_inp.token || batch_inp.embd);
@@ -2831,6 +3227,7 @@ llm_graph_params llama_context::graph_params(
         /*.cassi       =*/ &cassi_modal,
         /*.cassi_field =*/ &cassi_field,
         /*.cassi_qi    =*/ &cassi_qi,
+        /*.cassi_service =*/ gtype == LLM_GRAPH_TYPE_CASSI_SERVICE ? &cassi_service_config : nullptr,
         /*.samplers    =*/ sampling.samplers,
         /*.n_outputs   =*/ n_outputs,
         /*.cb          =*/ graph_get_cb(),
@@ -4244,10 +4641,24 @@ llama_context_params llama_context_default_params() {
         /*.cassi_modal                 =*/ true,
         /*.cassi_field_step            =*/ false,
         /*.cassi_qi_field              =*/ false,
+        /*.cassi_apprentice            =*/ false,
         /*.cassi_field_layer           =*/ 32,
         /*.cassi_qi_field_layer        =*/ 32,
         /*.cassi_qi_field_scales       =*/ 4,
+        /*.cassi_qi_field_wave_modes   =*/ 3072,
+        /*.cassi_qi_field_fill_modes   =*/ false,
+        /*.cassi_qi_field_memory_fill =*/ false,
+        /*.cassi_qi_field_row_width    =*/ 0,
         /*.cassi_qi_displacement        =*/ 0,
+        /*.cassi_qi_intervention        =*/ 0,
+        /*.cassi_qi_field_steps         =*/ 1,
+        /*.cassi_qi_injection_scale     =*/ 1.0f,
+        /*.cassi_qi_field_dt            =*/ 0.005f,
+        /*.cassi_qi_substitute          =*/ 0.0f,
+        /*.cassi_qi_energy_floor        =*/ 1.0e-6f,
+        /*.cassi_qi_read_floor          =*/ 0.05f,
+        /*.cassi_attention_owned       =*/ nullptr,
+        /*.cassi_attention_owned_count =*/ 0,
         /*.samplers                    =*/ nullptr,
         /*.n_samplers                  =*/ 0,
         /*.ctx_other                   =*/ nullptr,
@@ -4262,9 +4673,10 @@ llama_context_params llama_context_default_params() {
     return result;
 }
 
-llama_context * llama_init_from_model(
+static llama_context * llama_init_from_model_impl(
                  llama_model * model,
-        llama_context_params   params) {
+        llama_context_params   params,
+                         bool exact_n_ctx) {
     if (!model) {
         LLAMA_LOG_ERROR("%s: model cannot be NULL\n", __func__);
         return nullptr;
@@ -4349,13 +4761,25 @@ llama_context * llama_init_from_model(
     }
 
     try {
-        auto * ctx = new llama_context(*model, params);
+        auto * ctx = new llama_context(*model, params, exact_n_ctx);
         return ctx;
     } catch (const std::exception & err) {
         LLAMA_LOG_ERROR("%s: failed to initialize the context: %s\n", __func__, err.what());
     }
 
     return nullptr;
+}
+
+llama_context * llama_init_from_model(
+                 llama_model * model,
+        llama_context_params   params) {
+    return llama_init_from_model_impl(model, params, false);
+}
+
+llama_context * llama_init_from_model_exact(
+                 llama_model * model,
+        llama_context_params   params) {
+    return llama_init_from_model_impl(model, params, true);
 }
 
 // deprecated
@@ -4650,8 +5074,35 @@ size_t llama_cassi_qi_state_size(const llama_context * ctx) {
     return ctx != nullptr ? ctx->cassi_qi_state_size() : 0;
 }
 
+int64_t llama_cassi_qi_flux_size(const llama_context * ctx) {
+    return ctx != nullptr ? ctx->cassi_qi_flux_size() : 0;
+}
+
+const float * llama_cassi_qi_flux_data(const llama_context * ctx) {
+    return ctx != nullptr ? ctx->cassi_qi_flux_data() : nullptr;
+}
+
+int64_t llama_cassi_qi_state_field_width(const llama_context * ctx) {
+    return ctx != nullptr ? ctx->cassi_qi_state_field_width() : 0;
+}
+
+int64_t llama_cassi_qi_state_row_width(const llama_context * ctx) {
+    return ctx != nullptr ? ctx->cassi_qi_state_row_width() : 0;
+}
+
 int32_t llama_cassi_qi_graph_nodes(const llama_context * ctx) {
     return ctx != nullptr ? ctx->cassi_qi_graph_node_count() : -1;
+}
+
+bool llama_cassi_qi_coupling_set(
+        llama_context * ctx,
+        uint32_t steps,
+        float injection_scale) {
+    if (ctx == nullptr) {
+        return false;
+    }
+    ctx->synchronize();
+    return ctx->set_cassi_qi_coupling(steps, injection_scale);
 }
 
 bool llama_cassi_qi_state_set(

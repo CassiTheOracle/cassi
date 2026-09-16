@@ -405,10 +405,25 @@ extern "C" {
         bool   cassi_field_step;
         // Explicit opt-in Qwen35 Qi multi-scale field injection (default off).
         bool   cassi_qi_field;
+        // Native apprenticeship service context; ordinary decode is disabled.
+        bool   cassi_apprentice;
         uint32_t cassi_field_layer; // captured layer input index, default 32
         uint32_t cassi_qi_field_layer; // Qi captured layer input index, default 32
         uint32_t cassi_qi_field_scales; // fixed profile scales, 1..4
+        uint32_t cassi_qi_field_wave_modes; // Qi wave modes, >= ceil(n_embd/2) and <= mode count; 0 selects the default
+        bool cassi_qi_field_fill_modes; // Fill the Qi sense above n_embd with input content instead of zeros
+        bool cassi_qi_field_memory_fill; // Fill the Qi sense above n_embd from the field's own memory
+        uint32_t cassi_qi_field_row_width; // channels the substitution seam addresses; 0 selects n_embd, capped by the flux block and the row
         uint32_t cassi_qi_displacement; // 0 additive; 3 recurrent write; 4 attention/KV; 5 blocks; 6 LM head
+        uint32_t cassi_qi_intervention; // 0 final hidden/output seam; 1 before cassi_qi_field_layer
+        uint32_t cassi_qi_field_steps; // fixed internal Qi evolutions per decode, >= 1
+        float    cassi_qi_injection_scale; // additive flux coupling; 0 is the identity control
+        float    cassi_qi_field_dt; // Qi integrator timestep: write blend, drift and scale advance; default 0.005, clamped to 0.25
+        float    cassi_qi_substitute; // field share (0..1) of the suppressed recurrent-state write; 0 = lesion only
+        float    cassi_qi_energy_floor; // minimal mode energy rho a scale must exceed to be read
+        float    cassi_qi_read_floor; // minimal coherence gate at which the field flux is read back
+        const uint8_t * cassi_attention_owned; // copied 0/1 mask, one entry per layer
+        uint32_t cassi_attention_owned_count;
         // [EXPERIMENTAL]
         // backend sampler chain configuration (make sure the caller keeps the sampler chains alive)
         // note: the samplers must be sampler chains (i.e. use llama_sampler_chain_init)
@@ -746,6 +761,13 @@ extern "C" {
     // Counts are float elements, not bytes. These functions fail closed unless Qi is enabled
     // and count exactly matches the configured per-sequence state size.
     LLAMA_API size_t llama_cassi_qi_state_size(const struct llama_context * ctx);
+
+    // Channels the substitution seam wrote on the last built graph, and the width of the row it wrote
+    // into. Zero when no seam ran, so a run that claims ownership without a seam reads as zero.
+    LLAMA_API int64_t llama_cassi_qi_flux_size(const struct llama_context * ctx);
+    LLAMA_API const float * llama_cassi_qi_flux_data(const struct llama_context * ctx);
+    LLAMA_API int64_t llama_cassi_qi_state_field_width(const struct llama_context * ctx);
+    LLAMA_API int64_t llama_cassi_qi_state_row_width(const struct llama_context * ctx);
     LLAMA_API bool llama_cassi_qi_state_set(
             struct llama_context * ctx,
                    llama_seq_id   seq_id,
@@ -759,6 +781,14 @@ extern "C" {
     // Number of nodes in the reserved single-token Qi inference graph.
     // Returns -1 when Qi is disabled or no graph has been reserved.
     LLAMA_API int32_t llama_cassi_qi_graph_nodes(const struct llama_context * ctx);
+
+    // Set the Qi coupling for later decodes: evolutions per decode (>= 1) and
+    // additive flux scale (finite, >= 0). Alpha zero is the identity control, and
+    // false leaves the previous coupling in place.
+    LLAMA_API bool llama_cassi_qi_coupling_set(
+            struct llama_context * ctx,
+                        uint32_t   steps,
+                           float   injection_scale);
 
     // Deterministic field-owned score for token ownership. The score reads only
     // the persistent Qi state and immutable token id; model logits are not consulted.

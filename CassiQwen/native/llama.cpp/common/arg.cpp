@@ -3,6 +3,7 @@
 #include "build-info.h"
 #include "chat.h"
 #include "common.h"
+#include "cassi.h"
 #include "download.h"
 #include "json-schema-to-grammar.h"
 #include "llama.h"
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <climits>
+#include <cstring>
 #include <cmath>
 #include <cstdarg>
 #include <filesystem>
@@ -1284,6 +1286,14 @@ bool common_params_parse(int argc, char ** argv, common_params & params, llama_e
     }
 #endif
 
+    for (int index = 1; index < argc; ++index) {
+        if (std::strcmp(argv[index], "--cassi-apprentice") == 0) {
+            params.cassi_apprentice = true;
+            common_cassi_prepare_defaults(params);
+            break;
+        }
+    }
+
     auto ctx_arg = common_params_parser_init(params, ex, print_usage);
     const common_params params_org = ctx_arg.params; // the example can modify the default params
 
@@ -1304,6 +1314,7 @@ bool common_params_parse(int argc, char ** argv, common_params & params, llama_e
             common_params_print_completion(ctx_arg);
             exit(0);
         }
+        common_cassi_validate_params(params);
         params.lr.init();
     } catch (const std::invalid_argument & ex) {
         fprintf(stderr, "%s\n", ex.what());
@@ -1398,7 +1409,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         params.use_jinja = false;   // disable jinja by default
         params.sampling.temp = 0.2; // lower temp by default for better quality
     } else if (ex == LLAMA_EXAMPLE_SERVER) {
-        params.n_parallel = -1;     // auto by default
+        params.n_parallel = params.cassi_apprentice ? 1 : -1; // apprentice owns one serialized field
     } else if (ex == LLAMA_EXAMPLE_TOKENIZE) {
         params.parse_special = true; // parse special tokens by default, like the old tokenize tool
     } else if (ex == LLAMA_EXAMPLE_TTS) {
@@ -2597,6 +2608,110 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_env("LLAMA_ARG_CASSI_QI_FIELD_SCALES").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
     add_opt(common_arg(
+        {"--cassi-qi-field-wave-modes"}, "N",
+        string_format("Qwen35 Qi wave mode count, at least ceil(n_embd/2) and at most the mode count (default: %d)", params.cassi_qi_field_wave_modes),
+        [](common_params & params, int value) {
+            if (value < 1) {
+                throw std::invalid_argument("error: --cassi-qi-field-wave-modes must be positive\n");
+            }
+            params.cassi_qi_field_wave_modes = (uint32_t) value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_WAVE_MODES").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-field-row-width"}, "N",
+        string_format("Channels the Qi substitution seam addresses, 0 for n_embd (default: %d), capped by the flux block and the state row", params.cassi_qi_field_row_width),
+        [](common_params & params, int value) {
+            if (value < 0) {
+                throw std::invalid_argument("error: --cassi-qi-field-row-width cannot be negative\n");
+            }
+            params.cassi_qi_field_row_width = (uint32_t) value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_ROW_WIDTH").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-intervention"}, "final|mid",
+        "Qwen35 Qi additive injection seam: final normalized hidden state or before the selected trunk layer",
+        [](common_params & params, const std::string & value) {
+            if (value == "final") {
+                params.cassi_qi_intervention = 0;
+            } else if (value == "mid") {
+                params.cassi_qi_intervention = 1;
+            } else {
+                throw std::invalid_argument("error: --cassi-qi-intervention must be final or mid\n");
+            }
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_INTERVENTION").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-displacement"}, "N",
+        string_format("Qwen35 Qi displacement level, 0..6: 0 additive, 3 recurrent write, 4 attention/KV, 5 blocks, 6 LM head (default: %d)", params.cassi_qi_displacement),
+        [](common_params & params, int value) {
+            if (value < 0 || value > 6) {
+                throw std::invalid_argument("error: --cassi-qi-displacement must be in [0,6]\n");
+            }
+            params.cassi_qi_displacement = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_DISPLACEMENT").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-field-steps"}, "N",
+        string_format("Qi evolutions per decode (default: %d)", params.cassi_qi_field_steps),
+        [](common_params & params, int value) {
+            if (value < 1) {
+                throw std::invalid_argument("error: --cassi-qi-field-steps must be >= 1\n");
+            }
+            params.cassi_qi_field_steps = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_STEPS").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-injection-scale"}, "F",
+        string_format("additive Qi flux coupling (default: %.3f)", params.cassi_qi_injection_scale),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-injection-scale requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed) || parsed < 0.0f) {
+                throw std::invalid_argument("error: --cassi-qi-injection-scale must be finite and >= 0\n");
+            }
+            params.cassi_qi_injection_scale = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_INJECTION_SCALE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-field-dt"}, "F",
+        string_format("Qi integrator timestep: scales the write blend, drift and scale advance (default: %.4f, kernel clamp 0.25)", params.cassi_qi_field_dt),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-field-dt requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed) || parsed <= 0.0f || parsed > 0.25f) {
+                throw std::invalid_argument("error: --cassi-qi-field-dt must be finite and in (0, 0.25]\n");
+            }
+            params.cassi_qi_field_dt = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_DT").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-substitute"}, "F",
+        string_format("field share (0..1) of the recurrent-state write the qi displacement suppresses; requires displacement 3 or more (default: %.2f)", params.cassi_qi_substitute),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-substitute requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed) || parsed < 0.0f || parsed > 1.0f) {
+                throw std::invalid_argument("error: --cassi-qi-substitute must be finite and in [0, 1]\n");
+            }
+            params.cassi_qi_substitute = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_SUBSTITUTE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
         {"--cassi-qi-field-state"}, "FILE",
         "load an exact raw F32 [scale, mode, plane] Cassi Qi bridge state for sequence 0",
         [](common_params & params, const std::string & value) {
@@ -2609,6 +2724,100 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.cassi_field_step = false;
         }
     ).set_env("LLAMA_ARG_CASSI_QI_FIELD_STATE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice"},
+        "enable the persistent Cassi field apprenticeship runtime",
+        [](common_params & params) {
+            params.cassi_apprentice = true;
+        }
+    ).set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-state"}, "FILE",
+        "persistent Cassi apprenticeship checkpoint",
+        [](common_params & params, const std::string & value) {
+            if (value.empty()) {
+                throw std::invalid_argument("apprentice_state_path_required");
+            }
+            params.cassi_apprentice_state = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_STATE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-init"},
+        "atomically initialize a new zero-field apprenticeship checkpoint",
+        [](common_params & params) {
+            params.cassi_apprentice_init = true;
+        }
+    ).set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-memory-mib"}, "N",
+        string_format("field memory budget in MiB (default: %u)", params.cassi_apprentice_memory_mib),
+        [](common_params & params, const std::string & value) {
+            const unsigned long long parsed = std::stoull(value);
+            if (parsed == 0 || parsed > std::numeric_limits<uint32_t>::max()) {
+                throw std::invalid_argument("apprentice_configuration_conflict");
+            }
+            params.cassi_apprentice_memory_mib = static_cast<uint32_t>(parsed);
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_MEMORY_MIB").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-device"}, "CPU|Vulkan0",
+        string_format("field backend (default: %s)", params.cassi_apprentice_device.c_str()),
+        [](common_params & params, const std::string & value) {
+            if (value != "CPU" && value != "Vulkan0") {
+                throw std::invalid_argument("apprentice_configuration_conflict");
+            }
+            params.cassi_apprentice_device = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_DEVICE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-teacher"}, "adaptive|always|never",
+        "teacher consultation policy",
+        [](common_params & params, const std::string & value) {
+            if (value == "adaptive") {
+                params.cassi_apprentice_teacher = LLAMA_CASSI_ADAPTIVE;
+            } else if (value == "always") {
+                params.cassi_apprentice_teacher = LLAMA_CASSI_ALWAYS;
+            } else if (value == "never") {
+                params.cassi_apprentice_teacher = LLAMA_CASSI_NEVER;
+            } else {
+                throw std::invalid_argument("apprentice_configuration_conflict");
+            }
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_TEACHER").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-route"}, "auto|pipeline",
+        "field routing policy",
+        [](common_params & params, const std::string & value) {
+            if (value == "auto") {
+                params.cassi_apprentice_route = LLAMA_CASSI_AUTO;
+            } else if (value == "pipeline") {
+                params.cassi_apprentice_route = LLAMA_CASSI_PIPELINE;
+            } else {
+                throw std::invalid_argument("apprentice_configuration_conflict");
+            }
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_ROUTE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-audit-interval"}, "N",
+        string_format("committed-token audit interval, 0 disables audits (default: %u)", params.cassi_apprentice_audit_interval),
+        [](common_params & params, const std::string & value) {
+            const unsigned long long parsed = std::stoull(value);
+            if (parsed > std::numeric_limits<uint32_t>::max()) {
+                throw std::invalid_argument("apprentice_configuration_conflict");
+            }
+            params.cassi_apprentice_audit_interval = static_cast<uint32_t>(parsed);
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_AUDIT_INTERVAL").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-apprentice-receipt"}, "FILE",
+        "append Cassi ownership receipts as JSONL (default: stderr)",
+        [](common_params & params, const std::string & value) {
+            if (value.empty()) {
+                throw std::invalid_argument("apprentice_configuration_conflict");
+            }
+            params.cassi_apprentice_receipt = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_APPRENTICE_RECEIPT").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
     if (ex == LLAMA_EXAMPLE_SERVER) {
         // this is to make sure this option appears in the server-specific section of the help message
         add_opt(common_arg(
