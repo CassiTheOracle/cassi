@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import json
 import math
 
 import pytest
 import torch
 
-from cassi_variational_field import VariationalField
+from cassi_variational_field import (
+    REGIONAL_KERNEL_MAX_WORK,
+    REGIONAL_KERNEL_NAME,
+    REGIONAL_STATE_SCHEMA,
+    VariationalField,
+    regional_kernel,
+    regional_state,
+)
 
 
 @pytest.fixture
@@ -210,3 +218,49 @@ def test_robust_readout_does_not_depend_on_score_units(learned):
         _, result = model.certify_linear_action(field, (0,), [0.4], scale * readout, radius=0.1)
         assert result["certified_action"] == reference["certified_action"]
         assert result["linear_stability_radius"] == pytest.approx(reference["linear_stability_radius"])
+
+def test_regional_variational_pause_resume_preserves_allowance_and_work():
+    torch.set_num_threads(1)
+    model = VariationalField(3, ((0, 1), (1, 2)))
+    field = model.observe(
+        model.initial_state(), 0, [0.8, -0.45], exposure=1.0
+    )
+    state = regional_state(
+        model,
+        field,
+        (0,),
+        [0.8],
+        duration=1.0,
+        panel_size=1,
+        max_iterations=128,
+        uncertainty=0.05,
+        allowance=1e-10,
+        readout=[[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]],
+    )
+    assert REGIONAL_KERNEL_NAME == "numerical.variational"
+    assert state["schema"] == REGIONAL_STATE_SCHEMA
+    assert REGIONAL_KERNEL_MAX_WORK >= 128
+    assert "factor_refs" in state["geometry"]
+    assert "covariance_words" in state["task"]
+    assert "panel_cursor" in state["continuation"]
+    assert "total" in state["work"]
+    json_state = json.loads(json.dumps(state, sort_keys=True))
+    uninterrupted = regional_kernel(json_state, {}, REGIONAL_KERNEL_MAX_WORK)
+    assert uninterrupted.status == "done"
+
+    first = regional_kernel(json.loads(json.dumps(state)), {}, 1)
+    assert first.status == "yield"
+    assert first.work == 1
+    assert first.state["continuation"]["panel_cursor"] == 1
+    resumed_state = first.state
+    while True:
+        resumed = regional_kernel(
+            json.loads(json.dumps(resumed_state, sort_keys=True)), {}, 1
+        )
+        resumed_state = resumed.state
+        if resumed.status == "done":
+            break
+    assert resumed.output == uninterrupted.output
+    assert resumed_state["work"]["total"] == uninterrupted.work
+    assert resumed_state["work"]["total"] == uninterrupted.state["work"]["total"]
+    assert resumed_state == uninterrupted.state
