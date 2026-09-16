@@ -6,8 +6,8 @@
 
 This document designs how the retained CassiCore tool surface and the agent-harness
 tool families become Wu Xing steering channels. It is a **design doc only**: no code
-edits, no sim runs, no `gateComposite` adoption. It develops §3.3 of `UNIFICATION.md`
-("orchestration is field dynamics") into a concrete channel grammar grounded in
+edits, no sim runs, no `gateComposite` adoption. It develops the thesis that
+orchestration is field dynamics into a concrete channel grammar grounded in
 `CassiTheory/foundations/wa-pentagon-gate.md` and
 `CassiTheory/foundations/wu-xing-cycle-structure.md`, sequenced by the φ-cadence of
 `CassiCosmos/compute/cassi_qi_time.glsl`.
@@ -172,7 +172,7 @@ by a probe; every probe informs the next deposit's gate decision. **Never a
 per-step pointwise forcing**: the closed-loop stability warning G34 (per-step
 pointwise injection degraded the integrated attractor ~10×) is a hard constraint—
 steering must be cadence-gated and strength-ramped from 0
-(`UNIFICATION.md` §3.6, §5.1, and Phase 3's risk row).
+(Phase 3's risk row).
 
 ### 3.2 Session = a field-steered sequence
 
@@ -206,12 +206,12 @@ rung cadence $\tau_k$, and the global step $t$ gates whether a channel is on its
 The gate $\sigma(\varphi^4(q-1/\varphi))$ is the **admission test**: a channel's tool
 is only honored when the channel's coherence $q$ exceeds the $1/\varphi$
 (≈ 0.618) threshold. This is the temporal regularization G34 demands—injections
-are spaced by $\varphi^k$, not every step (`UNIFICATION.md` Phase 3: "φ-cadence
+are spaced by $\varphi^k$, not every step (Phase 3: "φ-cadence
 injection as the temporal regularization").
 
 **Boundary (FP-4):** this cadence policy is a *design rule*, not a measured mechanism.
 The base field at current twist strength is measured as a rung-independent **mixing
-clock** (G4c FP-4, `UNIFICATION.md` §4 Phase 6). Until the Phase-8 weak-twist probe
+clock** (G4c FP-4). Until the Phase-8 weak-twist probe
 finds a regime where rung structure emerges (or honestly closes it), the toolkit must
 not claim that the $\tau_k$ schedule *meaningfully* separates channels—only that it
 is the φ-consistent spacing rule to test. This is recorded in §5.
@@ -285,7 +285,7 @@ off-states remain A/B arms** (workspace directive). For the Gate Toolkit this me
 ### 5.2 FP-4—cadence claims wait on the weak-twist probe
 
 G4c FP-4 measured the base field as a **rung-independent mixing clock at current twist
-strength** (`UNIFICATION.md` §4 Phase 6 risk; §4 Phase 3 "at current twist strength the
+strength** (Phase 6 risk; Phase 3 "at current twist strength the
 base field is a mixing clock"). Therefore **every cadence claim**—that the
 $\tau_k = \text{round}(\varphi^k)$ schedule meaningfully sequences channels, or that
 rung structure decides *which channel is open when*—**waits on the Phase-8 weak-twist
@@ -293,7 +293,7 @@ probe**: reduce the qi-time twist strength so two-fluid competition (not the ope
 sets the relaxation timescale $T_{\text{rel}}$, with the n=2 cell's $T_{\text{rel}} = 5$
 as the target signal and a pre-stated decision tree (rung-structured $T_{\text{rel}}$
 in the weak regime → the φ² ladder is measurable; mixing clock at all strengths →
-honest HOLD and the ladder claim closes) (`UNIFICATION.md` §4 Phase 8).
+honest HOLD and the ladder claim closes).
 
 The companion pre-registration exists at
 `CassiCosmos/research/cadence/weak_twist_probe_prereg.md` (landed 2026-08-15 by the
@@ -312,7 +312,7 @@ The claim that MnemicField attractors / retrieval structure **tracks** field str
 —that a session's "field-steered sequence" genuinely reads from and writes to the
 field as memory—waits on **§19 (field-as-memory gate): curation adoption, i.e.,
 field structure tracks retrieval structure at z > 2 in ≥ 2/3 sessions**
-(`UNIFICATION.md` §4 Phase 9 risk; the workspace directive records §19 as a
+(the workspace directive records §19 as a
 field-as-memory gate). Until that gate passes, the Earth (memory/storage) channel's
 role in §3 is **instrumentation**: the toolkit can show where content lands in the
 field, but cannot claim the field *is* the memory.
@@ -350,5 +350,4 @@ field, but cannot claim the field *is* the memory.
 - `CassiCore/packages/thalamus/src/gate-composite.ts`—the Stage-2 composite scorer (`{off, cascade}`, live $(1-q)$ factor deferred to Stage 4)
 - `CassiCore/MIGRATION-STATUS.md`—the 22 retained packages; the 13 retained mind tools (§31)
 - `CassiCore/packages/tools/src/implementations/mind-definitions.ts`—retained tool definitions
-- `UNIFICATION.md`—§3.3 (orchestration is field dynamics), §3.6 (steering, not prediction), §4 Phase 3 (G34/FP-4 bounds), §4 Phase 6 (orchestration as field dynamics), §4 Phase 8 (weak-twist probe), §4 Phase 9 (§19 memory gate), §5.1 (closed-loop stability), §5.2 (two ε conventions)
 - Skills: `cassi-ke-ring-gate-test`, `cassi-ke-ring-gate-level-test` (gate-level verification discipline), `prediction-test-preregistration` (claim-grade gating)

@@ -6,9 +6,9 @@
 
 This document is a **specification** for the Field Desktop: an always-on field that ingests the user's digital activity (git commits, file edits, build/test results, searches, tool calls) and renders the resulting memory as a navigable galaxy in the CassiCosmos sim. It is **SPEC ONLY**—no code is edited, no sim runs are performed. Every mechanism here is grounded in a cited existing file; where a mechanism must be newly built, this document states that it is new and names the file that defines the contract it builds on.
 
-The thesis it serves (from `UNIFICATION.md` §3.3–§3.4): *intelligence is the ability to steer the flow of coherence*, and the digital world (files, code, events, tools) is itself a flow of coherence that the field steers. The integration loop is already closed in the stack: **digital world → CassiCore tools/memory (7273) → field bridge → engine `deposit` (7599); engine → `readout`/`project` → field bridge → MnemicField → back to the digital world.** This spec makes that loop concrete for a *passive ingestion surface*: the loop runs continuously, encoding each user action into a field deposition, and the galaxy renderer visualizes the sediment as it consolidates.
+The thesis it serves: *intelligence is the ability to steer the flow of coherence*, and the digital world (files, code, events, tools) is itself a flow of coherence that the field steers. The integration loop is already closed in the stack: **digital world → CassiCore tools/memory (7273) → field bridge → engine `deposit` (7599); engine → `readout`/`project` → field bridge → MnemicField → back to the digital world.** This spec makes that loop concrete for a *passive ingestion surface*: the loop runs continuously, encoding each user action into a field deposition, and the galaxy renderer visualizes the sediment as it consolidates.
 
-This is deliberately the **cheap visualization-first** phase of `C:/Users/Carina/workspaces/Cassi/UNIFICATION.md` §4 Phase 9 (the engram galaxy), built in the build order Phase 9 itself prescribes: the galaxy is cheap (existing instancer, existing streams); the dream A/B waits for the §19 data. Until §19 passes (z > 2 in ≥2/3 sessions), the galaxy is a visualization of an *unproven* mechanism, not of the field-as-memory claim. Section 4 states this explicitly.
+This is deliberately the **cheap visualization-first** phase of the program's Phase 9 (the engram galaxy), built in the build order Phase 9 itself prescribes: the galaxy is cheap (existing instancer, existing streams); the dream A/B waits for the §19 data. Until §19 passes (z > 2 in ≥2/3 sessions), the galaxy is a visualization of an *unproven* mechanism, not of the field-as-memory claim. Section 4 states this explicitly.
 
 ## 1. Event→deposit encoder inventory
 
@@ -63,7 +63,7 @@ The event types below are already first-class citizens of the consolidation voca
 
 ### 1.6 Grounding check against the read side
 
-The encoder inventory is not just *write* side; it must be *readable*. The engine's `project k` returns the top-k cells by `q = EY²+EI²` with their physical `(x, y, z)`, `(gx, gy, gz)` grid indices, and `ey`/`ei` (`cassi_mind_engine.gd` lines 328–376). The field bridge's `readProjection(k)` returns these as `ProjectionCell[]`, re-sorted DESC by q, never throwing (engine-down → `[]`) (`CassiCore/packages/mind-runtime/src/vendor/core/intelligence/field-bridge/index.ts` lines 88–113, 226–235). So **a bright deposit (a large commit, a documented decision) reads back as a top-k attractor** at the same grid cell it was deposited at—this is the Stage-4 location agreement the §19 harness measures (retrieved engram → nearest attractor cell distance vs uniform draws; z > 2 in ≥2/3 sessions, per `UNIFICATION.md` §1.6 Stage 4). The collector's job is to make the *write* side feed that agreement: deposit each event at the deterministic cell derived from its content, so that when a memory search retrieves the engram and projects the field, the top attractors are spatially near the engrams that caused them.
+The encoder inventory is not just *write* side; it must be *readable*. The engine's `project k` returns the top-k cells by `q = EY²+EI²` with their physical `(x, y, z)`, `(gx, gy, gz)` grid indices, and `ey`/`ei` (`cassi_mind_engine.gd` lines 328–376). The field bridge's `readProjection(k)` returns these as `ProjectionCell[]`, re-sorted DESC by q, never throwing (engine-down → `[]`) (`CassiCore/packages/mind-runtime/src/vendor/core/intelligence/field-bridge/index.ts` lines 88–113, 226–235). So **a bright deposit (a large commit, a documented decision) reads back as a top-k attractor** at the same grid cell it was deposited at—this is the Stage-4 location agreement the §19 harness measures (retrieved engram → nearest attractor cell distance vs uniform draws; z > 2 in ≥2/3 sessions). The collector's job is to make the *write* side feed that agreement: deposit each event at the deterministic cell derived from its content, so that when a memory search retrieves the engram and projects the field, the top attractors are spatially near the engrams that caused them.
 
 ## 2. Daemon architecture
 
@@ -78,7 +78,7 @@ The Field Desktop is **two always-on processes** wired through the existing loop
 1. Watches the digital event sources (git hooks or `git log` polling; file-watcher; the 7273 event bus for `mcp_notification` consumers).
 2. For each event, builds an engram (content, nodeType per Section 1.4, `x,y,z` from the deterministic encoding).
 3. Dispatches it to MnemicField (write path) and to the field via `StandardMindFieldEncoder` → the shadow-bridge drainer → `deposit` on 7599.
-4. Reads the projection stream (`readProjection(k)`) and feeds it back to MnemicField's HEALPix spatial index (the projection → spatial index → salience curation, `UNIFICATION.md` §1.1 line 40, §2 Phase 5).
+4. Reads the projection stream (`readProjection(k)`) and feeds it back to MnemicField's HEALPix spatial index (the projection → spatial index → salience curation).
 
 The collector is the **"small new service"** the task names—it owns the event→engram→deposit mapping of Section 1 and the projection stream ingestion.
 
@@ -106,7 +106,7 @@ the field (grid_n=64, two_fluid.glsl)  — deposits scattered, PDE evolves
 readout / project k   (top-k attractor cells)
    ▼
 readProjection(k) → ProjectionCell[]  (field-bridge/index.ts, never throws)
-   ▼  projection → HEALPix spatial index → salience bonus  (UNIFICATION §1.1/§1.6 curation wiring)
+   ▼  projection → HEALPix spatial index → salience bonus  (curation wiring)
    ▼
 MnemicField retrieval (kindling: seed → spread → luminal, kindling.ts)  →  back to digital world (memory search / tool context)
 ```
@@ -120,7 +120,7 @@ MnemicField retrieval (kindling: seed → spread → luminal, kindling.ts)  → 
 A passive ingestion surface must not thrash the daemon. The mind-runtime's unified loop already runs consolidation on an interval with a cadence (`boot.ts` `intelligence.unifiedLoop.backgroundIntervalMs = 60_000`, `consolidationCadence = 5`), and `ConsolidationEngine.consolidate()` yields to the event loop between phases so a 125K+ engram consolidation does not block heartbeats (`consolidation.ts` lines 102–105, 449+). The collector deposits on event cadence (arrivals), but:
 
 - **Prune/scaffold events are dropped before deposit if the field is busy.** The high-volume, near-zero-salience types (tool, file_read, message at power 0.05–0.1) SHOULD be batched and rate-limited so the field is not flooded by build noise; a single rate cap (e.g. max N deposits per drain interval) is a collector config, not a field change.
-- **Deposits land at event cadence; the field evolves at its own cadence.** There is no per-frame injection; the G34 discipline (per-step pointwise injection degrades the integrated attractor ~10×, `UNIFICATION.md` §4 Phase 3, §2.2) is inherited by *design*: the collector is a passive feed into the PDE, not a steering loop. It never reads-then-injects a delta; it only deposits standalone events and lets the field relax. This is the fundamental difference from Phase 3's steering loop.
+- **Deposits land at event cadence; the field evolves at its own cadence.** There is no per-frame injection; the G34 discipline (per-step pointwise injection degrades the integrated attractor ~10×) is inherited by *design*: the collector is a passive feed into the PDE, not a steering loop. It never reads-then-injects a delta; it only deposits standalone events and lets the field relax. This is the fundamental difference from Phase 3's steering loop.
 
 ## 3. Galaxy renderer spec
 
@@ -130,7 +130,7 @@ The galaxy renders the field's sediment in the sim. Everything it needs already 
 
 - **The instancer.** `CassiCosmos/compute/cassi_instancer.glsl` writes the MultiMesh buffer (16 floats/instance: 3×4 transform + color), with additive-glow (`0x20` feature flag), size-by-mass (`0x10`), and depth-cue (`0x40`) feature flags all default-off and the legacy color path bit-identical when flags are unset (lines 11–41, 390–545). The Qi color axis samples the **bounded coherence** `q_coh = ρ²/(ρ²+φ⁻²+ε²)` (lines 269–303)—order-sensitive, bounded [0,1), which is what makes a "glowing cluster" read correctly: an attractor is a *coherent* (φ-aligned, ε≈0) concentration, not just a loud one.
 - **The UI design system.** `CassiCosmos/scripts/sim_ui.gd` builds its whole operator rail from a settings registry (`PARAMS`/`EXTRA_PARAMS`/`EXTRA_TOGGLES`, lines 153–216), the `CASSI_THEME` (`addons/cassi_ui/theme/cassi_theme.tres`, line 124), gradient legend, and the auto-track live band (lines 221+). The galaxy's controls (mode selection, deposit-stream visibility, cluster-glow toggle, dream-recording button) slot into this registry as ordinary panel rows—one `EXTRA_TOGGLES` entry per galaxy toggle is the whole contract ("new param = one dict entry is the whole contract", sim_ui.gd line 129).
-- **Particle headroom.** The sim instancer has 2.5M-particle headroom (`UNIFICATION.md` §1.4; `sim_ui.gd` PARAMS `particles` max 5,000,000, line 157). The galaxy needs one *marker particle per deposit/engram cluster*—orders of magnitude under the headroom, so the galaxy renderer is visually distinct from (and can be overlaid on) the physical particle sim.
+- **Particle headroom.** The sim instancer has 2.5M-particle headroom (`sim_ui.gd` PARAMS `particles` max 5,000,000, line 157). The galaxy needs one *marker particle per deposit/engram cluster*—orders of magnitude under the headroom, so the galaxy renderer is visually distinct from (and can be overlaid on) the physical particle sim.
 
 ### 3.2 Attractors as glowing clusters
 
@@ -140,7 +140,7 @@ Each `project k` top-attractor cell (a `ProjectionCell` with `q`, `x,y,z`, lines
 - **Cluster brightness** = `q` through the instancer's Qi coherence channel: `q_coh = ρ²/(ρ²+φ⁻²+ε²)` with the approach band picking up cells near the φ-align white point (`cassi_instancer.glsl` lines 269–303, 484–503). Additive-glow (`0x20`) lifts their alpha so a bright attractor reads as a glowing core; size-by-mass (`0x10`) scales the marker by `q`'s magnitude.
 - **The projection stream is the feed.** The renderer is driven by `readProjection(k)` (default k=8, per `field-bridge/index.ts` line 226) polled on a cadence, with each poll repositioning/reglowing the markers—so the galaxy is always showing the *current* top attractors, and clusters visibly appear and fade as deposits consolidate and decay.
 
-This is the "attractors as glowing clusters fed by the projection stream (readProjection(8) → HEALPix lookup)" of `UNIFICATION.md` §4 Phase 9's milestone, made concrete with the existing instancer's color/size machinery.
+This is the "attractors as glowing clusters fed by the projection stream (readProjection(8) → HEALPix lookup)" of Phase 9's milestone, made concrete with the existing instancer's color/size machinery.
 
 ### 3.3 Kindling as light-front propagation
 
@@ -158,16 +158,16 @@ The renderer visualizes a kindling event (triggered by an actual retrieval, or b
 
 ### 3.5 Dream archive: Movie Maker idle relaxation
 
-The dead-wired DreamEngine is re-energized as idle attractor drift (the §31-3 design of `UNIFICATION.md` §4 Phase 9) and the whole thing is captured with Movie Maker:
+The dead-wired DreamEngine is re-energized as idle attractor drift (the §31-3 design of Phase 9) and the whole thing is captured with Movie Maker:
 
-- **Dream-phase.** During idle (no deposits, no retrievals for N minutes), the collector issues `clear` or low-strength drift deposits at φ-cadence, letting the field relax toward its attractors—the "dream-phase `similar_to`/`cross_modal` synapse formation" of `UNIFICATION.md` §4 Phase 9. The pre-registered dream-phase recall A/B (does dream-phase relaxation discover connections retrieval misses?) reports later, gated on §19 data; the *archive* is just the recording.
+- **Dream-phase.** During idle (no deposits, no retrievals for N minutes), the collector issues `clear` or low-strength drift deposits at φ-cadence, letting the field relax toward its attractors—the "dream-phase `similar_to`/`cross_modal` synapse formation" of Phase 9. The pre-registered dream-phase recall A/B (does dream-phase relaxation discover connections retrieval misses?) reports later, gated on §19 data; the *archive* is just the recording.
 - **Movie Maker capture.** `CassiCosmos/scripts/main_recorder.gd` is a background recording scene that owns the orbital camera, inherits the sim's curated settings from `main.tscn`, applies CLI overrides, and quits when the requested frame count is reached (Movie Maker finalizes the AVI on quit; no UI nodes, progress to stdout—`main_recorder.gd` lines 1–18, 302–315). Running it over a dream-phase galaxy session with `--record-frames N --record-fps 30` yields the **dream archive**: AVI recordings of idle relaxation that are inspected as the listening instrument (with the cascade-sonification mapping as the audio track, `sound_coherence_note.md`). These recordings are the deliverable artifact that makes the "dreaming galaxy" watchable outside the live sim.
 
 ## 4. Phased artifacts and honest gates
 
 ### 4.1 The build order (Phase 9 prescribes cheap-first)
 
-Phase 9's own risk notes set the order: "the galaxy is cheap (existing instancer, existing streams); the dream A/B waits for the §19 data" and "the value of the whole phase is downstream of the curation adoption gate (§34: §19 z > 2 in ≥2/3 sessions)" (`UNIFICATION.md` §4 Phase 9). The phases below respect this: the collector and renderer (cheap) come first; every *claim* about the field-as-memory is held until §19 passes.
+Phase 9's own risk notes set the order: "the galaxy is cheap (existing instancer, existing streams); the dream A/B waits for the §19 data" and "the value of the whole phase is downstream of the curation adoption gate (§34: §19 z > 2 in ≥2/3 sessions)". The phases below respect this: the collector and renderer (cheap) come first; every *claim* about the field-as-memory is held until §19 passes.
 
 ### 4.2 Phase 1 artifact: the minimal git-commits collector (the first milestone)
 
@@ -178,7 +178,7 @@ The minimal collector digesting **ONE stream—git commits**—is the first mile
 **Pre-registration (the `prediction-test-preregistration` pattern).** Before any collection run, §0 of the milestone report fixes, in writing:
 
 - **Prediction (quoted).** A commit deposited at deterministic cell `(x,y,z)` (from its content hash) and later retrieved produces a Stage-4 nearest-attractor agreement that is *not distinguishable from a commit deposited at a uniform-random cell*—i.e. the deterministic placement is a *precondition* for the field-as-memory claim, not itself the claim. The measurable target is: `z_agreement(commit) > 2`, where `z_agreement` is the Stage-4 statistic defined below.
-- **Statistic (exact estimator).** For each retrieved commit-engram over the collection window, `d = min over projected top-k attractor cells of spatial distance(engram cell, attractor cell)` in the quantized 64³ lattice; the statistic is `z = (null_mean − obs_mean) / null_sd` over all retrieved commits, where the null is the distribution of `d` for 1000 uniform draws on the 64³ lattice (the §19 positional-agreement harness definition, `UNIFICATION.md` §1.6 Stage 4 — adopted verbatim so the milestone shares the §34 metric).
+- **Statistic (exact estimator).** For each retrieved commit-engram over the collection window, `d = min over projected top-k attractor cells of spatial distance(engram cell, attractor cell)` in the quantized 64³ lattice; the statistic is `z = (null_mean − obs_mean) / null_sd` over all retrieved commits, where the null is the distribution of `d` for 1000 uniform draws on the 64³ lattice (the §19 positional-agreement harness definition — adopted verbatim so the milestone shares the §34 metric).
 - **Decision tree.** `ADOPT placement` = `z > 2` in ≥2/3 of weekly collection sessions (the §19 threshold, reused). `NULL placement` = `z ≤ 2` in ≥2/3 of sessions — the deterministic placement adds nothing spatial, and the section's honest-negative status is recorded. `INCONCLUSIVE` = fewer than 2/3 of sessions clear EITHER band, or the epoch-to-cell mapping JSONL is missing/corrupt (a failed control), or the engine was down for >50% of a session (no field structure formed to measure).
 - **Stopping rule.** Fixed: collect across K sessions (K ≥ 3, each a full working week of commits on the watched repos); ONE analysis pass; no sequential testing, no post-hoc cuts on sessions or commits; the epoch-to-cell journal is the immutable pairing record. The rule is fixed before the first commit is collected.
 
@@ -192,15 +192,15 @@ With the git stream measured, the collector widens to the full Section 1.4 inven
 
 Until `CassiTheory`-governed §19/§34 passes (`z > 2` in ≥2/3 sessions), the following claims are **explicitly NOT made** by this spec or by any collection/render milestone:
 
-- **NOT "the field is memory."** The galaxy is a visualization of an *unproven mechanism* until the §19 positional-agreement harness shows field structure tracks retrieval structure (`UNIFICATION.md` §4 Phase 9 risk). The galaxy's glowing clusters reflect *deposits*, not proven memory traces.
-- **NOT "retrieval is improved by the field."** The projection stream feeds MnemicField's HEALPix salience bonus (`UNIFICATION.md` §1.6 curation wiring), but no claim that the bonus improves end-to-end retrieval is made until the dream-phase recall A/B (gated on §19 data) measures it.
-- **NOT a steering loop.** The collector is passive ingestion. It does not read-then-inject; it never performs per-step pointwise injection (the G34-degrading pattern, `UNIFICATION.md` §5.1). If anyone extends it toward steering, that is Phase 3's territory, pre-registered separately and cadence-gated.
-- **NOT a φ-cadence schedule.** No claim that the field's observed dynamics are φ-structured; the base field was measured as a mixing clock at current twist strength (G4c FP-4, `UNIFICATION.md` §1.6). The galaxy shows coherence, not a validated clock.
+- **NOT "the field is memory."** The galaxy is a visualization of an *unproven mechanism* until the §19 positional-agreement harness shows field structure tracks retrieval structure. The galaxy's glowing clusters reflect *deposits*, not proven memory traces.
+- **NOT "retrieval is improved by the field."** The projection stream feeds MnemicField's HEALPix salience bonus, but no claim that the bonus improves end-to-end retrieval is made until the dream-phase recall A/B (gated on §19 data) measures it.
+- **NOT a steering loop.** The collector is passive ingestion. It does not read-then-inject; it never performs per-step pointwise injection (the G34-degrading pattern). If anyone extends it toward steering, that is Phase 3's territory, pre-registered separately and cadence-gated.
+- **NOT a φ-cadence schedule.** No claim that the field's observed dynamics are φ-structured; the base field was measured as a mixing clock at current twist strength (G4c FP-4). The galaxy shows coherence, not a validated clock.
 - **NOT digital-world "understanding."** The deposit encoder maps events to cells deterministically; it does not claim the field *knows* what files/code/events mean. It digests and spatially organizes the flow—which, under the thesis, is the substrate intelligence steers—but the steering claim is the program's, downstream of the honest gates.
 
 ### 4.5 Honest negatives are deliverables
 
-Per the program's discipline (`UNIFICATION.md` §1.6 and §5), each milestone's report carries its honest-negative branch as a first-class outcome, not a failure: a NULL placement in Phase 1 is a valid deliverable that closes the "deterministic placement aids retrieval" question at measured cost; the galaxy still renders, and the field-as-memory claim simply remains un-adopted until §19. The spec's build order is deliberately structured so a negative at any phase costs visualization time, not doctrine.
+Per the program's discipline, each milestone's report carries its honest-negative branch as a first-class outcome, not a failure: a NULL placement in Phase 1 is a valid deliverable that closes the "deterministic placement aids retrieval" question at measured cost; the galaxy still renders, and the field-as-memory claim simply remains un-adopted until §19. The spec's build order is deliberately structured so a negative at any phase costs visualization time, not doctrine.
 
 ## 5. Risks and explicit caveats
 
@@ -208,11 +208,10 @@ Per the program's discipline (`UNIFICATION.md` §1.6 and §5), each milestone's 
 2. **Placement determinism vs. consolidation drift.** The collector deposits at deterministic cells; consolidation then *moves* engrams (co-activation, centripetal, angular drift—Section 3.4). The Phase-1 statistic must define "retrieved engram cell" off the *post-consolidation* position (the `project` readout), not the original deposit, or it measures the encoder, not the field. This is a control check, not a confound—specified in §4.2's statistics.
 3. **Two coordinate systems must stay aligned.** The encoder's engram `(x,y,z) ∈ [-1,1]³` (the field-engine grid) maps to the sim's world when the sim and engine share `extent`. If the sim's box drives to a different extent (a `box_scale`/`box_aspect` reinit, `sim_ui.gd` EXTRA_PARAMS lines 201), the galaxy markers must transform with it or they will not overlay the physical particles. The renderer's cluster positions come from the engine's `project` `(x,y,z)` directly, so this is an overlay-mapping concern, not a data concern.
 4. **Deposit flood from passive ingestion.** High-volume near-zero-salience types (tool, file_read, message) can swamp the field if unthrottled. The rate cap (Section 2.3) is a collector config; it must be pre-registered with the same discipline as any other knob so it cannot become a post-hoc selection (dropping "noisy" sessions to hit a threshold).
-5. **The σ and ε conventions travel with the ledger.** Two ε conventions (theory ε = EY−φEI vs AI ε = ψ−P[ψ]) and two q conventions (field q = EY²+EI² vs AI Q = surprise) are open (UNIFICATION §5.3). The encoder table fixes its charges deterministically; any port that changes a σ contract or a z threshold must re-run the host-wired suites (UNIFICATION §5.7 port discipline) or it silently invalidates the §19 ledger.
+5. **The σ and ε conventions travel with the ledger.** Two ε conventions (theory ε = EY−φEI vs AI ε = ψ−P[ψ]) and two q conventions (field q = EY²+EI² vs AI Q = surprise) are open. The encoder table fixes its charges deterministically; any port that changes a σ contract or a z threshold must re-run the host-wired suites (port discipline) or it silently invalidates the §19 ledger.
 
 ## References
 
-- `C:/Users/Carina/workspaces/Cassi/UNIFICATION.md` §3.4 (AI I/O is field probing), §4 Phase 9 (the engram galaxy), §1.6 (Stage 4/§19, Stage 3-wiring, ledger), §5 (risk notebook)
 - `CassiCore/packages/mnemic-field/src/attractor.ts` — three-pole attention, radial boost, sigma
 - `CassiCore/packages/mnemic-field/src/engram-decomposer.ts` — density decomposition
 - `CassiCore/packages/mnemic-field/src/consolidation.ts` — consolidation engine, TYPE_POTENTIATION, drift/potentiation

@@ -61,7 +61,7 @@ The n=2 cell (`ρ₂ = 0.2639`) keeps the only non-unit relaxation — `T_rel = 
 
 1. **`φ²` modal-≥4/6 →** … not reached (φ² tally = 0). NOT a pass.
 2. **`φ` modal-≥4/6 →** … not reached (φ tally = 1, < 4). Trivialization does not clear.
-3. **`1` modal-≥4/6 →** **reached** — 4 of 6. **→ HONEST HOLD.** The rung-structure claim is closed for this operator at this resolution; the n=2 hint did not generalize. Phase-8 milestone 1 does **not** clear; M1/M2 temporal coupling is **not licensed by this probe** (`UNIFICATION.md` §4 Phase 8; Phase 6 cannot claim φ-cadence scheduling on this operator until this regime is found or the claim is closed).
+3. **`1` modal-≥4/6 →** **reached** — 4 of 6. **→ HONEST HOLD.** The rung-structure claim is closed for this operator at this resolution; the n=2 hint did not generalize. Phase-8 milestone 1 does **not** clear; M1/M2 temporal coupling is **not licensed by this probe** (Phase 6 cannot claim φ-cadence scheduling on this operator until this regime is found or the claim is closed).
 4. **`ANOMALY` →** not reached (a clean modal `1` exists). Not applicable.
 
 **Consequence statement (one line):** The mixing clock persists at weak strength → **HONEST HOLD** — the φ-cadence ladder is closed for this operator at this resolution, Phase-8 milestone 1 does not clear, and M1/M2 temporal coupling is not licensed by this probe.

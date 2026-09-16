@@ -12,11 +12,11 @@
 
 ### 0.1 The claim being tested
 
-From `UNIFICATION.md` §1.6 and §4 Phase 8: the qi-time cadence claim is that **two-fluid competition, not the operator's saturation, sets the resolved-band relaxation time** `T_rel` per rung, and that when it does the relaxation-time ratio across rungs lands on one of the pre-stated branches `1 | φ | φ²`. The Phase-8 milestone-1 spec (`UNIFICATION.md` §4 Phase 8, milestone "first") names the experiment precisely: *"reduce the qi-time twist strength so that two-fluid competition (not the operator) sets `T_rel`, then re-run the telescoping FP-4 with the derived φ² arm."*
+The qi-time cadence claim is that **two-fluid competition, not the operator's saturation, sets the resolved-band relaxation time** `T_rel` per rung, and that when it does the relaxation-time ratio across rungs lands on one of the pre-stated branches `1 | φ | φ²`. The Phase-8 milestone-1 spec names the experiment precisely: *"reduce the qi-time twist strength so that two-fluid competition (not the operator) sets `T_rel`, then re-run the telescoping FP-4 with the derived φ² arm."*
 
 ### 0.2 Boundary condition 1 — the full-strength mixing clock (FP-4, branch "1")
 
-The Wave-2 telescoping battery (`D:/carina/workspaces/cassicore/research/mind/telescoping_battery_report.md`, §1.6 in `UNIFICATION.md`) ran the FP-4 discriminator at the **full** twist strength (`q_sharp = φ⁴ ≈ 6.854`) and returned **branch "1" (mixing clock)**:
+The Wave-2 telescoping battery (`D:/carina/workspaces/cassicore/research/mind/telescoping_battery_report.md`) ran the FP-4 discriminator at the **full** twist strength (`q_sharp = φ⁴ ≈ 6.854`) and returned **branch "1" (mixing clock)**:
 
 | n | `ρ_n` | `ε₀` | `T_rel(n)` (uniform cadence) |
 |---|---|---|---|
@@ -65,7 +65,7 @@ The §32 Qi-time battery (`D:/carina/workspaces/cassicore/research/mind/qi_time_
 
 ### 1.3 Cadence-neutrality (the gate is measured WITHOUT the cadence)
 
-Per `telescoping_battery_report.md` §0.3d and UNIFICATION §4 Phase 8, `T_rel` is measured under the **uniform-cadence configuration** (`uniform_flag=1`, `τ_k=1`): the q-gated conservative φ-attractor twist fires every cell every step with no rung-dependent schedule. This is the conservative reading — the gate-outcome ratio lives in the **base dynamics** (two-fluid competition + cadence-neutral twist), not in any `τ_k = round(φ^{e·k})` schedule. This is exactly why the weak reduction is the operative variable: it controls whether the **operator saturates** `ε` (full strength) or lets **two-fluid competition** set the relaxation time (weak strength). The φ¹/φ² run-own ratios are reported as **exploratory context only and can never carry the verdict** (`telescoping_battery_report.md` §0.3f).
+Per `telescoping_battery_report.md` §0.3d, `T_rel` is measured under the **uniform-cadence configuration** (`uniform_flag=1`, `τ_k=1`): the q-gated conservative φ-attractor twist fires every cell every step with no rung-dependent schedule. This is the conservative reading — the gate-outcome ratio lives in the **base dynamics** (two-fluid competition + cadence-neutral twist), not in any `τ_k = round(φ^{e·k})` schedule. This is exactly why the weak reduction is the operative variable: it controls whether the **operator saturates** `ε` (full strength) or lets **two-fluid competition** set the relaxation time (weak strength). The φ¹/φ² run-own ratios are reported as **exploratory context only and can never carry the verdict** (`telescoping_battery_report.md` §0.3f).
 
 ---
 
@@ -108,7 +108,7 @@ Gates `G1–G3` (OFF-path bit-identity, charge conservation in the isolated weak
 
 1. **`φ²` modal-≥4/6 → rung-structured `T_rel` in the weak regime → the φ² ladder is measurable → Phase-8 milestone 1 PASSES → M1/M2 temporal coupling proceeds.** Adoption-eligible **for the exponent-2 cadence only** (matching `telescoping_battery_report.md` §0.3e). The derived cadence stays EXPLORATORY (T2) because the `scale_telescoping_design.md` §4a derivation contract has not landed — a consequence quoted verbatim, not weakened by this run.
 2. **`φ` modal-≥4/6 → the trivialization schedule.** Confirms the constant-speed reading; the exponent-1 cadence is adoptable **only as a designed schedule, never as a derived law** (`scale_telescoping_design.md` §4a; `qi-time-ladder-derivation.md` §2b). Phase-8 milestone 1 does **not** clear on this branch for the φ² ladder.
-3. **`1` modal-≥4/6 → the mixing clock persists at weak strength → HONEST HOLD.** The rung-structure claim is closed **for this operator at this resolution**; the n=2 hint did **not** generalize. Phase-8 milestone 1 does not clear; M1/M2 temporal coupling is **not licensed by this probe** (`UNIFICATION.md` §4 Phase 8; `UNIFICATION.md` §4 Phase 6: Phase 6 cannot claim φ-cadence scheduling on this operator until this regime is found or the claim is closed).
+3. **`1` modal-≥4/6 → the mixing clock persists at weak strength → HONEST HOLD.** The rung-structure claim is closed **for this operator at this resolution**; the n=2 hint did **not** generalize. Phase-8 milestone 1 does not clear; M1/M2 temporal coupling is **not licensed by this probe** (Phase 6 cannot claim φ-cadence scheduling on this operator until this regime is found or the claim is closed).
 4. **`ANOMALY` (no branch ≥4/6, or unreached pairs) → inconclusive, documented as such.** No post-hoc strength selection, no gate-weakening; a null/exploratory/anomaly is a **finding, not a re-framing** (`scale_telescoping_design.md` §33.4; `telescoping_battery_report.md` §0.5).
 
 The `≥4 of 6` modal rule means branch 1/3 (`1`) and the Phase-8 mixing-clock-HOLD both fire only on a genuine — not a highlight — majority; branch-`φ²` (adoption) requires the **cleanest** structural signal, the only one that licenses M1/M2 temporal coupling.
@@ -155,11 +155,11 @@ Every load-bearing number above cites a file and was recomputed where cheap:
 - **G4 null values** `z=−0.959, d_mean=0.2783, null μ=0.12551, σ=0.15930`: `telescoping_battery_report.md` §2; `qi_time_engine_report.md` §4 (identical across all arms).
 - **Derived φ² exponent** `exponent(τ) = (3−m)/2` with `m = −1` ⇒ `2`: `CassiTheory/speculations/qi-time-ladder-derivation.md` §2 (§0.1, §2.4); referee `referee_qi_time_ladder.py` `[A][B][C]`.
 - **Anchor radii** `ρ_n = φ^{−n}(1−1/(2φ))`: recomputed, matches §1.1 table and `verify_telescoping.gd:394`.
-- **Phase-8 milestone-1 spec and decision-tree framing:** `UNIFICATION.md` §4 Phase 8 (milestone "first": reduce twist strength; decision tree pre-stated: rung-structured `T_rel` in the weak regime → φ² ladder measurable and M1/M2 temporal coupling proceeds; mixing clock persists at all strengths → honest HOLD, ladder claim closed for this operator).
+- **Phase-8 milestone-1 spec and decision-tree framing:** milestone "first": reduce twist strength; decision tree pre-stated: rung-structured `T_rel` in the weak regime → φ² ladder measurable and M1/M2 temporal coupling proceeds; mixing clock persists at all strengths → honest HOLD, ladder claim closed for this operator).
 - **M2 temporal-coupling referent** (the 49-level tree and its linear per-level `dt_lev = DT·min(1, L/10)` time-step homothety): `CassiCosmos/research/cascade_machine/m2_design.md` §1.5/§1.1 (the only existing time-ladder, `dt ∝ L` — the trivialization this probe must improve on).
 
 ---
 
 ## 9. Deliverable scope note
 
-This is a **documentation-only** deliverable (per the workstream charter and the `prediction-test-preregistration` skill: pre-register the statistic/decision-tree/stopping-rule **before** any run). No sim is launched; no existing file is modified (including the owner's uncommitted `verify_telescoping_weak.gd`/`.tscn` and the do-not-edit root `UNIFICATION.md`; its §1.6 ledger and §4 Phase 8 decision tree preserve the pre-registration requirement). The next step — executing `verify_telescoping_weak.tscn` windowed, never `--headless` (local RD requirement per `verify_qi_time.gd:30`) — proceeds only via this pre-registration, and its verdict is bound by §4 and §5.
+This is a **documentation-only** deliverable (per the workstream charter and the `prediction-test-preregistration` skill: pre-register the statistic/decision-tree/stopping-rule **before** any run). No sim is launched; no existing file is modified (including the owner's uncommitted `verify_telescoping_weak.gd`/`.tscn`). The next step — executing `verify_telescoping_weak.tscn` windowed, never `--headless` (local RD requirement per `verify_qi_time.gd:30`) — proceeds only via this pre-registration, and its verdict is bound by §4 and §5.

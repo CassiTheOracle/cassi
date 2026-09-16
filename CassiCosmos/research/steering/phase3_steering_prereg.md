@@ -4,29 +4,27 @@
 
 This document fixes the statistic, decision tree, and stopping rule for the
 Phase-3 steering loop **before any steering run executes**. It is the pre-file
-the plan requires (UNIFICATION.md §4 Phase 3; the pre-registration and honest-verdict
-discipline is recorded in UNIFICATION.md §1.6 and §5). No claim below is a measurement; every run's verdict lands in the
+the plan requires. No claim below is a measurement; every run's verdict lands in the
 ledger appended to this file after `tools/field_steer.py` runs.
 
 ## 0. Context asserted, not argued
 
 - The field is the computation; intelligence is the operator that steers the
-  flow of coherence (UNIFICATION.md §3.3–§3.4).
+  flow of coherence.
 - Read = readout/project; write = deposit (`cassi_mind_engine.gd` bridge, port
   7599). Coherence density per cell `q = EY² + EI²`; disequilibrium
   `ε² = (EY − φ·EI)²` (mind-engine `compute_readout`).
 - Two measured negatives bound every steering design and are the baselines to
   beat (section 5):
   - **G34** — per-step pointwise injection degrades the integrated attractor
-    ~10× (UNIFICATION §5.1, §4 Phase 4).
+    ~10× (Phase 4).
   - **FP-4 (G4c)** — at current twist strength the base field is a mixing
-    clock; a loop that fires every step injects into noise (UNIFICATION §4
-    Phase 8, Phase 3 Risk).
+    clock; a loop that fires every step injects into noise (Phase 8,
+    Phase 3 Risk).
   - **Stage 5 REJECT** — the error-minimizer lost to predict-unchanged
     (floor 0.5571). Steering over prediction is the winning posture.
 - Pre-registration discipline: statistic, decision tree, stopping rule fixed
-  before any run; fresh solver per arm; no post-hoc tuning; NaN-loud-fail
-  (UNIFICATION.md §1.6 and §5).
+  before any run; fresh solver per arm; no post-hoc tuning; NaN-loud-fail.
 
 ## 1. Artifact under test
 

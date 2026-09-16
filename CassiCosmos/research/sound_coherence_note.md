@@ -269,7 +269,7 @@ framework-consistent language, not a new numbered claim. **TIER-3.**
   operator-sharing, **not** CFL/speed inheritance (a static solve, no
   time-step). Tier-2.
 - **(d) Mind engine / consciousness:** the mind engine runs
-  `cassi_two_fluid.glsl` verbatim (UNIFICATION.md §1.4), so the ρ/ε split
+  `cassi_two_fluid.glsl` verbatim, so the ρ/ε split
   applies to the 7599-bridge field. Standing-coherence claims
   (`consciousness/trauma-as-frozen-gate.md`, `time-memory-and-wake-locks.md`)
   are gapped (non-propagating ε) phenomena in this vocabulary; "coherence

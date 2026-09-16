@@ -8,7 +8,6 @@
 - `CASSICORE-FOCUS-PLAN.md` — provider ownership, mind-runtime, and `mind_complete` boundary.
 - `packages/model-pool/DELEGATE-SURFACE.md` — retained `ModelHandle` contract and deleted provider machinery.
 - `CASSI-MIND-PLAN.md` — field bridge, projection, and measured field-as-model program.
-- `../UNIFICATION.md` — cross-repository substrate and field-I/O map.
 
 ---
 

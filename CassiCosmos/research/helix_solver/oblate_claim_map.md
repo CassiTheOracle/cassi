@@ -7,7 +7,7 @@ Companion to `oblate_provenance_audit.md` (commit `27ad20f`), which established 
 - **THEORY-PREDICTION** — doctrine predicts the shape as physics (reference only; not engine-observed).
 - **UNVERIFIED-QUOTE** — cites the 1.422/2.510 numbers (or an equivalent shape "record") with no engine grounding, usually presenting a Python-PDE output as if it were a confirmed record.
 
-**Read-only survey** — root doc (`UNIFICATION.md`) was never edited; the only new file is this one.
+**Read-only survey** — no existing document was edited; the only new file is this one.
 
 ---
 
@@ -63,12 +63,6 @@ Companion to `oblate_provenance_audit.md` (commit `27ad20f`), which established 
 | `GRID_LAYOUT.md:79-82` | **THEORY-PREDICTION** | "The bubble edge is *'an oblate triaxial spheroid—extended in Yang, contracted in Yin, bounded along the string'* (§1.3), with the φ-elliptical transverse cross-section *'a_X/a_Y = β/α = φ'* (§4.1). **The structure itself is triaxial; a triaxial box is its commensurate container.**" | Quotes the doctrine to **justify the (φ,1,φ²) box geometry**; does not assert the engine produces the shape — it uses the doctrine as a design rationale. |
 | `GRID_LAYOUT.md:151-154, 268-272, 471-474, 517-521` | **ILLUSTRATIVE** (analytic) | "…the box-mode lattice … is an ellipsoid with **no axis permutation symmetry**"; "This is the expected ellipsoidal dispersion of the φ-box"; "the shell Σ(n_i/L_i)² = const is an ellipsoid…"; "…record the measured ellipsoid ratios vs the k-sum predictions." | All "ellipsoid" uses here are the **dispersion of the φ-box mode/Green lattice** — an analytic force-anisotropy property (and a planned verify_phi_box check of it), NOT an oblate bubble measurement and NOT an engine-produced bubble shape. |
 | `MACHINE_PLAN.md:103, 137, 190-195` | **THEORY-PREDICTION** | "Wu Xing bubble (~191 Mpc)"; "voids, BAO/bubble-scale fabric…"; "the bubble scale is the fine force EXACTLY…". | "Bubble" here is a **cascade scale** on the machine's rung ladder (supercluster / Wu Xing bubble scale), not a shape claim; no ellipsoid/oblate geometry. |
-
-### Root docs (read-only)
-
-| Site | Bucket | Quote (file:line) | One-line reason |
-|---|---|---|---|
-| `UNIFICATION.md` | — | (no matches for oblate/ellipsoid/triaxial/1.422/2.510 in the surveyed patterns) | No oblate/ellipsoid bubble claim. |
 
 ---
 

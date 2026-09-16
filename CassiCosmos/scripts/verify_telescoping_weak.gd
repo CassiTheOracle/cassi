@@ -1,5 +1,5 @@
 extends Node
-## Verify Telescoping — WEAK-TWIST probe (Wave-2 follow-on, UNIFICATION.md Phase 8
+## Verify Telescoping — WEAK-TWIST probe (Wave-2 follow-on, Phase 8
 ## milestone 1). The complete, pre-registered weak-arm battery of the FP-4
 ## relaxation-time-vs-rung discriminator. 2026-08-15.
 ##
@@ -23,7 +23,7 @@ extends Node
 ##   same branch bands {1, phi, phi2} with the pre-stated boundaries, same
 ##   >= 4 of 6 modal rule.
 ##
-##   Decision tree (pre-stated, per UNIFICATION.md Phase 8):
+##   Decision tree (pre-stated, per Phase 8):
 ##     * The gate outcome is the UNIFORM-cadence (cadence-neutral) FP-4 branch,
 ##       exactly as Wave-2 (§33.8 point 4 reading).  This weak run tests whether
 ##       the base band's relaxation becomes RUNG-STRUCTURED when the operator no
