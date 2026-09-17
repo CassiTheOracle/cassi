@@ -110,6 +110,13 @@ STEP_SAFETY = 40.0
 SECONDS_PER_STEP_ASSUMED = 8.36e-4
 SECONDS_PER_STEP_MEASURED = 6.025e-4
 PROJECTED_SECONDS = 190.0
+
+# Section 8.2: after the single invocation, this executor was corrected for the slip that
+# left gate 12 unreadable, and section 0 was re-anchored with it. The receipt keeps the
+# digest of the executor as executed, so a later self-check names that divergence instead of
+# treating it as a fault; the frozen body was not touched after the invocation and every
+# other bound source must still match exactly.
+AMENDED_AFTER_INVOCATION = ("probe",)
 PER_EXECUTION_CAP = 50000
 TOTAL_STEP_CAP = 300000
 DECLARED_EXECUTIONS = 12
@@ -517,6 +524,9 @@ def run_arm(spec: ArmSpec, base, anchor_series) -> dict:
         canonical = base.canonical_step(canonical, dt)
 
     self_twin = anchor_series is None
+    # Every arm's own final state carries its distance from the ray, anchors included: the
+    # read the gate needs is the reference's, and a reading recorded only for twinned arms
+    # is what left gate 12 unreadable at this protocol's single invocation (section 8.2).
     reading = {
         "index": spec.index,
         "name": spec.name,
@@ -549,8 +559,7 @@ def run_arm(spec: ArmSpec, base, anchor_series) -> dict:
             "annihilation_max": float(np.max(annihilation)),
             "idempotence_max": float(np.max(idempotence)),
         },
-        "ray_distance": (None if self_twin else
-                         ray_distance_of(base.projection(state), base)),
+        "ray_distance": ray_distance_of(base.projection(state), base),
         "coordinate": {"initial": float(series[0]), "final": float(series[-1]),
                        "at_horizons": ([float(series[index]) for index in sampled]
                                        if sampled else None)},
@@ -852,6 +861,7 @@ def receipt_status() -> dict:
         "status": receipt.get("status"),
         "runtime_seconds": receipt.get("runtime_seconds"),
         "verdicts": receipt.get("verdicts"),
+        "executed_probe_sha256": sources.get("probe", {}).get("sha256"),
     }
 
 
@@ -1387,12 +1397,20 @@ def self_check() -> int:
     print("self-check: the receipt")
     recorded = receipt_status()
     if recorded["present"]:
+        amended = [name for name in (recorded["mismatched_sources"] or [])
+                   if name in AMENDED_AFTER_INVOCATION]
+        other = [name for name in (recorded["mismatched_sources"] or [])
+                 if name not in AMENDED_AFTER_INVOCATION]
         print("  {0} present, schema {1}, status {2}, binding {3}".format(
             RECEIPT_PATH, recorded["schema"], recorded["status"],
             "consistent" if recorded["consistent"] else
-            "INCONSISTENT {0}".format(recorded["mismatched_sources"])))
-        if not recorded["consistent"]:
-            problems.append("the receipt's recorded sources do not match the tree")
+            "records the executed sources; amended after the invocation: {0}".format(
+                amended or "none")))
+        if recorded.get("executed_probe_sha256"):
+            print("  executed executor {0}".format(recorded["executed_probe_sha256"]))
+        if other:
+            problems.append("the receipt's recorded sources do not match the tree on "
+                            "{0}".format(other))
     else:
         print("  {0} absent (an invocation is still available)".format(RECEIPT_PATH))
 
