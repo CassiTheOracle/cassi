@@ -302,6 +302,28 @@ Sections 1–7 state the protocol as it stands frozen. This section is filled wh
 | `computations/verify_loop_to_bubble_projection.py`, expected and observed | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` |
 | `computations/verify_loop_carrier_projection_relaxation.py`, executed | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` |
 
+**Amendment invariance.** The invocation above is bound by the receipt's `protocol.sha256` and `frozen_sources.protocol.sha256`, both `699f7b4d3f84cf127af254a3f0250448ff5eb675ada04f4257206a8db2684b38`, the hash of this whole file as frozen at `03c10eb7`. Section 8 was written after the invocation, and that growth is checked rather than asserted:
+
+| Source | SHA-256 | Bytes |
+|---|---|---|
+| Whole file, frozen at `03c10eb7` (the receipt's `protocol.sha256`) | `699f7b4d3f84cf127af254a3f0250448ff5eb675ada04f4257206a8db2684b38` | $36{,}270$ |
+| Whole file on disk before this amendment | `e797076cb4de37378ba5cc6e5303aa7519d931019091f9ca8e7747052476b97c` | $46{,}451$ |
+| Text before the §8 heading, both states | `7838d17a4060745fd7361f72b2622a8be5731a2d59b85848ffb808633a464b6c` | $34{,}079$ |
+
+| Hunk | Old range | New range | Lines | Section |
+|---|---|---|---|---|
+| 1 | none | $284$–$376$ | $+93$ | §8.1–§8.6 |
+
+The diff `03c10eb7 a8f5616d` in this file is a single hunk, $+93$ lines and no others, falling entirely inside §8.1–§8.6; no line at or before the §8 heading moved in it. The pre-§8 text is byte-identical between the two commits and not merely undiffed: the $34{,}079$ bytes before the §8 heading hash to `7838d17a…` in both states, while the post-§8 text grew from $2{,}191$ to $12{,}372$ bytes, which is the record itself. The frozen pre-record value is fixed by the commit that carries it and does not move when §8 grows; the whole-file on-disk hash necessarily does, from `e797076c…` to the value carried by this amendment's own commit. A reader who finds the on-disk hash differing from the receipt should compare the pre-§8 text hash and the commit blob above, not the whole-file hash.
+
+The same execution commit edited one line of the ledger's §64 row, its third cell, and nothing else in that section:
+
+> | Boundary | Four discrete profiles at one rate set and one realization, $N_\chi=24$ with one halved refinement per profile pair, converged horizons $210.9$ to $1000$, one seed amplitude | **UNRESOLVED**: whether a control read on the running maximum rather than the terminal state fires |
+
+> | Boundary | Four discrete profiles at one rate set and one realization, $N_\chi=24$ with one halved refinement per profile pair, converged horizons $210.9$ to $1000$, one seed amplitude | **UNRESOLVED**: whether a control read on the running maximum rather than the terminal state fires. The successor protocol in §65 answers this in the affirmative on the spent traces themselves |
+
+The first $287$ characters of $289$ are unchanged and the two added sentences are the pointer; the row's label stays `UNRESOLVED` and its numeric tokens, $N_\chi=24$ and the horizons $210.9$ to $1000$, are identical in both versions, the only numeric token introduced being the section number $65$. No reading, class, verdict or number anywhere in §64 changes. The commit adds $114$ lines of §65 and $4$ reference bullets besides, for a net $+119/-1$ in that file.
+
 ### 8.2 Gate table
 
 Twelve of twelve passed.
