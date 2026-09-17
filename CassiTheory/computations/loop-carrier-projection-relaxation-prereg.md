@@ -281,6 +281,99 @@ A positive closure reading shows that this declared finite realization evolves t
 
 Sections 1–7 state the protocol as it stands frozen. This section is filled when the queued invocation completes: the invocation and its bound, the receipt path and digest, the gate table, the per-arm readings, the witness readings $\rho_{\max}$, $\rho_{\rm fin}$ and the peak time, the fitted rates with their windows and sample counts, both brackets and both $\ell$, the classes, both verdicts, and the digests of the frozen sources (this file, `computations/verify_loop_to_bubble_projection.py`, and the executed probe script). No text of sections 1–7 is edited after an invocation; the spent protocol's record stands as written in `computations/loop-carrier-projection-dynamics-prereg.md` §8 and `field-experience/probe-outcome-ledger.md` §64.
 
+### 8.1 Invocation
+
+| Item | Reading |
+|---|---|
+| Command | `timeout 1200 python computations/verify_loop_carrier_projection_relaxation.py`, one process from this directory tree's root, `PID` $16572$ |
+| Bound | $1200$ s, declared in §6 |
+| Wall time, measured outside | $236.4$ s (`real 3m56.399s`), $5.1\times$ inside the bound |
+| Wall time, inside | `runtime_seconds` $236.08994817733765$, against the §6 projection of $225$ s |
+| Executions | $16$, one per arm, in the order of the §6 table |
+| Receipt | `runs/loop_carrier_projection_relaxation/verification.json`, $81{,}496$ bytes, SHA-256 `3520231c8c54372e07443682847de9d01fbb0f132c89efef3fc7f0c16a22bcb1` |
+| Log | `runs/loop_carrier_projection_relaxation/invocation.log`, SHA-256 `973153da5a2ff2c50300ca26afba8f7457f322574c2a1abe6bb9de533c9c1287` |
+| Status | `PASS`, both verdicts issued |
+
+**Execution note.** This protocol was frozen as text without its executor: the executed probe script did not exist at the commit that froze this file, and it was authored at execution time as a transcription of the spent protocol's probe—the frozen operators, the integrator, the construction functions, the thirteen closure arms with their step counts and horizons, and every threshold of §1, §3.1, §4 and §6 are carried over unchanged, and the new constituents of §2.2–§2.4, §3.2 and §5 are added. The transcription is not asserted but checked against the spent run: all thirteen closure arms reproduce the spent receipt's $\rho_{\max}$ bit for bit (§8.3), on the same step sizes, horizons and seeds. The digests of the frozen sources, read by the receipt and re-read after the invocation:
+
+| Source | SHA-256 |
+|---|---|
+| `computations/loop-carrier-projection-relaxation-prereg.md` (this file) | `699f7b4d3f84cf127af254a3f0250448ff5eb675ada04f4257206a8db2684b38` |
+| `computations/verify_loop_to_bubble_projection.py`, expected and observed | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` |
+| `computations/verify_loop_carrier_projection_relaxation.py`, executed | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` |
+
+### 8.2 Gate table
+
+Twelve of twelve passed.
+
+| Gate | Reading | Bound |
+|---|---|---|
+| 1 source binding | `d687597f…` observed, equal to the bound digest | exact |
+| 2 discrete annihilation | $5.10702591327572\times10^{-15}$ | $10^{-14}$ |
+| 3 projection idempotence | $2.0185873175002629\times10^{-16}$ | $10^{-15}$ |
+| 4 shared exterior transport | `velocity_split` $0.0$ in all thirteen closure arms; the split arm records its $0.05$ violation | $0.0$ in every closure arm |
+| 5 common gate | closure spread $0.0$; arms 14 and 15 record $3.0433\times10^{-3}$ and $4.5635\times10^{-3}$ | $0.0$ in every closure arm |
+| 6 matched start | $8.881784197001252\times10^{-16}$ | $10^{-15}$ |
+| 7 finite and nonnegative | true, with $0.3607\le q\le0.9960$ and every projection positive | every scalar finite, $f\ge0$, $0\le q<1$ |
+| 8 declared shape | $16$ executions, $282{,}334$ recorded steps against the $290{,}000$ cap, per-arm counts the rules' figures, no missing statistic | as declared in §6 |
+| 9 spectrum re-check | four mode-carrying closure arms, largest residual $4.688438624709709\times10^{-16}$ | $10^{-9}$ |
+| 10 witness floor, null pair | $\rho_{\max}$ $8.505827589859918\times10^{-17}$ in both arms and $\Delta=0$ exactly | $10^{-11}$, $\Delta=0$ |
+| 11 bracket and identity reachability, read before execution | $D_0=1.0$ for both covariance arms; $c_-$ $4.0456114916509155\times10^{-3}$ and $2.0228057458254577\times10^{-3}$; $c_+$ $2.389484016651345\times10^{-2}$ and $1.1947420083256725\times10^{-2}$ | $D_0\ge10^{-6}$, $c_-\ge10^{-6}$, $c_+\le1$ |
+| 12 process declaration | one process, $16$ executions, CPU, no concurrent run | as declared |
+
+### 8.3 Closure arms
+
+Every closure arm is `within_budget`, and every reading is bit-identical to the spent receipt's reading of the same construction:
+
+| Arm | $\rho_{\max}$ | $\rho_{\rm fin}$ | Class |
+|---|---|---|---|
+| `off_ray` | $1.665296162182208\times10^{-16}$ | $7.932728\times10^{-17}$ | `within_budget` |
+| `off_ray_refined` | $1.6653180651897577\times10^{-16}$ | $0.0$ | `within_budget` |
+| `on_ray` | $1.0092936587501317\times10^{-16}$ | $1.009294\times10^{-16}$ | `within_budget` |
+| `on_ray_refined` | $1.0092936587501259\times10^{-16}$ | $0.0$ | `within_budget` |
+| `open_gate` | $5.551115123125783\times10^{-17}$ | $5.551115\times10^{-17}$ | `within_budget` |
+| `closed_gate` | $1.653758697\times10^{-16}$ | $8.881784\times10^{-17}$ | `within_budget` |
+| `loop_truncated` | $2.758858630\times10^{-16}$ | $2.018587\times10^{-16}$ | `within_budget` |
+| `mode1_short` | $3.400322915\times10^{-16}$ | $3.400323\times10^{-16}$ | `within_budget` |
+| `mode1_long` | $2.622443970\times10^{-15}$ | $2.219140\times10^{-15}$ | `within_budget` |
+| `mode2_long` | $2.218991051\times10^{-15}$ | $1.815660\times10^{-15}$ | `within_budget` |
+| `uniform_short` | $8.505827589859918\times10^{-17}$ | $8.505828\times10^{-17}$ | `within_budget` |
+| `null` | $8.505827589859918\times10^{-17}$ | $8.505828\times10^{-17}$ | `within_budget` |
+| `persistent_current` | $1.2313382636751607\times10^{-14}$ | $1.049665\times10^{-14}$ | `within_budget` |
+
+The two declared refinement pairs agree within the factor $4$ of G2, at ratios $0.9999868475530246$ and $1.0000000000000058$; both members of each pair sit at the arithmetic floor, as they did in the spent run.
+
+### 8.4 Relaxation arms
+
+| Arm | $s$ | $\rho_{\max}$ | peak time | $\rho_{\rm fin}$ | fit window | samples | $\nu_{\rm fit}$ | (LR-R1) bracket | inside | $\nu_{\rm fit}/\ell$ | (LR4) residual |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `relax_reference` | $1$ | $2.0326187974944866\times10^{-3}$ | $11.64$ | $3.376811012630109\times10^{-8}$ | $[500,1000]$ | $25{,}001$ | $1.119569724312185\times10^{-2}$ | $[3.641050342485824\times10^{-3},2.6284324183164797\times10^{-2}]$ | yes | $2.767368361056627$ | $2.3892561918486857\times10^{-18}$ |
+| `relax_scaled` | $\tfrac12$ | $1.1055338816802886\times10^{-3}$ | $14.96$ | $4.486540938158338\times10^{-6}$ | $[500,1000]$ | $25{,}001$ | $5.615991276376917\times10^{-3}$ | $[1.820525171242912\times10^{-3},1.3142162091582399\times10^{-2}]$ | yes | $2.776337415476921$ | $1.2145393672442599\times10^{-18}$ |
+| `relax_split` | $1$ | $5.998107249\times10^{-4}$ | $8.18$ | $1.0496654051001292\times10^{-14}$ | empty | $0$ | not fitted | — | — | — | $1.1036085720070312\times10^{-18}$ |
+
+The fit window is $W=\{t\ge500,\ \rho>10^{-12}\}$; the split arm's tail passes below the floor before the window opens, so its rate is recorded as unfitted and gates nothing, as §3.2 declares. Every (LR4) residual is measured against the fixed absolute bound $10^{-12}D_0$ with $D_0=1.0$, taken at $t_0$ and not rescaled during the run; $\ell=c_-$ in both covariance arms. The ratio clause (LR-R2) reads $\nu_{\rm fit}(\text{arm }15)/\nu_{\rm fit}(\text{arm }14)=0.5016205024503622$ against its declared band $[0.45,0.55]$. The recorded observation $\nu_{\rm fit}/\ell$ is $2.77$ in both covariance arms and is not a criterion of this protocol.
+
+### 8.5 Controls
+
+| Control | Requirement | Reading | Fired |
+|---|---|---|---|
+| null pair (`uniform_short`, `null`) | $\rho_{\max}\le10^{-11}$, $\Delta=0$ exactly | $8.505827589859918\times10^{-17}$ both arms, $\Delta=0$ on $9$ matched states | yes |
+| `relax_reference` | $\rho_{\max}>10^{-4}$; (LR4) at every accepted state; $\nu_{\rm fit}$ inside its own bracket | $2.0326\times10^{-3}$; $2.389\times10^{-18}\le10^{-12}$; $1.1196\times10^{-2}\in[3.6411\times10^{-3},2.6284\times10^{-2}]$ | yes |
+| `relax_scaled` | the same, plus (LR-R2) | $1.1055\times10^{-3}$; $1.215\times10^{-18}\le10^{-12}$; $5.6160\times10^{-3}\in[1.8205\times10^{-3},1.3142\times10^{-2}]$; ratio $0.5016$ | yes |
+| `relax_split` | $\rho_{\max}>10^{-4}$ | $5.9981\times10^{-4}$ | yes |
+
+The two repaired controls are the spent protocol's two silent ones, with their traces bit-identical and only the reading changed. The spent `covariance` control read $\rho_{\rm fin}=3.376811012630109\times10^{-8}$ against $10^{-4}$ and an identity residual of $4.308692590324274\times10^{-9}$ against $10^{-12}$; this protocol's `relax_reference` reads the same trace at its peak, $2.0326187974944866\times10^{-3}$, and its identity at $2.389\times10^{-18}$. The spent `direction_split` control read $\rho_{\rm fin}=1.0496654051001292\times10^{-14}$; `relax_split` reads the same trace's peak, $5.998107249\times10^{-4}$. The sensitivity the spent terminal readings could not witness is present in the peak readings of the very traces the spent run already computed.
+
+### 8.6 Verdicts
+
+```text
+PASS
+closure_verdict: EMERGES
+relaxation_verdict: EMERGES
+```
+
+G1, G2 and G3 emerge, so the evolved carrier's projected trajectory reproduces the canonical trajectory at the declared budget, at every accepted state of every closure arm, with the readings stable under the declared refinement and the instrument live. H1, H2 and H3 emerge, so a deviation injected by the declared seeds is visible above the witness floor, its tail decays at a rate inside the arm's own conversion bracket at both gate amplitudes, and that rate scales with the conversion scale as the declared channels do. The boundary of §7 applies verbatim and is not extended: this is one finite realization at $N_\chi=24$, one rate set, one seed amplitude, four initial profiles at one $\chi$-resolution each with one halved refinement, and the closure remains conditional on the common projected gate and the common exterior transport, with the four-population law the selected minimal member of a family whose members any direction-mixing conversion with unit column sums joins. The run measures no physical carrier identity, no phase law, no scale ratio and no quantum statistics, and no reading here is a value of $\varphi$: every closure arm sits at the arithmetic floor and the two fitted rates are $1.12\times10^{-2}$ and $5.62\times10^{-3}$, so this protocol adds no evidence about where $\varphi$ comes from. `field-experience/probe-outcome-ledger.md` §65 records the outcome in the house format.
+
 ## References
 
 - `foundations/loop-to-bubble-projection-theorem.md`—shared-support loop carrier, projection theorem (LB1)–(LB14), frozen spectrum and gap (LB36)–(LB47), result ledger and verification

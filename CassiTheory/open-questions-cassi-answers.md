@@ -782,6 +782,32 @@ the FAIL is an instrument defect, not a theory null, and LB1–LB7, the physical
 QF1-to-carrier state map, the phase law, the scale ratio and the quantum
 statistics read exactly as before.
 
+The successor protocol
+`computations/loop-carrier-projection-relaxation-prereg.md` answers that
+reading defect on the same constructions and the same arithmetic: sixteen arms,
+the thirteen closure arms unchanged with their own step counts and horizons,
+and three relaxation arms carrying the declared seeds of §1.2 item 6, with
+every arm recording the peak relative projection residual rather than its
+terminal value, the (LB14) identity measured against the fixed absolute bound
+$10^{-12}D_0$ with $D_0$ read at $t_0$, and the new rate statistic
+$\nu_{\rm fit}$ compared with the arm's own conversion bracket. It passes all
+twelve gates and reads `PASS` with closure `EMERGES` and relaxation `EMERGES`
+(`runs/loop_carrier_projection_relaxation/verification.json`): the thirteen
+closure arms hold the complete-loop average on the canonical two-density
+trajectory at $10^{-17}$ to $10^{-14}$, bit-identical to the spent readings,
+the two repaired controls fire on peaks of $2.03\times10^{-3}$ and
+$6.00\times10^{-4}$ that the spent receipt had already recorded and never read,
+the two covariance arms' tails decay at $1.12\times10^{-2}$ and
+$5.62\times10^{-3}$ inside their own brackets, and their ratio $0.5016$ matches
+the factor-two separation in the conversion scale. No status moves: the closure
+remains conditional on the common projected gate and the common exterior
+transport, the four-population law remains the selected minimal member of a
+family whose columns sum to one, the relaxation shows only that a declared
+deviation decays at the arm's own conversion rates, and no reading is a value
+of $\varphi$ that the protocol did not insert. LB1–LB7, the physical
+QF1-to-carrier state map, the phase law, the scale ratio and the quantum
+statistics read exactly as before.
+
 The separate pure-gauge comparison in that document, §§9.4–9.31, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the

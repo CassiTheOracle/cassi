@@ -2558,7 +2558,7 @@ $232{,}334$ RK2 steps in total, one process, bound $5400$ s.
 | Non-firing control, covariance | The (LB14) relative residual reads $4.31\times10^{-9}$ against the $10^{-12}$ bound and the terminal deviation $3.38\times10^{-8}$ against the $10^{-4}$ requirement, while the running maximum reaches $2.03\times10^{-3}$, two thousand times the requirement | The declared reading is the terminal state of an attracting relaxation; the relative residual divides by the quantity the control injects |
 | Non-firing control, direction split | The terminal deviation reads $1.05\times10^{-14}$ against the $10^{-4}$ requirement, while the running maximum reaches $6.00\times10^{-4}$, six hundred times it | Same reading defect; its class `above_budget_no_partner` is a probe label §5.1 does not define, which is a protocol gap and not a reading |
 | Persistent-current prediction | The max-abs current ratio ends at exactly $0.8333333333333374=1/1.2$, the flattened $20\%$ modulation, while the domain mean ends at $1.0000000000000036$ | Section 6A's amended prediction is confirmed, and F4 reads the domain mean |
-| Boundary | Four discrete profiles at one rate set and one realization, $N_\chi=24$ with one halved refinement per profile pair, converged horizons $210.9$ to $1000$, one seed amplitude | **UNRESOLVED**: whether a control read on the running maximum rather than the terminal state fires |
+| Boundary | Four discrete profiles at one rate set and one realization, $N_\chi=24$ with one halved refinement per profile pair, converged horizons $210.9$ to $1000$, one seed amplitude | **UNRESOLVED**: whether a control read on the running maximum rather than the terminal state fires. The successor protocol in §65 answers this in the affirmative on the spent traces themselves |
 
 Projection residual per arm, from the receipt:
 
@@ -2616,6 +2616,120 @@ identity, the QF1-to-carrier state map and the phase law remain exactly as
 `open-questions-cassi-answers.md` and the theorem's result ledger leave them,
 and this protocol measures one finite realization, one rate set and one seed
 amplitude.
+
+## 65. Loop-carrier projection relaxation: the repaired witness and the conversion rate
+
+The successor protocol
+`computations/loop-carrier-projection-relaxation-prereg.md` re-declares the
+closure question of §64 and adds the question §64 could not answer. It runs the
+same four-population law of `foundations/loop-to-bubble-projection-theorem.md`
+on the same frozen discrete operators of
+`computations/verify_loop_to_bubble_projection.py`, bound by digest, in sixteen
+declared arms: the thirteen closure arms of the spent protocol with the same
+step counts and horizons, and three new relaxation arms carrying the declared
+seeds of §1.2 item 6. Two things changed and nothing else. Every arm now
+records the witness $\rho_{\max}$, the peak over the whole trace of the relative
+projection residual, where the spent protocol recorded only the terminal
+$\rho_{\rm fin}$ of a relaxation that an attracting fixed ratio had already
+damped; and the (LB14) identity is measured against the fixed absolute bound
+$10^{-12}D_0$ with $D_0=\max(1,\langle\kappa^{\rm eff}\rangle_\chi(0)\,
+\max_\chi|Z(0)|)$ taken at $t_0$, where the spent protocol divided by a
+quantity that decays with the content the control injects. The relaxation
+statistic is new: $\nu_{\rm fit}$ is the least-squares log-slope of
+$\rho_k$ on $W=\{t_k\ge T/2,\ \rho_k>10^{-12}\}$, compared with the arm's own
+conversion bracket $[\ell(c_-),1.1c_+]$ with $c_\pm$ from $\kappa^{\rm eff}$
+(LR-A0), and the pair of arms differing in the gate scale $s$ alone tests
+whether the rate scales with the conversion scale. Sixteen executions, one per
+arm, $282{,}334$ RK2 steps ($132{,}334$ closure, $50{,}000$ each relaxation),
+per-execution cap $50{,}000$, total cap $290{,}000$, one process, bound
+$1200$ s.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Completed execution | One invocation of `timeout 1200 python computations/verify_loop_carrier_projection_relaxation.py` from the repository root, $236.4$ s measured outside and `runtime_seconds` $236.09$ inside, writing `runs/loop_carrier_projection_relaxation/verification.json` at `status=PASS` | Inside the bound with a factor $5.1$ of headroom, against the §6 projection of $225$ s; the single invocation is spent and no re-run is permitted |
+| Integrity | 12 of 12 gates: annihilation $5.11\times10^{-15}$, idempotence $2.02\times10^{-16}$, `velocity_split` $0.0$ in the thirteen closure arms, closure gate spread $0.0$, matched start $8.88\times10^{-16}$, declared shape 16 with $282{,}334$ steps against $290{,}000$, spectrum re-check at most $4.69\times10^{-16}$ against $10^{-9}$, null-pair witness floor $8.51\times10^{-17}$ against $10^{-11}$ with $\Delta=0$ exactly, gate-11 reachability read before execution, one process and no concurrent run | Every gate inside its frozen tolerance, including the two gates the spent protocol could not have |
+| Closure arms | $\rho_{\max}\le1.23\times10^{-14}$ in all thirteen closure arms, class `within_budget`; each reading **bit-identical** to the spent receipt's reading of the same construction | The evolved loop average tracks the canonical law at the arithmetic floor, now with all thirteen arms inside the budget and both verdicts issued |
+| Refinement pairs | The two declared pairs agree at ratios $0.9999868475530246$ and $1.0000000000000058$, inside the factor $4$ of G2, with both members at the floor | G2 is not vacuous: it is applied to measured readings on both members of each declared pair, so the closure reading is the mechanism's and not the step size's |
+| Repaired witness | `relax_reference` reads $\rho_{\max}$ $2.0326\times10^{-3}$ at $t=11.64$ against the $10^{-4}$ witness floor; `relax_scaled` $1.1055\times10^{-3}$ at $t=14.96$; `relax_split` $5.9981\times10^{-4}$ at $t=8.18$ | All three relaxation arms fire; H1 emerges |
+| Repaired identity | (LR4) residuals $2.39\times10^{-18}$, $1.21\times10^{-18}$ and $1.10\times10^{-18}$ against the absolute bound $10^{-12}D_0$, $D_0=1.0$ | The identity that read $4.31\times10^{-9}$ in the spent run under a shrinking normalization now reads roundoff under a bound that cannot shrink |
+| Relaxation rate | $\nu_{\rm fit}$ $1.1196\times10^{-2}$ inside (LR-R1) $[3.6411\times10^{-3},2.6284\times10^{-2}]$ for `relax_reference`, and $5.6160\times10^{-3}$ inside $[1.8205\times10^{-3},1.3142\times10^{-2}]$ for `relax_scaled`, each on $25{,}001$ samples of the declared window | H2 emerges: the tail decays inside the arm's own conversion bracket at both gate amplitudes |
+| Scale clause | $\nu_{\rm fit}(\text{arm }15)/\nu_{\rm fit}(\text{arm }14)=0.5016205024503622$ against the declared band $[0.45,0.55]$ | H3 emerges: the rate scales with the conversion scale $s$ as the declared channels do, to $0.3\%$ of the factor $2$ the construction tests |
+| Terminal-state reading | `relax_reference` ends at $\rho_{\rm fin}$ $3.38\times10^{-8}$ and `relax_split` at $1.05\times10^{-14}$—the spent protocol's own readings, bit for bit | The spent failure was the reading, not the trace: the terminal state of an attracting relaxation carries four orders of magnitude less than its peak |
+| Recorded observation, not a criterion | $\nu_{\rm fit}/\ell=2.767368361056627$ and $2.776337415476921$ in the two covariance arms, with $\ell=c_-$ | Recorded only. The protocol nominates no dominant cell of the mixture, and $2.77$ is not $\varphi^2=2.618$ or any other declared constant; it gates nothing |
+| Boundary | One finite realization at $N_\chi=24$, one rate set, one seed amplitude, four profiles at one $\chi$-resolution each with one halved refinement; the closure stays conditional on the common projected gate and the common exterior transport, and the four-population law stays the selected minimal member of a family any direction-mixing conversion with unit column sums joins | **RESOLVED**: §64's single unresolved boundary—whether a control read on the running maximum rather than the terminal state fires—is settled in the affirmative. **UNRESOLVED** and untouched: the physical carrier identity, the QF1-to-carrier state map, the phase law, the scale ratio and the quantum statistics |
+
+Projection residual per closure arm, from the receipt (all class
+`within_budget`, all bit-identical to §64's table):
+
+| Arm | Role | $\rho_{\max}$ | $\rho_{\rm fin}$ |
+|---|---|---|---|
+| `off_ray` | contract | $1.665296162182208\times10^{-16}$ | $7.93\times10^{-17}$ |
+| `off_ray_refined` | contract | $1.6653180651897577\times10^{-16}$ | $0.0$ |
+| `on_ray` | contract | $1.0092936587501317\times10^{-16}$ | $1.01\times10^{-16}$ |
+| `on_ray_refined` | contract | $1.0092936587501259\times10^{-16}$ | $0.0$ |
+| `open_gate` | contract | $5.551115123125783\times10^{-17}$ | $5.55\times10^{-17}$ |
+| `closed_gate` | contract | $1.653758697\times10^{-16}$ | $8.88\times10^{-17}$ |
+| `loop_truncated` | contract | $2.758858630\times10^{-16}$ | $2.02\times10^{-16}$ |
+| `mode1_short` | mode | $3.400322915\times10^{-16}$ | $3.40\times10^{-16}$ |
+| `mode1_long` | mode | $2.622443970\times10^{-15}$ | $2.22\times10^{-15}$ |
+| `mode2_long` | mode | $2.218991051\times10^{-15}$ | $1.82\times10^{-15}$ |
+| `uniform_short` | contract, null pair | $8.505827589859918\times10^{-17}$ | $8.51\times10^{-17}$ |
+| `null` | contract, null pair | $8.505827589859918\times10^{-17}$ | $8.51\times10^{-17}$ |
+| `persistent_current` | persistence | $1.2313382636751607\times10^{-14}$ | $1.05\times10^{-14}$ |
+
+The three relaxation arms, from the receipt:
+
+| Arm | $s$ | $\rho_{\max}$ | peak time | $\rho_{\rm fin}$ | $\nu_{\rm fit}$ | (LR-R1) bracket | (LR4) residual |
+|---|---|---|---|---|---|---|---|
+| `relax_reference` | $1$ | $2.0326187974944866\times10^{-3}$ | $11.64$ | $3.376811012630109\times10^{-8}$ | $1.119569724312185\times10^{-2}$ | $[3.6411\times10^{-3},2.6284\times10^{-2}]$ | $2.39\times10^{-18}$ |
+| `relax_scaled` | $\tfrac12$ | $1.1055338816802886\times10^{-3}$ | $14.96$ | $4.486540938158338\times10^{-6}$ | $5.615991276376917\times10^{-3}$ | $[1.8205\times10^{-3},1.3142\times10^{-2}]$ | $1.21\times10^{-18}$ |
+| `relax_split` | $1$ | $5.998107249\times10^{-4}$ | $8.18$ | $1.0496654051001292\times10^{-14}$ | not fitted ($0$ samples) | not gated | $1.10\times10^{-18}$ |
+
+The aggregate reading is
+
+```text
+PASS
+closure_verdict: EMERGES
+relaxation_verdict: EMERGES
+```
+
+The decisive point is a comparison of identical traces. The two repaired
+controls are the spent protocol's two silent ones: `relax_reference` carries
+the spent `covariance` construction and `relax_split` the spent
+`direction_split` construction, on the same step size, horizon and seeds, and
+their $\rho_{\max}$ and $\rho_{\rm fin}$ are bit-identical to the spent
+receipt's—$2.0326187974944866\times10^{-3}$ and $3.376811012630109\times10^{-8}$
+for the first, $5.998107249\times10^{-4}$ and $1.0496654051001292\times10^{-14}$
+for the second. The spent probe had already computed and recorded these peaks;
+its criteria read the terminal state instead, where the transient the control
+injects has been absorbed, so both controls were silent and both verdicts were
+withheld. Nothing in the carrier changed between the two runs: what changed is
+that this protocol reads the quantity the witness needs, on a bound that cannot
+shrink, and against a bracket declared before execution. The rate reading
+follows from that: a deviation injected at the declared seeds peaks at
+$2\times10^{-3}$ and its tail decays at $1.12\times10^{-2}$ per unit time,
+inside the arm's own conversion bracket, while halving the conversion scale
+halves the fitted rate to $0.5016$ of the reference. The mechanism the
+canonical two-fluid probe measures and the mechanism this loop-carrier
+statistic measures therefore agree in kind at these settings.
+
+No status moves. The closure statement is the conditional one of the theorem:
+it holds for this finite realization at one rate set and one seed amplitude,
+with the common projected gate and common exterior transport assumed, and the
+four-population law remains the selected minimal member of a family whose
+columns sum to one, so the closure selects no member and separates no
+conversion law. The relaxation statement is the weaker one: some declared
+deviation from the canonical trajectory decays at the arm's own conversion
+rates and that rate scales with that scale. It does not show that the
+$\varphi$-ray's attraction is a property of the loop carrier rather than of the
+conversion law the carrier shares, and no reading in this protocol is a value
+of $\varphi$ that was not inserted by the protocol's own conversion bracket:
+the closure arms sit at $10^{-17}$--$10^{-14}$, the arithmetic floor, and the
+fitted rates are $1.12\times10^{-2}$ and $5.62\times10^{-3}$. The physical
+carrier identity, the QF1-to-carrier state map, the phase law, the scale ratio
+and the quantum statistics read exactly as they did before both protocols, and
+the theorem's result ledger and the DQ and GQ physical-identification verdicts
+are unchanged.
 
 ## References
 
@@ -2827,3 +2941,7 @@ amplitude.
 - `computations/verify_loop_carrier_projection_dynamics.py`—probe binding the frozen discrete operators and rate constants by digest and reading the projection residual, the mode energies and the four controls from the evolved traces.
 - `runs/loop_carrier_projection_dynamics/verification.json`—source-bound receipt at `status=FAIL` with both verdicts null, the eleven gates, the fifteen arm readings and the section 6A seed-invariance readings (gitignored run artifact).
 - `runs/loop_carrier_projection_dynamics/invocation.log`—stdout and stderr of the single invocation (gitignored run artifact).
+- `computations/loop-carrier-projection-relaxation-prereg.md`—frozen sixteen-execution schedule for the relaxed closure arms, the peak witness, the scale-stable identity and the conversion-rate statistic, with the post-execution record.
+- `computations/verify_loop_carrier_projection_relaxation.py`—probe binding the frozen discrete operators and rate constants by digest and reading the peak projection residual, the absolute identity residual, the fitted rate, the arm bracket and the four controls.
+- `runs/loop_carrier_projection_relaxation/verification.json`—source-bound receipt at `status=PASS` with both verdicts, the twelve gates, the sixteen arm readings, the relaxed witness and identity readings and the fitted rates with their windows (gitignored run artifact).
+- `runs/loop_carrier_projection_relaxation/invocation.log`—stdout and stderr of the single invocation (gitignored run artifact).
