@@ -81,9 +81,9 @@ SPENT_RECEIPT = spent.RECEIPT_PATH
 PROTOCOL_PATH = "computations/loop-carrier-two-coordinate-prereg.md"
 PROBE_PATH = "computations/verify_loop_carrier_two_coordinates.py"
 RECEIPT_PATH = "runs/loop_carrier_two_coordinates/verification.json"
-INVOCATION = "timeout 900 python computations/verify_loop_carrier_two_coordinates.py"
+INVOCATION = "timeout 1800 python computations/verify_loop_carrier_two_coordinates.py"
 RECEIPT_SCHEMA = "cassi.loop-carrier-two-coordinates.v1"
-BOUND_SECONDS = 900.0
+BOUND_SECONDS = 1800.0
 # Section 0: the spent body's own frozen range, read through the spent executor's digest
 # function rather than pasted as a whole-file hash.
 PRIOR_BODY_DIGEST = "09426b6829e93bc02e7e2d330f3158b6889eebddd620bee149d9b3267f147f25"
@@ -189,9 +189,9 @@ COUNTER_N = (0.0, -1.0)
 PER_EXECUTION_CAP = 100000
 TOTAL_STEP_CAP = 620000
 DECLARED_EXECUTIONS = 9
-SECONDS_PER_STEP_MEASURED = 6.665e-4
+SECONDS_PER_STEP_MEASURED = 1.07e-3
 SECONDS_PER_STEP_ASSUMED = prior.SECONDS_PER_STEP_ASSUMED
-PROJECTED_SECONDS_MEASURED = 405.0
+PROJECTED_SECONDS_MEASURED = 650.0
 PROJECTED_SECONDS_ASSUMED = 508.0
 
 GROUPS = ("even", "odd")
@@ -1013,15 +1013,15 @@ def gate_rows(arms: dict, displacements: dict, decision: dict, preflight: dict,
                 and budget["steps_max"] <= PER_EXECUTION_CAP
                 and budget["steps_total"] <= TOTAL_STEP_CAP)
     baseline_zero = all(
-        all(displacements[name]["groups"][key]["norm"] == 0.0 for key in READ_KEYS)
-        for name in BASELINE_NAMES)
+        displacements[name]["groups"][key][group]["displacement"] == 0.0
+        for name in BASELINE_NAMES for key in READ_KEYS for group in GROUPS)
     ray_readings = [abs(displacements["ray_write_N"]["groups"][key][group]["displacement"])
                     for key in READ_KEYS for group in GROUPS]
     ray_silence = max(ray_readings)
     anchor = {name: arms[name]["samples"]["t1"]["ray_distance"] for name in LOADED_ARMS
               if name != "load_reference"}
     can_fail = abs(displacements["write_N"]["groups"]["t2"]["odd"]["displacement"])
-    clock_ok = bool(clock["passed"] and clock_read["equal_to_declared"])
+    clock_ok = bool(clock.get("passed") and clock_read.get("equal_to_declared"))
     kernel_ok = bool(spectrum["free"]["nullity"] == 2 and spectrum["spent"]["nullity"] == 1
                      and spectrum["free"]["multiset_residual"] <= REPLICATION_TOL
                      and spectrum["spent"]["multiset_residual"] <= REPLICATION_TOL
@@ -1113,9 +1113,10 @@ def gate_rows(arms: dict, displacements: dict, decision: dict, preflight: dict,
          "reading": preflight["readings"]["null"], "bound": "exactly {0}".format(NULL_CEILING),
          "passed": bool(preflight["checks"]["null_zero"])},
         {"id": 13, "name": "the declared clock, read from the receipt",
-         "reading": {"fitted": clock["rate"], "reference": clock["reference"],
-                     "ratio": clock["ratio"], "window": clock["window"],
-                     "receipt_read": clock_read["read"]},
+         "reading": {"fitted": clock.get("rate"), "reference": clock.get("reference"),
+                     "ratio": clock.get("ratio"), "window": clock.get("window"),
+                     "samples": clock.get("samples"), "reason": clock.get("reason"),
+                     "receipt_read": clock_read.get("read")},
          "bound": "factor {0} of the declared rate, read live from the receipt".format(
              NU_TOLERANCE), "passed": clock_ok},
         {"id": 14, "name": "single invocation", "reading": "receipt absent at start, one "
@@ -1242,16 +1243,14 @@ def build() -> dict:
     return {"arms": arms, "preflight": preflight, "domain": domain}
 
 
-def execute() -> int:
-    started = time.time()
-    if receipt_status()["exists"]:
-        print("REFUSING TO RUN: {0} already exists; this body is invoked once and a second "
-              "invocation is permitted only after an invocation that wrote no receipt."
-              .format(RECEIPT_PATH))
-        raise SystemExit(EXIT_PRE_EXECUTION_BLOCK)
-    binding = check_binding()
-    print("bindings: every section-0 row matches")
-    built = build()
+def assemble(built: dict, binding: dict, started: float) -> dict:
+    """Every reading both verdicts read, from the built arms and the binding record.
+
+    Separate from `execute` so the static pass can drive the whole gate, feature and
+    receipt path on shaped inputs without paying for the integration; a key this path
+    reads that its producers do not carry is then a static failure rather than a lost
+    invocation.
+    """
     arms, preflight, domain = built["arms"], built["preflight"], built["domain"]
     displacements = {name: displacement_record(arms, name) for name in arms}
     spectrum = {"free": kernel_check(EXCHANGE_FREE),
@@ -1335,6 +1334,28 @@ def execute() -> int:
         "runtime_seconds": time.time() - started,
         "frozen_sources": {key: value["path"] for key, value in binding["rows"].items()},
     }
+    return {"receipt": receipt, "status": status, "arms": arms,
+            "displacements": displacements, "decision": decision, "gates": gates,
+            "features": features, "preflight": preflight, "domain": domain,
+            "spectrum": spectrum, "clock": clock, "clock_read": clock_read,
+            "budget": budget, "replication": replication_record,
+            "probe_check": probe_check}
+
+
+def execute() -> int:
+    started = time.time()
+    if receipt_status()["exists"]:
+        print("REFUSING TO RUN: {0} already exists; this body is invoked once and a second "
+              "invocation is permitted only after an invocation that wrote no receipt."
+              .format(RECEIPT_PATH))
+        raise SystemExit(EXIT_PRE_EXECUTION_BLOCK)
+    binding = check_binding()
+    print("bindings: every section-0 row matches")
+    outcome = assemble(build(), binding, started)
+    receipt, status = outcome["receipt"], outcome["status"]
+    spectrum, domain = outcome["spectrum"], outcome["domain"]
+    preflight, decision, gates = (outcome["preflight"], outcome["decision"],
+                                  outcome["gates"])
     print("status: " + status)
     print("the declared point: entries {0}, {1}, {2}; predicted dim ker = 2"
           .format(ENTRY_KAPPA, ENTRY_EXCHANGE, ENTRY_LOOP))
@@ -1400,6 +1421,90 @@ def sanitize(value):
             raise SystemExit("refusing to write a non-finite reading: {0}".format(number))
         return {"real": number.real, "imag": number.imag}
     return value
+
+
+def dry_run() -> list:
+    """Section 4: drive the gate, feature and receipt path on shaped inputs.
+
+    The invocation reaches the gate path only after every arm has been integrated, so a key
+    that path reads and its producers do not carry costs a whole invocation to discover.
+    This pass builds arms and displacements of the declared shape from one seeded state per
+    arm and runs the entire assembly on them. The verdicts it produces are not readings and
+    are discarded; any exception, or any departure from the declared shape of the gate
+    table, the feature record or the receipt payload, is a static failure.
+    """
+    failures = []
+    arms = {}
+    for spec in ARM_TABLE:
+        state = gate_load.loaded_seed(spec, base)
+        reading = reading_of(state)
+        samples = {}
+        for position, (key, _) in enumerate(SAMPLES):
+            decay = math.exp(-0.01 * (position + 1))
+            samples[key] = {
+                "even": 1.0e-3 * decay, "odd": 5.0e-4 * decay,
+                "even_nonuniform": reading["even_nonuniform"],
+                "odd_nonuniform": reading["odd_nonuniform"],
+                "scalar": reading["scalar"],
+                "ray_distance": max(reading["ray_distance"], 1.0e-3),
+                "min_state": reading["min_state"], "max_state": reading["max_state"],
+                "q_min": reading["q_min"], "q_max": reading["q_max"],
+                "index": position + 1,
+            }
+        arms[spec.name] = {
+            "index": spec.index, "name": spec.name,
+            "declared": {"load_transfer": spec.load_c,
+                         "plan": [[float(carrier), float(orientation)]
+                                  for carrier, orientation in spec.plan],
+                         "exchange": spec.exchange, "baseline": spec.baseline},
+            "schedule": {"dt": DECLARED_DT, "steps": 1, "horizon": DECLARED_DT,
+                         "phases": len(spec.plan), "rule_conformant": True},
+            "load": gate_load.load_comparison(spec, gate_load.load_of(state, base)),
+            "clock": {"stride": CLOCK_STRIDE, "stride_units": CLOCK_STRIDE * DECLARED_DT,
+                      "values": [1.0e-3 * math.exp(-0.01 * index)
+                                 for index in range(T1_INDEX // CLOCK_STRIDE + 3)],
+                      "steps": [index * CLOCK_STRIDE
+                                for index in range(T1_INDEX // CLOCK_STRIDE + 3)]},
+            "samples": samples,
+        }
+    built = {"arms": arms, "preflight": action_preflight(), "domain": domain_probe()}
+    binding = {"declared": {"frozen_body_sha256": FROZEN_BODY_DIGEST,
+                            "executor_sha256": protocol_row("executor_sha256")},
+               "observed": {}, "rows": {}}
+    try:
+        outcome = assemble(built, binding, time.time())
+        payload = sanitize(outcome["receipt"])
+    except Exception as error:  # noqa: BLE001 - any failure here is a static failure
+        failures.append("the gate, feature and receipt path fails on shaped inputs: "
+                        "{0}: {1}".format(type(error).__name__, error))
+        return failures
+    if len(outcome["gates"]) != 14:
+        failures.append("the gate table carries {0} rows, not 14".format(
+            len(outcome["gates"])))
+    expected_features = set(["F{0}_{1}".format(position, name) for position, name in
+                             ((1, "can_fail_fired"), (2, "ray_silent"),
+                              (3, "anchor_readable"), (4, "preflight_live_D"),
+                              (5, "preflight_live_N"), (6, "preflight_cross_D"),
+                              (7, "preflight_cross_N"), (8, "preflight_distinct"),
+                              (9, "ray_identity"), (10, "predicted_nullity"),
+                              (11, "measured_standing"), (12, "retained_D"),
+                              (13, "retained_N"), (14, "counterfactual_measured"),
+                              (15, "erased_odd"), (16, "first_stands"))])
+    expected_features |= {"present", "writable", "retained", "erasure"}
+    if set(outcome["features"]) != expected_features:
+        failures.append("the feature record carries {0}, not the declared 20".format(
+            sorted(outcome["features"])))
+    labels = {"present": PRESENT_LABELS, "writable": WRITABLE_LABELS,
+              "retained": RETAINED_LABELS, "erasure": ERASURE_LABELS}
+    for key, allowed in labels.items():
+        if outcome["decision"][key] not in allowed:
+            failures.append("branch {0} is {1}, not one of the declared labels".format(
+                key, outcome["decision"][key]))
+    if payload.get("status") not in ("PASS", "FAIL"):
+        failures.append("the receipt payload carries no status")
+    if payload.get("schema") != RECEIPT_SCHEMA:
+        failures.append("the receipt payload carries the wrong schema")
+    return failures
 
 
 def self_check() -> int:
@@ -1534,13 +1639,19 @@ def self_check() -> int:
         failures.append("the two readers do not agree on the chi-uniform probe: mean "
                         "difference {0}".format(domain["chi_uniform_mean_difference"]))
 
+    # Section 4: the gate, feature and receipt path, driven on shaped inputs. This is the
+    # path the invocation reaches only after every arm is integrated, so it is checked here
+    # rather than discovered at the end of a paid run.
+    failures.extend(dry_run())
+
     if failures:
         print("STATIC CHECK FAILED")
         for line in failures:
             print("  " + line)
         return EXIT_STATIC_CHECK
     print("static check: bindings, the two gate channels, the declared reader, the "
-          "threshold rows, the step rule and the declared point's entries all agree")
+          "threshold rows, the step rule, the declared point's entries and the gate, "
+          "feature and receipt path all agree")
     return EXIT_PASS
 
 

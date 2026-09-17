@@ -6,8 +6,8 @@
 
 | Row | Value | What it binds |
 |---|---|---|
-| `frozen_body_sha256` | `d16060dd28f5b8d34dbbb542e7a16d4dbccd3d23dabd4f5a0232d8bcc51758a0` | this file, sections 1–7: everything from `## 1.` to just before `## 8.` |
-| `executor_sha256` | `114fd1876c0a4845060a8fb01e21464b39eec909b707c90dec278e3c6c49fc8c` | `computations/verify_loop_carrier_two_coordinates.py`, the complete executor frozen with this text |
+| `frozen_body_sha256` | `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` | this file, sections 1–7: everything from `## 1.` to just before `## 8.` |
+| `executor_sha256` | `c13afe722904e91528956cd967705238041e963b0d46280b58fff0a54fd2d518` | `computations/verify_loop_carrier_two_coordinates.py`, the complete executor frozen with this text |
 | `prior_body_sha256` | `09426b6829e93bc02e7e2d330f3158b6889eebddd620bee149d9b3267f147f25` | `computations/loop-carrier-composition-coexistence-prereg.md` §1–§7, the body whose retained writable coordinate §71 identified as a conservation law |
 | `prior_executor_sha256` | `3852eadbd434e021d1dc351820db06e6295c34c11270144b0826f6097b09f6b1` | `computations/verify_loop_carrier_composition_coexistence.py`, imported as a library: its direction-A modulation is the term-for-term reference this body's carrier channel must reduce to, and its `composition_profile` is the transposed reduction this body's domain gate refuses to reproduce |
 | `audit_executor_sha256` | `0503f109c8b431768fbe16d37dfe8a82dec18cce2f97dc417d2fb08d1474f07a` | `computations/verify_loop_carrier_kernel_dimension.py`, the §71 audit: the closed form's entries, the spectrum, the kernel and the two declared-shaped reading-domain probes are read from here |
@@ -261,12 +261,16 @@ The stored-mode generator is built from the frozen `mode_generator` at each arm'
 | per-execution step cap | `100000` |
 | total step cap | `620000` |
 | declared `dt` | `0.02` |
-| bound | `900` seconds |
-| measured seconds per step | `6.665e-4` |
-| projected seconds, measured | `405.0` |
+| bound | `1800` seconds |
+| measured seconds per step | `1.07e-3` |
+| projected seconds, measured | `650.0` |
 | projected seconds, assumed | `508.0` |
 
-The invocation is `timeout 900 python computations/verify_loop_carrier_two_coordinates.py`, run once. A receipt at `runs/loop_carrier_two_coordinates/verification.json` closes the body; a failure that writes no receipt leaves it open for a repaired executor and a new commit.
+The bound is `1800` seconds because the first invocation's own timing was observed: the nine arms consumed about $650$ seconds of wall clock on this machine under load, against the $405$ seconds a lone design probe extrapolated. The first invocation integrated every arm and then failed in the gate path, writing no receipt; the repair is the one this protocol's stopping rule permits, and the bound is re-declared from the measurement rather than kept at the optimistic extrapolation.
+
+The invocation is `timeout 1800 python computations/verify_loop_carrier_two_coordinates.py`, run once. A receipt at `runs/loop_carrier_two_coordinates/verification.json` closes the body; a failure that writes no receipt leaves it open for a repaired executor and a new commit.
+
+The static pass additionally **drives the gate, feature and receipt path on shaped inputs**: because the invocation reaches that path only after every arm has been integrated, a key the path reads and its producers do not carry would otherwise cost a whole invocation to discover — as the first invocation's repair shows. The dry run builds one arm of the declared shape per spec from the real seed family and the real load reading, hands the assembly the real pre-flight, domain and operator readings, and requires the gate table, the feature record, the branch labels and the written payload to have their declared shape. Its verdicts are not readings and are discarded; only its exceptions and shape failures are static failures.
 
 ## 7. Interpretation boundary
 
