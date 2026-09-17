@@ -2424,7 +2424,7 @@ and $10^{-6}$ on $C$.
 | Completed executions | Two invocations of `timeout 10800 python computations/verify_two_fluid_phi_ray_relaxation.py` from the repository root, 2259.5 s and 1762.9 s, writing `runs/two_fluid_phi_ray_relaxation/verification_invocation1.json` at `status=FAIL` and `verification.json` at `status=PASS` | `PASS` on the second invocation; aggregate 4022 s inside the declared 21600 s cap |
 | Integrity | Second receipt 11 of 11 gates: every constructed state equals its declared composition to $2.2\times10^{-16}$ relative, the worst initial minimum clears the step floor by a factor 24.2, the solenoidal residual of the fifteen projected runs is at most $1.5\times10^{-16}$, the refinement agrees to $3.4\times10^{-8}$, the mode-A weight identity holds exactly, and the solver digest matches its declared value | Every gate inside its frozen tolerance |
 | Reproducibility | The two receipts agree in every recorded run scalar: 0 differences over the sixteen run records, their 2896 series rows, their 14416 fitted samples and their 96 checkpoints | Deterministic at these settings |
-| Late readings, from the same two receipts | (i) The volume deviation is the $E_I$-weighted mean of the local $\delta=E_Y/(\varphi E_I)-1$ by identity, and the receipt's openness-weighted companion sits above it in every decisive gated run ($D_w-D$ from $+3.73\times10^{-5}$ at L1 to $+2.23\times10^{-3}$ at B1), identically at zero in the ungated mode and $-1.25\times10^{-2}$ in the frozen control: the departure is carried by the cells the gate weights down. B1's series peaks at $t=26.75$ s at $-2.482\times10^{-3}$ with the frozen horizon 0.5% past it; its lowest-openness quartile retains $0.85$ where its own openness permits $0.61$; L1's late volume rate $0.02955$ equals its gate-weighted $(1+\varphi)\lambda\Xi=0.02946$, its bands decaying in common proportion, and it crosses the ratio tolerance at $t=201$ s. (ii) The pre-amendment decision tree evaluated against the invocation-1 numbers yields `CONTRADICTS` on B1's unchanged $-2.4692\times10^{-3}$, with the two $\lambda=0$ controls additionally named by the old clause ($\{B1,C1,C2\}$ against $\{B1\}$), so the firing set contains B1 under both wordings and the one status an amendment changed is the construction gate, corrected rather than relaxed | Verdict unchanged and amendment-invariant: the gated displacement is a transient of the relaxation with a rate-ordered lag, not a freeze; no amendment touched a tolerance, a horizon, a matrix row or the firing clause, and no per-cell $\delta$ distribution or band mass is recoverable from the receipts |
+| Late readings, from the same two receipts | (i) The volume deviation is the $E_I$-weighted mean of the local $\delta=E_Y/(\varphi E_I)-1$ by identity, and the receipt's openness-weighted companion sits above it in every decisive gated run ($D_w-D$ from $+3.73\times10^{-5}$ at L1 to $+2.23\times10^{-3}$ at B1), identically at zero in the ungated mode and $-1.25\times10^{-2}$ in the frozen control: the departure is carried by the cells the gate weights down. B1's series peaks at $t=26.75$ s at $-2.482\times10^{-3}$ with the frozen horizon 0.5% past it; its lowest-openness quartile retains $0.85$ where its own openness permits $0.61$; L1's late volume rate $0.02955$ equals its gate-weighted $(1+\varphi)\lambda\Xi=0.02946$, its bands decaying in common proportion, and it crosses the ratio tolerance at $t=201$ s. (ii) The pre-amendment decision tree evaluated against the invocation-1 numbers yields `CONTRADICTS` on B1's unchanged $-2.4692\times10^{-3}$, with the two $\lambda=0$ controls additionally named by the old clause ($\{B1,C1,C2\}$ against $\{B1\}$), so the firing set contains B1 under both wordings and the one status an amendment changed is the construction gate, corrected rather than relaxed | Verdict unchanged and amendment-invariant: the gated displacement is a transient of the relaxation with a rate-ordered lag, not a freeze; no amendment touched a tolerance, a horizon, a matrix row or the firing clause, and no per-cell $\delta$ distribution or band mass is recoverable from the receipts. The two invocations are replicates—one measurement, repeated, under a rule extended after the first receipt—not two independent measurements |
 | Mode-A ray | A2–A5 end at $R_T/\varphi-1=-1.94\times10^{-4}$, $-3.88\times10^{-4}$, $-5.62\times10^{-4}$ and $+1.74\times10^{-4}$, class `ray` | The fixed ray is confirmed off-ray in both directions at $N=32$, $T=30$ |
 | Mode-A rate | All four decisive mode-A rates equal $0.261803387$ against $(1+\varphi)\lambda=0.261803399$, a factor $1-4.6\times10^{-8}$, class `rate_matches`; the near-ray local rate of A1 equals the prediction to $2\times10^{-8}$ | The rate law is confirmed at the projected RK2 bias |
 | Mode-A conservation and closure | $\Sigma_{\mathrm{res}}\le1.1\times10^{-15}$ and $C\le1.7\times10^{-8}$, classes `exact` and `closure_holds`; the unprojected control M1 reaches $\Sigma_{\mathrm{res}}=1.24\times10^{-2}$ and $C=7.6\times10^{-4}$ with a solenoidal residual of 1.55 | Equal-and-opposite conversion holds where the velocity is solenoidal and moves where it is not |
@@ -2499,16 +2499,32 @@ $(1+\varphi)\lambda\Xi$ with the measured $\Xi$, below $\Gamma_0$ by the factor
 $0.884$. Two invocations were needed because the first receipt's
 `construction_floor_inactive` gate measured a threshold derived from an
 incorrect sentence of the protocol rather than the construction, which carries
-no clamp; the four in-place amendments, the retained first receipt and the
-reproducibility comparison are recorded in the protocol's §2 to §4 and §6, and
-the second invocation re-ran the identical matrix under identical tolerances,
-differing from the first in nothing measured.
+no clamp; the five in-place changes, the retained first receipt and the
+reproducibility comparison are recorded in the protocol's §1.3, §2, §3, §4 and
+§6, and the second invocation re-ran the identical matrix under identical
+tolerances, differing from the first in nothing measured. The provision that
+permitted the second invocation was added to the protocol's §2 stopping rule
+after the first receipt existed, and it is disclosed there as such: before it,
+the rule allowed a re-run only after a timeout that wrote no receipt, under the
+same aggregate cap. The two invocations are therefore replicates rather than
+independent measurements—one measurement, repeated—and the reproducibility
+comparison is what makes that checkable, since the receipts agree in every
+recorded run scalar and differ only in the two $\lambda=0$ ratio classes and
+the metadata.
 
 No reading here changes the status of the conditional attractor row: the ray
 and the rate are confirmed in the ungated form at $N=32$ and $T=30$, and the
 gated form carries a measured finite-grid displacement of the volume mean,
 $2.5\times10^{-3}$ at the declared horizon and $3.1\times10^{-4}$ at $T=240$,
 whose resolution and amplitude dependence this schedule does not settle. The
+displacement is transient rather than frozen: it peaks at $t\approx26.8$ s at
+$-2.5\times10^{-3}$ and is carried by the cells the gate weights down, the
+lowest-openness quarter of the field retaining $0.848$ of its deviation from
+$t=3.75$ to $30$ where its own openness permits $0.608$, and the long-horizon
+run is inside the $10^{-3}$ tolerance from $t=201$ s onward—so the declared
+horizon of $30$ s samples a ray-initialized run at its plateau, and the
+crossing near $t\approx58$ s obtained by extrapolating the stored rates is
+arithmetic rather than a measurement. The
 protocol measures one lattice resolution pair, one viscosity and one amplitude
 band, and says nothing about the cascade law, the dark-energy or gravity
 mappings, or any other place $\varphi$ appears.
