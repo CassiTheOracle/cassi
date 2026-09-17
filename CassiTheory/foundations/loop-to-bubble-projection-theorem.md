@@ -1046,6 +1046,34 @@ takes the persisting branch of the declared test, so the write decision on this
 realization is that the gate displaces the carrier's composition attractor. See
 `field-experience/probe-outcome-ledger.md` §69.
 
+**The retained coordinate is the conserved equilibrium direction, not a capacity.**
+At the coexistence body's own declared parameter point the frozen generator's
+internal gap (LB39) is $1.1268281293796237\times10^{-2}$—the
+$\kappa(1+\varphi)$ entry, with $2r=1.2$ and
+$d+r-\operatorname{Re}\sqrt{r^2-\Omega^2}=2.7276406320767016\times10^{-1}$ beside it
+and **no entry vanishing**—and its kernel over the declared modes is
+one-dimensional: the excluded total-density mode itself, its direction pair
+symmetric and its carrier ratio the equilibrium ratio $\varphi:1$. So the one
+retained writable coordinate of §70 is that conserved direction rather than a
+second storage level. The two declared writes retain through it and add there
+with direction cosine $1.0$ and relative gap $2.2781598592640784\times10^{-2}$;
+the released coordinate moves by $1.6510104756966052\times10^{-9}$ of itself
+over the release window where the gap would have taken it down by
+$0.9937221428959869$; and the fitted release clock equals $\kappa(1+\varphi)$ at
+the equilibrium to ratio $1.0000000197357823$. The write law's proportionality
+and its retention are therefore the linear response of a conserved direction.
+The second direction's own class is *reachable* while retaining nothing—the
+one-step pre-flight is odd-dominant at
+$2.547515185086473\times10^{-6}$ against $6.424958490062066\times10^{-7}$, and
+the same class stands at exactly $0.0$ after the release—so its silence is
+spectral rather than a statement about controllability or capacity. The count
+is read on the $\chi$-averaged composition the executor of that body actually
+implemented, not on the $\chi$-resolved profile its §1.2 declares
+(`composition_profile` reduces over the loop axis and indexes the exterior
+axis), so it resolves the kernel count and not the mode-$1$ sector, and the
+declared $\chi$-resolved reading remains unmeasured. See
+`field-experience/probe-outcome-ledger.md` §71.
+
 **The carrier keeps what the gate wrote.** Removing the split at
 $T=450$, five relaxation times in, and integrating a further $450$ units
 leaves the displacement standing at $1.021$–$1.043$ of the value the gate
