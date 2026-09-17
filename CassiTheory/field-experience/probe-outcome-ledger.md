@@ -3022,6 +3022,132 @@ coordinate can hold two items distinguished by anything but magnitude, and wheth
 survives a change of seed family, load or resolution. The reserve is a bound on one finite
 realization under two declared directions, not a statement about the continuum equations.
 
+## 71. The retained coordinate is a conservation law, not a capacity: the closed form at the frozen body's own point, and the reading domain the run actually used
+
+**No entry of theorem 6.3's reduced gap vanishes at the declared parameter point.** At the
+equilibrium the frozen module's own constants give $\kappa(1+\varphi)=1.1268281293796237\times
+10^{-2}$, $2r=1.2$, and $d+r-\operatorname{Re}\sqrt{r^2-\Omega^2}=2.7276406320767016\times10^{-1}$
+(with $d=4.4982698961937725\times10^{-2}$ as that entry's mode-$0$ counterpart), so none of the
+three boundaries is reached, and the only zero eigenvalue the frozen generator carries there is
+the excluded total-density mode itself. §70's "one retained writable coordinate" is therefore not
+a boundary artifact; the audit below reads it against $\dim\ker$ of the frozen `mode_generator` at
+the run's own point, and finds the two counts equal—which is the branch the reserved verdict did
+not name: the retained coordinate is a **conservation law** of the reduced generator, not a second
+storage level.
+
+The tuple is not re-derived from any successor. `computations/loop-carrier-composition-coexistence-prereg.md`
+binds the discrete-operator module by digest in its §0 row `bound_module_sha256`, so that module's
+constants *are* the declared tuple: $\varphi=1.618033988749895$, $r=\text{EXCHANGE}=0.6$,
+$\Omega=V/R=0.4705882352941177$, $d=D_\text{ELL}/R^2=0.044982698961937725$ with
+$V=0.8$, $R=1.7$, $D_\text{ELL}=0.13$, and $\lambda=0.04$; the two declared relations close exactly
+($V/R-\Omega=0.0$, $D_\text{ELL}/R^2-d=0.0$). The run's own $\kappa$ is state-dependent, so the
+audit reports it three ways rather than one: over the loaded seeded state the frozen rate array
+runs $\min=5.286063597950403\times10^{-3}$, $\text{mean}=6.544507882556958\times10^{-3}$,
+$\max=7.947406903627875\times10^{-3}$ and the scalar $\lambda(1-A_\text{seed})
+=6.544507882556952\times10^{-3}$ with $A_\text{seed}=0.8363873029360762$ read from the receipt's own
+`load_reference.coordinate.initial`—the two agree to $-6.07\times10^{-18}$, which is the identity
+$\text{mean}_x\,\lambda(1-q(x))=\lambda(1-\text{mean}_x\,q(x))$; and at the equilibrium the
+reference arm's own final coordinate $A_\text{eq}=0.8923974885141119$ gives
+$\kappa=\lambda(1-A_\text{eq})=4.3041004594355226\times10^{-3}$. The seeded point is where the run
+started; the equilibrium is where its own reference arm ends, its ray distance having fallen to
+$5.297914102411338\times10^{-8}$, and it is the point the linearization is about.
+
+| Entry of the reduced gap | At the seeded point ($\kappa=6.544507882556952\times10^{-3}$) | At the equilibrium ($\kappa=4.3041004594355226\times10^{-3}$) | Dial distance to its boundary |
+|---|---|---|---|
+| $\kappa(1+\varphi)$ — species composition | $1.7133744076175704\times10^{-2}$ (at $\min_x\kappa$: $1.3839094166127715\times10^{-2}$, the chain's own LB39 gap) | $1.1268281293796237\times10^{-2}$ | $\kappa=4.3041004594355226\times10^{-3}$ |
+| $2r$ — uniform direction imbalance | $1.2$ | $1.2$ | $r=0.6$ |
+| $d+r-\operatorname{Re}\sqrt{r^2-\Omega^2}$ — loop-nonuniform, direction-symmetric | $2.7276406320767016\times10^{-1}$ (root $3.7221863575426756\times10^{-1}$ on argument $1.3854671280276812\times10^{-1}$) | same, $\kappa$-independent | $\sqrt{d^2+\Omega^2}=4.7273325502140445\times10^{-1}$, $\Omega-r=-1.2941176470588228\times10^{-1}$ |
+| minimum over the three, at the equilibrium | — | $1.1268281293796237\times10^{-2}$ | the $\kappa$ entry is the active one |
+
+$\dim\ker$ is computed twice at the equilibrium point, on the frozen `closed_spectrum` and on the
+frozen `mode_generator`'s own null space, and the two agree. Mode $0$: spectrum
+$\{0,\,-1.2,\,-1.12682812937962\times10^{-2},\,-1.21126828129379\}$, one zero, generator nullity
+one, generator's own smallest $|\operatorname{Re}\lambda|=9.06\times10^{-17}$. Modes $1$, $2$, $3$:
+spectra $\{-0.272764063208,\,-1.017201334716,\,-0.284032344501,\,-1.02846961601\}$,
+$\{-0.779930795848\pm0.725129746176\mathrm{i},\,-0.791199077142\pm0.725129746176\mathrm{i}\}$ and
+$\{-1.004844290657\pm1.27792002284\mathrm{i},\,-1.016112571951\pm1.27792002284\mathrm{i}\}$, all with
+zero zeros and nullity zero; the realized gaps are $2.7276406320767016\times10^{-1}$,
+$7.799307958477508\times10^{-1}$ and $1.0048442906574395$—the loop family $d m^2+r-\operatorname{Re}\sqrt{r^2-m^2\Omega^2}$
+is strictly increasing in $m$ from $m=1$, checked to $m=24$, so the minimum over all modes is the
+minimum over the three entries and the closed form's $\min$ is realized rather than assumed. The
+chain's own `mode_spectrum` reproduces both checked spectra with a maximum difference of exactly
+$0.0$. So $\dim\ker$ over the modes the run declared, $\{0,1\}$, is **one**, and after excluding
+the total-density mode it is **zero**: no conserved coordinate exists at this point that the drive
+cannot address, which is the placement branch the reserve left open and which does not fire here.
+
+The one kernel direction is the theorem's own label, read off the null vector rather than asserted:
+in the generator's $(\text{carrier},\text{direction})$ basis the components are proportional to
+$(1,1,\varphi^{-1},\varphi^{-1})$, giving a carrier ratio of $1.6180339887498865$ ($\varphi$ to
+$1.4\times10^{-14}$), a direction asymmetry of $1.85\times10^{-16}$, and an $\varepsilon=e_Y-\varphi e_I$
+residual of $1.03\times10^{-14}$. It is the $\chi$-uniform, orientation-symmetric, $\varepsilon=0$
+total-density direction: the equilibrium ratio itself. The degeneracy list is carried forward as a
+*predictive* handle and not run here—dial $\kappa\to0$ and the species composition becomes
+conserved; $r\to0$ and the uniform direction imbalance does; $d=\Omega=0$ and the loop-nonuniform
+direction-symmetric content does; $d=r=0$ and the content is ballistic at $\pm m\Omega$ with zero
+real decay.
+
+**What the run read, and what the declaration says it read.** §1.2 declares the reading domain as
+$c_{s,k}(t)=\text{mean}_x\,q\big(F_{Y,s}(x,\chi_k),\,F_{I,s}(x,\chi_k)\big)$ with $k=0,\dots,23$: the
+reduction is over the exterior axis and the remaining index is the loop sample, $48$ coordinates in
+all. The executor's `composition_profile` implements `bounded_q(state[0], state[1]).mean(axis=base.EXTERIOR_AXIS)`,
+and because `bounded_q` here takes the state's two carriers it carries three axes, not four, so
+`EXTERIOR_AXIS = 2` lands on the *loop* axis: the implemented reduction is over $\chi$ and the
+remaining index is the exterior point—the transpose of the declared one, $14$ coordinates, and the
+receipt's stored group vectors are $7$ long, which is $N_x$ and not the declared $24$. The audit
+proves the transposition on declared-shaped probes rather than by reading the line: a state whose
+composition varies only along the loop axis returns an implemented row spread of exactly $0.0$
+(the $\chi$-average) against a declared row spread of $7.376815905011214\times10^{-2}$, and a state
+that varies only along the exterior axis returns an implemented row spread of
+$6.938268539288772\times10^{-2}$ against a declared row spread of exactly $0.0$. The executor's own
+`direction_cosine` docstring still calls the concatenated vector a "48-vector" while it concatenates
+$2\times7$. This is reported and not repaired: §70's body is frozen and was not re-run. Its
+consequence is exact, not approximate—every coordinate the receipt holds is a $\chi$-average, so
+the reading can only see the mode-$0$ sector, which is precisely where the closed form says the
+single conserved direction lives. The declared $\chi$-resolved domain would have carried the
+$\chi$-nonuniform content whose smallest realized rate is $2.7276406320767016\times10^{-1}$.
+
+| Reading | Receipt value | Against the closed form |
+|---|---|---|
+| Retained even group of write_A, $T_1\to T_2\to T_3$ | $0.0035782503187010394$, $0.0035854949067870424$, $0.003585494912706732$ | Over the $450$-unit release window it moves by $1.65\times10^{-9}$ of itself, where the gap $1.1268281293796237\times10^{-2}$ would have taken it down by $0.9937221428959869$—a factor $6.02\times10^{8}$, i.e. no decay at all |
+| Release-window clock, fitted on the reference arm's own $\rho$ | $1.1268281516184584\times10^{-2}$ | The $\kappa$ entry at the equilibrium is $1.1268281293796237\times10^{-2}$: difference $2.22\times10^{-10}$, ratio $1.0000000197357823$. The rate read live from the relaxation receipt, $1.119569724312185\times10^{-2}$, sits at $0.9935585517629607$ of it |
+| Own-group readings, $T_1/T_2/T_3$ (450, 900, $1350$) | A even as above; A odd exactly $0.0$, $2.94\times10^{-16}$, exactly $0.0$; B even $8.054468970674446\times10^{-5}\to8.080466456044417\times10^{-5}$; B odd $2.94\times10^{-16}$, $1.47\times10^{-16}$, exactly $0.0$ | Neither single write retains anything in the odd group, and both writes' whole retained footprint lands in the even group—the one kernel direction |
+| Joint and erase odd residue | $7.185740297158022\times10^{-8}$ at $T_1$, $4.379586482395071\times10^{-10}$ (erase $4.379025443956683\times10^{-10}$) at $T_2$, exactly $0.0$ at $T_3$ | A rate of $1.1334032054212044\times10^{-2}$ over the $450$ units, $1.005835030090348\times$ the $\kappa$ entry: fast against retention, of the same order as the active entry |
+| Pre-flight one-step action | A: even $2.5753540367077486\times10^{-6}$ against odd $6.529026343075532\times10^{-7}$; B: even $6.424958490062066\times10^{-7}$ against odd $2.547515185086473\times10^{-6}$ | B's drive is odd-dominant by $3.97\times$: the odd class *is* reachable, so its silence is not a controllability wall |
+| Additivity of the two writes at $T_3$ | cosine $1.0$, relative gap $0.022781598592640784$; the erase arm against the joint $1.6834098570927907\times10^{-4}$ | Two injectors, one conserved coordinate: a perfect cosine is what a degeneracy looks like from the reading side, not evidence of a second level |
+| Epsilon excursion of the reference arm | ray distance $5.297914102411338\times10^{-8}$ at $T_3$ and at the end | The composition's sensitivity to the decaying $\varepsilon$ direction is proportional to $\varepsilon$ itself, so that direction cannot be seen in the composition once the state returns to the ray—which is why the retained displacement is the conserved one |
+| Binding and status | protocol body `09426b68…`, executor `3852eadb…`, operator module `d687597f…`, receipt `9724143b…`; `status=PASS`, fourteen of fourteen gates, $305.6$ s | The audit reads the bytes the declaration binds, and pins all $115$ numbers it prints against a literal table (`self-check: 115 pinned values agree`) |
+
+**Classification, against the branches fixed before the arithmetic.** Measured retained
+coordinates: one (A's even group, and B's retained footprint inside the same group). $\dim\ker$ over
+the declared mode content: one. The branch is `equal`—**confirmation**: the retention across five
+relaxation times is the conservation law of the frozen generator, the retained coordinate is the
+excluded total-density direction read through a composition that is insensitive to everything else
+at the equilibrium, and §70's residual, $2.25\%$-in-even footprint is B's own injection landing in
+that same direction. The alternate bookkeeping, $\dim\ker=0$ *after* excluding the total-density
+mode, would read `measured_larger`; that is not an undercount of the linear theory, because the one
+coordinate measured is the excluded mode itself, and the honest statement of the pair is: one
+conserved coordinate, two injectors, no second capacity. The odd class is silent in *retention*
+while being reachable in *action*, and the audit's numbers separate those two: it is a spectral
+statement about a direction with no kernel, not a capacity and not a wall.
+
+The exponent the retained displacement scales with is not a free parameter either: the spent
+write body's own recorded law is $|D_\infty|=(4.3424057234641914\times10^{-4})\,\delta_g^{\,1.0302448806878108}$,
+labelled `PROPORTIONAL` inside the declared linear band $[0.9,1.1]$, with the free fit's
+$1.031104893189443$ and the terminal readings' $1.0291737139778423$ agreeing to $0.2\%$. An exponent
+of one within two and a half percent is what the linear response of a conserved coordinate looks
+like; it is not evidence of a second level, and §70's additive scalar reading is the same statement
+in scalar form.
+
+**The falsifiable continuation this audit does not run**, carried for a later body rather than
+tested here: move $\kappa$, $r$, $d$ or $\Omega$ toward its zero and the retained count should rise
+by one per degeneracy reached. **Rule forward, for every write-capacity body from here**: a body
+that claims writable capacity declares $\dim\ker(\text{mode\_generator})$ at its own parameter point
+as its predicted answer *before* it runs, and states its distance to the three boundaries—$\kappa$,
+$r$, and $d=\Omega=0$, with $2r$ and the mode-$1$ loop rate as the other two dials; without that
+declaration, "two writes coexist" can be a degeneracy mistaken for capacity, exactly as the
+retained scalar $A$ would have returned a confident "coexistence confirmed" with no way to be
+wrong.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -3251,3 +3377,6 @@ realization under two declared directions, not a statement about the continuum e
 - `computations/loop-carrier-composition-coexistence-prereg.md`—frozen coexistence body: the χ-resolved per-orientation composition profile and its even/odd partition declared coordinate by coordinate, the two gate directions and the counter-write phase, the four pre-flight readings with the null, the eight declared arms, the fourteen gates against the fifteen reported features, the two verdicts with their reserved branches, and the design probe disclosed before the freeze.
 - `computations/verify_loop_carrier_composition_coexistence.py`—executor binding the protocol body, the attractor-write executor and its body and receipt, the successor executor and its body and receipt, the spent gate-load and split executors, the relaxation probe, the frozen discrete operators and the successor's short-horizon oracle by digest, with the design-probe mode, the binding can-fail flags, the term-for-term reduction of direction A to the spent right-hand side, and the refusal path of §0.
 - `runs/loop_carrier_composition_coexistence/verification.json`—source-bound receipt of the single invocation at `status=PASS`: the fourteen gates, the pre-flight readings in both directions with the exactly-zero null, the eight arms' group-resolved displacements and fits, the two verdicts `RESERVED_ONE_RETAINED` and `RESERVED_NO_B`, the reported-not-gated composition block, the five replicated successor literals with zero mismatches, the twelve design-probe readings, and the two clocks (gitignored run artifact).
+- `computations/verify_loop_carrier_kernel_dimension.py`—the closed-form kernel-dimension audit: binds the frozen body, its executor, the bound operator module, the spent write body and the coexistence receipt by digest, reads the declared tuple from the bound module and the run's own arm coordinates, evaluates theorem 6.3's three entries and `dim ker` of the frozen `mode_generator` at the seeded and equilibrium points, proves the reading domain's transposition on declared-shaped probes, and pins all $115$ numbers it prints against a literal table.
+- `computations/verify_loop_to_bubble_projection.py`—the frozen discrete operators, bound by the coexistence protocol's §0 row `bound_module_sha256`, carrying the declared tuple (PHI, EXCHANGE, V, R, D_ELL, LAM, OMEGA, D_LOOP) together with the `mode_generator`/`closed_spectrum` pair this audit evaluates for the kernel dimension and the mode spectra.
+- `computations/loop-carrier-attractor-write-prereg.md`—the spent write body's recorded offset law $|D_\infty|=(4.3424057234641914\times10^{-4})\,\delta_g^{\,1.0302448806878108}$ labelled `PROPORTIONAL` inside the declared band $[0.9,1.1]$, the exponent §71 reads as the response of a conserved coordinate.
