@@ -9,7 +9,7 @@ This protocol and its executor are frozen together. The executor reads the rows 
 | Source | SHA-256 | Meaning |
 |---|---|---|
 | `frozen_body_sha256` | `151ab43fbaf2cd8580679bca98d51a40cbac7adf275a799b0f06249aedb9c636` | this file from `## 1.` to just before `## 8.`, the text that carries every statistic, threshold, arm and decision rule |
-| `executor_sha256` | `5b51173fceda2b96be4ad4d2e64e512f70fb372718749fd8255f58a4ced4a923` | `computations/verify_loop_carrier_attractor_write.py`, the complete executor frozen with this text |
+| `executor_sha256` | `740d0fc036721be5f1ee0fd5527fe54e771243113e13b7133be053f6439cf6c6` | `computations/verify_loop_carrier_attractor_write.py`, the complete executor frozen with this text |
 | `bound_module_sha256` | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` | `computations/verify_loop_to_bubble_projection.py`, the frozen discrete operators |
 | `base_probe_sha256` | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` | `computations/verify_loop_carrier_projection_relaxation.py`, the successor's executed probe: the carrier law, the projection, the composition, the canonical companion, the seeds and the integrator |
 | `split_executor_sha256` | `246463f7fd1ba4a7fef282079e312d6e1382a15319b97d20b2ba49be46adcb5a` | `computations/verify_loop_carrier_projection_split.py`, the spent split protocol's executed executor, from which the split right-hand side and the split gate field are **imported** rather than re-derived |
@@ -349,4 +349,108 @@ The bound is stated against the conservative rate rather than the flattering one
 
 ## 8. Post-execution record
 
-Not yet executed. This protocol and `computations/verify_loop_carrier_attractor_write.py` are frozen at the digests in §0; the invocation, its gate table, its per-arm readings, its branch classifications, its law, its instrument and its write verdict belong in this section, under the stopping rule of §6.
+### 8.1 Invocation
+
+| Item | Value |
+|---|---|
+| Command | `timeout 600 python computations/verify_loop_carrier_attractor_write.py` |
+| Bound | `600` s; the run took `151.24245929718018` s, $0.25$ of the bound, against a declared projection of $190.0$ s |
+| Process | one, pid recorded in the receipt; `runs/loop_carrier_attractor_write/verification.json`, schema `cassi.loop-carrier-attractor-write.v1` |
+| Status | **`FAIL`**—gate 12 (`anchor at the ray`) reads `null` (§8.2, §8.7), so no verdict is issued |
+| Receipt | written once; the code refuses a second invocation while it exists, and none was made |
+
+| Source as executed | SHA-256 |
+|---|---|
+| `computations/loop-carrier-attractor-write-prereg.md` §1–§7 | `151ab43fbaf2cd8580679bca98d51a40cbac7adf275a799b0f06249aedb9c636` |
+| `computations/verify_loop_carrier_attractor_write.py` | `f852e3feef6e5739d779fb746e21723071b1e8e9abc31de9103387366b671f5d` |
+| `computations/verify_loop_to_bubble_projection.py` | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` |
+| `computations/verify_loop_carrier_projection_relaxation.py` | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` |
+| `computations/verify_loop_carrier_projection_split.py` | `246463f7fd1ba4a7fef282079e312d6e1382a15319b97d20b2ba49be46adcb5a` |
+| `computations/verify_loop_carrier_gate_load.py` | `be9f651d085bb4ee5d8f62ddb4db0a1714eb58c1b2106025d52f7fe2224f0eac` |
+| `runs/loop_carrier_projection_relaxation/verification.json` | `3520231c8c54372e07443682847de9d01fbb0f132c89efef3fc7f0c16a22bcb1` |
+| `runs/loop_carrier_projection_split/verification.json` | `559d19ae43011b0f7143a5c9cf8429a5c46b5a181849c7b4cabd2ea99c8872fc` |
+| `computations/loop-carrier-gate-load-prereg.md` §1–§7 | `c0d2fe37b8b4ee7673b1ec1a7c658f2bedb4eae6ad360516057d5ee9cdc843fa` |
+| `runs/loop_carrier_gate_load/verification.json` | `471f1f8074ff7cc85187690747b7ba9235e6d8627a7e9a7cc1db2a0a81710cc1` |
+
+**One execution attempt that produced no reading is disclosed.** The first attempt at the frozen pair aborted inside its first arm, before any statistic existed and with no receipt written: the two-clock oracle arm is $100$ steps long and the executor indexed it at the five declared horizons. The executor was corrected (only the sampling of arms shorter than the horizon set moved), re-frozen, and its self-check re-run; the frozen body digest `151ab43f` was unchanged by that correction, no arm, horizon, level, threshold or band moved, and the run recorded here is the first execution that produced a reading.
+
+### 8.2 Gate table
+
+| # | Gate | Reading | Bound | Result |
+|---|---|---|---|---|
+| 1 | binding | ten rows declared against observed | exact | pass |
+| 2 | structure | every recorded state: states nonnegative, $0\le q<1$, annihilation and idempotence finite | structural | pass |
+| 3 | anchor load | $3.646114292316331\times10^{-1}$ measured, $3.646114292316331\times10^{-1}$ in §67's receipt | relative $10^{-12}$ | pass |
+| 4 | action live | $5.339073136189\times10^{-2}$ of the step's own drift | $\ge10^{-3}$ | pass |
+| 5 | action silent | exactly $0.0$ | $\le10^{-15}$ | pass |
+| 6 | horizon adequacy | five distinct horizons, span $4.702192842111177$ nats, tail $6.486295\times10^{-3}$, threshold $411.333933562495$, seven declared levels, smallest declared magnitude $3.148953\times10^{-10}$ | count, $\ge1$, $\le10^{-2}$, $\ge$ threshold, $\ge10^{-12}$ | pass |
+| 7 | clock | fitted $1.1375969997251654\times10^{-2}$ over $[30,450]$, ratio $1.016102$, against the receipt's own $1.119569724312185\times10^{-2}$ | factor $2$ | pass |
+| 8 | schedule conformance | every arm's $\Delta t\le1/(40\lambda_{\max})$, inside the declared set | every arm | pass |
+| 9 | declared shape | $12$ executions, $226{,}934$ steps, largest $22{,}500$ | $12$, $50{,}000$, $300{,}000$ | pass |
+| 10 | silence on the ray | exactly $0.0$ at all five horizons (peak $3.330669\times10^{-16}$) | $\le10^{-14}$ | pass |
+| 11 | can-fail at the largest split | $5.924018712751833\times10^{-4}$ | $\ge10^{-12}$ | pass |
+| 12 | anchor at the ray | **`null`** | $\le5\times10^{-3}$ | **FAIL** |
+| 13 | cross-protocol oracle | $5.329147248815693\times10^{-16}$ | bit-identical | pass |
+| 14 | cross-executor oracle | $2.622443969747147\times10^{-15}$, $2.219140084394095\times10^{-15}$, $1.0331312281605476$ | bit-identical | pass |
+| 15 | single invocation | receipt absent at start, one process | structural | pass |
+
+Gate 12 failed because its reading was **not computed**, not because the anchor was found off the ray: the executor recorded each arm's distance from the ray only for arms carrying a twin, which excludes exactly the two anchors, so the one arm this gate is about carried `null`. §8.7 measures the quantity outside the run and states what that measurement can and cannot be used for. The other fourteen gates passed on the run's own numbers, including both oracles bit-identical and the clock the classification depends on.
+
+### 8.3 Arm readings
+
+$c$ is the declared transfer, $\delta_g$ the declared split size. All five $\Delta$ columns are the split's own change of $A$ at $T=30,90,180,300,450$, on the arm's own trajectory against its anchor's; $D_\infty^{\rm h}$ is fit H's offset (rate held at `NU_REFERENCE`), $D_\infty^{\rm f}$ fit F's, `share` the held offset as a fraction of the terminal reading, and the residuals are the two-parameter forms' own.
+
+| Arm | Role | $c$ | $\delta_g$ | $\Delta(30)$ | $\Delta(90)$ | $\Delta(180)$ | $\Delta(300)$ | $\Delta(450)$ | $D_\infty^{\rm h}$ | $D_\infty^{\rm f}$ | share | residual h/f | Branch |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `decade_1` | sweep | $2\times10^{-1}$ | $10^{-6}$ | $-4.236736517\times10^{-10}$ | $-3.319576836\times10^{-10}$ | $-3.292212059\times10^{-10}$ | $-3.326989795\times10^{-10}$ | $-3.332892851\times10^{-10}$ | $-3.196567330\times10^{-10}$ | $-3.303508092\times10^{-10}$ | $0.9591$ | $0.076/0.010$ | `PERSIST` |
+| `decade_2` | sweep | $2\times10^{-1}$ | $10^{-5}$ | $-4.236747064\times10^{-9}$ | $-3.319594377\times10^{-9}$ | $-3.292235040\times10^{-9}$ | $-3.327003562\times10^{-9}$ | $-3.332897736\times10^{-9}$ | $-3.196581257\times10^{-9}$ | $-3.303522902\times10^{-9}$ | $0.9591$ | $0.076/0.010$ | `PERSIST` |
+| `decade_3` | sweep | $2\times10^{-1}$ | $10^{-4}$ | $-4.236867357\times10^{-8}$ | $-3.319772690\times10^{-8}$ | $-3.292444550\times10^{-8}$ | $-3.327227893\times10^{-8}$ | $-3.333126042\times10^{-8}$ | $-3.196811381\times10^{-8}$ | $-3.303734981\times10^{-8}$ | $0.9591$ | $0.076/0.010$ | `PERSIST` |
+| `decade_4` | sweep | $2\times10^{-1}$ | $10^{-3}$ | $-4.238069908\times10^{-7}$ | $-3.321554966\times10^{-7}$ | $-3.294538536\times10^{-7}$ | $-3.329478975\times10^{-7}$ | $-3.335424712\times10^{-7}$ | $-3.199120887\times10^{-7}$ | $-3.305861320\times10^{-7}$ | $0.9591$ | $0.076/0.010$ | `PERSIST` |
+| `decade_5` | sweep | $2\times10^{-1}$ | $10^{-2}$ | $-4.250096947\times10^{-6}$ | $-3.339379584\times10^{-6}$ | $-3.315480430\times10^{-6}$ | $-3.351992734\times10^{-6}$ | $-3.358415359\times10^{-6}$ | $-3.222219065\times10^{-6}$ | $-3.327127446\times10^{-6}$ | $0.9594$ | $0.075/0.011$ | `PERSIST` |
+| `decade_6` | sweep | $2\times10^{-1}$ | $10^{-1}$ | $-4.370507671\times10^{-5}$ | $-3.517821101\times10^{-5}$ | $-3.525125276\times10^{-5}$ | $-3.577366475\times10^{-5}$ | $-3.588558609\times10^{-5}$ | $-3.453442353\times10^{-5}$ | $-3.540014041\times10^{-5}$ | $0.9623$ | $0.073/0.017$ | `PERSIST` |
+| `supersplit_load` | canfail | $2\times10^{-1}$ | $1$ | $-5.590914651\times10^{-4}$ | $-5.327974510\times10^{-4}$ | $-5.653016054\times10^{-4}$ | $-5.864770484\times10^{-4}$ | $-5.924018713\times10^{-4}$ | $-5.800237159\times10^{-4}$ | $-6.141123877\times10^{-4}$ | $0.9791$ | $0.048/0.036$ | `PERSIST` |
+
+Every one of the seven sweep arms is `PERSIST`: both fits leave an offset between $96\%$ and $104\%$ of the terminal reading, five to ten times the `PERSIST_SHARE` the rule requires, with residuals from $0.010$ to $0.076$ against a band of $0.25$. The free fit's rate is at the edge of its declared scan on all seven (ratios $4.094$ for the six decades, $0.244$ for the largest split), which is recorded rather than gated: when an offset dominates the reading, the free rate is not identified, and the free rate enters only the `TRANS` clause. The two-horizon ratio is recorded beside each arm too, $1.0106$ to $1.0375$, against a transient prediction of $0.04867$—a factor $21$ away.
+
+| Control | Reading |
+|---|---|
+| `ray_supersplit` ($\delta_g=1$) | $\Delta$ exactly $0.0$ at all five horizons, peak $3.3306690738754696\times10^{-16}$, branch `BELOW_FLOOR`: the bracket vanishes on the ray and the split is inert to the last bit |
+| `loadmax_anchor` | $A$ at the five horizons $0.8705547289016715$, $0.8873980509896515$, $0.8917622231949903$, $0.8923551869335550$, $0.8923960494310218$; $\rho$ final $8.308015639801732\times10^{-4}$; ray distance at $T_{\max}$ **not computed in the run** (§8.7) |
+| `ray_short`, `successor_replication` | residuals $5.329147248815693\times10^{-16}$, $2.622443969747147\times10^{-15}$ ($\rho_{\rm final}$ $2.219140084394095\times10^{-15}$), $\lambda_{\max}$ $1.0331312281605476$, all bit-identical to the two bound receipts |
+| zero-split reduction | residual exactly $0.0$ |
+
+### 8.4 The law and the instrument
+
+Over the seven `PERSIST` arms, on the held fit's offsets:
+
+$$|D_\infty|=(4.3424057234641914\times10^{-4})\,\delta_g^{\,1.0302448806878108},\qquad \delta_w=4.129022977646817\times10^{-9},$$
+
+labelled `PROPORTIONAL`: every one of the seven levels lies within a factor $2$ of the fitted line (per-level ratios $1.118$, $1.043$, $0.973$, $0.908$, $0.853$, $0.853$, $1.336$) and the fitted exponent $1.0302$ lies inside the declared linear band $[0.9,1.1]$. The exponent is two and a half percent above one rather than exactly one, and the largest split—$\delta_g=1$ against the six decades below it—is the point that pulls it: on the six decades alone the probe measured $1.0051$.
+
+The same fit on the free fit's offsets gives $(4.524162792749141\times10^{-4})\,\delta_g^{1.031104893189443}$ and on the terminal readings $(4.478554559337186\times10^{-4})\,\delta_g^{1.0291737139778423}$: the three exponents agree to $0.2\%$ and the three instruments to $10\%$, so the declared statistic's law is not an artifact of which fit or which single reading was fitted.
+
+### 8.5 The controls, in one place
+
+The clock the classification depends on is the realization's own: the anchor's $\rho$ decays at $1.1375969997251654\times10^{-2}$ over the declared window $[30,450]$, a factor $1.0161$ from the successor receipt's $1.119569724312185\times10^{-2}$ read live from that receipt, well inside the declared factor $2$—which is the licence the free-rate band in the `TRANS` clause needs. The ray control is silent to the bit at the largest declared split, the can-fail control is readable by eight decades, the two oracles reproduce their receipts bit for bit, and the zero-split reduction is exact.
+
+### 8.6 The verdict, and what this run does and does not license
+
+**No verdict is issued.** By §2.4 a verdict requires `status=PASS`, and the run ended `FAIL` on gate 12; the receipt's `verdicts.write`, `verdicts.law` and `verdicts.instrument` are all `null`. The findings this run *does* license, stated at their own weight:
+
+1. **The branch answerability at the strongest split is measured, not asserted.** Seven of seven declared split sizes, seven decades apart, produce readings whose offsets survive both fits, with the terminal reading $96$–$104\%$ offset at every level, and the free fit attributes less than $1\%$ of the terminal reading to a decay. On this realization the split gate **does not merely shake the composition coordinate**: a reading that decayed at the realization's own clock would have fallen by a factor $21$ across the horizon pair, and none did.
+2. **The offset scales with the split size as a power law, and the exponent is measured to be $1.0302$** over seven decades, i.e. proportional to within three percent, with the instrument $\delta_w=4.13\times10^{-9}$—the smallest declared-axis split whose imprint reaches the readable floor.
+3. **None of this is certified as a write verdict**, because the protocol's own attribution gate—the one that checks the *reference* is at the ray before an offset in a split arm is charged to the split—could not be read in this run. A reader who wants the `WRITES` label must have a run whose gate 12 is evaluated, and this protocol's stopping rule forbids a second invocation on this body.
+4. **Nothing here speaks to storage, memory or physics.** "Writing" is *this declared gate split biases this declared composition coordinate on this finite realization*; §1.3's scope paragraph stands unchanged.
+
+### 8.7 The amendment: what was corrected, and the reading taken outside the run
+
+The executor recorded each arm's distance from the ray only when the arm carried a twin, so the anchors—the arms a split arm is measured *against*—recorded none, and gate 12 read `null`. Corrected, the reading is taken on every arm's final state; the frozen body `151ab43f` was not touched, the digest this executor had at the invocation was `f852e3feef6e5739d779fb746e21723071b1e8e9abc31de9103387366b671f5d` and is recorded in §0 beside the re-anchored one, and the corrected executor has not been and cannot be invoked: the receipt exists and the code refuses a second run.
+
+The quantity gate 12 needed, measured outside the run in a separate one-off probe that steps the same arm with the same seed, split, schedule and step—the same construction §1.5's design probe used—is
+
+$$\max|\varepsilon|/\max|\rho|=1.3442651683720991\times10^{-3}\ \text{at}\ T_{\max},$$
+
+inside the declared `ANCHOR_RAY_TOL` $=5\times10^{-3}$ by a factor $3.7$. The probe reproduces the run's own anchor trajectory exactly—$\rho_{\rm final}$ and all five horizon coordinates bit-identical to the receipt's—so the reading is taken on the same object the run stepped. **This is an amendment reading, not the run's gate value**: the receipt's gate 12 stands `FAIL` with `null`, the status stands `FAIL`, and no verdict is issued. Its use is exactly one: it tells a reader that the run's failure was a bookkeeping slip in the executor and not a state that was off the ray—so that a future protocol, re-registered with the corrected gate, is not being asked to re-open a question this run answered.
+
+The outcome is entered as §68 of `field-experience/probe-outcome-ledger.md`.
+
