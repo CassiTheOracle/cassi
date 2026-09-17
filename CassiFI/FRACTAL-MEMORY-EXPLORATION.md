@@ -137,7 +137,7 @@ pooled held-out RMSE without observing the new pairs).
 
 ### Cross-reference to the concurrent harnesses
 
-Thirteen runner/regression pairs, written by other sessions in this checkout, are
+Sixteen runner/regression pairs, written by other sessions in this checkout, are
 this map's empirical components:
 `run_fractal_geometry_exploration.py` / `test_fractal_geometry_exploration.py`,
 `run_fractal_memory_exploration.py` / `test_fractal_memory_exploration.py`,
@@ -153,7 +153,10 @@ and `run_fractal_lattice_exploration.py` /
 `test_owner_write_path_exploration.py`, `run_memory_consumer_path.py` /
 `test_memory_consumer_path.py` and `run_owner_surface_options.py` /
 `test_owner_surface_options.py`, and `run_owner_nested_cycle.py` /
-`test_owner_nested_cycle.py`. All thirteen runners exist and have been run
+`test_owner_nested_cycle.py`, and `run_memory_store_scale.py` /
+`test_memory_store_scale.py`, and `run_store_addressing_rank.py` /
+`test_store_addressing_rank.py`, and `run_store_addressing_capacity.py` /
+`test_store_addressing_capacity.py`. All sixteen runners exist and have been run
 from this directory, and each writes a receipt that parses:
 
 ```powershell
@@ -170,7 +173,12 @@ python run_owner_write_path_exploration.py --output _diag/owner-write-path/explo
 python run_memory_consumer_path.py --output _diag/memory-consumer-path/exploration.json
 python run_owner_surface_options.py --output _diag/owner-surface-options/exploration.json
 python run_owner_nested_cycle.py --output _diag/owner-nested-cycle/exploration.json
-python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py -q
+python run_memory_store_scale.py --output _diag/memory-store-scale/exploration.json
+python run_store_addressing_rank.py --output _diag/store-addressing-rank/exploration.json
+python run_store_addressing_capacity.py --block declared-profile
+python run_store_addressing_capacity.py --block higher-resolution
+python run_store_addressing_capacity.py --block merge --output _diag/store-addressing-capacity/exploration.json
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py test_memory_store_scale.py test_store_addressing_rank.py test_store_addressing_capacity.py -q
 ```
 
 - `_diag/fractal-geometry/exploration.json`, schema
@@ -224,12 +232,75 @@ python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_explor
   declared strip set removes those leaves with the same four keys).
 - `_diag/owner-nested-cycle/exploration.json`, schema
   `cassifi.owner-nested-cycle.v1`, `receipt_digest`
-  `909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa` (the only
-  digest field it carries; the receipt holds a `runtime_seconds` key, and its
-  declared strip set is the same four keys — but its digested body is not the
-  measurements alone. It carries each arm's construction record, so it includes
-  those records' live source-line fields and binds the source lines of the
-  declared builders; see "Determinism of the receipts").
+  `909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa` — the frozen
+  receipt, kept in place (file sha256
+  `9c150e72d2d8d0bd13e08977f7c2de8b66fae0230f1cdcee05a24023493a4d81`), whose body
+  still recomputes under the rule its runner now applies because excluding a key the
+  body does not carry is a no-op; its own `declared.receipt_digest.taken_over` prose is
+  frozen with it and describes the retired source-line binding. The same measurements
+  under the current rule are published beside it at
+  `_diag/owner-nested-cycle/exploration.layout-decoupled.json`,
+  schema the same, `receipt_digest`
+  `bd7a83d40f5013b6c9d71e5b0abb2fc0cd45f1e751122a1a6f6332a7993f736a`, file sha256
+  `0e1089a07b5eb60ad80afc9b3d854cbbc1a38718d5c9bfc1315ba50fbed47f4c`. Both carry the
+  digest field alone, both hold a `runtime_seconds` key, and both are taken over the
+  same four declared strip keys; what the current rule is read over is stated below in
+  "Determinism of the receipts").
+- `_diag/memory-store-scale/exploration.json`, schema
+  `cassifi.memory-store-scale.v1`, `receipt_digest`
+  `d769cd297109d4885ee62a3256b649b5b0bb9504dd395daf8c1ee6a794ae2c77` (the only
+  digest field it carries; the receipt holds a `runtime_seconds` key and two
+  nested `elapsed_seconds` leaves inside its transceiver receipts, and it also
+  publishes four surface digests that chain over a manifest carrying such a leaf
+  — `A2`'s and `C1`'s owner ledger digests before and after their acts. Its
+  declared strip set removes the family's four clock keys and, by the declared
+  rule, the values derived from a stripped value, the chained manifest hash and
+  the ledger digest computed over it, so on a re-run its digest holds while its
+  file hash moves; see "Determinism of the receipts" for the rule, the defect it
+  repairs and the runs that measure it. Unlike the nested cycle receipt, its
+  digested body is the measurements alone — it carries no construction or
+  source-line record — so its digest binds no source line, and its three
+  `honest_negatives` blocks are declared empty lists: what bounds the claim is
+  stated in the document and in the receipt's own four limitations, not as a
+  receipt field).
+- `_diag/store-addressing-rank/exploration.json`, schema
+  `cassifi.store-addressing-rank.v1`, `receipt_digest`
+  `59c22ecaabd1b952c370ea6d09f8fbddfd7231cf11ac44f64446e1b68c809510` (the only
+  digest field it carries; the receipt holds a `runtime_seconds` key, and it reuses
+  the store-scale receipt's declared strip rule rather than re-deriving one — the
+  strip keys are declared as `run_memory_store_scale.STRIP_KEYS`, the family's four
+  clock keys plus the three declared clock-derived digests, the digest is taken by
+  that runner's own `receipt_digest`, and the rule recorded beside it is "the same
+  declared rule as the store-scale receipt: derived-from-stripped values are
+  stripped as a class" — so what it declares is what it applies, and the body holds
+  `owner_ledger_sha256` leaves in its arm snapshots, which the declared set covers.
+  Its digested body is the measurements alone — it carries no construction or
+  source-line record — so its digest binds no source line, and on a re-run its
+  digest holds while its file hash moves; see "Determinism of the receipts" for the
+  rule and the runs that measure it.)
+- `_diag/store-addressing-capacity/exploration.json`, schema
+  `cassifi.store-addressing-capacity.v1`, `receipt_digest`
+  `a3278fd1ef046f31f65f142f8e9f7831663ad4c868bffc5e33d7a41c0d3d3574` (the only
+  digest field it carries at the top level, beside the two declared blocks it merges;
+  the receipt holds a `runtime_seconds` key and each block holds one of its own, and
+  it reuses the store-scale receipt's declared strip rule exactly as the rank receipt
+  does — `declared.content_digest_strip_keys` is `run_memory_store_scale.STRIP_KEYS`
+  and `declared.content_digest_strip_keys_source` reads "run_memory_store_scale.STRIP_KEYS,
+  reused rather than re-derived" — so its digest holds while its file hash moves, and
+  the same statement covers the merged body's own `runtime_seconds` and the per-level
+  runtimes nested inside it. The two block files beside it carry their own
+  `content_digest` under the same rule — `block-declared-profile.json` at
+  `57e319c56d678115f8e6aa5e08d598480c8f042fe9dbba9e5ee44b9eddb4041d` and
+  `block-higher-resolution.json` at
+  `14d04223b4a7b93a683bcda3e7eb45603afc456c9ee14ba13c5d9bc272efdd2b` — and the
+  merged receipt is those two records, the shared table, the ceiling reading and the
+  verdicts assembled from them, so the three digests cover different bodies: a reader
+  comparing a merged receipt against a block file must re-run the merge rather than
+  compare the two values. Its digested body is the measurements and the table's own
+  shape, with no construction or source-line record, so no edit to its runner moves
+  its digest unless a measured number or a published row moves; see "Determinism of
+  the receipts" for the rule, the merge control and the one thing about this family's
+  re-runs that is recorded rather than repaired.)
 
 Their figures are quoted in "Measured results from the concurrent harnesses"
 below.
@@ -612,7 +683,7 @@ proposals are marked **INFERENCE**.
 ### G.1 The durable storage medium question
 **Status.** Open by design: §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct, and §26.13 says the wave becomes durable knowledge only through an admitted supported update. The memory harness measured departure-and-relaxation in packet coefficient space once, without any checkpoint: with the heartbeat on, the control arm drifts to `0.02616802125195171`, a small disturbance to `0.02644077052253202`, and a large one to `0.030227999631645543`; with the heartbeat off, the same disturbances relax to `0.0019031772406660008` and `0.013457592303609243` from a zero control. Neither condition restores the reference, so this is decay accounting, not demonstrated storage.
 **Measured.** The durability harness writes one declared item at budget `0.001` and reads it back in the declared read frame: recovery is `1.0` with no activity and `1.0` after an exact `ResonantWorkspace.as_dict`/`from_dict` round trip — state digest and page digest identical, read-frame maximum absolute difference `0.0` — and `0.29462880739045766` after `64` ticks of bounded canonical activity with sources and heartbeat on, identical with and without that restart, so the identity established is workspace-level restart identity for a written item and not a durable store, the owner transition surface exposing no packet-impulse operation (`owner_checkpoint_carries_written_item` false, `prepared_query_addressed_written_packet` false) (`_diag/fractal-durability/exploration.json`). The survival receipt shows that figure is scaffold-dependent rather than a property of the written item alone: the same declared item on the same declared activity recovers `0.3481552374975245` on `nested-core-shell` and `0.2702850816137677` on `recursive-paired-loops` against the `0.29462880739045766` default, and the `k = 4` gap is far wider — `0.3351631005750861` on `nested-core-shell` against `0.0764836820747603`, a difference of `0.2586794185003258` against the declared `0.02` margin — so what is stored and how long it lasts both depend on which declared scaffold carried it (`_diag/fractal-survival/exploration.json`).
-**Measured (retrieval).** A declared consumer does read a written direction back through the owner's own `read_packet_deposit` and act on what it read, on one declared profile, one declared policy and one declared budget: the target direction's deposit reads `0.005023718074326502` against a declared floor of half the freshly captured deposit (`0.002511834142857143`), and the act lands along the remembered direction with share `1.0`, against `0.0` with nothing written and `3.229441440156545e-66` when the same page and the same write carry a suppressed read. What does not follow is a store: the act is itself an owner write, and it doubles the deposit it read, `0.005023718074326502 -> 0.01004738636004079`, with no non-destructive actuator on the public surface (`_diag/memory-consumer-path/exploration.json`).
+**Measured (retrieval).** A declared consumer does read a written direction back through the owner's own `read_packet_deposit` and act on what it read, on one declared profile, one declared policy and one declared budget: the target direction's deposit reads `0.005023718074326502` against a declared floor of half the freshly captured deposit (`0.002511834142857143`), and the act lands along the remembered direction with share `1.0`, against `0.0` with nothing written and `3.229441440156545e-66` when the same page and the same write carry a suppressed read. What does not follow is a store: the act is itself an owner write, and it doubles the deposit it read, `0.005023718074326502 -> 0.01004738636004079`, with no non-destructive actuator on the public surface (`_diag/memory-consumer-path/exploration.json`). The memory store scale receipt measures the other half of that sentence: a non-destructive act does exist, but on a declared coupled input realization built from the owner's own written page and driven outside the owner's surface, where the readout moves `0.00042512371321049393 -> -0.0034833204837238702` while all four of the owner's declared surface digests stay byte-identical and the stored read is unchanged; no operation writes that realization's state back into the page, so the owner's write path remains the only actuator that moves the owner's page (`_diag/memory-store-scale/exploration.json`).
 **First step (INFERENCE).** Write one bit through `packet-impulse`, checkpoint, restart, and read it back through the prepared-query path, so the bit lives in `resonant_workspace` rather than a chart.
 **Measures.** Bit recovery after exact restart and after bounded unrelated work.
 **Counts against.** §26.24's record that readouts are frozen against unrelated heartbeats: a bit surviving only while nothing else happens is not durable.
@@ -757,8 +828,8 @@ proposals are marked **INFERENCE**.
 **Run.** Bounded; the `2.9988190742743757` precedent sets the intended-change scale.
 
 ### I.5 Read disturbance
-**Status.** Partly addressed: §26.13 gives readout semantics without writing, §26.24 freezes readouts against unrelated heartbeats, and the viewer cannot feed pixels back; readout-induced perturbation of a wave-stored pattern is unmeasured.
-**Measured (read neutrality).** The owner's own read of a written direction, taken on the held page, changes no page digest and no generation and returns the same readout when repeated, in each of the receipt's declared episodes; what moves the deposit is the consumer's *act*, not its read — one owner write of the direction it read doubles the owner-side recovery of that direction, `0.005023718074326502 -> 0.01004738636004079` (`_diag/memory-consumer-path/exploration.json`). Drift of the stored pattern under repeated reads is still unmeasured; what is measured is that no page and no generation moves.
+**Status.** Partly addressed: §26.13 gives readout semantics without writing, §26.24 freezes readouts against unrelated heartbeats, and the viewer cannot feed pixels back; readout-induced perturbation of a wave-stored pattern is measured at the store level against a declared `0.05` band but not against the `2e-12` `ResonantProfile` tolerance.
+**Measured (read neutrality).** The owner's own read of a written direction, taken on the held page, changes no page digest and no generation and returns the same readout when repeated, in each of the receipt's declared episodes; what moves the deposit is the consumer's *act*, not its read — one owner write of the direction it read doubles the owner-side recovery of that direction, `0.005023718074326502 -> 0.01004738636004079` (`_diag/memory-consumer-path/exploration.json`). Drift of the stored pattern under repeated reads was unmeasured there and is now measured at the store level: over eight rounds that read every declared direction at every stage, the cells of the items the consumer has not yet acted on move by `5.551115123125783e-16` at most against the receipt's declared `0.05` allowance, while the acted items' cells leave that band by the act's own doubling (`_diag/memory-store-scale/exploration.json`).
 **First step (INFERENCE).** Read one pattern `n` times and measure drift in it and in an unrelated pattern.
 **Measures.** Drift versus `n` against the `2e-12` `ResonantProfile` tolerance and the declared roundoff allowance.
 **Counts against.** Drift above tolerance, making repeated reads lossy.
@@ -869,7 +940,7 @@ what remains untested.
 
 ## Measured results from the concurrent harnesses
 
-All thirteen runners exist in this checkout and have been run. Their exact commands:
+All sixteen runners exist in this checkout and have been run. Their exact commands:
 
 ```powershell
 python run_fractal_geometry_exploration.py --output _diag/fractal-geometry/exploration.json
@@ -885,7 +956,12 @@ python run_owner_write_path_exploration.py --output _diag/owner-write-path/explo
 python run_memory_consumer_path.py --output _diag/memory-consumer-path/exploration.json
 python run_owner_surface_options.py --output _diag/owner-surface-options/exploration.json
 python run_owner_nested_cycle.py --output _diag/owner-nested-cycle/exploration.json
-python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py -q
+python run_memory_store_scale.py --output _diag/memory-store-scale/exploration.json
+python run_store_addressing_rank.py --output _diag/store-addressing-rank/exploration.json
+python run_store_addressing_capacity.py --block declared-profile
+python run_store_addressing_capacity.py --block higher-resolution
+python run_store_addressing_capacity.py --block merge --output _diag/store-addressing-capacity/exploration.json
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py test_memory_store_scale.py test_store_addressing_rank.py test_store_addressing_capacity.py -q
 ```
 
 `_diag/fractal-geometry/exploration.json` (`receipt_sha256`
@@ -913,7 +989,14 @@ python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_explor
 `_diag/owner-surface-options/exploration.json` (`receipt_digest`
 `a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455`) and
 `_diag/owner-nested-cycle/exploration.json` (`receipt_digest`
-`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`) all exist
+`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`, the frozen
+receipt) and its current-rule companion
+`_diag/owner-nested-cycle/exploration.layout-decoupled.json` (`receipt_digest`
+`bd7a83d40f5013b6c9d71e5b0abb2fc0cd45f1e751122a1a6f6332a7993f736a`) and
+`_diag/memory-store-scale/exploration.json` (`receipt_digest`
+`d769cd297109d4885ee62a3256b649b5b0bb9504dd395daf8c1ee6a794ae2c77`) and
+`_diag/store-addressing-rank/exploration.json` (`receipt_digest`
+`59c22ecaabd1b952c370ea6d09f8fbddfd7231cf11ac44f64446e1b68c809510`) all exist
 and parse. Each states its own bound in the file: the geometry receipt covers
 "bounded numerical exploration of declared connection/metric scaffolds;
 arrangements are candidate scaffolds, not memory or task claims"; the memory
@@ -977,8 +1060,46 @@ of the ladder family plus the survival harness's own shell metric in the referen
 legs; no conclusion about metrics in general follows", "the figures are one
 declared item's", the hold horizon is the consumer path's declared `16` ticks,
 and the no-loop control "is measured at the declared hold horizon and is a no-drive
-hold". Every figure
-below is read from those thirteen files. All thirteen measure canonical-field
+hold"; and the memory store scale receipt declares four bounds of its own — that
+its acts sit on "one declared profile, one declared direction set, one declared
+act budget and one declared drive amplitude", so "nothing here measures a
+distribution over profiles, items or budgets"; that the coupled realization's act
+"is measured as a movement of the realization's own declared readout and of its
+own working state, which no operation writes back into the page: ... the
+non-destructive act is measured on the surface that carries it"; that "the store's
+hold is short by declaration, so this receipt makes no claim about holding eight
+items over a long horizon"; and that the identity control "is a direction
+measurement, not a claim that acting on a memory is useful in any wider sense"; and
+the store addressing rank receipt declares its own bounds and its `not_shown` list —
+that its crowded state is "one declared operating point: the declared items, the
+declared write budget, the declared hold horizon and this profile; nothing here
+measures a distribution over densities, gates or profiles", that the rank reading's
+"floor is the measured finite-difference floor plus the declared relative numerical
+floor, and a deficiency below that floor would not be visible", that the shared
+arm's "zero separation is the declared structural control: when every item is
+addressed at one placement the read is the same call, so the arm measures the
+addressing semantics rather than a dynamical collapse", and that "the arms address
+one written page; the store-scale hold's own doubling is not exercised in the
+placement arms, only at the crowded held state of part one"; and the store
+addressing capacity receipt declares five bounds of its own — that
+the sweep measures "one declared metric row at two resolutions, the delivered write
+budget, the delivered hold horizon and one probe amplitude", so "nothing here
+measures a distribution over profiles, budgets, holds or amplitudes"; that the
+declared family "is extended along the field's own dyadic scale tree only, so the
+capacity reading is a claim about that tree, not about arbitrary packet
+placements"; that "the probe budget is fixed while the level's own page deposit
+grows with N, so a failure would be a failure at this probe budget"; that "the rank
+reading is a finite-difference reading; a deficiency below the level's own measured
+floor plus the declared relative floor would not be visible"; and that "the counts
+that did not run are listed with their reasons: an unrun level is not evidence of a
+ceiling, and the structural inventory is measured separately from the arms". Its
+`not_shown` list holds the two readings it cannot give from its own statistic —
+"which dynamical property of the field sets the addressing capacity, beyond the
+measured count of its own scale-tree nodes", and "whether a hierarchical
+(multi-item-per-probe) placement would carry more than the port count; the delivered
+statistic addresses one item per probe".
+Every figure
+below is read from those sixteen files. All sixteen measure canonical-field
 numerical
 proxies — geometric/access, modal-access, the owner transition surface itself, or
 one declared consumer's act on it; none measures task-level memory utility
@@ -2320,7 +2441,10 @@ fallback otherwise.
   and after the act, moves `0.005023718074326502 -> 0.01004738636004079`, doubling
   the target direction's deposit, and the receipt records that the owner's write
   path "is the only write actuator on the public surface", so no non-destructive
-  actuator exists for this task. The arms do not act with equal energy —
+  actuator exists for this task on that surface — this negative is this receipt's
+  own, and the memory store scale subsection below measures the non-destructive
+  act on a coupled realization built from the page and driven outside the owner,
+  where no operation writes back into it. The arms do not act with equal energy —
   `0.0008619191717734538` for the memory arm against `0.0050236012961321465`,
   `0.0050236682857142875`, `0.005023477863702145` and
   `0.005023668285714286` elsewhere — which is why the statistic is normalised by
@@ -2478,12 +2602,15 @@ heavy it is*. This receipt runs the same chain on a declared `2 x 2` factorial o
 bodies and asks the receipt's own declared question: "does the owner's own memory
 behave differently inside a nested scaffold than on the flat rail, and is any
 difference carried by the structure or by the mass metric?"
-(`_diag/owner-nested-cycle/exploration.json`, `receipt_digest`
-`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa` — the only
-digest field it carries, whose digested body includes each arm's construction
-record; "Determinism of the receipts" below reads that). The rail factor is the
-canonical body's rail against the geometry harness's declared arrangement
-`nested-core-shell`, entered through
+(`_diag/owner-nested-cycle/exploration.layout-decoupled.json`, `receipt_digest`
+`bd7a83d40f5013b6c9d71e5b0abb2fc0cd45f1e751122a1a6f6332a7993f736a` — the only
+digest field it carries, taken over each arm's construction record, which names the
+builder that built the arm and carries no source position; the frozen receipt these
+measurements were first published under is kept beside it at
+`_diag/owner-nested-cycle/exploration.json`, still recomputing its own
+`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`; "Determinism of
+the receipts" below reads both). The rail factor is the canonical body's rail against the
+geometry harness's declared arrangement `nested-core-shell`, entered through
 `geometry.build_profile(geometry.arrangement_named(...))` inside the metric
 harness's own builder, and the metric factor is the flat inverse-mass control
 (`ladder-uniform`) against the field's real default ladder at ratio `1.3`
@@ -2615,9 +2742,510 @@ demonstrates task-level memory utility, semantic content, retrieval quality, or 
 advantage over alternative architectures. Its own regression file,
 `test_owner_nested_cycle.py`, carries `24` tests and passes.
 
-### Reading the thirteen receipts together
+### Memory store at scale
 
-The thirteen receipts measure persistence, transfer, closure, disturbance response,
+**The question and the grid are declared before anything runs.** The runner's own
+docstring states the question it answers — "Does the store survive being used: the
+non-destructive act, and a store under rounds." — and its declared grid:
+"N = 8 declared items times R = 8 rounds = 64 measured cells, the full declared
+grid; it fits the declared budget, so nothing was reduced"
+(`part_b.matrix.grid_cells` `64`, `part_b.matrix.rounds` `8`). The receipt is
+`_diag/memory-store-scale/exploration.json`; it asks
+the same question in the same words (`question`) and carries one statistic for
+both parts (`declared.statistic`). No library module was changed for it: all seven
+of its `declared.declared_instruments` are pre-existing operations — the
+durability harness's read frame and captures, the feedback harness's loop law and
+gain, this family's own consumer path, the options receipt's realization kernel,
+and the owner's own write, read and transceiver operations — so what is measured
+is the shipped surface, not new code.
+
+- **The act through the owner write is destructive, and its size is the item's own
+  read.** A1 reads the written direction at `0.005023668285714286` before its act
+  and `0.010047336571428577` after, a movement of `0.005023668285714291` — a factor
+  of `2.000000000000001` on the read it acted on, and `0.5000000000000002` under
+  the receipt's own relative-difference rule (`|after - before| / max`). The read
+  is the owner's own `recovered_deposit` of the written direction, its
+  `the_stored_memory_is_unchanged` is false, and the page moves. The act is one
+  `write_packet_impulse` at the declared act budget `0.001`, applied
+  `0.0009999999999999994` with impulse `0.029358562841211737` — so the destructive
+  case is measured, not assumed, and the surface that carries it is the write path.
+- **The act through the owner's own transceiver moves the readout and leaves the
+  page alone.** A2 condenses the learned chart into the owner's own transceiver
+  (full dimension `112`, `1` input, `1` output, `0` reduced, tangent `108`) and
+  drives one `advance_transceiver` tick at the declared amplitude `1.75`. The
+  published readout moves `0.0 -> 0.15330920422388622`. The page digest is
+  identical before and after
+  (`8f7e287ad2215ace5fcceba01b95e578f7de1412a5663a68ee27a017fb77aca1`), the
+  workspace state digest is identical, the owner state and the owner ledger both
+  move, and the generation advances by `1` while the logical tick does not. The
+  stored memory's own read is `0.005023668285714286` on both sides, unchanged by
+  `0.0` relative. The tick is a full nonlinear realization — `1` full step, `3`
+  nonlinear iterations, `16` operator applications, error bound `0.0` — and the
+  declared zero-stimulus comparison is readout `0.0` with movement `0.0` from the
+  published value, so the movement above is the input's rather than the tick's own
+  dynamics.
+- **A non-destructive act exists, on a surface outside the owner's.** A3 drives the
+  declared coupled input realization, built from the owner's own written page by
+  the options receipt's `realization_kernel`, and the receipt declares that surface
+  exactly: "outside the owner's surface: the realization carries the page's
+  declared write problem and its own working state, and no owner operation is
+  called to drive it". The readout moves `0.00042512371321049393 ->
+  -0.0034833204837238702`, and not one of the four declared digests moves across
+  the act: page, workspace state, owner state and owner ledger are byte-identical,
+  the generation moves by `0`, and the stored memory's own read is unchanged by
+  `0.0` relative. That is the finding the part was declared to look for, and what
+  carries the movement is the declared relation rather than the input code path:
+  the shipped identity realization runs the same act with the same kernel and
+  coupling `0.0` / diagonal `1.0` against the coupled row's `1.0` / `2.0`, and its
+  readout moves `-1.6263032587282567e-19` under a declared
+  `authority_allowance` of `1e-12` while the coupled row's moves
+  `-0.003908444196934364`.
+- **The authority is measured across the declared input scan, over the declared
+  window.** The receipt's declared authority measure is "the absolute spread of
+  the declared readout over the declared input scan (0.0, 0.5, 1.75, 3.5)"; over
+  the declared window of `1, 2, 4, 8, 16` ticks it reads
+  `0.280780027009766` averaged for the coupled row against
+  `4.228388472693467e-19` for the shipped one, with `input_has_authority` true at
+  every one of the coupled row's five ticks and false at every one of the shipped
+  row's. At one tick the coupled spread is `0.007816888452568472` — the `7.83e-3`
+  the earlier diagnosis recorded for a coupled relation — and the shipped row's
+  one-tick spread is `1.6263032587282567e-19`, its `1.63e-19`.
+- **The drive's own state is orthogonal to the written direction.** The coupled
+  act's state increment is `1.755624357774615` long and its share along the written
+  direction is `0.0002731061337570777` of a state `1.7558837523981736` long, with
+  the receipt's own flag `the_stored_page_is_not_the_drive_state` true; the shipped
+  realization's share is `2.283264906735626e-06`. So the realization moves its own
+  working state and answers its own input without the state it carries pointing
+  along the item the page holds.
+- **The same drive on an unwritten page moves the readout by the same amount.** C1
+  runs A2's act on the blank page
+  (`d915342299b266cf98862d66f8f6985a32f53907f627a54198dbf4e988bb11c2`, the page
+  A2's own owner started from) and moves the readout `0.0 ->
+  0.15330920422388622`, A2's figure to the last digit, while the stored memory's
+  read is `0.0` on both sides. The declared reading is that the movement is a
+  property of the act and not of the stored memory; the regression file holds the
+  two movements equal at `1e-9` relative for exactly that reason.
+- **The store holds eight declared items and is used for eight rounds.** The eight
+  items are written one at a time through the owner write path at the declared
+  write budget `0.001` — each deposit `0.005023668285714286` or within
+  `3.4531011550062046e-15` relative of it — held for the declared even horizon of
+  `2` ticks with the feedback harness's per-item phase-locked drive law at this
+  profile's own measured neutral gain, and then queried and acted on for the
+  declared rounds. The hold's own figures are `16` drive calls, applied work
+  `1.529459370730804e-06` under the declared `loop_work_ceiling` of `0.001`, and a
+  frame-energy ratio at the horizon of `0.9986630010733931`. The same tick body
+  replayed through the feedback harness's own primitives from the same start page
+  produces the same held page digest
+  (`f14f7d6eea1b762f2dcf9067eac2e78615808b41a0152bdea759c32c6029c746` both ways),
+  so the held store is the declared loop's own page and not this route's.
+- **Every round retrieved its queried direction, above the floor, and acted on it.**
+  The rounds select the eight declared names in order, one per round; in each, the
+  queried item's own read clears the declared floor of half that item's measured
+  deposit (`0.005018608771789603` against `0.002511834142857143` in round `0`), the
+  selected item is the queried item, and the act lands along the queried direction
+  with share `1.0`. The page moves in every round and the generation advances by
+  `8` across the loop, so the reads are taken on a page the acts keep changing.
+  Recovery against each item's own measured deposit runs `1.9983510429957114` to
+  `1.9989928646485124` at the horizon — the destructive act's own doubling, not
+  decay.
+- **The gain is this path's own measurement rather than a borrowed number.** The
+  receipt runs the feedback harness's neutral-gain refinement on this profile:
+  `0.02734375` inside the bracket `[0.026562500000000003, 0.028125]` at tolerance
+  `0.002`, with drift retention at the horizon `0.9119815524822384` against
+  `1.0001475187841866` at the measured gain on the headline item's own page, and
+  all eight `neutrality_probes` declaring the gain neutral on their own page. The
+  refinement's cross-receipt reference records that the owner-write-path receipt
+  carries the same `0.02734375` and reports whether the two concord
+  (`the_refinement_reproduces_the_cited_gain` true) instead of importing it.
+- **The items the consumer has not yet acted on do not drift.** The read matrix is
+  taken before any act and after every round, so each item carries a read at each
+  stage: over the `28` never-acted cells the greatest drift is
+  `5.551115123125783e-16` against the declared `read_drift_allowance` of `0.05`,
+  while the cells of the items already acted on sit at ratios like
+  `2.001008150695691` and leave that band. The band is passed by the cells it is
+  meant to pass and failed by the ones it is meant to fail.
+- **The falsifying leakage measurement is the single-item block.** One fresh owner
+  per declared item writes that item alone through the owner write path and reads
+  every declared direction on the resulting page: the greatest off-diagonal read is
+  `2.396070255404761e-33` against the declared leakage allowance `0.05`, the least
+  diagonal recovery is `0.9999999999999978`, and the measured separation factor is
+  `4.1735003293176426e+32` against the declared minimum `10.0`. On the blank page
+  the greatest read is `0.0`, i.e. `0.0` of the mean deposit. The diagonal witness
+  is what makes those zeros a measurement rather than a dead instrument — the same
+  read path returns the full deposit when the item is present — and the held page's
+  own cross-item cells, the other measure the declared statistic names, are
+  reported beside them: each cell divides a held-page read of the queried direction
+  by that item's own measured deposit, so the cells run `0.9983510429957079` to
+  `0.9989928646485154` across the queried directions and agree across reading items
+  because the deposits they divide by agree to `3.4531011550062046e-15` relative.
+  That agreement is the ratio's denominator rather than the store's rank, and the
+  store addressing rank receipt measures this same held store's map directly: at
+  this state it is full rank `8/8` with all `56` item pairs separated at the
+  predicted `1.0`, the least at `0.9999999999999991`, so the store carries every
+  declared item. See "Store addressing rank" and
+  `_diag/store-addressing-rank/exploration.json`.
+- **The declared directions are distinct in the read frame, measured rather than
+  assumed.** Each item is written through the canonical packet impulse into a fresh
+  field and the squared cosine between every pair is measured: the on-diagonal
+  figures are `1.0`, the greatest off-diagonal squared cosine is
+  `2.3960702554047607e-33` against a declared orthogonality allowance of `1e-12`,
+  and the receipt states why that matters — the consumer's retrieval of an
+  unwritten declared direction "is a projection on a direction the page does not
+  carry", so the arms' separation rests on the declared directions being distinct.
+- **The identity control still separates after the rounds.** Two fresh owners take
+  copies of the store's final page — byte-identical,
+  `29865fc077dae32f916be47419fc217a3bd6722761d2ce8d90c030bc03a972b6` for both —
+  and run the declared consumer policy with its retrieval and with the retrieval
+  suppressed. The normal arm retrieves `0.010041631265254113` against the floor
+  `0.0025118341428571416`, selects the queried item
+  (`right-right-detail`), and lands with share `1.0`; the suppressed arm makes `0`
+  read calls, retrieves `0.0`, selects a different item, and lands at share
+  `3.7927478729611577e-31`. Its own instrument read is `0.010041631265254113` — the
+  figure the normal arm retrieved — so the field still carries the item and what
+  fails is the retrieval. The share difference is `1.0` against the declared
+  separation margin `0.5`.
+- **The read-back is declared where the quadrature term vanishes.** Each item's
+  phase reference is measured on that item's own isolated drift, and the store's
+  phase read-back is declared at `180.0` degrees over `40` ticks, where the
+  quadrature coefficient is `1.2246467991473532e-16` — a half turn's sine — so the
+  store's own read-back carries no quadrature component into the round figures.
+- **Every verdict is the receipt's own, and every one holds.** Part A's `13`, part
+  B's `11` and the reading block's `24` verdicts are all true. The falsifiers are
+  declared beside them in the runner's own source: each part block builds an
+  `honest_negatives` list of `(verdict, why it would be false)` pairs filtered by
+  that verdict, so those lists are empty here precisely because nothing failed, and
+  the reading block's `honest_negatives` is the concatenation of the two. What
+  bounds the claim above is therefore the receipt's own four limitations and the
+  reading below rather than a further receipt field.
+
+**Honest negatives.** Four of them, and none is a failed predicate: each bounds
+what the figures above may be read as claiming.
+
+- **The acts are destructive by design.** An acted item's read sits at twice its
+  held read — A1's `0.005023668285714286 -> 0.010047336571428577`, the queried
+  recoveries `1.9983510429957114` to `1.9989928646485124` at the horizon — and
+  repeated use keeps accumulating, the same item's ratio reading
+  `2.001008150695691` after its first round. The store survives being used; it does
+  not survive being written to, and the act is the only thing measured to move it.
+- **The held-page cross-item cells separate no reading item, and that belongs to
+  the ratio's denominator rather than to the store's rank.** The measure the
+  declared statistic asks for reads `0.9983510429957079` to `0.9989928646485154`
+  across the queried directions, and across reading items it agrees to
+  `3.4531011550062046e-15` relative, because each cell divides the same held-page
+  read by a deposit that is equal for every item. The store addressing rank receipt
+  measures that same held state's item-to-deposit map as full rank `8/8`, with all
+  `56` pairs separated at the predicted `1.0` — the least at
+  `0.9999999999999991` — once each item is addressed at its own placement. So the
+  limit is the recovery statistic's at this operating point, not the store's
+  ability to carry or separate the items. The falsifying measurement for the
+  single-item block is unchanged — `2.396070255404761e-33` greatest off-diagonal
+  read against a `4.1735003293176426e+32` separation factor — and it is stated as
+  such here and in the receipt.
+- **The coupled realization's act writes nothing back into the page.** The
+  non-destructive act exists on the surface that carries it: the realization moves
+  its own declared readout and its own working state, and no operation writes that
+  state into the page — this family's own transceiver receipt states that no such
+  operation exists today. So this is not an owner-level "act without writing" — the
+  owner's write path remains the only actuator that moves the owner's page, which is
+  what makes A1's doubling a property of acting at all.
+- **The identity control separates two policy arms and says nothing about
+  usefulness.** Its `1.0` share difference is a direction measurement taken on two
+  copies of one page.
+
+**Non-vacuity.** Those zeros and passes are worth what their controls make them
+worth. The shipped identity realization is the can-fail control for "the readout
+moves with the input": the same act, the same kernel, the same input code path and
+a relation with no coupling, and its authority spread sits at
+`4.228388472693467e-19` under an allowance of `1e-12` while the coupled row sits at
+`0.280780027009766`. The drift band is passed by the `28` never-acted cells
+(`matrix.never_acted_cells`) and failed by the acted ones. The off-diagonal zeros
+come from a read path that returns the full deposit on the diagonal of every
+single-item page. The unwritten-page control reads `0.0` on all eight directions.
+And the digest is held to the measurements rather than to the prose, in both
+directions: the regression file mutates five figures and requires the digest to
+change on each — A1's readout movement,
+`matrix.greatest_never_acted_read_drift`, `leakage.greatest_off_diagonal_read`,
+`identity_control.share_difference` and `A2`'s `owner_ledger_moved` flag — and it
+mutates the clock leaves and the chained ledger digests and requires the digest to
+stay where it is. Its own regression file, `test_memory_store_scale.py`, carries
+`9` tests and passes. The receipt's digest is content-deterministic under the
+runner's own declared strip rule, which strips the clock leaves and, by rule, the
+values derived from them; "Determinism of the receipts" states the rule, the defect
+it repairs and the runs that measure it.
+
+### Store addressing rank
+
+This harness asks the store-scale receipt's own crowded state the question that
+receipt left open, and its rule was declared before the first run. The receipt
+`_diag/store-addressing-rank/exploration.json` (`receipt_digest`
+`59c22ecaabd1b952c370ea6d09f8fbddfd7231cf11ac44f64446e1b68c809510`) carries the
+runner's own `question` — "inside a crowded store, is the item-to-deposit map
+rank-deficient, and does item-dependent placement restore the rank a shared
+placement cannot carry?" — with its statistic, discriminator, decision rule and
+controls fixed in the module docstring of `run_store_addressing_rank.py` before the
+first run. One branch's wording was amended after that run and before the receipt
+reported here, and the runner's docstring records the amendment: part one's branch
+was declared as "the store carries every item and only the readout is collapsed",
+the receipt measures the deposit vector's own constancy separately and finds it
+false at the crowded state, and the branch therefore now names the read/deposit
+*cells* the store-scale receipt reported rather than a scalar collapse. The branch
+structure, every threshold and every control are unchanged, and the originally
+declared wording would have asserted a scalar collapse the measurement does not
+support.
+
+The statistic is the deposit map. `J[i][j]` is the finite difference of the read
+taken at item `i`'s own declared placement with respect to a probe write at item
+`j`'s placement, divided by the probe work, with one fresh owner per probe on one
+page so that no probe accumulates; `J` is `N x N` over the declared items and its
+singular values are the deposit-difference spectrum. The rank is the count of
+singular values above `tol = max(FLOOR_FACTOR * sigma_1(J(a) - J(a/2)), EPS_FACTOR *
+sigma_1(J))`, with `FLOOR_FACTOR` `10` and `EPS_FACTOR` `1e-9`, the first term being
+the measured finite-difference floor from the two probe works and the second the
+declared numerical floor relative to the map's own scale. The discriminator is the
+mean-diagonal normalization `Jn = J / mean(diag(J))`: an orthogonal pair is
+predicted at exactly `1.0`, a duplicated pair at exactly `0.0`, a pair counts as
+distinguishable when its separation exceeds `CONTRAST_FLOOR` `1e-3`, and the
+specific arm must reach `1 - LOSS_ALLOWANCE` of the prediction for the declared
+rule to hold.
+
+- **Part one: at the crowded held state the map is full rank, so the store carries
+  every declared item.** The crowded state is the store-scale runner's own held
+  store, reused through its own machinery — the held-page read row that receipt
+  publishes is this receipt's deposit vector, figure for figure — and there the map
+  is `8/8`: eight singular values running from `5.023668285714291` to
+  `5.023668285714283`, the smallest against a tolerance of `5.0236682857142915e-9`, a
+  factor of `999999999.9999983`. The tolerance is dominated by the declared
+  relative numerical floor rather than by measurement: the measured
+  finite-difference floor is `1.6665350392316694e-14`, four orders below the
+  `5.0236682857142915e-9` scale term. All `56` item pairs separate at the predicted
+  `1.0` — the least `0.9999999999999991`, the greatest `1.000000000000001` — against
+  the `1e-3` floor. The one-item reference state built by the same machinery is
+  `8/8` too (`999999999.9999979` times its own tolerance), so the receipt selects
+  its own discriminating branch: the degeneracy is in the readout cells, not in the
+  map.
+- **The scalar deposit carries nearly no item identity at that state, and the
+  receipt says so as a measurement rather than a verdict.** The deposit vector is
+  not constant at its own tolerance — its relative spread is
+  `0.0005816266141306933` against a difference tolerance of `5.016951579499063e-12`,
+  eight orders above it — but a difference operator of rank `7` and a greatest first
+  difference of `2.9179925604416734e-06` over a `0.005016951579499063` mean
+  magnitude is a readout that varies little with the item. The receipt separates
+  the two readings in its `measured_flags` block: the crowded and reference rank
+  flags are true, the constancy flag is false, `the_verdict_is_a_store_limitation`
+  is false and `the_verdict_locates_the_degeneracy_outside_the_map` is true.
+- **Part two: item-specific placement is what carries the addressing.** Three arms
+  read one written page (`acb934c7f3a4a8317891008b5b5d4c2f260cf7ddf11e67127dc86d3ad8f3b8ab`,
+  the same page in all three by the receipt's own flag), the same items at the same
+  state, differing only in placement. With every item addressed at its own declared
+  placement the map is `8/8` and all `56` pairs separate, the least at
+  `0.9999999999999994` against the required `0.95`. With every item addressed at one
+  shared placement the map is `1/8` — one singular value `40.18934628571427`, then
+  `1.922216826801949e-15`, `1.6022113819069652e-46`, `2.490821831911961e-78`,
+  `1.9987841724007425e-110` and three zeros — no pair separates, the least and
+  greatest item separations are both `0.0` of `56` measured pairs, and the arm's own
+  flags record that its rows and its columns are identical. With the second item
+  addressed at the first's placement the rank is `7/8`, exactly one below the item
+  count, the duplicated pair `root-scale`/`root-detail` sits at exactly `0.0`, and
+  `54` of `56` pairs still separate; that arm's smallest singular value is
+  `4.733597928504714e-16`, which is `4.7112962672770034e-08` of its own
+  `1.0047336571428568e-8` tolerance. So the placement, not the shared direction, is
+  what the map's rank rests on, and one duplicated placement costs exactly one
+  dimension.
+- **The controls fire or hold on their own readings.** The rank reading can fall
+  below `N`: the duplicate arm is the firing instance at `7/8`. A zero-work probe
+  moves no read — all `8` probes on the specific arm are rejected with requested and
+  applied work `0.0`, the page does not move, and the whole response matrix is
+  identically `0.0` down to its singular values — so the finite difference is the
+  probe's and not the bookkeeping's. Every declared placement reads `0.0` on a fresh
+  unwritten page (`d915342299b266cf98862d66f8f6985a32f53907f627a54198dbf4e988bb11c2`)
+  through the same read call the arms use. The finite-difference floor is measured on
+  the arm carrying the page's own half-probe sweep (`1.5400590297645216e-14`) and
+  reused as a declared value by the other arms, each still supplying its own scale
+  term — the shared arm's tolerance is `4.018934628571427e-8` and the specific arm's
+  is `5.023668285714288e-9` — so the floor is shared and the scale is not. All `8` of
+  part two's declared predicates and all `9` of its `reading.verdicts` are true,
+  `failing_predicates` is empty, and `item_specific_placement_restores_the_rank` is
+  true.
+
+**What it does not show.** The receipt's own four limitations and its `not_shown`
+entry bound the claim above, and two of those bounds matter most for a reader who
+wants to take the result further.
+
+- **The shared arm's zero separation is structural, not dynamical.** With every item
+  addressed at one placement the two reads are literally the same call, so that arm
+  calibrates the addressing semantics and supplies the floor scale; it is not a
+  measurement of a field collapse, and no reading of this receipt should treat its
+  `1/8` as a physical failure of the store.
+- **The placement carries the addressing; the scalar does not carry item identity.**
+  At this state the scalar readout is nearly item-independent, and a fractal scaffold
+  that wanted item identity in the scalar deposit rather than in the placement is not
+  supported by this receipt.
+- The crowded state is one declared operating point: the declared eight items, the
+  declared write budget, a `2`-tick hold at the measured neutral gain and this
+  profile. Nothing here is a distribution over densities, gates, budgets or
+  profiles.
+- The rank is a finite-difference reading of a deterministic map, so a deficiency
+  below its tolerance — about `1e-9` of the map's own scale, or the measured
+  `1.6665350392316694e-14` finite-difference floor, whichever is larger — would be
+  invisible.
+- The placement arms address one written page, so the store-scale hold's own
+  doubling is exercised only at the crowded held state of part one and not inside
+  the arms, and which dynamical property of the field any future collapse would
+  track (density, gate value, local rate) is not measured here — it would only be an
+  interesting question at an operating point where the map did lose rank, and this
+  one does not.
+
+Its own regression file, `test_store_addressing_rank.py`, carries `15` tests
+covering both the compact three-item build and the canonical receipt, and passes.
+
+### Store addressing capacity
+
+This harness asks the rank receipt's own placed store the question that receipt
+leaves open — how many items the addressing carries at all — and its rule was
+declared before the first run. The receipt
+`_diag/store-addressing-capacity/exploration.json` (`receipt_digest`
+`a3278fd1ef046f31f65f142f8e9f7831663ad4c868bffc5e33d7a41c0d3d3574`) carries the
+runner's own `question` — "how many items does the placement addressing carry, and
+what does its ceiling track -- the field's own scale-tree depth, the write budget,
+the hold, the page's own deposit, or nothing inside the swept range?" — with its
+statistic, its discriminator, its ceiling definition, its four declared branches and
+its controls fixed in the module docstring of `run_store_addressing_capacity.py`
+before the first run. The sweep is measured in two declared blocks, each with its own
+`4200` s budget, its own declared counts and its own digest under the store-scale
+rule the rank receipt reuses:
+`_diag/store-addressing-capacity/block-declared-profile.json` (`content_digest`
+`57e319c56d678115f8e6aa5e08d598480c8f042fe9dbba9e5ee44b9eddb4041d`, `661.96` s) and
+`_diag/store-addressing-capacity/block-higher-resolution.json` (`content_digest`
+`14d04223b4a7b93a683bcda3e7eb45603afc456c9ee14ba13c5d9bc272efdd2b`, `290.25` s).
+
+The statistic is the rank receipt's own deposit map taken at larger item counts.
+`J[i][j]` is the finite difference of the read at item `i`'s own declared placement
+with respect to a probe write at item `j`'s placement, divided by the probe work,
+with one fresh owner per probe on the level's own held page; the rank counts the
+singular values above
+`tol = max(FLOOR_FACTOR * sigma_1(J(a) - J(a/2)), EPS_FACTOR * sigma_1(J))`; the
+margin is `sigma_min / tol`; the discriminator is the same mean-diagonal
+normalization `Jn = J / mean(diag(J))` with an orthogonal pair predicted at exactly
+`1.0` and a pair distinguishable above the same `1e-3` floor. What is new is the item
+family and the sweep. The declared family is the field's own scale tree read as
+items — "root scale, root detail, then every node detail of the port-count dyadic
+tree in its own breadth-first left-before-right order", with every single-port node
+refused by the field's own rule and recorded rather than declared — so the delivered
+eight-item list is the head of that family and the sweep extends it along the
+hierarchy the field itself declares rather than inventing items outside it. The
+declared axes are `N = 8, 16, 24, 28, 32` at the delivered profile
+(`ports_per_pool = 4`) and `N = 32` at the doubled resolution
+(`ports_per_pool = 8`); every level is measured on its own held page, held for the
+rank receipt's own `2` ticks at the block's own measured captures, neutral gain and
+phase references, with the hold's applied drive work `0.0` and the probe budget fixed
+at `0.001` throughout.
+
+- **The inventory is the port count at both measured resolutions, and the boundary
+  is the rule's own first leaf.** The family is addressable to exactly the port count
+  on the real surface: `28` addressable of `28` declared at `ports_per_pool = 4` and
+  `56` of `56` at `ports_per_pool = 8`, over `55` and `111` dyadic nodes with `28` and
+  `56` leaves, with `28` and `56` single-port candidates refused by the field's own
+  rule, and with the same head matching the delivered item list entry for entry. The
+  declared family is orthonormal at the measured floor — greatest absolute
+  off-diagonal Gram entry `3.331e-16` at resolution 4 and `1.110e-15` at resolution 8
+  — so the items are the field's own modes rather than constructed stand-ins. The
+  boundary is measured, not inferred: at resolution 4 the path `LLLL` returns
+  `FieldIntelligenceError: a leaf packet has no detail mode` and an eleven-level path
+  returns `FieldIntelligenceError: packet path descends beyond a leaf`, and at
+  resolution 8 the same two refusals appear at `LLLLL` and `LLLLLLLLLLLL`.
+- **Every constructed level is full rank, inside its margin and fully separated.**
+  At the delivered resolution the four levels that ran are `8/8`, `16/16`, `24/24`
+  and `28/28`, with every item pair distinguishable — `56`, `240`, `552` and `756`
+  pairs, all of them above the `1e-3` floor — and least separations
+  `0.9999999999999991`, `0.9999999999999993`, `0.9999999999999993` and
+  `0.9999999999999994` against the required `0.95`; their margins `sigma_min / tol`
+  are `999999999.9999983`, `999999999.9999988`, `999999999.9999983` and
+  `999999999.9999983`, with the smallest singular value in every case near
+  `5.02366828571428` against a tolerance of `5.02366828571429e-9` dominated by the
+  declared relative floor (the measured finite-difference floors are
+  `1.6665350392316694e-14`, `1.5574820584570354e-14`, `2.0018801284106946e-14` and
+  `2.4515019881406782e-14`). The doubled-resolution level is `32/32` with
+  `992` of `992` pairs separated, least separation `0.9999999999999988`, margin
+  `999999999.9999971`, and its own measured floor `2.63723168339969e-14` against the
+  same `5.0236682857142915e-9` tolerance. The page's own deposit grows linearly with
+  the item count — total energy `0.0401356126359925`, `0.08026354308553695`,
+  `0.12039147456963299`, `0.14045544103804175` and `0.16051937563758753`, about
+  `0.00502` per item at every level, the same per-item figure the rank receipt's
+  crowded state reports — while its relative spread rises from
+  `0.0005816266141306933` to `0.004413012998190166`, so the scalar deposit stays
+  nearly item-independent as the store widens, exactly as the rank receipt's
+  part one found at eight items. The levels' own runtimes are `66.6` s, `163.5` s,
+  `182.5` s, `219.3` s and `265.6` s in the swept order.
+- **The ceiling is structural, and it is the delivered family's own inventory.** The
+  declared ceiling definition — the smallest declared `N` at which the level is not
+  constructible, or the specific arm's rank is below `N`, or its margin is at or
+  below `1`, or its least separation falls below `1 - LOSS_ALLOWANCE` — is met by
+  exactly one declared count, and it is a refusal rather than a measurement:
+  `N = 32` at resolution 4 is not constructible, "the declared family has no item at
+  this count at this resolution: the family's addressable inventory is 28 items and
+  its next candidate path is refused by the field's own rule", so the ceiling reads
+  `{"kind": "structural", "n": 32}` with `dynamical_ceiling` null and no failing
+  measured level for the correlated-readings block to name. The same count is
+  constructible one resolution up, where the inventory is `56`, and the receipt
+  records that as the discriminating control: the number that stops the sweep is the
+  field's own addressable count at that resolution rather than anything about the
+  store's dynamics at `28` items. The branch selected is
+  `capacity-tracks-the-declared-scale-tree`, whose declared reading is that "the
+  capacity is the count of the field's dyadic nodes at that resolution, which is its
+  port count, so the delivered eight-item list is a declared stopping depth rather
+  than a field limit"; the degradation fit is reported as not fitted, because the
+  least separation is the same value at every measured level
+  (`0.9999999999999988` at the smallest, `0.9999999999999994` at the largest) and a
+  fit over equal values would be degenerate. All `11` of the receipt's declared
+  verdicts are true and its `honest_negatives` list is empty.
+- **The declared controls fire at every measured level.** The duplicate arm's rank is
+  exactly one below the item count at every level (`7`, `15`, `23`, `27`, `31`) with
+  its duplicated pair at exactly `0.0` separation; the shared arm is rank `1` and
+  separates no pair; the zero-work probe is rejected and its greatest response is
+  `0.0`; a fresh owner's blank page reads `0.0` through the same call the arms use;
+  and each level's tolerance carries its own measured finite-difference floor, taken
+  on that level's specific arm and reused by its other arms. What the controls do not
+  do is vary: they are the rank receipt's declared operating semantics held fixed
+  across the sweep, so a level that had failed would have failed against the same
+  controls the delivered eight-item measurement uses.
+
+**What it does not show.** The receipt's own five limitations and its `not_shown`
+list bound the claim above, and the two that matter most for a reader who wants to
+take the result further are these.
+
+- **The capacity reading is about the field's own scale tree, not about placements in
+  general.** The family is extended along the declared dyadic hierarchy only, so the
+  measured ceiling is the count of that tree's addressable nodes at the resolution
+  swept — the port count — and the receipt declines to read it as a statement about
+  arbitrary packet placements: what sets the addressing capacity "beyond the measured
+  count of its own scale-tree nodes" is listed among the things it does not show.
+- **The measurement is one declared operating point, at a fixed probe amplitude, with
+  a rank reading that has a floor.** One declared metric row at two resolutions, the
+  delivered write budget, the delivered hold horizon and one probe amplitude are
+  swept, so nothing here is a distribution over profiles, budgets, holds or
+  amplitudes; the probe budget is fixed while each level's own page deposit grows
+  with `N`, so a failure would have been a failure at this probe budget; the rank
+  reading is a finite-difference reading whose floor is the level's own measured
+  half-probe floor plus the declared relative floor, so a deficiency below that would
+  be invisible; and a level that did not run is reported with its reason and is not
+  evidence of a ceiling — no level was cut at either resolution in the receipt
+  published here, and the unconstructible count is measured separately from the arms.
+  Whether a hierarchical placement carrying several items per probe would reach past
+  the port count is the second thing the receipt declines to show, because the
+  delivered statistic addresses one item per probe.
+
+Its own regression file, `test_store_addressing_capacity.py`, carries `13` tests
+covering the declared rule against the delivered item list, the addressable count as
+the port count at three resolutions, the install and restore of the extended list,
+the field's own refusals at a leaf detail and beyond a leaf, every declared level
+accounted for as run, cut or refused, each measured row's booleans against its own
+numbers with all five controls firing, the refuted-reads of the structural boundary,
+the ceiling branch against the published numbers, and the merged and per-block
+digests, and passes in `5.0` s beside the rank file's `15` tests in `47.8` s.
+
+### Reading the sixteen receipts together
+
+The sixteen receipts measure persistence, transfer, closure, disturbance response,
 whether a written item survives a workspace round trip, how much of that survival
 depends on which declared scaffold carries it and how far apart the items sit in
 the declared scale hierarchy, which hooks actually move the body, which ports
@@ -2630,7 +3258,13 @@ carry it across a restart and read a written direction's deposit back, whether
 that deposit changes what a declared consumer does next, what a charged
 reading of the read and a coupled input relation would each move, and which
 factor the owner's own store follows once the body it runs on is varied by rail
-and by metric.
+and by metric, and whether a consumer can act through a surface the stored memory
+does not feel while a store of eight declared items is used round after round, and
+whether that crowded store's item-to-deposit map is rank-deficient once it is read
+as a map rather than as a ratio — and if it is not, whether the placement of each
+item is what carries the addressing, and how many items that addressing carries at
+all: where the field's own declared family stops being constructible at one
+declared resolution, and what fixes that number.
 Their common gap is narrower than "no memory" and is specific:
 the written item outlives a workspace round trip and bounded activity, the
 owner write path now carries it inside the owner's own checkpoint closure through
@@ -2760,65 +3394,310 @@ that receipt could not do is the other half of the same question: the owner's ow
 inspection surface raises `FieldIntelligenceError` on the nested rail, so the
 nested arms' clocks come from the public state fields and the shipped consumer
 episode runs on the canonical arm alone.
+The store at scale receipt asks the two questions the consumer path leaves open —
+whether an act can move a readout without moving the memory, and whether a store
+of declared items survives being used — and answers both inside declared bounds.
+The non-destructive act exists: driving the declared coupled input realization
+moves its own readout `0.00042512371321049393 -> -0.0034833204837238702` while the
+page, the workspace state, the owner state and the owner ledger stay
+byte-identical and the stored read is unchanged, whereas the owner's write path
+doubles the read it acts on (`0.005023668285714286 -> 0.010047336571428577`) and
+the owner's own transceiver moves its readout `0.0 -> 0.15330920422388622` while
+moving the owner state and the ledger and not the page. The same drive on an
+unwritten page moves the readout by the transceiver's figure to the last digit, so
+the movement is the act's and not the memory's; the shipped identity realization is
+inert on the same act (`4.228388472693467e-19` against a `1e-12` allowance, where
+the coupled row's window average is `0.280780027009766`), so the movement is the
+declared relation's and not the input code path's; and the coupled act's own state
+increment points `0.0002731061337570777` of itself along the written direction, so
+it is not the owner's write in another guise. On the store half, eight declared
+items are written and held, then retrieved and acted on for eight rounds: each
+round's queried direction reads above its floor and is the item it acts on, the
+never-acted cells drift by `5.551115123125783e-16` against a `0.05` band while the
+acted ones leave it, the single-item pages leak `2.396070255404761e-33` across
+items against a `4.1735003293176426e+32` separation factor, and the identity
+control still separates on the final byte-identical page, `1.0` against
+`3.7927478729611577e-31`, with the suppressed arm's own instrument read showing the
+field still carries the item. What it does not show is an act that leaves the
+owner's own page alone — the coupled surface is built outside the owner, and the
+owner's write path remains its only actuator — nor a hold longer than the declared
+horizon.
 Nothing here shows a consumer retrieving the written item as anything but a
-declared projection of the page under a declared direction, a non-destructive act
-on the memory, or a declared scaffold beating another on a task.
+declared projection of the page under a declared direction, a declared scaffold
+beating another on a task, or an act on the owner's own page that leaves it
+untouched.
 
 ### Determinism of the receipts
 
-The thirteen receipts are content-deterministic: their cited digests are stable
-across independent re-runs, while the raw file hash is not, because several
-harnesses record wall-clock fields. The definition is the lattice runner's, which
-declares
+All sixteen receipts are content-deterministic for the source as it stands: their
+cited digests are stable across independent re-runs, while the raw file hash is not,
+because several harnesses record wall-clock fields. The definition is the lattice
+runner's, which declares
 "sha256 of the canonical JSON (sorted keys, no insignificant whitespace,
 `allow_nan=False`) of the measured body with wall-clock fields stripped, before the
 digest itself is attached"
 (`run_fractal_lattice_exploration.py:4986-4990`) and applies it after the runtime
 field is set (`run_fractal_lattice_exploration.py:4993-4998`); the stripped keys
 are `elapsed_seconds`, `runtime_seconds`, `condensation_elapsed_seconds` and
-`receipt_sha256` (`run_fractal_geometry_exploration.py:144-162`). Ten of the thirteen
+`receipt_sha256` (`run_fractal_geometry_exploration.py:144-162`). The four
+owner-side harnesses read their own declared sets rather than that constant, the
+memory store scale receipt extends the set by rule rather than by list, and the
+store addressing rank receipt reuses that extension — its strip keys are declared
+as `run_memory_store_scale.STRIP_KEYS` and its digest is taken by that runner's own
+helper — and the store addressing capacity receipt added here reuses it the same
+way (`declared.content_digest_strip_keys_source`:
+"`run_memory_store_scale.STRIP_KEYS`, reused rather than re-derived",
+`run_store_addressing_capacity.py:1398-1400`); each of those is stated in its own
+paragraph below. Thirteen of the sixteen
 carry at least one of those keys — geometry, ladder, lattice, memory consumer path,
-metric, owner nested cycle, owner surface options, owner-write-path, placement and
-survival — so a
-re-run of one of them changes the file hash without changing the digest; the
-memory consumer path receipt declares that its measured body carries no inner
-wall-clock field, so its set removes only the top-level `runtime_seconds`, and the
-owner surface options receipt declares the same four keys with `receipt_digest`
-added and strips an `elapsed_seconds` block that includes a per-selection
-`elapsed_seconds` inside its overlap enumeration.
-The owner nested cycle receipt is the one receipt here whose digested body binds its
-own builders' source lines, and it declares that in its own `receipt_digest` block
-rather than leaving it to be inferred. Its definition is the same lattice-runner
-rule with the same four stripped keys (`run_owner_nested_cycle.py:202-210`), but the
-body it is
-taken over is, in the receipt's words, "the whole measured body with the wall-clock
-keys of the declared strip set removed and the digest field itself excluded. The
-digested body includes the construction records' own source-line fields --
-`declared.factorial.construction.<arm>.declared_at_line`, and the same record's
-`built_at_line` and `base_rail_builder_line` -- because those records are part of
-the measured body (they are what lets a reader rebuild each arm), so the digest
-binds the live source lines of the declared builders and moves when an edit shifts
-them even if no measured number changes"
-(`declared.receipt_digest.taken_over`, `run_owner_nested_cycle.py:2421-2434`; the
-records themselves are built at `run_owner_nested_cycle.py:474-505`). The lines it
-binds reach beyond this runner into two others. `built_at_line` is
-`run_fractal_metric_exploration.py:1225` (`build_metric_profile`, the builder) on
-all six arms; `declared_at_line` is `run_fractal_metric_exploration.py:1084`
-(`ladder_row`) on the two declared ladder rows, `run_fractal_metric_exploration.py:1237`
-(`declared_row`) on the two shell rows and
-`run_owner_nested_cycle.py:418` (this runner's own `declared_row_for`) on the two
-nested flat and ladder cells; and `base_rail_builder_line` is
-`run_fractal_geometry_exploration.py:493` (`build_profile`, the rail builder) on the
-three nested arms. That receipt
-is therefore measurement-stable under a re-run but source-line-sensitive across
-edits: a change that moves any of those lines moves the digest with no measurement
-behind it, which was observed twice while the harness was being written — once from
-a docstring edit and once from the correction of this convention text. The memory
-consumer path receipt is the contrast case, and the contrast is the point of
-recording it: a docstring-only edit to its runner leaves its digest where it was,
-because its digested body carries no source-line field. A reader can therefore tell
-which receipts bind source and which bind measurements only, and the two are not
-interchangeable as evidence of "no change".
+memory store scale, metric, owner nested cycle, owner surface options,
+owner-write-path, placement, store addressing capacity, store addressing rank and
+survival — so a re-run of one
+of them changes the file hash without changing the digest; the memory consumer path
+receipt declares that its measured body carries no inner wall-clock field, so its set
+removes only the top-level `runtime_seconds`, and the owner surface options receipt
+declares the same four keys with `receipt_digest` added and strips an
+`elapsed_seconds` block that includes a per-selection `elapsed_seconds` inside its
+overlap enumeration.
+The owner nested cycle receipt is the one receipt here that used to bind its own
+builders' source lines, and the change that removed that binding is worth recording
+because of what the binding cost and what replaced it. Its definition is the same
+lattice-runner rule with the same four stripped keys
+(`run_owner_nested_cycle.py:203-206`), and its digested body excludes two keys by an
+explicit declaration — `EXCLUDED_FROM_DIGEST = (DIGEST_FIELD, BUILDER_PROVENANCE_KEY)`
+at `run_owner_nested_cycle.py:217-219`, read by `receipt_digest`
+(`run_owner_nested_cycle.py:2613-2632`) rather than restated anywhere else, so what the
+receipt declares is what it applies. The body it is taken over is, in the receipt's
+current words, "the whole measured body with the wall-clock keys of the declared strip
+set removed and the keys named in ``builder_provenance.excluded_from_the_digest``
+excluded. The construction records name their builders (``built_by``,
+``base_rail_builder``, ``declared_by``) and carry no source position, so the digest is
+a function of the measurements and not of any file's layout: an edit above a builder
+does not move it"
+(`declared.receipt_digest.taken_over`, `run_owner_nested_cycle.py:2497-2509`).
+The construction records are what changed underneath that sentence: each one names its
+builders by `module.symbol` beside `declared_row`, `declared_row_index`, `declared_rule`
+and `base_rail_arrangement`, and carries no source position at all
+(`run_owner_nested_cycle.py:540-591`). The three fields the records no longer carry are
+named as retired in the replacement block's own `replaces` list:
+`declared.factorial.construction.<arm>.declared_at_line`, the same record's
+`built_at_line` and `base_rail_builder_line`. What replaces them is a top-level
+`builder_provenance` block, written at `run_owner_nested_cycle.py:2526` by
+`builder_provenance_block` (`run_owner_nested_cycle.py:437-464`), which publishes the
+normalisation it used, the hash it used, the excluded key list read from the same
+constant the filter reads, the three replaced paths, and each builder's qualified symbol
+mapped to a sha256 of its source region. The normalisation is stated so that a third
+party can reproduce it: `inspect.getsource(builder)` — decorators, `def` line and the
+whole body — with each line right-stripped, the region's trailing blank lines dropped,
+the remainder dedented by its common leading whitespace, the lines joined with newlines
+and hashed as UTF-8 (`run_owner_nested_cycle.py:227-232`). Per-line right-strip is what
+makes the hash end-of-line insensitive, and the committed blob and the working file
+produce identical builder hashes for every published builder.
+The history is what makes the replacement worth having, so it stays. Under the retired
+coupling the digest was a function of the runner file's layout as well as of its
+content: a declaration comment block written as fourteen lines above `declared_row_for`
+pushed that builder from line `418` to `432` in all four captured leaves and moved the
+digest to `f2bc53fd4b0ce032d8aa84bc94f159aa1bd643012d71c0df73a1ef9b147a8a77`, with
+every measured number identical, and compressing the block back restored both the layout
+and the digest. That is a receipt bound to the live source lines of three different
+files and moved by an unrelated comment block — the sensitivity this paragraph recorded
+before the change, and the reason the option it then left open was taken. The decision
+was to bind content instead of position, and it moved the frozen digest exactly once,
+with the cost accounted leaf by leaf: `36` leaves removed (the three positional fields,
+six arms, the two places each record appears — `arms.<arm>.cell` and
+`declared.factorial.construction.<arm>`), `12` added, all of them inside the excluded
+block (five builder hashes plus `definition`, `hash`, the two excluded keys and the
+three `replaces` entries), and `3` changed (`declared.receipt_digest.taken_over`,
+`receipt_digest`, `runtime_seconds`); nothing else differs between the frozen body and
+the current one. The digest moved
+`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa` →
+`bd7a83d40f5013b6c9d71e5b0abb2fc0cd45f1e751122a1a6f6332a7993f736a`, reproduced by four
+runs of the source as it stands with `runtime_seconds` the only leaf that varies between
+them, and the current receipt is published beside the frozen one as
+`_diag/owner-nested-cycle/exploration.layout-decoupled.json` (file sha256
+`0e1089a07b5eb60ad80afc9b3d854cbbc1a38718d5c9bfc1315ba50fbed47f4c`). Because excluding
+a key the body does not carry is a no-op, the frozen body still self-verifies under the
+new rule — its digest is still `909ec09d…` — so the frozen receipt keeps recomputing
+while the code moved on, and the prose frozen inside it that describes the retired
+binding stays there as the record of why it was retired.
+The new property is measured rather than declared, and both halves of it were measured
+against the shipped source. The exact fourteen-line perturbation that used to produce
+`f2bc53fd…` was re-applied above `declared_row_for`: the file hash moved
+`9864992b864948b538ad5f2741f0b47654329a2cf0f0ae550e28fd7e0a719edd` →
+`325a6b8a5be92263416d4ebe619ab4e95b7ac5e5159fddfa6beb506016ee0c14` and the builder's
+line `494` → `508`, and the digest stayed `bd7a83d4…`; the revert restored the file
+byte for byte. An eight-line comment block inserted above the metric runner's own builder
+`metric.build_metric_profile` (`run_fractal_metric_exploration.py:1225` → `1233`) moved
+that file's hash
+`0f2fb722baf3eeef5521863faa50a3ddbacab626c02d0ed3f08b57a459a152a9` →
+`f725c73b434c4c0a29a2b6069ea7c81200d907471543f93610c4de7ae9914109` and left the digest
+and the published provenance block byte-identical. The other half is the mutation
+control: a real statement inserted inside `declared_row_for` — in a scratch copy outside
+the repository, never in the live runner — moved that builder's published hash
+`153dd9493f6b7233e9cccd8431d134e5349a5b6d090ae1fcdb60015a7474e934` →
+`fe0af7322354aa29bd9a1348a3b6a2bd4e5c741d6373832e2e2e570cdde43418` and no other
+builder, while the digest stayed `bd7a83d4…` — so a layout edit is invisible to this
+digest and a builder edit is visible in the block the receipt publishes beside it. Its
+`24` tests pass in `55.67` s, and the three other receipts that share the convention —
+owner surface options `a9a85f9b…`, owner write path `a1f5c4ff…`, memory consumer path
+`3933e8ec…` — re-ran neutral: each still reproduces its frozen digest, and nothing in
+the change imports or writes them.
+One property of this receipt is unchanged and worth knowing before a release check leans
+on it: `declared_by` sits inside the digested body, and the symbol it carries comes from
+the module the function was loaded as (`qualified`, `run_owner_nested_cycle.py:467-471`),
+so a receipt produced by running the script records this runner's own builder as
+`__main__.declared_row_for` — as both shipped receipts do — while one produced by
+importing the runner would record `run_owner_nested_cycle.declared_row_for` and digest
+differently. Nothing here compares an imported build against a shipped one, so nothing
+breaks today; a check that re-digests the shipped receipt from an import would see a
+mismatch. Removing that asymmetry would move the digest again, so it is recorded as a
+known property of the receipt rather than fixed here, and it is the same shape of
+dependence the decoupling above removed — a digested field that tracks something outside
+the measurement, there the runner's layout and here how the runner was loaded — one
+field further in.
+The memory consumer path receipt is the plainest case, and it is the one to compare
+against: a docstring-only edit to its runner leaves its digest where it was, because its
+digested body carries no source-line field. That was the contrast to the owner nested
+cycle receipt above; after the decoupling the two stand on the same side — no receipt in
+this family makes its digest a function of a source file's layout any more — so what a
+reader still needs is which declared fields each body digests, because a digest is
+evidence of "no change" only for the fields it covers.
+The memory store scale receipt is the same case as the memory consumer
+path one, on the other side of the owner: its digested body is the measurements
+alone — `declared.content_digest_definition` is the lattice runner's own sentence
+with this runner's rule spelled out, and it carries no construction or source-line
+record — so no edit to its runner moves its digest unless a measured number moves.
+Its rule is the family's rule extended by principle rather than by list: a key is
+stripped when it is a declared wall-clock leaf and, by rule, when it is a value
+derived from a stripped value — a chained manifest hash, a chained receipt hash, or a
+digest computed over one — so derived-from-stripped values are stripped as a class
+rather than listed case by case. The declared clock leaves are the family's four,
+declared with their source ("`run_fractal_geometry_exploration.TIMING_KEYS` (the
+clock leaves this family's receipts already declare, which include `receipt_sha256`,
+a chained hash of a timed receipt) extended by this runner with the clock-derived
+digests it publishes"), and the declared clock-derived digests are
+`current_manifest_sha256`, `owner_ledger_sha256` and `parent_manifest_sha256`, each
+with its own reason in `declared.content_digest_clock_derived_keys`.
+That extension is what the chained clock requires, and this is the one receipt in
+the family where the chain is real. Each of the four chained digests the receipt
+carries — the owner ledger digests of `A2-owner-drive-act` and
+`C1-drive-on-an-unwritten-page`, `before` and `after` their acts — is the runner's
+own hash of the owner's event ids, active revision ids, event count and current
+checkpoint manifest digest, and the manifest it hashes embeds its own transition
+record, which carries that operation's `elapsed_seconds`; two builds of that arm in
+one process, compared at their first published manifest, differ at exactly two
+leaves — the nested
+`transition.result.receipt.elapsed_seconds` and the `parent_manifest_sha256` that
+chains the previous manifest into the next — while their event ids, active revision
+ids, event count, page, workspace state and owner state are identical. A digest of a
+timed receipt is therefore itself clock-derived, and it has to be stripped along with
+the raw clock leaves, or the receipt's digest moves with the clock it strips; the
+write arms' manifests, by contrast, carry no timing leaf at all, which is why `A1`'s
+and `A3`'s ledger digests reproduce across builds and the two transceiver arms' do
+not. What stays is declared too: every page, frame and state digest, which are content
+addresses with no clock input, and the movement booleans the runner computes from the
+stripped digests, so stripping the clock-derived digests removes no measurement of
+what the surface did. The regression file holds both halves of that: it mutates the
+ledger digests and the clock leaves and requires the digest to stay where it is, and
+it mutates `A2`'s `owner_ledger_moved` flag and requires the digest to change.
+Three full `8 x 8` runs of the source as it now stands measure its stability — the
+frozen build at `64.26 s`, the harness's own second run, and an independent run made
+for this document at `58.44 s` — and all three write
+`d769cd297109d4885ee62a3256b649b5b0bb9504dd395daf8c1ee6a794ae2c77`. Between the
+frozen build and that third run exactly seven leaves differ and every one of them is
+a member of the declared strip set: the four chained ledger digests, the two nested
+`elapsed_seconds` and `runtime_seconds`, with zero leaves differing outside the
+set. The pre-fix build is kept beside the corrected receipt as
+`_diag/memory-store-scale/exploration.pre-digest-strip.json` for a reader comparing
+the two: every measured figure is byte-identical between them, and that body's own
+`receipt_digest`, `fb0c967c45c9b8a345414fe1d297cccae3047a6431709be8a6971ae0739cfd3f`,
+recomputes from it under the four-key set it declares.
+The four owner-side harnesses each declare their own strip set and apply that
+declaration rather than a shared constant, so what each receipt applies is structural
+rather than a property of these bodies: a clock-derived value must be declared to
+enter a digest and an undeclared one cannot. `run_owner_surface_options.py`
+declares its set at `:137-141` and drops it in `strip_clock_leaves` at `:348`;
+`run_owner_nested_cycle.py` declares at `:203-206` and drops at `:2625`;
+`run_memory_consumer_path.py` declares at `:212-214` and drops at `:328`; and
+`run_owner_write_path_exploration.py` declares at `:136-138` and drops at `:681`.
+Each set is the family's four clock leaves with `CLOCK_DERIVED_KEYS` empty, plus, for
+the owner surface options receipt, `receipt_digest` as a declared field of the set; the
+owner nested cycle excludes two keys — the digest field and its `builder_provenance`
+block, both named in its own `EXCLUDED_FROM_DIGEST` and filtered inside `receipt_digest`
+rather than added to the strip set (`run_owner_nested_cycle.py:217-219`, `:2613-2632`)
+— and the other two exclude the digest field where the digest is taken rather than in
+the set (`run_memory_consumer_path.py:349` and
+`run_owner_write_path_exploration.py:731`). The declarations are read rather than
+duplicated for a reason worth keeping in view: a declaration that never fires is worse
+than none, because it reads as a guarantee while enforcing nothing.
+Each declaration is also what is applied — running each runner's own
+`strip_clock_leaves` over a body carrying every declared key beside one control leaf
+drops exactly the declared keys and leaves the control — and each receipt's digest
+recomputes from its body under its own declared set. Three of the four digests are
+unchanged from the frozen values and reproduce under two independent runs each, after
+the change that gave the declarations liveness — the change that made each harness read
+its own declaration instead of carrying a second copy — and with the source as it now
+stands:
+`a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455` for the owner
+surface options, `3933e8ecc0aeedd1a9722c0bd282006d5217b516b3acf504133e973cb48b5f07`
+for the memory consumer path and
+`a1f5c4ffe42a9c25182cf25ec54ab2e5bff7ff51147e2d51d98a6234072e9f7c` for the owner
+write path. The owner nested cycle's is the one that moved, once, to
+`bd7a83d40f5013b6c9d71e5b0abb2fc0cd45f1e751122a1a6f6332a7993f736a` in the layout
+decoupling its own paragraph above measures: it reproduces under four runs of the source
+as it stands, and the frozen `909ec09d…` still recomputes from the frozen body under the
+same rule, which is why that receipt is kept beside it rather than retired. Between the
+two runs of each harness the only leaves that differ are leaves its declaration strips:
+`59` inside the owner surface options receipt's
+per-stage timing block, which the receipt carries under an `elapsed_seconds` key and
+the rule drops whole, and `runtime_seconds` alone in each of the other three. So
+determinism across these four is structural for the leaf clock class — a leaf in the
+declared set is dropped by the rule whatever the body carries — while the chained
+class is declared and not exercised in these four bodies: `CLOCK_DERIVED_KEYS` is
+empty in all four by measurement of those bodies rather than by their exercise of the
+rule, because the owner-side digests they carry — `ledger_sha256`, `owner_state_sha256`,
+`page_sha256` and `workspace_state_sha256` — are content addresses with no clock
+input. The body where the chain is real is the memory store scale receipt above, and
+that is where the rule bites.
+The store addressing capacity receipt is the second harness to reuse that declaration
+after the rank receipt — `declared.content_digest_strip_keys` is the store-scale
+runner's `STRIP_KEYS` and the
+field beside it says so — and the control measured for it here is its own merge. Two
+merges of the source as it stands, taken one after the other from the two shipped
+block files, differ at exactly one leaf of the whole body, the top-level
+`runtime_seconds` the declared set strips, and write
+`a3278fd1ef046f31f65f142f8e9f7831663ad4c868bffc5e33d7a41c0d3d3574` twice, so its
+digest is a function of the merged measurements rather than of the clock the merge ran
+on; the same function strips the per-level runtimes nested inside the blocks' own
+level records, so the levels' `runtime_seconds` leaves move no digest either. The
+block receipts are the exception this family has to state rather than repair: the
+higher-resolution block published here is a new shape — it carries the tail-level
+fields (`tail_level_n`, `tail_level_constructible`, `tail_level_runtime_seconds`) its
+earlier file did not — and the digest recorded for that earlier shape,
+`e059ea0e0dbccecfa746f869768fcb8808889233102f6f63fdadf0c75395fa61`, does not
+recompute from the current body with those three keys removed
+(`4abdc0432527a2289d9c439441bb5c5ff0856eda4faadfa5b400e65a62e7d138`), while every
+figure the earlier build's notes record does reproduce exactly: rank `32/32`, margin
+`999999999.9999971`, least separation `0.9999999999999988`, `992` of `992` pairs, the
+same smallest and largest singular values and the same `5.0236682857142915e-9`
+tolerance, the same measured finite-difference floor `2.63723168339969e-14`, the same
+deposit energy `0.16051937563758753`, the same depth census `{0: 2, 1: 2, 2: 4, 3: 8,
+4: 16, 5: 24}` and the same two boundary refusals. What that leaves is an unexplained
+difference between the retired file and the current body beyond the three added keys,
+recorded here because the earlier file was overwritten by the re-run and no copy of it
+survives to diff — so the current block and merged digests are the authority for this
+receipt, and the retired value is quoted as the earlier build's own rather than as a
+value this source reproduces.
+The owner write path receipt is also the one that publishes the rule it applies: its
+`content_digest_rule` block (`run_owner_write_path_exploration.py:688-713`) carries
+the definition, both declared key classes, the strip set, the helper and the sentence
+naming what the digest is computed over, and the digest excludes that block along with
+the digest field (`run_owner_write_path_exploration.py:731`), so its body after the
+change carries twelve more leaves than the frozen one — the rule's own keys — and the
+same digest. That is the only channel in this family that publishes a rule without
+moving a frozen digest: the owner surface options receipt publishes a
+`digest_convention` block as well, but inside its digested body, where it was already
+part of the frozen value.
 The feedback receipt carries no wall-clock key at all, as the durability and
 memory receipts also do not, so its file is reproducible byte for byte as well as
 its digest. The Yang–Mills obligations receipt (`_diag/yang_mills_finite_obligations.json`) is
@@ -2850,20 +3729,26 @@ reproduced its own exactly
 (`a9a85f9b1e4a32b19c81e5476d94e78835c95739998b3f4b770d613d8ef7e455`) with only
 `elapsed_seconds` leaves differing, at the top level and one per overlap-enumeration
 selection and nowhere else. Both re-runs wrote outside `_diag/`, so the frozen
-receipts are unchanged; their `17` and `22` tests pass. The receipt added here was
-re-run the same way, and it is the receipt for which that check carries the most
-weight, because source-line binding is exactly the property that a re-run must not
-disturb: an independent no-flag run reproduced the in-receipt digest exactly
-(`909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`), with
+receipts are unchanged; their `17` and `22` tests pass. The receipt added here is the
+one the re-run check carries the most weight for in the other direction now, because
+the property a re-run must not disturb is the digest's independence from the file:
+four runs of the source as it stands reproduced
+`bd7a83d40f5013b6c9d71e5b0abb2fc0cd45f1e751122a1a6f6332a7993f736a` exactly, with
 `runtime_seconds` the only differing leaf across the whole body and zero non-timing
-differences, so the source-line fields survived the re-run unchanged and the digest
-was reproduced while the file hash was not. That run wrote outside `_diag/` as well,
-so the frozen receipt is untouched. Its `24` tests pass.
+differences, and the two of them that re-ran after a layout perturbation had been
+applied and reverted — the runner's own above `declared_row_for`, and the metric
+runner's above `build_metric_profile` — are the control for the decoupling its own
+paragraph above measures: the fourteen-line block that once moved this digest moved
+nothing but the file hash and the report's idea of where the builder sits. The frozen
+receipt reproduces its `909ec09da53fd0b6946dca2dc18ad71c481ffaa2d9bbc76846f18cf382bbe1aa`
+from its own body under the same rule, and all four of those runs wrote outside
+`_diag/`, so neither the frozen receipt nor its companion was touched by them. Its `24`
+tests pass in `55.67` s.
 
 ## Where a direction could not be grounded
 
 - **No field-level self-similarity exists.** `ResonantProfile.__post_init__` accepts exactly `{meaningful-helix, undivided, isolated, rewired}` and fixes `pools == 7`, so no arrangement can change the pool count or the minimum port resolution of four. Spatial spacing is inexpressible because `coordinates` has no hook, and `profile.edges` is ignored whenever `projected_transport` is set, so declared arrangements re-declare their structure and carry `topology` as metadata only. Nested, recursive, ladder, quasiperiodic, and sparse-link layouts are therefore reachable as declared pool graphs and were measured once by the geometry harness, but they measure strength and metric declarations, not physical self-similarity; the porous, hyperbolic, and second-center variants (A.5, A.6, A.8) additionally need descriptor support that does not exist.
-- **No demonstrated durable pattern-storage mechanism exists.** `resonant_workspace` is persisted working state and §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct; the durability receipt writes one declared item into the canonical page and reads it back unchanged across a workspace round trip and records, for its own build, that the owner transition surface accepted no packet impulse and that its restart identity was workspace-level, while the owner write path now adds that transition — an exactly-once owner operation carrying the written pattern inside the owner's checkpoint closure across a close and reopen, with the generation, the logical tick and the evidence clock preserved — and still demonstrates no durable store: the consumer path now measures one declared consumer retrieving a written direction's deposit and acting on it, but as a declared projection of the page under a declared direction, so a durable store remains the program's central open item (G.1, `_diag/fractal-durability/exploration.json`, `_diag/owner-write-path/exploration.json`, `_diag/memory-consumer-path/exploration.json`).
+- **No demonstrated durable pattern-storage mechanism exists.** `resonant_workspace` is persisted working state and §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct; the durability receipt writes one declared item into the canonical page and reads it back unchanged across a workspace round trip and records, for its own build, that the owner transition surface accepted no packet impulse and that its restart identity was workspace-level, while the owner write path now adds that transition — an exactly-once owner operation carrying the written pattern inside the owner's checkpoint closure across a close and reopen, with the generation, the logical tick and the evidence clock preserved — and still demonstrates no durable store: the consumer path now measures one declared consumer retrieving a written direction's deposit and acting on it, but as a declared projection of the page under a declared direction, and the memory store scale receipt now measures eight declared items holding and being used for eight declared rounds with every round's queried direction read above its floor and the items not yet acted on drifting by `5.551115123125783e-16` at most — a store that survives being used, with a hold that is "short by declaration, so this receipt makes no claim about holding eight items over a long horizon", and with every act on it destructive by design, so a durable store remains the program's central open item (G.1, `_diag/fractal-durability/exploration.json`, `_diag/owner-write-path/exploration.json`, `_diag/memory-consumer-path/exploration.json`, `_diag/memory-store-scale/exploration.json`).
 - **No multi-level scaffold has been measured at any depth.** Depth, branching, and cross-scale connections exist only inside the disposable packet basis (§26.18) or as nested resolution projections of one fixed body (§26.24), a different object from a many-level physical scaffold.
 - **No activity-driven structural change exists.** Change is explicit — condensation, layout transition, revision, revocation — and §26.1 forbids a per-pool Hebbian matrix or oscillator-weight learner, so H.4 must route through admitted evidence.
 - **The exact-solver and theory analogies are analogies.** The width-two certificate, the `omega = 3` measurement, and the one-sided frame test concern cubic incidence matrices; the boundary-sector result concerns a lattice Yang–Mills transfer; J.4 and J.7 use them as shapes of argument, not inherited findings.
