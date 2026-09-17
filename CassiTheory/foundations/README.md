@@ -222,6 +222,7 @@ baryon-production coupling remain open.
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
 | 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, massless and massive conditional baryon comparisons, finite-site topology, cascade-size assignment, regular quark–meson carrier and complete-mechanism adjudication | Derived conditional boundary, microscopic non-identifiability, normalized-chiral obstruction and regular baryon-current identity / Mapped carrier coupling, massless benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, quark–meson regulator extrapolation and fixed-family binding; all six massive out-of-fit diagnostics carry `CONTRADICTS` verdicts, the finite-site regulator is simply connected, step 95 misses the empirical isoscalar radius by $50.1099\%$, and the complete-formation gates remain `FAIL`—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
+| 48 | `loop-rate-selection-candidates.md` | Thirteen candidate selection functionals and invariances on the loop's own data; the fivefold integer as the same unforced input as the ratio; the four rate sentences that invite a ratio inference | Analysis—September 2026 |
 
 ## Document Summaries
 
@@ -1592,6 +1593,46 @@ gravity, clock, apparatus and interacting-quantum requirements into the
 effective-test and first-principles routes. Section 12 records independent
 QFC1–QFC4 calculations, including the standard positive-spectral
 obstruction for the Gaussian propagator at nonzero $\sigma$.
+
+### `loop-rate-selection-candidates.md`—A Search for a $\varphi$-Free Selection Principle for the Loop's Conversion Rate Ratio
+
+Tests thirteen candidate functionals and invariances on the loop's own data, by
+algebra and small numerical checks, with computed extrema and no field runs. Four
+families close at once for structural reasons that hold for every member: every
+spectral functional of the conversion operator sees the trace $a+b$ and not the
+ratio; every functional symmetric under the Yang/Yin exchange is stationary at
+$r=1$, so the golden ratio can sit only at a stationary point of
+$t=r+1/r=\sqrt5$; the counterflow-current sector is exactly invariant under
+changes of the ratio; and the projection acts as the identity on the ratio, so
+self-similarity under it is vacuous. Four candidates return $\varphi$ exactly,
+and none of them fixes $b/a$.
+
+Adds a third clause (D3) to the audit's conjunctive discriminator of
+`foundations/phi-input-or-selection.md`: an axiom whose content is reachable from
+$r^2=r+1$ by an explicit substitution chain the derivation exhibits relocates the
+input rather than deriving it. The clause is exercised on a firing control, one
+self-reference returning six different constants.
+
+The fivefold selector is traced to its declared source, the supplied $w=5$
+subgroup of `foundations/loop-to-bubble-projection-theorem.md`, and tested
+against the five origins the loop offers, all negative: the population and
+incidence counts $(1,2,3,4)$, the null space of the conversion operator
+$(1,2,4)$, the minimal winding compatible with positivity (a free tolerance
+ladder returning $3,5,8,13$), the normalization of the metric, and the minimal
+polynomial of the de-resonance statistic ($\operatorname{disc}(x^2-x-1)=5$,
+$2\cos(2\pi/5)=1/\varphi$, $\mathbb{Q}(\zeta_5)^+=\mathbb{Q}(\sqrt5)$). The
+coherence route's own selection is threshold-exponent sensitive: two cascade
+steps per cycle vertex return $13$.
+
+Verdict: the integer $5$ is the same unforced input as the ratio in another
+coordinate, tied by $2\cos(\pi/5)=\varphi$, $\operatorname{disc}(x^2-x-1)=5$,
+$\sqrt5=2\varphi-1$ and $\mathbb{Q}(\zeta_5)^+=\mathbb{Q}(\sqrt5)$, so why-five
+is why-$\varphi$ and the gap does not move down a level; the note states that
+this narrows the audit rather than extending it. A cross-check of the blindness
+result against the theory documents finds four sentences that draw the ratio, or
+evidence for it, from a rate reading; each is a joint check of the declared pair,
+none requires a physics correction, and all four are listed for their owners.
+Status: Analysis—September 2026.
 
 ## Cross-References
 
