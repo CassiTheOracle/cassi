@@ -6,8 +6,8 @@
 
 | Row | Value | What it binds |
 |---|---|---|
-| `frozen_body_sha256` | `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` | this file, sections 1–7: everything from `## 1.` to just before `## 8.` |
-| `executor_sha256` | `c13afe722904e91528956cd967705238041e963b0d46280b58fff0a54fd2d518` | `computations/verify_loop_carrier_two_coordinates.py`, the complete executor frozen with this text |
+| `frozen_body_sha256` | `7fce9e0e3a252eef3e54be3cee016f2e1db453a7e9c25cdae98b873884678fbe` | this file, sections 1–7: everything from `## 1.` to just before `## 8.`, with the two in-place corrections §8.1 records; the digest of the text that ran is `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` |
+| `executor_sha256` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` | `computations/verify_loop_carrier_two_coordinates.py`, the complete executor frozen with this text; re-anchored once after the single invocation, when its body-digest constant was re-anchored with the amendment §8.1 records and nothing else in it moved |
 | `prior_body_sha256` | `09426b6829e93bc02e7e2d330f3158b6889eebddd620bee149d9b3267f147f25` | `computations/loop-carrier-composition-coexistence-prereg.md` §1–§7, the body whose retained writable coordinate §71 identified as a conservation law |
 | `prior_executor_sha256` | `3852eadbd434e021d1dc351820db06e6295c34c11270144b0826f6097b09f6b1` | `computations/verify_loop_carrier_composition_coexistence.py`, imported as a library: its direction-A modulation is the term-for-term reference this body's carrier channel must reduce to, and its `composition_profile` is the transposed reduction this body's domain gate refuses to reproduce |
 | `audit_executor_sha256` | `0503f109c8b431768fbe16d37dfe8a82dec18cce2f97dc417d2fb08d1474f07a` | `computations/verify_loop_carrier_kernel_dimension.py`, the §71 audit: the closed form's entries, the spectrum, the kernel and the two declared-shaped reading-domain probes are read from here |
@@ -21,6 +21,20 @@
 | `gate_load_receipt_sha256` | `471f1f8074ff7cc85187690747b7ba9235e6d8627a7e9a7cc1db2a0a81710cc1` | `runs/loop_carrier_gate_load/verification.json`, the measured load of the seeded family |
 | `prior_receipt_sha256` | `5ba4afcd2b17d00be8c4fd315ee4f3133422aaae7bdb83e1f0e51ad9935be200` | `runs/loop_carrier_attractor_write/verification.json`, the two retention branches the spent fits carry |
 | `coexistence_receipt_sha256` | `9724143b98cf394eb9948741d3a117c4cc1e4b14fe54ff2ad9e81dfddb8bf60f` | `runs/loop_carrier_composition_coexistence/verification.json`, the spent body's own readings: the anchor the exchange-free run must reproduce and the transposed coordinates this body replaces |
+
+**The amendment of September 16, 2026, after the invocation.** Two passages *inside* the body
+range—§6's bound row set and §6's invocation sentence—were corrected in place at the user's
+instruction, each marked in place with the value the pre-amendment text read and a pointer to §8.1,
+which records the amendment, the frozen body's digest on both sides of it and the consequence. No
+arm, threshold, tolerance, level, gate, feature or decision rule was touched: the corrected passages
+are cost declarations that no part of this executor parses, and the arm table, the twenty thresholds,
+the fourteen gates and the four branch tables are byte-identical to the text that ran. Re-anchoring
+the moved body required updating this executor's own `FROZEN_BODY_DIGEST` constant and its comment,
+and nothing else in it; the receipt correctly records the digests of the body and the executor that
+ran, so the self-check after the amendment reports the receipt's `protocol_body_sha256` and
+`executor_sha256` rows as standing against the executed pair rather than against the amended text.
+That is the disclosure, not a defect: the amendment is a post-run edit, visible in the commit that
+carries it.
 
 The executor's `check_binding` compares every row and refuses with exit 3 before any arm exists on any mismatch. The `write_executor_sha256` row is the one row whose value is read at run time from the module itself rather than pasted here: the executor records the observed digest in the receipt, and §5's clock replication is the gate that fails if that module's declared rate moves.
 
@@ -266,9 +280,11 @@ The stored-mode generator is built from the frozen `mode_generator` at each arm'
 | projected seconds, measured | `650.0` |
 | projected seconds, assumed | `508.0` |
 
+*(Amended in place on September 16, 2026, after the single invocation and at the user's instruction: the pre-amendment table read `bound` `900` seconds, `measured seconds per step` `6.665e-4` and `projected seconds, measured` `405.0`, and the paragraph below read `timeout 900 …`. §8.1 records the amendment, the frozen body's digest before and after it, and what did not move; ledger section 72 carries the repair accounting. Only the cost bound moved.)*
+
 The bound is `1800` seconds because the first invocation's own timing was observed: the nine arms consumed about $650$ seconds of wall clock on this machine under load, against the $405$ seconds a lone design probe extrapolated. The first invocation integrated every arm and then failed in the gate path, writing no receipt; the repair is the one this protocol's stopping rule permits, and the bound is re-declared from the measurement rather than kept at the optimistic extrapolation.
 
-The invocation is `timeout 1800 python computations/verify_loop_carrier_two_coordinates.py`, run once. A receipt at `runs/loop_carrier_two_coordinates/verification.json` closes the body; a failure that writes no receipt leaves it open for a repaired executor and a new commit.
+The invocation is `timeout 1800 python computations/verify_loop_carrier_two_coordinates.py`, run once. *(Amended in place on September 16, 2026: the pre-amendment sentence read `timeout 900 python computations/verify_loop_carrier_two_coordinates.py`; §8.1 and ledger section 72 record the amendment, the digests on both sides of it, and the observation that no other declaration moved.)* A receipt at `runs/loop_carrier_two_coordinates/verification.json` closes the body; a failure that writes no receipt leaves it open for a repaired executor and a new commit.
 
 The static pass additionally **drives the gate, feature and receipt path on shaped inputs**: because the invocation reaches that path only after every arm has been integrated, a key the path reads and its producers do not carry would otherwise cost a whole invocation to discover — as the first invocation's repair shows. The dry run builds one arm of the declared shape per spec from the real seed family and the real load reading, hands the assembly the real pre-flight, domain and operator readings, and requires the gate table, the feature record, the branch labels and the written payload to have their declared shape. Its verdicts are not readings and are discarded; only its exceptions and shape failures are static failures.
 
@@ -291,3 +307,49 @@ Executed **once**, `timeout 1800 python computations/verify_loop_carrier_two_coo
 **Oracles.** The spent receipt's own scalars reproduce at $0.8923974885141064$ and $0.8923974885141089$ against $0.8923974885141119$ and $0.8923974885141087$; the seeded family's recorded load transfer at $0.3646114292316331$ within $9.07\times10^{-14}$ relative; the loaded anchor's clock at $1.1268283368545141\times10^{-2}$, ratio $1.0064833948120457$ inside the carried band $2.0$. The Jensen gap between the declared coordinate and the spent scalar is $0.2322333653463856$ over $81$ sampled states — recorded, not gated, and the quantitative form of the difference §1.2 states.
 
 **One repair, disclosed.** The first invocation integrated all nine arms and then failed in the gate path on a latent `KeyError`, writing no receipt; §6's stopping rule permits one repair after such an invocation, and the repaired pair is committed separately. The static pass now drives the gate, feature and receipt path on shaped inputs and immediately found a second latent key (the clock fit's degenerate branch); the declared bound was re-derived from the observed runtime.
+
+### 8.1 The amendment, the cost bound, and the three states of the frozen pair
+
+Two passages *inside* the body range were corrected in place on September 16, 2026, after the single
+invocation and at the user's instruction — §6's bound row set and §6's invocation sentence — and this
+subsection is the accounting, because a bound inside the digested body must be readable without
+reconstruction. The oracle for the first invocation is the commit that froze the text it ran under;
+the oracle for the invocation that produced the receipt is the commit that carried the repaired pair;
+and the standing text is this one.
+
+| State | Commit | Bound | Seconds per step | Projected seconds | `frozen_body_sha256` | `executor_sha256` |
+|---|---|---|---|---|---|---|
+| the first freeze, under which the first invocation ran and wrote no receipt | `c6694976` | `900` | `6.665e-4` | `405.0` | `d16060dd28f5b8d34dbbb542e7a16d4dbccd3d23dabd4f5a0232d8bcc51758a0` | `114fd1876c0a4845060a8fb01e21464b39eec909b707c90dec278e3c6c49fc8c` |
+| the re-frozen pair, under which the invocation that produced the receipt ran | `c88872f2` | `1800` | `1.07e-3` | `650.0` | `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` | `c13afe722904e91528956cd967705238041e963b0d46280b58fff0a54fd2d518` |
+| this amendment, before the sweep that follows | this commit | `1800` | `1.07e-3` | `650.0` | `7fce9e0e3a252eef3e54be3cee016f2e1db453a7e9c25cdae98b873884678fbe` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` |
+
+**The change is a cost bound and nothing else moved.** The first invocation's own timing is what
+re-declared the ceiling: nine arms of $67500$ steps cost about $650$ seconds of wall clock on this
+machine under load, against the $405$ seconds a lone design probe extrapolated, so the ceiling went
+from $900$ to $1800$ seconds and the projection from $405.0$ to $650.0$. No statistic, threshold,
+tolerance, level, arm, gate, feature or decision rule moved at that re-declaration, and no other
+number in the table moved either. The pair's own record of what *else* moved is kept separate and is
+not folded into this accounting: before the re-declaration the same repair corrected a latent key
+error in the gate path and rebuilt the static pass to drive that path on shaped inputs, which is
+disclosed in §8 above and was in force at the invocation that ran — so the receipt's gates are the
+repaired gates, and the failure the repair answered is a bookkeeping failure with no bearing on any
+statistic. This amendment adds nothing to the body but the two in-place markers §6 now carries, each
+naming the value the pre-amendment text read; it changes no declared value at all.
+
+**The first invocation left neither a receipt nor a partial artifact.** `runs/loop_carrier_two_coordinates/`
+holds exactly one file — the receipt of the second invocation, written at its end — and no temporary,
+partial, stale or `*.tmp` artifact of any kind exists under `runs/`. The executor writes in exactly one
+place: after the gate table has been printed, after `sanitize` has accepted every reading, and after
+`os.makedirs` has made the receipt's directory; the first invocation failed inside the gate stage,
+before any of those steps. Nothing was overwritten, because there was nothing to overwrite.
+
+**A third invocation is refused in code, and this is the observed behaviour.** The receipt exists, so
+`execute()` refuses before it checks the bindings and before any arm is constructed. Invoked again
+after this amendment, this body's own executor printed
+
+> `REFUSING TO RUN: runs/loop_carrier_two_coordinates/verification.json already exists; this body is invoked once and a second invocation is permitted only after an invocation that wrote no receipt.`
+
+and exited `3`, with the receipt's digest unchanged and the directory still holding exactly that one
+file. The same refusal is the reason this body cannot be re-run to produce a second reading: any
+further measurement of the declared point needs a new frozen body, which is what the sweep that
+follows this amendment is.

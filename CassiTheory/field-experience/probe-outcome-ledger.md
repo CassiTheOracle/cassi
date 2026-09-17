@@ -3219,14 +3219,33 @@ $0.8923974885141119$ and $0.8923974885141087$ (differences $5.55\times10^{-15}$ 
 $2.22\times10^{-16}$), and the seeded family's recorded load transfer, $0.3646114292316331$ within
 $9.07\times10^{-14}$ relative.
 
-**One repair, disclosed.** The first invocation integrated all nine arms and then failed in the gate
-path on a latent `KeyError`, writing no receipt; the stopping rule permits exactly one repair after such
-an invocation, and the repaired pair is committed separately with its own digests. The static pass now
+**One repair, disclosed, with its accounting closed in the record itself.** The first invocation
+integrated all nine arms and then failed in the gate path on a latent `KeyError`, writing no receipt;
+§6's stopping rule permits exactly one repair after an invocation that wrote no receipt, so the pair was
+repaired and re-frozen, and the invocation that produced the receipt ran under that repaired pair. The
+repair moved a declared **cost** bound and nothing else, and the three states of the frozen pair are
+readable without reconstruction:
+
+| State of the frozen pair | Commit | Bound | Seconds per step | Projected | `frozen_body_sha256` | `executor_sha256` |
+|---|---|---|---|---|---|---|
+| the first freeze, under which the first invocation ran and wrote no receipt | `c6694976` | `900` | `6.665e-4` | `405.0` | `d16060dd28f5b8d34dbbb542e7a16d4dbccd3d23dabd4f5a0232d8bcc51758a0` | `114fd1876c0a4845060a8fb01e21464b39eec909b707c90dec278e3c6c49fc8c` |
+| the re-frozen pair, under which the receipt's own invocation ran | `c88872f2` | `1800` | `1.07e-3` | `650.0` | `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` | `c13afe722904e91528956cd967705238041e963b0d46280b58fff0a54fd2d518` |
+| after the post-run amendment recorded in the body's §8.1 | this commit | `1800` | `1.07e-3` | `650.0` | `7fce9e0e3a252eef3e54be3cee016f2e1db453a7e9c25cdae98b873884678fbe` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` |
+
+Nothing but the ceiling and the projection moved at that re-declaration: no statistic, threshold,
+tolerance, level, arm, gate, feature or decision rule was touched, and the two passages corrected in
+place afterwards — §6's bound row set and its invocation sentence — were corrected as *text* with an
+in-place marker naming the pre-amendment values, which is why the standing body digest differs from the
+executed one while both are published. The first invocation left neither a receipt nor a partial
+artifact: `runs/loop_carrier_two_coordinates/` holds exactly the one file the second invocation wrote,
+the executor writes only after its gate table is printed and its payload sanitized, and the first
+invocation died in the gate stage before any write. A third invocation is refused in code — invoked
+again, the executor prints `REFUSING TO RUN: … already exists …`, exits `3`, and leaves the receipt's
+digest unchanged — so the body's single reading cannot be quietly replaced. The static pass now
 **drives the gate, feature and receipt path on shaped inputs**, so a key that path reads and its
-producers do not carry fails in seconds instead of after an integration—that pass immediately found a
-second one, the clock fit's degenerate branch, which gate 13 read by key. The declared time bound is
-re-declared as $1800$ seconds from the observed $726.1$ seconds rather than kept at the optimistic
-extrapolation.
+producers do not carry fails in seconds instead of after an integration, and it immediately found a
+second latent key (the clock fit's degenerate branch, which gate 13 read by key); the declared bound was
+re-derived from the observed $726.1$ seconds rather than kept at the optimistic extrapolation.
 
 | Binding and status | Value |
 |---|---|
