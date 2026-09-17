@@ -2434,7 +2434,7 @@ and $10^{-6}$ on $C$.
 | Gated ray control | B1 starts exactly on the ray at $+2.2\times10^{-16}$ and ends $2.47\times10^{-3}$ below $\varphi$, class `departing`, while the ungated A1 from the same state holds $+2.2\times10^{-16}$ | One firing clause: the gated volume mean is not stationary on the ray at $N=32$ |
 | Frozen controls | C1 and C2 hold their composition to $10^{-16}$, class `frozen`, with ratio and rate classes not applicable | The $\lambda=0$ reading is a control and not evidence about the ray |
 | Gate sub-question | `gate_does_not_differentiate`: at the L1 final checkpoint the openness spans $0.0697$ to $0.2719$ about a mean of $0.1296$, the quartile local ratios read $1.617049$, $1.617451$, $1.617700$ and $1.618028$, and the weighted ratio sits $2.76\times10^{-4}$ from $\varphi$ | The gate orders the local fixed ratios monotonically without moving any quartile outside the frozen tolerance |
-| Registered reference rate | L1's terminal segment rates are $0.02976$ and $0.02960$ against $\Gamma_0=\lambda/3=0.033333$; the receipt's measured weighting $\Xi=\langle w\varepsilon\rangle/\langle\varepsilon\rangle=0.11254$ gives $(1+\varphi)\lambda\Xi=0.029463$ | The registered value is the pointwise reference-density rate, and the volume mean follows the weighted form to $0.5\%$ |
+| Registered reference rate | L1's terminal segment rates are $0.02976$ and $0.02960$ against $\Gamma_0=\lambda/3=0.033333$; the receipt's measured weighting $\Xi=\langle w\varepsilon\rangle/\langle\varepsilon\rangle=0.11254$ gives $(1+\varphi)\lambda\Xi=0.029463$ | The registered value is the pointwise reference-density rate, and the volume mean follows the weighted form to $0.5\%$. The $(1+\varphi)$ factor in that form is the trace $\kappa(1+\varphi)$ of the declared conversion block, whose spectrum, characteristic polynomial and relaxation rate are functions of $a+b$ alone while the ratio lives in the null vector (`foundations/loop-rate-selection-candidates.md` §2.2; `foundations/phi-input-or-selection.md:177-181`), so this terminal rate witnesses the declared block's own sum rather than determining the ratio |
 | Boundary | One solver mode of each declared form, one resolution with one refinement and one resolution check, one viscosity, horizons 30 and 240, amplitude $0.1$. The retained-band fraction of the imbalance is $1.0000$ at every checkpoint of every run | **UNRESOLVED**: the resolution and amplitude dependence of the gated displacement |
 
 Volume ratio and rate per state, from the second receipt:
@@ -2499,10 +2499,10 @@ $(1+\varphi)\lambda\Xi$ with the measured $\Xi$, below $\Gamma_0$ by the factor
 $0.884$. Two invocations were needed because the first receipt's
 `construction_floor_inactive` gate measured a threshold derived from an
 incorrect sentence of the protocol rather than the construction, which carries
-no clamp; the five in-place changes, the retained first receipt and the
-reproducibility comparison are recorded in the protocol's §1.3, §2, §3, §4 and
-§6, and the second invocation re-ran the identical matrix under identical
-tolerances, differing from the first in nothing measured. The provision that
+no clamp; the five in-place rule changes and the post-execution scope clause
+added to §1, the retained first receipt and the reproducibility comparison are
+recorded in the protocol's §1, §1.3, §2, §3, §4 and §6, and the second
+invocation re-ran the identical matrix under identical tolerances, differing from the first in nothing measured. The provision that
 permitted the second invocation was added to the protocol's §2 stopping rule
 after the first receipt existed, and it is disclosed there as such: before it,
 the rule allowed a re-run only after a timeout that wrote no receipt, under the
