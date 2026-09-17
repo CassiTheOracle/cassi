@@ -254,7 +254,7 @@ BINDING_SOURCES = (
     ("write_executor_sha256", WRITE_EXECUTOR,
      "740d0fc036721be5f1ee0fd5527fe54e771243113e13b7133be053f6439cf6c6"),
     ("two_coordinate_executor_sha256", TWO_COORD_EXECUTOR,
-     "671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0"),
+     "7f78244067def849dd5d9f287f45a34937e57bd1912b7744b42cf0ed6812be00"),
     ("two_coordinate_receipt_sha256", TWO_COORD_RECEIPT,
      "46ae3ee2b93051277c6e1c86dce4c713fb3b397d74cb06c2559ff8e7b98f344e"),
     ("base_receipt_sha256", BASE_RECEIPT,

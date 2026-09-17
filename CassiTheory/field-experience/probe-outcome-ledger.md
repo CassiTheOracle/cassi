@@ -3349,6 +3349,16 @@ a large residue, of the same qualitative kind as §72's $6.60\times10^{-3}$, so 
 and cannot un-write* stands, and it now stands beside the statement that the net charge is odd in the
 sign.
 
+**Both rows above were re-anchored after this body ran, and the reason is one sentence in the body
+it continues.** At the user's instruction, section 6 of the two-coordinate protocol gained a sentence
+stating that its cost bound is enforced by the `timeout` wrapper on its invocation line and that its
+projection rows are estimates and not bounds — the reconciliation of the 405 s projection, the 900 s
+pre-amendment bound and the 726.1 s observation. Its own §8.1 carries the fourth state of its frozen
+pair, its executor's body-digest constant was re-anchored to match, and this body's executor and
+section-0 row were re-anchored behind it so the binding stays live. No declared value in either body
+moved at that re-anchoring; the rows the two invocations here actually ran against are the ones the
+receipts record.
+
 **One repair, disclosed, with the pair's states readable without reconstruction.** The first invocation
 integrated all twenty-nine arms in 71.0 s and wrote a receipt with `status=FAIL`, gate 8 its only
 failing gate—on readings that satisfy that gate's bound as it now stands (complementary-direction content
@@ -3382,7 +3392,7 @@ this body its first invocation: removing the per-point `clock_rate` key makes it
 
 || Binding and status | Value |
 |---|---|
-|| Protocol body / executor | `97f8bf76…` / `c1a8d490…`; operator module `d687597f…`, base probe `28d2fd54…`, split `246463f7…`, gate-load `be9f651d…`, audit `0503f109…`, write body `740d0fc0…`, two-coordinate executor `671e4a5e…` |
+|| Protocol body / executor | `97f8bf76…` / `b4b6aea7…` standing, `c1a8d490…` the bytes the invocation ran against; operator module `d687597f…`, base probe `28d2fd54…`, split `246463f7…`, gate-load `be9f651d…`, audit `0503f109…`, write body `740d0fc0…`, two-coordinate executor `7f782440…` standing, `671e4a5e…` the bytes this body ran against |
 || Receipt | `runs/loop_carrier_rate_entry_sweep/verification.json`, `318a2ac6…`, fourteen of fourteen gates, $69.8$ s of a $600$ s cost bound, `status=PASS`, branch `LINEAR_BOTH_SIDES`, injector `SIGN_DEPENDENT` |
 || Budget | $29$ executions, $7500$ steps each, $203000$ steps against caps $10000$/$250000$; step rule satisfied on every arm at $\Delta t=0.02$ |
 || First invocation | `first-invocation-verification.json`, `cdfb4546…`, one failing gate, kept as the record of the amendment |

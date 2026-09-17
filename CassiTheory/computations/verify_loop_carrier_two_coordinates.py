@@ -89,11 +89,13 @@ BOUND_SECONDS = 1800.0
 PRIOR_BODY_DIGEST = "09426b6829e93bc02e7e2d330f3158b6889eebddd620bee149d9b3267f147f25"
 
 # Section 0 declares both hashes: this file's, and the digest of the frozen body (everything
-# from "## 1." to just before "## 8."). Filled by the freeze pass, and re-anchored once after
-# the single invocation, when two slips inside section 6 were corrected in place at the user's
-# instruction; §8.1 of the protocol records the amendment and both digests, and the receipt
-# records the pair that actually ran. Nothing else in this file moved.
-FROZEN_BODY_DIGEST = "7fce9e0e3a252eef3e54be3cee016f2e1db453a7e9c25cdae98b873884678fbe"
+# from "## 1." to just before "## 8."). Filled by the freeze pass, and re-anchored twice: once
+# after the single invocation, when two slips inside section 6 were corrected in place at the
+# user's instruction, and once after the sweep that follows, when section 6 gained one sentence
+# saying what enforces the cost bound and what the projection rows are. §8.1 of the protocol
+# records both amendments, every state of the frozen pair, and both digests; the receipt records
+# the pair that actually ran. Nothing else in this file moved at either re-anchoring.
+FROZEN_BODY_DIGEST = "f04b6cef1af2ac9e2541e8a8baa41a7ce0ffd2c0bece4e08fe8f6e4c4ded0cd7"
 BODY_START = r"(?m)^## 1\."
 BODY_END = r"(?m)^## 8\."
 

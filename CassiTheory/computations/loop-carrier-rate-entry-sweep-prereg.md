@@ -32,7 +32,7 @@ process, a clock or a machine threshold. The two rows marked *at freeze* are pri
 | row | value | what it binds |
 | --- | --- | --- |
 | `frozen_body_sha256` | `97f8bf764dbfb7f2da845a465c1102c0b84143f7e353354aa97c1d30dfc92f2e` | sections 1-7 of this file, at freeze |
-| `executor_sha256` | `c1a8d490bc85792507a2fef654a70a9efd4fe2545c0a8b53ca4861513aa03777` | this body's own executor, at freeze |
+| `executor_sha256` | `b4b6aea7bf6a6192030de4aad7d478a13c86a9f0a166d49c3b68cf070a7eb05d` | this body's own executor, at the re-anchoring that followed its invocation; the bytes this body ran against were `c1a8d490…` |
 | `bound_module_sha256` | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` | the frozen operator module (LB1)-(LB7) |
 | `base_probe_sha256` | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` | the successor probe that executes them |
 | `split_executor_sha256` | `246463f7fd1ba4a7fef282079e312d6e1382a15319b97d20b2ba49be46adcb5a` | the projection split |
@@ -41,7 +41,7 @@ process, a clock or a machine threshold. The two rows marked *at freeze* are pri
 | `audit_executor_sha256` | `0503f109c8b431768fbe16d37dfe8a82dec18cce2f97dc417d2fb08d1474f07a` | the kernel-dimension audit (§71) |
 | `write_executor_sha256` | `740d0fc036721be5f1ee0fd5527fe54e771243113e13b7133be053f6439cf6c6` | the attractor-write body (the clock oracle) |
 | `first_invocation_receipt_sha256` | `cdfb45468af1ebdcf1bfc21828f78a502d396c9dd484251114814db340dcd6ec` | the archived first invocation of this body (`runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json`) |
-| `two_coordinate_executor_sha256` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` | the two-coordinate body's own reader, kernel check and domain probes |
+| `two_coordinate_executor_sha256` | `7f78244067def849dd5d9f287f45a34937e57bd1912b7744b42cf0ed6812be00` | the two-coordinate body's own reader, kernel check and domain probes; the bytes this body ran against were `671e4a5e…`, re-anchored after this sweep ran, when section 6 of that body gained one sentence at the user's instruction (§8 records it) |
 | `two_coordinate_receipt_sha256` | `46ae3ee2b93051277c6e1c86dce4c713fb3b397d74cb06c2559ff8e7b98f344e` | its receipt, the zero-rate and erase oracles |
 | `base_receipt_sha256` | `3520231c8c54372e07443682847de9d01fbb0f132c89efef3fc7f0c16a22bcb1` | the relaxation receipt |
 | `split_receipt_sha256` | `559d19ae43011b0f7143a5c9cf8429a5c46b5a181849c7b4cabd2ea99c8872fc` | the split receipt |
@@ -504,6 +504,39 @@ the freeze: removing the per-point `clock_rate` key that gates 12 and 14 and the
 makes the static pass report `the gate, feature and receipt path fails on shaped inputs:
 KeyError: 'clock_rate'`, and renaming the pre-flight's `step_rule` key makes the static checker
 itself stop with `KeyError: 'step_rule'` rather than a tidy message.
+
+**Ruling (director).** An **instrument repair** is permitted once, and only against a contradiction
+*inside* the frozen text: here gate 8's pointwise-epsilon predicate could not be honored together
+with §1.2's declaration that the load seeds carry the transfer's epsilon and serve as the clock, so
+the executor contradicted the body it implements. Permitted only with all four conditions met — the
+failed receipt preserved byte-for-byte and bound as a §0 row, no statistic, threshold, tolerance,
+arm, schedule or decision rule moved, the repaired predicate proven to fire in both directions, and
+in-place amendment markers naming the pre-amendment text. A **measurement outcome is never
+repairable**: a reading that comes out against a declared branch, or a gate whose criterion is
+merely inconvenient once a number is visible, stands as the verdict, and the correction is a new
+protocol. The test that separates the two: does the amendment change *what counts as evidence*? If
+it does, it is a new body.
+
+This body stands against that ruling as an instrument repair and does not reach into it again: the
+four conditions are the archived and bound receipt above, the sentence in 8.1 that no statistic,
+threshold, tolerance, arm, schedule or decision rule moved, the firing table in 8.1 where gate 8
+fails with either ceiling zeroed, and the in-place markers section 0, section 4 and section 6 carry
+naming what they read before. The refusal of a third invocation is kept exactly as it is, the
+sweep's readings stand as its verdict, and any correction that changed what counts as evidence
+would be a new protocol rather than an amendment to this one.
+
+**The downstream re-anchoring, recorded because the standing section-0 rows moved after this body
+ran.** After invocation 2 the two-coordinate body's section 6 gained one sentence at the user's
+instruction — its cost bound is enforced by the `timeout` wrapper on its invocation line and its
+projection rows are estimates rather than bounds, and that body's own §8.1 carries the fourth state
+of its frozen pair. Its executor's body-digest constant was re-anchored to follow, so the standing
+row here for `two_coordinate_executor_sha256` now reads
+`7f78244067def849dd5d9f287f45a34937e57bd1912b7744b42cf0ed6812be00`, while this body's receipt and
+its archived first invocation both record `671e4a5e…` — the bytes both invocations actually ran
+against. This body's own executor was re-anchored the same way so that its row could follow, from
+`c1a8d490…` to `b4b6aea7…`. Nothing inside this body's frozen range moved, no declared value of this
+body moved, and neither of its readings is affected: the difference is two binding rows quoting
+another file's digest, and one sentence in the body that follows.
 
 ### 8.2 The invocation
 

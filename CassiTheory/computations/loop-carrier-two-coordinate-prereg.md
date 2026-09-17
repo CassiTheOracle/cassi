@@ -6,8 +6,8 @@
 
 | Row | Value | What it binds |
 |---|---|---|
-| `frozen_body_sha256` | `7fce9e0e3a252eef3e54be3cee016f2e1db453a7e9c25cdae98b873884678fbe` | this file, sections 1–7: everything from `## 1.` to just before `## 8.`, with the two in-place corrections §8.1 records; the digest of the text that ran is `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` |
-| `executor_sha256` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` | `computations/verify_loop_carrier_two_coordinates.py`, the complete executor frozen with this text; re-anchored once after the single invocation, when its body-digest constant was re-anchored with the amendment §8.1 records and nothing else in it moved |
+| `frozen_body_sha256` | `f04b6cef1af2ac9e2541e8a8baa41a7ce0ffd2c0bece4e08fe8f6e4c4ded0cd7` | this file, sections 1–7: everything from `## 1.` to just before `## 8.`, with the three in-place corrections §8.1 records (two bound-and-invocation slips, then one sentence saying what enforces the bound); the digest of the text that ran is `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` |
+| `executor_sha256` | `7f78244067def849dd5d9f287f45a34937e57bd1912b7744b42cf0ed6812be00` | `computations/verify_loop_carrier_two_coordinates.py`, the complete executor frozen with this text; re-anchored twice, each time only so its body-digest constant could follow an in-place correction inside section 6 that §8.1 records — the pair that ran the receipt was `a2c6abe2…` / `c13afe72…` |
 | `prior_body_sha256` | `09426b6829e93bc02e7e2d330f3158b6889eebddd620bee149d9b3267f147f25` | `computations/loop-carrier-composition-coexistence-prereg.md` §1–§7, the body whose retained writable coordinate §71 identified as a conservation law |
 | `prior_executor_sha256` | `3852eadbd434e021d1dc351820db06e6295c34c11270144b0826f6097b09f6b1` | `computations/verify_loop_carrier_composition_coexistence.py`, imported as a library: its direction-A modulation is the term-for-term reference this body's carrier channel must reduce to, and its `composition_profile` is the transposed reduction this body's domain gate refuses to reproduce |
 | `audit_executor_sha256` | `0503f109c8b431768fbe16d37dfe8a82dec18cce2f97dc417d2fb08d1474f07a` | `computations/verify_loop_carrier_kernel_dimension.py`, the §71 audit: the closed form's entries, the spectrum, the kernel and the two declared-shaped reading-domain probes are read from here |
@@ -280,6 +280,10 @@ The stored-mode generator is built from the frozen `mode_generator` at each arm'
 | projected seconds, measured | `650.0` |
 | projected seconds, assumed | `508.0` |
 
+The bound is enforced by the `timeout` wrapper on the invocation line; the projection rows are estimates and not bounds. The first invocation's ≈656 s sat inside the pre-amendment bound of 900 s — the correction to 1800 s is a cost-only re-declaration taken from the observed 726.1 s, not a response to a bound that failed.
+
+*(Added in place on September 16, 2026, after the sweep that follows this amendment, at the user's instruction: this sentence states what enforces the bound and what the projection rows are, and it moves no declared value — neither the table above nor any other declaration in this body changes with it. §8.1 gains the fourth state of the frozen pair that carries it; ledger section 73's binding row is the reading in force.)*
+
 *(Amended in place on September 16, 2026, after the single invocation and at the user's instruction: the pre-amendment table read `bound` `900` seconds, `measured seconds per step` `6.665e-4` and `projected seconds, measured` `405.0`, and the paragraph below read `timeout 900 …`. §8.1 records the amendment, the frozen body's digest before and after it, and what did not move; ledger section 72 carries the repair accounting. Only the cost bound moved.)*
 
 The bound is `1800` seconds because the first invocation's own timing was observed: the nine arms consumed about $650$ seconds of wall clock on this machine under load, against the $405$ seconds a lone design probe extrapolated. The first invocation integrated every arm and then failed in the gate path, writing no receipt; the repair is the one this protocol's stopping rule permits, and the bound is re-declared from the measurement rather than kept at the optimistic extrapolation.
@@ -308,12 +312,12 @@ Executed **once**, `timeout 1800 python computations/verify_loop_carrier_two_coo
 
 **One repair, disclosed.** The first invocation integrated all nine arms and then failed in the gate path on a latent `KeyError`, writing no receipt; §6's stopping rule permits one repair after such an invocation, and the repaired pair is committed separately. The static pass now drives the gate, feature and receipt path on shaped inputs and immediately found a second latent key (the clock fit's degenerate branch); the declared bound was re-derived from the observed runtime.
 
-### 8.1 The amendment, the cost bound, and the three states of the frozen pair
+### 8.1 The amendments, the cost bound, and the four states of the frozen pair
 
-Two passages *inside* the body range were corrected in place on September 16, 2026, after the single
-invocation and at the user's instruction — §6's bound row set and §6's invocation sentence — and this
-subsection is the accounting, because a bound inside the digested body must be readable without
-reconstruction. The oracle for the first invocation is the commit that froze the text it ran under;
+Three passages *inside* the body range have been corrected in place on September 16, 2026 at the
+user's instruction — §6's bound row set, §6's invocation sentence, and then the one sentence §6 now
+carries saying what enforces the bound and what the projection rows are — and this subsection is the
+accounting, because a bound inside the digested body must be readable without reconstruction. The oracle for the first invocation is the commit that froze the text it ran under;
 the oracle for the invocation that produced the receipt is the commit that carried the repaired pair;
 and the standing text is this one.
 
@@ -322,6 +326,16 @@ and the standing text is this one.
 | the first freeze, under which the first invocation ran and wrote no receipt | `c6694976` | `900` | `6.665e-4` | `405.0` | `d16060dd28f5b8d34dbbb542e7a16d4dbccd3d23dabd4f5a0232d8bcc51758a0` | `114fd1876c0a4845060a8fb01e21464b39eec909b707c90dec278e3c6c49fc8c` |
 | the re-frozen pair, under which the invocation that produced the receipt ran | `c88872f2` | `1800` | `1.07e-3` | `650.0` | `a2c6abe2f85b2c9c12e25fd7062ba4d12b8c640ef192c81bb8fc5e5c03c22f33` | `c13afe722904e91528956cd967705238041e963b0d46280b58fff0a54fd2d518` |
 | this amendment, before the sweep that follows | this commit | `1800` | `1.07e-3` | `650.0` | `7fce9e0e3a252eef3e54be3cee016f2e1db453a7e9c25cdae98b873884678fbe` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` |
+| after the sweep that follows, when section 6 gained one sentence saying what enforces the bound and what the projection rows are | this commit | `1800` | `1.07e-3` | `650.0` | `f04b6cef1af2ac9e2541e8a8baa41a7ce0ffd2c0bece4e08fe8f6e4c4ded0cd7` | `7f78244067def849dd5d9f287f45a34937e57bd1912b7744b42cf0ed6812be00` |
+
+**The third correction states what enforces the bound, and it moves no value at all.** §6 now says
+that the bound is enforced by the `timeout` wrapper on the invocation line and that the projection
+rows are estimates rather than bounds, and it records that the first invocation's ≈656 s sat inside
+the pre-amendment bound of 900 s: the correction to 1800 s answered a projection that had been read
+as a bound, not a bound that failed. This correction changes no declared value — the table's rows,
+the arms, the gates, the features, the branches and the decision rules are what they were — and it is
+recorded here rather than folded into the cost accounting above because it is a statement about the
+instrument, not a re-declaration.
 
 **The change is a cost bound and nothing else moved.** The first invocation's own timing is what
 re-declared the ceiling: nine arms of $67500$ steps cost about $650$ seconds of wall clock on this
