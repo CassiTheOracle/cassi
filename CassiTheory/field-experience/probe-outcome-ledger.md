@@ -3267,6 +3267,137 @@ magnitude, so the channel can write and cannot un-write. Nothing here measures t
 the conversion ratio, the carrier identity, the QF1-to-carrier map, the phase law, the scale ratio, the
 quantum statistics, or whether any of these is a physical density or current.
 
+## 73. The decay rate *is* the gap entry: a sweep through the crossing, and the injector's own sign
+
+**§72's retention reading was a verdict taken where the entry vanishes, so §73 measures the rate
+instead.** A vanished gap entry *is* a zero decay rate: a coordinate that stands still for 450 units
+is not distinguishable, by that reading alone, from a coordinate whose window happened to be short.
+§72 declared $\dim\ker$ at one point and measured two retained coordinates there; §71 identified the
+decay rate with the entry at that same point. What neither could show is that the rate *tracks* the
+entry away from it. This body dials the same coefficient—the `exchange` $r$ of (LB42), whose entry in
+LB39 is $2r$—to seven declared values through the crossing, $r\in\{-0.01,-0.005,-0.0025,0,0.0025,
+0.005,0.01\}$ with entries $2r\in\{\pm0.02,\pm0.01,\pm0.005,0\}$, keeps the state off equilibrium at
+every point, and reads one estimator, one stride and one window (150 units, 7500 steps, samples every
+250) on the same declared coordinate at all seven, with the **window's own clock** beside it: the load
+arm's conversion mode, whose rate is the frozen $\kappa(1+\varphi)=1.1268281293796237\times10^{-2}$
+and does not move with $r$.
+
+**The seed is why the sweep can be exact, and the exactness is declared rather than discovered.** The
+declared family is $\chi$-uniform and exterior-flat with the *same* imbalance on both carriers,
+$f_{a,s}=(E_a/2)(1+s\beta)$ with $\beta=0.01$ and $E_Y:E_I=\varphi:1$, so $\epsilon=e_Y-\varphi e_I$
+vanishes to round-off pointwise (largest $1.11\times10^{-16}$), the conversion term of the frozen
+right-hand side is correspondingly absent, and the state's swing lies on the equilibrium-ratio
+direction $w_0=(\varphi,1)$—the carrier axis's kernel direction—whose eigenvalue in the frozen
+generator is the entry and nothing else. On the *complementary* direction the eigenvalue is
+$\kappa(1+\varphi)$ alone; the seed's content there is $6.43\times10^{-15}$ over the whole family. So
+the entry coordinate's antisymmetric amplitude decays **exactly at the entry** at every declared
+point, on both sides of the crossing, and the load arm's drive—the chain's own transfer, which puts
+its whole content on the complementary direction—decays exactly at the conversion entry and is
+annihilated by the exchange: that is what lets a rate measured at one $r$ serve as the clock for all
+seven.
+
+| point | exchange | entry | fitted rate | rate / entry | fit residual | clock rate / its reference |
+|---|---|---|---|---|---|---|
+| $-0.0100$ | $-0.0100$ | $-0.02$ | $-2.0087210596378125\times10^{-2}$ | $1.004361$ | $8.541\times10^{-3}$ | $0.996199$ |
+| $-0.0050$ | $-0.0050$ | $-0.01$ | $-1.0005319983069205\times10^{-2}$ | $1.000532$ | $2.399\times10^{-4}$ | $0.996199$ |
+| $-0.0025$ | $-0.0025$ | $-0.005$ | $-5.001058250020064\times10^{-3}$ | $1.000212$ | $2.173\times10^{-5}$ | $0.996199$ |
+| $+0.0000$ | $0.0$ | $0$ | $2.4880630605367724\times10^{-17}$ | — | $4.149\times10^{-15}$ | $0.996199$ |
+| $+0.0025$ | $+0.0025$ | $+0.005$ | $5.000236194936966\times10^{-3}$ | $1.000047$ | $4.853\times10^{-6}$ | $0.996199$ |
+| $+0.0050$ | $+0.0050$ | $+0.01$ | $1.0000265174148837\times10^{-2}$ | $1.000027$ | $1.198\times10^{-5}$ | $0.996199$ |
+| $+0.0100$ | $+0.0100$ | $+0.02$ | $2.000022063745508\times10^{-2}$ | $1.000011$ | $2.220\times10^{-5}$ | $0.996199$ |
+
+**Classification, against the branches fixed before the run: `LINEAR_BOTH_SIDES`.** Both signs pass
+their bands together with the crossing point; every fit is readable with 31 samples above the $10^{-12}$
+floor, one sign throughout, and a residual inside its ceiling; and the rate-to-entry slope of the seven
+readings is $1.001724712832028$ with intercept $-1.3266688989497523\times10^{-5}$. The identification
+therefore holds not only where the entry vanishes by construction but across a factor of four in the
+entry, at both signs, to $1.7\times10^{-3}$ relative: the rate *is* the entry. The crossing's own rate
+is $2.49\times10^{-17}$, which is $1.6\times10^{10}$ below the smallest swept entry and $1.6\times10^{7}$
+below the two-coordinate receipt's own rate bound on its window (the standing share
+$0.9999998175949137$ over 450 units reads $-\ln(\text{share})/450=4.053\times10^{-10}$); the
+counterfactual factor the same entry predicts over this window is $e^{-2r\cdot150}=4.98\times10^{-2}$ at
+the smallest swept entry and $e^{-6}=2.48\times10^{-3}$ at the largest, so every non-zero point is
+decayed by orders of magnitude rather than by a factor of order one.
+
+**The law does not rest on a single estimator or a friendly window.** The can-fail arm runs the same
+estimator on a 5-unit window at $r=+0.5$, five times past the swept band and an entry twenty-five times
+the largest swept one: it reads $1.0000059865642859$ against its declared $1.0$. The extrapolation
+witness at $r=+0.25$ reads $0.5000075974138588$ against $0.5$. At the other extreme the clock is
+identical to the last bit at every point—$1.1282357172592223\times10^{-2}$ seven times—and sits within
+$1.0\times10^{-2}$ relative of the conversion entry measured at its own seed, ratio $0.996199$; against
+the chain's recorded $1.119569724312185\times10^{-2}$ it stands at $1.0115857423209142$, inside the
+carried factor-band $2.0$. Every ray arm is fixed point for fixed point and the same fixed point at
+every parameter value; the reader reproduces the two-coordinate body's own domain probes bit for bit
+(loop-only spread $7.376815905011214\times10^{-2}$ against the transposed reader's exactly $0.0$;
+exterior-only exactly $0.0$ against $6.938268539288772\times10^{-2}$), and the kernel prediction
+declared before the run is confirmed at every declared point: $\dim\ker(\text{mode }0)=2$ with one
+direction-symmetric and one direction-antisymmetric direction at $r=0$, and $1$ with the antisymmetric
+direction absent at $r=\pm0.0025,\pm0.005,\pm0.01$, at $0.6$, at $0.5$ and at $0.25$, every closed-form
+multiset residual at or below $2.3\times10^{-16}$.
+
+**The injector's law, stated as one sentence: the orientation drive writes a signed charge, not a
+magnitude.** At both declared points the response's even part is exactly $0.0$ to the last bit and its
+odd part is the whole response—$-1.4358387617779411\times10^{-3}$ at $r=0$ and
+$-1.2646830210309101\times10^{-2}$ at $r=-0.01$—so reversing the drive reverses what the coordinate
+stores, and the coordinate is not a monotone store. This does not contradict §72's even-magnitude
+finding, and the two readings are about different objects: §72 measured the *level* a counter-write
+leaves behind, which is even in the drive's magnitude, whereas this body's differential reading takes
+the difference of two arms whose drives have opposite signs against one common baseline, so any level
+common to both cancels and only the sign-odd part survives. On this body's own schedule the reversed
+channel removes $0.7715799746327933$ of what it wrote at $r=0$ and $0.3690299651437342$ at $r=-0.01$:
+a large residue, of the same qualitative kind as §72's $6.60\times10^{-3}$, so *the channel can write
+and cannot un-write* stands, and it now stands beside the statement that the net charge is odd in the
+sign.
+
+**One repair, disclosed, with the pair's states readable without reconstruction.** The first invocation
+integrated all twenty-nine arms in 71.0 s and wrote a receipt with `status=FAIL`, gate 8 its only
+failing gate—on readings that satisfy that gate's bound as it now stands (complementary-direction content
+$6.43\times10^{-15}$ against $10^{-12}$; pointwise epsilon $1.11\times10^{-16}$ against $10^{-14}$;
+load epsilon against the transfer's own value $1.94\times10^{-15}$ against $10^{-13}$). The predicate,
+not the sweep, was wrong: it applied the pointwise-epsilon condition to every recorded seed, including
+the load arms whose declared purpose is to carry the transfer's $\epsilon$ and to be the clock. The
+gate's sentence said "on every sweep seed"; the code read every seed. The first receipt stands byte for
+byte at `runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json`,
+`cdfb45468af1ebdcf1bfc21828f78a502d396c9dd484251114814db340dcd6ec`, bound as a section-0 row; the
+amendment of §4 and §6 moves **no statistic, threshold, tolerance, arm, schedule, gate or decision
+rule**—the two thresholds set from the design probe were fixed *before* the first freeze—and permits
+exactly one further invocation against the amended pair. The states:
+
+| State of the frozen pair | Invocation against it | `frozen_body_sha256` | `executor_sha256` |
+|---|---|---|---|
+| the first freeze | invocation 1: `FAIL`, receipt `cdfb4546…`, preserved | `f81a4776f736d91d6724d08c10fbdb14ca81f775934dc38ab03c0f76775224d5` | `e70007614ab45d83b9eb835297354bd8465b6a9abc89986dc19b4b329fd22b7d` |
+| the amended pair, as invoked | invocation 2: `PASS`, receipt `318a2ac6…` | `97f8bf764dbfb7f2da845a465c1102c0b84143f7e353354aa97c1d30dfc92f2e` | `c1a8d490bc85792507a2fef654a70a9efd4fe2545c0a8b53ca4861513aa03777` |
+
+A third invocation is refused in code—invoked after the second, the executor prints `REFUSING TO RUN:
+… already exists; this body is invoked once per freeze and a further invocation is refused outright.`
+—and the amended guard additionally refuses to run at all when the archived first invocation is absent
+or does not match its bound row, so neither receipt can be quietly replaced. The checks that make the
+body's readings load-bearing were shown to fire rather than assumed to: gate 8 fails with either of its
+two ceilings set to zero, gate 7 fails with one declared probe reading moved by $10^{-6}$ (naming the
+position), the binding refuses on a single flipped byte in the bound archive, and gate 9 carries the
+control that shows the state digest separates a fixed point from a moving arm (the first entry arm's own
+first and last digests differ). The static pass also catches, in seconds, the class of defect that cost
+this body its first invocation: removing the per-point `clock_rate` key makes it report
+`KeyError: 'clock_rate'` from the gate, feature and receipt path.
+
+|| Binding and status | Value |
+|---|---|
+|| Protocol body / executor | `97f8bf76…` / `c1a8d490…`; operator module `d687597f…`, base probe `28d2fd54…`, split `246463f7…`, gate-load `be9f651d…`, audit `0503f109…`, write body `740d0fc0…`, two-coordinate executor `671e4a5e…` |
+|| Receipt | `runs/loop_carrier_rate_entry_sweep/verification.json`, `318a2ac6…`, fourteen of fourteen gates, $69.8$ s of a $600$ s cost bound, `status=PASS`, branch `LINEAR_BOTH_SIDES`, injector `SIGN_DEPENDENT` |
+|| Budget | $29$ executions, $7500$ steps each, $203000$ steps against caps $10000$/$250000$; step rule satisfied on every arm at $\Delta t=0.02$ |
+|| First invocation | `first-invocation-verification.json`, `cdfb4546…`, one failing gate, kept as the record of the amendment |
+
+**§71's identification is now a measurement, not a reading at the one point where it is free.** What
+this body identifies is that on the frozen (LB6) line, restricted to the declared seed family, the
+declared coordinate's decay rate equals the gap entry linearly, at both signs through the crossing,
+against a clock that does not move with the entry. What it does **not** identify: that any physically
+realized memory exists; that the erased fraction is a storage efficiency; or that the linearity extends
+outside this family—a seed with content on the complementary direction mixes the two eigenvalues and
+reads a rate between them. The rule it writes forward: **a retention reading is published as a rate
+against the dialled entry, with the window's own clock beside it** — a standing charge at a point where
+the entry vanishes by construction is not a measurement of storage, and neither is a rate quoted without
+the clock that says what the window was.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -3502,3 +3633,7 @@ quantum statistics, or whether any of these is a physical density or current.
 - `computations/loop-carrier-two-coordinate-prereg.md`—the frozen two-coordinate protocol: the declared $r=0$ point, the predicted $\dim\ker=2$, the declared reading domain and the two channel magnitudes.
 - `computations/verify_loop_carrier_two_coordinates.py`—its executor: the two channels, the nine arms, the domain probes, the shaped-input dry run and the gate table.
 - `runs/loop_carrier_two_coordinates/verification.json`—the receipt: fourteen of fourteen gates, `CONFIRMED_TWO`, `WRITABLE_BOTH`, `RETAINED_BOTH` and the reserved `RESIDUAL`.
+- `computations/loop-carrier-rate-entry-sweep-prereg.md`—frozen rate-entry sweep protocol: seven declared points through the crossing, one estimator, the window's own clock, declared `dim ker` per point, and the section-8 record of both invocations and the one amendment.
+- `computations/verify_loop_carrier_rate_entry_sweep.py`—the executor: 29 declared arms in one process, fourteen gates, the four branch labels.
+- `runs/loop_carrier_rate_entry_sweep/verification.json`—the receipt: fourteen of fourteen gates, `LINEAR_BOTH_SIDES`, `SIGN_DEPENDENT`.
+- `runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json`—the archived first invocation of the same body, bound as a section-0 row: `FAIL`, gate 8, on readings that satisfy the amended bound; preserved as the record of the amendment.

@@ -31,8 +31,8 @@ process, a clock or a machine threshold. The two rows marked *at freeze* are pri
 
 | row | value | what it binds |
 | --- | --- | --- |
-| `frozen_body_sha256` | `f81a4776f736d91d6724d08c10fbdb14ca81f775934dc38ab03c0f76775224d5` | sections 1-7 of this file, at freeze |
-| `executor_sha256` | `e70007614ab45d83b9eb835297354bd8465b6a9abc89986dc19b4b329fd22b7d` | this body's own executor, at freeze |
+| `frozen_body_sha256` | `97f8bf764dbfb7f2da845a465c1102c0b84143f7e353354aa97c1d30dfc92f2e` | sections 1-7 of this file, at freeze |
+| `executor_sha256` | `c1a8d490bc85792507a2fef654a70a9efd4fe2545c0a8b53ca4861513aa03777` | this body's own executor, at freeze |
 | `bound_module_sha256` | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` | the frozen operator module (LB1)-(LB7) |
 | `base_probe_sha256` | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` | the successor probe that executes them |
 | `split_executor_sha256` | `246463f7fd1ba4a7fef282079e312d6e1382a15319b97d20b2ba49be46adcb5a` | the projection split |
@@ -40,6 +40,7 @@ process, a clock or a machine threshold. The two rows marked *at freeze* are pri
 | `prior_executor_sha256` | `3852eadbd434e021d1dc351820db06e6295c34c11270144b0826f6097b09f6b1` | the composition coexistence body |
 | `audit_executor_sha256` | `0503f109c8b431768fbe16d37dfe8a82dec18cce2f97dc417d2fb08d1474f07a` | the kernel-dimension audit (§71) |
 | `write_executor_sha256` | `740d0fc036721be5f1ee0fd5527fe54e771243113e13b7133be053f6439cf6c6` | the attractor-write body (the clock oracle) |
+| `first_invocation_receipt_sha256` | `cdfb45468af1ebdcf1bfc21828f78a502d396c9dd484251114814db340dcd6ec` | the archived first invocation of this body (`runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json`) |
 | `two_coordinate_executor_sha256` | `671e4a5edbe406f6c1f932d855987d5cc746315b10c13f387291bf15cbf778f0` | the two-coordinate body's own reader, kernel check and domain probes |
 | `two_coordinate_receipt_sha256` | `46ae3ee2b93051277c6e1c86dce4c713fb3b397d74cb06c2559ff8e7b98f344e` | its receipt, the zero-rate and erase oracles |
 | `base_receipt_sha256` | `3520231c8c54372e07443682847de9d01fbb0f132c89efef3fc7f0c16a22bcb1` | the relaxation receipt |
@@ -47,6 +48,16 @@ process, a clock or a machine threshold. The two rows marked *at freeze* are pri
 | `gate_load_receipt_sha256` | `471f1f8074ff7cc85187690747b7ba9235e6d8627a7e9a7cc1db2a0a81710cc1` | the gate-load receipt |
 | `prior_receipt_sha256` | `5ba4afcd2b17d00be8c4fd315ee4f3133422aaae7bdb83e1f0e51ad9935be200` | the coexistence receipt |
 | `coexistence_receipt_sha256` | `9724143b98cf394eb9948741d3a117c4cc1e4b14fe54ff2ad9e81dfddb8bf60f` | the coexistence body's receipt |
+
+The two rows at the top were re-anchored at the second freeze. *Amended in place:* at the first
+freeze this table read `frozen_body_sha256 = f81a4776f736d91d6724d08c10fbdb14ca81f775934dc38ab03c0f76775224d5`
+and `executor_sha256 = e70007614ab45d83b9eb835297354bd8465b6a9abc89986dc19b4b329fd22b7d`, and the
+single invocation of that pair integrated all twenty-nine arms and wrote
+`runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json` -- the receipt preserved
+byte for byte under the row above -- with status `FAIL` and gate 8 as its only failure, on readings
+that satisfy that gate's bound as this text now states it. Section 8 records what the failure was,
+why it is a defect in this section's own gate sentence rather than a finding about the sweep, the
+amendment that follows from it, and both invocations with their digests.
 
 ## 1. Definitions
 
@@ -312,13 +323,22 @@ selects a branch; every declared branch is a recorded finding.
    §71-style prediction, declared here **before** the run.
 7. **design probe reproduction** -- every reading declared in section 1.5, within `PROBE_TOL`.
 8. **the seed's declaration** -- the content on the complementary direction is `<=
-   SEED_CONTENT_CEILING` and the pointwise epsilon is within `SEED_EPSILON_CEILING` of zero on
-   every sweep seed. That ceiling is round-off and not a modelling residual: the frozen `on_ray`
-   profile is exact in real arithmetic, while its two densities are floats, so `phi E_I` differs
-   from `E_Y` by one unit in the last place and the conversion term is correspondingly small
-   rather than zero.
+   SEED_CONTENT_CEILING` on every recorded seed; the pointwise epsilon is within
+   `SEED_EPSILON_CEILING` of zero on every **entry and ray** seed; and a seed that carries the load
+   transfer is held instead to the transfer's own declared value within `LOAD_TRANSFER_TOL`. The
+   epsilon ceiling is round-off and not a modelling residual: the frozen `on_ray` profile is exact
+   in real arithmetic, while its two densities are floats, so `phi E_I` differs from `E_Y` by one
+   unit in the last place and the conversion term is correspondingly small rather than zero. *Amended
+   in place at the second freeze:* this gate as first frozen applied the epsilon condition to every
+   recorded seed without excluding the load arms, whose whole declared purpose in section 1.2 is to
+   carry the transfer's `epsilon` and to serve as the window's own clock; the first invocation read
+   that sentence literally and failed on readings that satisfy the bound stated here. Section 8.1
+   carries the pre-amendment wording, both states of the frozen pair and the repair.
 9. **silence on every ray arm** -- the state's digest before and after the window is the same on
-   every ray arm, and the same at every point.
+   every ray arm, and the same at every point; and, as the control that shows the digest can tell a
+   fixed point from a moving state rather than being equal by construction, the first two entry
+   arms' own first and last digests must differ. *Amended in place at the second freeze:* the gate
+   as first frozen carried no such control.
 10. **readable on every declared arm** -- the entry coordinate's first sample `>= READABLE_FLOOR_Q`
     and the clock's ray distance's first sample `>= RAY_READABLE_FLOOR`.
 11. **can-fail at fifty times the largest swept entry** -- the short-window arm at `r = 0.5` reads
@@ -328,7 +348,10 @@ selects a branch; every declared branch is a recorded finding.
     across the whole sweep.
 13. **the fit's own quality** -- on every entry arm, at least `FIT_MIN_SAMPLES` samples above the
     floor, one sign throughout, and a residual within `FIT_RESIDUAL_CEILING`.
-14. **single invocation** -- the receipt was absent at the start and one process wrote it.
+14. **single invocation** -- the receipt was absent at the start and one process wrote it, and the
+   invocation that preceded this one is archived at the path section 0 binds and matches that row.
+   *Amended in place at the second freeze:* the gate as first frozen read "the receipt was absent at
+   the start and one process wrote it", with no reading that says which invocation it was.
 
 Reported features, deliberately not gated: `F1_can_fail_fired`, `F2_ray_silent`, `F3_readable`,
 `F4_clock_uniform`, `F5_seed_pure`, `F6_fit_quality`, `F7_rate_linear_in_entry` (the slope),
@@ -369,10 +392,24 @@ cost is `1.195e-3` seconds per step, on this machine and library, which puts the
 `8.36e-4` seconds per step, which puts them at about `170` seconds. The budget fields are recorded
 in the receipt.
 
-If the invocation is interrupted before it writes a receipt, the honest procedure is: leave the
-record as it stands, state in section 8 that the invocation wrote nothing, and re-run once. A
-second invocation is permitted only that way; the executor refuses a third, and refuses outright if
-the receipt already exists.
+*Amended in place at the second freeze.* As first frozen this section read: "If the invocation is
+interrupted before it writes a receipt, the honest procedure is: leave the record as it stands,
+state in section 8 that the invocation wrote nothing, and re-run once. A second invocation is
+permitted only that way; the executor refuses a third, and refuses outright if the receipt already
+exists."
+
+That rule was written for an invocation that dies before writing anything, and the invocation of
+the first freeze did not: it integrated every arm and wrote a receipt, with status `FAIL` and a
+single failing gate whose sentence was defective (section 8.1). The amended rule, and the one this
+body is now run under, is: the first invocation's receipt stands in the record byte for byte at
+`runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json`, bound as a section-0 row;
+the amendment of section 4 raises the frozen pair to its second state; exactly one further
+invocation is permitted, against **that** state and no other; the executor refuses to run while the
+declared receipt path is occupied, refuses to run without the archived first invocation in place
+and matching its bound row, and so refuses a third by construction. Nothing here moves a statistic,
+a threshold, a tolerance, an arm or a decision rule: what changed is one gate's sentence, which had
+been written so that it contradicted section 1.2, plus the two readings that make the record
+self-describing.
 
 ## 7. What would falsify this
 
@@ -390,5 +427,169 @@ the receipt already exists.
 - A ray arm that moves at all falsifies the exactness argument of section 1.2: the run `FAIL`s.
 ## 8. Post-execution record
 
-Not yet executed. This section is written after the single invocation, and the frozen body above is
-not edited to receive it.
+### 8.1 The frozen pair, the amendment, and the checks that can fire
+
+The body was frozen once, invoked once, amended once and invoked once more. The pairs, with their
+digests, so the record can be read without reconstruction:
+
+| state | protocol body | executor | invocation against it |
+| --- | --- | --- | --- |
+| first freeze | `f81a4776f736d91d6724d08c10fbdb14ca81f775934dc38ab03c0f76775224d5` | `e70007614ab45d83b9eb835297354bd8465b6a9abc89986dc19b4b329fd22b7d` | invocation 1: `FAIL`, receipt `cdfb4546...`, archived |
+| amendment, first print | `97f8bf764dbfb7f2da845a465c1102c0b84143f7e353354aa97c1d30dfc92f2e` | `9272d7f2c2de167ddd378e678a8b98f297007a9fd8a39196fe879b04fc59a2ac` | none: the static pass refused it on its own `executor_sha256` row |
+| second freeze (as invoked) | `97f8bf764dbfb7f2da845a465c1102c0b84143f7e353354aa97c1d30dfc92f2e` | `c1a8d490bc85792507a2fef654a70a9efd4fe2545c0a8b53ca4861513aa03777` | invocation 2: `PASS`, receipt `318a2ac64f60b5c52cafd21014d008c40483ed7abc9287df4d4f0d9f19d2cd18` |
+
+The whole-file digest of this protocol as it stood at invocation 1, recomputed from the committed
+blob rather than quoted, is `e297111884198ebe83705cb054081949c5e10ca6e4fab775b4a320aca3c0f700`, and
+its frozen-body read is the first-freeze state in the table above. The file's digest *after* this
+section is written is not quoted here, because a file cannot carry a stable digest of itself: what
+this section can carry, and does, is the frozen body's, which is read from `## 1.` up to `## 8.` and
+is therefore independent of section 0 and this section. The final whole-file bytes are the commit's
+blob and the two receipts' `protocol_body_sha256` rows.
+
+**The failure.** Invocation 1 integrated all twenty-nine arms in 71.0 s and wrote a receipt with
+status `FAIL`, gate 8 its only failing gate. Its payload satisfies the gate's bound as this text
+now states it: the largest complementary-direction content over every recorded seed is
+`6.43409935811099e-15` against a ceiling of `1.0e-12`; the largest pointwise epsilon over the entry
+and ray seeds is `1.1102230246251565e-16` against `1.0e-14`; and the largest load-carrying seed's
+epsilon gap against the transfer's own declared value is `1.9358780408866356e-15` against
+`1.0e-13`. What failed was the *predicate*: as first frozen it applied the pointwise-epsilon
+condition to **every recorded seed**, including the load arms whose whole declared purpose in
+section 1.2 is to carry the transfer's `epsilon` and to serve as the window's own clock. The
+gate's own sentence said "on every sweep seed"; the code read every seed. The code was therefore
+stricter than the declaration, and it fired on the body's own clock.
+
+**What the amendment moved, and what it did not.** One gate's sentence and predicate (gate 8), one
+added control in gate 9's reading, one added reading in gate 14, the rule in section 6 that governs
+a second invocation, the section-0 re-anchoring, and the binding of the archived first receipt.
+**No statistic, threshold, tolerance, arm, schedule or decision rule moved**: `ENTRY_TOL_RELATIVE`
+and `FIT_RESIDUAL_CEILING` were set from the design probe *before* the first freeze, every other
+threshold in section 2.3 is unchanged, and the twenty-nine arms, their seeds, their windows, their
+stride, the estimator, the four branch labels and their rules are identical in both states. The
+two budgets are the two states' own: `bound_seconds = 600.0` in both, and the first state's
+receipt records the same 203000 steps and the same 29 executions.
+
+**No partial artifact.** The first invocation left the declared receipt path holding one complete
+receipt and nothing else: the run's `runs/loop_carrier_rate_entry_sweep/` directory held exactly
+that file, of 451426 bytes, and the second invocation began with that path *free* -- the first
+receipt standing byte for byte at the archived path section 0 binds, its digest unchanged
+(`cdfb45468af1ebdcf1bfc21828f78a502d396c9dd484251114814db340dcd6ec`) across the move.
+
+**The refusals, as observed.** With the first receipt in place, a further invocation was attempted
+and refused before any arm was constructed:
+
+    REFUSING TO RUN: runs/loop_carrier_rate_entry_sweep/verification.json already exists; this
+    body is invoked once and a second invocation is permitted only after an invocation that wrote
+    no receipt.
+
+That message is the *pre-amendment* guard's own text, quoted from the pre-amendment executor; the
+amended guard says "invoked once per freeze and a further invocation is refused outright" and, in
+addition, refuses to run at all when the archived first invocation is absent or does not match its
+section-0 row. After invocation 2 the declared path is occupied again, so a third is refused by the
+same mechanism, and gate 14's reading records which invocation it is.
+
+**The checks can fire, and were made to.** Every reading below is a deliberate perturbation with
+the bytes restored afterwards, digests verified:
+
+| check | perturbation | observed |
+| --- | --- | --- |
+| gate 8, epsilon half | `SEED_EPSILON_CEILING = 0.0` | `passed: false` |
+| gate 8, load half | `LOAD_TRANSFER_TOL = 0.0` | `passed: false` |
+| gate 7 | one declared probe reading moved by `1e-6` | `passed: false`, mismatch at position 14: declared `1.0000069865642858` against observed `1.0000059865642859` |
+| gate 1's binding | one byte flipped in the bound archive | `REFUSING TO RUN: source binding failed`, `first_invocation_receipt_sha256: 240bf498... != cdfb4546...` |
+| gate 9 | none needed | the control is in the receipt: `entry@-0.0100` first digest `9155605c8a7a` against its last `d3ea331969df`, so the digest separates a fixed point from a moving state rather than being equal by construction |
+| the whole gate path | none needed | invocation 1 *is* the firing witness: the path produced a `FAIL` with a named gate on a real run |
+
+A planted defect of the class that cost this body its first invocation was also proved caught before
+the freeze: removing the per-point `clock_rate` key that gates 12 and 14 and the probe path read
+makes the static pass report `the gate, feature and receipt path fails on shaped inputs:
+KeyError: 'clock_rate'`, and renaming the pre-flight's `step_rule` key makes the static checker
+itself stop with `KeyError: 'step_rule'` rather than a tidy message.
+
+### 8.2 The invocation
+
+Invoked once against the second freeze, as declared:
+
+    timeout 600 python computations/verify_loop_carrier_rate_entry_sweep.py
+
+exit `0`; `69.8` s of the executor's own runtime, `70.0` s wall, against `bound_seconds = 600.0`.
+29 executions, 7500 steps each, 203000 steps in total, against caps of 10000 per execution and
+250000 in total; `seconds_per_step_measured = 0.001195`, projection `245.0` s measured and `170.0` s
+on the chain's recorded assumption. Receipt
+`runs/loop_carrier_rate_entry_sweep/verification.json`, digest
+`318a2ac64f60b5c52cafd21014d008c40483ed7abc9287df4d4f0d9f19d2cd18`, schema
+`cassi.loop-carrier-rate-entry-sweep.v1`, status `PASS`, every one of the fourteen gates `PASS`.
+
+### 8.3 The design probe, run before the first freeze
+
+`--design-probe` integrated every arm once, wrote nothing, and its readings are section 1.5. Two
+thresholds were set from it with headroom, and both moves are visible in the readings: the fitted
+rate departs from its entry by at most `4.36e-3` relative, at the widest point, which is the
+reader's declared `O(beta^2)` nonlinearity and not noise -- hence `entry_tol_relative = 1.0e-2` --
+and the same point's fit residual is `8.541e-3`, so `fit_residual_ceiling = 2.0e-2`. The crossing's
+own fitted rate was `2.488e-17` and its residual `4.1e-15`, the can-fail arm read `1.0000059866`
+against its entry of `1.0`, the witness read `0.5000075974` against `0.5`, and the clock read
+`0.011282357172592223` at every point tested.
+
+### 8.4 The result
+
+One estimator, one stride, one window, applied to the entry coordinate at seven declared points and
+to the window's own clock at every one of them:
+
+| point | exchange | entry | fitted rate | rate / entry | fit residual | clock rate / its reference |
+| --- | --- | --- | --- | --- | --- | --- |
+| `-0.0100` | `-0.0100` | `-0.02` | `-0.020087210596378125` | `1.004361` | `8.541e-03` | `0.996199` |
+| `-0.0050` | `-0.0050` | `-0.01` | `-0.010005319983069205` | `1.000532` | `2.399e-04` | `0.996199` |
+| `-0.0025` | `-0.0025` | `-0.005` | `-0.005001058250020064` | `1.000212` | `2.173e-05` | `0.996199` |
+| `+0.0000` | `0.0` | `0` | `2.4880630605367724e-17` | -- | `4.149e-15` | `0.996199` |
+| `+0.0025` | `+0.0025` | `+0.005` | `0.005000236194936966` | `1.000047` | `4.853e-06` | `0.996199` |
+| `+0.0050` | `+0.0050` | `+0.01` | `0.010000265174148837` | `1.000027` | `1.198e-05` | `0.996199` |
+| `+0.0100` | `+0.0100` | `+0.02` | `0.02000022063745508` | `1.000011` | `2.220e-05` | `0.996199` |
+
+**Branch `LINEAR_BOTH_SIDES`.** Both signs pass their bands together with the crossing, every fit is
+readable with 31 samples above the floor, one sign throughout, and a residual inside the ceiling.
+The rate-to-entry slope of the seven readings is `1.001724712832028` with intercept
+`-1.3266688989497523e-05`, so the rate is not merely close to its entry at each point: it is the
+entry to `1.7e-3` relative across a range of a factor of four in the entry, and the crossing's own
+rate is `2.488e-17` -- a factor `1.6e10` below the smallest swept entry, and `1.6e7` below the
+two-coordinate receipt's own bound `-ln(share)/450 = 4.053e-10` on a window three times longer.
+Section 71's identification of the decay rate with the gap entry therefore holds at one point, at
+both signs, and across the range, not only where the entry vanishes by construction.
+
+The rest of the readings the gates carried: can-fail at `r = +0.5` reads `1.0000059865642859`
+against its entry `1.0`, the witness at `r = +0.25` reads `0.5000075974138588` against `0.5`, every
+ray arm is fixed point for fixed point and the same at every point, the clock's seven fitted rates
+are bit-identical, the reader resolves the loop-only probe (`0.07376815905011214` against the spent
+reader's `0.0`), averages the exterior-only probe out (`0.0` against `0.06938268539288772`), is not
+the spent reader, agrees with it on the chi-uniform mean, and is bit-equal to the two-coordinate
+body's reader on all three declared-shaped probes. The kernel at every declared point, predicted
+before the run: `dim ker(mode 0) = 2` with the direction-antisymmetric direction present only at
+`r = 0`, and `1` at `r = 0.6`, `0.5`, `0.25` and at all six non-zero swept points, with the
+antisymmetric direction absent; every closed-form multiset residual is `<= 2.3e-16`.
+
+### 8.5 The injector's law, in one sentence
+
+**The orientation drive writes a signed charge and not a magnitude**: at both declared injector
+points the response's even part is exactly `0.0` to the last bit and its odd part is the whole
+response (`-0.0014358387617779411` at `r = 0`, `-0.012646830210309101` at `r = -0.01`), so
+reversing the drive reverses what the coordinate stores, and the coordinate is not a monotone
+store. The removed fraction of the body's own reversed-channel arm, which writes for one phase,
+applies the reversed drive for a second and holds nothing for a third, is `0.7715799746327933` at
+`r = 0` and `0.3690299651437342` at `r = -0.01`: the reversed channel removes most of what it wrote
+and leaves a residue, on this body's schedule, far larger than the `0.66%` the two-coordinate
+body's erasure branch read on its own.
+
+### 8.6 What this does and does not say
+
+It says: on the frozen (LB6) line, restricted to the declared chi-uniform, exterior-flat seed
+family, the declared coordinate's decay rate *is* the gap entry, linearly, at both signs through
+the crossing, against a clock that does not move with the entry -- so the two-coordinate body's
+retention reading extends from its declared point to a range, and section 71's identification is
+not an artifact of reading where the entry vanishes.
+
+It does not say: that any physically realized memory exists, that the erased fraction is a storage
+efficiency, or that the linearity extends outside this seed family. The seed's exactness is what
+makes the rate readable -- its antisymmetric content lies on the equilibrium-ratio direction, whose
+eigenvalue is the entry alone -- and a seed with content on the other direction would mix the two
+eigenvalues and read a rate between them. The clock, the erased fraction and the injector's law are
+this body's own schedules; what they share with the bodies this continues is stated in the
+requirement rows of section 5 and nowhere else.

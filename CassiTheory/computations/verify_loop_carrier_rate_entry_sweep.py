@@ -107,6 +107,9 @@ TWO_COORD_RECEIPT = two_coord.RECEIPT_PATH
 PROTOCOL_PATH = "computations/loop-carrier-rate-entry-sweep-prereg.md"
 PROBE_PATH = "computations/verify_loop_carrier_rate_entry_sweep.py"
 RECEIPT_PATH = "runs/loop_carrier_rate_entry_sweep/verification.json"
+FIRST_INVOCATION_RECEIPT = "runs/loop_carrier_rate_entry_sweep/first-invocation-verification.json"
+FIRST_INVOCATION_RECEIPT_SHA256 = (
+    "cdfb45468af1ebdcf1bfc21828f78a502d396c9dd484251114814db340dcd6ec")
 INVOCATION = "timeout 600 python computations/verify_loop_carrier_rate_entry_sweep.py"
 RECEIPT_SCHEMA = "cassi.loop-carrier-rate-entry-sweep.v1"
 BOUND_SECONDS = 600.0
@@ -262,6 +265,8 @@ BINDING_SOURCES = (
      "471f1f8074ff7cc85187690747b7ba9235e6d8627a7e9a7cc1db2a0a81710cc1"),
     ("prior_receipt_sha256", PRIOR_RECEIPT,
      "5ba4afcd2b17d00be8c4fd315ee4f3133422aaae7bdb83e1f0e51ad9935be200"),
+    ("first_invocation_receipt_sha256", FIRST_INVOCATION_RECEIPT,
+     FIRST_INVOCATION_RECEIPT_SHA256),
     ("coexistence_receipt_sha256", SPENT_RECEIPT,
      "9724143b98cf394eb9948741d3a117c4cc1e4b14fe54ff2ad9e81dfddb8bf60f"),
 )
@@ -537,7 +542,7 @@ def sweep_seed(spec: SweepSpec) -> np.ndarray:
     `f_{a,s} = (E_a / 2)(1 + s beta)` with `E_a` the frozen `on_ray` densities and no exterior or
     loop modulation, then the chain's own load transfer `f_Y <- f_Y + (c/2) rho`,
     `f_I <- f_I - (c/2) rho` per orientation. The imbalance factor is the *same* on both carriers,
-    which is what makes `epsilon = e_Y - phi e_I` vanish exactly and puts the arm's whole
+    which is what makes `epsilon = e_Y - phi e_I` vanish to round-off and puts the arm's whole
     antisymmetric content on the declared direction; the transfer is the chain's own and preserves
     the total.
     """
@@ -700,13 +705,30 @@ def seed_content(spec: SweepSpec) -> dict:
     w0 = np.array((PHI, 1.0))
     w1 = np.array((1.0, -PHI))
     norm = float(np.linalg.norm(content))
-    return {
+    record = {
+        "role": spec.role,
+        "load_transfer": spec.load_c,
         "content": [float(value) for value in content],
         "norm": norm,
         "w0_fraction": float(abs(np.dot(content, w0)) / (np.linalg.norm(w0) * max(norm, 1e-300))),
         "w1_fraction": float(abs(np.dot(content, w1)) / (np.linalg.norm(w1) * max(norm, 1e-300))),
         "epsilon_pointwise": float(np.max(np.abs(state[0] - PHI * state[1]))),
+        "epsilon_declared": None,
+        "epsilon_relative_gap": None,
     }
+    if spec.load_c != 0.0:
+        unloaded = sweep_seed(SweepSpec(spec.index, spec.name, spec.role, spec.exchange,
+                                        imbalance=spec.imbalance, load=0.0, plan=spec.plan,
+                                        steps=spec.steps, sample_stride=spec.sample_stride,
+                                        note=spec.note))
+        predicted = ((unloaded[0] - PHI * unloaded[1])
+                     + (spec.load_c / 2.0) * (1.0 + PHI) * (unloaded[0] + unloaded[1]))
+        measured = state[0] - PHI * state[1]
+        record["epsilon_declared"] = float(np.max(np.abs(predicted)))
+        record["epsilon_relative_gap"] = float(
+            np.max(np.abs(measured - predicted))
+            / max(float(np.max(np.abs(predicted))), 1e-300))
+    return record
 
 
 def kernel_points() -> dict:
@@ -1029,9 +1051,41 @@ def decide(arms: dict, preflight_record: dict, points: dict) -> dict:
         "two_coordinate_zero_rate": float(
             -math.log(TWO_COORD_RETAINED_SHARE) / TWO_COORD_CHANNEL_WINDOW),
         "two_coordinate_erase_residual": TWO_COORD_ERASE_RESIDUAL,
-        "seed_content": {spec.role + "@" + spec.name: seed_content(spec)
-                         for spec in ARM_TABLE
-                         if spec.role in ("entry", "clock", "ray")},
+        "seed_content": {spec.name: seed_content(spec) for spec in ARM_TABLE
+                         if spec.role in ("entry", "clock", "ray", "inject", "erase")},
+    }
+
+
+def seed_declaration(seed_records: dict) -> dict:
+    """Section 4, gate 8 as amended: where each seed's antisymmetric content lies and what its
+    epsilon is declared to be.
+
+    The pointwise-epsilon condition is a statement about the *sweep* seeds -- section 1.2 builds
+    them on the ray -- so it is applied to the entry and ray roles. A seed that carries the load
+    transfer has epsilon by construction, and is held instead to the transfer's own declared value
+    within `LOAD_TRANSFER_TOL`.
+    """
+    pure = {name: record["w1_fraction"] for name, record in seed_records.items()}
+    on_ray = {name: record["epsilon_pointwise"] for name, record in seed_records.items()
+              if record["role"] in ("entry", "ray")}
+    loaded = {name: record for name, record in seed_records.items()
+              if record["role"] not in ("entry", "ray")}
+    load_gap = {name: record["epsilon_relative_gap"] for name, record in loaded.items()}
+    passed = (all(value <= SEED_CONTENT_CEILING for value in pure.values())
+              and all(value <= SEED_EPSILON_CEILING for value in on_ray.values())
+              and all(value is not None and value <= LOAD_TRANSFER_TOL
+                      for value in load_gap.values()))
+    return {
+        "bound": "<= {0} of the content on the complementary direction on every seed, the "
+                 "pointwise epsilon within {1} of zero on every entry and ray seed, and a "
+                 "load-carrying seed's epsilon within {2} relative of the transfer's own declared "
+                 "value".format(SEED_CONTENT_CEILING, SEED_EPSILON_CEILING, LOAD_TRANSFER_TOL),
+        "passed": bool(passed),
+        "reading": {"w1_fraction": pure,
+                    "epsilon_on_ray": on_ray,
+                    "epsilon_declared_under_load": {name: record["epsilon_declared"]
+                                                    for name, record in loaded.items()},
+                    "epsilon_relative_gap_under_load": load_gap},
     }
 
 
@@ -1048,10 +1102,7 @@ def gate_rows(arms: dict, decision: dict, preflight_record: dict, domain: dict,
     shape_ok = (budget["executions"] == DECLARED_EXECUTIONS
                 and budget["steps_max"] <= PER_EXECUTION_CAP
                 and budget["steps_total"] <= TOTAL_STEP_CAP)
-    seeds_pure = all(record["w1_fraction"] <= SEED_CONTENT_CEILING
-                     for record in decision["seed_content"].values())
-    seeds_on_ray = all(record["epsilon_pointwise"] <= SEED_EPSILON_CEILING
-                       for record in decision["seed_content"].values())
+    seed_gate = seed_declaration(decision["seed_content"])
     readable = {
         "entry_coordinate": {name: float(arms[name]["samples"]["0"]["odd"])
                              for name in ENTRY_ARMS},
@@ -1128,20 +1179,25 @@ def gate_rows(arms: dict, decision: dict, preflight_record: dict, domain: dict,
          "bound": "every declared probe reading within {0} relative".format(PROBE_TOL),
          "passed": bool(probe_check["passed"])},
         {"id": 8, "name": "the seed's antisymmetric content lies on the declared direction",
-         "reading": {"w1_fraction": {key: record["w1_fraction"]
-                                     for key, record in decision["seed_content"].items()},
-                     "epsilon_pointwise": {key: record["epsilon_pointwise"]
-                                           for key, record in decision["seed_content"].items()}},
-         "bound": "<= {0} of the content on the complementary direction on every seed, and "
-                  "the pointwise epsilon within {1} of zero".format(SEED_CONTENT_CEILING,
-                                                                     SEED_EPSILON_CEILING),
-         "passed": bool(seeds_pure and seeds_on_ray)},
+         "reading": seed_gate["reading"], "bound": seed_gate["bound"],
+         "passed": bool(seed_gate["passed"])},
         {"id": 9, "name": "silence on every ray arm",
-         "reading": {name: [arms[name]["state_sha256_first"][:16],
-                            arms[name]["state_sha256_last"][:16]] for name in RAY_ARMS},
+         "reading": {"ray_arms": {name: [arms[name]["state_sha256_first"][:16],
+                                         arms[name]["state_sha256_last"][:16]]
+                                  for name in RAY_ARMS},
+                     "moving_control": {name: [arms[name]["state_sha256_first"][:16],
+                                               arms[name]["state_sha256_last"][:16]]
+                                        for name in ENTRY_ARMS[:2]},
+                     "control_distinguishable": bool(all(
+                         arms[name]["state_sha256_first"] != arms[name]["state_sha256_last"]
+                         for name in ENTRY_ARMS[:2]))},
          "bound": "the state is the frozen fixed point: first and last digest equal on every ray "
-                  "arm, and the same digest at every point", "passed": bool(
-                      decision["ray_identical"] and decision["ray_digests_equal"])},
+                  "arm, the same digest at every point, and -- the control that shows the digest "
+                  "can tell the difference -- the first entry arm's own first and last digest "
+                  "unequal", "passed": bool(
+                      decision["ray_identical"] and decision["ray_digests_equal"]
+                      and all(arms[name]["state_sha256_first"]
+                              != arms[name]["state_sha256_last"] for name in ENTRY_ARMS[:2]))},
         {"id": 10, "name": "readable on every declared arm",
          "reading": readable,
          "bound": "the entry coordinate >= {0} and the clock's ray distance >= {1} at the first "
@@ -1174,8 +1230,14 @@ def gate_rows(arms: dict, decision: dict, preflight_record: dict, domain: dict,
                       FIT_MIN_SAMPLES, READABLE_FLOOR_Q, FIT_RESIDUAL_CEILING),
          "passed": quality_ok},
         {"id": 14, "name": "single invocation",
-         "reading": "receipt absent at start, one process", "bound": "structural",
-         "passed": True},
+         "reading": {"receipt_absent_at_start": True,
+                     "prior_invocation": prior_invocation()},
+         "bound": "the receipt was absent at the start and one process wrote it, with the "
+                  "invocation before this one archived and bound in section 0 as the section-6 "
+                  "amendment requires",
+         "passed": bool(not receipt_status()["exists"]
+                        and prior_invocation()["exists"]
+                        and prior_invocation()["digest"] == FIRST_INVOCATION_RECEIPT_SHA256)},
     ]
 
 
@@ -1408,12 +1470,31 @@ def assemble(built: dict, binding: dict, started: float) -> dict:
             "replication": replication_record, "probe_check": probe_check}
 
 
+def prior_invocation() -> dict:
+    """The archived first invocation this body's amendment binds, or its absence."""
+    path = os.path.join(ROOT, FIRST_INVOCATION_RECEIPT)
+    if not os.path.exists(path):
+        return {"exists": False, "path": FIRST_INVOCATION_RECEIPT}
+    with open(path, encoding="utf-8") as handle:
+        receipt = json.load(handle)
+    return {"exists": True, "path": FIRST_INVOCATION_RECEIPT,
+            "digest": digest_of(FIRST_INVOCATION_RECEIPT),
+            "status": receipt.get("status"),
+            "gates_failed": [row["name"] for row in receipt.get("gates", [])
+                             if not row.get("passed")],
+            "receipt": receipt.get("protocol_body_sha256")}
+
+
 def execute() -> int:
     started = time.time()
     if receipt_status()["exists"]:
-        print("REFUSING TO RUN: {0} already exists; this body is invoked once and a second "
-              "invocation is permitted only after an invocation that wrote no receipt."
-              .format(RECEIPT_PATH))
+        print("REFUSING TO RUN: {0} already exists; this body is invoked once per freeze and a "
+              "further invocation is refused outright.".format(RECEIPT_PATH))
+        raise SystemExit(EXIT_PRE_EXECUTION_BLOCK)
+    if not prior_invocation()["exists"]:
+        print("REFUSING TO RUN: the archived first invocation {0} is absent; the section-6 "
+              "amendment that permits this invocation requires it."
+              .format(FIRST_INVOCATION_RECEIPT))
         raise SystemExit(EXIT_PRE_EXECUTION_BLOCK)
     binding = check_binding()
     print("bindings: every section-0 row matches")
