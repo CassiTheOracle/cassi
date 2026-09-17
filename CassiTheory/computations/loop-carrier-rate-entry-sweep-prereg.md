@@ -514,8 +514,27 @@ arm, schedule or decision rule moved, the repaired predicate proven to fire in b
 in-place amendment markers naming the pre-amendment text. A **measurement outcome is never
 repairable**: a reading that comes out against a declared branch, or a gate whose criterion is
 merely inconvenient once a number is visible, stands as the verdict, and the correction is a new
-protocol. The test that separates the two: does the amendment change *what counts as evidence*? If
-it does, it is a new body.
+protocol.
+
+The test as first written -- does the amendment change *what counts as evidence*? -- does not by
+itself decide this case, because narrowing a predicate *is* a pass/fail criterion and therefore
+always touches what counts as evidence in the letter. Two conditions decide it, and an instrument
+repair must meet at least one of them:
+
+- **(i) derivability without run data.** The corrected predicate follows from the frozen text
+  alone. Here §1.2 declares that the load seeds carry the transfer's epsilon and serve as the
+  clock, so the pointwise-epsilon condition cannot apply to them; that narrowing is writable from
+  the declaration, before any integration, and needed no number the run produced.
+- **(ii) pre-freeze catchability.** A pre-freeze check can see the defect. Here the condition is a
+  function of the declared seeds and nothing else: the seeds are built without integrating, and
+  `seed_declaration` evaluated on them returns a verdict with no run data -- which is what the
+  firing table above does, in both directions. The pre-amendment static pass computed this same
+  verdict inside `gate_rows` and discarded it, which is precisely why the amendment also promotes
+  the condition to a callable predicate and records its firing rather than leaving it implicit.
+
+If **neither** condition is met the change is a **rescue**: the body is being rewritten in the light
+of its own behaviour, and the correction is a fresh protocol, not an amendment. Both conditions hold
+here.
 
 This body stands against that ruling as an instrument repair and does not reach into it again: the
 four conditions are the archived and bound receipt above, the sentence in 8.1 that no statistic,
@@ -583,8 +602,13 @@ readable with 31 samples above the floor, one sign throughout, and a residual in
 The rate-to-entry slope of the seven readings is `1.001724712832028` with intercept
 `-1.3266688989497523e-05`, so the rate is not merely close to its entry at each point: it is the
 entry to `1.7e-3` relative across a range of a factor of four in the entry, and the crossing's own
-rate is `2.488e-17` -- a factor `1.6e10` below the smallest swept entry, and `1.6e7` below the
-two-coordinate receipt's own bound `-ln(share)/450 = 4.053e-10` on a window three times longer.
+fitted rate is `2.4880630605367724e-17`, whose three ratios are written against their own referents
+rather than summarised: `0.005 / 2.4880630605367724e-17 = 2.0e14` against the smallest swept entry,
+which is `0.005`; `1.0e-6 / 2.4880630605367724e-17 = 4.0e10` against the crossing's own declared
+ceiling `entry_zero_ceiling`; and `4.0534467309636227e-10 / 2.4880630605367724e-17 = 1.6e7` against
+the two-coordinate receipt's own bound `-ln(0.9999998175949137) / 450 = 4.053e-10` on a window three
+times longer. Each ratio's numerator and denominator are named, because the crossing's rate is a
+reading and a ratio to an unnamed scale is not.
 Section 71's identification of the decay rate with the gap entry therefore holds at one point, at
 both signs, and across the range, not only where the entry vanishes by construction.
 
@@ -605,11 +629,17 @@ antisymmetric direction absent; every closed-form multiset residual is `<= 2.3e-
 points the response's even part is exactly `0.0` to the last bit and its odd part is the whole
 response (`-0.0014358387617779411` at `r = 0`, `-0.012646830210309101` at `r = -0.01`), so
 reversing the drive reverses what the coordinate stores, and the coordinate is not a monotone
-store. The removed fraction of the body's own reversed-channel arm, which writes for one phase,
-applies the reversed drive for a second and holds nothing for a third, is `0.7715799746327933` at
-`r = 0` and `0.3690299651437342` at `r = -0.01`: the reversed channel removes most of what it wrote
-and leaves a residue, on this body's schedule, far larger than the `0.66%` the two-coordinate
-body's erasure branch read on its own.
+store. The body's own reversed-channel arm -- which writes for one phase, applies the reversed
+drive for a second and holds nothing for a third -- has a **removed** fraction and a **left
+standing** fraction, named against each point: at `r = 0` it removes `0.7715799746327933` of what it
+wrote and leaves `0.22842002536720674` standing; at `r = -0.01` it removes `0.3690299651437342` and
+leaves `0.6309700348562658` standing. So on this body's schedule the reversed channel takes down
+most of the charge at the crossing and about a third of it away from the crossing, and what stands
+afterwards is `0.2284` and `0.6310`. The two-coordinate body's erasure branch is the other way
+round in magnitude and must not be smoothed into it: ledger §72 records it removing
+`6.60e-3` of what it wrote, so `0.9934` stood afterwards, against `0.7716` and `0.3690` removed
+here. Neither writes an inverse, which is the statement that carries; the reversed drive here is
+simply the more effective of the two.
 
 ### 8.6 What this does and does not say
 
@@ -619,10 +649,13 @@ the crossing, against a clock that does not move with the entry -- so the two-co
 retention reading extends from its declared point to a range, and section 71's identification is
 not an artifact of reading where the entry vanishes.
 
-It does not say: that any physically realized memory exists, that the erased fraction is a storage
-efficiency, or that the linearity extends outside this seed family. The seed's exactness is what
+It does not say: that any physically realized memory exists, that the removed fraction is a storage
+efficiency (or that its complement, the fraction left standing, is one), or that the linearity
+extends outside this seed family. The seed's exactness is what
 makes the rate readable -- its antisymmetric content lies on the equilibrium-ratio direction, whose
 eigenvalue is the entry alone -- and a seed with content on the other direction would mix the two
-eigenvalues and read a rate between them. The clock, the erased fraction and the injector's law are
-this body's own schedules; what they share with the bodies this continues is stated in the
-requirement rows of section 5 and nowhere else.
+eigenvalues and read a rate between them. The clock, the removed fraction and the injector's law are
+this body's own schedules, and the removed fraction is not comparable across bodies without both
+quantities named: this body removes `0.7716`/`0.3690` where ledger §72's counter removed `0.0066`.
+What they share with the bodies this continues is stated in the requirement rows of section 5 and
+nowhere else.

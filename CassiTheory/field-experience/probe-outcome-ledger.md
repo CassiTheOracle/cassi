@@ -3312,8 +3312,11 @@ floor, one sign throughout, and a residual inside its ceiling; and the rate-to-e
 readings is $1.001724712832028$ with intercept $-1.3266688989497523\times10^{-5}$. The identification
 therefore holds not only where the entry vanishes by construction but across a factor of four in the
 entry, at both signs, to $1.7\times10^{-3}$ relative: the rate *is* the entry. The crossing's own rate
-is $2.49\times10^{-17}$, which is $1.6\times10^{10}$ below the smallest swept entry and $1.6\times10^{7}$
-below the two-coordinate receipt's own rate bound on its window (the standing share
+is $2.4880630605367724\times10^{-17}$, and each of its three ratios is stated against a named
+referent: $0.005/2.4880630605367724\times10^{-17}=2.0\times10^{14}$ against the smallest swept entry,
+$1.0\times10^{-6}/2.4880630605367724\times10^{-17}=4.0\times10^{10}$ against the crossing's own declared
+ceiling, and $4.0534467309636227\times10^{-10}/2.4880630605367724\times10^{-17}=1.6\times10^{7}$ against
+the two-coordinate receipt's own rate bound on its window (the standing share
 $0.9999998175949137$ over 450 units reads $-\ln(\text{share})/450=4.053\times10^{-10}$); the
 counterfactual factor the same entry predicts over this window is $e^{-2r\cdot150}=4.98\times10^{-2}$ at
 the smallest swept entry and $e^{-6}=2.48\times10^{-3}$ at the largest, so every non-zero point is
@@ -3344,10 +3347,14 @@ finding, and the two readings are about different objects: §72 measured the *le
 leaves behind, which is even in the drive's magnitude, whereas this body's differential reading takes
 the difference of two arms whose drives have opposite signs against one common baseline, so any level
 common to both cancels and only the sign-odd part survives. On this body's own schedule the reversed
-channel removes $0.7715799746327933$ of what it wrote at $r=0$ and $0.3690299651437342$ at $r=-0.01$:
-a large residue, of the same qualitative kind as §72's $6.60\times10^{-3}$, so *the channel can write
-and cannot un-write* stands, and it now stands beside the statement that the net charge is odd in the
-sign.
+channel **removes** $0.7715799746327933$ of what it wrote at $r=0$ and $0.3690299651437342$ at
+$r=-0.01$, leaving $0.22842002536720674$ and $0.6309700348562658$ standing. §72's counter is the other
+way round in magnitude and is not smoothed into it: it removed $6.60\times10^{-3}$ and left $0.9934$
+standing. Neither writes an inverse, so *the channel can write and cannot un-write* stands, and it
+now stands beside the statement that the net charge is odd in the sign; the reversed drive here is
+the more effective of the two. The protocol's §8.1 also carries the ruling that bounds an instrument
+repair and its two deciding conditions — derivability without run data, and pre-freeze catchability —
+and this body meets both.
 
 **Both rows above were re-anchored after this body ran, and the reason is one sentence in the body
 it continues.** At the user's instruction, section 6 of the two-coordinate protocol gained a sentence
