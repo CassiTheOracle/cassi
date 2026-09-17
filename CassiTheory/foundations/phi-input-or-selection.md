@@ -236,6 +236,13 @@ any slot independently of the others.
   invariance fixes the coarse conversion rate ratio $b/a$, together with a physical
   statement whose solution is the worst-approximable separation — does not exist in the
   repository.
+* **Another coordinate, not another level:** `foundations/loop-rate-selection-candidates.md`
+  narrows this verdict at its fifth candidate — the integer $5$ that the fivefold orbit's
+  chord ratio carries is tied to $\varphi$ by $2\cos(\pi/5)=\varphi$,
+  $\operatorname{disc}(x^2-x-1)=5$, $\sqrt5=2\varphi-1$ and
+  $\mathbb{Q}(\zeta_5)^+=\mathbb{Q}(\sqrt5)$, so why-five and why-$\varphi$ are the same
+  unforced input written in another coordinate and the gap recorded in §3.4 does not move
+  down a level.
 
 ## References
 
