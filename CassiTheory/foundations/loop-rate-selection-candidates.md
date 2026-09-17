@@ -53,6 +53,11 @@ threshold-exponent sensitive: with two cascade steps per cycle vertex it returns
 cross-check of the blindness result against the theory documents (§8) finds four sentences
 that draw the ratio, or evidence for it, from a rate reading; each is a joint check of the
 declared pair, none requires a physics correction, and all four are listed for their owners.
+The transport-resonance route, in which a canonical sector with resonances on rational
+windings transmits a critical winding to the ratio through the closure, is tested link by
+link in §9 and fails at its first: that sector is linear, dissipative and non-canonical, its
+exceptional points are eigenvalue collisions on integer labels rather than resonances, and
+the closure, which does transmit, transmits a rational.
 
 ## 1. The quantity to be fixed, and the discriminators
 
@@ -391,6 +396,9 @@ are the rational exceptional points $\Omega/r=1/m$; not through the conversion o
 whose spectrum is ratio-blind and whose null vector carries the ratio the functional was
 supposed to produce; and not through the current closure, which transfers the density ratio
 to the phase ratio and returns it unchanged under the declared equal-mobility condition.
+That identity is not evidence against the transport-resonance route of §9: the ratio is
+absent from the sector that would select a winding there, so the closure carries a selection
+to $r$ rather than being asked to force it (§9.1).
 The three routes to the number that do exist each import something: the arithmetic
 extremality of the Hurwitz/Lagrange constant imports the requirement that the ratio be
 worst-approximable; the pentagon imports the integer $5$, with the fivefold selector
@@ -590,6 +598,129 @@ carries its exact replacement in `foundations/phi-input-or-selection.md:177-181`
 loose sentences are listed here for the document owners to route, and none is corrected in
 this file.
 
+## 9. The transport-resonance route: a chain tested link by link
+
+### 9.1 The route, and why the earlier closure negative does not bear on it
+
+The route: the transport sector of (LB40)–(LB45) is invariant under changes of the conversion
+ratio, its direction-exchange block has exceptional points at $\Omega/r_x=1/m$ on integer
+loop labels, and a canonical sector with resonances that selects the last surviving winding
+would arrive at the ratio through the counterflow closure $\alpha=r$. Three links decide it:
+the sector's canonicity, the critical winding its exceptional points produce, and the
+transmission through the closure.
+
+The earlier negative (§6) is not evidence against this route, and a reader should not take it
+that way. The conversion ratio is absent from $(F,H)$ altogether, since conversion cancels in
+both combinations (LB40), and the closure returns $\alpha=r$ as an exact identity under equal
+mobility and zero net current (`principles/de-resonance-principle.md:176-180`). Asking that
+closure to *force* $r$ therefore returns the identity map, and the identity map is the
+correct answer to a question that belongs to the conversion sector, asked in the one sector
+where the ratio has been cancelled. A selection made inside the transport sector does not
+need the closure to force anything: it selects a winding, and the closure carries that
+winding to $r$ as a consequence.
+
+### 9.2 Link (i): the transport sector is not canonical
+
+Not canonical, and the dissipative part is the loop's own direction exchange. In $(F,H)$ the
+equations (LB41)–(LB42) are linear with frozen coefficients $(r_x,\Omega,d)$ (Theorem 1
+assumption 3, `foundations/loop-to-bubble-projection-theorem.md:357`). The generator has
+trace $-2r_x-2dm^2$ per loop mode, and the four-channel generator (LB35) has trace
+$-2\kappa(1+\varphi)-4r_x-4dm^2$. A canonical flow is divergence-free, so the sector is
+canonical only at $r_x=d=0$.
+
+Two further tests agree. The natural quadratic form is a Lyapunov function, not a conserved
+energy:
+
+$$\frac{d}{dt}\frac12\int_0^{2\pi}(F^2+H^2)\,d\chi
+=-2r_x\int_0^{2\pi}H^2\,d\chi
+-d\int_0^{2\pi}\big[(\partial_\chi F)^2+(\partial_\chi H)^2\big]\,d\chi\le0,$$
+
+strictly negative unless $H\equiv0$ with $F,H$ constant; the identity was checked to
+$4\times10^{-16}$ on band-limited fields, and its failure on an arbitrary field is the
+Nyquist mode alone. Integrated exactly per Fourier mode (matrix exponential, no step error),
+$E(T)/E(0)$ is $1.000000000000$ at $r_x=d=0$, $0.0922$ at $r_x=0.3$, $0.0343$ at $d=0.05$ and
+$0.0036$ at both, the free case serving as the control that the propagator is exact. Third,
+the sector is non-normal for $r_x>0$:
+$[B_m,B_m^{\mathsf H}]=\left(\begin{smallmatrix}0&-4im\Omega r_x\\4im\Omega r_x&0\end{smallmatrix}\right)$,
+so the same rate that damps $H$ makes the two directions non-orthogonal. The eigenvector
+condition number of $B_m$ is $1$ at $r_x=0$, $1.73$ at $0.5\,m\Omega$, $4.36$ at
+$0.9\,m\Omega$ and $14.11$ at $0.99\,m\Omega$.
+
+The canonical limit is the free chiral system, and it has no perturbation to speak of. At
+$r_x=d=0$, $u=F+H$ and $v=F-H$ obey $\partial_tu=-\Omega\partial_\chi u$ and
+$\partial_tv=+\Omega\partial_\chi v$: two decoupled free advection equations with integer
+labels. Per mode the pair generator is $M_m=JS$ with $S=\operatorname{diag}(-im\Omega,im\Omega)$
+symmetric, so that limit is canonical, linear, integrable and solvable in closed form. Its
+resonance condition is the exact degeneracy of counter-propagating labels $(m,-m)$, which
+transfers nothing, because the modes are decoupled.
+
+### 9.3 Link (ii): the exceptional points are eigenvalue collisions, not resonances
+
+(LB34) collides the two eigenvalues at $r_x=|m|\Omega$, that is $\Omega/r_x=1/|m|$, and at
+the collision $B_m-\lambda I$ has rank one with a degenerate eigenvector matrix. These are
+exceptional points of a linear dissipative generator, not KAM resonances of a nonlinear map.
+The rationality is the integer label itself: the ladder $\Omega/r_x=1/m$ exists because
+$m\in\mathbb Z$, not because a continued-fraction dynamics produced it, and that label was
+already shown to carry no $\varphi$ (§7.3).
+
+The ladder reads the supplied rates and selects nothing. Inverting the collision condition
+gives the largest overdamped index $m^\ast=\lfloor r_x/\Omega\rfloor$: every integer is
+available as the critical index by choosing the supplied pair with $r_x/\Omega=m$, and with a
+resolution $\varepsilon$ on the ratio the window near the ladder value $1/5$ admits
+$\{4,\ldots,10\}$ at $\varepsilon=10^{-1}$ and $\{5\}$ at $\varepsilon=10^{-2}$. The index is a
+function of the supplied pair and of the resolution, as in the coherence route's threshold
+ladder (§7.4).
+
+No critical winding follows, and the criterion that would supply one is not available here.
+Greene's residue criterion does single out the golden rotation number, as the last surviving
+structure: in the standard map the golden circle's critical parameter is the classical
+estimate $K_c=0.971635406$, with the residues $R=(2-\operatorname{tr}M_q)/4$ of the Fibonacci
+approximants tending to zero below $K_c$, bounded at it and growing above it. That criterion
+is defined for a nonlinear area-preserving family with a control parameter; the loop's
+transport sector has no nonlinearity (the generator is linear and block diagonal in $m$) and
+no such parameter (the coefficients are frozen and supplied), so the criterion has nothing to
+act on. Where the loop does carry a nonlinearity, the composition gate
+$\kappa=\lambda(1-q)$, the transport sector is exactly insensitive to it, since conversion
+cancels in $F$ and $H$.
+
+### 9.4 Link (iii): the closure transmits a winding, as a rational
+
+This link holds mechanically, and its destination is the defect. With uniform single-valued
+phases on a compact loop the phase-gradient ratio is $\alpha=q_{\mathrm w}/p$ for integers
+$p,q_{\mathrm w}$, and the equal-mobility, zero-net-current closure gives $\alpha=r$; composed,
+$r=q_{\mathrm w}/p$, a rational. A winding selected inside the transport sector therefore
+arrives at the composition ratio as a rational, and the golden ratio has no exact
+finite-winding closure: the record candidates are the Fibonacci pairs
+$(p,q_{\mathrm w})=(F_n,F_{n+1})$, whose residuals obey
+$|F_{n+1}-\varphi F_n|=\varphi^{-n}$ (checked for $n=5,\ldots,30$), and the choice among them
+needs a physical law the loop does not supply
+(`principles/de-resonance-principle.md:201-213`). Read as an equality, the closure is
+inconsistent with the conversion attractor's $\varphi$ unless equal mobility, zero net
+current or uniform compact phases are dropped, or phase slips are admitted.
+
+### 9.5 The discriminator on the chain as a whole
+
+D1 passes for what the route contains: no $\varphi$ appears in (LB33)–(LB45), in the closure
+or in the integer labels, and the transport sector is $\varphi$-free precisely because
+conversion cancels in it. The chain fails as a chain. Its completing premise is not a
+$\varphi$-free statement of the loop's structure but the robustness criterion, "the realized
+winding is the last surviving structure". That premise is unavailable here (link (ii)
+produces no critical winding and no $K$), and if it were imported it would be the
+hypothesized principle of `principles/de-resonance-principle.md` restated in resonance
+vocabulary, with the golden ratio following from the imported criterion rather than from the
+loop. The route does not close the gap §6 states; it renames it. And a route that fired would
+deliver a rational $r$: a second answer to a question whose attractor value is $\varphi$.
+
+### 9.6 What would change this
+
+An exact loop identity making the $(F,H)$ generator's trace vanish without $r_x=d=0$; an
+inter-mode coupling in (LB6), a term carrying $m$ into $m'$, which would give resonances
+something to transfer; a nonlinear canonical reduction of the transport sector with a control
+parameter computed from the loop's own constants, on which Greene's criterion could be posed
+directly; or a compact-winding composite whose closure is not rational, which would reopen
+link (iii). None of the four is present in the declared loop law, and each is checkable in
+the same way this section checks the first three links.
+
 ## References
 
 - `foundations/phi-input-or-selection.md`—the input/output audit, its four slots, the
@@ -610,3 +741,7 @@ this file.
 - `foundations/spin-fibonacci-spiral.md`—the measured angular spectrum ($m=2$ dominance, no
   detectable $m=5$ mode).
 - `EPISTEMIC-MAP.md`—tier rows for the de-resonance and gate entries.
+- Greene's residue criterion and MacKay's renormalization for the golden rotation number of
+  the standard map (Greene, *J. Math. Phys.* **20**, 1183 (1979); MacKay, *Physica D* **7**,
+  283 (1983)): the critical estimate $K_c=0.971635406$ is numerical, with rigorous
+  persistence below $\approx0.9716$ and nonexistence at $\approx0.9718$.

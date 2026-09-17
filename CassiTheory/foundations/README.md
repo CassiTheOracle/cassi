@@ -1631,7 +1631,11 @@ is why-$\varphi$ and the gap does not move down a level; the note states that
 this narrows the audit rather than extending it. A cross-check of the blindness
 result against the theory documents finds four sentences that draw the ratio, or
 evidence for it, from a rate reading; each is a joint check of the declared pair,
-none requires a physics correction, and all four are listed for their owners.
+none requires a physics correction, and all four are listed for their owners. Section 9 tests
+the transport-resonance route link by link: the sector is linear, dissipative and
+non-canonical (generator trace $-2r_x-2dm^2$ per mode, canonical only in the free chiral
+limit $r_x=d=0$), its exceptional points are eigenvalue collisions on integer labels rather
+than resonances, and the closure, which does transmit a winding, transmits a rational.
 Status: Analysis—September 2026.
 
 ## Cross-References
