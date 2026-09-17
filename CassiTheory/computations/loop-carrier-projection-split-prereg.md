@@ -276,7 +276,116 @@ Per axis, the levels are labelled `within_budget` or `above_budget`; the smalles
 
 ## 8. Post-execution record
 
-Not yet executed. This protocol and `computations/verify_loop_carrier_projection_split.py` are frozen at the digests in §0; the invocation, its gate table, its per-arm readings, its two fits and its verdicts belong in this section, under the stopping rule of §6.
+Sections 1–7 state the protocol as it stands frozen. This section was filled after the single queued invocation. No text of §1–§7 was edited after it, no threshold moved, no arm was added, and the command of §6 ran once; the receipt it wrote is the record.
+
+### 8.1 Invocation
+
+| Item | Reading |
+|---|---|
+| Command | `timeout 600 python computations/verify_loop_carrier_projection_split.py`, one process from this directory tree's root |
+| Bound | $600$ s, declared in §6 |
+| Wall time, measured outside | $2$ s |
+| Wall time, inside | `runtime_seconds` $2.34736967086792$, against the §6 projection of $\approx3$ s |
+| Executions | $19$, one per arm, in the order of §3 |
+| Steps | $3{,}450$ against the total cap $6{,}000$; the largest single arm is `successor_replication` at $1{,}834$ against the per-execution cap $50{,}000$ |
+| Receipt | `runs/loop_carrier_projection_split/verification.json`, $34{,}823$ bytes, SHA-256 `559d19ae43011b0f7143a5c9cf8429a5c46b5a181849c7b4cabd2ea99c8872fc` (gitignored run artifact; the directory holds the receipt alone, and no log file was written) |
+| Status | `FAIL`, neither verdict issued |
+
+| Source | SHA-256, declared and observed |
+|---|---|
+| `computations/loop-carrier-projection-split-prereg.md` §1–§7 (this file's frozen body) | `f7a7d9ea67bf160ca860fa49d4891a7ff5aa6de0854b97796d1570c9002c1029` |
+| `computations/verify_loop_carrier_projection_split.py`, executed | `246463f7fd1ba4a7fef282079e312d6e1382a15319b97d20b2ba49be46adcb5a` |
+| `computations/verify_loop_to_bubble_projection.py` | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` |
+| `computations/verify_loop_carrier_projection_relaxation.py` | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` |
+| `runs/loop_carrier_projection_relaxation/verification.json` | `3520231c8c54372e07443682847de9d01fbb0f132c89efef3fc7f0c16a22bcb1` |
+
+**Execution note.** The self-check cannot be re-run after an invocation: its own last item asserts that no receipt exists, so with a receipt on disk it now reports the receipt itself as a failure. The binding was verified instead by recomputing the body digest and the executor digest directly against their declared values, both of which still agree; the receipt's `binding` block carries the same comparison, with declared and observed equal row for row.
+
+### 8.2 Gate table
+
+$13$ gates, $12$ passed and gate $11$ failed.
+
+| # | Gate | Bound | Reading | Result |
+|---|---|---|---|---|
+| 1 | binding, declared against observed | exact | all five rows of §0 equal | pass |
+| 2 | discrete annihilation | $10^{-14}$ | $2.465042059363043\times10^{-15}$ | pass |
+| 3 | projection idempotence | $10^{-15}$ | $1.0086980600957879\times10^{-16}$ | pass |
+| 4 | matched start | $10^{-15}$ | $2.220446049250313\times10^{-16}$ | pass |
+| 5 | finite and nonnegative | structural | $\min$ state $0.19855056643547828$, $q\in[0.8478829488918167,\,0.9227356957733256]$ | pass |
+| 6 | schedule conformance | $\Delta t\le1/(40\lambda_{\max})$, $\Delta t\in\{0.05,0.02,0.01\}$ | no non-conformant arm; steps $0.02$ and $0.05$ | pass |
+| 7 | declared shape | $19$ executions, $6{,}000$ steps total | $19$ of $19$, $3{,}450$ of $6{,}000$ | pass |
+| 8 | reference at the floor | $10^{-14}$ | $5.329147248815693\times10^{-16}$ | pass |
+| 9 | witness floor, null pair | $10^{-11}$ | $8.505827589859918\times10^{-17}$ with $\Delta=0.0$ | pass |
+| 10 | cross-executor oracle | bit-identical | replication $2.622443969747147\times10^{-15}$ and null $8.505827589859918\times10^{-17}$, equal to the successor receipt's readings | pass |
+| 11 | can-fail control | both supersplits $\ge10^{-4}$ | `supersplit_transport` $6.709984101592009\times10^{-2}$; `supersplit_gate` $5.329147248815693\times10^{-16}$ | **fail** |
+| 12 | split reachability | gate $\ge0.05$, transport $\ge0.10$ | $0.12500000000000006$ and $0.18682135228047267$, read before execution | pass |
+| 13 | process declaration | one process, no concurrent run | $1$ process, $19$ executions | pass |
+
+**Margins.** The tightest passing margin is the transport operand of gate $12$ at $1.87\times$ its floor ($0.18682135228047267$ against $0.10$), followed by the gate operand at $2.5\times$ ($0.12500000000000006$ against $0.05$) and the reference floor of gate $8$ at $19\times$ ($5.329147248815693\times10^{-16}$ against $10^{-14}$). The tightest structural margin is the step, $\Delta t=0.02$ against the rule's limit $0.0238$ at the largest $\lambda_{\max}=1.049061$, i.e. $1.19\times$, as §6 records; the step total used $58\%$ of its cap. Nothing else was near a bound: the null pair sits at $10^{-17}$ against $10^{-11}$, and the failing control is short of its bound by $1.9\times10^{11}$.
+
+### 8.3 The gate axis
+
+| Level | $\delta_g$ | $\rho_{\max}$ | Class |
+|---|---|---|---|
+| 1 | $10^{-6}$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+| 2 | $10^{-5}$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+| 3 | $10^{-4}$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+| 4 | $10^{-3}$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+| 5 | $10^{-2}$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+| 6 | $10^{-1}$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+| supersplit | $1.0$ | $5.329147248815693\times10^{-16}$ | `within_budget` |
+
+Every one of the seven readings is the `common_reference` reading of §8.5 to the last digit, and so is every arm's `loop_content_final` ($0.12079677487732632$) and terminal $\rho$: the seven gate arms do not leave the unsplit trajectory at all. The fit is therefore empty—$0$ of $6$ levels readable above $10^{-13}$, no exponent, no ratios, no crossing—and the boundary label is `BELOW_ALL_LEVELS`, with all six levels inside the budget.
+
+**Why the axis is inert, from the executed code.** Let $B:=-\langle f_Y\rangle+ \varphi\langle f_I\rangle$ per loop cell, the bracket the conversion term multiplies. In the arms of this axis the two carriers share the exterior velocity and no orientation split is declared, and in that setting every non-conversion term of the right-hand side maps $B$ linearly into itself: advection and diffusion are carrier-blind, the loop derivative and loop diffusion carry the carrier signs through the same bracket, and the exchange is between the two orientations of one carrier, so it conserves each carrier's content. The conversion term is $\kappa_a B$ for carrier $a$ and $-\kappa_a B$ for the other, exactly. $B\equiv0$ is therefore invariant, and the `on_ray` seed satisfies it exactly at $t_0$: the profile's two densities are on the ray, $E_Y/E_I=\varphi$, so the conversion channel is unloaded when the run starts and stays unloaded. A gate split multiplies that zero, at every $\delta_g$, which is why `supersplit_gate` at $\delta_g=1.0$ reproduces the reference to the digit and why gate $11$ fired.
+
+**What this says, plainly.** The gate axis is not resolvable in this realization, and not merely because its readings sit under the readable floor: its observable is *identically zero* on this seed, because the conversion channel it splits carries no current. The run therefore does not answer "is the gate split first order at $T=2$" with "no" or with "quadratic"; it answers that the declared split is unsensed here at any order, and that the smallest of six decades could not have measured anything. It is not evidence that a split gate is harmless, and it is not evidence about any order in $\delta_g$. A live gate-axis measurement needs a seed that carries a nonzero conversion bracket—the successor's own `covariance` relaxation construction departs from the ray and made its witness fire—which is a design change for a future protocol, made against a *new* body, not an edit to this one. No threshold, arm, statistic or sentence of §1–§7 moves here, and the frozen body digest of §8.1 still holds.
+
+### 8.4 The transport axis
+
+| Level | $\delta_u$ | $\rho_{\max}$ | Class |
+|---|---|---|---|
+| 1 | $10^{-6}$ | $6.799503171158458\times10^{-8}$ | `within_budget` |
+| 2 | $10^{-5}$ | $6.799505370319889\times10^{-7}$ | `within_budget` |
+| 3 | $10^{-4}$ | $6.7995273333344465\times10^{-6}$ | `above_budget` |
+| 4 | $10^{-3}$ | $6.79974665183148\times10^{-5}$ | `above_budget` |
+| 5 | $10^{-2}$ | $6.8001910184790587\times10^{-4}$ | `above_budget` |
+| 6 | $10^{-1}$ | $6.8205755240104814\times10^{-3}$ | `above_budget` |
+
+All six levels are readable, and the monotone response is first-order in the declared offset: the fitted coefficient is $6.820388654045467\times10^{-2}$ with exponent $1.000205540897814$, and the per-level ratios to the fitted line are $0.9969377869874585$, $0.9969381094267712$, $0.9969413296266266$, $0.9969734859315175$, $0.9972907014259487$ and $1.0000273987267432$, all inside the factor $2$ of §2.1. The boundary label is `BRACKETED`: levels $1$–$2$ inside the class bound and levels $3$–$6$ above it, with the crossing at $\delta^\star=1.4661921053529064\times10^{-5}$. The mechanism is the one §8.3 excludes for the gate axis: the differential velocity is the only term in the setting that generates $B$, so the split enters the conversion channel at first order through the departure it creates.
+
+**No law is issued for this axis.** §5 makes `status=PASS` a conjunction over the gates and hence over the features, and gate $11$ fails, so both verdicts are withheld: the fit above is a recorded sweep (`sweep.transport.fit` in the receipt), not a verdict, and the transport axis carries no label from the law vocabulary. Its numbers stand as recorded and no threshold was retuned to give it one. `INCONCLUSIVE` is likewise not issued for the gate axis: the frozen decision tree reaches a label only for an axis whose own readings qualify, and the gate sweep has no readable level at all; what the run records there is the boundary label `BELOW_ALL_LEVELS` and the failing can-fail control.
+
+### 8.5 Controls and the comparability arm
+
+| Control | Reading | Bound or comparison |
+|---|---|---|
+| Reference level | $\rho_{\max}$ $5.329147248815693\times10^{-16}$ | gate 8 bound $10^{-14}$, $19\times$ inside |
+| Null pair | $8.505827589859918\times10^{-17}$ in both arms, $\Delta=0.0$ exactly | gate 9 bound $10^{-11}$; the successor's own null reading, bit-identical |
+| Cross-executor oracle | `successor_replication` $2.622443969747147\times10^{-15}$ and `uniform_short` $8.505827589859918\times10^{-17}$ | equal to the predecessor receipt's readings; its $\lambda_{\max}$ $1.0331312281605476$ is re-derived, not read |
+| Reachability operands | gate $0.12500000000000006$, transport and orientation $0.18682135228047267$ | floors $0.05$ and $0.10$ |
+| Can-fail, transport | `supersplit_transport` $6.709984101592009\times10^{-2}$ | fires, $671\times$ above the $10^{-4}$ bound |
+| Can-fail, gate | `supersplit_gate` $5.329147248815693\times10^{-16}$ | does not fire; gate 11 fails |
+| Comparability | `orientation_split_005` $\rho_{\max}$ $3.263521392755\times10^{-4}$, class `above_budget` | the successor's own `relax_split` geometry at $u\mp0.05$: its reading of that construction is $5.998107249\times10^{-4}$ on its own horizon $T=1000$, so this protocol's hundred-step, $T=2$ reading of the same geometry is $0.544$ of it and both are far above the class bound |
+
+The comparability reading is a recorded observation, not a criterion: §1.4 declares it and fits no law to it, and the receipt carries it in `sweep.comparability`. It is the arm that shows the statistic is not deaf to splitting as such—the same construction the successor found far above its witness floor is found far above this protocol's class bound—while the gate axis, split by a comparable declared amount, reads exactly the reference.
+
+### 8.6 Verdicts, boundary and stopping rule
+
+The receipt's aggregate reading, verbatim:
+
+```text
+FAIL
+degradation_gate: null
+degradation_transport: null
+class: null
+```
+
+Features: D1 true, D2 true, D3 **false**, D4 true, D5 true, D6 **false**. D3 is the can-fail feature and D6 the law-label feature; with them false, §5's rule withholds both verdicts and the run ends at `FAIL`. Nothing else moved: the executions are $19$ of the declared $19$, the steps $3{,}450$ of the declared cap, and the wall time $2.34736967086792$ s of the $600$ s bound.
+
+**Boundary.** One finite realization at $N_\chi=24$, one rate set, one profile, one seed amplitude; the common projected gate and the common exterior transport remain the assumptions under test and are still not derived from the theorem; the four-population law remains the selected minimal member of a family whose columns sum to one; no reading here is a value of $\varphi$, and nothing here measures the conversion ratio, the carrier identity, the QF1-to-carrier map, the phase law, the scale ratio or the quantum statistics. **RESOLVED** by this run: the gate axis of this protocol is inert on a seed that sits exactly on the conversion ray, and the can-fail control that exists to catch exactly that fired, so the protocol returned its `FAIL` rather than a law about nothing. **UNRESOLVED** and untouched: whether a split gate degrades the projection at any level, on any seed, at any order—this run did not measure it and does not bound it, and the same question on a seed carrying a nonzero conversion bracket is open.
+
+**Stopping rule.** The receipt now exists, so a second invocation is refused in code before any arm is constructed, and no re-run was made. §0's digests are unchanged by this section, since §8 lies outside the frozen body; the body digest and the executed executor digest of §8.1 are the values §0 declares, recomputed after the run.
 
 ## References
 
@@ -286,4 +395,5 @@ Not yet executed. This protocol and `computations/verify_loop_carrier_projection
 * `computations/verify_loop_carrier_projection_relaxation.py`—the successor's probe, imported for the projection, the integrator, the reference solver and the seeds, bound by digest.
 * `runs/loop_carrier_projection_relaxation/verification.json`—the successor's receipt, source of the two bit-identity oracles of §4.2, bound by digest.
 * `field-experience/probe-outcome-ledger.md` §65—the successor's outcome, including the common-gate and common-transport boundary this protocol tests.
+* `runs/loop_carrier_projection_split/verification.json`—this protocol's receipt, the record of the single invocation of §8, and the source of every reading quoted there.
 * `foundations/phi-input-or-selection.md`—why no reading in this protocol is a value of $\varphi$; the conversion block's trace and its null vector are separated there and in `foundations/loop-rate-selection-candidates.md`.
