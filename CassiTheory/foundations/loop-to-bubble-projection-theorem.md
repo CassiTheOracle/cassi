@@ -970,6 +970,115 @@ an exact phase-cancellation mechanism. A universal $\varphi$-spaced
 strand-to-bubble scale jump requires a separate measured or derived relation
 among $R$, $L_B$, and the cascade dynamics.
 
+### 7.4 Measured rates, gate authority, and retention of a written offset
+
+The walls and rates above are conditional statements about the microscopic
+law. The numbers in this subsection are measurements of that same law on the
+frozen discrete realization of `computations/verify_loop_to_bubble_projection.py`,
+at $N_\chi=24$, with one rate set, one profile and one seed family, and they are
+what fixes the rate wall of §7.2, the authority of the conversion gate of
+assumption 4 in §3.2, and the fate of a composition offset once the asymmetry
+that wrote it is removed. Each reading is a finite-realization measurement with
+the controls named beside it, at $N_\chi=24$ and one rate set, so none of them
+is a derivation and none of them moves a status.
+
+**The rate wall.** The projected description is autonomous once the internal
+modes relax, and the relaxation rate is measured. A deviation injected at the
+declared seeds peaks at $2.0326187974944866\times10^{-3}$ and its tail decays
+at $\nu=1.119569724312185\times10^{-2}$ per unit time, that is $1/\nu=89.32$
+units, inside the arm's own conversion bracket, while halving the conversion
+scale halves the fitted rate to $0.5016205024503622$ of the reference. The
+evolved loop average tracks (LB7) at the arithmetic floor in the closure arms,
+$\rho_{\max}\le1.2313382636751607\times10^{-14}$. This is the clock against
+which every separation below is read.
+See `field-experience/probe-outcome-ledger.md` §65.
+
+**Transport degrades the projection at first order, with a measured
+coefficient and crossing.** Splitting the carriers' exterior velocity to
+$u(1\pm\delta_u)$ while the gate stays common and projected gives separations
+$6.799503171158458\times10^{-8}$ at $\delta_u=10^{-6}$ rising to
+$6.8205755240104814\times10^{-3}$ at $10^{-1}$; the fitted law is
+$6.820388654045467\times10^{-2}\,\delta_u^{1.000205540897814}$ with per-level
+ratios within $3\times10^{-3}$ of the line, and the class bound $10^{-6}$ is
+crossed between $\delta_u=10^{-5}$ and $10^{-4}$, at
+$\delta_u^\star=1.4661921053529064\times10^{-5}$. The mechanism is visible in
+the law itself: the differential velocity is the only term of (LB6) that
+generates the conversion bracket $B=-\langle f_Y\rangle_\chi+\varphi\langle
+f_I\rangle_\chi$, so a realization with a shared velocity holds $B$ fixed.
+See `field-experience/probe-outcome-ledger.md` §66.
+
+**The gate is inert on the conversion ray and acts in proportion to the
+load.** A split gate $\kappa(1\pm\delta_g\cos\chi)$ leaves a seed that sits
+exactly on the conversion ray untouched at every $\delta_g$: all seven sweep
+readings coincide with the common reference at
+$5.329147248815693\times10^{-16}$, none is readable above $10^{-13}$, and the
+$\delta_g=1$ supersplit is silent, because the split multiplies a bracket that
+is exactly zero there. Moving the carriers off the ray by a measured relative
+load $\ell$ in the bracket makes the same split readable and proportional to
+$\delta_g$, with coefficient $6.46326845434526\times10^{-3}$, exponent
+$1.0001266948985081$ and per-level ratios within $1.4\times10^{-3}$ of the
+line, while the response at a fixed small split is itself linear in the load
+with coefficient $1.6438857835609873\times10^{-4}$ and exponent
+$1.0777928255642235$. The two class-bound crossings are
+$\delta_g^\star=1.5489254257633844\times10^{-4}$ at the largest declared load
+and $\ell^\star=8.791547515527859\times10^{-3}$ at $\delta_g=10^{-2}$, both
+below one percent on their own axis, so the gate's authority is a sub-percent
+deformation statement on the split axis and on the seed's distance from the
+ray. See `field-experience/probe-outcome-ledger.md` §§66–67.
+
+**The gate writes a composition level.** Held at the largest declared load
+over five relaxation times, the same split displaces the composition
+coordinate of §2.2 by an amount proportional to the split size across seven
+decades,
+$\lvert D_\infty\rvert=(4.3424057234641914\times10^{-4})\,\delta_g^{1.0302448806878108}$
+with per-level ratios $0.853$–$1.336$ and instrument
+$\delta_w=4.1290229776468171\times10^{-9}$. The rate-held and rate-fitted
+offsets agree to within six percent on every level, and the displacement
+stands at $0.959$–$0.979$ of the arm's terminal reading against a terminal
+fit whose own law is
+$(4.478554559337186\times10^{-4})\,\delta_g^{1.0291737139778423}$. This
+comparison is made on every arm's final state, with the reference carrying its
+own ray distance of $1.3442651683720991\times10^{-3}$ at the hold horizon. The
+can-fail control, the same load at the full split, moves the coordinate by
+$5.9240187127518329\times10^{-4}$ at the peak of its response, so the statistic
+does register a displacement at the largest load. Every declared split size
+takes the persisting branch of the declared test, so the write decision on this
+realization is that the gate displaces the carrier's composition attractor. See
+`field-experience/probe-outcome-ledger.md` §69.
+
+**The carrier keeps what the gate wrote.** Removing the split at
+$T=450$, five relaxation times in, and integrating a further $450$ units
+leaves the displacement standing at $1.021$–$1.043$ of the value the gate
+wrote, with the two fits agreeing to within $4\times10^{-5}$ of each other and
+the post-release readings moving by $5.7\times10^{-5}$ to
+$3.9\times10^{-4}$ of themselves, where a displacement decaying on the
+measured clock would have fallen by a factor $e^{\nu\,420}=110$. The ray arm
+is exactly silent in both phases. The retained quantity is a conserved
+conversion level rather than a state off the ray: the loaded reference's own
+distance from the ray falls from $1.3442651683720991\times10^{-3}$ at the hold
+horizon to $8.439048206843707\times10^{-6}$ at $T=900$, so the released arms
+are back on the ray with their composition coordinate still displaced. Every
+graded level takes the retained branch, so the retention decision on this
+realization is that the carrier stores the level the gate wrote after the
+asymmetry that wrote it is removed: the gate is a memory of the carrier rather
+than a knob on a driven state. See `field-experience/probe-outcome-ledger.md`
+§69.
+
+Read together, these fix the reduced description's boundary in one place: the
+zero-mode closure of §3.2 holds exactly at the level of the projection, while
+the projected fields' composition responds to a differential velocity at first
+order, to a differential gate only in proportion to how far the carriers sit
+from the conversion ray, and to neither at zero load and zero velocity offset.
+A displacement written by the gate is not undone by removing the gate over
+five relaxation times on this realization, which is the measured difference
+between a composition level the reduced dynamics conserves and a driven state
+that exists only while the drive is present. Nothing in this subsection
+measures the conversion ratio, the value of $\varphi$, the carrier identity,
+the QF1-to-carrier map, the phase law, the scale ratio or the quantum
+statistics; the ratio enters only through the declared entries of the
+four-population law, and the load is a departure of the carrier state from the
+ray rather than a physical density or current.
+
 ---
 
 ## 8. Fivefold orbit and pentagram visibility
