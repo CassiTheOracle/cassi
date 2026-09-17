@@ -476,7 +476,9 @@ do not own a second adaptive runtime. This repository root contains:
 | [`test_owner_surface_options.py`](test_owner_surface_options.py) | Fast regression for the owner surface options receipt: the opt-in input helper against the shipped declared input at zero coupling, the evidence and prediction readings with their moved-leaf classes and their page invariants, the refusal without a declared channel, the overlap lattice and its controls, and receipt-digest reproducibility and mutation sensitivity |
 | [`run_owner_nested_cycle.py`](run_owner_nested_cycle.py) | The whole owned memory chain on a declared `2 x 2` of bodies — rail `{canonical, nested-core-shell}` by metric `{flat inverse mass, ladder ratio 1.3}` — with each arm's neutral gain measured on that arm's own field, the write-hold-read-act cycle per arm, the rail and metric effects with the survival receipt's own decomposition re-measured on four reference legs, the rail-construction and direction-orthogonality measurements behind the factor reading, the nothing-written, read-suppressed, unwritten-direction, no-loop and digest-mutation controls, the shipped consumer episode's route continuity on the canonical arm, and the owner inspection surface's failure on the nested rail |
 | [`test_owner_nested_cycle.py`](test_owner_nested_cycle.py) | Fast regression for the owner nested cycle receipt: the declared arms and their measured gains, the factorial cells and their effects, the reference legs against the cited survival components, the rail-construction and orthogonality measurements, the controls with their firing mutations, the route continuity against the shipped episode, and receipt-digest reproducibility and mutation sensitivity |
-| [`FRACTAL-MEMORY-EXPLORATION.md`](FRACTAL-MEMORY-EXPLORATION.md) | Exploration record for a fractal scaffold and transceiver placement as durable field memory, with the thirteen exploration harnesses' measured figures |
+| [`run_memory_store_scale.py`](run_memory_store_scale.py) | The non-destructive act and a multi-item store under use, on one declared profile: four arms over the owner write act, the owner's own transceiver, the declared coupled input realization outside the owner surface, and the same drive on an unwritten page, each publishing the four declared surface digests before and after; the coupled and shipped relations' authority over the declared input scan across the declared window; and part B's eight declared items held at this profile's own measured neutral gain and used for eight rounds — the full `8 x 8` read matrix, per-item recovery and interference, the never-acted drift band, the single-item leakage block with its written-versus-unwritten separation, the blank-page and orthogonality controls, and the identity control re-run on the store's final byte-identical page |
+| [`test_memory_store_scale.py`](test_memory_store_scale.py) | Fast regression for the memory store scale receipt: the destructive owner write act against the two non-destructive drive acts, the coupled act's attribution to the declared relation rather than the input code path, the unwritten page's equal readout movement and zero stored read, the store's per-item recovery with the drift band passed by never-acted cells and failed by acted ones, the single-item leakage measure with its diagonal witness, the identity control at the end of use, the probed gain's non-vacuity, and digest determinism over the measured body with its mutation sensitivity in both directions — five measured figures and the ledger-moved boolean must move the digest, while the clock leaves the receipt declares and the chained ledger digests derived from them must not — so the receipt is cross-run reproducible under the declared strip rule, which strips a declared clock leaf and, by rule, any value derived from a stripped value |
+| [`FRACTAL-MEMORY-EXPLORATION.md`](FRACTAL-MEMORY-EXPLORATION.md) | Exploration record for a fractal scaffold and transceiver placement as durable field memory, with the fourteen exploration harnesses' measured figures |
 
 Run the implemented paths from this directory:
 
@@ -500,6 +502,7 @@ python run_owner_write_path_exploration.py --output _diag/owner-write-path/explo
 python run_memory_consumer_path.py --output _diag/memory-consumer-path/exploration.json
 python run_owner_surface_options.py --output _diag/owner-surface-options/exploration.json
 python run_owner_nested_cycle.py --output _diag/owner-nested-cycle/exploration.json
+python run_memory_store_scale.py --output _diag/memory-store-scale/exploration.json
 python -m pytest test_fractal_survival_exploration.py -q
 python -m pytest test_fractal_ladder_exploration.py -q
 python -m pytest test_fractal_metric_exploration.py -q
@@ -509,6 +512,7 @@ python -m pytest test_owner_write_path_exploration.py -q
 python -m pytest test_memory_consumer_path.py -q
 python -m pytest test_owner_surface_options.py -q
 python -m pytest test_owner_nested_cycle.py -q
+python -m pytest test_memory_store_scale.py -q
 ```
 
 The scenarios are controlled reference environments. They do not establish
