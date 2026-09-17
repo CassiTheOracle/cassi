@@ -2791,6 +2791,74 @@ scale ratio or the quantum statistics: the ratio enters only as the declared
 entries of the four-population law, and §65's boundary and the theorem's result
 ledger are unchanged.
 
+## 67. Off the ray: a proportional gate axis and a linear load law
+
+The protocol `computations/loop-carrier-gate-load-prereg.md` closes the row §66
+left open: whether a split gate degrades the projection on a seed that is *not*
+on the conversion ray. It keeps the carrier law, the frozen discrete operators,
+the profile, the seed shape, the canonical companion, the integrator, the budget
+and the stopping rule fixed, imports the spent protocol's split right-hand side
+at a bound digest rather than re-deriving it, and loads the conversion bracket
+$B=-\psi_Y+\varphi\,\psi_I$ by a declared, measured relative amount $\ell$
+through a pure transfer between the two carriers that preserves the local total
+and introduces no new mode. The statistic is the separation between a split arm
+and its own unsplit twin, more than six class-bound widths above its own
+reference floor by construction, read as a peak with the terminal value beside
+it. Twenty-two declared arms: the six gate decades at the largest load, a
+supersplit there, the ray seed as a declared $\ell=0$ control, five load levels
+at $\delta_g=10^{-2}$, the successor's conversion-law replication and the spent
+protocol's own short ray arm. $13{,}934$ RK2 steps against a total cap $30{,}000$
+and a per-execution cap $50{,}000$, one process, bound $600$ s. This protocol is
+frozen with its executor: the text of sections 1–7 and the script are bound by
+digest before any arm is constructed, and the script refuses to run on a binding
+mismatch, on an oracle mismatch against the two predecessor receipts, or on an
+existing receipt.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Completed execution | One invocation of `timeout 600 python computations/verify_loop_carrier_gate_load.py` from the repository root, $9$ s measured outside and `runtime_seconds` $8.954417705535889$ inside, writing `runs/loop_carrier_gate_load/verification.json` at `status=PASS` | Inside the bound with a factor $67$ of headroom on the §6 projection of $\approx12$ s; the single invocation is spent, and the receipt's existence now refuses a second in code |
+| Integrity | $13$ of $13$ gates and all six features: binding exact on all seven declared rows, state $\ge0.14656935329411563$, projection $\ge0.41142274608874574$, annihilation $\le3.26\times10^{-15}$, idempotence $\le1.67\times10^{-16}$, no non-conformant arm at $\Delta t=0.02$, declared shape $22$ with $13{,}934$ of $30{,}000$ steps, zero-split reduction residual $0.0$ exactly, one process | The instrument is licensed before any reading is taken |
+| Pre-flight action | At $\delta_g=1$ the split moves the bracket's *rate* by $6.868880495192359\times10^{-3}$ of the right-hand side on the loaded seed against the floor $10^{-3}$, and by $4.199047857243002\times10^{-18}$ on the ray seed against the ceiling $10^{-15}$ | The check §66 lacked: the action, not the operand. Both directions carry more than an order of magnitude of margin, so neither can be satisfied by accident |
+| Gate axis | $\sigma_{\rm peak}$ from $6.454373565784\times10^{-9}$ at $\delta_g=10^{-6}$ to $6.466800963652\times10^{-4}$ at $10^{-1}$, all six levels readable, fit coefficient $6.46326845434526\times10^{-3}$ with exponent $1.0001266948985081$ and ratios $0.9993984$–$1.0008385$ inside the factor $2$ band, boundary `BRACKETED` with crossing $\delta^\star=1.5489254257633844\times10^{-4}$ | **`PROPORTIONAL`.** First order in the declared split size on this realization, and the axis §66 called inert is live as soon as the seed is off the ray—the reading is the fix the boundary of §66 asked for |
+| Load axis | At $\delta_g=10^{-2}$, $\sigma_{\rm peak}$ from $4.915584889131\times10^{-7}$ at $\ell=4.23\times10^{-3}$ to $6.455612516865\times10^{-5}$ at $3.65\times10^{-1}$, all six levels readable, fit coefficient $1.6438857835609873\times10^{-4}$ with exponent $1.0777928255642235$ and ratios $0.9033$–$1.1650$ inside the band, boundary `BRACKETED` with crossing $\ell^\star=8.791547515527859\times10^{-3}$ | **`LINEAR_IN_LOAD`.** The response per unit load rises monotonically from $1.162289769359\times10^{-4}$ to $1.770545846703\times10^{-4}$, a factor $1.523$ across the span, so the fitted $q$ sits $7.8\%$ above linear inside the declared $0.9\le q\le1.1$ band: the authority of the gate grows with how far the carrier sits off the ray, with a recorded convexity rather than a third law |
+| Controls | `supersplit_load` $6.583063281834764\times10^{-3}$ against the $10^{-6}$ bound, firing by $6{,}583\times$; `ray_supersplit` $1.1102230246251565\times10^{-16}$ against the $10^{-14}$ floor; `ray_short` $5.329147248815693\times10^{-16}$ equal to §66's own `common_reference` reading; `successor_replication` $2.622443969747147\times10^{-15}$, terminal $2.219140084394095\times10^{-15}$ and $\lambda_{\max}$ $1.0331312281605476$ equal to §65's `mode1_long` | The can-fail control that failed in §66 now fires by four decades, the zero-load control is silent as declared, and both oracles are bit-identical to their bound receipts, so the two runs measure the same instrument on the same seeds |
+| Peak and horizon | $t_{\rm peak}=10.66$ on the six largest-load decades and $10.98$ on the supersplit, against $T=12$; $\sigma_{\rm peak}/\sigma_{\rm terminal}$ $0.996342$ at $\delta_g=10^{-6}$ and $0.996437$ at $10^{-1}$, $0.999945$ at the smallest load | The statistic is a pair by construction: the terminal reading is a mildly late reading of the peak, and the peak is inside the horizon on the arm with the largest separation, so F6 holds and the horizon is not the reading |
+| Boundary | Twenty-two arms at $N_\chi=24$, one profile, one seed shape, one split form (the $\cos\chi$ modulation alone), one rate set; the common gate and common transport stay assumed; the load is a single-parameter family of one shape, so its size is not separated from the shape carrying it | **RESOLVED** by this run: off the ray, a split gate's authority is first order in the split size and, to within $8\%$, first order in the bracket load, with both crossings sub-percent in their own axis. **UNRESOLVED**: whether the load law's convexity survives a different load shape, a refined $\chi$-resolution, or a longer horizon; and nothing here separates the load's magnitude from its spatial shape |
+
+The aggregate reading is
+
+```text
+PASS
+split_law: PROPORTIONAL
+load_law: LINEAR_IN_LOAD
+```
+
+Both verdicts are issued, and the instrument that carries them is
+$(\delta^\star,\ell^\star)=(1.5489254257633844\times10^{-4},\,
+8.791547515527859\times10^{-3})$ at the declared floors and horizons: an
+orientation-asymmetric gate keeps the separation inside the class bound for
+$\delta_g\le1.5\times10^{-4}$ at the largest declared load, and at a fixed
+$\delta_g=10^{-2}$ it takes a load of $\ell\ge8.8\times10^{-3}$ to reach it.
+Both crossings sit below one percent in their own axis—$0.0155\%$ in the split,
+$0.88\%$ in the load—so the projection tolerates about four decimal digits of
+gate asymmetry at a strongly off-ray seed and about one and a half at a barely
+loaded one.
+
+What stands is narrower than the labels sound. The split coefficient is a
+property of the declared block's trace and its own bracket, and $\varphi$ enters
+only as the declared entries of the four-population law, which remains the
+selected minimal member of a family whose columns sum to one: for a rank-one
+conversion block the spectrum and the relaxation rate are functions of $a+b$
+alone and the ratio lives in the null vector, so nothing here measures the
+conversion ratio, the carrier identity, the QF1-to-carrier map, the phase law,
+the scale ratio or the quantum statistics. The load is a departure of the
+*carrier state* from the ray, not a physical density, current or field strength,
+so the second fit describes this protocol's declared perturbation axis and not
+any measured physical quantity. The transport axis is not re-opened: its
+exponent $1.000205540897814$ and crossing $\delta_u=1.4661921053529064\times10^{-5}$
+stand from §66, and the two axes remain separate readings of one statistic on
+one realization.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -3008,3 +3076,6 @@ ledger are unchanged.
 - `computations/loop-carrier-projection-split-prereg.md`—frozen split protocol carrying its executor in the same commit, the gate and transport constructions, the six-decade levels, and the post-execution record at `status=FAIL` with both verdicts null.
 - `computations/verify_loop_carrier_projection_split.py`—executor binding the protocol body, the frozen discrete operators, the successor's probe and its receipt by digest, with the nineteen-arm static self-check and the refusal path of §0.
 - `runs/loop_carrier_projection_split/verification.json`—source-bound receipt of the single invocation at `status=FAIL`, the thirteen gates, the nineteen arm readings, one empty and one first-order sweep, and both withheld verdicts (gitignored run artifact).
+- `computations/loop-carrier-gate-load-prereg.md`—frozen gate-load protocol carrying its executor in the same commit, the declared load family, the separation statistic, the two fits and the pre-flight action check, with the post-execution record at `status=PASS` and both verdicts issued.
+- `computations/verify_loop_carrier_gate_load.py`—executor binding the protocol body, the spent split executor, the successor's probe and both predecessor receipts by digest, with the idempotent twenty-two-arm self-check and the refusal path of §0.
+- `runs/loop_carrier_gate_load/verification.json`—source-bound receipt of the single invocation at `status=PASS`, the thirteen gates, the twenty-two arm readings, the proportional split sweep, the linear load law with its recorded convexity, and the instrument $(\delta^\star,\ell^\star)$ (gitignored run artifact).
