@@ -493,6 +493,7 @@ def run_arm(spec: ArmSpec, base, anchor_series) -> dict:
     conformant = bool(dt <= 1.0 / (STEP_SAFETY * lambda_max) and dt in STEP_CANDIDATES)
     comparison = gate_load.load_comparison(spec, gate_load.load_of(state, base))
 
+    sampled = SAMPLE if steps + 1 > SAMPLE[-1] else ()
     canonical = base.canonical_initial(PROFILE)
     series = np.empty(steps + 1)
     rho, minimum, minimum_projection, q_low, q_high = [], [], [], [], []
@@ -536,7 +537,7 @@ def run_arm(spec: ArmSpec, base, anchor_series) -> dict:
             "steps": steps,
             "lambda_max": lambda_max,
             "rule_conformant": conformant,
-            "samples": list(SAMPLE),
+            "samples": list(sampled),
         },
         "rho": {"max": float(np.max(rho)), "final": float(rho[-1]),
                 "peak_time": float(int(np.argmax(rho)) * dt)},
@@ -551,15 +552,16 @@ def run_arm(spec: ArmSpec, base, anchor_series) -> dict:
         "ray_distance": (None if self_twin else
                          ray_distance_of(base.projection(state), base)),
         "coordinate": {"initial": float(series[0]), "final": float(series[-1]),
-                       "at_horizons": [float(series[index]) for index in SAMPLE]},
+                       "at_horizons": ([float(series[index]) for index in sampled]
+                                       if sampled else None)},
         "delta": None,
         "branch": None,
         "self_twin": self_twin,
         "steps_recorded": int(steps + 1),
     }
-    if not self_twin:
+    if not self_twin and sampled:
         difference = series - anchor_series
-        readings = [float(difference[index]) for index in SAMPLE]
+        readings = [float(difference[index]) for index in sampled]
         peak_index = int(np.argmax(np.abs(difference)))
         reading["delta"] = {
             "at_horizons": readings,
@@ -1200,6 +1202,11 @@ def self_check() -> int:
             problems.append("{0} declares no twin and is not an anchor or an oracle".format(
                 arm.name))
         seen.add(arm.name)
+    for arm in ARM_TABLE:
+        if arm.name in SWEEP_ORDER or arm.role == "silence":
+            if arm.declared_schedule()[2] + 1 <= SAMPLE[-1]:
+                problems.append("{0} is read at the declared horizons but runs only {1} "
+                                "steps".format(arm.name, arm.declared_schedule()[2]))
     sweep = [arm for arm in ARM_TABLE if arm.name in SWEEP_ORDER]
     if [arm.name for arm in sweep] != list(SWEEP_ORDER):
         problems.append("the sweep family is not the declared order {0}".format(SWEEP_ORDER))
