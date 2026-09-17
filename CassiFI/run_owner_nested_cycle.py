@@ -112,6 +112,7 @@ import hashlib
 import inspect
 import json
 import shutil
+import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -199,14 +200,35 @@ ROUTE_FIGURE_ALLOWANCE = 1e-12
 # cited-profile reproductions.
 RAIL_CONSTRUCTION_MARGIN = 1e-6
 
-# The declared strip set of the receipt digest: the geometry harness's own
-# declared wall-clock keys, applied by that harness's own ``content_digest``.  The
-# set is declared inside this receipt beside the definition it belongs to.
-STRIP_KEYS = tuple(sorted(geometry.TIMING_KEYS))
+# The declared strip sets of this receipt's digest: wall-clock leaves, then keys derived from a stripped value.
+CLOCK_LEAF_KEYS = tuple(sorted(geometry.TIMING_KEYS))
+CLOCK_DERIVED_KEYS: tuple[str, ...] = ()
+STRIP_KEYS = tuple(sorted(set(CLOCK_LEAF_KEYS) | set(CLOCK_DERIVED_KEYS)))
 DIGEST_DEFINITION = (
     "sha256 of the canonical JSON (sorted keys, no insignificant whitespace, "
     "allow_nan=False) of the measured body with the declared wall-clock keys "
     "stripped, taken before the digest itself is attached"
+)
+
+# The keys the digest is not taken over, field by field: the receipt's own digest
+# field, which cannot cover itself, and the builder-provenance block below, which
+# describes the builders rather than the measurements. ``receipt_digest`` reads this
+# tuple, so the exclusion is applied from one declaration rather than restated.
+DIGEST_FIELD = "receipt_digest"
+BUILDER_PROVENANCE_KEY = "builder_provenance"
+EXCLUDED_FROM_DIGEST = (DIGEST_FIELD, BUILDER_PROVENANCE_KEY)
+
+# How one builder's source region is turned into a content address, stated here so
+# a third party can reproduce it: the region is what ``inspect.getsource`` returns
+# for the builder (its decorators, its ``def`` line and the whole body), each line
+# right-stripped, its trailing blank lines dropped, dedented by its common leading
+# whitespace and joined with newlines, hashed as UTF-8. The normalisation removes
+# exactly the two things a reindent or a trailing space changes, and nothing else.
+BUILDER_SOURCE_NORMALISATION = (
+    "sha256 over UTF-8 of inspect.getsource(builder) -- decorators, def line and "
+    "the whole body -- with each line right-stripped, the region's trailing blank "
+    "lines dropped, the remainder dedented by its common leading whitespace and the "
+    "lines joined with \"\\n\" without a trailing newline"
 )
 
 # The declared receipts cited read-only, with the key paths this receipt reads.
@@ -380,12 +402,66 @@ class OwnerNestedConfig:
 
 
 # --------------------------------------------------------------------------
-# the declared arms: construction, by name and by live source line
+# the declared builders: named by symbol, bound by content, never by position
 # --------------------------------------------------------------------------
-def source_line(function: Callable[..., Any]) -> int:
-    """The live source line of one declared builder, so an arm can be rebuilt."""
+def normalised_builder_source(function: Callable[..., Any]) -> str:
+    """One builder's source region, under this receipt's declared normalisation."""
 
-    return int(inspect.getsourcelines(function)[1])
+    lines = [line.rstrip() for line in inspect.getsource(function).split("\n")]
+    while lines and not lines[-1]:
+        lines.pop()
+    return textwrap.dedent("\n".join(lines))
+
+
+def builder_source_sha256(function: Callable[..., Any]) -> str:
+    """One builder's content address, over its normalised source region."""
+
+    return hashlib.sha256(
+        normalised_builder_source(function).encode("utf-8")
+    ).hexdigest()
+
+
+def receipt_builders(specs: Sequence[ArmSpec]) -> tuple[Callable[..., Any], ...]:
+    """Every builder the construction records can name, in a stable order."""
+
+    builders: list[Callable[..., Any]] = [metric.build_metric_profile]
+    for spec in specs:
+        builder = row_lookup(spec) if spec.row_name is not None else declared_row_for
+        if builder not in builders:
+            builders.append(builder)
+    if any(spec.rail != CANONICAL_RAIL for spec in specs):
+        builders.append(geometry.build_profile)
+    return tuple(builders)
+
+
+def builder_provenance_block(specs: Sequence[ArmSpec]) -> dict[str, Any]:
+    """The builders this receipt's construction records name, bound by content.
+
+    Published at the receipt's top level and excluded from the digest, because this
+    block is about the builders and the digest is about the measurements. The
+    construction records name their builders (``built_by``, ``base_rail_builder``,
+    ``declared_by``) and carry no source position: a position moves the digest when
+    an edit shifts a builder even though no measured number changes, and nothing
+    downstream reads a line number. The question a reader has is which builder built
+    an arm and whether it changed; the names answer the first half, and this block
+    answers the second, so a builder edit is visible in the receipt without the
+    receipt's digest becoming a function of the source file's layout.
+    """
+
+    return {
+        "definition": BUILDER_SOURCE_NORMALISATION,
+        "hash": "sha256",
+        "excluded_from_the_digest": list(EXCLUDED_FROM_DIGEST),
+        "replaces": [
+            "declared.factorial.construction.<arm>.declared_at_line",
+            "declared.factorial.construction.<arm>.built_at_line",
+            "declared.factorial.construction.<arm>.base_rail_builder_line",
+        ],
+        "builders": {
+            qualified(function): builder_source_sha256(function)
+            for function in receipt_builders(specs)
+        },
+    }
 
 
 def qualified(function: Callable[..., Any]) -> str:
@@ -462,7 +538,13 @@ def rail_vector(profile: Any) -> np.ndarray:
 
 
 def construction_record(spec: ArmSpec, row: Any, profile: Any) -> dict[str, Any]:
-    """How one arm was built, by name, by builder, by live source line and by digest."""
+    """How one arm was built, by name, by builder and by digest.
+
+    The record names its builders by ``module.symbol`` and carries no source
+    position: the builders' content addresses are published beside the digest at
+    ``builder_provenance``, which is excluded from it, so this record stays a
+    description of the arm rather than of the file it was built in.
+    """
 
     index = None
     if spec.row_name is not None:
@@ -481,20 +563,11 @@ def construction_record(spec: ArmSpec, row: Any, profile: Any) -> dict[str, Any]
         "declared_by": (
             qualified(row_lookup(spec)) if spec.row_name is not None else qualified(declared_row_for)
         ),
-        "declared_at_line": (
-            source_line(row_lookup(spec))
-            if spec.row_name is not None
-            else source_line(declared_row_for)
-        ),
         "declared_row_index": index,
         "declared_rule": str(row.rule),
         "built_by": qualified(metric.build_metric_profile),
-        "built_at_line": source_line(metric.build_metric_profile),
         "base_rail_builder": (
             None if spec.rail == CANONICAL_RAIL else qualified(geometry.build_profile)
-        ),
-        "base_rail_builder_line": (
-            None if spec.rail == CANONICAL_RAIL else source_line(geometry.build_profile)
         ),
         "base_rail_arrangement": (
             None if spec.rail == CANONICAL_RAIL else geometry.arrangement_named(spec.rail).name
@@ -2423,14 +2496,16 @@ def build_receipt(config: OwnerNestedConfig | None = None) -> dict[str, Any]:
                 "strip_keys": list(STRIP_KEYS),
                 "taken_over": (
                     "the whole measured body with the wall-clock keys of the declared "
-                    "strip set removed and the digest field itself excluded. The "
-                    "digested body includes the construction records' own source-line "
-                    "fields -- `declared.factorial.construction.<arm>.declared_at_line`, "
-                    "and the same record's `built_at_line` and `base_rail_builder_line` "
-                    "-- because those records are part of the measured body (they are "
-                    "what lets a reader rebuild each arm), so the digest binds the live "
-                    "source lines of the declared builders and moves when an edit shifts "
-                    "them even if no measured number changes"
+                    "strip set removed and the keys named in "
+                    "``builder_provenance.excluded_from_the_digest`` excluded. The "
+                    "construction records name their builders (``built_by``, "
+                    "``base_rail_builder``, ``declared_by``) and carry no source "
+                    "position, so the digest is a function of the measurements and not "
+                    "of any file's layout: an edit above a builder does not move it. "
+                    "The builders' own content addresses are published beside the "
+                    "digest at ``builder_provenance``, which the digest excludes, so a "
+                    "reader can see which builders this receipt was built from and "
+                    "whether they changed"
                 ),
             },
         },
@@ -2448,6 +2523,7 @@ def build_receipt(config: OwnerNestedConfig | None = None) -> dict[str, Any]:
     body["declared"]["factorial"]["construction"] = {
         name: arm["cell"] for name, arm in arms.items()
     }
+    body[BUILDER_PROVENANCE_KEY] = builder_provenance_block(config.arms)
     # The construction and capability blocks need the live profile objects, which
     # are not JSON data, so they are measured before the arms are published.
     held_profiles = {
@@ -2504,11 +2580,55 @@ def build_receipt(config: OwnerNestedConfig | None = None) -> dict[str, Any]:
     return body
 
 
-def receipt_digest(body: Mapping[str, Any]) -> str:
-    """The lattice runner's declared content digest, applied to a receipt body."""
+def strip_clock_leaves(value: Any) -> Any:
+    """Apply this runner's declared strip set to a whole body, at any depth.
 
-    return geometry.content_digest(
-        {key: value for key, value in body.items() if key != "receipt_digest"}
+    A key is dropped when it is a declared wall-clock leaf, and by rule when it is
+    a declared clock-derived digest: a value computed over a stripped value, such as
+    a chained manifest hash, a chained receipt hash, or a digest computed over one.
+    The rule is read from this module's own declaration above, so adding a key to
+    ``CLOCK_LEAF_KEYS`` or ``CLOCK_DERIVED_KEYS`` changes what the digest covers.
+
+    ``CLOCK_DERIVED_KEYS`` is empty because this runner's measured body carries no
+    clock-derived digest: its owner-side digests (``ledger_sha256``,
+    ``owner_state_sha256``, ``page_sha256``, ``workspace_state_sha256``) are content
+    addresses over state built from declared settings and field writes, and no
+    wall-clock value is ever handed to the owner here. A key belongs in the set the
+    moment this body grows one, which is the same reading
+    ``run_memory_store_scale.CLOCK_DERIVED_KEYS`` records for its own body, where the
+    owner's current checkpoint manifest did chain a timed receipt.
+    """
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): strip_clock_leaves(item)
+            for key, item in value.items()
+            if str(key) not in STRIP_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [strip_clock_leaves(item) for item in value]
+    return value
+
+
+def receipt_digest(body: Mapping[str, Any]) -> str:
+    """This receipt's content digest, under this runner's own declared strip rule.
+
+    The rule is the one published at ``declared.receipt_digest``: the measured body
+    with the declared strip set's wall-clock keys removed and the keys this module
+    declares excluded -- the digest field itself and the builder-provenance block --
+    left out. It is applied here by this module's own ``strip_clock_leaves`` and
+    ``EXCLUDED_FROM_DIGEST`` rather than by another module's fixed set, so what the
+    receipt declares is what it applies.
+    """
+
+    return geometry.canonical_digest(
+        strip_clock_leaves(
+            {
+                key: value
+                for key, value in body.items()
+                if key not in EXCLUDED_FROM_DIGEST
+            }
+        )
     )
 
 
