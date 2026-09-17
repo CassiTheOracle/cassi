@@ -73,7 +73,12 @@ BOUND_SECONDS = 600.0
 # Section 0 of the protocol declares both hashes: this file's, and the digest of the frozen
 # body (everything from "## 1." to just before "## 8."). The two are cross-bound without a
 # fix point, because section 0 sits outside the body range. Filled by the freeze pass.
-FROZEN_BODY_DIGEST = "8f3fae24990b7b74632f08f3f6d4dde4e476e6d81f3ad8a5d903b37659c06268"
+# Re-anchored after the single invocation, when three slips inside sections 1-7 were
+# corrected in place and marked (protocol section 8.7): the value this constant carried at
+# the invocation was 8f3fae24990b7b74632f08f3f6d4dde4e476e6d81f3ad8a5d903b37659c06268,
+# which is the body the receipt's frozen_sources records, and no arm, threshold, level or
+# decision rule was touched by the correction.
+FROZEN_BODY_DIGEST = "c0d2fe37b8b4ee7673b1ec1a7c658f2bedb4eae6ad360516057d5ee9cdc843fa"
 BODY_START = r"(?m)^## 1\."
 BODY_END = r"(?m)^## 8\."
 
