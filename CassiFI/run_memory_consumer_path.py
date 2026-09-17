@@ -195,12 +195,23 @@ CITED_NEUTRAL_GAIN = 0.02734375
 # receipt all spell it.
 READ_OPERATION_NAME = owner_path.READ_OPERATION_NAME
 
-# The declared strip set of the receipt digest: the geometry harness's own
-# declared wall-clock keys, applied by that harness's own ``content_digest``.
-# The measured body of this receipt carries no inner wall-clock field, so the
-# only key this set removes here is the top-level ``runtime_seconds``; the set is
-# declared inside the receipt beside the definition it belongs to.
-STRIP_KEYS = tuple(sorted(geometry.TIMING_KEYS))
+# The declared content-stability rule this receipt's digest applies, and the two
+# sets it is built from. CLOCK_LEAF_KEYS are the wall-clock leaves a receipt in
+# this family publishes, the geometry harness's own declared set; CLOCK_DERIVED_KEYS
+# are the keys whose value is derived from a stripped value -- a chained manifest
+# hash, a chained receipt hash, or a digest computed over one -- which the rule
+# strips as a class rather than case by case. This runner's measured body carries
+# no inner wall-clock field and no such derived digest: no wall-clock value is
+# ever handed to the owner here, so the only leaf the rule removes is the
+# top-level ``runtime_seconds``, and CLOCK_DERIVED_KEYS is empty by measurement
+# (a key belongs in it the moment this body grows one, as
+# run_memory_store_scale.CLOCK_DERIVED_KEYS records for its own body). The set is
+# declared inside the receipt beside the definition it belongs to, and
+# ``receipt_digest`` below strips exactly this set: this runner reads its own
+# declaration rather than another module's constant.
+CLOCK_LEAF_KEYS = tuple(sorted(geometry.TIMING_KEYS))
+CLOCK_DERIVED_KEYS: tuple[str, ...] = ()
+STRIP_KEYS = tuple(sorted(set(CLOCK_LEAF_KEYS) | set(CLOCK_DERIVED_KEYS)))
 
 RECEIPT_PATH = Path("_diag/memory-consumer-path/exploration.json")
 
@@ -301,18 +312,42 @@ def plain(value: Any) -> Any:
     return owner_path.plain(value)
 
 
+def strip_clock_leaves(value: Any) -> Any:
+    """Apply this runner's declared strip set to a whole body, at any depth.
+
+    A key is dropped when it is a declared wall-clock leaf, and by rule when it is
+    a declared clock-derived digest: a value computed over a stripped value. The
+    rule is read from this module's own declaration above, so adding a key to
+    ``CLOCK_LEAF_KEYS`` or ``CLOCK_DERIVED_KEYS`` changes what the digest covers.
+    """
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): strip_clock_leaves(item)
+            for key, item in value.items()
+            if str(key) not in STRIP_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [strip_clock_leaves(item) for item in value]
+    return value
+
+
 def receipt_digest(body: Mapping[str, Any]) -> str:
-    """The lattice runner's declared content digest, applied to a receipt body.
+    """This receipt's content digest, under this runner's own declared strip rule.
 
     ``run_fractal_lattice_exploration.py`` states and applies the convention: the
     SHA-256 of the canonical JSON (sorted keys, no insignificant whitespace,
     allow_nan=False) of the measured body with the declared wall-clock keys
-    stripped, taken before the digest itself is attached. The strip set is the
-    geometry harness's own ``TIMING_KEYS``, declared inside this receipt.
+    stripped, taken before the digest itself is attached. The strip set is this
+    runner's own declaration, published in the receipt, and it is applied here by
+    ``strip_clock_leaves`` rather than by the geometry harness's fixed set, so what
+    this receipt declares is what it applies.
     """
 
-    return geometry.content_digest(
-        {key: value for key, value in body.items() if key != "receipt_digest"}
+    return geometry.canonical_digest(
+        strip_clock_leaves(
+            {key: value for key, value in body.items() if key != "receipt_digest"}
+        )
     )
 
 

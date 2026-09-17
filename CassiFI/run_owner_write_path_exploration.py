@@ -120,6 +120,35 @@ PROFILE_SOURCE = (
 # the durability receipt it cites, not its own path.
 FEEDBACK_RECEIPT = Path("_diag/fractal-feedback/exploration.json")
 
+# The declared content-stability rule this receipt's digest applies, and the sets it
+# is built from. CLOCK_LEAF_KEYS are the wall-clock leaves a receipt in this family
+# publishes, the geometry harness's own declared set; CLOCK_DERIVED_KEYS are the keys
+# whose value is derived from a stripped value -- a chained manifest hash, a chained
+# receipt hash, or a digest computed over one -- which the rule strips as a class
+# rather than case by case. This runner's measured body carries no inner wall-clock
+# field and no clock-derived digest: the owner-side digests it publishes are content
+# addresses over state built from declared settings and field writes, because no
+# wall-clock value is ever handed to the owner here, so CLOCK_DERIVED_KEYS is empty
+# by measurement (a key belongs in it the moment this body grows one, as
+# run_memory_store_scale.CLOCK_DERIVED_KEYS records for its own body). The rule is
+# published in the receipt at ``content_digest_rule``, and this runner's own
+# ``receipt_digest`` strips exactly this set.
+CLOCK_LEAF_KEYS = tuple(sorted(geometry.TIMING_KEYS))
+CLOCK_DERIVED_KEYS: tuple[str, ...] = ()
+STRIP_KEYS = tuple(sorted(set(CLOCK_LEAF_KEYS) | set(CLOCK_DERIVED_KEYS)))
+
+# The receipt's own digest field, and the key its rule is published under. Both sit
+# beside the digest rather than inside it: the rule is not a measurement, so
+# publishing it moves no digest that describes the measured body. The rule block
+# says so itself, so a reader of the receipt is not left to infer it.
+DIGEST_FIELD = "receipt_digest"
+DIGEST_RULE_KEY = "content_digest_rule"
+DIGEST_DEFINITION = (
+    "sha256 of the canonical JSON (sorted keys, no insignificant whitespace, "
+    "allow_nan=False) of the measured body with the declared strip set removed, "
+    "taken before the digest itself is attached"
+)
+
 # The second declared item of the pair leg and of the cross-read discrimination
 # control: the shallowest detail write, inside the declared read frame and on a
 # different rung path from the headline item.
@@ -636,17 +665,72 @@ def plain(value: Any) -> Any:
     return value
 
 
-def receipt_digest(body: Mapping[str, Any]) -> str:
-    """The lattice runner's declared content digest, applied to a receipt body.
+def strip_clock_leaves(value: Any) -> Any:
+    """Apply this runner's declared strip set to a whole body, at any depth.
 
-    ``run_fractal_lattice_exploration.py`` states and applies the convention: the
-    SHA-256 of the canonical JSON (sorted keys, no insignificant whitespace,
-    allow_nan=False) of the measured body with the wall-clock fields stripped,
-    taken before the digest itself is attached.
+    A key is dropped when it is a declared wall-clock leaf, and by rule when it is a
+    declared clock-derived digest: a value computed over a stripped value. The rule
+    is read from this module's own declaration above, so adding a key to
+    ``CLOCK_LEAF_KEYS`` or ``CLOCK_DERIVED_KEYS`` changes what the digest covers.
     """
 
-    return geometry.content_digest(
-        {key: value for key, value in body.items() if key != "receipt_digest"}
+    if isinstance(value, Mapping):
+        return {
+            str(key): strip_clock_leaves(item)
+            for key, item in value.items()
+            if str(key) not in STRIP_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [strip_clock_leaves(item) for item in value]
+    return value
+
+
+def content_digest_rule() -> dict[str, Any]:
+    """The rule this receipt's digest applies, published in the receipt itself."""
+
+    return {
+        "definition": DIGEST_DEFINITION,
+        "clock_leaf_keys": list(CLOCK_LEAF_KEYS),
+        "clock_derived_keys": list(CLOCK_DERIVED_KEYS),
+        "strip_keys": list(STRIP_KEYS),
+        "helper": "run_owner_write_path_exploration.receipt_digest",
+        "computed_over": (
+            "the measured body with the declared strip set removed, the receipt's own "
+            "digest field excluded, and this rule block itself excluded"
+        ),
+        "why_the_rule_is_published_beside_the_digest": (
+            "the rule is not a measurement. It is published under "
+            f"``{DIGEST_RULE_KEY}`` at the receipt's top level and excluded from the "
+            "digest, so that a reader can see the rule the digest applies without the "
+            "act of publishing it moving the digest of the body it describes; the "
+            "digest covers the measured body, which is what the rule is about. Every "
+            "key named in ``strip_keys`` is stripped by this runner's own "
+            "``strip_clock_leaves`` wherever it appears, so the declared set and the "
+            "applied set are the same set, and no other module's strip constant is "
+            "consulted."
+        ),
+    }
+
+
+def receipt_digest(body: Mapping[str, Any]) -> str:
+    """This receipt's content digest, under this runner's own declared strip rule.
+
+    ``run_fractal_lattice_exploration.py`` states the convention: the SHA-256 of the
+    canonical JSON (sorted keys, no insignificant whitespace, allow_nan=False) of the
+    measured body with the declared wall-clock fields stripped, taken before the
+    digest itself is attached. The strip set is this runner's own declaration,
+    published at ``content_digest_rule``, and it is applied here by this module's
+    ``strip_clock_leaves`` rather than by the geometry harness's fixed set.
+    """
+
+    return geometry.canonical_digest(
+        strip_clock_leaves(
+            {
+                key: value
+                for key, value in body.items()
+                if key not in (DIGEST_FIELD, DIGEST_RULE_KEY)
+            }
+        )
     )
 
 
@@ -3719,6 +3803,7 @@ def build_receipt(config: OwnerWritePathConfig) -> dict[str, Any]:
             ),
         },
         **body,
+        DIGEST_RULE_KEY: content_digest_rule(),
     }
     receipt["reading"] = reading_block(body)
     receipt["runtime_seconds"] = perf_counter() - started

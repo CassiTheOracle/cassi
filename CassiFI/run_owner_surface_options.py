@@ -117,6 +117,30 @@ COUPLED_COUPLING = 1.0
 SHIPPED_DIAGONAL = 1.0
 SHIPPED_COUPLING = 0.0
 
+# The declared content-stability rule this receipt's digest applies, and the sets
+# it is built from. CLOCK_LEAF_KEYS are the wall-clock leaves a receipt in this
+# family publishes, the geometry harness's own declared set, which already includes
+# ``receipt_sha256``, a chained hash of a timed receipt; CLOCK_DERIVED_KEYS are the
+# keys whose value is derived from a stripped value -- a chained manifest hash, a
+# chained receipt hash, or a digest computed over one -- which the rule strips as a
+# class rather than case by case. This runner's measured body carries every
+# wall-clock figure it publishes under its top-level ``elapsed_seconds`` and carries
+# no clock-derived digest: the owner-side digests it reads (``manifest_sha256``,
+# ``atlas_state_sha256``, ``workspace_state_sha256``, ``page_sha256``) are content
+# addresses over state built from declared settings and field writes, because no
+# wall-clock value is ever handed to the owner here, so CLOCK_DERIVED_KEYS is empty
+# by measurement (a key belongs in it the moment this body grows one, as
+# run_memory_store_scale.CLOCK_DERIVED_KEYS records for its own body).
+# DIGEST_FIELD_KEYS is the receipt's own digest field, which the rule removes
+# wherever it appears so that the key this receipt publishes in ``digest_convention``
+# is one the helper actually reads.
+CLOCK_LEAF_KEYS = tuple(sorted(geometry.TIMING_KEYS))
+CLOCK_DERIVED_KEYS: tuple[str, ...] = ()
+DIGEST_FIELD_KEYS = ("receipt_digest",)
+STRIP_KEYS = tuple(
+    sorted(set(CLOCK_LEAF_KEYS) | set(CLOCK_DERIVED_KEYS) | set(DIGEST_FIELD_KEYS))
+)
+
 # The four topology names ``cassi_resonant_field.ResonantProfile`` accepts, spelled
 # where it validates them; the enumeration below covers all four, and its own
 # control shows a fifth name is refused.
@@ -307,18 +331,41 @@ def plain(value: Any) -> Any:
     return value
 
 
+def strip_clock_leaves(value: Any) -> Any:
+    """Apply this runner's declared strip set to a whole body, at any depth.
+
+    A key is dropped when it is a declared wall-clock leaf, when it is a declared
+    clock-derived digest -- a value computed over a stripped value -- or when it is
+    the receipt's own digest field, which this runner's declaration lists. The rule
+    is read from this module's own declaration above, so adding a key to
+    ``CLOCK_LEAF_KEYS`` or ``CLOCK_DERIVED_KEYS`` changes what the digest covers.
+    """
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): strip_clock_leaves(item)
+            for key, item in value.items()
+            if str(key) not in STRIP_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [strip_clock_leaves(item) for item in value]
+    return value
+
+
 def receipt_digest(body: Mapping[str, Any]) -> str:
-    """The lattice runner's declared content digest, applied to this receipt.
+    """This receipt's content digest, under this runner's own declared strip rule.
 
     ``run_fractal_lattice_exploration.py`` states and applies the convention: the
     SHA-256 of the canonical JSON (sorted keys, no insignificant whitespace,
     allow_nan=False) of the measured body with the declared wall-clock fields
-    stripped, taken before the digest itself is attached.
+    stripped, taken before the digest itself is attached. The strip set is this
+    runner's own declaration, which the receipt publishes at ``digest_convention``,
+    and it is applied here by ``strip_clock_leaves`` rather than by the geometry
+    harness's fixed set, so what this receipt declares is what it applies --
+    including the digest field's own name, which this runner's declaration lists.
     """
 
-    return geometry.content_digest(
-        {key: value for key, value in body.items() if key != "receipt_digest"}
-    )
+    return geometry.canonical_digest(strip_clock_leaves(dict(body)))
 
 
 def digest_convention() -> dict[str, Any]:
@@ -330,7 +377,7 @@ def digest_convention() -> dict[str, Any]:
             "whitespace, allow_nan=False) of the measured body with wall-clock "
             "fields stripped, before the digest itself is attached"
         ),
-        "strip_keys": sorted(set(geometry.TIMING_KEYS) | {"receipt_digest"}),
+        "strip_keys": list(STRIP_KEYS),
         "helper": "run_owner_surface_options.receipt_digest",
         "computed_over": "receipt body without the receipt_digest field",
     }
