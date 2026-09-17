@@ -3380,15 +3380,20 @@ the more effective of the two. The protocol's §8.1 also carries the ruling that
 repair and its two deciding conditions — derivability without run data, and pre-freeze catchability —
 and this body meets both.
 
-**Both rows above were re-anchored after this body ran, and the reason is one sentence in the body
-it continues.** At the user's instruction, section 6 of the two-coordinate protocol gained a sentence
-stating that its cost bound is enforced by the `timeout` wrapper on its invocation line and that its
-projection rows are estimates and not bounds — the reconciliation of the 405 s projection, the 900 s
-pre-amendment bound and the 726.1 s observation. Its own §8.1 carries the fourth state of its frozen
-pair, its executor's body-digest constant was re-anchored to match, and this body's executor and
-section-0 row were re-anchored behind it so the binding stays live. No declared value in either body
-moved at that re-anchoring; the rows the two invocations here actually ran against are the ones the
-receipts record.
+**Two binding rows moved after this body ran, and they are named rather than left to a bare
+"above": the `two_coordinate_executor_sha256` row and this body's own `executor_sha256` row, both
+standing in this section's `Binding and status` table at its end and both mirrored by the protocol's
+section 0. The reason is one sentence in the body it continues.** At the user's instruction, section 6
+of the two-coordinate protocol gained a sentence stating that its cost bound is enforced by the
+`timeout` wrapper on its invocation line and that its projection rows are estimates and not bounds —
+the reconciliation of the 405 s projection, the 900 s pre-amendment bound and the 726.1 s observation.
+Its own §8.1 carries the fourth state of its frozen pair, and its executor's body-digest constant was
+re-anchored to match, so the standing row for `two_coordinate_executor_sha256` reads `7f782440…` while
+this body's receipt and its archived first invocation both record `671e4a5e…`, the bytes both
+invocations actually ran against. This body's own executor was re-anchored the same way so its row
+could follow, from `c1a8d490…` to `b4b6aea7…`. No declared value in either body moved at that
+re-anchoring; the rows the two invocations here actually ran against are the ones the receipts
+record.
 
 **One repair, disclosed, with the pair's states readable without reconstruction.** The first invocation
 integrated all twenty-nine arms in 71.0 s and wrote a receipt with `status=FAIL`, gate 8 its only
