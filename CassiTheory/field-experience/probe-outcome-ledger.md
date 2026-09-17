@@ -2512,6 +2512,93 @@ protocol measures one lattice resolution pair, one viscosity and one amplitude
 band, and says nothing about the cascade law, the dark-energy or gravity
 mappings, or any other place $\varphi$ appears.
 
+## 64. Loop-carrier projection dynamics in the frozen discrete realization
+
+The frozen protocol `computations/loop-carrier-projection-dynamics-prereg.md`
+evolves the four-population law of
+`foundations/loop-to-bubble-projection-theorem.md` on the discrete operators of
+`computations/verify_loop_to_bubble_projection.py`, bound by digest, and
+measures four things: whether the complete loop average of the evolved state
+tracks the canonical two-density law at a ground-state and an excited profile
+(LB8)--(LB14), whether that average survives repeated exterior transport, an
+open and a closed gate and a truncated loop, whether the two declared loop
+modes decay at the frozen spectral rates $2g_m$, and whether four controls can
+witness a disagreement the probe is able to see. Fifteen declared executions
+run at $N_\chi=24$, $\Delta t=0.05$ with halved refinements, exchange $0.6$,
+seed imbalance $0.05$ on the three $J$-carrying arms and a composition split
+on the covariance arm, each to its own converged horizon ($210.9$ to $1000$),
+$232{,}334$ RK2 steps in total, one process, bound $5400$ s.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Completed execution | One invocation of `timeout 5400 python computations/verify_loop_carrier_projection_dynamics.py` from the repository root, 185 s measured outside and `runtime_seconds` 185.23 inside, writing `runs/loop_carrier_projection_dynamics/verification.json` at `status=FAIL` | Inside the declared bound with a factor 29 of headroom; the single invocation is spent |
+| Integrity | 11 of 11 gates: annihilation $4.88\times10^{-15}$, idempotence $2.02\times10^{-16}$, `velocity_split` $0.0$ in nine contract arms, gate spread $0.0$, matched start $8.88\times10^{-16}$, declared shape 15, spectrum re-check at most $4.69\times10^{-16}$ against $10^{-9}$, sensitivity floor $8.51\times10^{-17}$ against $10^{-11}$, one process and no concurrent run | Every gate inside its frozen tolerance |
+| Closure arms | $\rho_{\max}\le2.62\times10^{-15}$ and $\rho_{\rm final}\le2.22\times10^{-15}$ in the twelve arms with no injected disagreement, class `within_budget` | The evolved loop average tracks the canonical law at the arithmetic floor in twelve of twelve |
+| Refinement pairs | The two declared pairs reduce by $0.999987$ and $1.0000000000000058$ because both members already sit at the floor | Neither pair is `discretization_limited` and no arm is `structural_disagreement` |
+| Loop modes | $\Delta_m$ $9.63\times10^{-12}$ and $9.63\times10^{-12}$ on the long arms and $7.28\times10^{-12}$ on the short one, against $10^{-6}$; fitted log-slope errors $2.54\%$ and $0.59\%$ against $10\%$; $w_m(T_{\rm mode})$ $6.79\times10^{-9}$ and $1.26\times10^{-25}$ against $10^{-3}$; $J$ at the horizon $1.49\times10^{-16}$ and $2.97\times10^{-17}$ | The two long arms relax at the frozen rates $2g_m$ |
+| Feature F2 | F2 is true and **vacuous**: its condition quantifies over closure arms with $\rho_{\max}>10^{-6}$ and there are none | F2 carries no information about this family |
+| Firing controls | `null` fired with $\Delta=0$ exactly and $\rho_{\max}$ $8.51\times10^{-17}$; `persistent_current` fired with $\rho_{\max}$ $1.23\times10^{-14}$ and domain-mean $J$ ratio $1.0000000000000036$ | Two of the four controls fire |
+| Non-firing control, covariance | The (LB14) relative residual reads $4.31\times10^{-9}$ against the $10^{-12}$ bound and the terminal deviation $3.38\times10^{-8}$ against the $10^{-4}$ requirement, while the running maximum reaches $2.03\times10^{-3}$, two thousand times the requirement | The declared reading is the terminal state of an attracting relaxation; the relative residual divides by the quantity the control injects |
+| Non-firing control, direction split | The terminal deviation reads $1.05\times10^{-14}$ against the $10^{-4}$ requirement, while the running maximum reaches $6.00\times10^{-4}$, six hundred times it | Same reading defect; its class `above_budget_no_partner` is a probe label §5.1 does not define, which is a protocol gap and not a reading |
+| Persistent-current prediction | The max-abs current ratio ends at exactly $0.8333333333333374=1/1.2$, the flattened $20\%$ modulation, while the domain mean ends at $1.0000000000000036$ | Section 6A's amended prediction is confirmed, and F4 reads the domain mean |
+| Boundary | Four discrete profiles at one rate set and one realization, $N_\chi=24$ with one halved refinement per profile pair, converged horizons $210.9$ to $1000$, one seed amplitude | **UNRESOLVED**: whether a control read on the running maximum rather than the terminal state fires |
+
+Projection residual per arm, from the receipt:
+
+| Arm | Role | $\rho_{\max}$ | $\rho_{\rm final}$ | Class |
+|---|---|---|---|---|
+| `off_ray` | contract | $1.67\times10^{-16}$ | $7.93\times10^{-17}$ | `within_budget` |
+| `off_ray_refined` | contract | $1.67\times10^{-16}$ | $0.0$ | `within_budget` |
+| `on_ray` | contract | $1.01\times10^{-16}$ | $1.01\times10^{-16}$ | `within_budget` |
+| `on_ray_refined` | contract | $1.01\times10^{-16}$ | $0.0$ | `within_budget` |
+| `open_gate` | contract | $5.55\times10^{-17}$ | $5.55\times10^{-17}$ | `within_budget` |
+| `closed_gate` | contract | $1.65\times10^{-16}$ | $8.88\times10^{-17}$ | `within_budget` |
+| `loop_truncated` | contract | $2.76\times10^{-16}$ | $2.02\times10^{-16}$ | `within_budget` |
+| `mode1_short` | mode | $3.40\times10^{-16}$ | $3.40\times10^{-16}$ | `within_budget` |
+| `mode1_long` | mode | $2.62\times10^{-15}$ | $2.22\times10^{-15}$ | `within_budget` |
+| `mode2_long` | mode | $2.22\times10^{-15}$ | $1.82\times10^{-15}$ | `within_budget` |
+| `uniform_short` | mode | $8.51\times10^{-17}$ | $8.51\times10^{-17}$ | `within_budget` |
+| `null` | control | $8.51\times10^{-17}$ | $8.51\times10^{-17}$ | `within_budget` |
+| `covariance` | control | $2.03\times10^{-3}$ | $3.38\times10^{-8}$ | `above_budget_no_partner` |
+| `direction_split` | control | $6.00\times10^{-4}$ | $1.05\times10^{-14}$ | `above_budget_no_partner` |
+| `persistent_current` | control | $1.23\times10^{-14}$ | $1.05\times10^{-14}$ | `within_budget` |
+
+The aggregate reading is
+
+```text
+FAIL
+closure_verdict: null
+mode_verdict: null
+```
+
+because F3 does not emerge, and the protocol withholds both verdicts on that
+condition; F1, F2, F4, F5 and F6 are true and issue no verdict either, so none
+of the five may be quoted as a verdict for either question. The FAIL is an
+**instrument defect, not a theory null**. Both failing controls were built to
+read one declared quantity at one declared horizon, and both read a
+perturbation that the $\varphi$-ray had already absorbed: the probe's own
+running maxima, $2.03\times10^{-3}$ and $6.00\times10^{-4}$, are two thousand
+and six hundred times the $10^{-4}$ requirement, and the covariance control's
+identity residual is relative to a denominator that shrinks with the content
+the control injects, which is why a roundoff-level absolute residual reads
+$4.31\times10^{-9}$. Nothing in this entry amends a criterion of the spent
+protocol: it records what the run showed and leaves the FAIL standing as
+measured.
+
+The closure arms are the reason the entry is worth keeping. Twelve arms with no
+injected disagreement hold the complete-loop average of the evolved
+four-population state on the canonical two-density trajectory at
+$10^{-16}$--$10^{-15}$ while carrying repeated exterior transport, an open and
+a closed gate and a truncated loop, and the two long loop modes decay at the
+frozen rates $2g_m$ to $2.54\%$ and $0.59\%$. That is an evolved reading where
+the earlier evidence was a single-state identity check, and it is the reading a
+successor control construction must be able to compare against without
+re-deriving it on different machinery. No status moves: the physical carrier
+identity, the QF1-to-carrier state map and the phase law remain exactly as
+`open-questions-cassi-answers.md` and the theorem's result ledger leave them,
+and this protocol measures one finite realization, one rate set and one seed
+amplitude.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -2718,3 +2805,7 @@ mappings, or any other place $\varphi$ appears.
 - `computations/verify_two_fluid_phi_ray_relaxation.py`—probe revision `P1a`: sixteen-run verifier binding the canonical solver by digest and reading the ratio, rate, conservation, closure and openness statistics from it.
 - `runs/two_fluid_phi_ray_relaxation/verification.json`—verdict-bearing receipt at `status=PASS` with the `CONTRADICTS` verdict, the per-state table, the gate sub-question and the reproducibility record (gitignored run artifact).
 - `runs/two_fluid_phi_ray_relaxation/verification_invocation1.json`—retained first-invocation receipt at `status=FAIL` on the gate amended in place, the baseline of the reproducibility comparison (gitignored run artifact).
+- `computations/loop-carrier-projection-dynamics-prereg.md`—frozen fifteen-execution schedule for the evolved complete-loop average, the repeated-context, gate and truncation arms, the loop-mode spectral rates and the four control requirements, with the post-execution record.
+- `computations/verify_loop_carrier_projection_dynamics.py`—probe binding the frozen discrete operators and rate constants by digest and reading the projection residual, the mode energies and the four controls from the evolved traces.
+- `runs/loop_carrier_projection_dynamics/verification.json`—source-bound receipt at `status=FAIL` with both verdicts null, the eleven gates, the fifteen arm readings and the section 6A seed-invariance readings (gitignored run artifact).
+- `runs/loop_carrier_projection_dynamics/invocation.log`—stdout and stderr of the single invocation (gitignored run artifact).

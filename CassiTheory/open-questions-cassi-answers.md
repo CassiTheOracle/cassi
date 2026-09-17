@@ -763,6 +763,24 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
+An evolved check of that realization is now recorded separately. The
+fifteen-execution protocol `computations/loop-carrier-projection-dynamics-prereg.md`
+runs the four-population law on the frozen discrete operators to a converged
+horizon at each of four initial profiles, and under repeated exterior
+transport, an open and a closed gate and a truncated loop: twelve arms with no
+injected disagreement hold the complete-loop average on the canonical
+two-density trajectory at $10^{-16}$ to $10^{-15}$, and the two long loop modes
+decay at the frozen rates $2g_m$ to $2.54\%$ and $0.59\%$
+(`runs/loop_carrier_projection_dynamics/verification.json`, `status=FAIL`,
+both verdicts null). No status moves, because two controls could not witness
+their declared disagreement at their declared reading: each reads a transient
+deviation at the converged horizon of an attracting relaxation, and the
+covariance control's relative residual divides by the quantity the control
+injects. F3 therefore does not emerge and the protocol withholds both verdicts;
+the FAIL is an instrument defect, not a theory null, and LB1–LB7, the physical
+QF1-to-carrier state map, the phase law, the scale ratio and the quantum
+statistics read exactly as before.
+
 The separate pure-gauge comparison in that document, §§9.4–9.31, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
