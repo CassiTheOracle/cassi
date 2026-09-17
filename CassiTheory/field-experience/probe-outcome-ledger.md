@@ -2731,6 +2731,66 @@ and the quantum statistics read exactly as they did before both protocols, and
 the theorem's result ledger and the DQ and GQ physical-identification verdicts
 are unchanged.
 
+## 66. Loop-carrier projection split: an inert gate axis, a first-order transport axis
+
+The protocol `computations/loop-carrier-projection-split-prereg.md` takes the
+two assumptions §64 and §65 left standing—that both carriers see one common
+projected gate and are advected by one shared exterior velocity—and splits one
+at a time on the same four-population law, the same frozen discrete operators of
+`computations/verify_loop_to_bubble_projection.py`, the same imported successor
+code path, and the same seeds. Its statistic is the successor's own
+$\rho_{\max}$, and the two split constructions are declared: the gate axis
+offsets the two carriers' conversion fields by $\kappa(1\pm\delta_g\cos\chi)$,
+the transport axis offsets their exterior velocities by $u(1\pm\delta_u)$, each
+swept over six decades with a supersplit arm at $\delta=1$ and one comparability
+arm on the successor's own orientation split. Nineteen declared arms, $3{,}450$
+RK2 steps against a $6{,}000$ cap, per-execution cap $50{,}000$, one process,
+bound $600$ s. This protocol is frozen with its executor: the text of sections
+1–7 and the script are bound by digest before any arm is constructed, and the
+script refuses to run on a binding mismatch, on an oracle mismatch against §65's
+receipt, or on an existing receipt.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Completed execution | One invocation of `timeout 600 python computations/verify_loop_carrier_projection_split.py` from the repository root, $2$ s measured outside and `runtime_seconds` $2.34736967086792$ inside, writing `runs/loop_carrier_projection_split/verification.json` at `status=FAIL` | Inside the bound with a factor $256$ of headroom, against the §6 projection of $\approx3$ s; the single invocation is spent, and the receipt's existence now refuses a second in code |
+| Integrity | 12 of 13 gates: binding exact on all five declared rows, annihilation $2.47\times10^{-15}$, idempotence $1.01\times10^{-16}$, matched start $2.22\times10^{-16}$, finiteness and nonnegativity, schedule conformance with no non-conformant arm, declared shape 19 with $3{,}450$ of $6{,}000$ steps, reference at the floor $5.33\times10^{-16}$ against $10^{-14}$, null pair $8.51\times10^{-17}$ with $\Delta=0$ exactly, cross-executor oracle bit-identical, reachability operands $0.125$ and $0.1868$ against $0.05$ and $0.10$, one process | Gate 11 fails: the gate axis's can-fail control does not fire, so the run ends at `FAIL` |
+| Cross-executor oracle | `successor_replication` $2.622443969747147\times10^{-15}$ and `uniform_short` $8.505827589859918\times10^{-17}$, equal to §65's own readings of the same constructions, with $\lambda_{\max}$ $1.0331312281605476$ re-derived rather than read | The imported code path reproduces the successor's arms bit for bit, so the two runs measure the same instrument |
+| Gate axis | All seven readings are $5.329147248815693\times10^{-16}$, the `common_reference` reading to the last digit, and so is every arm's terminal $\rho$ and loop content $0.12079677487732632$; $0$ of $6$ levels readable above $10^{-13}$; boundary `BELOW_ALL_LEVELS`, class `within_budget` at every level; the $\delta_g=1.0$ supersplit is the reference | **Measured and explained.** The axis is *inert*, not merely under the floor: with the carriers sharing a velocity, the conversion bracket $B=-\langle f_Y\rangle+\varphi\langle f_I\rangle$ is invariant under every other term of the right-hand side, the `on_ray` seed has $B=0$ exactly, and a split gate multiplies that zero. So this seed cannot measure a gate split at any $\delta_g$, and no order in $\delta_g$ is read. It is not evidence that a split gate is harmless |
+| Transport axis | $6.799503171158458\times10^{-8}$ at $\delta_u=10^{-6}$ rising to $6.8205755240104814\times10^{-3}$ at $10^{-1}$, all six levels readable, fit coefficient $6.820388654045467\times10^{-2}$ with exponent $1.000205540897814$ and ratios $0.99694$–$1.00003$ inside the factor $2$ band, boundary `BRACKETED` with crossing $1.4661921053529064\times10^{-5}$ | First order in the declared offset on this realization, and the mechanism is the one the gate axis lacks: the differential velocity is the only term that generates $B$. **No law is issued**: §5's conjunction fails, so this is a recorded sweep, not a verdict, and no threshold was retuned to give it one |
+| Supersplits | `supersplit_transport` $6.709984101592009\times10^{-2}$ against the $10^{-4}$ control bound, firing by $671\times$; `supersplit_gate` $5.329147248815693\times10^{-16}$, silent | The control that exists to prove an axis can move the statistic separates the two axes: one fires, one is inert. Its firing is what makes the `FAIL` a finding rather than a missing measurement |
+| Comparability | `orientation_split_005` $3.263521392755\times10^{-4}$ against §65's own reading of the same geometry, `relax_split` $5.998107249\times10^{-4}$ at its own horizon $T=1000$ | Recorded, not a criterion: a hundred-step reading of the successor's split geometry is $0.544$ of the successor's, far above the class bound, so the statistic is not deaf to splitting as such—only to this gate split on this seed |
+| Boundary | Nineteen arms at $N_\chi=24$, one rate set, one profile, one seed amplitude; the common gate and common transport stay assumed, not derived; the four-population law stays the selected minimal member of a family whose columns sum to one | **RESOLVED** by this run: a split gate on a seed that sits exactly on the conversion ray is invisible at every $\delta_g$, and the can-fail control caught it, so the protocol returned `FAIL` rather than a law about nothing. **UNRESOLVED**: whether a split gate degrades the projection at any level on any seed—not measured and not bounded here; a live measurement needs a seed carrying a nonzero conversion bracket, such as §65's own covariance construction |
+
+The aggregate reading is
+
+```text
+FAIL
+degradation_gate: null
+degradation_transport: null
+class: null
+```
+
+Neither verdict is issued, and the two nulls are the protocol's own rule rather
+than a missing number: §5 makes `status=PASS` a conjunction over the gates and
+hence over the features, and with the can-fail feature false the law-label
+feature is false with it. `INCONCLUSIVE` is not issued for the gate axis either;
+that label belongs to an axis whose readings exist but cannot be fitted, and the
+gate sweep has no readable level at all. What the run records there is the
+boundary label `BELOW_ALL_LEVELS` and the reason: the declared split multiplies
+a conversion channel that carries no current on a seed on the ray.
+
+What stands is narrow and worth stating exactly. The split statistic degrades at
+first order in a differential exterior velocity on this finite realization—the
+fitted exponent is $1.0002$ and the class bound $10^{-6}$ is crossed between
+$\delta_u=10^{-5}$ and $10^{-4}$—and it does not respond at all to a differential
+conversion gate on the same seed. The second is a statement about this seed's
+placement on the ray, not a tolerance of the projection, since the channel the
+split acts on is unloaded. Nothing here measures the conversion ratio, the value
+of $\varphi$, the carrier identity, the QF1-to-carrier map, the phase law, the
+scale ratio or the quantum statistics: the ratio enters only as the declared
+entries of the four-population law, and §65's boundary and the theorem's result
+ledger are unchanged.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -2945,3 +3005,6 @@ are unchanged.
 - `computations/verify_loop_carrier_projection_relaxation.py`—probe binding the frozen discrete operators and rate constants by digest and reading the peak projection residual, the absolute identity residual, the fitted rate, the arm bracket and the four controls.
 - `runs/loop_carrier_projection_relaxation/verification.json`—source-bound receipt at `status=PASS` with both verdicts, the twelve gates, the sixteen arm readings, the relaxed witness and identity readings and the fitted rates with their windows (gitignored run artifact).
 - `runs/loop_carrier_projection_relaxation/invocation.log`—stdout and stderr of the single invocation (gitignored run artifact).
+- `computations/loop-carrier-projection-split-prereg.md`—frozen split protocol carrying its executor in the same commit, the gate and transport constructions, the six-decade levels, and the post-execution record at `status=FAIL` with both verdicts null.
+- `computations/verify_loop_carrier_projection_split.py`—executor binding the protocol body, the frozen discrete operators, the successor's probe and its receipt by digest, with the nineteen-arm static self-check and the refusal path of §0.
+- `runs/loop_carrier_projection_split/verification.json`—source-bound receipt of the single invocation at `status=FAIL`, the thirteen gates, the nineteen arm readings, one empty and one first-order sweep, and both withheld verdicts (gitignored run artifact).
