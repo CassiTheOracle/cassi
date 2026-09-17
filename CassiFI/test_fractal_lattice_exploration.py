@@ -6,7 +6,8 @@ Two layers:
   orientation and the entries it replaces, the rail-L1 identity on every declared arm,
   the nested depth-1 anchor's reproduction of the cited construction, the nested
   normalization, and the family partition.
-* receipt re-evaluation, skipped when the receipt is absent: every declared check's
+* receipt re-evaluation, which fails with the producing command, rather than skipping,
+  when the receipt is absent: every declared check's
   quantity and verdict recomputed from the measured basis with this file's own margin
   arithmetic, the firing controls re-run, the silenced controls re-run, the continuity
   rows recomputed, the rung/nested/attribution blocks recomputed from the basis, and
@@ -44,8 +45,13 @@ EXPECTED_BRIDGES = [[0, 28], [27, 55]]
 
 @pytest.fixture(scope="module")
 def receipt() -> Mapping[str, Any]:
-    if not RECEIPT_PATH.exists():
-        pytest.skip(f"receipt {RECEIPT_PATH} is not present; run the runner to verify it")
+    # The documented run order is runner first, then pytest, so an absent receipt
+    # fails here with the command that produces it rather than skipping silently.
+    assert RECEIPT_PATH.exists(), (
+        f"the lattice receipt {RECEIPT_PATH} is missing; produce it from CassiFI with "
+        "`python run_fractal_lattice_exploration.py --output "
+        "_diag/fractal-lattice/exploration.json`"
+    )
     with RECEIPT_PATH.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 

@@ -377,8 +377,11 @@ def test_the_frozen_receipt_on_disk_carries_its_own_digest() -> None:
     import json
     from pathlib import Path
 
-    path = Path("_diag/owner-surface-options/exploration.json")
-    assert path.exists()
+    path = Path(__file__).resolve().parent / "_diag" / "owner-surface-options" / "exploration.json"
+    assert path.exists(), (
+        f"the frozen receipt {path} is missing; produce it from CassiFI with "
+        "`python run_owner_surface_options.py --output _diag/owner-surface-options/exploration.json`"
+    )
     frozen = json.loads(path.read_text(encoding="utf-8"))
     body = {key: value for key, value in frozen.items() if key != "receipt_digest"}
     assert frozen["receipt_digest"] == receipt_digest(body)

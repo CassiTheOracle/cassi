@@ -663,7 +663,11 @@ def test_shipped_receipt_is_the_declared_build(receipt: dict) -> None:
     """The shipped receipt must be this build, so the reported figures are not stale."""
 
     path = Path(__file__).parent / "_diag" / "fractal-feedback" / "exploration.json"
-    assert path.is_file(), f"the shipped receipt is missing: {path}"
+    assert path.is_file(), (
+        "the shipped receipt is missing; produce it from CassiFI with "
+        "`python run_fractal_feedback_exploration.py --output "
+        f"_diag/fractal-feedback/exploration.json`: {path}"
+    )
     shipped = json.loads(path.read_text(encoding="utf-8"))
     assert shipped["receipt_digest"] == receipt["receipt_digest"], (
         "the shipped receipt was written by a different build of this runner: "
@@ -1065,7 +1069,11 @@ def test_cited_lifetimes_and_widths_match_the_ladder_receipt() -> None:
     """The two cited figures must be the ladder receipt's own, by item and by rung."""
 
     path = Path(__file__).parent / CITED_LADDER_RECEIPT
-    assert path.is_file(), f"the cited ladder receipt is missing: {path}"
+    assert path.is_file(), (
+        "the cited ladder receipt is missing; produce it from CassiFI with "
+        "`python run_fractal_ladder_exploration.py --output "
+        f"_diag/fractal-ladder/exploration.json`: {path}"
+    )
     ladder_receipt = json.loads(path.read_text(encoding="utf-8"))
     assert CITED_LADDER_PROFILE in ladder_receipt["profiles"]
     profile = ladder_receipt["profiles"][CITED_LADDER_PROFILE]

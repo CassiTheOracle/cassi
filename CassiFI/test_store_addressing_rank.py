@@ -33,7 +33,13 @@ def compact() -> dict[str, Any]:
 
 @pytest.fixture(scope="module")
 def canonical() -> dict[str, Any]:
-    assert RECEIPT_PATH.exists(), f"the canonical receipt is missing at {RECEIPT_PATH}"
+    # The documented run order is runner first, then pytest, so an absent receipt
+    # fails here with the command that produces it rather than reading as a broken
+    # harness in a tree where the runner has simply not been run.
+    assert RECEIPT_PATH.exists(), (
+        f"the canonical receipt {RECEIPT_PATH} is missing; produce it from CassiFI with "
+        "`python run_store_addressing_rank.py`"
+    )
     return json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
 
 
