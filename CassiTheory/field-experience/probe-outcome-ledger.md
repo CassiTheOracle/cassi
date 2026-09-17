@@ -2903,6 +2903,67 @@ on this seed family and not a threshold of the projection. The exponent $1.0302$
 is the measured one and not one; on the six decades below the largest split the
 design probe measured $1.0051$, and the difference is that one extra level.
 
+## 69. The gate writes, and the carrier keeps it: a certified write and a retained offset
+
+The successor body `computations/loop-carrier-attractor-write-successor-prereg.md` takes
+both questions §68 left standing at once. §68 measured a write it could not certify: every
+one of its seven declared split sizes persisted at $96$–$104\%$ of its terminal reading
+against a transient prediction off by a factor $21$, and the run that measured it ended on
+an unreadable attribution gate, so no verdict was issued. The successor keeps that body's
+arms, seed family, five horizons, two fits, law, instrument and branch rule, fixes the
+reading the gate needed—every arm's own distance from the ray, the anchors included—runs
+the two unsplit references over the hold **and** the release span so that one run of each
+serves both families as their reference, and puts the second question beside the first:
+hold the split to $T_{\rm hold}=450$ (five relaxation times, so the write is established to
+below one percent of its own transient), **remove it**, and integrate on for five further
+horizons spanning the same $4.7$ relaxation times with the rate held at the successor
+receipt's own measured $1.119569724312185\times10^{-2}$. A displacement that survives the
+removal is stored; one that decays back at the measured clock is a driven state that exists
+only while the gate is held. Seventeen arms, $496{,}934$ steps, one invocation, $321.0$ s of
+the declared $900$ s.
+
+| Reading | Value | What it closes |
+|---|---|---|
+| Write verdict | `WRITES`. All seven declared split sizes `PERSIST` at the largest load, held offsets $-3.1965673301338663\times10^{-10}$ to $-5.8002371593543804\times10^{-4}$, $96.0$–$97.9\%$ of the terminal reading with both fits agreeing, free-fit offsets within $1.4\%$ of the terminal | The gate displaces the composition attractor rather than only shaking the state, now on a run whose attribution gate is readable: the loaded anchor's own distance from the ray is $8.439048206843707\times10^{-6}$ at its final state and $1.3442651683720991\times10^{-3}$ at the hold horizon, the value §68's amendment measured outside its run, so the offset is charged to the split and not to a reference still relaxing |
+| Law and instrument | $\lvert D_\infty\rvert=(4.3424057234641914\times10^{-4})\,\delta_g^{1.0302448806878108}$ over the seven arms, per-level ratios $0.8526$–$1.3357$, decade jumps $10.000$–$16.796$, label `PROPORTIONAL`, instrument $\delta_w=4.1290229776468171\times10^{-9}$ | The displaced attractor's distance stays proportional to the declared split over seven decades; the write family is the predecessor's measurement rather than a new one, checked arm by arm—$132$ horizon-indexed readings over twelve arms, $0$ mismatches |
+| Retention verdict | `STORES`. All four declared levels `RETAINED`: after the split is removed the offset stands at $1.021414$, $1.039236$, $1.042386$ and $1.042726$ of what family (i) wrote, held and free fits within $4\times10^{-5}$ of each other, residuals $4.7\times10^{-6}$–$8.0\times10^{-6}$ and $5.9\times10^{-8}$–$8.6\times10^{-8}$ against a band of $0.25$ | The new reading: the asymmetry's effect is **not** undone by removing the asymmetry. Over the release window the reading moves by $5.7\times10^{-5}$–$3.9\times10^{-4}$ of itself, where a state decaying at the measured clock would have fallen by a factor $e^{\nu\,420}=110$ |
+| Joint label | **`memory`**—`WRITES` with `STORES` | On this realization the gate is not a knob that acts only while it is turned: what it writes, the carrier keeps after the writing stops |
+| Controls, both families | `ray_supersplit` $\Delta$ exactly $0.0$ at all five horizons with peak $3.3306690738754696\times10^{-16}$; `retain_ray` exactly $0.0$ in both phases; can-fail peaks $5.9240187127518329\times10^{-4}$ and $5.9244224877041951\times10^{-4}$ | The channel stays exactly inert on the ray in both phases, so the retention family's reading is the split's, and the instrument fires at the largest split in both phases |
+| Shared construction | All five retention arms' held-phase readings bit-identical to the write arms' at the same split size ($5$ pairs, $0$ mismatches), and the four retention offsets equal to the design probe's declared literals | The second family is the first family's construction plus a removal, not a second measurement of a second thing—and the design probe's predicted outcome is reproduced by the run rather than asserted |
+| Clock, oracles, action | Anchor's $\rho$ rate $1.1375969997251654\times10^{-2}$ (ratio $1.0161$) over $[30,450]$ and $1.1268285328754471\times10^{-2}$ (ratio $1.0065$) over the release window $[480,900]$, both against the receipt's rate read live; `ray_short` and `successor_replication` bit-identical to their bound receipts; the split's action $5.3390731361887128\times10^{-2}$ of the step's own drift at the largest load and exactly $0.0$ on the ray seed; zero-split reduction exactly $0.0$ elementwise | The clock the release is measured against is the realization's own in **both** phases; both oracles measure the same instrument on the same seeds; the axis is live where the sweep reads it and inert where the control says it must be; and the release removes a term rather than swapping in a different dynamics |
+| Verdict | `status=PASS`, all twenty-two gates and all thirteen features, the single invocation §0 permits | §68's failure was a bookkeeping slip, and this body carries it as a declared correction rather than as a rescue: the gate that failed there now reads its own run's number and agrees with the amendment at the declared precision |
+
+What is recorded and not gated, because it is a property of this realization rather than of
+the claim: the release-phase free fit's rate is $1.71$–$1.80$ times the measured clock—slower
+than the clock but inside the declared band—and when an offset dominates a reading the free
+rate is not identified, so it enters only the transient clause; the release-phase offsets sit
+slightly *above* the write family's own shares because the released trajectory continues its
+transient for a while after the removal before it saturates; the receipt also carries a
+retention-family law fitted over the four graded levels
+($(5.138283027628463\times10^{-4})\,\delta_g^{1.0777123093106087}$, instrument
+$8.266215754275881\times10^{-9}$), which §2 does not declare and which enters no verdict
+clause; and what is retained is the composition coordinate's difference, a conserved
+conversion level rather than a state off the ray—the loaded anchor's own distance from the
+ray falls from $1.3442651683720991\times10^{-3}$ to $8.439048206843707\times10^{-6}$ across
+the hold and release spans, so the released arms are back on the ray while their composition
+coordinate stays displaced.
+
+**RESOLVED in measurement and in verdict**: on the declared seeds an asymmetric gate shifts
+the composition attractor by an amount proportional to the split over seven decades, the
+split is exactly inert on the ray, and the shift is **not** undone by removing the
+asymmetry—five relaxation times after the removal the offset stands at $1.02$–$1.04$ of what
+the gate wrote, where a driven state would have fallen by a factor $110$. **Not resolved**:
+whether the retained offset endures on horizons longer than five relaxation times, whether
+it is readable in any other observable, and whether it means information rather than one
+coordinate's displacement. The labels `STORES` and `memory` are branches of a decision rule
+on a declared coordinate on one finite realization: one profile, one seed family, one
+declared load, one rate set, one common gate and one common transport, both assumed and not
+derived. For a rank-one conversion block the spectrum and the relaxation rate are functions
+of $a+b$ alone and the ratio lives in the null vector, so nothing here measures the
+conversion ratio, the carrier identity, the QF1-to-carrier map, the phase law, the scale
+ratio or the quantum statistics; $\varphi$ enters only as the declared entries of the
+four-population law.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -3126,3 +3187,6 @@ design probe measured $1.0051$, and the difference is that one extra level.
 - `computations/loop-carrier-attractor-write-prereg.md`—frozen attractor-write protocol carrying its executor in the same commit, the five-horizon two-parameter offset fit with its held rate, the free-rate corroboration, the fragility witness and the branch rule, with the post-execution record at `status=FAIL`, both verdicts null, and the amendment reading measured outside the run.
 - `computations/verify_loop_carrier_attractor_write.py`—executor binding the protocol body, the spent gate-load executor, the successor's probe and all three predecessor receipts by digest, with the static self-check, the refusal path of §0, and the corrected per-arm ray-distance reading.
 - `runs/loop_carrier_attractor_write/verification.json`—source-bound receipt of the single invocation at `status=FAIL`, the fifteen gates with the unreadable attribution gate, the twelve arm readings over five horizons, the two fits' offsets per arm, the proportional law, the instrument and the ray and oracle controls (gitignored run artifact).
+- `computations/loop-carrier-attractor-write-successor-prereg.md`—frozen successor body carrying its executor in the same commit, the two families in one run, the held-and-removed split with its four-level retention rule, the twenty-two gates and thirteen features, and the post-execution record at `status=PASS` with `WRITES`, `STORES` and the joint label `memory`.
+- `computations/verify_loop_carrier_attractor_write_successor.py`—executor binding the protocol body, the predecessor attractor-write executor and its body and receipt, the spent gate-load executor and its body and receipt, the split executor, the successor probe and the frozen discrete operators by digest, with the design-probe mode, the converged binding self-check and the refusal path of §0.
+- `runs/loop_carrier_attractor_write_successor/verification.json`—source-bound receipt of the single invocation at `status=PASS`, the twenty-two gates with the readable attribution gate and the reproduced amendment reading, the seventeen arm readings over both phases, the two families' fits, offsets and branches, the recorded retention law, the shared-construction and design-probe checks, and the two clocks (gitignored run artifact).

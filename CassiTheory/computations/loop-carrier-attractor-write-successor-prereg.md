@@ -359,6 +359,84 @@ The two clocks are the meaningful guard: both are fitted on the anchor's own $\r
 
 ## 8. Post-execution record
 
-Not yet executed. This protocol and `computations/verify_loop_carrier_attractor_write_successor.py` are frozen at the digests in §0; the invocation, its twenty-two gates, the two families' per-arm readings, the laws, the instrument, the joint label and the stopping rule belong in this section.
+**The invocation.** `timeout 900 python computations/verify_loop_carrier_attractor_write_successor.py`, one process, pid 7512, exit 0, runtime $321.00586342811584$ s against the declared bound $900$ s, writing `runs/loop_carrier_attractor_write_successor/verification.json` at schema `cassi.loop-carrier-attractor-write-successor.v1`. `status=PASS`: all twenty-two gates and all thirteen features passed in the single invocation this body allows, and the two families' verdicts are **write `WRITES`** and **retention `STORES`**, with the joint label **`memory`**. No second invocation was made and §0's stopping rule was not reached.
+
+**The binding at the invocation.** Every row of §0 was re-read from the tree and matched, including the ten rows the predecessor's own binding check re-verifies; `binding.declared` and `binding.observed` agree on all thirteen keys and the receipt carries both.
+
+| Row | At the invocation |
+|---|---|
+| `frozen_body_sha256` | `23fb4e9a545793752db259324c87a71da9045cbb04221d0c60ef9c50b6003372` |
+| `executor_sha256` | `d92bdd1a12a0f3ce1640cf100a23ae5898f6e51bd078c03965f0ab086c68007e` |
+| `prior_body_sha256` | `151ab43fbaf2cd8580679bca98d51a40cbac7adf275a799b0f06249aedb9c636` |
+| `prior_executor_sha256` | `740d0fc036721be5f1ee0fd5527fe54e771243113e13b7133be053f6439cf6c6` |
+| `bound_module_sha256` | `d687597fe960c95d8515f9caf41ea2d8a06198d9c11045836376a21dafefd8f1` |
+| `base_probe_sha256` | `28d2fd540a3d3bc6ef1b4bb100fbff2f36a11baca4f4ff365ea4ad8a9dcf3622` |
+| `split_executor_sha256` | `246463f7fd1ba4a7fef282079e312d6e1382a15319b97d20b2ba49be46adcb5a` |
+| `gate_load_executor_sha256` | `be9f651d085bb4ee5d8f62ddb4db0a1714eb58c1b2106025d52f7fe2224f0eac` |
+| `base_receipt_sha256` | `3520231c8c54372e07443682847de9d01fbb0f132c89efef3fc7f0c16a22bcb1` |
+| `split_receipt_sha256` | `559d19ae43011b0f7143a5c9cf8429a5c46b5a181849c7b4cabd2ea99c8872fc` |
+| `gate_load_protocol_body_sha256` | `c0d2fe37b8b4ee7673b1ec1a7c658f2bedb4eae6ad360516057d5ee9cdc843fa` |
+| `gate_load_receipt_sha256` | `471f1f8074ff7cc85187690747b7ba9235e6d8627a7e9a7cc1db2a0a81710cc1` |
+| `prior_receipt_sha256` | `5ba4afcd2b17d00be8c4fd315ee4f3133422aaae7bdb83e1f0e51ad9935be200` |
+
+**The twenty-two gates.** All passed, and the readings that carry the two verdicts:
+
+| # | Gate | Reading |
+|---|---|---|
+| 3 | anchor load | the loaded anchor's measured load $3.6461142923163309\times10^{-1}$ equal to §67's receipt value to the last bit (declared literal $3.646114292316\times10^{-1}$) |
+| 6 | horizon adequacy, both phases | five distinct horizons spanning $4.7022$ nats, tail $6.486295195552842\times10^{-3}$, declared threshold $411.333933562495$, hold $450\ge446.6001439143759$ with tail $6.486295195552842\times10^{-3}$, seven write levels and four retention levels, the smallest declared write magnitude $2.859309151498377\times10^{-10}$ |
+| 7 | write clock | the anchor's own $\rho$ rate over $[30,450]$ fitted at $1.1375969997251654\times10^{-2}$, ratio $1.0161019675876424$, with the declared rate equal to the live receipt value $1.119569724312185\times10^{-2}$ |
+| 8 | release clock | the same fit over $[480,900]$: $1.1268285328754471\times10^{-2}$, ratio $1.0064835698979995$ |
+| 11, 12 | silence on the ray, both phases | peaks $3.3306690738754696\times10^{-16}$ and exactly $0.0$ |
+| 13, 14 | can-fail at the largest split, both phases | $5.9240187127518329\times10^{-4}$ and $5.9244224877041951\times10^{-4}$ |
+| 15 | anchors at the ray | ray anchor's own distance $4.615955614456136\times10^{-15}$, loaded anchor's $8.439048206843707\times10^{-6}$, against the bound $5\times10^{-3}$ |
+| 16 | anchor at the ray, at the hold horizon | $1.3442651683720991\times10^{-3}$, equal to the predecessor's amendment reading at the declared precision |
+| 17 | predecessor replication | $132$ horizon-indexed readings over the twelve predecessor arms, $0$ mismatches |
+| 18 | cross-protocol oracle | `ray_short`'s $\rho_{\max}$ $5.329147248815693\times10^{-16}$, bit-identical to §66's receipt |
+| 19 | cross-executor oracle | `successor_replication`'s $\rho_{\max}$ $2.622443969747147\times10^{-15}$, $\rho_{\text{final}}$ $2.219140084394095\times10^{-15}$ and $\lambda_{\max}$ $1.0331312281605476$, bit-identical to the successor receipt |
+| 20 | design-probe replication | the four retention offsets equal the §1.5 literals |
+| 22 | family identity | all five retention arms' held-phase readings bit-identical to their write arms' ($5$ pairs, $0$ mismatches) |
+
+Gate 4's action check read $5.3390731361887128\times10^{-2}$ of the step's own drift at the largest load against the floor $10^{-3}$, and exactly $0.0$ on the ray seed; the zero-split reduction is exactly $0.0$ elementwise; every arm's $\Delta t$ is inside $1/(40\lambda_{\max})$ on its own loaded projection; and the structure gate found no state outside $[0,1)$ and no non-finite annihilation or idempotence residual, with $\min_x q=0.8013148274093032$ and $\max_x q=0.8923974884573972$ on the loaded anchor.
+
+**Family (i), the write, replicated (gates 17 and 20 passing).**
+
+| Arm | $\delta_g$ | $D_\infty^{\rm held}$ | $D_\infty^{\rm free}$ | terminal reading | share of terminal | free rate / $\nu$ | residual held / free | branch |
+|---|---|---|---|---|---|---|---|---|
+| `decade_1` | $10^{-6}$ | $-3.1965673301338663\times10^{-10}$ | $-3.3035080920401598\times10^{-10}$ | $-3.3328928505937938\times10^{-10}$ | $0.9590969387$ | $4.0943618995$ | $7.576993\times10^{-2}$ / $1.024171\times10^{-2}$ | `PERSIST` |
+| `decade_2` | $10^{-5}$ | $-3.1965812566686525\times10^{-9}$ | $-3.3035229018272927\times10^{-9}$ | $-3.3328977355751022\times10^{-9}$ | $0.9590997115$ | $4.0943618995$ | $7.576890\times10^{-2}$ / $1.024098\times10^{-2}$ | `PERSIST` |
+| `decade_3` | $10^{-4}$ | $-3.1968113811286852\times10^{-8}$ | $-3.3037349807008856\times10^{-8}$ | $-3.3331260418378861\times10^{-8}$ | $0.9591030585$ | $4.0943618995$ | $7.576593\times10^{-2}$ / $1.024724\times10^{-2}$ | `PERSIST` |
+| `decade_4` | $10^{-3}$ | $-3.1991208866120801\times10^{-7}$ | $-3.3058613202974022\times10^{-7}$ | $-3.3354247119810054\times10^{-7}$ | $0.9591344920$ | $4.0943618995$ | $7.573705\times10^{-2}$ / $1.031132\times10^{-2}$ | `PERSIST` |
+| `decade_5` | $10^{-2}$ | $-3.2222190653455414\times10^{-6}$ | $-3.3271274457746284\times10^{-6}$ | $-3.3584153593668731\times10^{-6}$ | $0.9594462628$ | $4.0943618995$ | $7.544916\times10^{-2}$ / $1.095023\times10^{-2}$ | `PERSIST` |
+| `decade_6` | $10^{-1}$ | $-3.4534423534314694\times10^{-5}$ | $-3.5400140411285416\times10^{-5}$ | $-3.5885586093908906\times10^{-5}$ | $0.9623480426$ | $4.0943618995$ | $7.265414\times10^{-2}$ / $1.715102\times10^{-2}$ | `PERSIST` |
+| `supersplit_load` | $1$ | $-5.8002371593543804\times10^{-4}$ | $-6.1411238765855997\times10^{-4}$ | $-5.9240187127518329\times10^{-4}$ | $0.9791051380$ | $0.2442312221$ | $4.825167\times10^{-2}$ / $3.568828\times10^{-2}$ | `PERSIST` |
+
+The law over the seven persisting arms is $\lvert D_\infty\rvert=(4.3424057234641914\times10^{-4})\,\delta_g^{1.0302448806878108}$ at label `PROPORTIONAL`, per-level ratios $0.8526$–$1.3357$, decade jumps $10.000$–$16.796$, and the instrument is $\delta_w=4.1290229776468171\times10^{-9}$. `ray_supersplit` reads exactly $0.0$ at all five horizons with peak $3.3306690738754696\times10^{-16}$ and is labelled `BELOW_FLOOR`; every arm's readings are carried in the receipt, and gate 17 confirms all of them are the predecessor's own. **Verdict: `WRITES`.**
+
+**Family (ii), retention (gate 22 passing).**
+
+| Arm | $\delta_g$ | written (family (i)) | $D_\infty^{\rm held}$ | $D_\infty^{\rm free}$ | share held / free | free rate / $\nu$ | residual held / free | branch |
+|---|---|---|---|---|---|---|---|---|
+| `retain_1` | $10^{-3}$ | $3.1991208866120801\times10^{-7}$ | $-3.3358050312383746\times10^{-7}$ | $-3.3357883329490823\times10^{-7}$ | $1.042726$ / $1.042720$ | $1.800533$ | $7.962386\times10^{-6}$ / $5.932632\times10^{-8}$ | `RETAINED` |
+| `retain_2` | $10^{-2}$ | $3.2222190653455414\times10^{-6}$ | $-3.3587960350257283\times10^{-6}$ | $-3.3587793231551760\times10^{-6}$ | $1.042386$ / $1.042381$ | $1.799663$ | $7.911307\times10^{-6}$ / $5.901954\times10^{-8}$ | `RETAINED` |
+| `retain_3` | $10^{-1}$ | $3.4534423534314694\times10^{-5}$ | $-3.5889430143274970\times10^{-5}$ | $-3.5889261715143997\times10^{-5}$ | $1.039236$ / $1.039232$ | $1.789633$ | $7.428166\times10^{-6}$ / $6.191054\times10^{-8}$ | `RETAINED` |
+| `retain_supersplit` | $1$ | $5.8002371593543804\times10^{-4}$ | $-5.9244410183651049\times10^{-4}$ | $-5.9244228458508650\times10^{-4}$ | $1.021414$ / $1.021410$ | $1.709169$ | $4.666750\times10^{-6}$ / $8.626462\times10^{-8}$ | `RETAINED` |
+
+The post-release readings, at $t=30,90,180,300,450$ after the split is removed at $T=450$:
+
+| Arm | readings |
+|---|---|
+| `retain_1` | $-3.3355879947016831\times10^{-7}$, $-3.3357284801027731\times10^{-7}$, $-3.3357787898591340\times10^{-7}$, $-3.3357874351658268\times10^{-7}$, $-3.3357881878970375\times10^{-7}$ |
+| `retain_2` | $-3.3585787123646682\times10^{-6}$, $-3.3587193533080040\times10^{-6}$, $-3.3587697528814076\times10^{-6}$, $-3.3587784297184342\times10^{-6}$, $-3.3587791702371916\times10^{-6}$ |
+| `retain_3` | $-3.5887227049613557\times10^{-5}$, $-3.5888649274951057\times10^{-5}$, $-3.5889163177538208\times10^{-5}$, $-3.5889252362863999\times10^{-5}$, $-3.5889260026289449\times10^{-5}$ |
+| `retain_supersplit` | $-5.9241907219331758\times10^{-4}$, $-5.9243489728644239\times10^{-4}$, $-5.9244101973199292\times10^{-4}$, $-5.9244214739950785\times10^{-4}$, $-5.9244224877041951\times10^{-4}$ |
+
+`retain_ray` reads exactly $0.0$ in both phases. In the order of the declared levels the release moves the reading by $6.002\times10^{-5}$, $5.968\times10^{-5}$, $5.665\times10^{-5}$ and $3.912\times10^{-4}$ of itself between the first and last post-release reading, against a factor $e^{\nu\,420}=110$ for a state decaying at the measured clock. The receipt also carries a retention-family law fitted over the four graded levels — $\lvert D_\infty^{\rm held}\rvert=(5.138283027628463\times10^{-4})\,\delta_g^{1.0777123093106087}$, ratios $0.8353$–$1.1530$, label `PROPORTIONAL`, instrument $8.266215754275881\times10^{-9}$ — which §2 does not declare and which enters no verdict clause; it is reported because the run computed it, and its exponent is the retention family's own. **Verdict: `STORES`.**
+
+**What the two verdicts say.** On this seed family, at these four declaration sizes, the gate's asymmetry displaces the carrier's composition coordinate, the displacement is proportional to the split over seven decades in the write family and over three in the retention family, and — the new reading — **it does not decay when the asymmetry is removed**: five relaxation times after the split is taken away the offset stands at $1.02$–$1.04$ of what family (i) wrote, where a driven state would have fallen by a factor $110$. The joint label is `memory`: on this realization the gate is not a knob that acts only while it is turned.
+
+Three things are recorded and not gated, because they are properties of this realization rather than of the claim. The free fit's rate in the release phase is $1.71$–$1.80$ times the measured clock, i.e. slower than the clock but inside the declared band; when an offset dominates a reading the free rate is not identified, so it enters only the transient clause. The release-phase fit's offsets sit slightly **above** the write family's own (shares $1.021$–$1.043$), because the released trajectory continues its transient for a while after the removal before it saturates. And the retained quantity is the composition coordinate's difference, which is a conserved conversion level rather than a state off the ray: the loaded anchor's own distance from the ray falls from $1.3442651683720991\times10^{-3}$ at the hold horizon to $8.439048206843707\times10^{-6}$ at $T=900$, so the released arms return to the ray while their composition coordinate stays displaced.
+
+**Boundary.** As §7: one coordinate, one frozen discrete realization, one profile, one seed family, one declared load, one common gate and one common transport, both assumed; the identity of the write is a decision rule's branch on that coordinate and not a claim about the carrier's physical memory, retrieval, or information content. The first-order transport degradation with its coefficient and crossing, and the gate dead on the ray and live in proportion to the load, are the pre-existing measurements of §66 and §67; this body adds the third and fourth: the write is now certified by a readable attribution gate, and the carrier keeps it.
 
 The outcome is entered as §69 of `field-experience/probe-outcome-ledger.md`.
