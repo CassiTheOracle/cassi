@@ -2399,6 +2399,119 @@ near-field/far-field split of `turbulence/navier-stokes-stress-geometry.md`
 band, so a crossing bracket locates a spectral reading and not a spatial
 support.
 
+## 63. The $\varphi$ ray and the conversion rate in the canonical two-fluid solver
+
+The frozen protocol `computations/two-fluid-phi-ray-relaxation-prereg.md`
+measures the framework's single postulate in the canonical conversion: the
+volume ratio $R=\langle E_Y\rangle/\langle E_I\rangle$ against the fixed ray
+$\varphi$, the fitted imbalance-decay rate $r_{\mathrm{fit}}$ against
+$(1+\varphi)\lambda$, the conservation residual $\Sigma_{\mathrm{res}}$ and the
+per-step closure $C$ of the predicted mean law, which are the structure's own
+stated falsifiers. Sixteen declared runs carry two solver modes from five
+declared compositions at $N=32$, $\lambda=0.1$, $\Delta t=0.002$ and $T=30$
+against the solver `two-fluid/cassi_two_fluid_3d_gpu.py` bound by digest: the
+ungated base form `TwoFluid3DGPU` and the $q$-gated static-box form
+`ExpandingTwoFluid3DGPU` with `qi_gate=True`, `gate_model='single'`, $H_0=0$,
+each with a ray control, plus a frozen-conversion control per mode at
+$\lambda=0$, a step refinement, an $N=64$ resolution check, a $T=240$ gated
+horizon and an unprojected-velocity sensitivity control. The declared
+tolerances are $10^{-3}$ on $R_T/\varphi$, $10^{-4}$ on
+$r_{\mathrm{fit}}/((1+\varphi)\lambda)$, $10^{-11}$ on $\Sigma_{\mathrm{res}}$
+and $10^{-6}$ on $C$.
+
+| Stage | Decisive result | Classification and scope |
+|---|---|---|
+| Completed executions | Two invocations of `timeout 10800 python computations/verify_two_fluid_phi_ray_relaxation.py` from the repository root, 2259.5 s and 1762.9 s, writing `runs/two_fluid_phi_ray_relaxation/verification_invocation1.json` at `status=FAIL` and `verification.json` at `status=PASS` | `PASS` on the second invocation; aggregate 4022 s inside the declared 21600 s cap |
+| Integrity | Second receipt 11 of 11 gates: every constructed state equals its declared composition to $2.2\times10^{-16}$ relative, the worst initial minimum clears the step floor by a factor 24.2, the solenoidal residual of the fifteen projected runs is at most $1.5\times10^{-16}$, the refinement agrees to $3.4\times10^{-8}$, the mode-A weight identity holds exactly, and the solver digest matches its declared value | Every gate inside its frozen tolerance |
+| Reproducibility | The two receipts agree in every recorded run scalar: 0 differences over the sixteen run records, their 2896 series rows, their 14416 fitted samples and their 96 checkpoints | Deterministic at these settings |
+| Mode-A ray | A2–A5 end at $R_T/\varphi-1=-1.94\times10^{-4}$, $-3.88\times10^{-4}$, $-5.62\times10^{-4}$ and $+1.74\times10^{-4}$, class `ray` | The fixed ray is confirmed off-ray in both directions at $N=32$, $T=30$ |
+| Mode-A rate | All four decisive mode-A rates equal $0.261803387$ against $(1+\varphi)\lambda=0.261803399$, a factor $1-4.6\times10^{-8}$, class `rate_matches`; the near-ray local rate of A1 equals the prediction to $2\times10^{-8}$ | The rate law is confirmed at the projected RK2 bias |
+| Mode-A conservation and closure | $\Sigma_{\mathrm{res}}\le1.1\times10^{-15}$ and $C\le1.7\times10^{-8}$, classes `exact` and `closure_holds`; the unprojected control M1 reaches $\Sigma_{\mathrm{res}}=1.24\times10^{-2}$ and $C=7.6\times10^{-4}$ with a solenoidal residual of 1.55 | Equal-and-opposite conversion holds where the velocity is solenoidal and moves where it is not |
+| Gated rate | B2–B5 fit $0.0401$, $0.0482$, $0.0543$ and $0.0400$, from $0.153$ to $0.207$ of the prediction, class `rate_below_gated`; L1 at $T=240$ fits $0.031796$ | The gate-weighted mean law holds inside the declared band |
+| Gated conservation and closure | $\Sigma_{\mathrm{res}}\le6.5\times10^{-13}$ and $C\le3.1\times10^{-9}$ in every gated run, classes `exact` and `closure_holds` | The gated weight identity holds per step, not only asymptotically |
+| Gated ray | B2–B5 end between $-1.34\times10^{-1}$ and $+1.43\times10^{-1}$ of $\varphi$, class `approaching`; L1 reaches $-3.13\times10^{-4}$, class `ray` | The gated ray is reached inside $T=240$ and not inside $T=30$ from these states |
+| Gated ray control | B1 starts exactly on the ray at $+2.2\times10^{-16}$ and ends $2.47\times10^{-3}$ below $\varphi$, class `departing`, while the ungated A1 from the same state holds $+2.2\times10^{-16}$ | One firing clause: the gated volume mean is not stationary on the ray at $N=32$ |
+| Frozen controls | C1 and C2 hold their composition to $10^{-16}$, class `frozen`, with ratio and rate classes not applicable | The $\lambda=0$ reading is a control and not evidence about the ray |
+| Gate sub-question | `gate_does_not_differentiate`: at the L1 final checkpoint the openness spans $0.0697$ to $0.2719$ about a mean of $0.1296$, the quartile local ratios read $1.617049$, $1.617451$, $1.617700$ and $1.618028$, and the weighted ratio sits $2.76\times10^{-4}$ from $\varphi$ | The gate orders the local fixed ratios monotonically without moving any quartile outside the frozen tolerance |
+| Registered reference rate | L1's terminal segment rates are $0.02976$ and $0.02960$ against $\Gamma_0=\lambda/3=0.033333$; the receipt's measured weighting $\Xi=\langle w\varepsilon\rangle/\langle\varepsilon\rangle=0.11254$ gives $(1+\varphi)\lambda\Xi=0.029463$ | The registered value is the pointwise reference-density rate, and the volume mean follows the weighted form to $0.5\%$ |
+| Boundary | One solver mode of each declared form, one resolution with one refinement and one resolution check, one viscosity, horizons 30 and 240, amplitude $0.1$. The retained-band fraction of the imbalance is $1.0000$ at every checkpoint of every run | **UNRESOLVED**: the resolution and amplitude dependence of the gated displacement |
+
+Volume ratio and rate per state, from the second receipt:
+
+| Run | Mode | $R_0$ | $R_T$ | $R_T/\varphi-1$ | $r_{\mathrm{fit}}$ |
+|---|---|---|---|---|---|
+| A1 | ungated | 1.618034 | 1.618034 | $+2.2\times10^{-16}$ | ray control |
+| A2 | ungated | 1.000000 | 1.617720 | $-1.94\times10^{-4}$ | 0.26180339 |
+| A3 | ungated | 0.618034 | 1.617406 | $-3.88\times10^{-4}$ | 0.26180339 |
+| A4 | ungated | 0.381966 | 1.617125 | $-5.62\times10^{-4}$ | 0.26180339 |
+| A5 | ungated | 2.618034 | 1.618315 | $+1.74\times10^{-4}$ | 0.26180339 |
+| B1 | gated | 1.618034 | 1.614039 | $-2.47\times10^{-3}$ | ray control |
+| B2 | gated | 1.000000 | 1.400640 | $-1.34\times10^{-1}$ | 0.04009123 |
+| B3 | gated | 0.618034 | 1.305781 | $-1.93\times10^{-1}$ | 0.04817116 |
+| B4 | gated | 0.381966 | 1.266608 | $-2.17\times10^{-1}$ | 0.05428311 |
+| B5 | gated | 2.618034 | 1.849493 | $+1.43\times10^{-1}$ | 0.04003847 |
+| C1 | ungated, $\lambda=0$ | 2.618034 | 2.618034 | frozen | not applicable |
+| C2 | gated, $\lambda=0$ | 0.618034 | 0.618034 | frozen | not applicable |
+| R1 | ungated, $\Delta t/2$ | 0.618034 | 1.617406 | $-3.88\times10^{-4}$ | 0.26180340 |
+| R2 | gated, $N=64$ | 0.618034 | 1.306061 | $-1.93\times10^{-1}$ | 0.04819081 |
+| L1 | gated, $T=240$ | 0.618034 | 1.617527 | $-3.13\times10^{-4}$ | 0.03179604 |
+| M1 | ungated, unprojected | 2.618034 | 1.618319 | $+1.76\times10^{-4}$ | 0.26102030 |
+
+The aggregate verdict read through the protocol's §4 rules is
+
+```text
+CONTRADICTS
+```
+
+and it fires exactly one clause, the ratio clause, through the gated ray
+control B1, whose volume ratio ends $2.47\times10^{-3}$ below $\varphi$ against
+the frozen $10^{-3}$ tolerance. Every other clause is clear: no decisive
+non-control run departs or sits stationary away from the ray, every decisive
+mode-A rate is `rate_matches`, no decisive mode-B rate is `rate_above` or
+`rate_below_unexplained`, every decisive closure holds, every decisive
+conservation class is `exact`, and both frozen-conversion controls are
+`frozen`. Of the `SUPPORTS` conditions only `gated_approach` fails, and it
+fails on B1.
+
+B1 is readable and the reading is the sub-question's content. Its state starts
+exactly on the ray and its displacement grows to a plateau: $-9.0\times10^{-4}$
+at $t=3.75$, $-1.51\times10^{-3}$ at $7.5$, $-2.20\times10^{-3}$ at $15$,
+$-2.45\times10^{-3}$ at $22.5$, $-2.47\times10^{-3}$ at $30$. Over the same
+interval the local imbalance amplitude falls from $1.14\times10^{-1}$ to
+$3.83\times10^{-2}$ of $\langle\rho\rangle_0$, so the displacement is largest
+while the local excursions are largest, and the gate's pointwise fixed set
+$\varepsilon=0$ for every $w\ge0$ is untouched. What moves the volume mean is
+the cross-correlation the spatially varying gate makes possible, and the
+receipt carries its sign and size: the openness-weighted mean imbalance is
+opposite in sign to the volume mean at late times, so
+$\Xi=\langle w\varepsilon\rangle/\langle\varepsilon\rangle$ rises from $-0.82$
+at $t=3.75$ through zero to $+0.0124$ at $t=30$. The same quantity fixes the
+long-horizon rate: L1 reaches the ray at $-3.13\times10^{-4}$ with
+$\Xi=0.11254$, and $(1+\varphi)\lambda\Xi$ reproduces its terminal segment rate
+to $0.5\%$.
+
+The registered reference-state rate $\Gamma_0=\lambda/3$ is the pointwise
+ray-side value at the reference density, and the receipt separates it from the
+volume mean: the measured openness at that checkpoint spans a factor of four
+about a mean of $0.1296$, and the volume-mean rate is
+$(1+\varphi)\lambda\Xi$ with the measured $\Xi$, below $\Gamma_0$ by the factor
+$0.884$. Two invocations were needed because the first receipt's
+`construction_floor_inactive` gate measured a threshold derived from an
+incorrect sentence of the protocol rather than the construction, which carries
+no clamp; the four in-place amendments, the retained first receipt and the
+reproducibility comparison are recorded in the protocol's §2 to §4 and §6, and
+the second invocation re-ran the identical matrix under identical tolerances,
+differing from the first in nothing measured.
+
+No reading here changes the status of the conditional attractor row: the ray
+and the rate are confirmed in the ungated form at $N=32$ and $T=30$, and the
+gated form carries a measured finite-grid displacement of the volume mean,
+$2.5\times10^{-3}$ at the declared horizon and $3.1\times10^{-4}$ at $T=240$,
+whose resolution and amplitude dependence this schedule does not settle. The
+protocol measures one lattice resolution pair, one viscosity and one amplitude
+band, and says nothing about the cascade law, the dark-energy or gravity
+mappings, or any other place $\varphi$ appears.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -2601,3 +2714,7 @@ support.
 - `runs/yang_mills_4x2x2_c1_feshbach/verification.json` and
   `verification-independent.json`—primary `FAIL`/`INCONCLUSIVE` and
   independent `531/531` receipts for the open $4\times2\times2$ screen.
+- `computations/two-fluid-phi-ray-relaxation-prereg.md`—frozen sixteen-run schedule for the $\varphi$ ray, the imbalance rate, the conservation and closure statistics and the gate sub-question, with the post-execution record.
+- `computations/verify_two_fluid_phi_ray_relaxation.py`—probe revision `P1a`: sixteen-run verifier binding the canonical solver by digest and reading the ratio, rate, conservation, closure and openness statistics from it.
+- `runs/two_fluid_phi_ray_relaxation/verification.json`—verdict-bearing receipt at `status=PASS` with the `CONTRADICTS` verdict, the per-state table, the gate sub-question and the reproducibility record (gitignored run artifact).
+- `runs/two_fluid_phi_ray_relaxation/verification_invocation1.json`—retained first-invocation receipt at `status=FAIL` on the gate amended in place, the baseline of the reproducibility comparison (gitignored run artifact).
