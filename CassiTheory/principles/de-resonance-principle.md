@@ -264,6 +264,31 @@ the canonical real-density equations. The present density and population
 laws cannot supply that result because their projections discard phase and
 winding.
 
+The canonical structure a resonance-based selection would need is absent from the
+loop's transport sector. That sector is linear in the pair $(F,H)$ with frozen
+coefficients and dissipative, so its generator is not divergence-free and its
+exceptional points at $r_x=|m|\Omega$ are eigenvalue collisions of a linear
+generator rather than resonances of a nonlinear map; it is also block-diagonal in
+the winding label $m$, so no inter-mode transfer exists to build a critical
+winding from. A winding selected there would in any case arrive at the composition
+ratio as a rational, since $\alpha=r$ composed with $\alpha=q_{\rm w}/p$ gives
+$r=q_{\rm w}/p$, while the target is the irrational $\varphi$. The route is thus
+closed as a derivation of the target from the loop's own constants, and the tiers
+of the arithmetic and counterflow results above are unchanged. Here $r_x$ is the
+symmetric direction-exchange rate of the loop law, and
+`foundations/loop-rate-selection-candidates.md` §9 carries the test together with
+the four falsifiers that would reopen it, quoted:
+
+"An exact loop identity making the $(F,H)$ generator's trace vanish without $r_x=d=0$; an
+inter-mode coupling in (LB6), a term carrying $m$ into $m'$, which would give resonances
+something to transfer; a nonlinear canonical reduction of the transport sector with a
+control parameter computed from the loop's own constants, on which Greene's criterion could
+be posed directly; or a compact-winding composite whose closure is not rational, which would
+reopen link (iii)."
+
+"None of the four is present in the declared loop law, and each is checkable in the
+same way this section checks the first three links."
+
 ### 1.5 Frozen verification and controls
 
 `computations/phi-counterflow-selection-pre-registration.md` freezes seven
