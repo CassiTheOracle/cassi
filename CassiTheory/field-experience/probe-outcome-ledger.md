@@ -3309,23 +3309,43 @@ seven.
 **Classification, against the branches fixed before the run: `LINEAR_BOTH_SIDES`.** Both signs pass
 their bands together with the crossing point; every fit is readable with 31 samples above the $10^{-12}$
 floor, one sign throughout, and a residual inside its ceiling; and the rate-to-entry slope of the seven
-readings is $1.001724712832028$ with intercept $-1.3266688989497523\times10^{-5}$. The identification
-therefore holds not only where the entry vanishes by construction but across a factor of four in the
-entry, at both signs, to $1.7\times10^{-3}$ relative: the rate *is* the entry. The crossing's own rate
-is $2.4880630605367724\times10^{-17}$, and each of its three ratios is stated against a named
-referent: $0.005/2.4880630605367724\times10^{-17}=2.0\times10^{14}$ against the smallest swept entry,
-$1.0\times10^{-6}/2.4880630605367724\times10^{-17}=4.0\times10^{10}$ against the crossing's own declared
-ceiling, and $4.0534467309636227\times10^{-10}/2.4880630605367724\times10^{-17}=1.6\times10^{7}$ against
-the two-coordinate receipt's own rate bound on its window (the standing share
-$0.9999998175949137$ over 450 units reads $-\ln(\text{share})/450=4.053\times10^{-10}$); the
-counterfactual factor the same entry predicts over this window is $e^{-2r\cdot150}=4.98\times10^{-2}$ at
-the smallest swept entry and $e^{-6}=2.48\times10^{-3}$ at the largest, so every non-zero point is
-decayed by orders of magnitude rather than by a factor of order one.
+readings is $1.001724712832028$ with intercept $-1.3266688989497523\times10^{-5}$. The
+identification therefore holds not only where the entry vanishes by construction but across a
+factor of four in the entry, at both signs: the rate *is* the entry. Two deviations are at issue
+and are kept apart here, because they have different referents: the relative $1.7\times10^{-3}$ is
+the *slope's* departure from one, while the largest per-point departure of a fitted rate from its
+own entry is $4.4\times10^{-3}$, at $r=-0.01$ at the edge of the swept range, inside the declared
+band $10^{-2}$.
+
+The crossing's own rate is $2.4880630605367724\times10^{-17}$, and each of its three ratios is
+stated against a named referent: $0.005/2.4880630605367724\times10^{-17}=2.0\times10^{14}$ against
+the smallest swept entry, $1.0\times10^{-6}/2.4880630605367724\times10^{-17}=4.0\times10^{10}$
+against the crossing's own declared ceiling, and
+$4.0534467309636227\times10^{-10}/2.4880630605367724\times10^{-17}=1.6\times10^{7}$ against the
+two-coordinate receipt's own rate bound on its window (the standing share $0.9999998175949137$
+over 450 units reads $-\ln(\text{share})/450=4.053\times10^{-10}$).
+
+**The window is stated with the entry it is applied to, entry by entry rather than remembered.**
+The counterfactual factor an entry predicts over *this* body's $150$-unit window is
+$\exp(-\lvert\text{entry}\rvert\cdot150)$. The seven declared points carry, each beside its own
+entry: $1.0$ at $r=0$, whose entry is $0$; $e^{-0.75}=0.472$ at entries $\pm0.005$
+($r=\pm0.0025$); $e^{-1.5}=0.223$ at entries $\pm0.01$ ($r=\pm0.005$); and
+$e^{-3}=4.98\times10^{-2}$ at entries $\pm0.02$ ($r=\pm0.01$). The amount of decay is therefore
+*not* what carries across the range, and it does not read as orders of magnitude: over the window
+the smallest swept entry's charge falls by about a factor of two and the largest by a factor of
+twenty, and the entry $0.04$ -- from which $e^{-6}=2.48\times10^{-3}$ would follow -- is not among
+the declared points at all. What carries across the range is the *rate*, read to
+$1.7\times10^{-3}$ relative at both signs and at the crossing against a clock that does not move
+with the entry. The orders-of-magnitude separation belongs to the crossing alone, whose own rate
+sits $4.0\times10^{10}$ below the declared ceiling it must fall under and $1.6\times10^{7}$ below
+the two-coordinate receipt's own rate bound.
 
 **The law does not rest on a single estimator or a friendly window.** The can-fail arm runs the same
-estimator on a 5-unit window at $r=+0.5$, five times past the swept band and an entry twenty-five times
-the largest swept one: it reads $1.0000059865642859$ against its declared $1.0$. The extrapolation
-witness at $r=+0.25$ reads $0.5000075974138588$ against $0.5$. At the other extreme the clock is
+estimator on a $5$-unit window -- $250$ steps, against the seven swept points' $7500$ -- at
+$r=+0.5$, whose entry $1.0$ is fifty times the largest swept entry $0.02$: it reads
+$1.0000059865642859$ against its declared $1.0$. The extrapolation witness at $r=+0.25$, whose
+entry $0.5$ is twenty-five times the largest swept entry, reads $0.5000075974138588$ against
+$0.5$. At the other extreme the clock is
 identical to the last bit at every point—$1.1282357172592223\times10^{-2}$ seven times—and sits within
 $1.0\times10^{-2}$ relative of the conversion entry measured at its own seed, ratio $0.996199$; against
 the chain's recorded $1.119569724312185\times10^{-2}$ it stands at $1.0115857423209142$, inside the
@@ -3346,11 +3366,15 @@ stores, and the coordinate is not a monotone store. This does not contradict §7
 finding, and the two readings are about different objects: §72 measured the *level* a counter-write
 leaves behind, which is even in the drive's magnitude, whereas this body's differential reading takes
 the difference of two arms whose drives have opposite signs against one common baseline, so any level
-common to both cancels and only the sign-odd part survives. On this body's own schedule the reversed
+common to both cancels and only the sign-odd part survives. The schedule and the window are named
+with each reading rather than shared between them. On this body's own -- three phases of $2500$
+steps, $50$ units each at $\Delta t=0.02$, inside the declared $150$-unit window -- the reversed
 channel **removes** $0.7715799746327933$ of what it wrote at $r=0$ and $0.3690299651437342$ at
-$r=-0.01$, leaving $0.22842002536720674$ and $0.6309700348562658$ standing. §72's counter is the other
-way round in magnitude and is not smoothed into it: it removed $6.60\times10^{-3}$ and left $0.9934$
-standing. Neither writes an inverse, so *the channel can write and cannot un-write* stands, and it
+$r=-0.01$, leaving $0.22842002536720674$ and $0.6309700348562658$ standing. §72's counter is the
+other way round in magnitude and is not smoothed into it, being read on *its* schedule in *its*
+$450$-unit channel window: it removed $6.60\times10^{-3}$ of the charge it wrote, leaving $0.9934$
+of that charge standing. The two fractions are not one channel's efficiency at two dial settings;
+the bodies differ in seed, schedule and window. Neither writes an inverse, so *the channel can write and cannot un-write* stands, and it
 now stands beside the statement that the net charge is odd in the sign; the reversed drive here is
 the more effective of the two. The protocol's §8.1 also carries the ruling that bounds an instrument
 repair and its two deciding conditions — derivability without run data, and pre-freeze catchability —
@@ -3401,14 +3425,15 @@ this body its first invocation: removing the per-point `clock_rate` key makes it
 |---|---|
 || Protocol body / executor | `97f8bf76…` / `b4b6aea7…` standing, `c1a8d490…` the bytes the invocation ran against; operator module `d687597f…`, base probe `28d2fd54…`, split `246463f7…`, gate-load `be9f651d…`, audit `0503f109…`, write body `740d0fc0…`, two-coordinate executor `7f782440…` standing, `671e4a5e…` the bytes this body ran against |
 || Receipt | `runs/loop_carrier_rate_entry_sweep/verification.json`, `318a2ac6…`, fourteen of fourteen gates, $69.8$ s of a $600$ s cost bound, `status=PASS`, branch `LINEAR_BOTH_SIDES`, injector `SIGN_DEPENDENT` |
-|| Budget | $29$ executions, $7500$ steps each, $203000$ steps against caps $10000$/$250000$; step rule satisfied on every arm at $\Delta t=0.02$ |
+|| Budget | $29$ executions -- twenty-seven of $7500$ steps and two short arms of $250$ -- $203000$ steps against caps $10000$/$250000$; step rule satisfied on every arm at $\Delta t=0.02$ |
 || First invocation | `first-invocation-verification.json`, `cdfb4546…`, one failing gate, kept as the record of the amendment |
 
 **§71's identification is now a measurement, not a reading at the one point where it is free.** What
 this body identifies is that on the frozen (LB6) line, restricted to the declared seed family, the
 declared coordinate's decay rate equals the gap entry linearly, at both signs through the crossing,
 against a clock that does not move with the entry. What it does **not** identify: that any physically
-realized memory exists; that the erased fraction is a storage efficiency; or that the linearity extends
+realized memory exists; that the removed fraction -- or its complement, the fraction left standing
+-- is a storage efficiency; or that the linearity extends
 outside this family—a seed with content on the complementary direction mixes the two eigenvalues and
 reads a rate between them. The rule it writes forward: **a retention reading is published as a rate
 against the dialled entry, with the window's own clock beside it** — a standing charge at a point where

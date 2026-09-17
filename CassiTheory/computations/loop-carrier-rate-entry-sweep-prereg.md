@@ -564,8 +564,8 @@ Invoked once against the second freeze, as declared:
     timeout 600 python computations/verify_loop_carrier_rate_entry_sweep.py
 
 exit `0`; `69.8` s of the executor's own runtime, `70.0` s wall, against `bound_seconds = 600.0`.
-29 executions, 7500 steps each, 203000 steps in total, against caps of 10000 per execution and
-250000 in total; `seconds_per_step_measured = 0.001195`, projection `245.0` s measured and `170.0` s
+29 executions -- twenty-seven of them `7500` steps and two short arms of `250` -- `203000` steps
+in total, against caps of `10000` per execution and `250000` in total; `seconds_per_step_measured = 0.001195`, projection `245.0` s measured and `170.0` s
 on the chain's recorded assumption. Receipt
 `runs/loop_carrier_rate_entry_sweep/verification.json`, digest
 `318a2ac64f60b5c52cafd21014d008c40483ed7abc9287df4d4f0d9f19d2cd18`, schema
@@ -600,8 +600,11 @@ to the window's own clock at every one of them:
 **Branch `LINEAR_BOTH_SIDES`.** Both signs pass their bands together with the crossing, every fit is
 readable with 31 samples above the floor, one sign throughout, and a residual inside the ceiling.
 The rate-to-entry slope of the seven readings is `1.001724712832028` with intercept
-`-1.3266688989497523e-05`, so the rate is not merely close to its entry at each point: it is the
-entry to `1.7e-3` relative across a range of a factor of four in the entry, and the crossing's own
+`-1.3266688989497523e-05`, so the rate is not merely close to its entry at each point. Two
+deviations are in play and they have different referents, so they are kept apart: `1.7e-3`
+relative is the **slope's** departure from one, across a range of a factor of four in the entry,
+while the largest per-point departure of a fitted rate from *its own* entry is `4.4e-3`, at the
+edge point `r = -0.01`, inside the declared band `1e-2`. The crossing's own
 fitted rate is `2.4880630605367724e-17`, whose three ratios are written against their own referents
 rather than summarised: `0.005 / 2.4880630605367724e-17 = 2.0e14` against the smallest swept entry,
 which is `0.005`; `1.0e-6 / 2.4880630605367724e-17 = 4.0e10` against the crossing's own declared
@@ -635,11 +638,15 @@ standing** fraction, named against each point: at `r = 0` it removes `0.77157997
 wrote and leaves `0.22842002536720674` standing; at `r = -0.01` it removes `0.3690299651437342` and
 leaves `0.6309700348562658` standing. So on this body's schedule the reversed channel takes down
 most of the charge at the crossing and about a third of it away from the crossing, and what stands
-afterwards is `0.2284` and `0.6310`. The two-coordinate body's erasure branch is the other way
-round in magnitude and must not be smoothed into it: ledger §72 records it removing
-`6.60e-3` of what it wrote, so `0.9934` stood afterwards, against `0.7716` and `0.3690` removed
-here. Neither writes an inverse, which is the statement that carries; the reversed drive here is
-simply the more effective of the two.
+afterwards is `0.2284` and `0.6310`. That arm's schedule is stated with it, because a fraction without its schedule is not a quantity:
+three phases of `2500` steps -- `50` units each at `dt = 0.02`, so `150` units in all, the
+declared window -- carrying the write, the reversed drive, and a hold. The two-coordinate body's
+erasure branch is the other way round in magnitude and must not be smoothed into it, being read on
+*its own* schedule in *its own* `450`-unit channel window: ledger §72 records it removing
+`6.60e-3` of the charge it wrote, so `0.9934` of that charge stood afterwards, against `0.7716`
+and `0.3690` removed here over `150` units. Neither writes an inverse, which is the statement that
+carries; the reversed drive here is simply the more effective of the two, and the pair is not one
+channel's efficiency at two dial settings, since the bodies differ in seed, schedule and window.
 
 ### 8.6 What this does and does not say
 
