@@ -2807,7 +2807,7 @@ reference floor by construction, read as a peak with the terminal value beside
 it. Twenty-two declared arms: the six gate decades at the largest load, a
 supersplit there, the ray seed as a declared $\ell=0$ control, five load levels
 at $\delta_g=10^{-2}$, the successor's conversion-law replication and the spent
-protocol's own short ray arm. $13{,}934$ RK2 steps against a total cap $30{,}000$
+protocol's own short ray arm. $13{,}934$ classical RK4 steps against a total cap $30{,}000$
 and a per-execution cap $50{,}000$, one process, bound $600$ s. This protocol is
 frozen with its executor: the text of sections 1–7 and the script are bound by
 digest before any arm is constructed, and the script refuses to run on a binding
@@ -2858,6 +2858,50 @@ any measured physical quantity. The transport axis is not re-opened: its
 exponent $1.000205540897814$ and crossing $\delta_u=1.4661921053529064\times10^{-5}$
 stand from §66, and the two axes remain separate readings of one statistic on
 one realization.
+
+## 68. The gate moves the loaded attractor; the run that would have certified it ended on a bookkeeping gate
+
+The protocol `computations/loop-carrier-attractor-write-prereg.md` takes the
+question §67 left standing: whether an asymmetric gate **moves** the composition
+attractor the conversion rate reads, or only **shakes** the state while the ray
+pulls it back. §67's readings were state-space separations over a fixed window,
+and a window cannot tell a shifted attractor from a transient that has not yet
+decayed. This protocol reads one trajectory at five horizons spanning $4.7$
+relaxation times and fits
+
+$$D(T)=D_\infty+(D_0-D_\infty)e^{-\nu T}$$
+
+with $\nu$ held at the successor receipt's own fitted rate
+$1.119569724312185\times10^{-2}$, so that the **offset**—not a ratio of two
+readings—is the discriminator. Because a held rate wrong by a few percent makes
+a pure transient look like an offset, every arm is fitted a second time with the
+rate free, and a branch is issued only where the two agree; the self-check
+exhibits the boundary as a witness, a pure transient $2.4\%$ off the clock whose
+held fit reports an offset at $57\%$ of its terminal reading while the free fit
+reports none.
+
+| Reading | Value | What it closes |
+|---|---|---|
+| Branch, seven declared split sizes | all seven `PERSIST`: $\delta_g$ from $10^{-6}$ to $1$ at the largest load, held offsets from $-3.196567330\times10^{-10}$ to $-5.800237159\times10^{-4}$, the terminal reading $96$–$104\%$ offset at every level, free-fit offsets within $1\%$ of the terminal, residuals $0.010$–$0.076$ against a band of $0.25$ | On this realization the gate does not merely perturb: a reading decaying at the realization's own clock falls by a factor $21$ across the horizon pair, and none did—the recorded two-horizon ratios sit at $1.011$–$1.037$ against a transient prediction of $0.0487$ |
+| Law and instrument | $|D_\infty|=(4.3424057234641914\times10^{-4})\,\delta_g^{1.0302448806878108}$ over the seven arms, per-level ratios $0.853$–$1.336$, label `PROPORTIONAL`, instrument $\delta_w=4.129022977646817\times10^{-9}$ | The shifted attractor's distance is proportional to the declared split size over seven decades to within three percent; the same fit on the free offsets gives $1.03110$ and on the terminal readings $1.02917$, so the law is not an artifact of which fit was fitted |
+| Clock, ray, oracles | anchor's fitted $\rho$ rate $1.1375969997251654\times10^{-2}$ over $[30,450]$, a factor $1.0161$ from the receipt's rate read live from that receipt; `ray_supersplit` $\Delta$ exactly $0.0$ at all five horizons with peak $3.3306690738754696\times10^{-16}$; `ray_short` and `successor_replication` bit-identical to their bound receipts; zero-split reduction exactly $0.0$ | The classification's clock is the realization's own, the ray is inert to the bit at the largest declared split, and both oracles measure the same instrument on the same seeds |
+| Verdict | **none.** `status=FAIL`; gate 12 (`anchor at the ray`) read `null`; `verdicts.write`, `verdicts.law` and `verdicts.instrument` all null; fourteen of fifteen gates passed | The protocol's own rule withholds a verdict on a failed gate, and the failed gate is the one that charges an offset to the split rather than to a reference still relaxing |
+| The amendment reading | The anchor's $\max|\varepsilon|/\max|\rho|$ at $T_{\max}$, measured outside the run on the same arm, seed, split, schedule and step: $1.3442651683720991\times10^{-3}$, inside the declared tolerance $5\times10^{-3}$ by a factor $3.7$, with the arm's $\rho_{\rm final}$ reproducing the run's own $8.308015639801732\times10^{-4}$ | Read as an amendment and not as a gate value: it says the failure was a slip in the executor—the reader recorded each arm's distance from the ray only for arms carrying a twin, so the reference the sweep is measured against carried none—and not a state that was found off the ray. The corrected executor is re-anchored in §0 beside the digest it had at the invocation, its frozen body is unchanged, and the receipt refuses a second invocation |
+| Boundary | Nineteen arms at $N_\chi=24$, one rate set, one profile, one seed and its declared load, five horizons read from one run per arm, one protocol invocation; the common gate and common transport stay assumed, not derived; the load is a departure of the carrier state from the ray, not a physical density or current | **RESOLVED in measurement, not in verdict**: on the declared seeds an asymmetric gate shifts the composition attractor by an amount proportional to the split, and the split is exactly inert on the ray, so the channel §66 found dead on the ray is a *writing* channel off it. **UNRESOLVED**: the certification itself, because the attribution gate was unreadable in the one run this body allows; and whether the shifted offset endures on horizons longer than $5$ relaxation times, which this protocol's declared set does not reach |
+
+What stands is narrower than the labels sound. The offset is the difference of
+one coordinate on one finite realization, and for a rank-one conversion block
+the spectrum and the relaxation rate are functions of $a+b$ alone while the ratio
+lives in the null vector, so nothing here measures the conversion ratio, the
+carrier identity, the QF1-to-carrier map, the phase law, the scale ratio or the
+quantum statistics; $\varphi$ enters only as the declared entries of the
+four-population law. The free fit's rate is at the edge of its declared scan on
+all seven persisting arms, which is recorded rather than gated: when an offset
+dominates a reading, the free rate is not identified, and it enters only the
+transient clause. The instrument $\delta_w$ is a property of this declared axis
+on this seed family and not a threshold of the projection. The exponent $1.0302$
+is the measured one and not one; on the six decades below the largest split the
+design probe measured $1.0051$, and the difference is that one extra level.
 
 ## References
 
@@ -3079,3 +3123,6 @@ one realization.
 - `computations/loop-carrier-gate-load-prereg.md`—frozen gate-load protocol carrying its executor in the same commit, the declared load family, the separation statistic, the two fits and the pre-flight action check, with the post-execution record at `status=PASS` and both verdicts issued.
 - `computations/verify_loop_carrier_gate_load.py`—executor binding the protocol body, the spent split executor, the successor's probe and both predecessor receipts by digest, with the idempotent twenty-two-arm self-check and the refusal path of §0.
 - `runs/loop_carrier_gate_load/verification.json`—source-bound receipt of the single invocation at `status=PASS`, the thirteen gates, the twenty-two arm readings, the proportional split sweep, the linear load law with its recorded convexity, and the instrument $(\delta^\star,\ell^\star)$ (gitignored run artifact).
+- `computations/loop-carrier-attractor-write-prereg.md`—frozen attractor-write protocol carrying its executor in the same commit, the five-horizon two-parameter offset fit with its held rate, the free-rate corroboration, the fragility witness and the branch rule, with the post-execution record at `status=FAIL`, both verdicts null, and the amendment reading measured outside the run.
+- `computations/verify_loop_carrier_attractor_write.py`—executor binding the protocol body, the spent gate-load executor, the successor's probe and all three predecessor receipts by digest, with the static self-check, the refusal path of §0, and the corrected per-arm ray-distance reading.
+- `runs/loop_carrier_attractor_write/verification.json`—source-bound receipt of the single invocation at `status=FAIL`, the fifteen gates with the unreadable attribution gate, the twelve arm readings over five horizons, the two fits' offsets per arm, the proportional law, the instrument and the ray and oracle controls (gitignored run artifact).
