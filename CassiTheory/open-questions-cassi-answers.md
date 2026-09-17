@@ -767,9 +767,10 @@ An evolved check of that realization is now recorded separately. The
 fifteen-execution protocol `computations/loop-carrier-projection-dynamics-prereg.md`
 runs the four-population law on the frozen discrete operators to a converged
 horizon at each of four initial profiles, and under repeated exterior
-transport, an open and a closed gate and a truncated loop: twelve arms with no
-injected disagreement hold the complete-loop average on the canonical
-two-density trajectory at $10^{-16}$ to $10^{-15}$, and the two long loop modes
+transport, an open and a closed gate and a truncated loop: thirteen of the
+fifteen arms hold the complete-loop average on the canonical two-density
+trajectory at $10^{-16}$ to $10^{-15}$ — every arm but the two whose
+disagreement is injected by construction — and the two long loop modes
 decay at the frozen rates $2g_m$ to $2.54\%$ and $0.59\%$
 (`runs/loop_carrier_projection_dynamics/verification.json`, `status=FAIL`,
 both verdicts null). No status moves, because two controls could not witness

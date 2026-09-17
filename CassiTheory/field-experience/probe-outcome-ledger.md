@@ -2533,7 +2533,7 @@ $232{,}334$ RK2 steps in total, one process, bound $5400$ s.
 |---|---|---|
 | Completed execution | One invocation of `timeout 5400 python computations/verify_loop_carrier_projection_dynamics.py` from the repository root, 185 s measured outside and `runtime_seconds` 185.23 inside, writing `runs/loop_carrier_projection_dynamics/verification.json` at `status=FAIL` | Inside the declared bound with a factor 29 of headroom; the single invocation is spent |
 | Integrity | 11 of 11 gates: annihilation $4.88\times10^{-15}$, idempotence $2.02\times10^{-16}$, `velocity_split` $0.0$ in nine contract arms, gate spread $0.0$, matched start $8.88\times10^{-16}$, declared shape 15, spectrum re-check at most $4.69\times10^{-16}$ against $10^{-9}$, sensitivity floor $8.51\times10^{-17}$ against $10^{-11}$, one process and no concurrent run | Every gate inside its frozen tolerance |
-| Closure arms | $\rho_{\max}\le2.62\times10^{-15}$ and $\rho_{\rm final}\le2.22\times10^{-15}$ in the twelve arms with no injected disagreement, class `within_budget` | The evolved loop average tracks the canonical law at the arithmetic floor in twelve of twelve |
+| Closure arms | $\rho_{\max}\le2.62\times10^{-15}$ and $\rho_{\rm final}\le2.22\times10^{-15}$ in thirteen of the fifteen arms — every arm but `covariance` and `direction_split`, whose disagreement is injected by construction — class `within_budget` | The evolved loop average tracks the canonical law at the arithmetic floor in thirteen of the fifteen arms |
 | Refinement pairs | The two declared pairs reduce by $0.999987$ and $1.0000000000000058$ because both members already sit at the floor | Neither pair is `discretization_limited` and no arm is `structural_disagreement` |
 | Loop modes | $\Delta_m$ $9.63\times10^{-12}$ and $9.63\times10^{-12}$ on the long arms and $7.28\times10^{-12}$ on the short one, against $10^{-6}$; fitted log-slope errors $2.54\%$ and $0.59\%$ against $10\%$; $w_m(T_{\rm mode})$ $6.79\times10^{-9}$ and $1.26\times10^{-25}$ against $10^{-3}$; $J$ at the horizon $1.49\times10^{-16}$ and $2.97\times10^{-17}$ | The two long arms relax at the frozen rates $2g_m$ |
 | Feature F2 | F2 is true and **vacuous**: its condition quantifies over closure arms with $\rho_{\max}>10^{-6}$ and there are none | F2 carries no information about this family |
@@ -2585,11 +2585,12 @@ $4.31\times10^{-9}$. Nothing in this entry amends a criterion of the spent
 protocol: it records what the run showed and leaves the FAIL standing as
 measured.
 
-The closure arms are the reason the entry is worth keeping. Twelve arms with no
-injected disagreement hold the complete-loop average of the evolved
-four-population state on the canonical two-density trajectory at
-$10^{-16}$--$10^{-15}$ while carrying repeated exterior transport, an open and
-a closed gate and a truncated loop, and the two long loop modes decay at the
+The closure arms are the reason the entry is worth keeping. Thirteen of the
+fifteen arms hold the complete-loop average of the evolved four-population
+state on the canonical two-density trajectory at $10^{-16}$--$10^{-15}$ while
+the arm list carries repeated exterior transport, an open and a closed gate and
+a truncated loop; the two that do not are the controls whose disagreement is
+injected by construction. The two long loop modes decay at the
 frozen rates $2g_m$ to $2.54\%$ and $0.59\%$. That is an evolved reading where
 the earlier evidence was a single-state identity check, and it is the reading a
 successor control construction must be able to compare against without
