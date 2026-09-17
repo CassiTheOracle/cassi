@@ -3148,6 +3148,106 @@ declaration, "two writes coexist" can be a degeneracy mistaken for capacity, exa
 retained scalar $A$ would have returned a confident "coexistence confirmed" with no way to be
 wrong.
 
+## 72. Two coordinates on purpose: dialing exactly one gap entry to zero, and the injector that is not an inverse
+
+**The rule §71 wrote forward has now been run, and it fired.** §71 ended with: *a body that claims
+writable capacity declares $\dim\ker$ over the frozen `mode_generator` at its own parameter point as
+its predicted answer before it runs, and states its distance to the three boundaries.* This body
+moves exactly one declared coefficient—`exchange`, the $r$ of (LB42) $\partial_tH=-\Omega\partial_\chi
+F+d\partial_\chi^2H-2rH$, which LB39 itself names at its boundary—to zero, and declares the answer
+before the arithmetic. At $r=0$ the three entries of the reduced gap at the equilibrium are
+$\kappa(1+\varphi)=1.1268281293796237\times10^{-2}$, $2r=0$, and
+$d+r-\operatorname{Re}\sqrt{r^2-\Omega^2}=d=4.4982698961937725\times10^{-2}$: **exactly one vanishes**,
+the second, and the point is reachable inside the declared machinery rather than imposed on it—the
+frozen base module already carries an arm at this value (`persistent_current`, horizon key
+`mode_zero_exchange`, `ZERO_EXCHANGE = 0.0`) and multiplies the right-hand side by that coefficient.
+
+| Declared, before the run | Measured, from the frozen generator |
+|---|---|
+| $\dim\ker(\text{mode }0)\big|_{r=0}=2$: one direction-symmetric combination (the equilibrium ratio, which is §70 and §71's retained coordinate) and one direction-antisymmetric, $\chi$-uniform imbalance | nullity $2$, one symmetric and one antisymmetric, carrier residual $2.61\times10^{-16}$; the same generator at $r=0.6$ gives nullity $1$, symmetric alone |
+
+**The reading domain is the declared one this time, and it is proven rather than asserted.** §71 found
+that the spent body's `composition_profile` averaged the loop axis and indexed the exterior one—the
+transpose of its own §1.2. This body reads $c_{s,k}=\text{mean}_x\,q(F_{Y,s}(x,\chi_k),F_{I,s}(x,\chi_k))$,
+$48$ coordinates, and the frozen executor rebuilds the audit's declared-shaped probes in its own gate
+path: a state varying only along the loop axis reads a declared row spread of
+$7.376815905011214\times10^{-2}$ against exactly $0.0$ on the transposed reader, a state varying only
+along the exterior axis reads exactly $0.0$ against $6.938268539288772\times10^{-2}$, and on a state
+constant in $\chi$—where the two readers must agree—their reported means agree to exactly $0.0$. The
+transposition cannot recur unnoticed, and the readers are tied to each other where physics says they
+are.
+
+| Branch | Declared values | Measured |
+|---|---|---|
+| (a) `present` | four labels on the $T_3$ standing count against the predicted $2$ | `CONFIRMED_TWO`: standing $2$ of predicted $2$ |
+| (b) `writable` | live action at or above $10^{-3}$ of one step's own drift, both channels charged | `WRITABLE_BOTH`: live D $1.0168673283524747\times10^{-2}$, live N $8.909301878312713\times10^{-2}$, charges $-9.835534138125102\times10^{-5}$ and $-8.957259285831062\times10^{-5}$ |
+| (c) `retained` | share of the $T_2$ charge standing at $T_3$ at or above $0.5$, final-phase movement at or below $0.1$ | `RETAINED_BOTH`: D share $1.0000000019979542$ with movement $2.89\times10^{-10}$, N share $0.9999998175949137$ with movement $2.40\times10^{-8}$ |
+| (d) `erased independently` | the counter phase removes the whole charge and the first coordinate stands | `RESIDUAL`: the counter removes $6.60\times10^{-3}$ of N's charge while the D charge holds at $1.0000000019979542$ |
+
+**The counterfactual is measured rather than assumed, and the dial does what the closed form says.**
+`write_N_restored` runs the identical drive at the spent point $r=0.6$, read against its own
+exchange-matched anchor—an arm with the same load, the same coefficient and no drive, because at that
+point the seed's own uniform imbalance is damped and the two parameter points do not share an
+odd-group equilibrium. Its charge at $T_2$ is $-5.366331823353221\times10^{-9}$ and nothing of it
+stands at $T_3$: share exactly $0.0$, against `counterfactual_factor` $e^{-2r\cdot450}=4.8\times10^{-235}$
+and against $0.9999998175949137$ for the same channel at $r=0$. Same drive, same load, same window, one
+coefficient moved: the second coordinate is conserved where the gap entry vanishes and is taken down
+where it does not, and the exchange term annihilates the antisymmetric part to round-off rather than
+merely exponentially.
+
+**What the counter-write cannot do, stated as the finding it is.** The reversed orientation channel
+removes $5.675678610428392\times10^{-7}$ of the $8.605157735191993\times10^{-5}$ it wrote—$0.66\%$—so
+the injected quantity is not an odd function of the channel's sign. It is a **rate-magnitude** effect:
+the channel changes the gate rate by $\pm\delta_N s$, the two orientations approach their common
+composition attractor at different speeds, and reversing the sign mirrors the *transient* while the
+level that the magnitude wrote is even in $\delta_N$. The reading is taken differentially, against the
+arm that carries the same two writes and no counter phase, so that the even channel's own footprint in
+the odd group—it exists, because the composition is a nonlinear function of the densities—cancels
+exactly. The coordinate is writable and conserved and its injector is **not invertible**; that is a
+statement about the orientation channel, not about the kernel, and it is why the branch is recorded as
+a reserved outcome rather than repaired away.
+
+**The spent chain's own scalar is a different reduction, and the difference is now a number.** §71's
+transposition meant the spent receipt's coordinates are $\chi$-averages. This body's $\bar e$ is the
+exterior mean of the *pointwise* composition; the spent scalar is the composition of the *loop-averaged*
+projection. They differ by the concavity of $q$ in $\rho$: over $81$ sampled states the gap reaches
+$0.2322333653463856$. The declared coordinate is therefore not conflated with the spent one—the
+protocol states the difference, gate 2 ties the two readers where they must agree, and the gap is
+published rather than absorbed. What *is* compared against the spent receipt are its own scalar on both
+anchors, $0.8923974885141064$ and $0.8923974885141089$ against
+$0.8923974885141119$ and $0.8923974885141087$ (differences $5.55\times10^{-15}$ and
+$2.22\times10^{-16}$), and the seeded family's recorded load transfer, $0.3646114292316331$ within
+$9.07\times10^{-14}$ relative.
+
+**One repair, disclosed.** The first invocation integrated all nine arms and then failed in the gate
+path on a latent `KeyError`, writing no receipt; the stopping rule permits exactly one repair after such
+an invocation, and the repaired pair is committed separately with its own digests. The static pass now
+**drives the gate, feature and receipt path on shaped inputs**, so a key that path reads and its
+producers do not carry fails in seconds instead of after an integration—that pass immediately found a
+second one, the clock fit's degenerate branch, which gate 13 read by key. The declared time bound is
+re-declared as $1800$ seconds from the observed $726.1$ seconds rather than kept at the optimistic
+extrapolation.
+
+| Binding and status | Value |
+|---|---|
+| Protocol body / executor | `a2c6abe2…` / `c13afe72…`; operator module `d687597f…`, base probe `28d2fd54…`, split `246463f7…`, gate-load `be9f651d…`, audit `0503f109…`, spent executor `3852eadb…`, spent body `09426b68…` |
+| Receipt | `runs/loop_carrier_two_coordinates/verification.json`, `46ae3ee2…`, fourteen of fourteen gates, $726.1$ s, `status=PASS` |
+| Clock | fitted $1.1268283368545141\times10^{-2}$ against the receipt-declared $1.119569724312185\times10^{-2}$, ratio $1.0064833948120457$ inside the carried band $2.0$ |
+| Step rule | the tightest arm is the restored one at $\lambda_{\max}=1.058814$, limit $0.023611$ against $\Delta t=0.02$ |
+
+**Classification, against the branches fixed before the run.** The declared point's prediction is
+**confirmed as two retained coordinates**: the carrier channel writes the even group and keeps it, the
+orientation channel writes the odd group and keeps it, the two injectors are distinct
+($|\cos|=1.77\times10^{-2}$ on the declared $48$ coordinates), each acts on its own coordinate at the
+largest declared magnitude while the other's action there is $3.2\times10^{-2}$ and $7.6\times10^{-2}$ of
+it, and the counterfactual separates the two parameter points by the whole of the charge. This is the
+carrier's first **multi-item memory**: two durable numbers with independent injectors, which is what
+§70's reserved branch asked for and what §71's rule made measurable instead of plausible. The open
+property is the one the (d) branch records: the second coordinate's injector is even in its own
+magnitude, so the channel can write and cannot un-write. Nothing here measures the value of $\varphi$,
+the conversion ratio, the carrier identity, the QF1-to-carrier map, the phase law, the scale ratio, the
+quantum statistics, or whether any of these is a physical density or current.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -3380,3 +3480,6 @@ wrong.
 - `computations/verify_loop_carrier_kernel_dimension.py`—the closed-form kernel-dimension audit: binds the frozen body, its executor, the bound operator module, the spent write body and the coexistence receipt by digest, reads the declared tuple from the bound module and the run's own arm coordinates, evaluates theorem 6.3's three entries and `dim ker` of the frozen `mode_generator` at the seeded and equilibrium points, proves the reading domain's transposition on declared-shaped probes, and pins all $115$ numbers it prints against a literal table.
 - `computations/verify_loop_to_bubble_projection.py`—the frozen discrete operators, bound by the coexistence protocol's §0 row `bound_module_sha256`, carrying the declared tuple (PHI, EXCHANGE, V, R, D_ELL, LAM, OMEGA, D_LOOP) together with the `mode_generator`/`closed_spectrum` pair this audit evaluates for the kernel dimension and the mode spectra.
 - `computations/loop-carrier-attractor-write-prereg.md`—the spent write body's recorded offset law $|D_\infty|=(4.3424057234641914\times10^{-4})\,\delta_g^{\,1.0302448806878108}$ labelled `PROPORTIONAL` inside the declared band $[0.9,1.1]$, the exponent §71 reads as the response of a conserved coordinate.
+- `computations/loop-carrier-two-coordinate-prereg.md`—the frozen two-coordinate protocol: the declared $r=0$ point, the predicted $\dim\ker=2$, the declared reading domain and the two channel magnitudes.
+- `computations/verify_loop_carrier_two_coordinates.py`—its executor: the two channels, the nine arms, the domain probes, the shaped-input dry run and the gate table.
+- `runs/loop_carrier_two_coordinates/verification.json`—the receipt: fourteen of fourteen gates, `CONFIRMED_TWO`, `WRITABLE_BOTH`, `RETAINED_BOTH` and the reserved `RESIDUAL`.
