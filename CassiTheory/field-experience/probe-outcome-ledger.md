@@ -2964,6 +2964,64 @@ conversion ratio, the carrier identity, the QF1-to-carrier map, the phase law, t
 ratio or the quantum statistics; $\varphi$ enters only as the declared entries of the
 four-population law.
 
+## 70. One carrier, how many coordinates? The χ-resolved composition profile has one retained writable coordinate
+
+§69 certified that the gate **writes** a retained offset and that the carrier **keeps** it—on a
+single conserved conversion level, the exterior mean $A$ of the bounded composition. A
+coexistence test read on that scalar can only ever return "it adds": two writes into one
+conserved quantity have nowhere else to go. That is the shape of the spent gate axis, which
+had no way to act at all, and it would have produced a clean, confident, meaningless
+"coexistence confirmed." The body `computations/loop-carrier-composition-coexistence-prereg.md`
+therefore reads the carrier where the declaration itself resolves it—the χ-resolved
+per-orientation composition profile $c_{s,k}$ over the $24$ declared loop samples, partitioned
+by the field's own orientation symmetry into an even group $e_k=(c_{+k}+c_{-k})/2$ and an odd
+group $o_k=(c_{+k}-c_{-k})/2$—and writes **two** declared directions into it at the largest
+declared magnitude $\delta=1$: **A**, the established write, offsetting the conversion field by
+$\delta\cos\chi$ between the two carriers (orientation-blind, group $e$), and **B**, new,
+offsetting it by $\delta\,s\cos\chi$ between the two *orientations* of each carrier (group
+$o$). Direction A reduces to the successor's own right-hand side term for term
+(`array_equal`, checked in the self-check). Before a single trajectory, the executor reads both
+directions' action on the loaded seeded state, in both directions, with a no-write null; and if
+the two are not distinguishable it reports the reservation and closes there—no re-tuning of the
+observable, no hand-built basis the field does not expose. Eight arms, $472{,}600$ steps, one
+invocation, $305.6$ s of the declared $900$ s.
+
+| Reading | Value | What it closes |
+|---|---|---|
+| Pre-flight, both directions, on the seeded state | Live A $2.5753540367077486\times10^{-6}$ even against $6.529026343075532\times10^{-7}$ odd; live B $6.424958490062066\times10^{-7}$ even against $2.547515185086473\times10^{-6}$ odd; cross terms $\le3\times10^{-4}$ of the step; direction cosine $0.24572751316067618$; null exactly $0.0$; the spent scalar action $5.3390731361887128\times10^{-2}$ of the drift at the largest load and exactly $0.0$ on the ray | The two directions *are* distinguishable on the declared coordinates at one declared step, the measure is exactly still when nothing is written, and this body's right-hand side is the spent one on the spent direction—so the reservation that follows is not a failure to build the reading |
+| Domain reading at $T_3=1350$, five relaxation times after the drive is removed | A's own group retained at $3.585494912706732\times10^{-3}$ (`fit_held` share $1.0000000000776$, residual $1.29\times10^{-10}$ against a band of $0.25$, release samples moving by $9\times10^{-13}$ of themselves where the measured clock would have taken them down by $\mathrm{e}^{\nu\,450}=155$); B's own group at exactly $0.0$ (`SILENT`, release peak exactly $0.0$); B's whole retained footprint $8.080466\times10^{-5}$ in the **even** group, $2.25\%$ of A's | The second direction is not a second storage coordinate: one step of action is not storage, and the coordinate B acts on is A's |
+| Coexistence verdict | `RESERVED_ONE_RETAINED`. Joint's own-coordinate match fails on the odd group (relative gap $0.9779768743087116$) and holds on the even group (gap $0.022781598592640784$, cosine $1.0$) | The honest output the steering asked for: the conserved level has **one retained writable coordinate** on this realization, so multi-item storage has to come from **placement** rather than from the carrier |
+| Nonlinear cross term, recorded | Joint and erase arms hold $7.185740\times10^{-8}$ in the odd group at $T_1$—nearly five decades above the readable floor, more than eight above B's own odd reading there, unbounded above A's exactly-$0.0$—then $4.379586\times10^{-10}$ at $T_2$ and exactly $0.0$ at $T_3$ | The odd coordinate is not *unwritable*, it is *unretained*: the pair writes what neither single writes, transiently, and the distinction is reported rather than folded into the verdict |
+| Erasure verdict, vector-aware, at $T_2=900$ | `RESERVED_NO_B`: the B-only arm's odd group is $1.468687\times10^{-16}$, unreadable, so the counter-write's effect on B's coordinate is not yet askable. Recorded beside it: the erase arm's even displacement $3.668465\times10^{-3}$ matches the joint's $3.669082\times10^{-3}$ (gap $1.684\times10^{-4}$) and not the B-only arm's (gap $0.9779731662779862$), its own even fit `RETAINED` with share $1.0000000000769$ | A $-2$ change in the χ-cos drive strength, held for a full write phase against a coordinate another write established, did **not** remove it—the non-independence reading is measured, not merely reserved |
+| The retained scalar, reported and not gated | $A$(`joint_AB`) $0.8917899977049457$ against the sum of the two singles' displacements $0.8917904951048021$: agreement to $4.97\times10^{-7}$ absolute, $5.6\times10^{-7}$ of $A$, $8.2\times10^{-4}$ of the displacement the singles wrote | The naive reading, measured and deliberately not promoted: two writes into one conserved level read as one addition, exactly as they must, and a coexistence claim taken there could not have been wrong |
+| Controls, all firing | `ray_write` in silence at every read time ($4.299875\times10^{-16}$ against a $10^{-14}$ level) with the two ray arms agreeing to the last bits; can-fail `write_A` even $T_1$ $3.578250\times10^{-3}$ against a $10^{-12}$ floor; anchor readable on all five charged arms ($1.326$–$1.344\times10^{-3}$ against the ray arms' $4.6\times10^{-15}$); null exactly $0.0$; the release-window clock $1.1268281516184584\times10^{-2}$ at ratio $1.0064832293591475$ to the rate read live from the relaxation receipt; `step_short`'s ρ maximum bit-identical to the successor's $5.329147248815693\times10^{-16}$ | The write is present where the control says it must be silent; the measure fires at the largest declared magnitude; every charged arm is twelve decades off the ray rather than vacuous; and the clock is the realization's own |
+| Verdict, replication and status | `status=PASS`, all fourteen gates, one invocation; the successor's five recorded literals reproduced exactly—$0.8923960494310218$, $0.8918036475597466$, $0.8923974885141087$, $0.0013261506410605264$, $4.615955614456139\times10^{-15}$—with zero mismatches, and the twelve declared design-probe readings likewise | This body's direction A *is* the successor's construction on the same seeds rather than a look-alike, and the answer disclosed before the freeze is the answer the run returned |
+
+What is recorded and not gated, because it is a property of this realization rather than of the
+claim: the free fit's rate on a retained group is unidentified by construction—A's even group
+fits a free rate $1.88$ times the declared clock, inside the declared factor-$2$ band, on a
+series that is nearly flat, so the `RETAINED` label rests on the held fit and the rate enters no
+clause; the charged arms' own distance from the ray relaxes across the hold from
+$1.3261506410605264\times10^{-3}$ to $4.9787389206375424\times10^{-8}$, so what is retained is
+the composition coordinate's displacement—a conserved level—while the state itself comes back
+near the ray; both reserved branches sit on a plateau rather than on a threshold, since every
+floor in $10^{-15}$–$10^{-6}$ returns the same two verdicts on these readings.
+
+**RESOLVED in measurement and in verdict**: on the declared seeds and at the largest declared
+load, the loop carrier's χ-resolved composition profile has exactly **one retained writable
+coordinate**. Direction A's offset stands five relaxation times after the drive is removed;
+direction B's own coordinate is silent, and B's entire retained effect lands in A's coordinate
+at $2.25\%$ of A's magnitude; the pair additionally writes a transient odd component four
+decades above the readable floor at the first read time that is gone by the third; and the
+counter-write leaves the established coordinate standing. The retained scalar reads additive
+throughout ($5.6\times10^{-7}$ of $A$), which is **reported, not gated**—it is the reading that
+would have returned "coexistence confirmed" with no way to be wrong. **Not resolved**: whether
+any *other* declared modulation reaches a second retained coordinate, whether a second
+coordinate exists at a placement the profile does not resolve, whether the single writable
+coordinate can hold two items distinguished by anything but magnitude, and whether any of this
+survives a change of seed family, load or resolution. The reserve is a bound on one finite
+realization under two declared directions, not a statement about the continuum equations.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -3190,3 +3248,6 @@ four-population law.
 - `computations/loop-carrier-attractor-write-successor-prereg.md`—frozen successor body carrying its executor in the same commit, the two families in one run, the held-and-removed split with its four-level retention rule, the twenty-two gates and thirteen features, and the post-execution record at `status=PASS` with `WRITES`, `STORES` and the joint label `memory`.
 - `computations/verify_loop_carrier_attractor_write_successor.py`—executor binding the protocol body, the predecessor attractor-write executor and its body and receipt, the spent gate-load executor and its body and receipt, the split executor, the successor probe and the frozen discrete operators by digest, with the design-probe mode, the converged binding self-check and the refusal path of §0.
 - `runs/loop_carrier_attractor_write_successor/verification.json`—source-bound receipt of the single invocation at `status=PASS`, the twenty-two gates with the readable attribution gate and the reproduced amendment reading, the seventeen arm readings over both phases, the two families' fits, offsets and branches, the recorded retention law, the shared-construction and design-probe checks, and the two clocks (gitignored run artifact).
+- `computations/loop-carrier-composition-coexistence-prereg.md`—frozen coexistence body: the χ-resolved per-orientation composition profile and its even/odd partition declared coordinate by coordinate, the two gate directions and the counter-write phase, the four pre-flight readings with the null, the eight declared arms, the fourteen gates against the fifteen reported features, the two verdicts with their reserved branches, and the design probe disclosed before the freeze.
+- `computations/verify_loop_carrier_composition_coexistence.py`—executor binding the protocol body, the attractor-write executor and its body and receipt, the successor executor and its body and receipt, the spent gate-load and split executors, the relaxation probe, the frozen discrete operators and the successor's short-horizon oracle by digest, with the design-probe mode, the binding can-fail flags, the term-for-term reduction of direction A to the spent right-hand side, and the refusal path of §0.
+- `runs/loop_carrier_composition_coexistence/verification.json`—source-bound receipt of the single invocation at `status=PASS`: the fourteen gates, the pre-flight readings in both directions with the exactly-zero null, the eight arms' group-resolved displacements and fits, the two verdicts `RESERVED_ONE_RETAINED` and `RESERVED_NO_B`, the reported-not-gated composition block, the five replicated successor literals with zero mismatches, the twelve design-probe readings, and the two clocks (gitignored run artifact).
