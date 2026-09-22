@@ -2943,6 +2943,14 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   (`foundations/loop-to-bubble-projection-theorem.md` §9.45;
   `computations/matter-formation-wound-loop-gap-report.md`;
   `field-experience/probe-outcome-ledger.md` §74).
+  The wound-carrier cross-section in the exact toroidal metric is measured: the
+  carrier migrates toward the pinched inner side, opposite to the prediction
+  registered with its protocol, and the single invocation returns an inconclusive
+  branch because the localized-mode eigenvalue changes sign between resolutions at
+  charge 256, so no dependent stability classification is available
+  (`computations/matter-formation-thick-torus-gap-report.md`,
+  `foundations/loop-to-bubble-projection-theorem.md` 9.46,
+  `field-experience/probe-outcome-ledger.md` 75).
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

@@ -8826,6 +8826,51 @@ threshold or stopping rule. Both receipts retain
 
 ---
 
+### 9.46 Wound carrier cross-section in the exact toroidal metric
+
+The thin-loop formula (YM279) assumes a straight tube. Its transverse cross-section in the *exact*
+toroidal metric, where the metric factor $g=1+\kappa a\cos\varphi$ varies across the section, is a
+separate question, and it is now posed as a frozen protocol and measured.
+
+The registered functional is the YM279 integrand weighted by $\sqrt g$ over the section, at
+$(R,n)=(8,5)$ on a $200\times32$ grid over $a\le 0.9R$ and with the $2\pi R$ mass convention,
+where the relaxed trial reaches
+
+$$
+2\pi R\,E = 1088.4 \qquad\text{against the } Q=128 \text{ dilute threshold } 1115.878 .
+\tag{YM281}
+$$
+
+That trial is an upper-bound reading, not a stationary state. Measured, the axisymmetric lift is
+not the minimum: $E=22.2141$, while the best translated flat profile reaches $21.6532$ at
+$(a_0,\varphi_0)=(3,\pi)$, and the $\varphi_0=0$ side stays at or above $23.2$ at every
+displacement. The carrier migrates toward the *pinched inner side*, opposite to the prediction
+registered with the protocol. The mechanism is a competition between two metric-weighted terms:
+the gradient energy is $\propto g$ and prefers the pinch, the quartic self-energy is
+$\propto 1/(a g)$ and prefers the outer equator, and the mass and quartic terms carry no $g$. The
+relaxed trial at $(5,2)$ reaches $E=9.468$ with $a_{99}=4.04$ against $0.85R=4.25$.
+
+The protocol is invoked once and returns no verdict: `status=FAIL`, branch `INCONCLUSIVE`, five
+gates triggering it. The reading that sets the phase's boundary is a resolution dependence of the
+localized mode,
+
+$$
+\lambda_{\min}\big|_{Q=256} = -9.457 \ \ (100\times16)
+\qquad\text{against}\qquad
++2.885 \ \ (200\times32)
+\tag{YM282}
+$$
+
+at a tolerance of $0.473$: stability of the localized mode, which the interior-radius and
+curvature branches turn on, is not resolved by this schedule. The independent verifier
+`computations/verify_matter_formation_thick_torus_gap.py` agrees on the unresolved stationarity
+rows, refuses rows whose evidence is an upper bound, and reports a further split: its own
+relaxation is stationary at residual $2.7\times10^{-11}$ at $(8,5)$ where the stored profile's
+energy differs by $5.97\%$, two stationary branches of one functional. The record is
+`computations/matter-formation-thick-torus-gap-report.md`, the receipt
+`runs/20260921_matter_formation_thick_torus_gap/primary.json`, and the ledger reading
+`field-experience/probe-outcome-ledger.md` §75.
+
 ## References
 
 - `foundations/cassi-first-principles.md`—canonical densities, $q$, and
