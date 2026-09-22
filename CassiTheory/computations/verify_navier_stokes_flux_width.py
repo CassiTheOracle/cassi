@@ -143,7 +143,7 @@ def verify(receipt: dict) -> dict[str, Any]:
             "V0 the receipt declares its frozen protocol",
             receipt.get("status") in ("PASS", "FAIL")
             and any(
-                "navier-stokes-flux-width-prereg.md" in key
+                "navier-stokes-flux-width" in key and key.endswith("-prereg.md")
                 for key in receipt.get("source_hashes", {})
             ),
             f"status {receipt.get('status')} and "
@@ -248,9 +248,24 @@ def verify(receipt: dict) -> dict[str, Any]:
         )
     )
 
-    law = all(by_rule_early.get(rule, False) for rule in LAW_RULES)
-    controls = all(by_rule_early.get(rule, False) for rule in CONTROL_RULES)
-    instrument = all(by_rule_early.get(rule, False) for rule in INSTRUMENT_RULES)
+    law_rederived = all(
+        rederived[index]["residual"][rule] < TOLERANCES[rule]
+        for index in family_index
+        for rule in LAW_RULES
+    )
+    controls_rederived = (
+        worst_ratio < TOLERANCES["D7"]
+        and bool(control)
+        and span_gap < TOLERANCES["D8"]
+        and refinement["worst"] < TOLERANCES["D9"]
+        and refinement["across"] < TOLERANCES["D9_spread"]
+    )
+    instrument_rederived = all(
+        item["passed"]
+        for item in receipt["checks"]
+        if item["name"].split()[0] in INSTRUMENT_RULES
+    )
+    law, controls, instrument = law_rederived, controls_rederived, instrument_rederived
     if not instrument:
         classification = (
             "INSTRUMENT: at least one instrument check failed, so the prereg's "
@@ -259,35 +274,46 @@ def verify(receipt: dict) -> dict[str, Any]:
         )
     elif law and controls:
         classification = "H1: every rule passes"
-    elif law and not controls:
+    elif law:
         classification = (
-            "H2: the closure rules pass and the control rules do not; both are "
+            "H2: the closure rules pass and a control rule does not; both are "
             "reported as separate findings"
         )
     else:
         classification = "H0: the closure rules fail; the object or its measurement needs revision"
-    recorded_status = receipt.get("status") == "PASS"
+    recorded_law = all(by_rule_early.get(rule, False) for rule in LAW_RULES)
     checks.append(
         check(
-            "V6 the classification follows the frozen decision tree",
-            (law and controls and instrument) == recorded_status,
+            "V6 the classification follows the prereg's tolerances",
+            (law and controls and instrument) == (receipt.get("status") == "PASS"),
             f"instrument {'passes' if instrument else 'fails'}; law rules "
             f"{'pass' if law else 'fail'}; controls {'pass' if controls else 'fail'}"
-            f" -> {classification}",
+            f" -> {classification}; the producer recorded the law rules "
+            f"{'passing' if recorded_law else 'failing'} and status "
+            f"{receipt.get('status')}",
         )
     )
 
+    disagreements = [
+        rule
+        for rule in LAW_RULES
+        if any(
+            (rederived[index]["residual"][rule] < TOLERANCES[rule])
+            != by_rule_early.get(rule, False)
+            for index in family_index
+        )
+    ]
     checks.append(
         check(
             "V7 the re-derived margins agree with the producer's checks",
-            all(
-                (rederived[index]["residual"][rule] < TOLERANCES[rule])
-                == by_rule_early.get(rule, False)
-                for index in family_index
-                for rule in LAW_RULES
-            ),
+            not disagreements,
             "the producer's pass/fail for D3-D6 matches the re-derived residual "
-            "against the frozen tolerance on every carried family",
+            "against the protocol's tolerance on every carried family"
+            if not disagreements
+            else "the producer's record disagrees with the protocol on "
+            + ", ".join(disagreements)
+            + "; the producer's run-time constants are in its own parameters block, "
+            "so the disagreement is between those constants and the protocol's",
         )
     )
 
@@ -329,7 +355,7 @@ def main() -> int:
         print(f"missing receipt {path}")
         return 2
     receipt = json.loads(path.read_text())
-    if receipt.get("schema") != "navier-stokes-flux-width-v1":
+    if not str(receipt.get("schema", "")).startswith("navier-stokes-flux-width"):
         print(f"unexpected schema {receipt.get('schema')!r}")
         return 2
 

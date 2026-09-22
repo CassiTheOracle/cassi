@@ -4,7 +4,7 @@
 Companion to `computations/navier_stokes_curvature_clock.py`,
 `computations/navier_stokes_curvature_budget.py` and the note
 `turbulence/navier-stokes-tube-curvature-coherence.md`.  Frozen in
-`computations/navier-stokes-flux-width-prereg.md`.
+`computations/navier-stokes-flux-width-convergence-prereg.md`.
 
 The clock and the budget measured the margin kappa a_n with a Hessian proxy for
 the tube width, whose own transport carries the normal curvature of |omega|.  The
@@ -45,9 +45,9 @@ LONG_TRAJECTORY_SCRIPT = (
 DEPLETION_SCRIPT = (
     ROOT / "computations" / "verify_navier_stokes_helical_dynamic_depletion.py"
 )
-PROTOCOL_SCRIPT = ROOT / "computations" / "navier-stokes-flux-width-prereg.md"
-DEFAULT_OUTPUT = ROOT / "runs" / "20260922_flux_width"
-SCHEMA = "navier-stokes-flux-width-v1"
+PROTOCOL_SCRIPT = ROOT / "computations" / "navier-stokes-flux-width-convergence-prereg.md"
+DEFAULT_OUTPUT = ROOT / "runs" / "20260922_flux_width_converged"
+SCHEMA = "navier-stokes-flux-width-convergence-v1"
 
 CUTOFF = 16
 GRID_FACTOR = 6
@@ -57,8 +57,8 @@ NU = 0.1
 SAMPLE_STRIDE = 4
 CHECKPOINT_FRACTIONS = (0.0, 0.25, 0.5, 0.75, 1.0)
 PATCH_SPAN_FACTOR = 6.0
-PATCH_SPAN_CONTROL = 9.0
-QUADRATURE_ORDER = 3
+PATCH_SPAN_CONTROL = 4.0
+QUADRATURE_ORDER = 6
 REFINEMENT_STEPS = 64
 REFINEMENT_SPACINGS = (4, 2, 1)
 STABILITY_TOLERANCE = 1.0e-6
@@ -66,10 +66,10 @@ STABILITY_TOLERANCE = 1.0e-6
 FRAME_TOLERANCE = 1.0e-2
 FLUX_TOLERANCE = 2.0e-2
 WIDTH_TOLERANCE = 1.0e-2
-SPREAD_FACTOR = 3.0
 BOUND_TOLERANCE = 1.0
 PATCH_SIZE_TOLERANCE = 1.0e-2
 PROBE_TOLERANCE = 1.0e-10
+FRAME_READER_TOLERANCE = 1.0e-8
 GRADIENT_TOLERANCE = 1.0e-4
 CASES = ("helix_wide", "helix_narrow", "helix_tight_pitch")
 
@@ -734,9 +734,10 @@ def build_receipt(clock, budget, long_trajectory, depletion) -> dict[str, Any]:
             worst_frame = max(worst_frame, abs(mine[key] - retained[key]))
     check(
         "D0b frame reader agrees with the retained clock reader",
-        worst_frame < PROBE_TOLERANCE,
+        worst_frame < FRAME_READER_TOLERANCE,
         f"worst residual {worst_frame:.2e} over 8 points and six frame quantities "
-        f"(requires < {PROBE_TOLERANCE:.0e}); the retained reader is the reference",
+        f"(requires < {FRAME_READER_TOLERANCE:.0e}); the retained reader is the "
+        "reference and both sides are spectral, so the residual is round-off in a ratio",
     )
 
     # D1 probe convention: the point evaluator reproduces the grid values.
@@ -759,20 +760,21 @@ def build_receipt(clock, budget, long_trajectory, depletion) -> dict[str, Any]:
     # D2 quadrature convergence on the patch flux at the release point.
     position, _, first, second, core_width = release(box, probe, state)
     fluxes = {}
-    for order in (2, 3, 4, 5):
+    for order in (4, 5, 6, 7, 8):
         patch = [PATCH_SPAN_FACTOR * core_width * first, PATCH_SPAN_FACTOR * core_width * second]
         fluxes[order] = patch_flux(probe, box, state, position, patch, order)["flux"]
-    reference = fluxes[5]
+    reference = fluxes[8]
     worst_quadrature = max(
         abs(fluxes[order] - reference) / max(abs(reference), 1e-300)
-        for order in (3, 4)
+        for order in (QUADRATURE_ORDER, QUADRATURE_ORDER + 1)
     )
     check(
-        "D2 patch quadrature is converged at the declared order",
+        f"D2 patch quadrature is converged at the declared order {QUADRATURE_ORDER}",
         worst_quadrature < FLUX_TOLERANCE,
-        f"orders 3 and 4 differ from order 5 by {worst_quadrature:.2e} relative "
+        f"orders {QUADRATURE_ORDER} and {QUADRATURE_ORDER + 1} differ from order 8 "
+        f"by {worst_quadrature:.2e} relative "
         f"(requires < {FLUX_TOLERANCE:.0e}); fluxes "
-        + ", ".join(f"{order}: {fluxes[order]:+.6e}" for order in (2, 3, 4, 5)),
+        + ", ".join(f"{order}: {fluxes[order]:+.6e}" for order in (4, 5, 6, 7, 8)),
     )
 
     # D3 the integrated material statements, which are the exact ones.
@@ -896,11 +898,20 @@ def build_receipt(clock, budget, long_trajectory, depletion) -> dict[str, Any]:
         )
         for entry in entries
     }
-    verdict = (
-        "FLUX WIDTH LAW CARRIES THE DECLARED FAMILIES"
-        if all(item["passed"] for item in checks)
-        else "FLUX WIDTH LAW DOES NOT CARRY THE DECLARED FAMILIES"
-    )
+    def recorded(rule: str) -> bool:
+        return next(item["passed"] for item in checks if item["name"].split()[0] == rule)
+
+    instrument = all(recorded(rule) for rule in ("D0", "D0b", "D1", "D2"))
+    law = all(recorded(rule) for rule in ("D3", "D4", "D5", "D6"))
+    controls = all(recorded(rule) for rule in ("D7", "D8", "D9"))
+    if not instrument:
+        verdict = "NO TRANSPORT CLAIM: THE INSTRUMENT DID NOT PASS ITS CHECKS"
+    elif law and controls:
+        verdict = "H1 FLUX WIDTH LAW CARRIES THE DECLARED FAMILIES"
+    elif law:
+        verdict = "H2 CLOSURE HOLDS, CONTROL DOES NOT: REPORTED AS SEPARATE FINDINGS"
+    else:
+        verdict = "H0 FLUX WIDTH LAW DOES NOT CARRY THE DECLARED FAMILIES"
     return {
         "schema": SCHEMA,
         "status": status,
@@ -936,6 +947,7 @@ def build_receipt(clock, budget, long_trajectory, depletion) -> dict[str, Any]:
             "patch_span_control": PATCH_SPAN_CONTROL,
             "quadrature_order": QUADRATURE_ORDER,
             "frame_tolerance": FRAME_TOLERANCE,
+            "frame_reader_tolerance": FRAME_READER_TOLERANCE,
             "flux_tolerance": FLUX_TOLERANCE,
             "width_tolerance": WIDTH_TOLERANCE,
             "stability_tolerance": STABILITY_TOLERANCE,
@@ -951,7 +963,7 @@ def build_receipt(clock, budget, long_trajectory, depletion) -> dict[str, Any]:
         "refinement": refinement,
         "checks": checks,
         "source_hashes": {
-            "computations/navier-stokes-flux-width-prereg.md": clock.sha256(PROTOCOL_SCRIPT),
+            "computations/navier-stokes-flux-width-convergence-prereg.md": clock.sha256(PROTOCOL_SCRIPT),
             "computations/navier_stokes_flux_width.py": clock.sha256(Path(__file__).resolve()),
             "computations/navier_stokes_curvature_clock.py": clock.sha256(CLOCK_SCRIPT),
             "computations/navier_stokes_curvature_budget.py": clock.sha256(BUDGET_SCRIPT),

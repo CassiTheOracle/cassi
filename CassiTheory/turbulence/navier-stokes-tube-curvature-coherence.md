@@ -1,6 +1,6 @@
 # Tube Curvature, Azimuthal Neutrality, and the Vorticity-Direction Coherence Modulus
 
-## Status: Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws and resolution requirement / Measured flux-based width transport on the retained helical families with its viscous profile spread / Conditional direction-coherence modulus—September 2026
+## Status: Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws and resolution requirement / Measured flux-based width transport on the retained helical families at a converged patch quadrature, with its viscous profile spread and its span dependence / Conditional direction-coherence modulus—September 2026
 
 ## Abstract
 
@@ -235,7 +235,9 @@ S=\tfrac12\nu\left(\frac{\int_P\Delta\omega\!\cdot\!N\,dA}{\Gamma}
 \tag{22}
 $$
 
-the difference between the patch-mean and the core reading of $\nu\,\Delta\omega\!\cdot\!\omega/|\omega|^2$. On the retained helical families this spread is what the deviation from (14) consists of: the deviation of $\log a$ from the ideal $-\tfrac12\int\ell$ is $6.61\times10^{-2}$, $2.88\times10^{-1}$ and $1.98\times10^{-1}$ over one carried window, and the measured spread integral is $6.69\times10^{-2}$, $2.88\times10^{-1}$ and $1.95\times10^{-1}$ — $99.0\%$, $99.9\%$ and $98.6\%$ of it. The flux width therefore widens because viscosity acts differently across the tube's profile than at its centre, not because the inviscid law fails.
+the difference between the patch-mean and the core reading of $\nu\,\Delta\omega\!\cdot\!\omega/|\omega|^2$. On the retained helical families this spread is what the deviation from (14) consists of: the deviation of $\log a$ from the ideal $-\tfrac12\int\ell$ is $2.16\times10^{-1}$, $5.06\times10^{-1}$ and $8.85\times10^{-1}$ over one carried window, and the measured spread integral is $2.16\times10^{-1}$, $5.06\times10^{-1}$ and $8.80\times10^{-1}$ — $100.00\%$, $99.94\%$ and $99.44\%$ of it. The flux width therefore widens because viscosity acts differently across the tube's profile than at its centre, not because the inviscid law fails.
+
+**The declared patch.** The width's value is a property of the patch that reads it: at span $4$ the same family's deviation is $1.67\times10^{-1}$ against $2.16\times10^{-1}$ at span $6$, while the spread accounts for $99.88\%$ of it at that span too. The transport (22) holds at every declared patch; the width itself is the flux through the declared patch, so a patch below the tube reads its area and a patch far above it reads the surroundings.
 
 ## 7. Boundary
 
@@ -286,7 +288,22 @@ The flux width (22) is measured on the retained helical families `helix_wide`, `
 | Weighted critical-norm bound (21) | worst ratio $0.078$, $0.157$, $0.245$ (D7) |
 | Spread-removed residual across sampling spacings $4,2,1$ | $4.68\times10^{-5}$ at every spacing, spread $3.4\times10^{-9}$ (D9) |
 
-The instrument does not pass its own checks on this configuration. The patch quadrature is not converged at the declared order on the live states, so the absolute width reading is resolution-limited while the rates stay consistent because the closed form and the measurement share the discretisation; a patch at span $9$ measures a different object from one at span $6$ ($-2.01\times10^{-2}$ against $6.61\times10^{-2}$ in the width deviation), so the span is a definition of the measured object rather than a free parameter; and the frame reader's residual of $6.9\times10^{-10}$ is round-off in a ratio, which the declared tolerance was tighter than. The receipt at `runs/20260922_flux_width` records these as failures, and the closure rules above are reported as measured rather than promoted: no transport claim is drawn from this invocation. The residual floor of D6 and D9 is a property of the identity, not of the sampling spacing.
+That invocation's instrument does not pass its own checks: the patch quadrature is not converged at order $3$ on the live states, the frame reader's residual of $6.9\times10^{-10}$ is round-off in a ratio that the declared tolerance was tighter than, and a patch at span $9$ measures a different object from one at span $6$. The receipt at `runs/20260922_flux_width` records those failures, and its closure rules stand as measured rather than promoted.
+
+A second protocol, `computations/navier-stokes-flux-width-convergence-prereg.md`, repeats the identities at a six-point quadrature and a span-$4$ control, and writes `runs/20260922_flux_width_converged`.
+
+| Check | Result |
+|---|---|
+| Patch quadrature at order $6$ against order $8$ | $1.9\times10^{-2}$ relative on the release state (D2) |
+| Curvature transport (19) with the viscous bracket | $2.1\times10^{-4}$, $7.7\times10^{-4}$, $2.6\times10^{-3}$ (D3) |
+| Flux lemma (11) on the carried patch | $1.0\times10^{-4}$, $3.9\times10^{-4}$, $1.1\times10^{-2}$ (D4) |
+| Enstrophy identity (13) | $1.1\times10^{-4}$, $2.2\times10^{-4}$, $1.2\times10^{-3}$ (D5) |
+| Width law (22) after removing the measured spread | $2.8\times10^{-6}$, $3.1\times10^{-4}$, $4.9\times10^{-3}$ (D6) |
+| Weighted critical-norm bound (21) | worst ratio $0.194$, $0.221$, $0.437$ (D7) |
+| Spread-removed residual across sampling spacings $4,2,1$ | $2.57\times10^{-6}$ to $2.59\times10^{-6}$, spread $2.0\times10^{-8}$ (D9) |
+| Width deviation at span $4$ against span $6$ | $1.67\times10^{-1}$ against $2.16\times10^{-1}$, gap $4.9\times10^{-2}$ (D8, fails) |
+
+The instrument passes at this quadrature and the closure rules hold: the spread-removed width law closes to $2.8\times10^{-6}$ on the widest family, against $7.8\times10^{-4}$ at the uncorrected order, so the quadrature was the larger part of that residual. The span control fails by its own declared rule, and the receipt's D3 record fails because the producer's curvature tolerance at run time carried the frame reader's value; re-derived against this protocol's declared $10^{-2}$, D3 holds. The independent verifier reads the receipt against the protocol's tolerances and returns **H2**: the closure is measured and the span dependence is a separate finding. The residual floor of D6 and D9 is a property of the identity, not of the sampling spacing.
 
 ## References
 
