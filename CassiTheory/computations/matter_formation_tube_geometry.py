@@ -91,6 +91,10 @@ WEAK_ATTRACTION = 2.0 * H_COEF * H_COEF / UR - UC
 TOWNES_N_CRIT = K_CX * TOWNES_MASS / (2.0 * WEAK_ATTRACTION)
 TORUS_AMAX = 6.0
 TORUS_NPHI = 64
+# The winding integrand carries 1/sqrt(1 - (kappa*a)^2), which is singular at the outer
+# edge as kappa*a -> 1.  Tight tori therefore need a finer azimuthal grid for the phi
+# integral, while the cross-section identity (no winding) does not.
+TORUS_NPHI_FINE = 512
 
 
 class Tube:
@@ -514,34 +518,37 @@ def main() -> int:
     sp_f = CubicSpline(t1.r, s1["f"])
     sp_c = CubicSpline(t1.r, s1["c"])
 
-    def axisymmetric(kap):
-        A = t2.a[:, None]
-        P = t2.phi[None, :]
+    def axisymmetric(kap, sec=None):
+        sec = t2 if sec is None else sec
+        A = sec.a[:, None]
+        P = sec.phi[None, :]
         rp = np.sqrt(np.maximum(A ** 2 - 2 * A * 0.0 * np.cos(P) + 0.0, 0.0))
         f = np.clip(sp_f(rp), 0.0, 1.2)
         c = np.maximum(sp_c(rp), 0.0)
-        VC = t2.weights(kap)[0]
+        VC = sec.weights(kap)[0]
         c = c * math.sqrt(n_target / max(float(np.sum(VC * c * c)), 1e-300))
         return f, c
 
     f_ax, c_ax = axisymmetric(0.0)
     ref_cross = t2.energy(f_ax, c_ax, 0.0, 0.0, 1.0)
     identity = []
-    for R in (32.0, 16.0, 12.0, 8.0):
+    for R in (32.0, 16.0, 12.0, 8.0, 6.5, 6.1):
         kap = 1.0 / R
         f_k, c_k = axisymmetric(kap)
         d_cross = t2.energy(f_k, c_k, kap, 0.0, R) - ref_cross
-        identity.append({"R": R, "kappa": kap, "dE_cross": d_cross})
+        identity.append({"R": R, "kappa": kap, "dE_cross": d_cross,
+                         "kappa_amax": kap * TORUS_AMAX})
     worst = max(abs(row["dE_cross"]) for row in identity)
     record("C2.1 bent-metric energy of the axisymmetric profile equals the flat one",
            worst < IDENTITY_TOL,
-           f"max |dE_cross| = {worst:.2e} over physical tori R = 32 ... 8 "
-           f"(cross-section cutoff {TORUS_AMAX:g})")
+           f"max |dE_cross| = {worst:.2e} over physical tori R = 32 ... 6.1 "
+           f"(cross-section cutoff {TORUS_AMAX:g}, kappa*amax up to "
+           f"{identity[-1]['kappa_amax']:.4f})")
     flat_floor = max(abs(row["dE_cross"]) for row in identity if row["R"] >= 16.0)
     strong = abs(identity[-1]["dE_cross"])
     record("C2.2 the deviation does not grow with curvature",
            strong <= max(flat_floor, 1e-12) * 10.0,
-           f"|dE_cross| at R>=16: {flat_floor:.2e}, at R=8: {strong:.2e} "
+           f"|dE_cross| at R>=16: {flat_floor:.2e}, at R={identity[-1]['R']:g}: {strong:.2e} "
            "(every curvature term carries cos(phi), whose cross-sectional integral vanishes)")
     receipt["bending_identity"] = identity
 
@@ -603,27 +610,54 @@ def main() -> int:
     # ---- C4: twist energy and its closed form -------------------------------------
     print("\nC4  Twisted tube: the winding energy and its closed form")
     twist_rows = []
-    for R in (32.0, 16.0, 12.0, 8.0):
+    t2f = TorusSection(Na=Na, amax=TORUS_AMAX, Nphi=TORUS_NPHI_FINE)
+    for R in (32.0, 16.0, 12.0, 8.0, 6.5, 6.1):
         kap = 1.0 / R
-        f_k, c_k = axisymmetric(kap)
+        sec = t2f if R <= 8.0 else t2
+        f_k, c_k = axisymmetric(kap, sec)
         # Compare the complete-function energy difference with the independent analytic
         # phi integral int dphi/(1 + kappa*a*cos(phi)) = 2*pi/sqrt(1-(kappa*a)^2).
-        unwound = t2.energy(f_k, c_k, kap, 0.0, R)
-        measured = t2.energy(f_k, c_k, kap, 1.0, R) - unwound
+        unwound = sec.energy(f_k, c_k, kap, 0.0, R)
+        measured = sec.energy(f_k, c_k, kap, 1.0, R) - unwound
         c_radial2 = c_k[:, 0] ** 2
+        wgt = sec.a * sec.da * c_radial2
         closed = GRAD_C / R ** 2 * 2.0 * math.pi * float(np.sum(
-            t2.a * t2.da * c_radial2 / np.sqrt(1.0 - (t2.a / R) ** 2)))
-        population = t2.population(c_k, kap)
+            wgt / np.sqrt(1.0 - (sec.a / R) ** 2)))
+        population = sec.population(c_k, kap)
         leading = GRAD_C * population / R ** 2
         enhancement = closed / leading
+        mom2 = float(np.sum(wgt * sec.a ** 2) / np.sum(wgt))
+        mom4 = float(np.sum(wgt * sec.a ** 4) / np.sum(wgt))
+        series = 1.0 + 0.5 * kap ** 2 * mom2 + 0.375 * kap ** 4 * mom4
         twist_rows.append({"R": R, "kappa": kap, "measured": measured,
                            "closed_form": closed, "leading": leading,
                            "population": population, "metric_enhancement": enhancement,
+                           "a2_moment": mom2, "a4_moment": mom4, "moment_series": series,
+                           "nphi": sec.Nphi,
                            "ratio_measured_closed": measured / closed})
     worst_tw = max(abs(row["ratio_measured_closed"] - 1.0) for row in twist_rows)
     record("C4.1 the winding energy matches the analytic metric integral",
            worst_tw < 1e-10,
-           f"max relative deviation {worst_tw:.2e} over physical tori R = 32 ... 8")
+           f"max relative deviation {worst_tw:.2e} over physical tori R = 32 ... 6.1")
+    # The tight rows resolve the singular phi integrand; the coarse grid is kept as the
+    # measured resolution requirement rather than hidden behind a loosened tolerance.
+    tight = twist_rows[-1]
+    f_t, c_t = axisymmetric(tight["kappa"], t2)
+    u_c = t2.energy(f_t, c_t, tight["kappa"], 0.0, tight["R"])
+    m_c = t2.energy(f_t, c_t, tight["kappa"], 1.0, tight["R"]) - u_c
+    cc = GRAD_C / tight["R"] ** 2 * 2.0 * math.pi * float(np.sum(
+        (t2.a * t2.da * c_t[:, 0] ** 2) / np.sqrt(1.0 - (t2.a / tight["R"]) ** 2)))
+    record("C4.5 the tight-torus integral needs the finer azimuthal grid",
+           abs(m_c / cc - 1.0) > 10.0 * abs(tight["ratio_measured_closed"] - 1.0),
+           f"at R = {tight['R']:g} the coarse Nphi = {TORUS_NPHI} grid deviates by "
+           f"{abs(m_c / cc - 1.0):.2e} while Nphi = {TORUS_NPHI_FINE} gives "
+           f"{abs(tight['ratio_measured_closed'] - 1.0):.2e}")
+    row0 = twist_rows[0]
+    record("C4.4 the enhancement equals the exact moment series",
+           abs(row0["metric_enhancement"] - row0["moment_series"]) < 1e-6,
+           f"enhancement {row0['metric_enhancement']:.9f} versus "
+           f"1 + kappa^2<a^2>/2 + 3*kappa^4<a^4>/8 = {row0['moment_series']:.9f} "
+           f"(a_rms {math.sqrt(row0['a2_moment']):.4f} from the charge measure)")
     record("C4.2 the leading (K_Cx/2) w^2 N/R^2 law holds at weak curvature",
            abs(twist_rows[0]["measured"] / twist_rows[0]["leading"] - 1.0) < 5e-3,
            f"R=32: measured {twist_rows[0]['measured']:.8f} vs "

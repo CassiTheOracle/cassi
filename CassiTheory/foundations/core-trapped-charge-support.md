@@ -1045,13 +1045,15 @@ value at every tested radius,
 
 $$
 E(R)-E(\infty)=0
-\qquad (R=32,16,12,8;\ \kappa\le0.125),
+\qquad (R=32,16,12,8,6.5,6.1;\ \kappa a_{\max}\le0.984),
 \tag{CC52}
 $$
 
-to machine precision, because each curvature-dependent term in the measure carries
-$\cos\phi$ and integrates out over the cross-section. An untwisted closed tube has no
-preferred radius. The transverse dilation family shows the same balance: with the carrier
+exactly, because each curvature-dependent term in the measure carries $\cos\phi$ and
+integrates out over the cross-section. The identity holds while the metric factor falls
+to $g_{\min}=0.016$, so the core of a bent tube carries no curvature signature at any
+order in $\kappa a$. An untwisted closed tube has no preferred radius. The transverse
+dilation family shows the same balance: with the carrier
 profile dilated and its charge per unit length held fixed,
 
 $$
@@ -1067,21 +1069,44 @@ radius $R$, the winding energy is the phase-gradient integral in the torus metri
 
 $$
 E_{\rm twist}=\frac{K_{Cx}}2\left(\frac{w}{R}\right)^2
-N\left\langle\frac1{g^2}\right\rangle,
+N\left\langle\frac{1}{\sqrt{1-(\kappa a)^2}}\right\rangle,
 \tag{CC54}
 $$
 
-with the average taken over the charge measure. The identity holds to
+with the average taken over the charge measure. The metric factor $g$ supplies one power
+to the measure and takes two from the axial derivative, so the surviving factor is $1/g$,
+whose azimuthal integral is $2\pi/\sqrt{1-(\kappa a)^2}$. The identity holds to
 $1.1\times10^{-13}$ relative at every tested radius, and the weak-curvature limit is the
 leading law $\frac{K_{Cx}}2w^2N/R^2$ with a metric enhancement that grows as the torus
 tightens:
 
-| $R$ | 32 | 16 | 12 | 8 |
-|---|---|---|---|---|
-| $\langle1/g^2\rangle$ | 1.000899 | 1.003636 | 1.006536 | 1.015227 |
-| measured over leading | 1.00090 | 1.00364 | 1.00654 | 1.01523 |
+| $R$ | 32 | 16 | 12 | 8 | 6.5 | 6.1 |
+|---|---|---|---|---|---|---|
+| $\kappa a_{\max}$ | 0.188 | 0.375 | 0.500 | 0.750 | 0.923 | 0.984 |
+| enhancement | 1.000899 | 1.003636 | 1.006536 | 1.015227 | 1.023962 | 1.027732 |
 
-A twisted loop is a spring with a preferred radius.
+A twisted loop is a spring with a preferred radius. The enhancement expands term by term
+inside the average,
+
+$$
+\left\langle\frac{1}{\sqrt{1-(\kappa a)^2}}\right\rangle
+=1+\frac{\kappa^2}{2}\langle a^2\rangle
++\frac{3\kappa^4}{8}\langle a^4\rangle+\cdots,
+\tag{CC57}
+$$
+
+and the two-term series reproduces the measured value from the profile's own moments:
+$1.000899459$ against $1.000899480$ at $R=32$, with $\sqrt{\langle a^2\rangle}=1.3550$
+from the charge measure. Every factor in (CC54) exceeds one, so curvature can only raise
+the axial energy of a tube, and the support of a tube in a bend obeys
+
+$$
+\kappa a_{\rm out}<1,
+\tag{CC58}
+$$
+
+because the enhancement diverges as the outer edge of the cross-section reaches the axis
+of curvature.
 
 Two further branches complete the transverse picture. A bound tube exists only above a
 critical line density, and the finite-domain crossing at $R=8$ lies at
@@ -1107,11 +1132,14 @@ $$
 and the mediator reaches full displacement in the core, $f_{\min}=3.0\times10^{-3}$ at
 $n=48$.
 
-Equations (CC49)–(CC56) are finite-grid variational results for the declared coefficients.
+Equations (CC49)–(CC58) are finite-grid variational results for the declared coefficients.
 They do not establish continuum existence, nonlinear stability, or a physical
 identification of the tube. The winding rows evaluate the phase-gradient energy on the
 relaxed axisymmetric profile, which bounds the energy of a fully relaxed twisted
-cross-section from above.
+cross-section from above. The geometry of (CC52), (CC54), (CC57), and (CC58) applies to
+any tube whose cross-section is small compared with its bending radius, and
+`turbulence/navier-stokes-tube-curvature-coherence.md` carries it to the vorticity
+direction and the coherence modulus of a tube-like high-vorticity region.
 
 ---
 
@@ -1126,10 +1154,10 @@ cross-section from above.
 | Does positive carrier self-repulsion produce inverse-length support? | Yes, on the uniform frozen-mode branch |
 | Is there a finite reduced separation? | Yes when $A_C>C_Q$, uniquely, with bounds (CC38) and positive curvature (CC39) |
 | Is the carrier retained at that separation? | Only when the chemical-potential condition (CC42) also holds |
-| Does an untwisted tube prefer a bending radius? | No; the bent-metric energy of the axisymmetric cross-section equals its flat value to machine precision at every tested curvature (CC52) |
+| Does an untwisted tube prefer a bending radius? | No; the bent-metric energy of the axisymmetric cross-section equals its flat value exactly for $\kappa a_{\max}$ up to $0.984$, and the axial channel is strictly enhanced by curvature (CC52), (CC54) |
 | Does the relaxed tube supply its own width? | Yes; the cross-section is stationary with a positive spectrum apart from rigid translation, and its dilation family has its minimum at the relaxed width (CC51), (CC53) |
 | What sets the radius of a closed tube? | The winding; the twist energy is the phase-gradient integral in the torus metric, so a twisted loop is a spring (CC54) |
-| Is the transverse carrier problem solved on the registered functional? | Yes on a finite radial grid, with an independent reconstruction of every number; continuum existence and nonlinear stability remain open (CC49)–(CC56) |
+| Is the transverse carrier problem solved on the registered functional? | Yes on a finite radial grid, with an independent reconstruction of every number; continuum existence and nonlinear stability remain open (CC49)–(CC58) |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
 | Is a full stationary particle established? | No. The stored Cartesian branch has a matched six-mode finite-grid spectrum but fails its smooth-carrier diagnostic. Separate continuum-consistent scalar binding at prepared $Q_C\in\{16,256\}$ is independently reproduced; smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The closed-boundary action preserves $Q_C=0$. Production, full continuum and temporal stability, normalization, topology-changing competitors and physical particle identity remain open |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |

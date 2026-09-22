@@ -147,6 +147,7 @@ estimate remains open.
 | 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 | 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
+| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities / Tested finite-grid curvature laws / Conditional coherence modulus |
 
 
 ## 2. Document summaries
@@ -767,6 +768,24 @@ and opposite-helicity-mode families stay nonpositive over the finite horizon.
 The 24-run matrix passes its integrity, refinement and source-binding checks,
 and the universal sign statement is classified `CONTRADICTS` for the declared
 families; the scale-uniform direction-strain estimate remains **UNRESOLVED**.
+
+### 2.26 Tube curvature and the coherence modulus
+
+`turbulence/navier-stokes-tube-curvature-coherence.md` derives the curvature geometry of a
+thin tube in adapted coordinates. A $\phi$-independent cross-sectional density is exactly
+curvature-independent, because the curvature term is a $\cos\phi$ that integrates out, so
+the azimuthal (circulation) channel of a bent tube carries no curvature signature at any
+order. A density carrying the axial derivative acquires the exact factor
+$1/\sqrt{1-(\kappa a)^2}$ after the measure, which exceeds one everywhere and diverges when
+the cross-section reaches the axis of curvature. Curvature therefore raises the axial
+channel and never depletes it, and the vorticity-direction coherence modulus of a tube-like
+high-vorticity region is its bending radius, with that pole as its failure. The modulus is
+not free: the cross-section solve fixes the tube radius from the charge per unit length, so
+a denser tube has a smaller coherence margin in a given bend. The result accounts for the
+positive signed production measured for coherent one-handed tube families in
+`turbulence/navier-stokes-helical-dynamic-depletion.md`, since no cross-section-level
+curvature channel can deplete stretching. The time integrability of the coherence modulus
+remains **UNRESOLVED**.
 
 ## References
 
