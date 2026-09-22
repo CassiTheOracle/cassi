@@ -12,8 +12,8 @@
 | **M** | **Mapped**—selected, fit-dependent, or optional-extension quantities whose physical identification lies beyond $\varphi$ + the canonical PDE | 10 |
 | **E** | **External / empirically determined**—empirical or inherited quantities supplied by calibration or external physics, plus lattice parameters not yet derived from $\varphi$ | 9 |
 | **I** | **Initial condition**—free initial values that evolve dynamically, not fixed by theory | 7 |
-| **N** | **Numerical**—computational parameters with no physical significance | 8 |
-| | **Total** | **47** |
+| **N** | **Numerical**—computational parameters with no physical significance | 9 |
+| | **Total** | **48** |
 Counts are mechanical: count one primary parameter-table row per quantity in §§1–6 with an explicit F/D/C/E/M/I/N class symbol; the §3.4 recap is not counted again. The classification legend, §7 summary, canonical symbol table (§9), fit-status ledger (§10), and descriptive-only solver status entries are excluded.
 
 ---
@@ -254,6 +254,14 @@ $0<\varepsilon\le1$ indexes the exact concentration family whose
 $\varepsilon\downarrow0$ limit proves noncoercivity. Neither quantity is fitted
 or assigned a physical value. The follow-up introduces no physical parameter
 (`computations/navier-stokes-helical-spread-prereg.md`).
+
+The strain-band-split follow-up
+(`computations/navier-stokes-strain-band-split-prereg.md`) introduces no
+physical parameter. Its viscosity $\nu=1/10$, horizon $T=1/2$, band cutoffs
+$k_c\in\{2,4\}$, truncations $N\in\{16,32\}$ on $M=6N+1$ grids, 1024- and
+2048-step RK4 integrations, and the exact Beltrami control are **N**-class
+declared numerical settings that fix one finite comparison and carry no
+physical interpretation.
 
 The cutoff-ladder follow-up
 (`computations/navier-stokes-strain-band-split-cutoff-ladder-prereg.md`)
@@ -569,6 +577,7 @@ convention drives all configurations toward the equilibrium.
 | $h_{\text{smooth}}$ | $0.1$ | **N** | Hubble parameter EMA smoothing |
 | $D$ (scalar-density diffusion) | $0.0$ | **N** | Supplied coefficient of $D\Delta E_{Y/I}$, with spectral damping $-Dk^2$. At $D=\chi=0$, common incompressible advection gives $D_t\rho=0$; the Eulerian density may still change. Conversion preserves the density sum for every $D$, and periodic diffusion preserves its spatial integral. The structured cosmology control in `runs/44-truth-campaign/` attributes its diffusive erosion to $D=0.001$; its $\sigma_8$ target remains outside the tested branches |
 | $\tau_{\text{qi}}$ (IIR memory) | $\varphi^{-1} \approx 0.618$ | **N** | Qi memory EMA timescale (reduced in slow regimes) |
+| Compact CP-pump effective-action inputs and receipt schedule | $m=1$, $\lambda=2$, $g=1.25$, $\kappa=0.5$, $A=0.8$, $W=8$, $\Omega=1$, $T_p=24$; $R=48$, $N\in\{384,768\}$, $\Delta t\in\{0.003,0.0015\}$, $T=78$, 64 modes, fixed seed | **N** | Dimensionless finite-mode model inputs and numerical schedule for the conditional CP-pump trajectory; no physical significance or canonical Cassi status (`computations/matter-formation-compact-cp-pump-qball-v3b-prereg.md`) |
 
 ## 7. Summary by Category
 
@@ -580,8 +589,8 @@ convention drives all configurations toward the equilibrium.
 | Mapped quantity | **M** | 10 | $\sin^2\theta_W(m_Z)$, $\alpha_{\text{GUT}}$, $m_W/m_Z$, $\alpha_{\text{em}}^{-1}(m_Z)$, $\delta_{\text{CKM}}$, $K_{fw}$, $K_{ring}$, $\kappa_s$, $n_s$, and $r$—selected boundaries, optional-extension quantities, and mapped windows |
 | External constant | **E** | 9 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$, $P_\parallel(n)$, $(A_B,\omega_Y)$, and $\chi_Y$ |
 | Initial condition | **I** | 7 | $r_0$, $a_0$, $H_0$, $N_{\text{blobs}}$, $M_j$, $\sigma_j$, and $\mathbf{X}_j/\mathbf{V}_j$ |
-| Numerical parameter | **N** | 8 | $N$, $L$, $\Delta t$, $\epsilon_{\text{soft}}$, $\text{grav\_sigma}$, $h_{\text{smooth}}$, $D$, $\tau_{\text{qi}}$ |
-| **Total** | | **47** | |
+| Numerical parameter | **N** | 9 | $N$, $L$, $\Delta t$, $\epsilon_{\text{soft}}$, $\text{grav\_sigma}$, $h_{\text{smooth}}$, $D$, $\tau_{\text{qi}}$, and the compact CP-pump effective-action receipt schedule |
+| **Total** | | **48** | |
 
 ### Free-Parameter Accounting
 
@@ -734,7 +743,7 @@ Symbols used framework-wide that are not counted parameter rows in §§1–6 (or
 | $\eta_C$ | carrier coupling to Yang/Yin density depletion | positive free input with $[\eta_C]=\hbar L^3/T$; the local well is $\varepsilon_{C,\rm out}-\eta_C(\rho_0-\rho)$ | **Hypothesized auxiliary-carrier input.** No value is selected or derived from $\varphi$; not counted in §7 (`foundations/core-trapped-charge-support.md`) |
 | $\lambda_C$ | positive carrier self-repulsion | positive free input with $[\lambda_C]=\hbar L^3/T$ | **Hypothesized auxiliary-carrier input.** It supplies the effective line coupling after transverse reduction; no value is selected or derived from $\varphi$, so it is not counted in §7 (`foundations/core-trapped-charge-support.md`) |
 | $u_0,\ \varepsilon_0,\ \varepsilon_b,\ \ell_C,\ \Lambda_C$ | transverse carrier mode, eigenvalue, binding gap, exterior decay length, and effective line coupling | $\varepsilon_b=\varepsilon_{C,\rm out}-\varepsilon_0$, $\ell_C^{-2}=2\varepsilon_b/K_{Cx}$, and $\Lambda_C=\lambda_C\int d^2x_\perp d\mathfrak s\,|u_0|^4$ | **Derived conditional identities.** They require a selected density-depleted tube and bound transverse eigenmode; no numerical values are selected and they add no §7 parameter (`foundations/core-trapped-charge-support.md`) |
-| $E/n,\ f_{\min},\ r_{\rm rms},\ n_c,\ E_{\rm twist}$ | relaxed transverse tube: per-charge energy, mediator minimum, carrier RMS radius, critical line density, and winding energy | On the registered functional at $k_{Cx}=1$: at $n=\pi$, $E/n=4.63845<B=4.75$, $f_{\min}=0.6105$, $r_{\rm rms}=1.3556$; $n_c\in(1.875,1.906)$ on the finite domain $R=8$ against the infinite-plane Townes value $1.7308$; and $E_{\rm twist}=(K_{Cx}/2)(w/R)^2N\langle(1-(\kappa a)^2)^{-1/2}\rangle$, whose factor is exactly one at zero curvature, strictly greater above it, and divergent as the cross-section reaches the axis of curvature ($\kappa a_{\rm out}<1$) | **Tested finite-grid transverse geometry at the registered coefficients / Derived conditional winding identity and curvature sign.** The cross-section is a genuine minimum apart from rigid translation; the untwisted bent tube costs no energy exactly, for $\kappa a_{\max}$ up to $0.984$; the flat-top branch tends to $(B-h)+\sqrt{2u_Cu_\rho}/2=3.2044$ with a $1/\sqrt n$ surface gap. Continuum existence and nonlinear stability remain open. The numbers reuse the Mapped $h_C$ and the normalized groups, introduce no fit and add no §7 parameter (`foundations/core-trapped-charge-support.md` §8.4; `turbulence/navier-stokes-tube-curvature-coherence.md`; `computations/matter_formation_tube_geometry.py`, `computations/verify_matter_formation_tube_geometry.py`) |
+| $E/n,\ f_{\min},\ r_{\rm rms},\ n_c,\ E_{\rm twist},\ \lvert Q/w\rvert_{\rm bind},\ M^{\rm tor}$ | relaxed transverse tube: per-charge energy, mediator minimum, carrier RMS radius, critical line density, winding energy, wound-loop binding threshold and transported trial mass | On the registered functional at $k_{Cx}=1$: at $n=\pi$, $E/n=4.63845<B=4.75$, $f_{\min}=0.6105$, $r_{\rm rms}=1.3556$; $n_c\in(1.875,1.906)$ on the finite domain $R=8$ against the infinite-plane Townes value $1.7308$; and $E_{\rm twist}=(K_{Cx}/2)(w/R)^2N\langle(1-(\kappa a)^2)^{-1/2}\rangle$, whose factor is exactly one at zero curvature, strictly greater above it, and divergent as the cross-section reaches the axis of curvature ($\kappa a_{\rm out}<1$) | **Tested finite-grid transverse geometry at the registered coefficients / Derived conditional winding identity and curvature sign.** The cross-section is a genuine minimum apart from rigid translation; the untwisted bent tube costs no energy exactly, for $\kappa a_{\max}$ up to $0.984$; the flat-top branch tends to $(B-h)+\sqrt{2u_Cu_\rho}/2=3.2044$ with a $1/\sqrt n$ surface gap. Continuum existence and nonlinear stability remain open. The numbers reuse the Mapped $h_C$ and the normalized groups, introduce no fit and add no §7 parameter (`foundations/core-trapped-charge-support.md` §8.4; `turbulence/navier-stokes-tube-curvature-coherence.md`; `computations/matter_formation_tube_geometry.py`, `computations/verify_matter_formation_tube_geometry.py`). Closing the tube into a wound loop adds the measured schedule threshold $\lvert Q/w\rvert_{\rm bind}=41.1173021501$ at $n=4.3260504663$, bound leading minima for $Q=64,128,256$, and a bound transported $Q=256$, $w=1$, $R=8$ trial with margin $72.12081046$ whose radial derivative $+8.6921788545$ and every minimum at $R_*<1.85$ place the stationary radius inside core overlap. The loop composites reuse the same Mapped $h_C$, introduce no fit and add no §7 parameter (`computations/matter-formation-wound-loop-gap-report.md`) |
 | $A_C,\ L_*,\ L_{\rm match}$ | fixed-charge support coefficient, reduced stationary separation, and minimum asymptotic matching length | $A_C=\Lambda_CQ_C^2/2$; $L_*$ solves $\sigma_QL_*^2+C_Q(1+\kappa_LL_*)e^{-\kappa_LL_*}=A_C$; the sufficient thin-tube condition is $A_C-C_Q>\sigma_QL_{\rm match}^2$ | **Derived conditional support identities / Hypothesized matching boundary.** $A_C>C_Q$ gives one reduced root with positive length curvature; no physical values are selected and no §7 parameter is added (`foundations/core-trapped-charge-support.md`) |
 | $\mathcal A_0^a,C_\Psi,C_\Phi,\epsilon_x,\epsilon_{\mathfrak s}$ | temporal $SU(2)_Q$ connection and positive charged-matter/electric-curvature coefficients | $[\mathcal A_0]=T^{-1}$, $[C_\Psi]=\hbar T$, $[C_\Phi]=[\epsilon_x]=\hbar T/L$, and $[\epsilon_{\mathfrak s}]=\hbar T/L^3$ | **Hypothesized source-free temporal-completion inputs.** They define the separate second-order charged-field branch, have no selected values, and are not counted in §7 (`foundations/particle-stationary-action-closure.md`) |
 | $\kappa_A,c_g;\ c$ | field-to-fluid conversion coefficient, conditional gauge propagation speed, and mathematical time–curl comparison speed | $[\kappa_A]=TL^{-2}$, $[c_g]=[c]=LT^{-1}$, and $c_g^2=(\epsilon_x\mu_x)^{-1}$ | **Derived conditional connection-sector map / unselected physical calibration.** $\kappa_A=1$ is only a nondimensional convention; $c=1.7$ is fixed verifier data. No value follows from $\varphi$, neither quantity changes the §7 parameter count, and the continuation theorem permits a fixed comparison $c$ independently of the restricted physical connection-sector reading (`turbulence/navier-stokes-second-order-field-energy.md`) |

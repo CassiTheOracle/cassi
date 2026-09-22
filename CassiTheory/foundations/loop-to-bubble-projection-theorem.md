@@ -8057,6 +8057,81 @@ See `computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md`,
 `computations/yang_mills_closed_wilson_simple_cycle_coverage_manifest.json` and
 `field-experience/probe-outcome-ledger.md` §58.
 
+### 9.45 Wound carrier loop in the corrected transverse tube
+
+The loop side of the gap program now has a measured scale-generation mechanism
+on the corrected matter-formation tube functional. The transverse-tube solver
+`computations/matter_formation_tube_geometry.py` supplies the fixed-norm
+infimum
+
+$$
+E_\perp(n)=\inf_{\int_{\mathbb R^2}c^2=n}\int_{\mathbb R^2}\Big[
+\frac12|\nabla f|^2+\frac{k_{Cx}}2|\nabla c|^2
++\frac{u_\rho}4(f^2-1)^2
++(B-h_C+h_Cf^2)c^2+\frac{u_C}2c^4\Big]d^2x_\perp
+\tag{YM279}
+$$
+
+at $a=1/16$, $c_\Psi=1/8$, $k_{Cx}=u_C=1$, $u_\rho=4$, $B=19/4$ and
+$h_C=2.9598260763447164$. Writing $e(n)=E_\perp(n)/n$ and
+$\Omega_\infty=\sqrt{B/a}$, bending a profile into a loop of length $L=2\pi R$
+with integrated carrier norm $N=Ln$, signed temporal Noether charge $Q$ and
+longitudinal phase winding $w$ gives the thin-loop mass
+
+$$
+M_{Q,w}(N,n)=Ne(n)+\frac{2\pi^2k_{Cx}w^2n^2+Q^2/(4a)}{N}.
+\tag{YM280}
+$$
+
+At fixed $n$ the balance is exact: $N_*=\sqrt{A_{Q,w}(n)/e(n)}$ and
+$M_*(n)=2\sqrt{e(n)A_{Q,w}(n)}$ with
+$A_{Q,w}(n)=Q^2/(4a)+2\pi^2k_{Cx}w^2n^2$. A wound loop lies below the dilute
+charged threshold $\Omega_\infty|Q|$ at density $n$ exactly when
+$|Q/w|^2>8\pi^2ak_{Cx}e(n)n^2/(B-e(n))$. Both conserved structures are
+required: at $Q=0$ the mass infimum tends to zero as $n\to0$, and at $w=0$
+temporal charge binds the carrier without selecting a finite radius.
+
+The frozen calculation solves nineteen radial profiles on $(M,R_{\max})=(200,8)$
+with spacing and domain comparisons at $n=2,4,8$, and minimizes over the
+charge schedule $Q\in\{16,64,128,256\}$, $w=1$. Its results are:
+
+| Quantity | Measured value |
+|---|---|
+| Infinite-plane Townes onset $n_T$ | $1.7307557357$ |
+| Finite-$R_{\max}$ binding interval | $n\in(1.875,1.90625)$ |
+| Schedule-resolved $\lvert Q/w\rvert_{\rm bind}$ | $41.1173021501$ |
+| Onset density and $e(n)$ there | $4.3260504663$, $4.5039640307$ |
+| Bound leading rows | $Q=64,128,256$ at $R_*=1.4229,1.6491,1.8481$ |
+| $Q=256$, $w=1$, $R=8$ transported trial | $M^{\rm tor}=2159.6354486$, margin $72.12081046$ |
+| One-sided radial derivative at that trial | $dM^{\rm tor}/dR=+8.6921788545$ |
+
+The transported trial uses the exact torus metric factor $\eta(n,R)$ in
+$M^{\rm tor}=2\pi RE_\perp+\pi k_{Cx}w^2n\eta(n,R)/R+Q^2/(8\pi aRn)$, and its
+freshly solved $n=5$ profile keeps a carrier tail fraction
+$2.8574\times10^{-6}$ beyond transverse radius six. The generalized discrete
+Hessian of $E_\perp-\mu n$ at that profile has a soft $m=1$ translation mode at
+$\omega^2=0.0025671838$ and positive non-symmetry modes
+$\omega^2=12.7261387878,17.7075102178,19.9381383240$ for $m=2,3,4$. The frozen
+classification is `BOUND_THIN_TRIAL_NO_THIN_STATIONARY_RADIUS`: every
+unconstrained reduced minimum lies at $R_*<1.85$, inside the core-overlap
+region where the transported profile is not defined, and at the smallest
+admissible radius the trial's energy falls toward smaller $R$.
+
+This is a conditional scalar-sector mechanism and an explicit boundary. The
+registered carrier is neutral under the conditional $SU(2)_Q$ field; $Q$ is a
+global $U(1)$ Noether charge, $w$ is a scalar phase winding, and no map
+identifies either with a Wilson representation or an electric flux sector. The
+allowed-support radius, the transverse-stability spectrum and the thin-loop
+balance are finite-grid variational statements. A gauge-owned inverse-length
+term, the thick-core completion that would supply a positive small-radius
+energy, charge quantization, continuum gauge construction and the Clay verdict
+remain **Open**. See
+`computations/matter-formation-wound-loop-gap-prereg.md`,
+`computations/matter_formation_wound_loop_gap.py`,
+`computations/verify_matter_formation_wound_loop_gap.py`,
+`computations/matter-formation-wound-loop-gap-report.md` and
+`field-experience/probe-outcome-ledger.md` §74.
+
 
 ---
 
@@ -8154,6 +8229,7 @@ microscopic completions.
 | Anchored block-local plaquette family (§9.39) | **INCONCLUSIVE** finite-volume measurement (`SUPPORTS_FINITE_VOLUME_ANCHORED_BLOCK_FAMILY`) | $83/83$ primary and $85/85$ independent checks pass with large-to-small $\beta$ ratios $4.5974$–$4.7456$; translation, larger-volume and continuum control remain open |
 | Translated block-local sweep (§9.40) | **INCONCLUSIVE** finite-volume measurement (`SUPPORTS_FINITE_TRANSLATED_BLOCK_SWEEP`) | $455/455$ primary and $375/375$ independent checks pass across all eleven plaquettes and four couplings; the worst finite $\beta$ is $2.6859$ and the larger-volume bound remains open |
 | Open $4\times2\times2$ $C=1$ sparse Feshbach screen (§9.41) | **INCONCLUSIVE** finite-volume numerical measurement | The $25{,}676$-state graph and all $64$ translated source rows are assembled; the primary passes $407/423$ controls and the independent audit passes $531/531$, while all $16$ $x=1$ test-energy rows fail $\Phi_j(\Delta_x/2)>0$ despite positive conditional zero-point roots; no larger-volume or continuum certificate follows |
+| Wound carrier loop in the corrected transverse tube (§9.45) | **Tested** conditional scalar-sector loop mechanism (`BOUND_THIN_TRIAL_NO_THIN_STATIONARY_RADIUS`) | The corrected tube binds above $n\in(1.875,1.90625)$, the schedule-resolved gap threshold is $\lvert Q/w\rvert_{\rm bind}=41.1173021501$, and the transported $Q=256$, $w=1$, $R=8$ trial is bound by $72.12081046$ with positive non-symmetry transverse modes; its radial derivative $+8.6921788545$ and every reduced minimum at $R_*<1.85$ place the stationary loop inside core overlap. The carrier is neutral under $SU(2)_Q$, so Wilson identification, charge quantization, thick-core completion, continuum construction and the mass gap remain open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -8726,6 +8802,26 @@ The independent receipt binds primary-receipt SHA-256
 Both receipts classify the executable as conditional arithmetic, set every
 RG, transfer, interacting-gap and continuum construction claim false and
 retain `clay_verdict=NULL`.
+
+The wound-loop evidence is bound by
+`computations/matter-formation-wound-loop-gap-prereg.md`, the primary
+`computations/matter_formation_wound_loop_gap.py` and the independent
+`computations/verify_matter_formation_wound_loop_gap.py`. The primary receipt
+passes 12/12 checks and the independent receipt passes 17/17, reconstructing
+every profile functional, the Townes onset, the charge-to-winding threshold,
+all four reduced minima, the exact torus metric and mass, the fixed-radius
+trial and the $m=0,\ldots,4$ generalized spectrum with worst normalized error
+$4.03\times10^{-12}$. Two can-fail controls fire: a $10^{-3}$ energy mutation
+trips the mass comparison at normalized error $2.3274\times10^{-5}$, and
+flipping one positive spectral eigenvalue changes the stability minimum from
+$+12.7661775631$ to $-12.7661775631$. The evidence preserves the protocol's
+first receipt, whose scientific calculation completed before a manifest-path
+conversion followed the repository `runs` junction, and the authorized
+recovery records the defect with no change to density, charge, grid,
+threshold or stopping rule. Both receipts retain
+`yang_mills_identification=UNRESOLVED`,
+`continuum_gauge_construction=UNRESOLVED`,
+`charge_quantization=UNRESOLVED` and `clay_verdict=NULL`.
 
 
 ---

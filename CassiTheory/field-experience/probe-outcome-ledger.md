@@ -3445,6 +3445,45 @@ against the dialled entry, with the window's own clock beside it** — a standin
 the entry vanishes by construction is not a measurement of storage, and neither is a rate quoted without
 the clock that says what the window was.
 
+## 74. Wound carrier loop in the corrected transverse tube
+
+The frozen protocol
+`computations/matter-formation-wound-loop-gap-prereg.md` carries the corrected
+transverse-tube functional into the closed-loop mechanism the Yang–Mills
+program needs. It solves nineteen radial profiles on $(M,R_{\max})=(200,8)$
+with spacing and domain comparisons at $n=2,4,8$, minimizes the thin-loop mass
+over the charge schedule $Q\in\{16,64,128,256\}$ at $w=1$, evaluates the exact
+torus metric at the smallest admissible radius $R=8$, and assembles the
+generalized transverse Hessian at the recomputed trial profile.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Straight-tube profile family | All $19$ primary profiles converge with worst residual $1.3691\times10^{-8}$ against $10^{-7}$; worst relative spacing and domain discrepancies in $e(n)$ are $1.6997\times10^{-5}$ and $2.1146\times10^{-4}$ against $5\times10^{-4}$ | **PASS**, finite radial grid $(M,R_{\max})=(200,8)$ with $(400,8)$ and $(400,16)$ comparisons |
+| Binding threshold | The finite-domain crossing lies in $n\in(1.875,1.90625)$ against the infinite-plane Townes onset $1.7307557357$; the schedule-resolved loop threshold is $\lvert Q/w\rvert_{\rm bind}=41.1173021501$ at $n=4.3260504663$ with $e(n)=4.5039640307$ | **PASS**, measured density interpolation |
+| Reduced loop minima | $Q=64,128,256$ are bound with $\Omega_\infty Q-M_*=13.589900,66.776483,198.920322$ at $n_*=7.147844,12.637748,23.103097$; every radius $R_*=1.4229,1.6491,1.8481$ violates the transported-profile gate $R\ge8$ | **BOUND**, outside the thin-tube domain |
+| Admissible transported trial | At $Q=256$, $w=1$, $R=8$ the freshly solved $n=5$ profile gives $M^{\rm tor}=2159.6354486$ against $\Omega_\infty Q=2231.7562591$, margin $72.12081046$, tail fraction $2.8574\times10^{-6}$ | **BOUND** at the smallest qualified radius |
+| Loop-radius direction | The one-sided derivative is $dM^{\rm tor}/dR=+8.6921788545$: energy falls toward radii below the validated domain | **NO STATIONARY THIN LOOP** |
+| Transverse spectrum | Generalized eigenvalues give a soft $m=1$ translation mode $\omega^2=0.0025671838$ and positive non-symmetry modes $12.7261387878,17.7075102178,19.9381383240$ at $m=2,3,4$ | **PASS**, shape stability in the measured sector |
+| Primary verification | `runs/20260921_matter_formation_wound_loop_gap_recovery/primary.json` passes $12/12$ checks; the preserved first receipt records the completed calculation and the manifest-path defect | **PASS** with the protocol-authorized recovery |
+| Independent reconstruction | `runs/20260921_matter_formation_wound_loop_gap_recovery/independent.json` passes $17/17$ checks and reproduces every number with worst spectral normalized error $4.03\times10^{-12}$ | **PASS**, source-independent |
+| Mutation controls | A $10^{-3}$ energy change trips the mass comparison at normalized error $2.3274\times10^{-5}$; a sign flip of one positive eigenvalue moves the stability minimum from $+12.7661775631$ to $-12.7661775631$ | **FIRES**, both can-fail controls |
+| Continuum boundary | The carrier is neutral under $SU(2)_Q$; $Q$ and $w$ have no derived Wilson or electric-flux identification; the stationary loop lies inside core overlap | **UNRESOLVED**, `clay_verdict=NULL` |
+
+The classification is `BOUND_THIN_TRIAL_NO_THIN_STATIONARY_RADIUS`. The
+mechanism supplies the corrected tube's binding, its width selection, the
+longitudinal winding pressure and a positive transverse spectrum, and the same
+calculation locates the missing piece: an inverse-length term built from
+gauge-invariant Yang–Mills data and a controlled thick-core completion. The
+result ends the frozen stopping rule. Densities, charges, grids, thresholds
+and the decision tree were fixed before the scientific receipt; the single
+recovery is recorded with the defect and the preserved failed receipt. The
+receipt SHA-256 values are
+`fbe2ec4ca9a39be31ebb0c4574c9ff12536d6ba6e8d2a4feaf0ef996d11125bd`
+for the preserved first receipt and
+`a58a7532bb4364faabb6739bed22aa7e462e4a361be5fdead5fe14d5ff49288f` and
+`aad299784a97f95624ef029fdbe2e6b0e7ecbc385df1c03d5f033fff71fe5648`
+for the recovery primary and independent receipts.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.

@@ -2922,8 +2922,27 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   the full local algebra, a uniform interacting endpoint gap, weak-coupling
   continuum construction, continuum Osterwalder–Schrader/Wightman
   reconstruction and a regulator-independent physical mass gap remain open.
-  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34, 9.42–9.44 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–44,56–59.
+  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34, 9.42–9.45 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–44,56–59,74.
+
+  The corrected matter-formation tube functional supplies the loop mechanism in
+  the scalar sector and locates its boundary. The straight tube binds above a
+  measured line-density threshold; temporal charge and longitudinal winding
+  together produce a positive reduced mass with a formal finite radius; the
+  schedule threshold is $|Q/w|_{\rm bind}=41.1173021501$ at $n=4.3260504663$,
+  and the transported $Q=256$, $w=1$, $R=8$ trial is bound by $72.12081046$
+  with positive non-symmetry transverse modes. Every reduced minimum lies at
+  $R_*<1.85$ and the transported trial's derivative $+8.6921788545$ drives the
+  loop inward, so the frozen classification is
+  `BOUND_THIN_TRIAL_NO_THIN_STATIONARY_RADIUS` and the stationary loop sits
+  inside core overlap. The registered carrier is neutral under the conditional
+  $SU(2)_Q$ field, and neither its global $U(1)$ charge nor its phase winding
+  has a derived Wilson or electric-flux identification. A gauge-owned
+  inverse-length term, charge quantization, the thick-core completion, a
+  continuum gauge construction and the Clay verdict remain open
+  (`foundations/loop-to-bubble-projection-theorem.md` §9.45;
+  `computations/matter-formation-wound-loop-gap-report.md`;
+  `field-experience/probe-outcome-ledger.md` §74).
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

@@ -404,6 +404,28 @@ construction and the Yang–Mills mass gap outside its scope. See
 `computations/yang_mills_closed_wilson_repeated_edge_coverage_manifest.json`
 and `field-experience/probe-outcome-ledger.md` §59.
 
+The corrected matter-formation tube functional now supplies the loop side of the
+scale question in the scalar sector. On the registered transverse functional
+the straight tube binds above a measured line-density threshold, its relaxed
+cross-section is a genuine minimum apart from rigid translation, bending an
+untwisted tube costs no energy exactly, and the axial winding channel is
+strictly enhanced by curvature. Closing the tube into a wound loop with
+temporal Noether charge $Q$ and longitudinal winding $w$ gives the thin-loop
+mass $M=Ne(n)+[2\pi^2k_{Cx}w^2n^2+Q^2/(4a)]/N$, whose fixed-$n$ minimum lies
+below the dilute charged threshold exactly when
+$|Q/w|^2>8\pi^2ak_{Cx}e(n)n^2/(B-e(n))$. The measured schedule threshold is
+$|Q/w|_{\rm bind}=41.1173021501$ at $n=4.3260504663$, so $Q=64,128,256$ bind
+at $w=1$, and the transported $Q=256$, $w=1$, $R=8$ trial is bound by
+$72.12081046$ with positive non-symmetry transverse modes. Its radial
+derivative $+8.6921788545$ and every reduced minimum at $R_*<1.85$ place the
+stationary loop inside core overlap. This result is **Tested** conditional on
+the auxiliary scalar sector: the carrier is neutral under $SU(2)_Q$, so a
+Wilson or electric-flux identification, charge quantization, the thick-core
+completion, continuum construction and the Clay verdict remain open. See
+`foundations/loop-to-bubble-projection-theorem.md` §9.45,
+`computations/matter-formation-wound-loop-gap-report.md` and
+`field-experience/probe-outcome-ledger.md` §74.
+
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
 canonical density pair on its diagonal, the loop coherence state in its

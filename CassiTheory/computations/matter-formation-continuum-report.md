@@ -15420,6 +15420,80 @@ result in §105 remains scoped to $\kappa=-1$; nonradial persistence,
 ultraviolet renormalization, action selection, physical normalization and
 particle identity remain unmet requirements.
 
+## 107. Wound carrier loop and its stationary-radius boundary
+
+The corrected transverse tube that carries the trapped charge has now been
+closed into a loop, and the calculation locates exactly where the mechanism
+stops. The frozen protocol
+`computations/matter-formation-wound-loop-gap-prereg.md` solves the corrected
+functional of `foundations/core-trapped-charge-support.md` §8.4 on nineteen
+radial profiles, repeats $n=2,4,8$ on $(400,8)$ and $(400,16)$ for spacing and
+domain comparisons, and minimizes the thin-loop mass
+
+$$
+M_{Q,w}(N,n)=Ne(n)+\frac{2\pi^2k_{Cx}w^2n^2+Q^2/(4a)}{N}
+$$
+
+over the charge schedule $Q\in\{16,64,128,256\}$ at $w=1$. All nineteen primary
+profiles converge with worst stationarity residual $1.3691\times10^{-8}$ against
+$10^{-7}$, and the worst relative spacing and domain discrepancies in $e(n)$
+are $1.6997\times10^{-5}$ and $2.1146\times10^{-4}$ against $5\times10^{-4}$.
+
+The straight tube becomes bound between $n=1.875$ and $1.90625$ against the
+infinite-plane Townes onset $1.7307557357$. Across the measured profile family
+the least charge-to-winding ratio satisfying
+$|Q/w|^2>8\pi^2ak_{Cx}e(n)n^2/(B-e(n))$ is
+
+$$
+\left|\frac{Q}{w}\right|_{\rm bind}=41.1173021501
+\quad\text{at}\quad n=4.3260504663,\ e(n)=4.5039640307 .
+$$
+
+The density-minimized leading rows put $Q=64,128,256$ below their dilute
+charged thresholds with margins $13.589900$, $66.776483$ and $198.920322$, at
+radii $R_*=1.422852$, $1.649102$ and $1.848122$. Every radius lies below the
+transported-profile gate $R\ge8$, so the reduced minima fall in the
+core-overlap region where the thin description is undefined.
+
+The admissible-radius trial is bound and directionally unresolved. At
+$Q=256$, $w=1$, $R=8$ the density interpolation selects $n=5$; a fresh profile
+solve gives $E_\perp=22.1744771884$, torus metric factor $1.0118788464$ and
+
+$$
+M^{\rm tor}=2159.6354486318
+\quad\text{against}\quad
+\Omega_\infty Q=2231.7562590928,
+$$
+
+a margin of $72.1208104610$, with carrier tail fraction $2.8574\times10^{-6}$
+beyond transverse radius six. The one-sided derivative at that boundary is
+
+$$
+\left.\frac{dM^{\rm tor}}{dR}\right|_{n=5,R=8}=+8.6921788545,
+$$
+
+so energy falls toward radii below the validated transported-tube domain. The
+generalized discrete Hessian at the trial profile has a soft $m=1$ translation
+mode at $\omega^2=0.0025671838$ and positive non-symmetry modes
+$12.7261387878$, $17.7075102178$ and $19.9381383240$ for $m=2,3,4$.
+
+The frozen classification is `BOUND_THIN_TRIAL_NO_THIN_STATIONARY_RADIUS`. The
+mechanism supplies the corrected tube's binding, width selection, longitudinal
+winding pressure and a positive transverse gap; no admissible stationary radius
+exists at these coefficients, and a closed tube's scale selection awaits the
+thick-core completion or gauge-invariant structure outside the neutral scalar
+sector. The primary receipt passes 12 checks and the source-independent receipt
+passes 17, reconstructing every profile functional, the threshold, all four
+reduced minima, the exact torus metric and the full $m=0,\ldots,4$ spectrum with
+worst normalized error $4.03\times10^{-12}$; both mutation controls fire. The
+evidence preserves the protocol's first receipt, whose calculation completed
+before a manifest-path conversion followed the repository `runs` junction, and
+the authorized recovery records the defect with no change to the frozen
+schedule. The carrier is neutral under the conditional $SU(2)_Q$ field, so
+`yang_mills_identification`, `continuum_gauge_construction` and
+`charge_quantization` remain `UNRESOLVED` with `clay_verdict=null`. The complete
+calculation is in `computations/matter-formation-wound-loop-gap-report.md`.
+
 ## References
 - `computations/matter-formation-autonomous-shell-g3-two-channel-v2-prereg.md`—degeneracy-weighted two-channel finite-core action, controls and precision contract.
 - `computations/matter-formation-autonomous-shell-g3-two-channel-fourth-order-prereg.md`—skew fourth-order spatial operator continuation and decision rule.
@@ -15826,3 +15900,8 @@ particle identity remain unmet requirements.
 - `runs/20260913_matter_formation_closed_cp_incoming_reservoir_v11/result.json`—primary incoming-shell receipt.
 - `runs/20260913_matter_formation_closed_cp_incoming_reservoir_v11_verify_final/verification.json`—independent incoming-shell receipt.
 - `runs/20260909_matter_formation_pool_dispersal/boundary-recovery/axial-recovery/`—active source-bound profiles, trajectories, controls, execution records and reconciliation.
+- `computations/matter-formation-wound-loop-gap-prereg.md`—frozen wound-loop functional, density and charge schedules, geometry gates, controls and decision tree.
+- `computations/matter_formation_wound_loop_gap.py` and `computations/verify_matter_formation_wound_loop_gap.py`—primary and source-independent wound-loop calculations.
+- `runs/20260921_matter_formation_wound_loop_gap_recovery/primary.json` and `runs/20260921_matter_formation_wound_loop_gap_recovery/independent.json`—recovery primary and independent receipts, with the preserved first receipt in `runs/20260921_matter_formation_wound_loop_gap/primary.json` and its defect record.
+- `computations/matter-formation-wound-loop-gap-report.md`—wound-loop binding threshold, transported trial, transverse spectrum and stationary-radius boundary.
+- `computations/matter_formation_tube_geometry.py` and `computations/verify_matter_formation_tube_geometry.py`—corrected transverse tube solver and independent reconstruction.

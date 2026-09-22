@@ -1,6 +1,6 @@
 # Core-Trapped Noether Charge and the Finite-Composite Boundary
 
-## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested finite-grid spectrum, conditional smooth scalar binding, and relaxed transverse tube geometry—September 2026
+## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested finite-grid spectrum, conditional smooth scalar binding, relaxed transverse tube geometry, and wound-loop radius boundary—September 2026
 
 ## Abstract
 
@@ -103,6 +103,17 @@ particle-count identification. Smooth $Q_C=16$ constrained spatial stability
 is INCONCLUSIVE because its coarse translation and domain criteria fail.
 Continuum and full temporal stability, microscopic production, normalization
 and particle identity remain open (`computations/matter-formation-continuum-report.md`).
+
+The relaxed transverse tube has a finite-grid solution on the registered
+functional: the bent-tube energy of the axisymmetric cross-section equals its
+flat value at every tested radius, while the axial winding channel is strictly
+enhanced by curvature. Closing the tube into a wound loop adds the measured
+schedule-resolved threshold $|Q/w|_{\rm bind}=41.1173021501$ at
+$n=4.3260504663$ and a bound transported trial at $R=8$. Every reduced loop
+minimum and that trial place the stationary radius inside core overlap, so the
+closed tube's scale selection awaits the thick-core completion or
+gauge-invariant structure outside this scalar sector
+(`computations/matter-formation-wound-loop-gap-report.md`).
 
 ---
 
@@ -1141,6 +1152,39 @@ any tube whose cross-section is small compared with its bending radius, and
 `turbulence/navier-stokes-tube-curvature-coherence.md` carries it to the vorticity
 direction and the coherence modulus of a tube-like high-vorticity region.
 
+Closing the tube into a wound loop completes the reduced picture and locates its
+boundary. With integrated carrier norm $N=Ln$,
+temporal Noether charge $Q$ and longitudinal winding $w$, the fixed-$n$ minimum of
+
+$$
+M_{Q,w}(N,n)=Ne(n)+\frac{2\pi^2k_{Cx}w^2n^2+Q^2/(4a)}{N}
+\tag{CC59}
+$$
+
+is $N_*=\sqrt{A_{Q,w}(n)/e(n)}$, $L_*=N_*/n$ and
+$M_*(n)=2\sqrt{e(n)A_{Q,w}(n)}$ with
+$A_{Q,w}(n)=Q^2/(4a)+2\pi^2k_{Cx}w^2n^2$, and the wound loop lies below the
+dilute charged threshold $\Omega_\infty|Q|$ at density $n$ exactly when
+
+$$
+\left|\frac{Q}{w}\right|^2>
+\frac{8\pi^2ak_{Cx}e(n)n^2}{B-e(n)}.
+\tag{CC60}
+$$
+
+On the measured profile family the least scheduled ratio is
+$|Q/w|_{\rm bind}=41.1173021501$ at $n=4.3260504663$, so $Q=64,128,256$ bind at
+$w=1$ while $Q=16$ does not. At the smallest transported-profile radius
+$R=8$, the $Q=256$, $w=1$ trial gives $M^{\rm tor}=2159.6354486$ against
+$\Omega_\infty Q=2231.7562591$ and a radial derivative $+8.6921788545$, and
+every unconstrained reduced minimum lies at $R_*<1.85$, inside the
+core-overlap region where the transported profile is undefined. The wound
+closed tube therefore binds, selects a width and a positive transverse
+spectrum, and has no admissible stationary radius at these coefficients: the
+missing inverse-length support must come from the thick-core completion or from
+gauge-invariant structure outside this scalar sector. The complete finite
+calculation is in `computations/matter-formation-wound-loop-gap-report.md`.
+
 ---
 
 ## 9. Evidence boundary
@@ -1157,6 +1201,7 @@ direction and the coherence modulus of a tube-like high-vorticity region.
 | Does an untwisted tube prefer a bending radius? | No; the bent-metric energy of the axisymmetric cross-section equals its flat value exactly for $\kappa a_{\max}$ up to $0.984$, and the axial channel is strictly enhanced by curvature (CC52), (CC54) |
 | Does the relaxed tube supply its own width? | Yes; the cross-section is stationary with a positive spectrum apart from rigid translation, and its dilation family has its minimum at the relaxed width (CC51), (CC53) |
 | What sets the radius of a closed tube? | The winding; the twist energy is the phase-gradient integral in the torus metric, so a twisted loop is a spring (CC54) |
+| Does the wound closed tube have a stationary radius at the registered coefficients? | No. The schedule-resolved binding threshold is $\lvert Q/w\rvert_{\rm bind}=41.1173021501$ and the transported $Q=256$, $w=1$, $R=8$ trial is bound by $72.12081046$, but its radial derivative is $+8.6921788545$ and every reduced minimum lies at $R_*<1.85$ inside core overlap (CC59), (CC60) |
 | Is the transverse carrier problem solved on the registered functional? | Yes on a finite radial grid, with an independent reconstruction of every number; continuum existence and nonlinear stability remain open (CC49)–(CC58) |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
 | Is a full stationary particle established? | No. The stored Cartesian branch has a matched six-mode finite-grid spectrum but fails its smooth-carrier diagnostic. Separate continuum-consistent scalar binding at prepared $Q_C\in\{16,256\}$ is independently reproduced; smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The closed-boundary action preserves $Q_C=0$. Production, full continuum and temporal stability, normalization, topology-changing competitors and physical particle identity remain open |
@@ -1225,3 +1270,6 @@ normalization, quantum numbers and statistics remain open.
 12. `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement, contracting energy differences, and independent verification.
 13. `computations/particle-localized-physical-hessian-report.md`—constrained localized spectrum, carrier-phase symmetry assignment, and spatial qualification.
 - `computations/matter-formation-continuum-report.md`—empty-sector creation obstruction, Cartesian ultraviolet boundary, prepared smooth scalar binding and constrained smooth-branch stability evidence; §41 qualifies the isolated stationary electric obstruction and fixed-common-number dilution sequence.
+- `computations/matter-formation-wound-loop-gap-prereg.md`—frozen wound-loop functional, density and charge schedules, geometry gates, controls and decision tree.
+- `computations/matter_formation_wound_loop_gap.py`, `computations/verify_matter_formation_wound_loop_gap.py`—primary and source-independent wound-loop calculations.
+- `computations/matter-formation-wound-loop-gap-report.md`—wound-loop binding threshold, transported trial and stationary-radius boundary (CC59), (CC60), with the preserved first receipt and its authorized recovery.
