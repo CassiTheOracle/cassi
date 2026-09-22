@@ -44,7 +44,7 @@ SATURATION_RECEIPT = (
     / "20260921_curvature_clock_saturation"
     / "curvature_clock_saturation_receipt.json"
 )
-DEFAULT_OUTPUT = ROOT / "runs" / "20260921_curvature_budget"
+DEFAULT_OUTPUT = ROOT / "runs" / "20260922_curvature_budget"
 SCHEMA = "navier-stokes-curvature-budget-v1"
 
 HORIZON = 2.0
@@ -62,6 +62,7 @@ ALGEBRA_TOLERANCE = 1.0e-9
 PROBE_TOLERANCE = 1.0e-12
 PROBE_STRIDE = 8
 SPLIT_TOLERANCE = 1.0e-9
+MATERIAL_MAGNITUDE_TOLERANCE = 1.0e-3
 
 
 def load_module(path: Path):
@@ -469,6 +470,8 @@ def integrate_case(clock, long_trajectory, depletion, case, nu):
     worst_enstrophy = 0.0
     worst_cap = 0.0
     worst_split = 0.0
+    worst_material_magnitude = 0.0
+    worst_material_margin = 0.0
     for earlier, later in zip(lattice, lattice[1:]):
         span = later["time"] - earlier["time"]
         measured = math.log(later["tracer"]["margin"] / earlier["tracer"]["margin"])
@@ -494,6 +497,43 @@ def integrate_case(clock, long_trajectory, depletion, case, nu):
         worst_enstrophy = max(worst_enstrophy, abs(enstrophy_residual))
         worst_cap = max(worst_cap, advective - cap)
         worst_split = max(worst_split, abs(measured - (unsteady + advective)))
+        # Material channels: the carried trajectory's own changes against the
+        # integrals of the rate terms the identity assigns to them.  The
+        # enstrophy identity is a material statement; the geometric channels are
+        # where the field's own evolution enters.
+        later_carried = later["tracer_carried"]
+        earlier_carried = earlier["tracer_carried"]
+        material_magnitude = math.log(
+            later_carried["magnitude"] / earlier_carried["magnitude"]
+        )
+        material_magnitude_budget = 0.5 * span * (
+            later_carried["stretch"]
+            + nu * later_carried["production"] / later_carried["magnitude"] ** 2
+            + earlier_carried["stretch"]
+            + nu * earlier_carried["production"] / earlier_carried["magnitude"] ** 2
+        )
+        material_magnitude_residual = material_magnitude - material_magnitude_budget
+        worst_material_magnitude = max(
+            worst_material_magnitude, abs(material_magnitude_residual)
+        )
+        material_margin = math.log(
+            later_carried["margin"] / earlier_carried["margin"]
+        )
+        material_assembled = 0.5 * span * (
+            later_carried["assembled_rate"] + earlier_carried["assembled_rate"]
+        )
+        material_kappa = math.log(later_carried["kappa"] / earlier_carried["kappa"])
+        material_kappa_budget = 0.5 * span * (
+            later_carried["bend_rate"] + earlier_carried["bend_rate"]
+        )
+        material_width = math.log(later_carried["width"] / earlier_carried["width"])
+        material_width_budget = 0.5 * span * (
+            later_carried["transverse"] - later_carried["stretch"]
+            + earlier_carried["transverse"] - earlier_carried["stretch"]
+        )
+        worst_material_margin = max(
+            worst_material_margin, abs(material_margin - material_assembled)
+        )
         intervals.append(
             {
                 "from": earlier["time"],
@@ -508,6 +548,15 @@ def integrate_case(clock, long_trajectory, depletion, case, nu):
                 "enstrophy_increment": enstrophy,
                 "enstrophy_budget": enstrophy_budget,
                 "enstrophy_residual": enstrophy_residual,
+                "material_magnitude_increment": material_magnitude,
+                "material_magnitude_budget": material_magnitude_budget,
+                "material_magnitude_residual": material_magnitude_residual,
+                "material_margin_increment": material_margin,
+                "material_assembled_increment": material_assembled,
+                "material_kappa_increment": material_kappa,
+                "material_kappa_budget": material_kappa_budget,
+                "material_width_increment": material_width,
+                "material_width_budget": material_width_budget,
             }
         )
     frame_worst = max(
@@ -569,6 +618,8 @@ def integrate_case(clock, long_trajectory, depletion, case, nu):
             "worst_cap_deficit": float(worst_cap),
             "worst_algebraic_residual": float(algebra_worst),
             "worst_split_residual": float(worst_split),
+            "worst_material_magnitude_residual": float(worst_material_magnitude),
+            "worst_material_margin_residual": float(worst_material_margin),
             "advective_share": float(
                 np.sum([item["advective_increment"] for item in intervals])
                 / max(abs(np.sum([item["measured_increment"] for item in intervals])), 1e-300)
@@ -581,6 +632,32 @@ def integrate_case(clock, long_trajectory, depletion, case, nu):
             ),
             "total_unsteady_increment": float(
                 np.sum([item["unsteady_increment"] for item in intervals])
+            ),
+        },
+        "material_gaps": {
+            "magnitude_increment": float(
+                np.sum([item["material_magnitude_increment"] for item in intervals])
+            ),
+            "magnitude_budget": float(
+                np.sum([item["material_magnitude_budget"] for item in intervals])
+            ),
+            "margin_increment": float(
+                np.sum([item["material_margin_increment"] for item in intervals])
+            ),
+            "margin_frozen_field_integral": float(
+                np.sum([item["material_assembled_increment"] for item in intervals])
+            ),
+            "kappa_increment": float(
+                np.sum([item["material_kappa_increment"] for item in intervals])
+            ),
+            "kappa_frozen_field_integral": float(
+                np.sum([item["material_kappa_budget"] for item in intervals])
+            ),
+            "width_increment": float(
+                np.sum([item["material_width_increment"] for item in intervals])
+            ),
+            "width_frozen_field_integral": float(
+                np.sum([item["material_width_budget"] for item in intervals])
             ),
         },
         "mean_rate_shares": shares,
@@ -630,7 +707,8 @@ def build_receipt() -> dict[str, Any]:
             f"enstrophy {shares['enstrophy']:+.5f}  binormal {shares['binormal']:+.5f}"
         )
         print(
-            f"  {name}: frame {entry['checks']['worst_frame_trace']:.2e}  "
+            f"  {name}: material |omega| {entry['checks']['worst_material_magnitude_residual']:.2e}  "
+            f"frame {entry['checks']['worst_frame_trace']:.2e}  "
             f"quadrature {entry['checks']['worst_quadrature_residual']:.2e}  "
             f"enstrophy {entry['checks']['worst_enstrophy_residual']:.2e}  "
             f"algebra {entry['checks']['worst_algebraic_residual']:.2e}  "
@@ -680,6 +758,22 @@ def build_receipt() -> dict[str, Any]:
             f"advective {entry['checks']['total_advective_increment']:+.6f} "
             f"(share {entry['checks']['advective_share']:+.3f}), "
             f"unsteady {entry['checks']['total_unsteady_increment']:+.5f}",
+        )
+        check(
+            f"H10 {name}: the enstrophy identity is material along the carried trajectory",
+            entry["checks"]["worst_material_magnitude_residual"]
+            <= MATERIAL_MAGNITUDE_TOLERANCE,
+            f"worst residual of dlog|omega| against the integrated material rate "
+            f"{entry['checks']['worst_material_magnitude_residual']:.2e}",
+        )
+        gaps = entry["material_gaps"]
+        check(
+            f"H11 {name}: the material channel gaps are reported",
+            True,
+            f"material margin {gaps['margin_increment']:+.5f} against the frozen-field "
+            f"integral {gaps['margin_frozen_field_integral']:+.5f}; "
+            f"kappa {gaps['kappa_increment']:+.5f} against {gaps['kappa_frozen_field_integral']:+.5f}; "
+            f"width {gaps['width_increment']:+.5f} against {gaps['width_frozen_field_integral']:+.5f}",
         )
         check(
             f"H5 {name}: the two readings are reported",
@@ -797,6 +891,7 @@ def build_receipt() -> dict[str, Any]:
             "equation": "original unforced 3-D incompressible Navier-Stokes",
             "backend": "torch-rocm",
             "identity": "(KC2) rate = bend/kappa - 4 ell - 2 b.Sb, with the frame closure ell + n.Sn + b.Sb = 0",
+            "material_channels": "the carried trajectory's own changes: dlog|omega| against the integrated material rate (enstrophy identity), and the geometric channels kappa, width and margin against their frozen-field integrals, whose difference is the field's own evolution",
             "cap": "(KC4) rate <= bend/kappa - 2 D log e + 4 nu Delta|omega|/|omega| - 2 b.Sb",
             "cap_is_a_theorem": True,
             "time_integrability_of_the_modulus": "MEASURED ON THE DECLARED FAMILIES ONLY",

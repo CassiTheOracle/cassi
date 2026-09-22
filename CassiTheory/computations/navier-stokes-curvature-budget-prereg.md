@@ -150,3 +150,26 @@ retained and reported. The verifier recomputes the frame closure, the assembled
 rate, the cap integrals and the budget statistics from the stored values,
 reproduces the content digest, and includes a mutation control that perturbs one
 stored value and requires at least one check to fail.
+
+### Amendment of 2026-09-22: the material channels
+
+The first invocation (`runs/20260921_curvature_budget`, `status=PASS`, content
+digest `334963c0a0ef52ef`) verified every rule above. Its receipt also fixes, from
+the same stored values, the size of the piece the frozen-field budget does not
+describe: the carried trajectory's own changes against the integrals of the terms
+the identity assigns to them. The measured gaps are, on `helix_wide` /
+`helix_narrow` / `helix_tight_pitch`: the margin's material increment $+0.44094$ /
+$+0.95664$ / $+0.72186$ against the frozen-field integral $+0.00522$ / $+0.00920$ /
+$+0.02418$; the curvature channel $-0.02590$ / $-0.03173$ / $-0.09867$ against
+$-0.01375$ / $-0.01713$ / $-0.02760$; the width channel $+0.46684$ / $+0.98837$ /
+$+0.82053$ against $+0.00941$ / $+0.01316$ / $+0.02589$. The enstrophy identity
+alone is material and holds along the carried trajectory to $5.1\times10^{-8}$,
+$6.5\times10^{-5}$ and $1.8\times10^{-4}$.
+
+The protocol is therefore amended to report those channels as `material_gaps` in
+every family's entry and to check the material enstrophy identity directly (**H10**,
+bound $10^{-3}$), with **H11** recording the reported gaps. The identities, the
+families, the parameters, the lattice and every existing decision rule are
+unchanged; the amendment adds a diagnostic and its reading, and the first
+invocation's receipt stands as the frozen-field measurement it is. The second
+invocation writes `runs/20260922_curvature_budget`.

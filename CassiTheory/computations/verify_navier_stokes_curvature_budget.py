@@ -34,7 +34,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RECEIPT = (
-    ROOT / "runs" / "20260921_curvature_budget" / "curvature_budget_receipt.json"
+    ROOT / "runs" / "20260922_curvature_budget" / "curvature_budget_receipt.json"
 )
 SCHEMA = "navier-stokes-curvature-budget-v1"
 
@@ -148,7 +148,55 @@ def recompute(entry: dict) -> dict[str, float]:
         worst_enstrophy = max(
             worst_enstrophy, abs(interval["enstrophy_increment"] - enstrophy_budget)
         )
+    # Material channels: the carried trajectory's own changes against the
+    # integrals of the terms the identity assigns to them.
+    worst_material_magnitude = 0.0
+    recomputed_gaps = {
+        "magnitude_increment": 0.0,
+        "magnitude_budget": 0.0,
+        "margin_increment": 0.0,
+        "margin_frozen_field_integral": 0.0,
+        "kappa_increment": 0.0,
+        "kappa_frozen_field_integral": 0.0,
+        "width_increment": 0.0,
+        "width_frozen_field_integral": 0.0,
+    }
+    for index, interval in enumerate(intervals):
+        earlier = lattice[index]["tracer_carried"]
+        later = lattice[index + 1]["tracer_carried"]
+        span = interval["to"] - interval["from"]
+        magnitude_increment = math.log(later["magnitude"] / earlier["magnitude"])
+        magnitude_budget = 0.5 * span * (
+            later["stretch"]
+            + entry["nu"] * later["production"] / later["magnitude"] ** 2
+            + earlier["stretch"]
+            + entry["nu"] * earlier["production"] / earlier["magnitude"] ** 2
+        )
+        worst_material_magnitude = max(
+            worst_material_magnitude, abs(magnitude_increment - magnitude_budget)
+        )
+        recomputed_gaps["magnitude_increment"] += magnitude_increment
+        recomputed_gaps["magnitude_budget"] += magnitude_budget
+        recomputed_gaps["margin_increment"] += math.log(
+            later["margin"] / earlier["margin"]
+        )
+        recomputed_gaps["margin_frozen_field_integral"] += 0.5 * span * (
+            later["assembled_rate"] + earlier["assembled_rate"]
+        )
+        recomputed_gaps["kappa_increment"] += math.log(later["kappa"] / earlier["kappa"])
+        recomputed_gaps["kappa_frozen_field_integral"] += 0.5 * span * (
+            later["bend_rate"] + earlier["bend_rate"]
+        )
+        recomputed_gaps["width_increment"] += math.log(later["width"] / earlier["width"])
+        recomputed_gaps["width_frozen_field_integral"] += 0.5 * span * (
+            later["transverse"]
+            - later["stretch"]
+            + earlier["transverse"]
+            - earlier["stretch"]
+        )
     return {
+        "worst_material_magnitude": worst_material_magnitude,
+        "recomputed_gaps": recomputed_gaps,
         "worst_orthonormal": worst_orthonormal,
         "worst_closure": worst_closure,
         "worst_algebra": worst_algebra,
@@ -225,6 +273,26 @@ def verify(receipt: dict, checks: list[dict]) -> dict[str, float]:
             f"V8 {name}: the material increment splits into unsteady and advective",
             values["worst_split"] <= SPLIT_TOLERANCE,
             f"worst telescoping residual {values['worst_split']:.2e}",
+        )
+        declared = entry["material_gaps"]
+        recomputed_gaps = values["recomputed_gaps"]
+        gap_worst = max(
+            abs(declared[key] - recomputed_gaps[key]) / max(abs(declared[key]), 1.0)
+            for key in recomputed_gaps
+        )
+        record(
+            f"V10 {name}: the material enstrophy identity holds along the carried trajectory",
+            values["worst_material_magnitude"] <= 1.0e-3,
+            f"worst residual {values['worst_material_magnitude']:.2e}",
+        )
+        record(
+            f"V11 {name}: the reported material gaps recompute from the stored values",
+            gap_worst <= 1.0e-9,
+            f"worst relative difference {gap_worst:.2e}; margin "
+            f"{recomputed_gaps['margin_increment']:+.5f} against the frozen-field integral "
+            f"{recomputed_gaps['margin_frozen_field_integral']:+.5f}, width "
+            f"{recomputed_gaps['width_increment']:+.5f} against "
+            f"{recomputed_gaps['width_frozen_field_integral']:+.5f}",
         )
         shares = entry["checks"]
         total = shares["total_measured_increment"]

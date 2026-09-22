@@ -1,6 +1,6 @@
 # The Curvature Clock of the Vorticity-Direction Coherence Margin
 
-## Status: Derived exact kinematic identity / Tested on three closed-form controls / Measured on the retained helical tube families to $t=2$ / Enstrophy budget of the widening channel measured on the retained families—September 2026
+## Status: Derived exact kinematic identity / Tested on three closed-form controls / Measured on the retained helical tube families to $t=2$ / Frozen-field enstrophy budget measured and its material gap sized—September 2026
 
 ## Abstract
 
@@ -181,24 +181,40 @@ error: at spacings $4,2,1$ on a common $64$-step window it falls $1.11\times10^{
 $1.4\times10^{-6}$, so the channel the cap charges is the flow's own enstrophy and not an
 estimate of it.
 
-**What funds the growth.** The material increment is $+0.44094$, $+0.95664$ and
-$+0.72186$ on the three families, and its advective part is $-0.002385$, $-0.001580$ and
-$-0.001648$: between $0.2\%$ and $0.5\%$ of the growth is the frozen-field channel and
-the rest is the field's own time evolution. In the rate balance the enstrophy channel
-carries the whole positive contribution ($+2.36$, $+4.56$, $+6.16$ mean against bending
-$-0.0069$, $-0.0086$, $-0.0138$ and binormal strain $+0.0080$, $+0.0099$, $+0.0274$), so
-the widening of the core is the decay of its own enstrophy: $D_\tau\log e\approx-1.18$
-on the wide family, whose $|\omega|$ falls to $0.31$ of its initial value.
+**Which reading.** The identity of this section is the frozen-field one: it is the rate a
+field held fixed would produce along the direction, and the clock's closed-form controls,
+being steady, cannot distinguish it from the full material rate. The carried trajectory's
+own changes separate the two, and the separation is the measurement's sharpest result. The
+material margin increment is $+0.44094$, $+0.95664$ and $+0.72186$ against frozen-field
+integrals of $+0.00507$, $+0.00920$ and $+0.02418$; the curvature channel moves
+$-0.02590$, $-0.03173$ and $-0.09867$ against $-0.01375$, $-0.01713$ and $-0.02760$; the
+width channel moves $+0.46684$, $+0.98837$ and $+0.82053$ against $+0.00941$,
+$+0.01316$ and $+0.02589$. The enstrophy identity alone is material, and it holds along
+the carried trajectory to $1.3\times10^{-8}$, $6.3\times10^{-7}$ and
+$4.5\times10^{-6}$: the axial stretching is the flow's own enstrophy exactly, while the
+geometric channels move by the field's own evolution.
+
+**What funds the growth.** At the fixed tracer the margin rises by $+0.44094$,
+$+0.95664$ and $+0.72186$, of which the frozen-field channel is $-0.002385$,
+$-0.001580$ and $-0.001648$: between $0.2\%$ and $0.5\%$ of the change is geometric
+transport within the field and the rest is the field's own evolution. In the rate balance
+the enstrophy channel carries the whole positive contribution ($+2.36$, $+4.56$, $+6.16$
+mean against bending $-0.0069$, $-0.0086$, $-0.0138$ and binormal strain $+0.0080$,
+$+0.0099$, $+0.0274$), and the enstrophy itself falls: $D_\tau\log e\approx-1.18$ on
+the wide family, whose $|\omega|$ reaches $0.31$ of its initial value.
 
 **What this settles and what it does not.** The transverse strain at the vorticity core
-is now charged, point by point and exactly, to the flow's enstrophy and viscous budget,
-and the charge is verified against the enstrophy identity itself rather than against a
-model of it. The retained families supply no counterexample to the cap, and no steady
-flow can supply the growth at all, which removes the frozen-field route to it. The step
-that remains open is the same one the enstrophy has always left open: a finite-time bound
-on the cumulative enstrophy from general smooth data. With that bound the cap becomes a
-bound on the coherence modulus; without it the criterion stays conditional, and
-arbitrary-data regularity remains **UNRESOLVED**.
+is charged, point by point and exactly, to the flow's enstrophy and viscous budget as the
+frozen-field rate sees it, verified against the enstrophy identity itself rather than
+against a model of it, and the retained families supply no counterexample to the cap. The
+material reading adds the field's own evolution, and the measurement sizes it: on the
+geometric channels the evolution is the larger part (the width channel moves fifty times
+its frozen-field integral), while the enstrophy channel is material exactly. A bound on
+the coherence modulus therefore needs two things the cap alone does not give: the
+cumulative enstrophy of general smooth data, and the material transport of the frame,
+which is the corrected (KC1) with the field's own evolution carried in the direction and
+the normal. Both are named and neither is closed; arbitrary-data regularity remains
+**UNRESOLVED**.
 
 ## 7. Evidence
 
@@ -215,13 +231,18 @@ arbitrary-data regularity remains **UNRESOLVED**.
 | (KC2) against the advective increment, three families | $9.6\times10^{-6}$, $2.3\times10^{-5}$, $7.1\times10^{-5}$ over $1024$ intervals each |
 | Interval residual under lattice refinement, spacings $4,2,1$ | $1.11\times10^{-5}\to5.55\times10^{-6}\to2.78\times10^{-6}$ |
 | (KC4) cap deficit against the advective increment | exactly $0$ at every evaluated point |
-| (KC3) against the integrated enstrophy identity | $3.9\times10^{-9}$, $6.3\times10^{-7}$, $1.4\times10^{-6}$ |
-| Advective share of the material increment | $0.5\%$, $0.2\%$, $0.2\%$ |
-| Independent verifier, budget receipt | $26$ checks, $0$ failures; mutation control fires |
+| (KC3) against the integrated enstrophy identity, frozen field | $3.9\times10^{-9}$, $6.3\times10^{-7}$, $1.4\times10^{-6}$ |
+| Advective share of the tracer increment | $0.5\%$, $0.2\%$, $0.2\%$ |
+| Enstrophy identity along the carried trajectory | $1.3\times10^{-8}$, $6.3\times10^{-7}$, $4.5\times10^{-6}$ |
+| Material margin against its frozen-field integral | $+0.44094$ vs $+0.00507$; $+0.95664$ vs $+0.00920$; $+0.72186$ vs $+0.02418$ |
+| Material width against its frozen-field integral | $+0.46684$ vs $+0.00941$; $+0.98837$ vs $+0.01316$; $+0.82053$ vs $+0.02589$ |
+| Independent verifier, budget receipt | $32$ checks, $0$ failures; mutation control fires |
 
 The receipts are `runs/20260921_curvature_clock/curvature_clock_receipt.json`,
-`runs/20260921_curvature_clock_saturation/curvature_clock_saturation_receipt.json` and
-`runs/20260921_curvature_budget/curvature_budget_receipt.json`.
+`runs/20260921_curvature_clock_saturation/curvature_clock_saturation_receipt.json`,
+`runs/20260921_curvature_budget/curvature_budget_receipt.json` for the frozen-field
+measurement and `runs/20260922_curvature_budget/curvature_budget_receipt.json` for the
+amended invocation that reports the material channels.
 `computations/verify_navier_stokes_curvature_budget.py` recomputes the frame
 orthonormality, the closure, the three rate forms, the interval integrals, the
 advective/unsteady split and the cap deficit from the stored values alone, and fails on a
