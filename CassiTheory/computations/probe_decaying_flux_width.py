@@ -111,9 +111,11 @@ def member_fluxes(
         "laplacian_flux": area * laplacian,
         "signed_flux": area * signed,
         "signed_laplacian_flux": area * signed_laplacian,
-        "gauss_flux": area * label_limit * label_limit * gauss,
-        "gauss_laplacian_flux": area * label_limit * label_limit * gauss_laplacian,
-        "pump": area * label_limit * label_limit * pump,
+        # inner_weights already carry label_limit once, so the sub-patch area
+        # factor must not be applied again.
+        "gauss_flux": area * gauss,
+        "gauss_laplacian_flux": area * gauss_laplacian,
+        "pump": area * pump,
         "core_ratio": core_ratio,
         "signed_share": (signed / flat) if abs(flat) > 1e-300 else float("nan"),
     }
@@ -183,6 +185,14 @@ def carry(family: str, span_factor: float, order: int, stride: int) -> dict[str,
             )
         )
         row["signed_share"] = fluxes["signed_share"]
+        # The margin carried by the patch-independent width, and its bound (21).
+        row["gauss_margin"] = float(row["kappa"]) * row["gauss_width"]
+        margin = max(row["gauss_margin"], 1e-300)
+        row["gauss_margin_bound"] = (
+            row["gauss_width"] * float(row["hessian_norm"]) / margin
+            + 3.5 * float(row["gradient_norm"])
+            + row["gauss_width"] * abs(2.0 * row["gauss_channel"]) / margin
+        )
         rows.append(row)
 
     record(0)
@@ -200,6 +210,17 @@ def carry(family: str, span_factor: float, order: int, stride: int) -> dict[str,
 
     axial = integral("axial")
     deviation = lambda key: math.log(rows[-1][key] / rows[0][key]) + 0.5 * axial
+    margin_change = math.log(rows[-1]["gauss_margin"] / rows[0]["gauss_margin"])
+    margin_closed = integral("curvature_rate_closed") + integral("gauss_channel")
+    fd_rates = [
+        math.log(later["gauss_margin"] / earlier["gauss_margin"])
+        / max(later["time"] - earlier["time"], 1e-300)
+        for earlier, later in zip(rows, rows[1:])
+    ]
+    worst_ratio = max(
+        abs(rate) / max(0.5 * (earlier["gauss_margin_bound"] + later["gauss_margin_bound"]), 1e-300)
+        for rate, earlier, later in zip(fd_rates, rows, rows[1:])
+    )
     return {
         "span": span_factor,
         "core_width": core_width,
@@ -217,6 +238,12 @@ def carry(family: str, span_factor: float, order: int, stride: int) -> dict[str,
         "gauss_channel": integral("gauss_channel"),
         "gauss_removed": deviation("gauss_width") - integral("gauss_channel"),
         "signed_share": rows[0]["signed_share"],
+        "margin_start": rows[0]["gauss_margin"],
+        "margin_end": rows[-1]["gauss_margin"],
+        "margin_change": margin_change,
+        "margin_closed": margin_closed,
+        "margin_residual": abs(margin_change - margin_closed),
+        "margin_bound_ratio": worst_ratio,
         "gauss_start": rows[0]["gauss_width"],
         "gauss_end": rows[-1]["gauss_width"],
     }
@@ -264,6 +291,18 @@ def main() -> int:
         else "the decaying member does not saturate over the declared spans"
     )
     print(f"gaussian closed-law residual, worst {worst_gauss_removed:.3e}")
+    print(
+        "margin k.a_G: change "
+        + ", ".join(f"{entry['span']:.0f}:{entry['margin_change']:+.4f}" for entry in readings)
+        + " | closed "
+        + ", ".join(f"{entry['span']:.0f}:{entry['margin_closed']:+.4f}" for entry in readings)
+    )
+    print(
+        f"margin law residual, worst "
+        f"{max(entry['margin_residual'] for entry in readings):.3e}; "
+        f"weighted critical-norm bound, worst ratio "
+        f"{max(entry['margin_bound_ratio'] for entry in readings):.4f}"
+    )
     print(json.dumps({"family": arguments.family, "readings": readings}, indent=1))
     return 0
 
