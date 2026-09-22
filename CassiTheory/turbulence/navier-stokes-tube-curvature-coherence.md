@@ -1,10 +1,10 @@
 # Tube Curvature, Azimuthal Neutrality, and the Vorticity-Direction Coherence Modulus
 
-## Status: Derived exact tube identities / Tested finite-grid curvature laws and resolution requirement / Conditional direction-coherence modulus—September 2026
+## Status: Derived exact tube identities and exact material transport of the cross-section scale / Tested finite-grid curvature laws and resolution requirement / Conditional direction-coherence modulus—September 2026
 
 ## Abstract
 
-A thin tube of vorticity is the empirically dominant structure of the high-vorticity region, and the Constantin–Fefferman continuation criterion asks for the spatial coherence of the vorticity direction there. This paper supplies the geometry of that coherence from an exactly relaxed cross-section. In adapted tube coordinates the curvature enters every cross-sectional functional through one metric factor $g=1+\kappa a\cos\phi$. A $\phi$-independent density is then **exactly** curvature-independent, because the curvature term is a $\cos\phi$ that integrates out, while a density carrying the axial derivative picks up the exact factor $1/\sqrt{1-(\kappa a)^2}$. Two consequences follow: the azimuthal (circulation) channel of a bent tube carries no curvature signature at any order, and the axial (twist) channel is **strictly enhanced** by curvature, never depleted, with a pole at $\kappa a\to1$ where the tube's outer edge reaches the axis of curvature. The coherence modulus of a tube-like high-vorticity region is therefore its bending radius, its failure is the pole, and its value is not free: the cross-section solve fixes the tube radius from the charge per unit length. This explains the positive signed production measured for coherent one-handed tube families in `turbulence/navier-stokes-helical-dynamic-depletion.md`: no cross-section-level curvature channel can deplete stretching. The time integrability of the coherence modulus remains open.
+A thin tube of vorticity is the empirically dominant structure of the high-vorticity region, and the Constantin–Fefferman continuation criterion asks for the spatial coherence of the vorticity direction there. This paper supplies the geometry of that coherence from an exactly relaxed cross-section. In adapted tube coordinates the curvature enters every cross-sectional functional through one metric factor $g=1+\kappa a\cos\phi$. A $\phi$-independent density is then **exactly** curvature-independent, because the curvature term is a $\cos\phi$ that integrates out, while a density carrying the axial derivative picks up the exact factor $1/\sqrt{1-(\kappa a)^2}$. Two consequences follow: the azimuthal (circulation) channel of a bent tube carries no curvature signature at any order, and the axial (twist) channel is **strictly enhanced** by curvature, never depleted, with a pole at $\kappa a\to1$ where the tube's outer edge reaches the axis of curvature. The coherence modulus of a tube-like high-vorticity region is therefore its bending radius, its failure is the pole, and its value is not free: the cross-section solve fixes the tube radius from the charge per unit length. This explains the positive signed production measured for coherent one-handed tube families in `turbulence/navier-stokes-helical-dynamic-depletion.md`: no cross-section-level curvature channel can deplete stretching. The material transport of the cross-section scale is exact: vorticity flux is conserved through a material element up to diffusion, and the enstrophy identity cancels that diffusion against the growth of the magnitude, leaving the cross-section scale falling at half the axial stretching and the coherence margin moving by a bending increment against an endpoint logarithm of the enstrophy. The time integrability of the coherence modulus remains open.
 
 ## 1. Setting and conventions
 
@@ -126,13 +126,62 @@ A denser tube has a smaller coherence margin in a given bend, and the margin is 
 
 Sections 2 and 3 state why. The core carries no curvature signature at all by (3), and the only curvature dependence of the axial channel is the strictly enhancing factor of (5). No cross-section-level curvature channel can deplete the stretching term. Depletion has to come from the axis, that is from the nonlocal Biot–Savart geometry that `turbulence/navier-stokes-stress-geometry.md` already uses for its direction estimate, and the present result fixes the geometric content that estimate must respect: the core is inert, the curvature sign is fixed, and the coherence length is the bending radius until the pole.
 
-## 6. Boundary
+## 6. Material transport of the cross-section scale
 
-The identities (3) and (5)–(7) are exact for the stated geometry: a circular axis and an axisymmetric cross-section. A non-circular axis or a non-axisymmetric core adds terms outside this derivation, and the pole condition of §3 is a statement about the support of the tube rather than a dynamical theorem.
+The modulus of §4 is static geometry. Its evolution along the flow is fixed by one conservation law and one identity, both exact.
+
+**Flux conservation.** The vorticity flux through a material surface element $S$ with unit normal $N$ obeys
+
+$$
+\frac{d}{d\tau}\int_S\omega\!\cdot\!N\,dA=\nu\int_S\Delta\omega\!\cdot\!N\,dA ,
+\tag{11}
+$$
+
+the inviscid part being Helmholtz's transport of vortex lines and the viscous part the diffusion of vorticity across the element. Read locally on a flux tube, whose element normal is the direction $\xi$,
+
+$$
+\frac{d}{d\tau}\log\Gamma=\nu\,\frac{\omega\!\cdot\!\Delta\omega}{|\omega|^2},
+\tag{12}
+$$
+
+with $\Gamma$ the flux through the element.
+
+**Cross-section scale.** Let $a$ be the tube's cross-section scale, $\pi a^2$ the area the tube cuts perpendicular to $\xi$; equivalently $a^2=\Gamma/(\pi|\omega|)$. The enstrophy identity (KC3) of `turbulence/navier-stokes-curvature-clock.md` §6,
+
+$$
+D_\tau\log|\omega|=\ell+\nu\,\frac{\omega\!\cdot\!\Delta\omega}{|\omega|^2},
+\qquad \ell=\xi\!\cdot\!S\xi ,
+\tag{13}
+$$
+
+cancels the viscous term of (12) exactly:
+
+$$
+D_\tau\log a=-\frac{\ell}{2}.
+\tag{14}
+$$
+
+The transverse rate is the frame closure (KF) of the same note, $n\!\cdot\!Sn+b\!\cdot\!Sb=-\ell$: the cross-section falls at the rate carried by the two directions across it.
+
+**Integrated form.** With $e=\frac12|\omega|^2$ and $\Delta$ the increment along the trajectory,
+
+$$
+\log(\kappa a)(T)=\log(\kappa a)(0)+\Delta\log\kappa-\frac14\Delta\log e
++\frac12\nu\int_0^T\frac{\omega\!\cdot\!\Delta\omega}{|\omega|^2}\,d\tau .
+\tag{15}
+$$
+
+**A mixed criterion.** In (15) the enstrophy enters through an endpoint logarithm while the viscous term enters through an integral; at a point where $|\omega|$ is locally maximal along $n$, $\Delta|\omega|\le0$ caps that integral by $\frac12\nu\int\Delta|\omega|/|\omega|\,d\tau$. Inviscidly the margin is $\kappa a\propto\kappa/\sqrt{|\omega|}$: a tube reaches the pole of §3 only when its bending outruns the decay of the square root of its vorticity magnitude. No cumulative enstrophy appears.
+
+**Which width.** The clock's width channel uses the local scale $a_n=|\omega|^{1/2}(n\!\cdot\!\nabla^2|\omega|\,n)^{-1/2}$, read from the curvature of the magnitude profile; the scale $a$ of (14) is the tube's own cross-section radius, read from its flux. They are different objects, and (14) is the transport that closes: a Gaussian core gives $a=\sqrt2\,a_n$, and $a_n$'s material rate carries the additional rate of $\lambda=n\!\cdot\!\nabla^2|\omega|\,n$ that the clock's measured fiftyfold width gap sits in.
+
+## 7. Boundary
+
+The identities (3) and (5)–(7) are exact for the stated geometry: a circular axis and an axisymmetric cross-section. A non-circular axis or a non-axisymmetric core adds terms outside this derivation, and the pole condition of §3 is a statement about the support of the tube rather than a dynamical theorem. The transport (11)–(15) holds for a flux tube in a viscous incompressible flow; it is a statement about the cross-section scale of the tube-like region, and no claim about arbitrary data or about global regularity follows from it.
 
 The time evolution of the coherence modulus is `turbulence/navier-stokes-curvature-clock.md`: its rate splits exactly into a bending-gradient term, a transverse-strain term and an axial-stretching term, the closed-form controls realize a finite-time pole, exponential growth and exact conservation, and the retained tube families grow the margin through transverse strain as their cores widen, arresting below the pole. A bound on the modulus for finite time from general smooth data is the obligation that `turbulence/navier-stokes-stress-geometry.md` records, and no claim about arbitrary data or about global regularity follows here.
 
-## 7. Evidence
+## 8. Evidence
 
 The curvature laws are executed by `computations/matter_formation_tube_geometry.py` and independently reconstructed by `computations/verify_matter_formation_tube_geometry.py` from the retained profiles with their own quadrature and metric assembly.
 
@@ -146,6 +195,19 @@ The curvature laws are executed by `computations/matter_formation_tube_geometry.
 
 The singular $\varphi$ integrand of (5) sets the resolution requirement of the tight rows; the coarse-grid deviation is reported as the measured requirement rather than absorbed into a tolerance.
 
+The transport (11)–(15) is executed by `computations/verify_navier_stokes_tube_modulus_transport.py` on the exact Arnold–Beltrami–Childress flow $\omega=u=(\sin z+\cos y,\ \sin x+\cos z,\ \sin y+\cos x)$, an unsteady viscous Navier–Stokes solution with curved vortex lines, a time-independent vorticity direction and $\Delta\omega=-\omega$, at $\nu=0.05$ over one time unit from the tracer $(1.1,0.7,0.4)$.
+
+| Check | Result |
+|---|---|
+| Frame closure $n\!\cdot\!Sn+b\!\cdot\!Sb=-\ell$ | worst $7.2\times10^{-16}$ over 1001 samples (V1) |
+| Enstrophy identity against analytic rates | worst $3.8\times10^{-16}$ (V2) |
+| Flux transport on a material element, $\Delta\log\Gamma$ against $\nu\int\Delta\omega\!\cdot\!N\,dA/\Gamma$ | worst $8.0\times10^{-4}$ at step $10^{-3}$, $1.6\times10^{-3}$ at $2\times10^{-3}$ (V3) |
+| Cross-section scale, $\Delta\log a$ against $-\frac12\int\ell$ | worst $4.0\times10^{-4}$ against $7.9\times10^{-4}$ under refinement (V4) |
+| Integrated modulus identity (15) | worst $4.0\times10^{-4}$ against $7.9\times10^{-4}$; the margin moves $+2.407190$, bending $+2.122684$, the enstrophy endpoint $+0.309107$, the viscous integral $-0.025000$ (V5) |
+| Viscous term capped where $\lvert\omega\rvert$ is locally maximal along $n$ | 1001 of 1001 samples, worst excess $-1.3\times10^{-2}$ (V6) |
+
+The residual is a finite-difference floor: every transport reading halves when the step halves, and the exact identities of V1 and V2 close at round-off.
+
 ## References
 
 - P. Constantin and C. Fefferman, “Direction of vorticity and the problem of global regularity for the Navier–Stokes equations,” *Indiana University Mathematics Journal* **42** (1993), 775–789, DOI `10.1512/iumj.1993.42.42034`—conditional direction-coherence continuation criterion
@@ -153,5 +215,6 @@ The singular $\varphi$ integrand of (5) sets the resolution requirement of the t
 - P. Constantin, I. Procaccia, and D. Segel, “Creation and dynamics of vortex tubes in three-dimensional turbulence,” *Physical Review E* **51** (1995), no. 4, 3207–3222, DOI `10.1103/PhysRevE.51.3207`—vortex-tube coherence length, alignment and the self-stretching rate of aligned tubes
 - `foundations/core-trapped-charge-support.md` §8.4—the relaxed transverse tube, its exact bending neutrality and its winding energy
 - `computations/matter_formation_tube_geometry.py`, `computations/verify_matter_formation_tube_geometry.py`—the curvature laws, the moment series and the independent reconstruction
+- `computations/verify_navier_stokes_tube_modulus_transport.py`—the flux conservation, the cross-section scale transport and the integrated modulus identity on the exact Arnold–Beltrami–Childress flow
 - `turbulence/navier-stokes-stress-geometry.md`—filtered stress geometry, the Biot–Savart direction estimate and the critical coherence coefficient
 - `turbulence/navier-stokes-helical-dynamic-depletion.md`—coherent helical tube families and their measured positive production

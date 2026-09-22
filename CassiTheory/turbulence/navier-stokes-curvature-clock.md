@@ -217,7 +217,14 @@ $D_\tau\xi=S\xi-\ell\xi+\nu[\Delta\omega-(\omega\!\cdot\!\Delta\omega/|\omega|^2
 so the material (KC1) carries a viscous direction-transport term that the frozen-field
 derivation omits, and the width channel additionally carries the material rate of
 $\lambda=n\!\cdot\!\nabla^2|\omega|\,n$, which is where the measured fiftyfold gap sits.
-Both are named and neither is closed; arbitrary-data regularity remains **UNRESOLVED**.
+For the tube's own cross-section scale the width channel closes:
+`turbulence/navier-stokes-tube-curvature-coherence.md` §6 reads the width from the vorticity
+flux, and flux conservation together with the enstrophy identity (KC3) gives
+$D_\tau\log a=-\ell/2$ exactly, so the margin's width channel is a bending increment against
+an endpoint logarithm of the enstrophy with no material rate of $\lambda$ in it. The width
+$a_n$ of this note is read from the magnitude profile, and for a Gaussian core it is the
+flux width over $\sqrt2$. The direction-transport term and the cumulative enstrophy remain
+open, and arbitrary-data regularity remains **UNRESOLVED**.
 
 ## 7. Evidence
 

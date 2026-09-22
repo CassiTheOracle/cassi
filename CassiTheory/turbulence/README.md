@@ -147,7 +147,7 @@ estimate remains open.
 | 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 | 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
-| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities / Tested finite-grid curvature laws / Conditional coherence modulus |
+| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities and exact material transport of the cross-section scale / Tested finite-grid curvature laws / Conditional coherence modulus |
 | 23 | `turbulence/navier-stokes-curvature-clock.md` | The curvature clock of the vorticity-direction coherence margin and its enstrophy budget | Derived exact kinematic identity / Tested closed-form controls / Measured on the retained tube families to $t=2$ / Frozen-field enstrophy budget measured and its material gap sized |
 
 
@@ -785,8 +785,12 @@ not free: the cross-section solve fixes the tube radius from the charge per unit
 a denser tube has a smaller coherence margin in a given bend. The result accounts for the
 positive signed production measured for coherent one-handed tube families in
 `turbulence/navier-stokes-helical-dynamic-depletion.md`, since no cross-section-level
-curvature channel can deplete stretching. The time integrability of the coherence modulus
-remains **UNRESOLVED**.
+curvature channel can deplete stretching. The cross-section scale then transports exactly:
+vorticity flux is conserved through a material element up to diffusion, and the enstrophy
+identity cancels that diffusion against the growth of the magnitude, leaving the scale
+falling at half the axial stretching, so the margin moves by a bending increment against an
+endpoint logarithm of the enstrophy and carries no cumulative enstrophy. The time
+integrability of the coherence modulus remains **UNRESOLVED**.
 
 ### 2.27 The curvature clock of the coherence margin
 
@@ -812,7 +816,9 @@ spacing. The material reading is measured alongside: the enstrophy identity is m
 holds along the carried trajectory at round-off, while the geometric channels move by the
 field's own evolution, the width channel by fifty times its frozen-field integral. A bound
 on the coherence modulus therefore needs the cumulative enstrophy of general smooth data
-and the material transport of the frame; both remain **UNRESOLVED**.
+and the material transport of the frame. The width channel of the tube's own cross-section
+scale is closed exactly by `turbulence/navier-stokes-tube-curvature-coherence.md` §6, which
+reads the width from the vorticity flux; the cumulative enstrophy remains **UNRESOLVED**.
 
 ## References
 
