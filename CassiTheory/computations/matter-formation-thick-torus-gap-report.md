@@ -125,49 +125,47 @@ below the $Q=128$ dilute threshold, so the binding question is whether a *statio
 comparable cross-section exists, which is exactly what the protocol's interior-radius and
 curvature tests would decide.
 
-The remaining obstacle is the flat position mode. Two routes close it: replace the bordered
-residual gate with a gate on the energy along the constrained manifold plus a separately declared
-stationarity test on the position mode, or quotient the position mode out of the variational
-problem by fixing the carrier's first moment and relaxing only the shape. The second route keeps
-the registered functional and grid untouched and makes the stationarity system non-degenerate.
+The remaining obstacle is stationarity: the relaxer floors at $10^{-3}$ and does not reach the
+registered gate (§5a). Two routes could close it: replace the bordered residual gate with a gate on
+the energy along the constrained manifold plus a separately declared stationarity test on the
+position mode, or quotient the position mode out of the variational problem by fixing the carrier's
+first moment and relaxing only the shape. The second route keeps the registered functional and grid
+untouched and makes the stationarity system non-degenerate if the position mode is the cause.
 
-## 5a. Solver diagnosis: the position mode is not the cause
+## 5a. Solver diagnosis
 
-A diagnostic pass was run after this report was first written. It closes the position-mode
-hypothesis and locates the real defect.
+A diagnostic pass was run after this report was first written. It changes what is known about the
+obstacle, and it retracts one claim that a defective check had supported.
 
-*Pinning the position does not help.* Penalising the carrier's first moments in the disk (with a
-continuation to $\kappa=10^{8}$, so the moments are held to their seed values) leaves the free
-bordered residual at $1.3\times10^{-1}$ on the production grid at $(R,n)=(8,5)$: pinning the
-near-flat direction removes a stiffness the optimiser was not stalling on. The stall is therefore
-not the position mode.
+*The geometry module is exact.* A central-difference audit of the module's own energy/gradient pair
+agrees to $10^{-8}$ relative on the registered $200\times32$ section, including at warped states
+with $c<0$ and $f>1$. The registered functional and its derivatives are what they claim to be, and
+the energy contains no field-dependent kink (its only clamp, $\max(g,10^{-12})$, is on the metric,
+which does not depend on the fields).
 
-*The module is exonerated.* A central-difference audit of the geometry module's own
-energy/gradient pair agrees to $10^{-8}$ relative on the production section, including at warped
-states with $c<0$ and $f>1$. The registered functional and its derivatives are mutually consistent.
+*A retracted finding.* An earlier check reported that the objective and the gradient handed to
+L-BFGS-B disagreed by $1$--$25\%$ relative. That measurement was an artefact of dividing by a
+directional derivative that is itself near zero: against the correct scale ($|\text{fd}-g\cdot d|$
+divided by $|g|$, not by $|\text{fd}|$) every variant of the Stage A pair agrees to $10^{-3}$ or
+better. The inconsistency claim is withdrawn; the pairing was never the cause of the stall.
 
-*The defect was in the pre-invocation relaxer.* The projected objective applied the population
-rescaling *inside* the objective while handing the optimiser a gradient projected onto the
-population tangent. The rescaling's Jacobian is a rank-one term along $c$; the projection removes
-the direction $2\,V\!C\,c$, and because the metric weight $V\!C$ varies spatially these are not the
-same direction, so the two were never a consistent pair: measured finite-difference consistency of
-the pair actually handed to L-BFGS-B was $1$--$25\%$ relative. Every line-search failure and every
-reported "stall" traces to this, not to the physics. The correct pairing is an augmented Lagrangian
-on $N-n$ built from the module's own gradient (no projection), which enforces the population to
-$2\times10^{-8}$ while keeping objective and gradient consistent.
+*The pinning probe does not discriminate.* Penalising the carrier's first moments leaves the free
+bordered residual large, but a pin holds the state away from the free minimum by construction, so
+that residual measures the pin's own force. The position-mode hypothesis is neither confirmed nor
+falsified by that run; discriminating it requires sweeping the pin *position* and asking whether the
+free residual can be driven down at any of them.
 
-That fix exposes a remaining, smaller question — with a consistent pair the optimiser still stops
-short of the registered $10^{-9}$ gate — and the two routes named above remain the way to close the
-stationarity requirement. The protocol was not invoked, and no verdict is issued.
+*What is established.* Stage A floors at $3.5\times10^{-3}$--$1.8\times10^{-2}$ in every variant
+tried — projected descent on the re-anchored bordered gradient, projected descent on the exact
+derivative of $E(f,\gamma c)$ including the rescale's Jacobian, an augmented Lagrangian on $N-n$,
+and a restart loop with a gradient-driven stopping rule — and every one terminates with a
+line-search failure rather than a gradient criterion. The constraint itself is satisfied to machine
+precision throughout, and the bordered Newton polish does not close the gap. The obstacle is a
+property of the relaxation scheme, not of the functional, and the next diagnostic is a
+finite-difference audit *at the stalled point* rather than at a random one.
 
-*Measured state after the correction.* `solve_section` at $(R,n)=(8,5)$ on the registered
-$200\times32$ section now runs the penalty ladder and the bordered polish to termination in 672
-iterations and reports residual $1.76\times10^{-2}$, `converged: False`. The inconsistency was real
-and is repaired, but it was not the whole cause of the stall: the pair being exact is necessary and
-not sufficient here. What the correction does establish is that the earlier failure reports were
-not a property of the registered functional — the geometry module's own derivatives are exact to
-$10^{-8}$ — so the stationarity obstacle is a property of the *relaxation scheme*, which is what
-the position-quotient route replaces.
+The two routes named in §5 remain the way to close the stationarity requirement. The protocol was
+not invoked, and no verdict is issued.
 
 ## 6. Boundaries
 

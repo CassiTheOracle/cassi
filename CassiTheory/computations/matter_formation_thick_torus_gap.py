@@ -58,10 +58,10 @@ RESIDUAL_TOL = 1e-9
 MAX_ITERATIONS = 600
 STAGE_A_MAXITER = 4000
 STAGE_A_MAXFUN = 8000
-# Augmented-Lagrangian ladder: each step re-relaxes with a ten-times larger penalty and an
-# updated multiplier, so the population constraint is carried by the penalty and the objective
-# and its gradient stay an exact pair.
-STAGE_A_PENALTY_STEPS = 6
+# Restarts of Stage A with a gradient-driven stopping rule (ftol = 0.0 hands the decision to gtol).
+STAGE_A_RESTARTS = 12
+STAGE_A_GTOL = 1e-12
+STAGE_A_STEP_TOL = 1e-12
 MAX_FAILED_SOLVES = 8
 GRID_REL_TOL = 5e-4
 RECONSTRUCTION_TOL = 5e-9
@@ -167,14 +167,14 @@ def enforce_population(section: Any, radius: float, c: np.ndarray,
 
 def solve_section(section: Any, radius: float, w: complex, density: float,
                   f0: np.ndarray, c0: np.ndarray, lam0: float = 0.0) -> dict[str, Any]:
-    """Constrained relaxation: augmented-Lagrangian descent, then bordered Newton polish.
+    """Constrained relaxation: exact-derivative projected descent, then bordered Newton polish.
 
-    Stage A minimizes the exact toroidal energy under the population constraint with an
-    augmented Lagrangian: L-BFGS-B runs on E + mu*(N-n) + eta/2*(N-n)^2, whose gradient is built
-    from the geometry module's own energy gradient (multiplier zero), so the objective and the
-    gradient handed to the optimiser are an exact pair; mu and eta are updated between relaxations
-    (a six-step, ten-times ladder).  Stage B polishes the bordered stationarity system with Newton
-    steps under a residual-norm merit, which is the system whose residual the protocol gates.
+    Stage A minimizes the exact toroidal energy over the population constraint with L-BFGS-B on
+    the *exact* projected gradient of E(f, gamma*c), gamma = sqrt(density / N(c)): every evaluation
+    re-enforces the population, and the gradient carries the rescale's rank-one Jacobian and then
+    removes the constraint normal, so the objective and the gradient are an exact pair.  Stage B
+    polishes the bordered stationarity system with Newton steps under a residual-norm merit, which
+    is the system whose residual the protocol gates.
     """
     kap = 1.0 / radius
     Na, Nphi = section.Na, section.Nphi
@@ -187,45 +187,53 @@ def solve_section(section: Any, radius: float, w: complex, density: float,
     lam, _ = anchor_multiplier(section, radius, w, density, f, c)
 
     def profile(vector: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        # Unprojected: the population constraint is carried by the augmented Lagrangian below,
-        # not projected out of the variables. Projecting a rescale inside the objective while
-        # handing the optimiser a projected gradient gives an inconsistent pair (the rescale's
-        # Jacobian is a rank-one term along c, the projection removes the direction
-        # 2*VC*c, and VC varies spatially, so the two are not parallel); the measured
-        # finite-difference mismatch of that pair was 1-25% relative.
-        return vector[:N].reshape(Na, Nphi), vector[N:].reshape(Na, Nphi)
+        # The objective is E(f, gamma*c) with gamma = sqrt(density / N(c)), N the discrete
+        # population.  The gradient below is the exact derivative of *that* objective, including
+        # the rank-one Jacobian of the rescale; projecting the rescaled variables without that
+        # term is what made objective and gradient an inexact pair.
+        field_f = vector[:N].reshape(Na, Nphi)
+        field_c = enforce_population(section, radius, vector[N:].reshape(Na, Nphi), density)
+        return field_f, field_c
 
-    def deficit_of(field_c: np.ndarray) -> float:
-        return float(section.population(field_c, kap)) - density
-
-    def objective(vector: np.ndarray, penalty: float, multiplier: float) -> float:
+    def objective(vector: np.ndarray) -> float:
         field_f, field_c = profile(vector)
-        deficit = deficit_of(field_c)
-        return (float(section.energy(field_f, field_c, kap, w, radius))
-                + multiplier * deficit + 0.5 * penalty * deficit * deficit)
+        return float(section.energy(field_f, field_c, kap, w, radius))
 
-    def objective_gradient(vector: np.ndarray, penalty: float, multiplier: float) -> np.ndarray:
+    def projected_gradient(vector: np.ndarray) -> np.ndarray:
         field_f, field_c = profile(vector)
+        raw_c = vector[N:].reshape(Na, Nphi)
         Rp, Rc, _ = section.gradient(field_f, field_c, kap, w, radius, density, 0.0)
-        deficit = deficit_of(field_c)
-        return (np.concatenate([Rp.ravel(), Rc.ravel()])
-                + (multiplier + penalty * deficit) * direction)
+        total = float(section.population(raw_c, kap))
+        gamma = math.sqrt(density / total) if total > 0.0 else 1.0
+        # d/dc [ E(f, gamma(c) c) ] = gamma * Rc - (gamma / N) * (VC c . Rc) * c,
+        # using d gamma / dc = -(gamma / N) * VC c with N = sum(VC c^2) and VC = weights / 2.
+        coupling = float((constraint_c.reshape(Na, Nphi) * raw_c * Rc).sum())
+        gradient_c = gamma * Rc - (gamma / total) * coupling * raw_c
+        gradient = np.concatenate([Rp.ravel(), gradient_c.ravel()])
+        # The constraint surface {c : N(c) = density} has normal grad N = 2*VC*c, evaluated at the
+        # projected point, and the objective is exactly constant along it because profile enforces
+        # N = density.  (Projecting out the constant vector 2*VC instead leaves a gradient that is
+        # not tangent to the constraint at all.)
+        normal = np.concatenate([np.zeros(N), (constraint_c.reshape(Na, Nphi) * field_c).ravel()])
+        return gradient - normal * (float(normal @ gradient) / float(normal @ normal))
 
     initial = np.concatenate([f.ravel(), c.ravel()])
     iterations = 0
     polished = 0
-    multiplier = 0.0
-    penalty = 1.0
-    for _ in range(STAGE_A_PENALTY_STEPS):
-        result = minimize(objective, initial, args=(penalty, multiplier),
-                          jac=objective_gradient, method="L-BFGS-B",
+    # L-BFGS-B stops on relative function reduction, which on a 12800-variable functional whose
+    # value is ~20 fires on floating-point noise long before the projected gradient is small.
+    # Restarting from the returned point with a gradient-driven stopping rule (ftol = 0 makes
+    # scipy use gtol) is what actually drives the bordered residual down.
+    for _ in range(STAGE_A_RESTARTS):
+        result = minimize(objective, initial, jac=projected_gradient, method="L-BFGS-B",
                           options={"maxiter": STAGE_A_MAXITER, "maxfun": STAGE_A_MAXFUN,
-                                   "ftol": 1e-16, "gtol": 1e-14})
+                                   "ftol": 0.0, "gtol": STAGE_A_GTOL})
         iterations += int(result.nit)
         stage_a_status = str(result.message)
+        previous = initial
         initial = result.x
-        multiplier += penalty * deficit_of(profile(initial)[1])
-        penalty *= 10.0
+        if float(np.max(np.abs(initial - previous))) <= STAGE_A_STEP_TOL:
+            break
     f, c = profile(initial)
     lam, _ = anchor_multiplier(section, radius, w, density, f, c)
 
