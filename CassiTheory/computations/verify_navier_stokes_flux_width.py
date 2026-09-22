@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -54,20 +55,35 @@ def trapezoid(rows: list[dict], key: str) -> float:
 
 
 def rederive(entry: dict) -> dict[str, Any]:
-    """Recompute every integrated reading and residual from the stored samples."""
+    """Recompute every integrated reading and residual from the stored samples.
+
+    The conventions are the producer's, restated from the receipt's own values:
+    a change is the log of the absolute endpoint ratio, and an integrated reading
+    is the trapezoid of the per-sample closed rates.
+    """
     rows = entry["samples"]
-    first, last = rows[0], rows[-1]
-    axial = trapezoid(rows, "axial")
-    spread = trapezoid(rows, "spread")
-    curvature = trapezoid(rows, "curvature_rate_closed")
-    flux = trapezoid(rows, "flux_rate_closed")
-    magnitude = trapezoid(rows, "magnitude_rate_closed")
-    flux_change = last["flux"] / first["flux"]
-    magnitude_change = last["magnitude"] / first["magnitude"]
-    width_change = last["width"] / first["width"]
-    kappa_change = last["kappa"] / first["kappa"]
-    margin_change = last["margin"] / first["margin"]
+
+    def trapezoid(key: str) -> float:
+        return sum(
+            0.5 * (earlier[key] + later[key]) * (later["time"] - earlier["time"])
+            for earlier, later in zip(rows, rows[1:])
+        )
+
+    def change(key: str) -> float:
+        return math.log(abs(rows[-1][key]) / abs(rows[0][key]))
+
+    axial = trapezoid("axial")
+    spread = trapezoid("spread")
+    curvature = trapezoid("curvature_rate_closed")
+    flux = trapezoid("flux_rate_closed")
+    magnitude = trapezoid("magnitude_rate_closed")
+    kappa_change = change("kappa")
+    flux_change = change("flux")
+    magnitude_change = change("magnitude")
+    width_change = change("width")
+    margin_change = change("margin")
     width = width_change + 0.5 * axial
+
     def bound_rate(row: dict) -> float:
         margin = max(row["margin"], 1e-300)
         return (
@@ -80,25 +96,35 @@ def rederive(entry: dict) -> dict[str, Any]:
         abs(0.5 * (bound_rate(earlier) + bound_rate(later)) - rate["bound"])
         for earlier, later, rate in zip(rows, rows[1:], entry["rates"])
     )
+    rate_gap = max(
+        abs(
+            math.log(abs(later["kappa"]) / abs(earlier["kappa"]))
+            / (later["time"] - earlier["time"])
+            - rate["kappa"]
+        )
+        for earlier, later, rate in zip(rows, rows[1:], entry["rates"])
+    )
     return {
         "axial": axial,
         "spread": spread,
-        "curvature": curvature,
-        "flux": flux,
-        "magnitude": magnitude,
+        "curvature": kappa_change - curvature,
+        "curvature_inviscid": kappa_change - trapezoid("curvature_rate_inviscid"),
+        "flux": flux_change - flux,
+        "magnitude": magnitude_change - magnitude,
+        "width": width,
+        "kappa_change": kappa_change,
         "flux_change": flux_change,
         "magnitude_change": magnitude_change,
         "width_change": width_change,
-        "kappa_change": kappa_change,
         "margin_change": margin_change,
-        "width": width,
         "residual": {
             "D3": abs(kappa_change - curvature),
             "D4": abs(flux_change - flux),
             "D5": abs(magnitude_change - magnitude),
-            "D6": abs(width_change + 0.5 * axial - spread),
+            "D6": abs(width - spread),
         },
         "bound_gap": bound_gap,
+        "rate_gap": rate_gap,
         "worst_ratio": max(
             abs(rate["margin"]) / max(rate["bound"], 1e-300) for rate in entry["rates"]
         ),
@@ -116,20 +142,47 @@ def verify(receipt: dict) -> dict[str, Any]:
         check(
             "V0 the receipt declares its frozen protocol",
             receipt.get("status") in ("PASS", "FAIL")
-            and "navier-stokes-flux-width-prereg.md" in receipt.get("source_hashes", {}),
+            and any(
+                "navier-stokes-flux-width-prereg.md" in key
+                for key in receipt.get("source_hashes", {})
+            ),
             f"status {receipt.get('status')} and "
-            f"{len(receipt.get('source_hashes', {}))} hashed sources",
+            f"{len(receipt.get('source_hashes', {}))} hashed sources, including the "
+            "frozen prereg",
         )
     )
 
+    by_rule_early = {item["name"].split()[0]: item["passed"] for item in receipt["checks"]}
     entries = receipt["dynamics"]
-    rederived = {entry["case"]: rederive(entry) for entry in entries}
-    families = [entry for entry in entries if entry["case"] != "span_control"]
+    rederived = [rederive(entry) for entry in entries]
+    # The span control repeats a family at a larger patch, so the two are told
+    # apart by the declared span, never by the case name.
+    spans = sorted({entry["span_factor"] for entry in entries})
+    declared_span, control_span = spans[0], spans[-1]
+    family_index = [
+        index for index, entry in enumerate(entries) if entry["span_factor"] == declared_span
+    ]
+    control_index = [
+        index for index, entry in enumerate(entries) if entry["span_factor"] == control_span
+    ]
 
-    for key in ("axial", "spread", "curvature", "flux", "magnitude", "width_change"):
+    for key in (
+        "axial",
+        "spread",
+        "curvature",
+        "curvature_inviscid",
+        "flux",
+        "magnitude",
+        "width",
+        "kappa_change",
+        "flux_change",
+        "magnitude_change",
+        "width_change",
+        "margin_change",
+    ):
         worst = max(
-            abs(rederived[entry["case"]][key] - entry["integrated"][key])
-            for entry in entries
+            abs(values[key] - entry["integrated"][key])
+            for values, entry in zip(rederived, entries)
         )
         checks.append(
             check(
@@ -142,42 +195,45 @@ def verify(receipt: dict) -> dict[str, Any]:
 
     residual_names = {"D3": "curvature", "D4": "flux", "D5": "magnitude", "D6": "width"}
     for rule, key in residual_names.items():
-        worst = max(rederived[entry["case"]]["residual"][rule] for entry in families)
+        worst = max(rederived[index]["residual"][rule] for index in family_index)
+        stored = max(abs(entries[index]["integrated"][key]) for index in family_index)
         checks.append(
             check(
                 f"V2 {rule} reproduces and holds at the frozen tolerance",
                 worst < TOLERANCES[rule],
                 f"worst re-derived residual {worst:.2e} against the producer's "
-                f"{max(entry['integrated'][key] for entry in families):.2e} "
-                f"(requires < {TOLERANCES[rule]:.0e})",
+                f"{stored:.2e} (requires < {TOLERANCES[rule]:.0e})",
             )
         )
 
-    worst_ratio = max(rederived[entry["case"]]["worst_ratio"] for entry in families)
-    bound_gap = max(rederived[entry["case"]]["bound_gap"] for entry in families)
+    worst_ratio = max(rederived[index]["worst_ratio"] for index in family_index)
+    bound_gap = max(rederived[index]["bound_gap"] for index in family_index)
+    rate_gap = max(rederived[index]["rate_gap"] for index in family_index)
     checks.append(
         check(
             "V3 D7 reproduces and holds",
-            worst_ratio < TOLERANCES["D7"] and bound_gap < 1e-9,
+            worst_ratio < TOLERANCES["D7"] and bound_gap < 1e-9 and rate_gap < 1e-9,
             f"worst re-derived ratio {worst_ratio:.4f} (requires < {TOLERANCES['D7']:.1f}); "
             f"the bound re-derives from the stored Hessian, gradient and viscous "
-            f"norms to {bound_gap:.2e}",
+            f"norms to {bound_gap:.2e}, and the per-pair rates from the samples to "
+            f"{rate_gap:.2e}",
         )
     )
 
-    control = [entry for entry in entries if entry["case"] == "span_control"]
+    control = [entries[index] for index in control_index] if control_span != declared_span else []
     span_gap = (
-        abs(control[0]["integrated"]["width"] - families[0]["integrated"]["width"])
+        abs(control[0]["integrated"]["width"] - entries[family_index[0]]["integrated"]["width"])
         if control
-        else float("inf")
+        else float("nan")
     )
+    producer_d8 = by_rule_early.get("D8", False)
     checks.append(
         check(
-            "V4 D8 reproduces",
-            abs(span_gap - 0.0) >= 0.0,
-            f"span-control gap {span_gap:.4e} at the frozen tolerance "
-            f"{TOLERANCES['D8']:.0e}; the rule holds only if the gap is below it, so a "
-            "gap above it is a reproduced failure, not a verifier error",
+            "V4 D8 reproduces and holds",
+            bool(control) and (span_gap < TOLERANCES["D8"]) == producer_d8,
+            f"span-control gap {span_gap:.4e} against the frozen tolerance "
+            f"{TOLERANCES['D8']:.0e}; the producer recorded D8 "
+            f"{'passing' if producer_d8 else 'failing'}, and the re-derived gap agrees",
         )
     )
 
@@ -192,10 +248,9 @@ def verify(receipt: dict) -> dict[str, Any]:
         )
     )
 
-    by_rule = {item["name"].split()[0]: item["passed"] for item in receipt["checks"]}
-    law = all(by_rule.get(rule, False) for rule in LAW_RULES)
-    controls = all(by_rule.get(rule, False) for rule in CONTROL_RULES)
-    instrument = all(by_rule.get(rule, False) for rule in INSTRUMENT_RULES)
+    law = all(by_rule_early.get(rule, False) for rule in LAW_RULES)
+    controls = all(by_rule_early.get(rule, False) for rule in CONTROL_RULES)
+    instrument = all(by_rule_early.get(rule, False) for rule in INSTRUMENT_RULES)
     if not instrument:
         classification = (
             "INSTRUMENT: at least one instrument check failed, so the prereg's "
@@ -211,10 +266,11 @@ def verify(receipt: dict) -> dict[str, Any]:
         )
     else:
         classification = "H0: the closure rules fail; the object or its measurement needs revision"
+    recorded_status = receipt.get("status") == "PASS"
     checks.append(
         check(
             "V6 the classification follows the frozen decision tree",
-            True,
+            (law and controls and instrument) == recorded_status,
             f"instrument {'passes' if instrument else 'fails'}; law rules "
             f"{'pass' if law else 'fail'}; controls {'pass' if controls else 'fail'}"
             f" -> {classification}",
@@ -225,9 +281,9 @@ def verify(receipt: dict) -> dict[str, Any]:
         check(
             "V7 the re-derived margins agree with the producer's checks",
             all(
-                (rederived[entry["case"]]["residual"][rule] < TOLERANCES[rule])
-                == by_rule.get(rule, False)
-                for entry in families
+                (rederived[index]["residual"][rule] < TOLERANCES[rule])
+                == by_rule_early.get(rule, False)
+                for index in family_index
                 for rule in LAW_RULES
             ),
             "the producer's pass/fail for D3-D6 matches the re-derived residual "

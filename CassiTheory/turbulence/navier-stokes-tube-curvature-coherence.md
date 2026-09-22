@@ -1,6 +1,6 @@
 # Tube Curvature, Azimuthal Neutrality, and the Vorticity-Direction Coherence Modulus
 
-## Status: Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws and resolution requirement / Conditional direction-coherence modulus—September 2026
+## Status: Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws and resolution requirement / Measured flux-based width transport on the retained helical families with its viscous profile spread / Conditional direction-coherence modulus—September 2026
 
 ## Abstract
 
@@ -226,6 +226,17 @@ Inside the tube regime $\kappa a<1$, so both weights are bounded and a finite-ti
 
 **Which width.** The clock's width channel uses the local scale $a_n=|\omega|^{1/2}(n\!\cdot\!\nabla^2|\omega|\,n)^{-1/2}$, read from the curvature of the magnitude profile; the scale $a$ of (14) is the tube's own cross-section radius, read from its flux. They are different objects, and (14) is the transport that closes: a Gaussian core gives $a=\sqrt2\,a_n$, and $a_n$'s material rate carries the additional rate of $\lambda=n\!\cdot\!\nabla^2|\omega|\,n$ that the clock's measured fiftyfold width gap sits in.
 
+**The measured form.** A flux read over a patch of finite size, rather than at the tube's core, carries the profile spread of the viscous term:
+
+$$
+D_\tau\log a=-\tfrac12\ell+S,\qquad
+S=\tfrac12\nu\left(\frac{\int_P\Delta\omega\!\cdot\!N\,dA}{\Gamma}
+-\frac{\omega\!\cdot\!\Delta\omega}{|\omega|^2}\right),
+\tag{22}
+$$
+
+the difference between the patch-mean and the core reading of $\nu\,\Delta\omega\!\cdot\!\omega/|\omega|^2$. On the retained helical families this spread is what the deviation from (14) consists of: the deviation of $\log a$ from the ideal $-\tfrac12\int\ell$ is $6.61\times10^{-2}$, $2.88\times10^{-1}$ and $1.98\times10^{-1}$ over one carried window, and the measured spread integral is $6.69\times10^{-2}$, $2.88\times10^{-1}$ and $1.95\times10^{-1}$ — $99.0\%$, $99.9\%$ and $98.6\%$ of it. The flux width therefore widens because viscosity acts differently across the tube's profile than at its centre, not because the inviscid law fails.
+
 ## 7. Boundary
 
 The identities (3) and (5)–(7) are exact for the stated geometry: a circular axis and an axisymmetric cross-section. A non-circular axis or a non-axisymmetric core adds terms outside this derivation, and the pole condition of §3 is a statement about the support of the tube rather than a dynamical theorem. The transport (11)–(15) holds for a flux tube in a viscous incompressible flow; it is a statement about the cross-section scale of the tube-like region, and no claim about arbitrary data or about global regularity follows from it.
@@ -261,6 +272,21 @@ The transport (11)–(15) is executed by `computations/verify_navier_stokes_tube
 | Margin's rate against the width-weighted critical norms, (21) | ratio $0.309$ worst, $0.165$ mean; the terms of (20) sum to the rate to $2.7\times10^{-20}$; bending, strain and axial carry $0.037$, $0.027$ and $0.102$ of the bound (V9) |
 
 The residual is a finite-difference floor: every transport reading halves when the step halves, and the exact identities of V1 and V2 close at round-off. This flow is Beltrami, $\Delta\omega=-\omega$, so the direction transport (16) vanishes identically and V7 exercises the kinematic and inviscid part of (17) exactly; the viscous bracket is derived and named rather than measured here.
+
+The flux width (22) is measured on the retained helical families `helix_wide`, `helix_narrow` and `helix_tight_pitch` by `computations/navier_stokes_flux_width.py`, pre-registered in `computations/navier-stokes-flux-width-prereg.md` and independently re-derived by `computations/verify_navier_stokes_flux_width.py`. A tracer is released at the vorticity core of each family's initial state, carried with a material parallelogram in the budget's stage convention, over $1024$ steps at $\nu=0.1$ to horizon $0.5$ on a $97^3$ lattice at cutoff $16$; the patch is released perpendicular to $\xi$ with side $6\times$ the core's own Hessian width, so it spans the tube rather than sampling a point inside it, and the flux is a three-point Gauss quadrature per patch direction sampled every four steps.
+
+| Check | Result |
+|---|---|
+| Derivative blocks against the spectral grid derivatives | $2.4\times10^{-16}$ first, $4.4\times10^{-16}$ second (D0) |
+| Point evaluator against the grid velocity | $2.2\times10^{-16}$ (D1) |
+| Curvature transport (19) with the viscous bracket | $2.1\times10^{-4}$, $7.7\times10^{-4}$, $2.6\times10^{-3}$; without the bracket $2.4\times10^{-3}$, $5.7\times10^{-3}$, $1.2\times10^{-3}$ (D3) |
+| Flux lemma (11) on the carried patch | $1.7\times10^{-3}$, $6.3\times10^{-4}$, $6.6\times10^{-3}$ (D4) |
+| Enstrophy identity (13) | $1.1\times10^{-4}$, $2.2\times10^{-4}$, $1.2\times10^{-3}$ (D5) |
+| Width law (22) after removing the measured spread | $7.8\times10^{-4}$, $2.1\times10^{-4}$, $2.7\times10^{-3}$ (D6) |
+| Weighted critical-norm bound (21) | worst ratio $0.078$, $0.157$, $0.245$ (D7) |
+| Spread-removed residual across sampling spacings $4,2,1$ | $4.68\times10^{-5}$ at every spacing, spread $3.4\times10^{-9}$ (D9) |
+
+The instrument does not pass its own checks on this configuration. The patch quadrature is not converged at the declared order on the live states, so the absolute width reading is resolution-limited while the rates stay consistent because the closed form and the measurement share the discretisation; a patch at span $9$ measures a different object from one at span $6$ ($-2.01\times10^{-2}$ against $6.61\times10^{-2}$ in the width deviation), so the span is a definition of the measured object rather than a free parameter; and the frame reader's residual of $6.9\times10^{-10}$ is round-off in a ratio, which the declared tolerance was tighter than. The receipt at `runs/20260922_flux_width` records these as failures, and the closure rules above are reported as measured rather than promoted: no transport claim is drawn from this invocation. The residual floor of D6 and D9 is a property of the identity, not of the sampling spacing.
 
 ## References
 

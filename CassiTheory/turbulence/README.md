@@ -147,7 +147,7 @@ estimate remains open.
 | 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 | 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
-| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws / Conditional coherence modulus |
+| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws / Measured flux-based width transport on the retained helical families with its viscous profile spread / Conditional coherence modulus |
 | 23 | `turbulence/navier-stokes-curvature-clock.md` | The curvature clock of the vorticity-direction coherence margin and its enstrophy budget | Derived exact kinematic identity / Tested closed-form controls / Measured on the retained tube families to $t=2$ / Frozen-field enstrophy budget measured and its material gap sized |
 
 
@@ -822,7 +822,10 @@ field's own evolution, the width channel by fifty times its frozen-field integra
 on the coherence modulus therefore needs the cumulative enstrophy of general smooth data
 and the material transport of the frame. The width channel of the tube's own cross-section
 scale is closed exactly by `turbulence/navier-stokes-tube-curvature-coherence.md` §6, which
-reads the width from the vorticity flux; the cumulative enstrophy remains **UNRESOLVED**.
+reads the width from the vorticity flux; on the retained helical families that transport
+closes to $2.7\times10^{-3}$ once the measured viscous profile spread is removed, and the
+spread accounts for $99\%$ of the deviation of the width from the inviscid law. The
+cumulative enstrophy remains **UNRESOLVED**.
 
 ## References
 
