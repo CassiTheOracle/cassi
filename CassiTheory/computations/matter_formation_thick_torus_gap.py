@@ -188,7 +188,7 @@ def enforce_population(section: Any, radius: float, c: np.ndarray,
 
 def solve_section(section: Any, radius: float, w: complex, density: float,
                   f0: np.ndarray, c0: np.ndarray, lam0: float = 0.0,
-                  coarse: bool = False) -> dict[str, Any]:
+                  coarse: bool = True) -> dict[str, Any]:
     """Constrained relaxation: exact-derivative projected descent, then bordered Newton polish.
 
     Stage A minimizes the exact toroidal energy over the population constraint with L-BFGS-B on
@@ -201,27 +201,25 @@ def solve_section(section: Any, radius: float, w: complex, density: float,
     kap = 1.0 / radius
     Na, Nphi = section.Na, section.Nphi
     N = Na * Nphi
-    if coarse and Na >= 32 and Nphi >= 16:
-        # A cold start on the registered grid stalls in Stage A (measured: 9.3e-3 at 200x32),
-        # while the same functional on a half-resolution section reaches 1e-14 from that section's
-        # own position-family seed; relaxing coarse first and lifting the result is what puts the
-        # registered grid inside Stage A's basin.  One level only, and the coarse start is the
-        # coarse section's own family seed: seeding it from the incoming profile instead was
-        # measured to poison the path (9.6e-3 at 200x32 against 1.65e-10 this way).
-        #
-        # DEFAULT OFF: this stage does not yet reproduce the validated two-level path.  Called on
-        # an already-lifted seed it lands at 9.59e-3, identical to a cold registered start, so the
-        # coarse seed is not reaching the registered Stage A as intended.  The two-level path that
-        # was measured to work is: solve_section(96x24 section, that section's own position-family
-        # seed), lift_fields up to the registered grid, then solve_section there.  Enable this flag
-        # only once that is reproduced through it.
-        coarse_section = section_for(radius, max(16, Na // 2), max(8, Nphi // 2))
-        _, seed_f, seed_c = best_position_seed(coarse_section, radius, w, density,
-                                               flat_seed(density))
-        coarse_result = solve_section(coarse_section, radius, w, density, seed_f, seed_c,
-                                      lam0=lam0, coarse=False)
-        f0, c0 = lift_fields(coarse_section, coarse_result.get("f", seed_f),
-                             coarse_result.get("c", seed_c), section)
+    if coarse and Na >= 64 and Nphi >= 16:
+        # Cold starts on the registered grid stall in Stage A (measured 9.3e-3 at 200x32) while a
+        # quarter-resolution section converges from its own position-family seed; take the first
+        # coarse candidate that converges and lift it straight to the registered grid.  The
+        # half-resolution intermediate is skipped because it is pathological here: at 200x32 the
+        # 100x16 grid fails to converge both cold (2.7e-2) and from a good 50x8 seed (2.2e-2),
+        # whereas 50x8 converges cold (1.7e-13) and lifting it directly gives 1.5e-14.
+        for divisor in (4, 2):
+            candidate = section_for(radius, max(8, Na // divisor), max(8, Nphi // divisor))
+            if candidate.Na == Na and candidate.Nphi == Nphi:
+                continue
+            _, seed_f, seed_c = best_position_seed(candidate, radius, w, density,
+                                                   flat_seed(density))
+            candidate_result = solve_section(candidate, radius, w, density, seed_f, seed_c,
+                                             lam0=lam0, coarse=False)
+            if candidate_result.get("converged"):
+                f0, c0 = lift_fields(candidate, candidate_result["f"], candidate_result["c"],
+                                     section)
+                break
     constraint_c = (2.0 * section.weights(kap)[0]).ravel()
     direction = np.concatenate([np.zeros(N), constraint_c])
     f = np.clip(np.array(f0, dtype=np.float64).copy(), 0.0, 1.0)

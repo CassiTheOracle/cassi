@@ -158,12 +158,15 @@ from its own position-family seed, and lifting that solution onto the registered
 registered relaxation then polishes to $1.65\times10^{-10}$. A cold start on the registered grid
 stalls at $9.3\times10^{-3}$.
 
-The per-point wiring of that path is the remaining step, and it is not finished: the coarse stage
-as wired into `solve_section` (one level, the coarse section's own family seed, lifted up) lands at
-$9.59\times10^{-3}$ — identical to a cold registered start, so the coarse solution is not reaching
-the registered Stage A as intended. The stage therefore ships behind `coarse=False` with the
-discrepancy recorded in the code, and the validated two-level sequence above is what the schedule
-should call explicitly.
+The per-point wiring is in place and measured. The first attempt failed for a reason worth
+recording: the half-resolution intermediate is pathological at this schedule point — $100\times16$
+fails to converge both cold ($2.7\times10^{-2}$) and from a good $50\times8$ seed
+($2.2\times10^{-2}$), while $50\times8$ converges cold ($1.7\times10^{-13}$) and lifting it
+*straight* to the registered grid gives $1.5\times10^{-14}$. `solve_section` therefore takes the
+first coarse candidate that converges (quarter resolution, then half) and lifts it directly,
+skipping the half-resolution intermediate. With that, a cold start on the registered grid reaches
+residual $4.67\times10^{-11}$ with `converged: True` in 42 s — inside the registered $10^{-9}$
+gate. The relaxation is no longer the obstacle to the invocation.
 
 *Retracted.* An earlier version of this section reported a $1$--$25\%$ objective/gradient
 inconsistency and a falsified position mode. Both are withdrawn: the first was an artefact of
