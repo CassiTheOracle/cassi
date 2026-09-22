@@ -58,6 +58,10 @@ RESIDUAL_TOL = 1e-9
 MAX_ITERATIONS = 600
 STAGE_A_MAXITER = 4000
 STAGE_A_MAXFUN = 8000
+# Augmented-Lagrangian ladder: each step re-relaxes with a ten-times larger penalty and an
+# updated multiplier, so the population constraint is carried by the penalty and the objective
+# and its gradient stay an exact pair.
+STAGE_A_PENALTY_STEPS = 6
 MAX_FAILED_SOLVES = 8
 GRID_REL_TOL = 5e-4
 RECONSTRUCTION_TOL = 5e-9
@@ -163,13 +167,14 @@ def enforce_population(section: Any, radius: float, c: np.ndarray,
 
 def solve_section(section: Any, radius: float, w: complex, density: float,
                   f0: np.ndarray, c0: np.ndarray, lam0: float = 0.0) -> dict[str, Any]:
-    """Constrained relaxation: projected quasi-Newton descent, then bordered Newton polish.
+    """Constrained relaxation: augmented-Lagrangian descent, then bordered Newton polish.
 
-    Stage A minimizes the exact toroidal energy over the population constraint with
-    L-BFGS-B on the projected gradient; every evaluation re-enforces the population
-    exactly, so the iterates stay on the constraint manifold.  Stage B polishes the
-    bordered stationarity system with Newton steps under a residual-norm merit, which is
-    the system whose residual the protocol gates.
+    Stage A minimizes the exact toroidal energy under the population constraint with an
+    augmented Lagrangian: L-BFGS-B runs on E + mu*(N-n) + eta/2*(N-n)^2, whose gradient is built
+    from the geometry module's own energy gradient (multiplier zero), so the objective and the
+    gradient handed to the optimiser are an exact pair; mu and eta are updated between relaxations
+    (a six-step, ten-times ladder).  Stage B polishes the bordered stationarity system with Newton
+    steps under a residual-norm merit, which is the system whose residual the protocol gates.
     """
     kap = 1.0 / radius
     Na, Nphi = section.Na, section.Nphi
@@ -182,33 +187,46 @@ def solve_section(section: Any, radius: float, w: complex, density: float,
     lam, _ = anchor_multiplier(section, radius, w, density, f, c)
 
     def profile(vector: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        # The relaxation is unconstrained in f and the population is enforced exactly, so the
-        # objective stays smooth; the relaxed f is interior (f_min ~ 0.6-0.7) at every
-        # scheduled point, so the box is inactive and clipping only injected kinks.
-        field_f = vector[:N].reshape(Na, Nphi)
-        field_c = enforce_population(section, radius, vector[N:].reshape(Na, Nphi), density)
-        return field_f, field_c
+        # Unprojected: the population constraint is carried by the augmented Lagrangian below,
+        # not projected out of the variables. Projecting a rescale inside the objective while
+        # handing the optimiser a projected gradient gives an inconsistent pair (the rescale's
+        # Jacobian is a rank-one term along c, the projection removes the direction
+        # 2*VC*c, and VC varies spatially, so the two are not parallel); the measured
+        # finite-difference mismatch of that pair was 1-25% relative.
+        return vector[:N].reshape(Na, Nphi), vector[N:].reshape(Na, Nphi)
 
-    def objective(vector: np.ndarray) -> float:
-        field_f, field_c = profile(vector)
-        return float(section.energy(field_f, field_c, kap, w, radius))
+    def deficit_of(field_c: np.ndarray) -> float:
+        return float(section.population(field_c, kap)) - density
 
-    def projected_gradient(vector: np.ndarray) -> np.ndarray:
+    def objective(vector: np.ndarray, penalty: float, multiplier: float) -> float:
         field_f, field_c = profile(vector)
-        weight, _ = anchor_multiplier(section, radius, w, density, field_f, field_c)
-        Rp, Rc, _ = section.gradient(field_f, field_c, kap, w, radius, density, weight)
-        gradient = np.concatenate([Rp.ravel(), Rc.ravel()])
-        return gradient - direction * (float(direction @ gradient) / float(direction @ direction))
+        deficit = deficit_of(field_c)
+        return (float(section.energy(field_f, field_c, kap, w, radius))
+                + multiplier * deficit + 0.5 * penalty * deficit * deficit)
+
+    def objective_gradient(vector: np.ndarray, penalty: float, multiplier: float) -> np.ndarray:
+        field_f, field_c = profile(vector)
+        Rp, Rc, _ = section.gradient(field_f, field_c, kap, w, radius, density, 0.0)
+        deficit = deficit_of(field_c)
+        return (np.concatenate([Rp.ravel(), Rc.ravel()])
+                + (multiplier + penalty * deficit) * direction)
 
     initial = np.concatenate([f.ravel(), c.ravel()])
     iterations = 0
     polished = 0
-    result = minimize(objective, initial, jac=projected_gradient, method="L-BFGS-B",
-                      options={"maxiter": STAGE_A_MAXITER, "maxfun": STAGE_A_MAXFUN,
-                               "ftol": 1e-16, "gtol": 1e-14})
-    iterations = int(result.nit)
-    stage_a_status = str(result.message)
-    f, c = profile(result.x)
+    multiplier = 0.0
+    penalty = 1.0
+    for _ in range(STAGE_A_PENALTY_STEPS):
+        result = minimize(objective, initial, args=(penalty, multiplier),
+                          jac=objective_gradient, method="L-BFGS-B",
+                          options={"maxiter": STAGE_A_MAXITER, "maxfun": STAGE_A_MAXFUN,
+                                   "ftol": 1e-16, "gtol": 1e-14})
+        iterations += int(result.nit)
+        stage_a_status = str(result.message)
+        initial = result.x
+        multiplier += penalty * deficit_of(profile(initial)[1])
+        penalty *= 10.0
+    f, c = profile(initial)
     lam, _ = anchor_multiplier(section, radius, w, density, f, c)
 
     for iteration in range(1, MAX_ITERATIONS + 1):

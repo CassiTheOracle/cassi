@@ -131,6 +131,44 @@ stationarity test on the position mode, or quotient the position mode out of the
 problem by fixing the carrier's first moment and relaxing only the shape. The second route keeps
 the registered functional and grid untouched and makes the stationarity system non-degenerate.
 
+## 5a. Solver diagnosis: the position mode is not the cause
+
+A diagnostic pass was run after this report was first written. It closes the position-mode
+hypothesis and locates the real defect.
+
+*Pinning the position does not help.* Penalising the carrier's first moments in the disk (with a
+continuation to $\kappa=10^{8}$, so the moments are held to their seed values) leaves the free
+bordered residual at $1.3\times10^{-1}$ on the production grid at $(R,n)=(8,5)$: pinning the
+near-flat direction removes a stiffness the optimiser was not stalling on. The stall is therefore
+not the position mode.
+
+*The module is exonerated.* A central-difference audit of the geometry module's own
+energy/gradient pair agrees to $10^{-8}$ relative on the production section, including at warped
+states with $c<0$ and $f>1$. The registered functional and its derivatives are mutually consistent.
+
+*The defect was in the pre-invocation relaxer.* The projected objective applied the population
+rescaling *inside* the objective while handing the optimiser a gradient projected onto the
+population tangent. The rescaling's Jacobian is a rank-one term along $c$; the projection removes
+the direction $2\,V\!C\,c$, and because the metric weight $V\!C$ varies spatially these are not the
+same direction, so the two were never a consistent pair: measured finite-difference consistency of
+the pair actually handed to L-BFGS-B was $1$--$25\%$ relative. Every line-search failure and every
+reported "stall" traces to this, not to the physics. The correct pairing is an augmented Lagrangian
+on $N-n$ built from the module's own gradient (no projection), which enforces the population to
+$2\times10^{-8}$ while keeping objective and gradient consistent.
+
+That fix exposes a remaining, smaller question — with a consistent pair the optimiser still stops
+short of the registered $10^{-9}$ gate — and the two routes named above remain the way to close the
+stationarity requirement. The protocol was not invoked, and no verdict is issued.
+
+*Measured state after the correction.* `solve_section` at $(R,n)=(8,5)$ on the registered
+$200\times32$ section now runs the penalty ladder and the bordered polish to termination in 672
+iterations and reports residual $1.76\times10^{-2}$, `converged: False`. The inconsistency was real
+and is repaired, but it was not the whole cause of the stall: the pair being exact is necessary and
+not sufficient here. What the correction does establish is that the earlier failure reports were
+not a property of the registered functional — the geometry module's own derivatives are exact to
+$10^{-8}$ — so the stationarity obstacle is a property of the *relaxation scheme*, which is what
+the position-quotient route replaces.
+
 ## 6. Boundaries
 
 The result is a finite-grid evaluation and relaxation of one registered functional in the
