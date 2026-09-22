@@ -48,12 +48,15 @@ the metric factor $g$ and is cheapest where $g$ is smallest, which is the pinche
 quartic self-energy is cheapest where the local measure $a\,g$ is largest, which is the outer
 equator. At $R=8$ the gradient term wins at moderate $a_0$, and the balance sits at
 $a_0\approx3$ on the narrow side. At $R=5$ the pinching is stronger and the carrier sits further
-out in $a$: the relaxed trial there reaches $E_{\rm tor}=9.468$ at $n=2$, against a flat-tube
-anchor near $11.5$.
+out in $a$: the relaxed trial there reaches $E_{\rm tor}=9.468$ at $n=2$, against the registered
+flat-tube value $E_\perp(2)=9.4893129939$ recomputed here at the registered resolution
+(stationarity residual $2\times10^{-13}$), so the curvature geometry lowers that cross-section by
+$0.2\%$. The mass and quartic terms do not carry the metric factor, which is why the $R=5$ gain is
+small while the $R=8$ positional gain reaches $2.5\%$.
 
 This is a value statement, not a stationarity statement: every entry above is an exact evaluation
 of the registered functional at an admissible configuration, so each is an upper bound on the
-constrained minimum. The bound $2\pi R\,E_{\rm tor}\le 1088.3$ at $R=8$, $n=5$ already lies
+constrained minimum. The bound $2\pi R\,E_{\rm tor}=1088.4$ at $R=8$, $n=5$ already lies
 $2.5\%$ below the $Q=128$ dilute threshold $1115.878$.
 
 ## 3. The relaxation does not close
