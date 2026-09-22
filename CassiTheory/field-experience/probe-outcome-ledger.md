@@ -3484,6 +3484,30 @@ for the preserved first receipt and
 `aad299784a97f95624ef029fdbe2e6b0e7ecbc385df1c03d5f033fff71fe5648`
 for the recovery primary and independent receipts.
 
+## 75. Wound carrier cross-section in the exact toroidal metric: invoked, inconclusive
+
+- `computations/matter-formation-thick-torus-gap-prereg.md`—frozen protocol for the charged wound
+  carrier's cross-section in the exact toroidal metric with the $2\pi R$ mass convention, the
+  like-for-like validation comparisons, the declared solver, the 600-iteration budget, the
+  position-family seeding, and the pre-invocation correction record.
+- `computations/matter_formation_thick_torus_gap.py`—the primary: exact-torus section solver with
+  the population constraint carried by a reparametrised relaxation, the least-squares constraint
+  multiplier taken along $\mathrm dN/\mathrm dc = 2V\!Cc$, and a coarse-to-fine start.
+- `computations/verify_matter_formation_thick_torus_gap.py`—the independent verifier.
+- `runs/20260921_matter_formation_thick_torus_gap/primary.json`—the receipt: `FAIL`,
+  `INCONCLUSIVE`, no claim, four problems `UNRESOLVED`; five gates trigger the branch
+  (`validation_flat_untwisted`, `validation_flat_twisted`, `grid_resolution`,
+  `spectrum_resolution`, `solve_convergence` at 125 of 468); the localized-mode eigenvalue flips
+  sign between resolutions at charge 256 ($-9.457$ coarse, $+2.885$ fine) against a $0.473$
+  tolerance, which is the reading the verdict's stability branches would have turned on.
+- `runs/20260921_matter_formation_thick_torus_gap/verifier.json`—`FAIL` on 23 of 25 checks, with
+  the four identity checks failing on a snapshot-location convention and the profile expectations
+  predating the pre-invocation corrections: recorded as needing reconciliation, not as a refutation.
+- `computations/matter-formation-thick-torus-gap-report.md`—the phase report, including the
+  measurement that in the exact toroidal metric the carrier migrates toward the pinched inner side,
+  opposite to the pre-run prediction, and the solver repair that removed a residual measure formed
+  along the wrong constraint direction.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.

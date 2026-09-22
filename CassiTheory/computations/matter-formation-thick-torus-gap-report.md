@@ -174,6 +174,36 @@ dividing by a near-zero directional derivative, and the pinning probe that suppo
 holds the state away from the free minimum by construction, so it measures the pin's own force. The
 geometry module's energy/gradient pair is exact to $10^{-8}$ throughout.
 
+## 5b. The invocation
+
+The frozen schedule ran once on 2026-09-22 and wrote
+`runs/20260921_matter_formation_thick_torus_gap/primary.json`, whose own content digest verifies
+(`primary_content_sha256` PASS). Its verdict is `status: FAIL` with `branch: INCONCLUSIVE`, no
+claim, and all four open problems listed `UNRESOLVED`. Five of the sixteen gates trigger the
+branch: both flat-limit validations (relative error $1.1\times10^{-3}$), `grid_resolution`
+(worst $5.3\times10^{-2}$ against a $5\times10^{-4}$ tolerance), `spectrum_resolution`, and
+`solve_convergence` (125 of 468 solves short of their gate, 102 of them on protected rows).
+
+Two readings from the receipt are worth carrying forward. The localized-mode eigenvalue changes
+sign between resolutions at charge 256: $\lambda_{\min}$ is $-9.457$ on the coarse grid and
+$+2.885$ on the fine one, a $12.34$ absolute difference against a $0.473$ tolerance. Stability of
+the localized mode is therefore not resolved by this schedule, and the sign is precisely what the
+verdict's interior-radius and curvature branches would have turned on. Separately, the relaxation
+repair held on the schedule points it reached — the fine-grid residual at round-off
+($3.4\times10^{-10}$) shows the scheme working — so the $3.5\times10^{-3}$ floor is gone and the
+remaining shortfall is per-point seeding, not the measure.
+
+The independent verifier was then run against the receipt and reports `FAIL` on 23 of 25 checks.
+That report is not yet readable as an independent refutation: its four identity checks fail with
+`snapshot_exists: False` (a snapshot-location convention, not a hash mismatch) and its profile
+expectations were written before the pre-invocation corrections recorded in §4, so the verifier
+needs reconciliation with the corrected primary before its verdicts can be weighed. This is stated
+as an open item rather than resolved.
+
+The phase therefore closes with the protocol invoked and no verdict: the honest answer is that
+this schedule does not decide the binding question, and the discriminator it was built around is
+resolution-dependent at the charge where it matters.
+
 ## 6. Boundaries
 
 The result is a finite-grid evaluation and relaxation of one registered functional in the
