@@ -308,13 +308,16 @@ def source_checks(primary: dict[str, Any], inp: Path, out: dict[str, Any]) -> No
         if not isinstance(rec, dict): add_check(out, f"identity:{name}", False, "not an object"); continue
         rel = rec.get("path"); snap = rec.get("snapshot")
         live = ROOT / str(rel) if rel else Path()
-        spath = inp.parent / str(snap) if snap else Path()
-
-
-        live = ROOT / str(rel) if rel else Path()
-        spath = inp.parent / str(snap) if snap else Path()
-        if snap and not spath.is_file():
-            spath = ROOT / str(snap)
+        # The primary freezes sources beside the receipt as <output>.sources/<bare name> and
+        # records the bare name; resolve that convention before falling back to the raw name.
+        spath = Path()
+        if snap:
+            name = Path(str(snap)).name
+            candidates = [inp.parent / str(snap),
+                          inp.parent / (inp.stem + ".sources") / name,
+                          inp.parent / (inp.stem + ".sources") / str(snap),
+                          ROOT / str(snap)]
+            spath = next((c for c in candidates if c.is_file()), candidates[0])
         passed = bool(rel and live.is_file() and snap and spath.is_file() and sha256_bytes(spath.read_bytes()) == str(rec.get("sha256")))
         add_check(out, f"identity:{name}", passed, {"path_exists": live.is_file(), "snapshot_exists": spath.is_file(), "snapshot_hash": sha256_bytes(spath.read_bytes()) if spath.is_file() else None, "recorded": rec.get("sha256")})
 def verify(primary: dict[str, Any], inp: Path) -> dict[str, Any]:
@@ -404,7 +407,10 @@ def verify(primary: dict[str, Any], inp: Path) -> dict[str, Any]:
                 continue
             density = float(row.get("density", math.pi))
             expected = 22.174477188390973 if abs(density - 5.0) < 1e-8 else 14.571946092025838
-            per_length = float(row["energy"]) / (2.0 * math.pi * float(row["radius"]))
+            # The row's energies are already per unit length (the primary records
+            # energy_per_length equal to energy); dividing by 2*pi*R again puts the comparison
+            # out by exactly that factor.
+            per_length = float(row.get("energy_per_length", row["energy"]))
             good = abs(per_length - expected) / expected <= 1e-2
             if abs(float(row["radius"]) - 8.0) < 1e-8 and abs(density - 5.0) < 1e-8:
                 reduced = 2.0 * math.pi * 8.0 * expected + math.pi * 5.0 * 1.0118788464248585 / 8.0

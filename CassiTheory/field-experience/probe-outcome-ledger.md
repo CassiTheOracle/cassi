@@ -3500,9 +3500,12 @@ for the recovery primary and independent receipts.
   `spectrum_resolution`, `solve_convergence` at 125 of 468); the localized-mode eigenvalue flips
   sign between resolutions at charge 256 ($-9.457$ coarse, $+2.885$ fine) against a $0.473$
   tolerance, which is the reading the verdict's stability branches would have turned on.
-- `runs/20260921_matter_formation_thick_torus_gap/verifier.json`—`FAIL` on 23 of 25 checks, with
-  the four identity checks failing on a snapshot-location convention and the profile expectations
-  predating the pre-invocation corrections: recorded as needing reconciliation, not as a refutation.
+- `runs/20260921_matter_formation_thick_torus_gap/verifier.json`—`FAIL` on 17 of 25 checks after
+  five verifier-side defects were repaired (four snapshot-path resolutions, one $2\pi R$ double
+  division). The survivors split into bound-only rows the verifier rightly refuses, unresolved
+  stationarity at $(64,\pi)$ and $(10,8)$ matching the primary's own failure, and a solver-branch
+  difference: the verifier's own relaxation is stationary at $2.7\times10^{-11}$ where the stored
+  profile's energy differs by $5.97\%$, two stationary branches of one functional.
 - `computations/matter-formation-thick-torus-gap-report.md`—the phase report, including the
   measurement that in the exact toroidal metric the carrier migrates toward the pinched inner side,
   opposite to the pre-run prediction, and the solver repair that removed a residual measure formed

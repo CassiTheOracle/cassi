@@ -193,12 +193,28 @@ repair held on the schedule points it reached — the fine-grid residual at roun
 ($3.4\times10^{-10}$) shows the scheme working — so the $3.5\times10^{-3}$ floor is gone and the
 remaining shortfall is per-point seeding, not the measure.
 
-The independent verifier was then run against the receipt and reports `FAIL` on 23 of 25 checks.
-That report is not yet readable as an independent refutation: its four identity checks fail with
-`snapshot_exists: False` (a snapshot-location convention, not a hash mismatch) and its profile
-expectations were written before the pre-invocation corrections recorded in §4, so the verifier
-needs reconciliation with the corrected primary before its verdicts can be weighed. This is stated
-as an open item rather than resolved.
+The independent verifier was then run against the receipt. Its first report failed 23 of 25 checks;
+five of those were defects in the verifier itself and are now repaired: four identity checks
+resolved the frozen snapshot under the wrong path (the primary records a bare file name while the
+copy lives in `<receipt>.sources/`), and the flat-limit validation divided an already per-unit-length
+energy by $2\pi R$ again, putting it out by that exact factor. With those repaired the verifier
+fails 17 of 25 checks, and they divide into three groups.
+
+- *Bound-only readings* (`mass_curve` 64/128/256, `threshold_margin` 64/128/256): the verifier
+  refuses rows whose evidence is an upper bound rather than a measurement, which is the discipline
+  this phase's §5 states. This group corroborates the inconclusive branch rather than contradicting
+  it.
+- *Unresolved stationarity* (`stationarity_gate` at $(64,\pi)$ and $(10,8)$): the (10,8) row carries
+  residual $4.8\times10^{-3}$, matching the primary's own `solve_convergence` failure. Independent
+  agreement that the schedule's shortfall is real.
+- *Solver branch* (`independent_solver` at $(6.5,5)$, $(8,5)$, $(10,8)$, and the five stored
+  profiles): the verifier's own relaxation reaches residual $2.7\times10^{-11}$ at $(8,5)$ — a
+  stationary point by the same gate — but its energy differs from the stored one by $5.97\%$.
+  Two independently stationary solutions of the same functional, $6\%$ apart, is the multi-valued
+  landscape the flat position coordinate implies; which branch is selected is not decided here.
+
+The first group is the verifier agreeing with the protocol; the third is a new open question rather
+than a refutation, and it needs its own measurement before anything is claimed about it.
 
 The phase therefore closes with the protocol invoked and no verdict: the honest answer is that
 this schedule does not decide the binding question, and the discriminator it was built around is
