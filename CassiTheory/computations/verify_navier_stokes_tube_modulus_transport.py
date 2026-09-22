@@ -146,15 +146,22 @@ def frame(x: np.ndarray, time: float) -> dict[str, Any]:
 
 
 def curvature_transport(x: np.ndarray, time: float) -> float:
-    """D_tau log kappa from the material transport of the curvature.
+    """D_tau log kappa from the material transport of the curvature field.
 
-    With t = xi, D_tau t = (grad u)t - ell t + V and kappa n = (t.grad)t,
+    With t = xi, D_tau t = (grad u)t - ell t + V and kappa n = (t.grad)t, the
+    transport of the field kappa n is
 
-        D_tau kappa = n.[(At.grad)t + (t.grad)(At)] - 2 ell kappa
-                      + n.[(V.grad)t + (t.grad)V],
+        D_tau kappa = n.[(At.grad)t + (t.grad)(At) - ((grad u)^T t.grad)t]
+                      - 2 ell kappa + n.[(V.grad)t + (t.grad)V],
 
-    where the last bracket is the viscous direction transport of the vorticity
-    equation.  This flow is Beltrami with Delta omega = -omega, so V vanishes.
+    and the antisymmetric part of grad u annihilates t, since
+    ((grad u) - (grad u)^T)t = omega x t = 0.  The bracket therefore collapses to
+    the bending gradient and the normal strain,
+
+        D_tau log kappa = n.(t.grad grad u)t / kappa + n.(grad u)n - 2 ell
+                          + n.[(V.grad)t + (t.grad)V] / kappa.
+
+    This flow is Beltrami with Delta omega = -omega, so V vanishes.
     """
     current = frame(x, time)
     tangent = current["direction"]
@@ -163,18 +170,9 @@ def curvature_transport(x: np.ndarray, time: float) -> float:
     curvature = current["curvature"]
     matrix = velocity_gradient(x, time)
     second = velocity_hessian(x, time)
-    direction_derivative = direction_gradient(x, time)
-    transported = matrix @ tangent
-    # (t.grad)(A t)
-    total = np.einsum("k,kij,j->i", tangent, second, tangent) + matrix @ (
-        direction_derivative @ tangent
-    )
-    # (A t . grad) t
-    total = total + transported @ direction_derivative
-    # the field commutator: D_tau(grad xi) = grad(D_tau xi) - (grad u) grad xi
-    total = total - (matrix.T @ tangent) @ direction_derivative
-    total = total - 2.0 * stretch * curvature * normal
-    return float(normal @ total) / curvature
+    bending = float(normal @ np.einsum("k,kij,j->i", tangent, second, tangent))
+    normal_strain = float(normal @ (matrix @ normal))
+    return bending / curvature + normal_strain - 2.0 * stretch
 
 
 def curvature_material_rate(x: np.ndarray, time: float) -> float:
@@ -250,6 +248,8 @@ def run_trajectory(start: np.ndarray, step: float) -> dict[str, np.ndarray]:
         "time", "magnitude", "curvature", "area", "flux", "stretch", "viscous",
         "laplacian_magnitude", "transverse_plus_binormal", "frame_trace",
         "magnitude_rate", "curvature_rate", "curvature_rate_fd", "flux_rate_exact",
+        "margin_rate", "bending_term", "strain_term", "axial_term", "bound_first", "bound_second",
+        "critical_norm", "gradient_norm", "antisymmetric_residual",
     )}
     steps = int(round(HORIZON / step))
     for index in range(steps + 1):
@@ -270,6 +270,35 @@ def run_trajectory(start: np.ndarray, step: float) -> dict[str, np.ndarray]:
         records["magnitude_rate"].append(current["magnitude_rate"])
         records["curvature_rate"].append(curvature_transport(x, time))
         records["curvature_rate_fd"].append(curvature_material_rate(x, time))
+        matrix = velocity_gradient(x, time)
+        second = velocity_hessian(x, time)
+        critical = float(np.linalg.norm(second))
+        gradient_norm = float(np.linalg.norm(matrix))
+        local_radius = math.sqrt(
+            patch_integrals(x, patch, time)[1] / (math.pi * current["magnitude"])
+        )
+        margin = current["curvature"] * local_radius
+        records["critical_norm"].append(critical)
+        records["gradient_norm"].append(gradient_norm)
+        records["margin_rate"].append(
+            margin * (records["curvature_rate"][-1] - 0.5 * current["stretch"])
+        )
+        records["bending_term"].append(
+            local_radius
+            * float(
+                current["normal"]
+                @ np.einsum("k,kij,j->i", current["direction"], second, current["direction"])
+            )
+        )
+        records["strain_term"].append(
+            margin * float(current["normal"] @ (matrix @ current["normal"]))
+        )
+        records["axial_term"].append(-2.5 * margin * current["stretch"])
+        records["bound_first"].append(local_radius * critical)
+        records["bound_second"].append(3.5 * margin * gradient_norm)
+        records["antisymmetric_residual"].append(
+            float(np.linalg.norm((matrix - matrix.T) @ current["direction"]))
+        )
         records["flux_rate_exact"].append(
             NU * laplacian_flux / max(abs(flux), 1e-300)
         )
@@ -401,10 +430,40 @@ def main() -> int:
     record(
         "V7 the curvature transport closes against its finite differences",
         worst <= 1.0e-8,
-        f"worst |n.[(At.grad)t + (t.grad)(At) - ((grad u)^T t.grad)t] - 2 ell kappa "
-        f"over kappa - D log kappa| = {worst:.2e} over {len(time)} samples; the viscous "
+        f"worst |n.(t.grad grad u)t/kappa + n.(grad u)n - 2 ell - D log kappa| = "
+        f"{worst:.2e} over {len(time)} samples; the viscous "
         f"direction transport V = nu[Delta omega - xi(omega.Delta omega)/|omega|]/|omega| "
         f"vanishes identically here, the flow being Beltrami with Delta omega = -omega",
+    )
+
+    # V8 the antisymmetric part of the velocity gradient annihilates the direction
+    worst = float(np.max(data["antisymmetric_residual"]))
+    record(
+        "V8 the rotation part of grad u drops out of the curvature transport",
+        worst <= 1.0e-14,
+        f"worst |((grad u) - (grad u)^T)t| = {worst:.2e} over {len(time)} samples, "
+        f"since ((grad u) - (grad u)^T)t = omega x t and t = omega/|omega|",
+    )
+
+    # V9 the margin's rate against the critical norms weighted by the tube width
+    bound = data["bound_first"] + data["bound_second"]
+    ratio = np.abs(data["margin_rate"]) / bound
+    decomposition = data["bending_term"] + data["strain_term"] + data["axial_term"]
+    worst = float(np.max(np.abs(decomposition - data["margin_rate"])))
+    shares = {
+        "bending": float(np.mean(np.abs(data["bending_term"]) / bound)),
+        "strain": float(np.mean(np.abs(data["strain_term"]) / bound)),
+        "axial": float(np.mean(np.abs(data["axial_term"]) / bound)),
+    }
+    record(
+        "V9 the margin's rate stays under the weighted critical norms",
+        float(np.max(ratio)) <= 1.0 and worst <= 1.0e-15,
+        f"worst |D_tau(kappa a)| / (a|grad^2 u| + 3.5 kappa a|grad u|) = "
+        f"{float(np.max(ratio)):.3f} with mean {float(np.mean(ratio)):.3f}; the terms sum to "
+        f"the rate to {worst:.2e}; the bound's parts are carried by bending "
+        f"{shares['bending']:.3f}, strain {shares['strain']:.3f} and axial {shares['axial']:.3f}; "
+        f"the critical norm runs {float(np.min(data['critical_norm'])):.4f} to "
+        f"{float(np.max(data['critical_norm'])):.4f}",
     )
 
     failed = [item for item in checks if not item["passed"]]

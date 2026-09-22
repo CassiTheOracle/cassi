@@ -791,9 +791,10 @@ identity cancels that diffusion against the growth of the magnitude, leaving the
 falling at half the axial stretching, so the margin moves by a bending increment against an
 endpoint logarithm of the enstrophy and carries no cumulative enstrophy. The bending
 channel closes in the same way: the vortex line's curvature transports by a bending
-gradient, the axial stretching and the viscous direction transport, so the margin's material
-rate is complete and a finite-time bound reduces to a bound on the bending gradient, the
-critical norm. The time integrability of the coherence modulus remains **UNRESOLVED**.
+gradient, the axial stretching and the viscous direction transport, with the rotation part
+of the velocity gradient dropping out entirely, so the margin's material rate is complete
+and every term of it is a critical norm weighted by the tube's own width. The time
+integrability of the coherence modulus remains **UNRESOLVED**.
 
 ### 2.27 The curvature clock of the coherence margin
 
