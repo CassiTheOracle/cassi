@@ -153,11 +153,17 @@ under a gradient-driven stopping rule.
 
 *Result.* At $R=8$, $n=5$ on the registered $200\times32$ section the relaxation reaches residual
 $1.65\times10^{-10}$ with `converged: True`, below the registered $10^{-9}$ gate. It does so from a
-coarse-to-fine start: the $96\times24$ section relaxes to $6.8\times10^{-15}$ and is interpolated
-onto the registered grid. A cold start on the registered grid alone still stalls at
-$9.3\times10^{-3}$, so per-point coarse-to-fine seeding is what the schedule needs, and the
-transport/lift stage of the primary still hands each schedule point a cold start. That wiring is
-the remaining step before the invocation; the lift itself is validated by the numbers above.
+coarse-to-fine start, measured directly: the $96\times24$ section relaxes to $6.8\times10^{-15}$
+from its own position-family seed, and lifting that solution onto the registered grid is what the
+registered relaxation then polishes to $1.65\times10^{-10}$. A cold start on the registered grid
+stalls at $9.3\times10^{-3}$.
+
+The per-point wiring of that path is the remaining step, and it is not finished: the coarse stage
+as wired into `solve_section` (one level, the coarse section's own family seed, lifted up) lands at
+$9.59\times10^{-3}$ — identical to a cold registered start, so the coarse solution is not reaching
+the registered Stage A as intended. The stage therefore ships behind `coarse=False` with the
+discrepancy recorded in the code, and the validated two-level sequence above is what the schedule
+should call explicitly.
 
 *Retracted.* An earlier version of this section reported a $1$--$25\%$ objective/gradient
 inconsistency and a falsified position mode. Both are withdrawn: the first was an artefact of
