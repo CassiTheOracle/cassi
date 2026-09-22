@@ -211,10 +211,13 @@ material reading adds the field's own evolution, and the measurement sizes it: o
 geometric channels the evolution is the larger part (the width channel moves fifty times
 its frozen-field integral), while the enstrophy channel is material exactly. A bound on
 the coherence modulus therefore needs two things the cap alone does not give: the
-cumulative enstrophy of general smooth data, and the material transport of the frame,
-which is the corrected (KC1) with the field's own evolution carried in the direction and
-the normal. Both are named and neither is closed; arbitrary-data regularity remains
-**UNRESOLVED**.
+cumulative enstrophy of general smooth data, and the material transport of the frame.
+The second is concrete: the vorticity equation gives
+$D_\tau\xi=S\xi-\ell\xi+\nu[\Delta\omega-(\omega\!\cdot\!\Delta\omega/|\omega|^2)\omega]/|\omega|$,
+so the material (KC1) carries a viscous direction-transport term that the frozen-field
+derivation omits, and the width channel additionally carries the material rate of
+$\lambda=n\!\cdot\!\nabla^2|\omega|\,n$, which is where the measured fiftyfold gap sits.
+Both are named and neither is closed; arbitrary-data regularity remains **UNRESOLVED**.
 
 ## 7. Evidence
 
