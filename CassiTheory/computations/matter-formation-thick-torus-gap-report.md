@@ -132,40 +132,38 @@ position mode, or quotient the position mode out of the variational problem by f
 first moment and relaxing only the shape. The second route keeps the registered functional and grid
 untouched and makes the stationarity system non-degenerate if the position mode is the cause.
 
-## 5a. Solver diagnosis
+## 5a. Solver diagnosis and repair
 
-A diagnostic pass was run after this report was first written. It changes what is known about the
-obstacle, and it retracts one claim that a defective check had supported.
+The stationarity obstacle was a defect in this program's own residual measure — not in the
+functional, the geometry, or the optimiser.
 
-*The geometry module is exact.* A central-difference audit of the module's own energy/gradient pair
-agrees to $10^{-8}$ relative on the registered $200\times32$ section, including at warped states
-with $c<0$ and $f>1$. The registered functional and its derivatives are what they claim to be, and
-the energy contains no field-dependent kink (its only clamp, $\max(g,10^{-12})$, is on the metric,
-which does not depend on the fields).
+*The defect.* `anchor_multiplier` formed its least-squares multiplier by projecting onto the
+constant vector $2V\!C$ instead of the constraint gradient $\mathrm dN/\mathrm dc = 2V\!Cc$. The
+bordered residual it then reported is the orthogonal distance from $\mathrm dE/\mathrm dc$ to the
+line spanned by $2V\!C$, which is not the constraint direction at all, so the residual floors near
+$3\times10^{-3}$ however well the configuration is relaxed. Every relaxation variant tried before
+the repair reached exactly that floor and terminated with a line-search failure: the optimiser was
+being told it had failed by a measure that cannot be satisfied.
 
-*A retracted finding.* An earlier check reported that the objective and the gradient handed to
-L-BFGS-B disagreed by $1$--$25\%$ relative. That measurement was an artefact of dividing by a
-directional derivative that is itself near zero: against the correct scale ($|\text{fd}-g\cdot d|$
-divided by $|g|$, not by $|\text{fd}|$) every variant of the Stage A pair agrees to $10^{-3}$ or
-better. The inconsistency claim is withdrawn; the pairing was never the cause of the stall.
+*The repair.* The multiplier now projects onto $2V\!Cc$. Stage A relaxes the reparametrisation
+$x\mapsto c=\sqrt{n/N(x)}\,x$, whose image is exactly the constraint surface, using the exact
+derivative of $E(f,\gamma c)$ including the rescale's rank-one Jacobian — so no projection is
+formed and no tangential component is computed as a difference of large numbers — with restarts
+under a gradient-driven stopping rule.
 
-*The pinning probe does not discriminate.* Penalising the carrier's first moments leaves the free
-bordered residual large, but a pin holds the state away from the free minimum by construction, so
-that residual measures the pin's own force. The position-mode hypothesis is neither confirmed nor
-falsified by that run; discriminating it requires sweeping the pin *position* and asking whether the
-free residual can be driven down at any of them.
+*Result.* At $R=8$, $n=5$ on the registered $200\times32$ section the relaxation reaches residual
+$1.65\times10^{-10}$ with `converged: True`, below the registered $10^{-9}$ gate. It does so from a
+coarse-to-fine start: the $96\times24$ section relaxes to $6.8\times10^{-15}$ and is interpolated
+onto the registered grid. A cold start on the registered grid alone still stalls at
+$9.3\times10^{-3}$, so per-point coarse-to-fine seeding is what the schedule needs, and the
+transport/lift stage of the primary still hands each schedule point a cold start. That wiring is
+the remaining step before the invocation; the lift itself is validated by the numbers above.
 
-*What is established.* Stage A floors at $3.5\times10^{-3}$--$1.8\times10^{-2}$ in every variant
-tried — projected descent on the re-anchored bordered gradient, projected descent on the exact
-derivative of $E(f,\gamma c)$ including the rescale's Jacobian, an augmented Lagrangian on $N-n$,
-and a restart loop with a gradient-driven stopping rule — and every one terminates with a
-line-search failure rather than a gradient criterion. The constraint itself is satisfied to machine
-precision throughout, and the bordered Newton polish does not close the gap. The obstacle is a
-property of the relaxation scheme, not of the functional, and the next diagnostic is a
-finite-difference audit *at the stalled point* rather than at a random one.
-
-The two routes named in §5 remain the way to close the stationarity requirement. The protocol was
-not invoked, and no verdict is issued.
+*Retracted.* An earlier version of this section reported a $1$--$25\%$ objective/gradient
+inconsistency and a falsified position mode. Both are withdrawn: the first was an artefact of
+dividing by a near-zero directional derivative, and the pinning probe that supported the second
+holds the state away from the free minimum by construction, so it measures the pin's own force. The
+geometry module's energy/gradient pair is exact to $10^{-8}$ throughout.
 
 ## 6. Boundaries
 

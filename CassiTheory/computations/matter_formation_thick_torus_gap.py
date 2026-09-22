@@ -151,7 +151,11 @@ def anchor_multiplier(section: Any, radius: float, w: float, density: float,
     """
     kap = 1.0 / radius
     _, Rc, rc = section.gradient(f, c, kap, w, radius, density, 0.0)
-    direction = (2.0 * section.weights(kap)[0]).ravel()
+    # The constraint gradient is dN/dc = 2*VC*c (VC = weights(...)[0]).  Using the constant
+    # 2*VC instead measures the orthogonal distance from dE/dc to a line that is generally not
+    # the constraint direction, which floors the residual at ~3e-3 no matter how well the
+    # configuration is relaxed.
+    direction = ((2.0 * section.weights(kap)[0]) * c).ravel()
     weight = float(Rc.ravel() @ direction) / float(direction @ direction)
     return weight, float(rc)
 
@@ -209,13 +213,12 @@ def solve_section(section: Any, radius: float, w: complex, density: float,
         # using d gamma / dc = -(gamma / N) * VC c with N = sum(VC c^2) and VC = weights / 2.
         coupling = float((constraint_c.reshape(Na, Nphi) * raw_c * Rc).sum())
         gradient_c = gamma * Rc - (gamma / total) * coupling * raw_c
-        gradient = np.concatenate([Rp.ravel(), gradient_c.ravel()])
-        # The constraint surface {c : N(c) = density} has normal grad N = 2*VC*c, evaluated at the
-        # projected point, and the objective is exactly constant along it because profile enforces
-        # N = density.  (Projecting out the constant vector 2*VC instead leaves a gradient that is
-        # not tangent to the constraint at all.)
-        normal = np.concatenate([np.zeros(N), (constraint_c.reshape(Na, Nphi) * field_c).ravel()])
-        return gradient - normal * (float(normal @ gradient) / float(normal @ normal))
+        # No projection.  The map x -> c = gamma(x) * x has image exactly {N(c) = density}, so
+        # optimising over the unrescaled x covers the constrained manifold without ever forming a
+        # tangential component as a difference of large numbers; projecting at a near-stationary
+        # point loses the gradient to cancellation (measured pair error 1e-2 at the stall against
+        # 1e-4 away from it).
+        return np.concatenate([Rp.ravel(), gradient_c.ravel()])
 
     initial = np.concatenate([f.ravel(), c.ravel()])
     iterations = 0
