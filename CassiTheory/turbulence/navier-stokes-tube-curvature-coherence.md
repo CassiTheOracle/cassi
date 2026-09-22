@@ -130,7 +130,7 @@ Sections 2 and 3 state why. The core carries no curvature signature at all by (3
 
 The identities (3) and (5)–(7) are exact for the stated geometry: a circular axis and an axisymmetric cross-section. A non-circular axis or a non-axisymmetric core adds terms outside this derivation, and the pole condition of §3 is a statement about the support of the tube rather than a dynamical theorem.
 
-The time integrability of the coherence modulus remains open. Equation (9) identifies $\rho$ with a geometric quantity of the vorticity field, but propagating that quantity from arbitrary smooth data is still the obligation that `turbulence/navier-stokes-stress-geometry.md` records, and no claim about arbitrary data or about global regularity follows here.
+The time evolution of the coherence modulus is `turbulence/navier-stokes-curvature-clock.md`: its rate splits exactly into a bending-gradient term, a transverse-strain term and an axial-stretching term, the closed-form controls realize a finite-time pole, exponential growth and exact conservation, and the retained tube families grow the margin through transverse strain as their cores widen, arresting below the pole. A bound on the modulus for finite time from general smooth data is the obligation that `turbulence/navier-stokes-stress-geometry.md` records, and no claim about arbitrary data or about global regularity follows here.
 
 ## 7. Evidence
 

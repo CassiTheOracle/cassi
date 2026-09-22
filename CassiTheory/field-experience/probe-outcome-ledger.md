@@ -3571,6 +3571,14 @@ for the recovery primary and independent receipts.
 - `computations/navier-stokes-strain-band-split-cutoff-ladder-prereg.md`—frozen six-cutoff ladder schedule, crossing brackets, decision rules and post-execution record.
 - `computations/verify_navier_stokes_strain_band_split_cutoff_ladder.py`—six-run ladder verifier that binds the frozen band machinery by digest and reproduces the frozen two-cutoff values exactly.
 - `runs/navier_stokes_strain_band_split_cutoff_ladder/verification.json`—completed six-run ladder receipt at `status=PASS` with the `CONTRADICTS` verdict, the ladder table and the crossing brackets (gitignored run artifact).
+- `computations/navier-stokes-curvature-clock-prereg.md`—frozen kinematic-identity, closed-form-control and tube-family clock schedule with its decision rules and stopping rule.
+- `computations/navier_stokes_curvature_clock.py`—the producer: three closed-form controls of (KC1) and the coherence margin at the vorticity core of the retained helical families.
+- `computations/verify_navier_stokes_curvature_clock.py`—125-check source-bound verifier: closed forms re-derived inside the verifier, raw-tensor recomputation, content digest and mutation control.
+- `computations/navier-stokes-curvature-clock-saturation-prereg.md`—frozen four-times-horizon saturation window with its reporting and resolution rules.
+- `computations/navier_stokes_curvature_clock_saturation.py`—the window producer: rate series, decay classification, projected limit and enstrophy-tail diagnostic.
+- `computations/verify_navier_stokes_curvature_clock_saturation.py`—34-check verifier that rebuilds the series, the classification and the projection and anchors the window's initial checkpoint against the clock receipt.
+- `runs/20260921_curvature_clock/curvature_clock_receipt.json`—clock receipt at `status=PASS`: identity closed at round-off, margin below the pole over the declared horizon (gitignored run artifact).
+- `runs/20260921_curvature_clock_saturation/curvature_clock_saturation_receipt.json`—saturation receipt at `status=PASS`: the tight-pitch margin arrests and reverses below the pole, its late enstrophy tail declared under-resolved, the two resolved families still climbing (gitignored run artifact).
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.

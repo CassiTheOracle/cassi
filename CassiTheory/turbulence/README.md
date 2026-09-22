@@ -148,6 +148,7 @@ estimate remains open.
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 | 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
 | 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities / Tested finite-grid curvature laws / Conditional coherence modulus |
+| 23 | `turbulence/navier-stokes-curvature-clock.md` | The curvature clock of the vorticity-direction coherence margin | Derived exact kinematic identity / Tested closed-form controls / Measured on the retained tube families to $t=2$ |
 
 
 ## 2. Document summaries
@@ -786,6 +787,20 @@ positive signed production measured for coherent one-handed tube families in
 `turbulence/navier-stokes-helical-dynamic-depletion.md`, since no cross-section-level
 curvature channel can deplete stretching. The time integrability of the coherence modulus
 remains **UNRESOLVED**.
+
+### 2.27 The curvature clock of the coherence margin
+
+`turbulence/navier-stokes-curvature-clock.md` carries the time evolution of the coherence
+modulus. Its rate splits exactly into a bending-gradient term, a transverse-strain term and
+an axial-stretching term, checked at round-off on three closed-form incompressible
+deformations that realize a finite-time pole, exponential growth and exact conservation
+respectively, so the pole is a real hazard of the kinematic budget. On the retained helical
+tube families the margin rises monotonically and is carried by transverse strain as the
+vorticity core widens rather than bends; over four times the horizon the family with the
+largest margin arrests and reverses below the pole, and the two resolved families keep
+climbing at one order of magnitude below their initial rates. The criterion stays
+conditional: these families do not enforce its hypothesis. A bound on the modulus for
+finite time from general smooth data remains **UNRESOLVED**.
 
 ## References
 
