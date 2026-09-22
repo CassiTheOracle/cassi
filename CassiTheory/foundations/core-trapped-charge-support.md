@@ -1,6 +1,6 @@
 # Core-Trapped Noether Charge and the Finite-Composite Boundary
 
-## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
+## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested finite-grid spectrum, conditional smooth scalar binding, and relaxed transverse tube geometry—September 2026
 
 ## Abstract
 
@@ -988,6 +988,131 @@ Complete receipts are recorded in
 `computations/particle-carrier-resolution-recovery-report.md`, and
 `computations/particle-localized-physical-hessian-report.md`.
 
+### 8.4 Relaxed transverse tube geometry
+
+A straight tube is invariant along its axis, so the transverse problem of §4.1 becomes a
+one-dimensional radial variational problem. On the registered scalar functional with the
+coefficients of `foundations/particle-stationary-action-closure.md`, writing
+$c=|\chi_C|$ and fixing the carrier charge per unit length
+$n=\int d^2x_\perp|c|^2$ with one Lagrange multiplier,
+
+$$
+E=\int d^2x_\perp\left[
+\frac12|\nabla f|^2+\frac{K_{Cx}}2|\nabla c|^2
++\frac{u_\rho}4(f^2-1)^2+(B-h+hf^2)|c|^2+\frac{u_C}2|c|^4\right],
+\tag{CC49}
+$$
+
+with vacuum boundary data $f\to1$ and $c\to0$. The mediator and the carrier relax
+together and no width is imposed. `computations/matter_formation_tube_geometry.py` solves
+(CC49) on a $0<r<8$ radial grid with a damped Newton step on the coupled KKT system, and
+`computations/verify_matter_formation_tube_geometry.py` re-derives every number below from
+the retained profiles with its own quadrature, its own cross-section metric, and a
+finite-difference stationarity residual.
+
+At $n=\pi$ the relaxed cross-section is bound, with the mediator displaced from its
+vacuum and the carrier concentrated at the axis:
+
+$$
+\frac{E}{n}=4.63845<B=4.75,\qquad
+f_{\min}=0.6105,\qquad
+c(0)=0.8088,\qquad
+r_{\rm rms}=1.3556 .
+\tag{CC50}
+$$
+
+The independent stationarity residual of the retained profile is $3.5\times10^{-6}$ in
+units of the profile's own gradient scale, and the KKT residual of the solve is
+$4.4\times10^{-13}$; doubling the radial resolution moves $E/n$ by $5.6\times10^{-5}$.
+
+The cross-section spectrum identifies the shape as a genuine minimum. The only soft
+direction is rigid translation,
+
+$$
+\lambda_{m=1}/\lambda_{\max}=-8.8\times10^{-7},
+\qquad
+\lambda_{m=2},\ \lambda_{m=3},\ \lambda_{m=4}
+=0.1245,\ 0.2267,\ 0.5288 ,
+\tag{CC51}
+$$
+
+so every deformation other than sliding the tube sideways costs positive energy, and the
+angular stiffness rises with the azimuthal index.
+
+Bending an untwisted tube is therefore free. Evaluated on the bent torus metric
+$g=1+\kappa a\cos\phi$, the energy of the axisymmetric cross-section equals its flat
+value at every tested radius,
+
+$$
+E(R)-E(\infty)=0
+\qquad (R=32,16,12,8;\ \kappa\le0.125),
+\tag{CC52}
+$$
+
+to machine precision, because each curvature-dependent term in the measure carries
+$\cos\phi$ and integrates out over the cross-section. An untwisted closed tube has no
+preferred radius. The transverse dilation family shows the same balance: with the carrier
+profile dilated and its charge per unit length held fixed,
+
+$$
+E(0.9)-E(1)=+0.0616,\qquad
+E(1.1)-E(1)=+0.0507,
+\tag{CC53}
+$$
+
+so the relaxed width is the variational optimum along that one-parameter family.
+
+Winding supplies the missing scale. For a phase advancing by $2\pi w$ around a loop of
+radius $R$, the winding energy is the phase-gradient integral in the torus metric,
+
+$$
+E_{\rm twist}=\frac{K_{Cx}}2\left(\frac{w}{R}\right)^2
+N\left\langle\frac1{g^2}\right\rangle,
+\tag{CC54}
+$$
+
+with the average taken over the charge measure. The identity holds to
+$1.1\times10^{-13}$ relative at every tested radius, and the weak-curvature limit is the
+leading law $\frac{K_{Cx}}2w^2N/R^2$ with a metric enhancement that grows as the torus
+tightens:
+
+| $R$ | 32 | 16 | 12 | 8 |
+|---|---|---|---|---|
+| $\langle1/g^2\rangle$ | 1.000899 | 1.003636 | 1.006536 | 1.015227 |
+| measured over leading | 1.00090 | 1.00364 | 1.00654 | 1.01523 |
+
+A twisted loop is a spring with a preferred radius.
+
+Two further branches complete the transverse picture. A bound tube exists only above a
+critical line density, and the finite-domain crossing at $R=8$ lies at
+
+$$
+n_c\in(1.875,\ 1.906),
+\tag{CC55}
+$$
+
+above the infinite-plane Townes threshold $1.7308$ obtained from the same coefficients. At
+high line density the per-charge energy falls toward the flat-top value with a residual
+that is the interface surface term,
+
+$$
+\frac{E}{n}\to(B-h)+\frac{\sqrt{2u_Cu_\rho}}2=3.2044,
+\qquad
+\left(\frac{E}{n}-3.2044\right)\sqrt n
+=2.832,\ 2.810,\ 2.765
+\quad (n=8,24,48),
+\tag{CC56}
+$$
+
+and the mediator reaches full displacement in the core, $f_{\min}=3.0\times10^{-3}$ at
+$n=48$.
+
+Equations (CC49)–(CC56) are finite-grid variational results for the declared coefficients.
+They do not establish continuum existence, nonlinear stability, or a physical
+identification of the tube. The winding rows evaluate the phase-gradient energy on the
+relaxed axisymmetric profile, which bounds the energy of a fully relaxed twisted
+cross-section from above.
+
 ---
 
 ## 9. Evidence boundary
@@ -1001,6 +1126,10 @@ Complete receipts are recorded in
 | Does positive carrier self-repulsion produce inverse-length support? | Yes, on the uniform frozen-mode branch |
 | Is there a finite reduced separation? | Yes when $A_C>C_Q$, uniquely, with bounds (CC38) and positive curvature (CC39) |
 | Is the carrier retained at that separation? | Only when the chemical-potential condition (CC42) also holds |
+| Does an untwisted tube prefer a bending radius? | No; the bent-metric energy of the axisymmetric cross-section equals its flat value to machine precision at every tested curvature (CC52) |
+| Does the relaxed tube supply its own width? | Yes; the cross-section is stationary with a positive spectrum apart from rigid translation, and its dilation family has its minimum at the relaxed width (CC51), (CC53) |
+| What sets the radius of a closed tube? | The winding; the twist energy is the phase-gradient integral in the torus metric, so a twisted loop is a spring (CC54) |
+| Is the transverse carrier problem solved on the registered functional? | Yes on a finite radial grid, with an independent reconstruction of every number; continuum existence and nonlinear stability remain open (CC49)–(CC56) |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
 | Is a full stationary particle established? | No. The stored Cartesian branch has a matched six-mode finite-grid spectrum but fails its smooth-carrier diagnostic. Separate continuum-consistent scalar binding at prepared $Q_C\in\{16,256\}$ is independently reproduced; smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The closed-boundary action preserves $Q_C=0$. Production, full continuum and temporal stability, normalization, topology-changing competitors and physical particle identity remain open |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |
