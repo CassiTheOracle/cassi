@@ -71,6 +71,27 @@ def velocity_gradient(x: np.ndarray, time: float) -> np.ndarray:
     )
 
 
+def velocity_hessian(x: np.ndarray, time: float) -> np.ndarray:
+    """d_k grad u_ij of the ABC velocity, up to the amplitude."""
+    sx, cx, sy, cy, sz, cz = trig(x)
+    hessian = np.zeros((3, 3, 3))
+    hessian[0, 1, 0] = -sx
+    hessian[0, 2, 0] = -cx
+    hessian[1, 0, 1] = -cy
+    hessian[1, 2, 1] = -sy
+    hessian[2, 0, 2] = -sz
+    hessian[2, 1, 2] = -cz
+    return amplitude(time) * hessian
+
+
+def direction_gradient(x: np.ndarray, time: float) -> np.ndarray:
+    """grad xi for the ABC flow, where xi = omega/|omega| = u/|u|."""
+    speed = velocity(x, time)
+    magnitude = float(np.linalg.norm(speed))
+    gradient = velocity_gradient(x, time)
+    return gradient / magnitude - np.outer(speed, (gradient @ speed)) / magnitude**3
+
+
 def vorticity(x: np.ndarray, time: float) -> np.ndarray:
     """The ABC flow is Beltrami: omega = u."""
     return velocity(x, time)
@@ -110,6 +131,8 @@ def frame(x: np.ndarray, time: float) -> dict[str, Any]:
         "direction": direction,
         "magnitude": magnitude,
         "curvature": curvature,
+        "normal": normal,
+        "binormal": binormal,
         "stretch": stretch,
         "transverse": transverse,
         "binormal_strain": binormal_strain,
@@ -120,6 +143,38 @@ def frame(x: np.ndarray, time: float) -> dict[str, Any]:
         "magnitude_rate": -NU
         + float(velocity(x, time) @ gradient_magnitude) / magnitude,
     }
+
+
+def curvature_transport(x: np.ndarray, time: float) -> float:
+    """D_tau log kappa from the material transport of the curvature.
+
+    With t = xi, D_tau t = (grad u)t - ell t + V and kappa n = (t.grad)t,
+
+        D_tau kappa = n.[(At.grad)t + (t.grad)(At)] - 2 ell kappa
+                      + n.[(V.grad)t + (t.grad)V],
+
+    where the last bracket is the viscous direction transport of the vorticity
+    equation.  This flow is Beltrami with Delta omega = -omega, so V vanishes.
+    """
+    current = frame(x, time)
+    tangent = current["direction"]
+    normal = current["normal"]
+    stretch = current["stretch"]
+    curvature = current["curvature"]
+    matrix = velocity_gradient(x, time)
+    second = velocity_hessian(x, time)
+    direction_derivative = direction_gradient(x, time)
+    transported = matrix @ tangent
+    # (t.grad)(A t)
+    total = np.einsum("k,kij,j->i", tangent, second, tangent) + matrix @ (
+        direction_derivative @ tangent
+    )
+    # (A t . grad) t
+    total = total + transported @ direction_derivative
+    # the field commutator: D_tau(grad xi) = grad(D_tau xi) - (grad u) grad xi
+    total = total - (matrix.T @ tangent) @ direction_derivative
+    total = total - 2.0 * stretch * curvature * normal
+    return float(normal @ total) / curvature
 
 
 def curvature_material_rate(x: np.ndarray, time: float) -> float:
@@ -194,7 +249,7 @@ def run_trajectory(start: np.ndarray, step: float) -> dict[str, np.ndarray]:
     records: dict[str, list[Any]] = {key: [] for key in (
         "time", "magnitude", "curvature", "area", "flux", "stretch", "viscous",
         "laplacian_magnitude", "transverse_plus_binormal", "frame_trace",
-        "magnitude_rate", "curvature_rate", "flux_rate_exact",
+        "magnitude_rate", "curvature_rate", "curvature_rate_fd", "flux_rate_exact",
     )}
     steps = int(round(HORIZON / step))
     for index in range(steps + 1):
@@ -213,7 +268,8 @@ def run_trajectory(start: np.ndarray, step: float) -> dict[str, np.ndarray]:
         )
         records["frame_trace"].append(current["frame_trace"])
         records["magnitude_rate"].append(current["magnitude_rate"])
-        records["curvature_rate"].append(curvature_material_rate(x, time))
+        records["curvature_rate"].append(curvature_transport(x, time))
+        records["curvature_rate_fd"].append(curvature_material_rate(x, time))
         records["flux_rate_exact"].append(
             NU * laplacian_flux / max(abs(flux), 1e-300)
         )
@@ -319,7 +375,7 @@ def main() -> int:
         "V5 the integrated modulus identity closes along the trajectory",
         worst <= INTEGRAL_TOLERANCE and coarse_worst >= worst,
         f"worst residual {worst:.2e} at step {STEP:g} against {coarse_worst:.2e} at step "
-        f"{2.0 * STEP:g} over {len(time)} samples; log margin moves "
+        f"{2.0 * STEP:g} over {len(time)} samples, from the closed-form curvature rate; log margin moves "
         f"{math.log(margin[-1] / margin[0]):+.6f}, the enstrophy endpoint contributes "
         f"{-0.5 * math.log(data['magnitude'][-1] / data['magnitude'][0]):+.6f}, the "
         f"bending integral {trapezoid(data['curvature_rate'], time)[-1]:+.6f}, the "
@@ -339,6 +395,18 @@ def main() -> int:
     )
 
     print("=" * 78)
+    # V7 the closed-form material transport of the vortex-line curvature
+    curvature_residual = data["curvature_rate"] - data["curvature_rate_fd"]
+    worst = float(np.max(np.abs(curvature_residual)))
+    record(
+        "V7 the curvature transport closes against its finite differences",
+        worst <= 1.0e-8,
+        f"worst |n.[(At.grad)t + (t.grad)(At) - ((grad u)^T t.grad)t] - 2 ell kappa "
+        f"over kappa - D log kappa| = {worst:.2e} over {len(time)} samples; the viscous "
+        f"direction transport V = nu[Delta omega - xi(omega.Delta omega)/|omega|]/|omega| "
+        f"vanishes identically here, the flow being Beltrami with Delta omega = -omega",
+    )
+
     failed = [item for item in checks if not item["passed"]]
     for item in checks:
         print(f"  [{'PASS' if item['passed'] else 'FAIL'}] {item['name']}: {item['detail']}")

@@ -147,7 +147,7 @@ estimate remains open.
 | 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 | 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
-| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities and exact material transport of the cross-section scale / Tested finite-grid curvature laws / Conditional coherence modulus |
+| 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities and exact material transport of the cross-section scale and the curvature / Tested finite-grid curvature laws / Conditional coherence modulus |
 | 23 | `turbulence/navier-stokes-curvature-clock.md` | The curvature clock of the vorticity-direction coherence margin and its enstrophy budget | Derived exact kinematic identity / Tested closed-form controls / Measured on the retained tube families to $t=2$ / Frozen-field enstrophy budget measured and its material gap sized |
 
 
@@ -789,8 +789,11 @@ curvature channel can deplete stretching. The cross-section scale then transport
 vorticity flux is conserved through a material element up to diffusion, and the enstrophy
 identity cancels that diffusion against the growth of the magnitude, leaving the scale
 falling at half the axial stretching, so the margin moves by a bending increment against an
-endpoint logarithm of the enstrophy and carries no cumulative enstrophy. The time
-integrability of the coherence modulus remains **UNRESOLVED**.
+endpoint logarithm of the enstrophy and carries no cumulative enstrophy. The bending
+channel closes in the same way: the vortex line's curvature transports by a bending
+gradient, the axial stretching and the viscous direction transport, so the margin's material
+rate is complete and a finite-time bound reduces to a bound on the bending gradient, the
+critical norm. The time integrability of the coherence modulus remains **UNRESOLVED**.
 
 ### 2.27 The curvature clock of the coherence margin
 

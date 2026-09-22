@@ -223,8 +223,10 @@ flux, and flux conservation together with the enstrophy identity (KC3) gives
 $D_\tau\log a=-\ell/2$ exactly, so the margin's width channel is a bending increment against
 an endpoint logarithm of the enstrophy with no material rate of $\lambda$ in it. The width
 $a_n$ of this note is read from the magnitude profile, and for a Gaussian core it is the
-flux width over $\sqrt2$. The direction-transport term and the cumulative enstrophy remain
-open, and arbitrary-data regularity remains **UNRESOLVED**.
+flux width over $\sqrt2$. The same note's §6 writes the direction transport explicitly into
+the curvature's own rate, so the margin's material rate is complete for that width and the
+cumulative enstrophy drops out; what a finite-time bound needs is control of the bending
+gradient, the critical norm. Arbitrary-data regularity remains **UNRESOLVED**.
 
 ## 7. Evidence
 
