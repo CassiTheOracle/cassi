@@ -184,6 +184,9 @@ def carry(family: str, span_factor: float, order: int, stride: int) -> dict[str,
                 - fluxes["core_ratio"]
             )
         )
+        # The margin's two widening channels, split out of gauss_channel.
+        row["gauss_pump"] = 0.5 * fluxes["pump"] / max(fluxes["gauss_flux"], 1e-300)
+        row["gauss_spread"] = row["gauss_channel"] - row["gauss_pump"]
         row["signed_share"] = fluxes["signed_share"]
         # The margin carried by the patch-independent width, and its bound (21).
         row["gauss_margin"] = float(row["kappa"]) * row["gauss_width"]
@@ -211,7 +214,10 @@ def carry(family: str, span_factor: float, order: int, stride: int) -> dict[str,
     axial = integral("axial")
     deviation = lambda key: math.log(rows[-1][key] / rows[0][key]) + 0.5 * axial
     margin_change = math.log(rows[-1]["gauss_margin"] / rows[0]["gauss_margin"])
-    margin_closed = integral("curvature_rate_closed") + integral("gauss_channel")
+    margin_curvature = integral("curvature_rate_closed")
+    margin_pump = integral("gauss_pump")
+    margin_spread = integral("gauss_spread")
+    margin_closed = margin_curvature + margin_pump + margin_spread
     fd_rates = [
         math.log(later["gauss_margin"] / earlier["gauss_margin"])
         / max(later["time"] - earlier["time"], 1e-300)
@@ -243,6 +249,12 @@ def carry(family: str, span_factor: float, order: int, stride: int) -> dict[str,
         "margin_change": margin_change,
         "margin_closed": margin_closed,
         "margin_residual": abs(margin_change - margin_closed),
+        "margin_curvature": margin_curvature,
+        "margin_pump": margin_pump,
+        "margin_spread": margin_spread,
+        "margin_curvature_share": margin_curvature / margin_change,
+        "margin_pump_share": margin_pump / margin_change,
+        "margin_spread_share": margin_spread / margin_change,
         "margin_bound_ratio": worst_ratio,
         "gauss_start": rows[0]["gauss_width"],
         "gauss_end": rows[-1]["gauss_width"],
@@ -296,6 +308,14 @@ def main() -> int:
         + ", ".join(f"{entry['span']:.0f}:{entry['margin_change']:+.4f}" for entry in readings)
         + " | closed "
         + ", ".join(f"{entry['span']:.0f}:{entry['margin_closed']:+.4f}" for entry in readings)
+    )
+    print(
+        "margin channels (share of the measured growth): curvature "
+        + ", ".join(f"{entry['span']:.0f}:{entry['margin_curvature_share']:+.4f}" for entry in readings)
+        + " | pump "
+        + ", ".join(f"{entry['span']:.0f}:{entry['margin_pump_share']:+.4f}" for entry in readings)
+        + " | spread "
+        + ", ".join(f"{entry['span']:.0f}:{entry['margin_spread_share']:+.4f}" for entry in readings)
     )
     print(
         f"margin law residual, worst "
