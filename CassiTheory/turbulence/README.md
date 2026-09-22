@@ -148,7 +148,7 @@ estimate remains open.
 | 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 | 21 | `turbulence/navier-stokes-helical-dynamic-depletion.md` | Coherent helical initial data and the finite dynamical stretching test | Tested finite-family sign depletion contradicted / Open scale-uniform direction-strain estimate |
 | 22 | `turbulence/navier-stokes-tube-curvature-coherence.md` | Tube curvature, azimuthal neutrality and the vorticity-direction coherence modulus | Derived exact tube identities / Tested finite-grid curvature laws / Conditional coherence modulus |
-| 23 | `turbulence/navier-stokes-curvature-clock.md` | The curvature clock of the vorticity-direction coherence margin | Derived exact kinematic identity / Tested closed-form controls / Measured on the retained tube families to $t=2$ |
+| 23 | `turbulence/navier-stokes-curvature-clock.md` | The curvature clock of the vorticity-direction coherence margin and its enstrophy budget | Derived exact kinematic identity / Tested closed-form controls / Measured on the retained tube families to $t=2$ / Enstrophy budget of the widening channel measured |
 
 
 ## 2. Document summaries
@@ -801,6 +801,17 @@ largest margin arrests and reverses below the pole, and the two resolved familie
 climbing at one order of magnitude below their initial rates. The criterion stays
 conditional: these families do not enforce its hypothesis. A bound on the modulus for
 finite time from general smooth data remains **UNRESOLVED**.
+
+The charge that widening carries is made explicit: incompressibility closes the frame, the
+axial stretching becomes the flow's own enstrophy, and the transverse strain at the core is
+bounded by the bending channel, the enstrophy decay and the binormal strain. The cap holds
+at every evaluated point across the three families with a deficit of exactly zero, the
+enstrophy identity integrates along the tracer at round-off, and the frozen-field rate
+reproduces the advective increment within a measured finite-difference floor that halves
+with the lattice spacing. The growth itself is unsteady: the advective channel carries a
+fifth of a percent of it, so no steady flow supplies it. A finite-time bound on the
+cumulative enstrophy from general smooth data is what would turn the cap into a bound on
+the coherence modulus; that bound remains **UNRESOLVED**.
 
 ## References
 

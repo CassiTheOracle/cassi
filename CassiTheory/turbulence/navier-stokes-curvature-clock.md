@@ -1,6 +1,6 @@
 # The Curvature Clock of the Vorticity-Direction Coherence Margin
 
-## Status: Derived exact kinematic identity / Tested on three closed-form controls / Measured on the retained helical tube families to $t=2$—September 2026
+## Status: Derived exact kinematic identity / Tested on three closed-form controls / Measured on the retained helical tube families to $t=2$ / Enstrophy budget of the widening channel measured on the retained families—September 2026
 
 ## Abstract
 
@@ -141,7 +141,66 @@ bound on the coherence modulus (Equation (9) of
 `turbulence/navier-stokes-tube-curvature-coherence.md`) for finite time from general smooth
 data.
 
-## 6. Evidence
+## 6. The enstrophy budget of the widening channel
+
+Section 4 leaves the margin's growth carried by transverse strain and charged to no
+budget. The frame closure makes that charge explicit. Incompressibility gives
+
+$$\ell+n\!\cdot\!Sn+b\!\cdot\!Sb=0 \tag{KF}$$
+
+so the widened-normal channel is fixed by the axial and binormal strains and the rate
+becomes
+
+$$\frac{D_\tau\log(\kappa a_n)}{}=\frac{\text{bend}}{\kappa}-4\ell-2\,b\!\cdot\!Sb \tag{KC2}$$
+
+The local enstrophy identity then turns the axial stretching into the flow's own
+enstrophy: with $e=\tfrac12|\omega|^2$ and $\omega\!\cdot\!S\omega=|\omega|^2\ell$,
+
+$$\frac{D_\tau\log(\kappa a_n)}{}=\frac{\text{bend}}{\kappa}-2\,D_\tau\log e+4\nu\frac{\omega\!\cdot\!\Delta\omega}{|\omega|^2}-2\,b\!\cdot\!Sb \tag{KC3}$$
+
+and at a point where $|\omega|$ is locally maximal, $\Delta|\omega|^2\le0$ together with
+$\Delta|\omega|^2=2|\omega|\Delta|\omega|+2|\nabla|\omega||^2$ gives the computable cap
+
+$$\frac{D_\tau\log(\kappa a_n)}{}\le\frac{\text{bend}}{\kappa}-2\,D_\tau\log e+4\nu\frac{\Delta|\omega|}{|\omega|}-2\,b\!\cdot\!Sb \tag{KC4}$$
+
+The two readings differ in kind. (KC2) is the *frozen-field* part of the material rate:
+it is what a steady flow would produce at the same point, and the clock's closed-form
+controls, being steady, could not separate it from the full rate. (KC3) is a *material*
+statement, because the vorticity equation carries $\partial_t\omega$. The measurement
+reports both, together with the unsteady part $\partial_t\log(\kappa a_n)$ that completes
+the material increment.
+
+**Result.** Along the three retained families over $t\in[0,2]$, the cap (KC4) holds at
+every one of the $3075$ evaluated lattice points with a deficit of exactly zero, and the
+frozen-field rate integrates to the advective increment to $9.6\times10^{-6}$,
+$2.3\times10^{-5}$ and $7.1\times10^{-5}$ over $1024$ intervals each, against a declared
+bound of $10^{-4}$. The residual is a finite-difference floor rather than a quadrature
+error: at spacings $4,2,1$ on a common $64$-step window it falls $1.11\times10^{-5}\to
+5.55\times10^{-6}\to2.78\times10^{-6}$, halving with the spacing. The enstrophy identity
+(KC3) integrates along the tracer to $3.9\times10^{-9}$, $6.3\times10^{-7}$ and
+$1.4\times10^{-6}$, so the channel the cap charges is the flow's own enstrophy and not an
+estimate of it.
+
+**What funds the growth.** The material increment is $+0.44094$, $+0.95664$ and
+$+0.72186$ on the three families, and its advective part is $-0.002385$, $-0.001580$ and
+$-0.001648$: between $0.2\%$ and $0.5\%$ of the growth is the frozen-field channel and
+the rest is the field's own time evolution. In the rate balance the enstrophy channel
+carries the whole positive contribution ($+2.36$, $+4.56$, $+6.16$ mean against bending
+$-0.0069$, $-0.0086$, $-0.0138$ and binormal strain $+0.0080$, $+0.0099$, $+0.0274$), so
+the widening of the core is the decay of its own enstrophy: $D_\tau\log e\approx-1.18$
+on the wide family, whose $|\omega|$ falls to $0.31$ of its initial value.
+
+**What this settles and what it does not.** The transverse strain at the vorticity core
+is now charged, point by point and exactly, to the flow's enstrophy and viscous budget,
+and the charge is verified against the enstrophy identity itself rather than against a
+model of it. The retained families supply no counterexample to the cap, and no steady
+flow can supply the growth at all, which removes the frozen-field route to it. The step
+that remains open is the same one the enstrophy has always left open: a finite-time bound
+on the cumulative enstrophy from general smooth data. With that bound the cap becomes a
+bound on the coherence modulus; without it the criterion stays conditional, and
+arbitrary-data regularity remains **UNRESOLVED**.
+
+## 7. Evidence
 
 | Check | Result |
 |---|---|
@@ -152,9 +211,21 @@ data.
 | Window margin below the pole, all families | largest $0.693468$ over nine checkpoints |
 | Independent verifier, clock receipt | $125$ checks, $0$ failures; mutation control fires |
 | Independent verifier, saturation receipt | $34$ checks, $0$ failures; mutation control fires |
+| (KF) frame closure over the budget lattice | worst $1.4\times10^{-16}$ over $3075$ evaluated points |
+| (KC2) against the advective increment, three families | $9.6\times10^{-6}$, $2.3\times10^{-5}$, $7.1\times10^{-5}$ over $1024$ intervals each |
+| Interval residual under lattice refinement, spacings $4,2,1$ | $1.11\times10^{-5}\to5.55\times10^{-6}\to2.78\times10^{-6}$ |
+| (KC4) cap deficit against the advective increment | exactly $0$ at every evaluated point |
+| (KC3) against the integrated enstrophy identity | $3.9\times10^{-9}$, $6.3\times10^{-7}$, $1.4\times10^{-6}$ |
+| Advective share of the material increment | $0.5\%$, $0.2\%$, $0.2\%$ |
+| Independent verifier, budget receipt | $26$ checks, $0$ failures; mutation control fires |
 
-The receipts are `runs/20260921_curvature_clock/curvature_clock_receipt.json` and
-`runs/20260921_curvature_clock_saturation/curvature_clock_saturation_receipt.json`.
+The receipts are `runs/20260921_curvature_clock/curvature_clock_receipt.json`,
+`runs/20260921_curvature_clock_saturation/curvature_clock_saturation_receipt.json` and
+`runs/20260921_curvature_budget/curvature_budget_receipt.json`.
+`computations/verify_navier_stokes_curvature_budget.py` recomputes the frame
+orthonormality, the closure, the three rate forms, the interval integrals, the
+advective/unsteady split and the cap deficit from the stored values alone, and fails on a
+perturbed stored value.
 `computations/verify_navier_stokes_curvature_clock.py` rebuilds every derived number from
 the stored raw tensors with its own algebra and checks the controls against closed forms
 re-derived inside the verifier;
@@ -170,3 +241,4 @@ window's initial checkpoint against the clock receipt.
 - `turbulence/navier-stokes-helical-dynamic-depletion.md`—the retained coherent helical tube families and their measured positive production
 - `computations/navier-stokes-curvature-clock-prereg.md`, `computations/navier_stokes_curvature_clock.py`, `computations/verify_navier_stokes_curvature_clock.py`—the clock protocol, its producer and its independent verifier
 - `computations/navier-stokes-curvature-clock-saturation-prereg.md`, `computations/navier_stokes_curvature_clock_saturation.py`, `computations/verify_navier_stokes_curvature_clock_saturation.py`—the saturation window, its producer and its independent verifier
+- `computations/navier-stokes-curvature-budget-prereg.md`, `computations/navier_stokes_curvature_budget.py`, `computations/verify_navier_stokes_curvature_budget.py`—the enstrophy-budget protocol, its producer and its independent verifier
