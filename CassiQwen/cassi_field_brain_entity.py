@@ -1562,6 +1562,7 @@ class FieldBrainEntity:
         memory: CassiFieldWorkMemory | None = None,
         surface_backends: Sequence[Any] = (),
         surface_authorizer: Callable[[Mapping[str, Any]], bool | Mapping[str, Any]] | None = None,
+        activities: Sequence[Any] = (),
     ) -> None:
         if (
             not isinstance(surface_backends, Sequence)
@@ -1573,6 +1574,11 @@ class FieldBrainEntity:
         surface_backends = tuple(surface_backends)
         if len(surface_backends) > 16:
             raise ValueError("at most 16 Surface backends may be configured")
+        if not isinstance(activities, Sequence) or isinstance(activities, (str, bytes, Mapping)):
+            raise ValueError("activities must be a sequence of host-configured capabilities")
+        activities = tuple(activities)
+        if len(activities) > 16:
+            raise ValueError("at most 16 hosted activities may be configured")
         self._surface_authorizer = surface_authorizer
         self.surface_broker: Any | None = None
         self.config = config
@@ -1734,7 +1740,24 @@ class FieldBrainEntity:
             surface_broker=self.surface_broker,
         )
         self.researcher.capabilities.surface_entity = self
+        self.activities: dict[str, Any] = {}
         self._closed = False
+        try:
+            for activity in activities:
+                name = _identifier(getattr(activity, "activity_id", None), "activity_id")
+                if name in self.activities:
+                    raise ValueError(f"duplicate hosted activity: {name}")
+                if not all(callable(getattr(activity, method, None)) for method in ("describe", "attach", "run")):
+                    raise ValueError(f"hosted activity lacks its operational methods: {name}")
+                description = activity.describe()
+                if not isinstance(description, Mapping) or not isinstance(description.get("operations"), (tuple, list)):
+                    raise ValueError(f"hosted activity has no operation catalog: {name}")
+                self.activities[name] = activity
+                activity.attach(self)
+            self.researcher.capabilities.activities = self.activities
+        except Exception:
+            self.close()
+            raise
     def _find_program_native_executable(self) -> Path | None:
         configured = self.config.program_native_runtime_executable
         if configured is not None:
@@ -1764,23 +1787,29 @@ class FieldBrainEntity:
             try:
                 self.researcher.stop()
             finally:
-                broker = self.surface_broker
-                self.surface_broker = None
                 try:
-                    if broker is not None:
-                        broker.close()
+                    for activity in self.activities.values():
+                        close = getattr(activity, "close", None)
+                        if callable(close):
+                            close()
                 finally:
-                    if self.organism is not None:
-                        self.organism.close()
-                    brain_close = getattr(self.brain, "close", None)
-                    if callable(brain_close):
-                        brain_close()
-                    if self._program_physical_runtime is not None:
-                        self._program_physical_runtime.shutdown()
-                        self._program_physical_runtime = None
-                    if self._owns_memory:
-                        self.memory.close()
-                    self._closed = True
+                    broker = self.surface_broker
+                    self.surface_broker = None
+                    try:
+                        if broker is not None:
+                            broker.close()
+                    finally:
+                        if self.organism is not None:
+                            self.organism.close()
+                        brain_close = getattr(self.brain, "close", None)
+                        if callable(brain_close):
+                            brain_close()
+                        if self._program_physical_runtime is not None:
+                            self._program_physical_runtime.shutdown()
+                            self._program_physical_runtime = None
+                        if self._owns_memory:
+                            self.memory.close()
+                        self._closed = True
 
     def __enter__(self) -> "FieldBrainEntity":
         return self
@@ -9933,6 +9962,7 @@ def open_local_entity(
     program_native_device_index: int = 0,
     surface_backends: Sequence[Any] = (),
     surface_authorizer: Callable[[Mapping[str, Any]], bool | Mapping[str, Any]] | None = None,
+    activities: Sequence[Any] = (),
 ) -> FieldBrainEntity:
     """Open the field–brain profile against resident Qwen by default.
 
@@ -10001,6 +10031,7 @@ def open_local_entity(
         brain=client,
         surface_backends=surface_backends,
         surface_authorizer=surface_authorizer,
+        activities=activities,
     )
     if isinstance(client, ResidentQwenClient):
         try:

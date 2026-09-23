@@ -35,6 +35,7 @@ from cassi_field_brain_entity import (
     TurnNotFound,
     open_local_entity,
 )
+from cassi_entity_activities import NetHackActivity, TradingActivity
 from surface.records import (
     SurfaceAuthorizationError,
     SurfaceCapabilityError,
@@ -45,6 +46,7 @@ from surface.linux_audio import WslPulseAudioBackend
 from surface.linux_session import LinuxSessionSupervisor
 from surface.rfb import LinuxXvncBackend
 from surface.trading_paper import TradingPaperSurfaceBackend
+from surface.mission_authority import MissionAuthority
 
 
 class SurfaceOriginDenied(PermissionError):
@@ -63,12 +65,14 @@ class EntityHTTPServer(ThreadingHTTPServer):
         entity: FieldBrainEntity,
         *,
         api_token: str,
+        surface_authority: MissionAuthority | None = None,
     ) -> None:
         if not isinstance(api_token, str) or len(api_token) < 32:
             raise ValueError("entity API token must contain at least 32 characters")
         super().__init__(address, EntityRequestHandler)
         self.entity = entity
         self.api_token = api_token
+        self.surface_authority = surface_authority
 
     def serve_forever(self, poll_interval: float = 0.5) -> None:
         if self.entity.config.research_resident_enabled:
@@ -161,9 +165,11 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         if supplied is None or not hmac.compare_digest(supplied, expected):
             raise PermissionError("a valid bearer token is required")
 
-    def _require_surface_origin(self) -> None:
+    def _require_surface_origin(self, *, required: bool = False) -> None:
         origin = self.headers.get("origin")
         if origin is None:
+            if required:
+                raise SurfaceOriginDenied("human Surface approval requires a same-origin browser request")
             return
         parsed = urlparse(origin)
         host = self.headers.get("host", "")
@@ -310,6 +316,20 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         if route[:2] != ["v1", "surface"]:
             return False
         self._require_surface_origin()
+        if parsed.path == "/v1/surface/mission-authority/status":
+            values = parse_qs(parsed.query, strict_parsing=True)
+            if set(values) != {"program_id", "binding_id"} or any(
+                len(items) != 1 for items in values.values()
+            ):
+                raise ValueError("mission authority status requires one program_id and binding_id")
+            authority = self.server.surface_authority
+            self._json(
+                HTTPStatus.OK,
+                authority.status(values["program_id"][0], values["binding_id"][0])
+                if authority is not None
+                else {"configured": False, "active": False, "state": "unavailable"},
+            )
+            return True
         if parsed.path == "/v1/surface":
             values = parse_qs(parsed.query, strict_parsing=True)
             if set(values) != {"program_id"} or len(values["program_id"]) != 1:
@@ -541,6 +561,58 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         )
         if parsed.query and not query_route:
             raise ValueError("this Surface mutation route does not accept query fields")
+        if parsed.path == "/v1/surface/mission-authority/approve":
+            self._require_surface_origin(required=True)
+            authority = self.server.surface_authority
+            if authority is None:
+                raise PermissionError("host human Surface authority is not configured")
+            supplied = self.headers.get("x-cassi-surface-human-token")
+            if not authority.verify_token(supplied):
+                raise PermissionError("a valid separate human Surface token is required")
+            self._allowed(
+                body,
+                {
+                    "program_id", "program_generation", "mission_sha256", "binding_id",
+                    "backend_id", "source_id", "source_instance", "source_epoch",
+                    "environment_incarnation", "geometry_revision", "operations",
+                    "expires_ns", "max_updates",
+                },
+                set(),
+            )
+            self._json(HTTPStatus.CREATED, authority.approve_mission(self.server.entity, body))
+            return True
+        if parsed.path == "/v1/surface/mission-authority/take-control":
+            self._require_surface_origin(required=True)
+            authority = self.server.surface_authority
+            if authority is None:
+                raise PermissionError("host human Surface authority is not configured")
+            supplied = self.headers.get("x-cassi-surface-human-token")
+            if not authority.verify_token(supplied):
+                raise PermissionError("a valid separate human Surface token is required")
+            self._allowed(
+                body,
+                {
+                    "program_id", "program_generation", "mission_sha256", "binding_id",
+                    "backend_id", "source_id", "source_instance", "source_epoch",
+                    "environment_incarnation", "geometry_revision", "operations", "expires_ns",
+                },
+                set(),
+            )
+            self._json(
+                HTTPStatus.CREATED,
+                authority.take_control(self.server.entity, body, supplied),
+            )
+            return True
+        if parsed.path == "/v1/surface/mission-authority/revoke":
+            self._allowed(body, {"program_id", "binding_id"}, set())
+            authority = self.server.surface_authority
+            if authority is not None:
+                authority.revoke_approval(body["program_id"], body["binding_id"])
+            result = self.server.entity.revoke_surface(
+                body["binding_id"], program_id=body["program_id"]
+            )
+            self._json(HTTPStatus.OK, {**dict(result), "mission_authority_revoked": True})
+            return True
         if parsed.path == "/v1/surface/bind":
             self._allowed(body, {"program_id", "backend_id", "source_id"}, set())
             self._json(
@@ -694,14 +766,10 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
                 values = parse_qs(parsed.query, strict_parsing=True)
                 if set(values) != {"program_id"} or len(values["program_id"]) != 1:
                     raise ValueError(f"{action} requires one program_id")
-                self._allowed(body, set(), set())
-                method = {
-                    "release": self.server.entity.release_surface,
-                    "pause": self.server.entity.pause_surface,
-                    "resume": self.server.entity.resume_surface,
-                    "revoke": self.server.entity.revoke_surface,
-                    "release-human": self.server.entity.release_surface_human,
-                }[action]
+                if action == "revoke" and self.server.surface_authority is not None:
+                    self.server.surface_authority.revoke_approval(
+                        values["program_id"][0], binding_id
+                    )
                 self._json(
                     HTTPStatus.OK,
                     method(binding_id, program_id=values["program_id"][0]),
@@ -1058,7 +1126,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
                 {
                     "priority", "cycle_limit", "allowed_roots",
                     "allowed_tools", "network_hosts", "deliverable",
-                    "surface_scope", "responsibility",
+                    "surface_scope", "activity_scope", "responsibility",
                 },
             )
             self._json(
@@ -1754,6 +1822,11 @@ def main() -> None:
     parser.add_argument("--resident-threads", type=int, default=8)
     parser.add_argument("--api-token-file", type=Path, required=True)
     parser.add_argument(
+        "--surface-human-token-file",
+        type=Path,
+        help="opt in to host-owned Surface mission approval; absent keeps Surface observation-only",
+    )
+    parser.add_argument(
         "--trading-paper-view",
         type=Path,
         help="register a verified read-only paper application view on Surface",
@@ -1762,6 +1835,17 @@ def main() -> None:
         "--surface-linux-config",
         type=Path,
         help="host-owned dedicated Linux session and authenticated RFB transport config",
+    )
+    parser.add_argument(
+        "--enable-nethack-activity", action="store_true",
+        help="offer bounded NetHack lives to explicitly scoped research programmes",
+    )
+    parser.add_argument("--nethack-program", type=Path, help="fixed local NetHack executable")
+    parser.add_argument("--trading-activity-home", type=Path, help="canonical trading member home")
+    parser.add_argument("--trading-activity-db", type=Path, help="canonical closed-bar ingestion SQLite database")
+    parser.add_argument(
+        "--trading-paper-program-id",
+        help="opt in to simulated paper steps for exactly this active entity programme",
     )
     parser.add_argument("--port", type=int, default=8090)
     parser.add_argument("--entity-id", default="cassi")
@@ -1796,13 +1880,37 @@ def main() -> None:
     arguments = parser.parse_args()
     if not 1 <= arguments.port <= 65_535:
         parser.error("--port must be in 1..65535")
+    if arguments.nethack_program is not None and not arguments.enable_nethack_activity:
+        parser.error("--nethack-program requires --enable-nethack-activity")
+    if (arguments.trading_activity_home is None) != (arguments.trading_activity_db is None):
+        parser.error("--trading-activity-home and --trading-activity-db must be supplied together")
+    if arguments.trading_paper_program_id and arguments.trading_activity_db is None:
+        parser.error("--trading-paper-program-id requires the canonical trading activity")
     try:
         api_token = arguments.api_token_file.read_text(encoding="utf-8").strip()
     except OSError as exc:
         parser.error(f"cannot read --api-token-file: {exc}")
     if len(api_token) < 32:
         parser.error("--api-token-file must contain at least 32 characters")
+    surface_authority = None
+    if arguments.surface_human_token_file is not None:
+        try:
+            human_token = arguments.surface_human_token_file.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            parser.error(f"cannot read --surface-human-token-file: {exc}")
+        if len(human_token) < 32:
+            parser.error("--surface-human-token-file must contain at least 32 characters")
+        surface_authority = MissionAuthority(human_token)
     with ExitStack() as owned:
+        activities: list[Any] = []
+        if arguments.enable_nethack_activity:
+            activities.append(NetHackActivity(program=arguments.nethack_program))
+        if arguments.trading_activity_db is not None:
+            activities.append(TradingActivity(
+                data_home=arguments.trading_activity_home,
+                ingestion_db=arguments.trading_activity_db,
+                paper_program_id=arguments.trading_paper_program_id,
+            ))
         surface_backends: list[Any] = []
         if arguments.trading_paper_view is not None:
             surface_backends.append(TradingPaperSurfaceBackend(arguments.trading_paper_view))
@@ -1852,9 +1960,18 @@ def main() -> None:
             program_native_runtime_executable=arguments.program_native_runtime,
             program_native_device_index=arguments.program_native_device,
             surface_backends=tuple(surface_backends),
+            surface_authorizer=surface_authority,
+            activities=tuple(activities),
         )
         owned.callback(entity.close)
-        server = EntityHTTPServer(("127.0.0.1", arguments.port), entity, api_token=api_token)
+        if surface_authority is not None:
+            surface_authority.bind_entity(entity)
+        server = EntityHTTPServer(
+            ("127.0.0.1", arguments.port),
+            entity,
+            api_token=api_token,
+            surface_authority=surface_authority,
+        )
         owned.callback(server.server_close)
         print(
             json.dumps(

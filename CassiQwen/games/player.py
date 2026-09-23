@@ -13,7 +13,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from games.fieldmemory import Route, aim_words
 from games.livingmemory import SEEK_LIMIT
@@ -407,6 +407,10 @@ def _action_words(raw: str) -> str:
     return " ".join(text.split())
 
 
+class BrainRequiredError(RuntimeError):
+    """No usable model action was returned while fallback was forbidden."""
+
+
 class BrainPlayer:
     """The live pretrained brain decides, one action at a time."""
 
@@ -417,12 +421,30 @@ class BrainPlayer:
         *,
         url: str = DEFAULT_BRAIN_URL,
         model: str | None = None,
+        completion: Callable[..., Mapping[str, Any]] | None = None,
         timeout: float = BRAIN_TIMEOUT,
+        require_brain: bool = False,
+        action_max_tokens: int = BRAIN_MAX_TOKENS,
+        reflection_max_tokens: int = REFLECT_MAX_TOKENS,
         fallback: Player | None = None,
     ) -> None:
+        for name, value, maximum in (
+            ("action_max_tokens", action_max_tokens, BRAIN_MAX_TOKENS),
+            ("reflection_max_tokens", reflection_max_tokens, REFLECT_MAX_TOKENS),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 1 <= value <= maximum
+            ):
+                raise ValueError(f"{name} must be an integer from 1 to {maximum}")
         self.url = url.rstrip("/")
         self.model = model
+        self.completion = completion
         self.timeout = float(timeout)
+        self.require_brain = bool(require_brain)
+        self.action_max_tokens = action_max_tokens
+        self.reflection_max_tokens = reflection_max_tokens
         self.fallback = fallback or ScriptedExplorer()
         self.calls = 0
         self.failures = 0
@@ -438,6 +460,15 @@ class BrainPlayer:
         """The name the brain answers to, asked of the brain itself."""
         if self.model:
             return self.model
+        if self.completion is not None:
+            owner = getattr(self.completion, "__self__", None)
+            identity = getattr(self.completion, "model_id", None) or getattr(
+                owner, "model_id", None
+            )
+            if identity:
+                self.model = str(identity)
+                return self.model
+            raise RuntimeError("the resident brain has no model name")
         request = urllib.request.Request(f"{self.url}/v1/models", method="GET")
         with urllib.request.urlopen(request, timeout=min(self.timeout, 30.0)) as response:
             payload = json.loads(response.read().decode("utf-8"))
@@ -455,6 +486,29 @@ class BrainPlayer:
         *,
         max_tokens: int = BRAIN_MAX_TOKENS,
     ) -> str:
+        if self.completion is not None:
+            self.served_model()
+            prompt = "\n\n".join(
+                f"{message.get('role', 'user').upper()}:\n{message.get('content', '')}"
+                for message in messages
+            )
+            try:
+                response = self.completion(
+                    prompt=prompt,
+                    max_tokens=int(max_tokens),
+                    thinking=self.thinking_enabled,
+                    response_format=None,
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"resident brain completion failed ({type(exc).__name__})"
+                ) from exc
+            if not isinstance(response, Mapping):
+                raise RuntimeError("resident brain returned an invalid completion")
+            content = response.get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise RuntimeError("resident brain returned no usable content")
+            return content
         body: dict[str, Any] = {
             "model": self.served_model(),
             "messages": list(messages),
@@ -630,6 +684,8 @@ class BrainPlayer:
                 "one action are read too."
             )
         )
+        if self.action_max_tokens <= 64:
+            user += "\nKeep the reply minimal; a bare listed action key is valid."
         return user
 
     def _ask(
@@ -661,7 +717,7 @@ class BrainPlayer:
         ]
         started = time.time()
         try:
-            text = self._request(messages)
+            text = self._request(messages, max_tokens=self.action_max_tokens)
         except (urllib.error.URLError, TimeoutError, OSError, RuntimeError, ValueError) as exc:
             self.last_latency = time.time() - started
             return None, "", f"brain unavailable ({type(exc).__name__})", 0, ""
@@ -724,7 +780,7 @@ class BrainPlayer:
                 f"You chose {chosen.label!r} and it did not move you: that way is "
                 "blocked. Choose a different action."
             )
-            retry, retry_reason, _retry_complaint, retry_used, retry_want = self._ask(
+            retry, retry_reason, retry_complaint, retry_used, retry_want = self._ask(
                 observation=observation,
                 actions=actions,
                 recent=recent,
@@ -732,6 +788,12 @@ class BrainPlayer:
                 memory=memory,
                 remembered=remembered,
             )
+            if retry is None and self.require_brain:
+                self.failures += 1
+                raise BrainRequiredError(
+                    "required brain did not return a usable action during blocked-move retry: "
+                    f"{retry_complaint or 'unknown failure'}"
+                )
             if retry is not None and not self._repeats_a_block(recent, retry):
                 return Decision(
                     retry,
@@ -755,6 +817,11 @@ class BrainPlayer:
         if chosen is not None:
             return Decision(chosen, reason[:200], self.name, used=used, want=want)
         self.failures += 1
+        if self.require_brain:
+            raise BrainRequiredError(
+                "required brain did not return a usable action: "
+                f"{complaint or 'unknown failure'}"
+            )
         decision = self.fallback.decide(
             observation=observation, actions=actions, recent=recent
         )
@@ -801,7 +868,7 @@ class BrainPlayer:
             {"role": "user", "content": user},
         ]
         try:
-            text = self._request(messages, max_tokens=REFLECT_MAX_TOKENS)
+            text = self._request(messages, max_tokens=self.reflection_max_tokens)
         except (urllib.error.URLError, TimeoutError, OSError, RuntimeError, ValueError) as exc:
             self.reflections += 1
             self.reflection_failures += 1
@@ -824,6 +891,9 @@ class BrainPlayer:
             "name": self.name,
             "url": self.url,
             "model": self.model,
+            "require_brain": self.require_brain,
+            "action_max_tokens": self.action_max_tokens,
+            "reflection_max_tokens": self.reflection_max_tokens,
             "calls": self.calls,
             "failures": self.failures,
             "nudges": self.nudges,

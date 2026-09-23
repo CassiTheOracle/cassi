@@ -419,33 +419,50 @@ class Memories:
 
 
 class GameMemory:
-    """The living memory as the game uses it, over a field home on disk."""
+    """Game memory that may own or borrow its underlying field-memory service."""
 
     def __init__(
         self,
-        home: Path | str = DEFAULT_HOME,
+        home: Path | str | None = None,
         *,
+        memory: Any | None = None,
         workspace_bytes: int = GAME_WORKSPACE_BYTES,
         modes: int = GAME_MODES,
     ) -> None:
-        from cassi_field_qwen_workbench import (  # local: the game plays without it
-            CassiFieldWorkMemory,
-        )
-        from cassi_field_owner import CapacityLimits
+        if memory is None:
+            from cassi_field_qwen_workbench import (  # local: the game plays without it
+                CassiFieldWorkMemory,
+            )
+            from cassi_field_owner import CapacityLimits
 
-        self.home = Path(home)
-        self.home.mkdir(parents=True, exist_ok=True)
-        # A life writes memory on every decision it acts on and every situation
-        # it wakes, so the games home is given a region with room for a long
-        # history rather than the workbench's default.
-        self._memory = CassiFieldWorkMemory(
-            self.home,
-            limits=CapacityLimits(
-                max_state_bytes=max(workspace_bytes * 2, 128 * 1024 * 1024),
-                max_workspace_bytes=workspace_bytes,
-            ),
-            profile_overrides={"mode_count": modes},
-        )
+            self.home = Path(DEFAULT_HOME if home is None else home)
+            self.home.mkdir(parents=True, exist_ok=True)
+            # A life writes memory on every decision it acts on and every situation
+            # it wakes, so the games home is given a region with room for a long
+            # history rather than the workbench's default.
+            self._memory = CassiFieldWorkMemory(
+                self.home,
+                limits=CapacityLimits(
+                    max_state_bytes=max(workspace_bytes * 2, 128 * 1024 * 1024),
+                    max_workspace_bytes=workspace_bytes,
+                ),
+                profile_overrides={"mode_count": modes},
+            )
+            self._owns_memory = True
+        else:
+            data_home = getattr(memory, "data_home", None)
+            if home is None:
+                home = data_home
+            if home is None:
+                raise ValueError("borrowed game memory requires its existing data_home")
+            self.home = Path(home)
+            if (
+                data_home is not None
+                and Path(data_home).resolve() != self.home.resolve()
+            ):
+                raise ValueError("borrowed game memory home must match its existing data_home")
+            self._memory = memory
+            self._owns_memory = False
         self.recalls = 0
         self.uses = 0
         self.cancels = 0
@@ -1052,7 +1069,8 @@ class GameMemory:
 
     def close(self) -> None:
         if not self.closed:
-            self._memory.close()
+            if self._owns_memory:
+                self._memory.close()
             self.closed = True
 
     def as_dict(self) -> Mapping[str, Any]:

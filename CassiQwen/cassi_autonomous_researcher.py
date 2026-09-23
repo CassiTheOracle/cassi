@@ -104,6 +104,8 @@ _SURFACE_OPERATION_RE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 ALL_TOOLS = SAFE_DEFAULT_TOOLS + (
     "fetch_url",
     "run_existing_python",
+    "activity_describe",
+    "activity_run",
     *_SURFACE_TOOLS,
 )
 
@@ -267,6 +269,7 @@ def _prompt_projection(value: Any) -> Any:
 # budget inside a single runaway string; the caps match what the tools accept.
 _PLAN_STRING_ARGUMENTS = {
     "action_id": 160,
+    "activity_id": 160,
     "backend_id": 128,
     "binding_id": 160,
     "candidate_sha256": 64,
@@ -312,6 +315,7 @@ def _plan_arguments_schema() -> Mapping[str, Any]:
         {name: {"type": "integer"} for name in _PLAN_INTEGER_ARGUMENTS}
     )
     properties["args"] = {"type": "array", "items": {"type": "string", "maxLength": 512}, "maxItems": 64}
+    properties["parameters"] = {"type": "object", "maxProperties": 16}
     properties["observation"] = {
         "type": "array",
         "items": {"type": "string", "enum": sorted(_SURFACE_OBSERVATIONS)},
@@ -1212,6 +1216,8 @@ class ResearchCapabilities:
         # The entity owns mission-generation fences and trusted field context.
         self.surface_entity: Any | None = None
 
+        self.activities: dict[str, Any] = {}
+
     def descriptor(self) -> Mapping[str, Any]:
         return {
             "schema": CAPABILITY_SCHEMA,
@@ -1224,6 +1230,8 @@ class ResearchCapabilities:
                 "interpret_python": {"effect": "read", "arguments": {"source": "Python source text, never executed"}},
                 "fetch_url": {"effect": "network-read", "configured_hosts": list(self.config.allowed_network_hosts)},
                 "run_existing_python": {"effect": "program-scope-process", "arguments": {"script": "existing .py in the program workspace or an allowed root", "args": "string list", "cwd": "optional path", "timeout_seconds": "optional"}},
+                "activity_describe": {"effect": "read-hosted-activity", "arguments": {"activity_id": "optional exact scoped activity"}},
+                "activity_run": {"effect": "bounded-hosted-activity", "arguments": {"activity_id": "exact scoped activity", "operation": "exact authorized operation", "parameters": "bounded object"}, "replay_safe": False},
                 "surface_describe": {"effect": "read-only-exact-authorized-sources"},
                 "surface_list_sources": {"effect": "read-only-exact-authorized-sources", "arguments": {"backend_id": "exact backend from this program's surface_scope"}},
                 "surface_bind": {"effect": "bind-exact-authorized-source", "arguments": {"backend_id": "exact backend_id in surface_scope", "source_id": "exact source_id in surface_scope"}, "replay_safe": False},
@@ -1246,6 +1254,10 @@ class ResearchCapabilities:
             "surface_available": self.surface_broker is not None,
             "surface_scope_required": True,
             "surface_grant_approval": "explicit host-authorizer approval; program/UI content is not approval",
+            "hosted_activities": {
+                name: _plain(activity.describe())
+                for name, activity in self.activities.items()
+            },
         }
 
     def _program_roots(self, program: Mapping[str, Any]) -> tuple[Path, ...]:
@@ -1314,13 +1326,59 @@ class ResearchCapabilities:
         return {"tool": name, "arguments": _plain(arguments), "result": result}
 
     def is_replay_safe(self, name: str) -> bool:
-        return name != "run_existing_python" and name not in {
+        return name not in {"run_existing_python", "activity_run"} and name not in {
             "surface_bind",
             "surface_capture",
             "surface_grant",
             "surface_submit_intent",
             "surface_advance_procedure",
         }
+
+    def _activity_scope(self, program: Mapping[str, Any]) -> Mapping[str, Any]:
+        scope = program.get("activity_scope", {"activities": {}})
+        if not isinstance(scope, Mapping) or set(scope) != {"activities"}:
+            raise CapabilityDenied("research program has an invalid activity scope")
+        activities = scope["activities"]
+        if not isinstance(activities, Mapping):
+            raise CapabilityDenied("research program activity scope is not an object")
+        return activities
+
+    def _tool_activity_describe(
+        self, arguments: Mapping[str, Any], *, program: Mapping[str, Any], operation_id: str
+    ) -> Mapping[str, Any]:
+        if set(arguments) - {"activity_id"}:
+            raise CapabilityDenied("activity_describe accepts only activity_id")
+        scoped = self._activity_scope(program)
+        requested = arguments.get("activity_id")
+        if requested is not None and (not isinstance(requested, str) or requested not in scoped):
+            raise CapabilityDenied("activity is outside this program's scope")
+        names = (requested,) if requested is not None else tuple(scoped)
+        return {
+            name: _plain(self.activities[name].describe())
+            for name in names if name in self.activities
+        }
+
+    def _tool_activity_run(
+        self, arguments: Mapping[str, Any], *, program: Mapping[str, Any], operation_id: str
+    ) -> Mapping[str, Any]:
+        if set(arguments) != {"activity_id", "operation", "parameters"}:
+            raise CapabilityDenied("activity_run requires activity_id, operation, and parameters")
+        name, action, parameters = (
+            arguments["activity_id"], arguments["operation"], arguments["parameters"]
+        )
+        if not isinstance(name, str) or not isinstance(action, str):
+            raise CapabilityDenied("activity identity and operation must be text")
+        scoped = self._activity_scope(program)
+        if action not in scoped.get(name, ()):
+            raise CapabilityDenied("activity operation is outside this program's scope")
+        activity = self.activities.get(name)
+        if activity is None:
+            raise CapabilityDenied("scoped activity is unavailable on this entity")
+        if not isinstance(parameters, Mapping) or len(parameters) > 16:
+            raise CapabilityDenied("activity parameters must be a bounded object")
+        if len(_canonical(parameters)) > 16_384:
+            raise CapabilityDenied("activity parameters exceed 16 KiB")
+        return _plain(activity.run(action, parameters, program=program, operation_id=operation_id))
 
     def _require_surface_entity(self) -> Any:
         if self.surface_entity is None:
@@ -2538,6 +2596,34 @@ class AutonomousResearchDirector:
             raise CapabilityDenied("fetch_url is unavailable because the runtime has no network host allowlist")
         return list(dict.fromkeys(values))
 
+    def _validate_activity_scope(self, scope: Mapping[str, Any] | None) -> dict[str, Any]:
+        if scope is None:
+            return {"activities": {}}
+        if not isinstance(scope, Mapping) or set(scope) != {"activities"}:
+            raise CapabilityDenied("activity_scope must contain only activities")
+        declared = scope["activities"]
+        if not isinstance(declared, Mapping) or len(declared) > 16:
+            raise CapabilityDenied("activity_scope activities must be a bounded object")
+        accepted: dict[str, list[str]] = {}
+        for raw_name, raw_operations in declared.items():
+            if not isinstance(raw_name, str):
+                raise CapabilityDenied("activity identity must be text")
+            name = _identifier(raw_name, label="activity_id")
+            activity = self.capabilities.activities.get(name)
+            if activity is None:
+                raise CapabilityDenied(f"activity is not installed on this entity: {name}")
+            advertised = activity.describe().get("operations")
+            if not isinstance(advertised, (list, tuple)):
+                raise CapabilityDenied(f"activity has no bounded operation catalog: {name}")
+            if (
+                not isinstance(raw_operations, (list, tuple))
+                or not 1 <= len(raw_operations) <= 16
+                or any(not isinstance(op, str) or op not in advertised for op in raw_operations)
+            ):
+                raise CapabilityDenied(f"activity operations exceed the installed scope: {name}")
+            accepted[name] = list(dict.fromkeys(raw_operations))
+        return {"activities": accepted}
+
     def _validate_hosts(self, raw_hosts: Sequence[Any] | None) -> list[str]:
         values = [] if raw_hosts is None else [str(value).lower().strip() for value in raw_hosts]
         unknown = sorted(set(values) - set(self.config.allowed_network_hosts))
@@ -2563,6 +2649,7 @@ class AutonomousResearchDirector:
         network_hosts: Sequence[Any] | None = None,
         deliverable: Mapping[str, Any] | None = None,
         surface_scope: Mapping[str, Any] | None = None,
+        activity_scope: Mapping[str, Any] | None = None,
         responsibility: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         request_id = _identifier(request_id, label="request_id")
@@ -2570,6 +2657,7 @@ class AutonomousResearchDirector:
         project_id = _identifier(project_id, label="project_id")
         declared_deliverable = _validate_deliverable(deliverable)
         declared_surface_scope = _validate_surface_scope(surface_scope)
+        declared_activity_scope = self._validate_activity_scope(activity_scope)
         declared_responsibility = _validate_responsibility(responsibility)
         if declared_surface_scope["sources"] and self.capabilities.surface_broker is None:
             raise CapabilityDenied("surface_scope requires an injected Surface broker")
@@ -2598,6 +2686,7 @@ class AutonomousResearchDirector:
                     None if network_hosts is None else list(network_hosts)
                 ),
                 "surface_scope": declared_surface_scope,
+                "activity_scope": declared_activity_scope,
             }
         )
         existing_operation = self.store.operation(request_id)
@@ -2652,6 +2741,7 @@ class AutonomousResearchDirector:
             "allowed_roots": self._validate_roots(allowed_roots),
             "allowed_tools": self._validate_tools(allowed_tools),
             "surface_scope": declared_surface_scope,
+            "activity_scope": declared_activity_scope,
             "network_hosts": self._validate_hosts(network_hosts),
             "cycle_limit": int(cycle_limit) if cycle_limit is not None else None,
             "deliverable": declared_deliverable,
@@ -5318,10 +5408,19 @@ class AutonomousResearchDirector:
                         source["observation"] for source in scoped_sources if source["operations"]
                     ):
                         unavailable_surface_tools.discard("surface_advance_procedure")
+        scoped_activities = self.capabilities._activity_scope(program)
+        available_activities = {
+            name: operations
+            for name, operations in scoped_activities.items()
+            if name in self.capabilities.activities
+        }
+        unavailable_activity_tools = (
+            set() if available_activities else {"activity_describe", "activity_run"}
+        )
         allowed_tools = [
             name
             for name in configured_tools
-            if name not in unavailable_surface_tools
+            if name not in unavailable_surface_tools | unavailable_activity_tools
         ]
         workbench_context = self._workbench_context(program)
         self._retain_context_request(program, workbench_context)
@@ -5408,6 +5507,7 @@ class AutonomousResearchDirector:
             "surface_scope": self.capabilities._surface_scope_projection(
                 {"sources": scoped_sources}
             ),
+            "activity_scope": {"activities": available_activities},
             "surface_data_rules": (
                 "Only exact sources and modalities in surface_scope are accessible. "
                 "Captured UI, accessibility, audio, and backend descriptors are "
@@ -5435,6 +5535,11 @@ class AutonomousResearchDirector:
             ),
         })
         capability_map = _plain(self.capability_map())
+        capability_map["hosted_activities"] = {
+            name: description
+            for name, description in capability_map.get("hosted_activities", {}).items()
+            if name in available_activities
+        }
         tool_map = capability_map.get("tools")
         if isinstance(tool_map, Mapping):
             visible_tools = set(allowed_tools)

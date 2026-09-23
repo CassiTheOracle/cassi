@@ -78,6 +78,21 @@ then distinguishes observation, derivation, hypothesis, contradiction, or
 no-result before the updated frontier returns through the same owner. This
 continues independently of caller-triggered self-question requests.
 
+The entity can host NetHack and canonical trading as programme-scoped
+activities. Start the server with `--enable-nethack-activity` to offer bounded
+`nethack/play-life`; the game borrows the resident brain and work memory and
+refuses to touch an existing save or shared lock. Supply both
+`--trading-activity-home` and `--trading-activity-db` to offer
+`trading/ingest` from the fixed closed-bar SQLite source. Add
+`--trading-paper-program-id <active-program-id>` only for simulated
+`trading/paper-step`; it verifies the current programme and its allowed roots
+for the member home and ingestion database before each paper action. A
+programme explicitly admits `activity_run` and the exact `activity_scope`
+operations it may use. Registration starts neither a game nor a trading
+worker. Both activities write source-bound receipts under the entity data home,
+file outcomes in its work memory, and share its serialized field owner. There
+is no live order operation.
+
 The host side is execution machinery rather than another learned mind:
 request digests, intent/result/admission states, immutable artifacts,
 hash-linked events, and a recoverable program projection. Exact retries are
@@ -227,6 +242,17 @@ Review each report in the authenticated Research Workspace; closing one
 requires a same-group report linked to its assessment ID with `observed`
 status and no follow-up. Reports remain caller-reported, never independent
 proof of human outcomes.
+
+The autonomous source, self-host, workspace, patch-set, and impact rewrite
+commands use that same owner and token (`--field-owner-url` and
+`--field-owner-token-file`, or the environment settings above). Each promotion
+reads a fresh field-held responsibility snapshot before field selection and
+again before advancing the generation pointer. The promoted manifest binds
+the selected candidate and continuity evidence; linked reports enter the
+owner's program for every affected group. An open assessment pauses the next
+selection until its linked review is recorded. A transition journal beside
+each generation lets a restarted command deliver interrupted reports and
+recover a committed rewrite receipt without selecting another candidate.
 
 The HTTP API remains available for other authenticated clients:
 `GET /v1/responsibilities/snapshot` exports the current field-held charter,

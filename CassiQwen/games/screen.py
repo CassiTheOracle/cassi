@@ -119,14 +119,16 @@ class ScreenWorld:
         mission_id: str,
         grant_id: str | Callable[[Mapping[str, Any]], str | Mapping[str, Any]] | None = None,
         *,
+        surface_backend: SurfaceTerminalBackend | None = None,
         max_updates: int = 4096,
     ) -> None:
         """Attach the host entity's live broker before starting this world.
 
-        With no supplied grant identifier, the broker's configured host
-        authorizer is asked for a fresh, bounded runner grant after each source
-        binding.  A callable may provide an already-issued grant for that exact
-        binding; a literal grant is consumed only once.
+        A supplied backend is already registered by the host and is reused
+        without registration here.  With no supplied grant identifier, the
+        broker's configured host authorizer is asked for a fresh, bounded runner
+        grant after each source binding.  A callable may provide an already-
+        issued grant for that exact binding; a literal grant is consumed once.
         """
         if self.session is not None or self._surface_binding is not None:
             raise WorldError("Surface must be configured before the terminal session starts")
@@ -150,6 +152,24 @@ class ScreenWorld:
             raise WorldError("Surface grant_id must be bounded nonempty text")
         if isinstance(max_updates, bool) or not isinstance(max_updates, int) or not 1 <= max_updates <= 4096:
             raise WorldError("Surface control updates must be bounded to 1..4096")
+        if surface_backend is not None:
+            if not isinstance(surface_backend, SurfaceTerminalBackend):
+                raise WorldError("hosted Surface backend must be a SurfaceTerminalBackend")
+            if (
+                surface_backend._cols != self.cols
+                or surface_backend._rows != self.rows
+                or not surface_backend.source_id.startswith(
+                    f"games.{self.name}.terminal."
+                )
+            ):
+                raise WorldError("hosted Surface backend does not match this game's terminal")
+            if (
+                self._surface_backend is not None
+                and self._surface_backend is not surface_backend
+            ):
+                raise WorldError("game world is already bound to a different Surface backend")
+            self._surface_backend = surface_backend
+            self._surface_backend_registered = True
         self._surface_broker = broker
         self._surface_mission_id = mission_id
         self._surface_grant_source = grant_id

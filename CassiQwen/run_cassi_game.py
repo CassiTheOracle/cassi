@@ -55,7 +55,9 @@ from games.livingmemory import (
 )
 from games.player import (  # noqa: E402
     BrainPlayer,
+    BrainRequiredError,
     Decision,
+    Player,
     ReflectedLesson,
     _glyph,
     make_player,
@@ -312,6 +314,7 @@ def close_life(
     error: str = "",
     briefing: Mapping[str, Any] | None = None,
     refused: Sequence[Mapping[str, str]] = (),
+    allow_reflection: bool = True,
 ) -> Mapping[str, Any]:
     """Settle the recollection, look back on the life, and file what it taught.
 
@@ -468,7 +471,7 @@ def close_life(
     registered: list[Mapping[str, Any]] = []
     sharpened: list[Mapping[str, Any]] = []
     set_aside: list[Mapping[str, Any]] = []
-    reflect: Any = getattr(player, "reflect", None)
+    reflect: Any = getattr(player, "reflect", None) if allow_reflection else None
     if callable(reflect):
         lessons, summary = reflect(
             story=story,
@@ -789,6 +792,8 @@ def play_life(
     surface_mission_id: str = "",
     surface_grant_id: Any = None,
     world: Any | None = None,
+    surface_backend: Any | None = None,
+    player: Player | None = None,
 ) -> Mapping[str, Any]:
     """Play one bounded life, close it out into the field, and write its receipt.
 
@@ -801,27 +806,59 @@ def play_life(
         raise RuntimeError("--surface requires an injected live SurfaceBroker")
     if surface_broker is not None and not surface_mission_id:
         raise RuntimeError("Surface mode requires the host mission_id")
+    if surface_backend is not None and surface_broker is None:
+        raise RuntimeError("a pre-registered Surface backend requires its host broker")
+    if surface_broker is not None and world is None:
+        raise RuntimeError(
+            "hosted Surface play requires an explicitly configured NetHack world"
+        )
     if world is None:
         world = create_world(
             "nethack", allow_save=getattr(args, "mode", "play") != "campaign"
         )
     elif getattr(world, "name", None) != "nethack":
         raise RuntimeError("hosted game world must be the NetHack world")
+    if surface_broker is not None and (
+        not getattr(world, "preserve_existing_state", False)
+        or getattr(world, "write_config", True)
+        or getattr(world, "allow_save", True)
+    ):
+        raise RuntimeError(
+            "hosted NetHack requires preserve_existing_state, write_config=False, and allow_save=False"
+        )
     configured_broker = getattr(world, "_surface_broker", None)
+    configured_backend = getattr(world, "_surface_backend", None)
     if surface_broker is not None:
         if configured_broker is not None and configured_broker is not surface_broker:
             raise RuntimeError("game world is already bound to a different SurfaceBroker")
-        if configured_broker is None:
+        if (
+            surface_backend is not None
+            and configured_backend is not None
+            and configured_backend is not surface_backend
+        ):
+            raise RuntimeError("game world is already bound to a different Surface backend")
+        if configured_broker is None or (
+            surface_backend is not None and configured_backend is None
+        ):
             configure = getattr(world, "configure_surface", None)
             if not callable(configure):
                 raise RuntimeError(f"world {world.name!r} cannot bind a Surface terminal source")
-            configure(surface_broker, surface_mission_id, surface_grant_id)
+            if surface_backend is None:
+                configure(surface_broker, surface_mission_id, surface_grant_id)
+            else:
+                configure(
+                    surface_broker,
+                    surface_mission_id,
+                    surface_grant_id,
+                    surface_backend=surface_backend,
+                )
     elif configured_broker is not None:
         raise RuntimeError("preconfigured Surface world requires its injected broker")
     brain_options: dict[str, Any] = {}
-    if args.player == "brain" and args.brain_url:
-        brain_options["url"] = args.brain_url
-    player = make_player(args.player, **brain_options)
+    if player is None:
+        if args.player == "brain" and args.brain_url:
+            brain_options["url"] = args.brain_url
+        player = make_player(args.player, **brain_options)
     dungeon = (
         DungeonField(rows=world.map_rows, cols=world.map_cols, half_life=args.memory_half_life)
         if args.memory == "field"
@@ -847,6 +884,7 @@ def play_life(
     interrupted = False
     started = time.time()
     observation: Observation | None = None
+    start_depth: int | None = None
     try:
         observation = world.reset()
         print(f"world   : {world.name} — {world.goal}")
@@ -966,6 +1004,10 @@ def play_life(
                 if move is not None:
                     action = move
                 else:
+                    if getattr(player, "require_brain", False):
+                        raise BrainRequiredError(
+                            "the resident brain chose a field aim with no reachable step"
+                        )
                     walker = getattr(player, "fallback", None)
                     if walker is not None:
                         action = walker.decide(
@@ -1067,28 +1109,36 @@ def play_life(
         if surface_broker is not None:
             world.fence_surface()
         failure = sys.exc_info()[1]
-        try:
-            living_section: Mapping[str, Any] = close_life(
-                memory=living,
-                seeks=seeks,
-                recollection=recollection,
-                journal=journal,
-                observation=observation,
-                dungeon=dungeon,
-                player=player,
-                life=life,
-                start_depth=start_depth,
-                error=memory_error,
-                briefing=briefing,
-                situational_lessons=tuple(shown_situational.values()),
-                refused=refused,
-            )
-        except Exception as exc:  # a memory that fails is a fact about the run, not its end
-            living_section = {
-                "mode": "field" if not isinstance(living, NoMemory) else "none",
+        if observation is None and not journal:
+            living_section: Mapping[str, Any] = {
+                "mode": "none" if isinstance(living, NoMemory) else "field",
                 "home": str(getattr(living, "home", "")),
-                "error": f"{type(exc).__name__}: {exc}",
+                "error": "life did not start",
             }
+        else:
+            try:
+                living_section = close_life(
+                    memory=living,
+                    seeks=seeks,
+                    recollection=recollection,
+                    journal=journal,
+                    observation=observation,
+                    dungeon=dungeon,
+                    player=player,
+                    life=life,
+                    start_depth=start_depth,
+                    error=memory_error,
+                    briefing=briefing,
+                    situational_lessons=tuple(shown_situational.values()),
+                    refused=refused,
+                    allow_reflection=not isinstance(failure, BrainRequiredError),
+                )
+            except Exception as exc:  # a memory that fails is a fact about the run, not its end
+                living_section = {
+                    "mode": "field" if not isinstance(living, NoMemory) else "none",
+                    "home": str(getattr(living, "home", "")),
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
         receipt: dict[str, Any] = {
             "game": world.name,
             "goal": world.goal,

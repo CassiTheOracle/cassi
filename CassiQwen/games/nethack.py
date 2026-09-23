@@ -177,6 +177,7 @@ class NetHackWorld(ScreenWorld):
         cols: int = 80,
         rows: int = 24,
         allow_save: bool = True,
+        preserve_existing_state: bool = False,
     ) -> None:
         super().__init__(cols=cols, rows=rows, quiet=quiet)
         if strategy != "standard":
@@ -185,25 +186,85 @@ class NetHackWorld(ScreenWorld):
         self.program = Path(program or _discover_program())
         self.player = player
         self.character = _character_line(RC_TEXT)
-        self.write_config = write_config
+        self.write_config = bool(write_config)
+        self.preserve_existing_state = bool(preserve_existing_state)
+        if self.preserve_existing_state and (self.write_config or self.allow_save):
+            raise NetHackError(
+                "preserve_existing_state requires write_config=False and allow_save=False"
+            )
         self.cleared: tuple[str, ...] = ()
         self.menu: tuple[Action, ...] = ()
         self.message = ""
 
     # -- preparation -----------------------------------------------------
     def prepare(self) -> Mapping[str, Any]:
-        """Write the game's config and clear the player's stale files."""
+        """Prepare a fresh standalone life or fail-closed preserved state."""
         if not self.program.exists():
             raise NetHackError(f"NetHack program is missing: {self.program}")
-        if self.write_config:
-            install_config()
-        self.cleared = clear_player_state(self.player)
+        if self.preserve_existing_state:
+            config = self._check_preserved_state()
+            self.character = _character_line(config)
+            self.cleared = ()
+        else:
+            if self.write_config:
+                install_config()
+            self.cleared = clear_player_state(self.player)
         return {
             "program": str(self.program),
             "player": self.player,
             "character": self.character,
             "cleared": list(self.cleared),
         }
+
+    def _check_preserved_state(self) -> str:
+        prefix = self.player.lower() + "."
+        try:
+            player_entries = list(PLAYER_HOME.iterdir())
+        except FileNotFoundError:
+            player_entries = []
+        except OSError as exc:
+            raise NetHackError("unable to inspect the NetHack player save directory") from exc
+        player_files = [
+            path
+            for path in player_entries
+            if path.is_file() and path.name.lower().startswith(prefix)
+        ]
+        if player_files:
+            raise NetHackError(
+                "preserve_existing_state refused startup because player files already exist"
+            )
+        try:
+            shared_entries = list(SHARED_HOME.iterdir())
+        except FileNotFoundError:
+            shared_entries = []
+        except OSError as exc:
+            raise NetHackError("unable to inspect the shared NetHack directory") from exc
+        if any("lock" in path.name.lower() for path in shared_entries):
+            raise NetHackError(
+                "preserve_existing_state refused startup because shared NetHack locks exist"
+            )
+        try:
+            config = NETHACK_RC.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            raise NetHackError(
+                "preserve_existing_state requires a readable existing NetHack configuration"
+            ) from exc
+        configured_players = []
+        for line in config.splitlines():
+            line = line.split("#", 1)[0].strip()
+            directive, separator, options = line.partition("=")
+            if not separator or directive.strip().casefold() != "options":
+                continue
+            for option in options.split(","):
+                key, colon, value = option.partition(":")
+                if colon and key.strip().casefold() == "name":
+                    configured_players.append(value.strip())
+        if len(configured_players) != 1 or configured_players[0] != self.player:
+            raise NetHackError(
+                "preserve_existing_state requires exactly one matching player identity "
+                "in the existing NetHack configuration"
+            )
+        return config
 
     def argv(self) -> Sequence[str]:
         return [str(self.program)]
