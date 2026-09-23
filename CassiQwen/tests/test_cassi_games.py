@@ -46,6 +46,7 @@ from run_cassi_game import (
 )
 from games.player import (
     BrainPlayer,
+    BrainRequiredError,
     ReflectedLesson,
     ROUTE_REFUSALS_BEFORE_LOOK,
     ROUTE_STEPS_BEFORE_LOOK,
@@ -657,6 +658,29 @@ class BrainNudgeTest(unittest.TestCase):
         self.assertEqual(decision.source, "brain-fallback")
         self.assertIn("kept choosing a blocked move", decision.reason)
         self.assertTrue(decision.nudged)
+
+    def test_a_required_brain_never_hands_a_blocked_retry_to_the_walker(self) -> None:
+        brain = _ScriptedBrain([("l", "east"), ("l", "east again")])
+        brain.require_brain = True
+        with self.assertRaises(BrainRequiredError):
+            brain.decide(
+                observation=self.observation(), actions=self.ACTIONS, recent=self.blocked()
+            )
+        self.assertEqual(len(brain.asked), 2)
+
+    def test_a_required_brain_answers_small_game_prompts_itself(self) -> None:
+        brain = _ScriptedBrain([("no", "keep the scroll")])
+        brain.require_brain = True
+        question = Observation(
+            screen=LIVE_SCREEN, summary={}, prompt="Read this scroll?",
+            events=(), done=False, score=0.0, turn=4,
+        )
+        choices = (Action(key="yes", keys="y", label="yes"), Action(key="no", keys="n", label="no"))
+        decision = brain.decide(observation=question, actions=choices, recent=[])
+        self.assertEqual(decision.action.key, "no")
+        self.assertEqual(decision.source, "brain")
+        self.assertEqual(len(brain.asked), 1)
+
 
     def test_a_first_move_is_taken_at_once(self) -> None:
         brain = _ScriptedBrain([("j", "south looks open")])

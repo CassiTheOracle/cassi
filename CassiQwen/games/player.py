@@ -757,7 +757,7 @@ class BrainPlayer:
         memory: str = "",
         remembered: str = "",
     ) -> Decision:
-        if observation.prompt and len(actions) <= 7:
+        if not self.require_brain and observation.prompt and len(actions) <= 7:
             # The game is asking a question with a handful of its own answers
             # (a yes/no, a page of text); the walker answers it, and the brain
             # keeps its turns for the map.  A direction question has eight
@@ -802,6 +802,11 @@ class BrainPlayer:
                     nudged=True,
                     used=retry_used,
                     want=retry_want,
+                )
+            if self.require_brain:
+                self.failures += 1
+                raise BrainRequiredError(
+                    "required brain repeated a blocked action after being told it failed"
                 )
             # Still walking into it: the walker takes this turn so that the
             # life keeps moving, and the receipt shows who moved it.
