@@ -2484,7 +2484,7 @@ the constant `k4_a01` budget. Placement arms (`place_front16`, `place_back16`,
 `place_spread16`, `place_digest16`) spend 1.28 on eight of thirty-two decodes at
 16 x 0.01 instead of on every decode at 4 x 0.01.
 
-`probe_cassi_coupling_placement.py` measures where a fixed budget works. On the
+`research/probe_cassi_coupling_placement.py` measures where a fixed budget works. On the
 0.8B model, six cases and six arms: only `delayed_cue` responds at this
 amplitude, where the constant arm, a single coupled decode at position 0, and a
 front-loaded window all produce the correct answer with the same eleven changed

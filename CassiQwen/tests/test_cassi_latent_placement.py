@@ -1,6 +1,6 @@
 """Placement plumbing for the native latent-reasoning arms.
 
-The model-side behaviour lives in `probe_cassi_coupling_placement.py`, which
+The model-side behaviour lives in `research/probe_cassi_coupling_placement.py`, which
 needs the harness binary and a GGUF. These tests cover the parts that decide
 what the harness is asked to run, because a wrong position convention or a
 mismatched budget silently turns a placement comparison into a confounded one.
