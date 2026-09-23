@@ -783,6 +783,7 @@ class ProgramBenchmarkClient:
         allowed_roots: Sequence[str] | None = None,
         allowed_tools: Sequence[str] | None = None,
         network_hosts: Sequence[str] | None = None,
+        deliverable: Mapping[str, Any] | None = None,
     ) -> BenchmarkSample:
         """POST /v1/programs: create the program the benchmark will drive."""
 
@@ -802,6 +803,7 @@ class ProgramBenchmarkClient:
             allowed_roots=allowed_roots,
             allowed_tools=allowed_tools,
             network_hosts=network_hosts,
+            deliverable=deliverable,
         )
         return self.request("POST", "/v1/programs", body)
 

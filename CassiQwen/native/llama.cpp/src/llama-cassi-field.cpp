@@ -301,14 +301,16 @@ struct llama_cassi_field::impl {
         build_geometry();
         initialize_backend();
         initialize_tensors();
-        initialize_immutable_inputs();
+        if (!cfg.scratch_only) {
+            initialize_immutable_inputs();
+        }
     }
 
     void validate_config() const {
         if (cfg.layers == 0 || cfg.embedding_width == 0 || cfg.vocabulary_size == 0) {
             fail("apprentice_model_metadata_invalid");
         }
-        if (cfg.memory_bytes == 0) {
+        if (!cfg.scratch_only && cfg.memory_bytes == 0) {
             fail("apprentice_memory_budget_too_small");
         }
         if (cfg.device != "CPU" && cfg.device != "Vulkan0") {
@@ -317,6 +319,12 @@ struct llama_cassi_field::impl {
     }
 
     void build_geometry() {
+        if (cfg.scratch_only) {
+            minimum_bytes = 0;
+            mode_count = 0;
+            state_bytes = 0;
+            return;
+        }
         if (cfg.fixture_entries != 0) {
             page_descriptors.push_back({ CASSI_FIELD_TEXT, -1, 512, cfg.fixture_entries, 0 });
             const uint64_t modes = page_descriptors.front().mode_count();
@@ -424,63 +432,67 @@ struct llama_cassi_field::impl {
             fail("apprentice_field_allocation_failed");
         }
         ggml_context * ctx = static_context.get();
-        if (mode_count > static_cast<uint64_t>(std::numeric_limits<int64_t>::max() / CASSI_APPRENTICE_COMPONENT_COUNT) ||
-            maximum_memory_modes > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) ||
-            maximum_entry_stride > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-            fail("apprentice_geometry_overflow");
-        }
-        field = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
-            static_cast<int64_t>(mode_count * CASSI_APPRENTICE_COMPONENT_COUNT),
-            CASSI_APPRENTICE_SCALE_COUNT);
-        candidate_memory = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
-            static_cast<int64_t>(maximum_memory_modes), CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
-        sense_candidate = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
-            maximum_width, CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
-        temporary_state = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
-            maximum_width, CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
-        zero_state = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
-            maximum_width, CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
-        zero_entry = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
-            static_cast<int64_t>(maximum_entry_stride), CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
+
         input_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
         target_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
-        probe_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
         guided_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
         for (ggml_tensor *& tensor : handoff_vectors) {
             tensor = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
         }
         boundary_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
-        metadata_physical = ggml_new_tensor_4d(ctx, GGML_TYPE_F32,
-            6, 8, CASSI_APPRENTICE_SCALE_COUNT, maximum_entries);
-        scalar_output = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 8);
-        candidate_validation = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 1);
-        symbol_input = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, 1);
-        byte_input = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, 1);
-        ggml_set_name(field, "cassi_apprentice_H");
-        ggml_set_name(candidate_memory, "cassi_apprentice_candidate_memory");
-        ggml_set_name(sense_candidate, "cassi_apprentice_sense_candidate");
 
-        std::map<uint32_t, uint32_t> max_entries_by_width;
-        for (const auto & page : page_descriptors) {
-            max_entries_by_width[page.width] = std::max(max_entries_by_width[page.width], page.entries);
-        }
-        for (const auto & item : max_entries_by_width) {
-            width_resources resource;
-            resource.width = item.first;
-            resource.max_entries = item.second;
-            resource.codebooks = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
-                static_cast<int64_t>(resource.width) * 2 * CASSI_APPRENTICE_SCALE_COUNT, ALPHABET_SIZE);
-            resource.byte_codebooks = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
-                static_cast<int64_t>(resource.width) * 2, 256);
-            resource.omega2 = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, CASSI_APPRENTICE_SCALE_COUNT);
-            for (uint32_t scale = 0; scale < CASSI_APPRENTICE_SCALE_COUNT; ++scale) {
-                resource.inverse_permutations[scale] = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, resource.width);
+        if (!cfg.scratch_only) {
+            if (mode_count > static_cast<uint64_t>(std::numeric_limits<int64_t>::max() / CASSI_APPRENTICE_COMPONENT_COUNT) ||
+                maximum_memory_modes > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) ||
+                maximum_entry_stride > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+                fail("apprentice_geometry_overflow");
             }
-            resource.probe_encoded = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, 2);
-            resource.probe_weights = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, resource.max_entries);
-            resource.probe_distances = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, resource.max_entries);
-            resource.byte_scores = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 256);
-            resources.emplace(resource.width, resource);
+            field = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
+                static_cast<int64_t>(mode_count * CASSI_APPRENTICE_COMPONENT_COUNT),
+                CASSI_APPRENTICE_SCALE_COUNT);
+            candidate_memory = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
+                static_cast<int64_t>(maximum_memory_modes), CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
+            sense_candidate = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
+                maximum_width, CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
+            temporary_state = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
+                maximum_width, CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
+            zero_state = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
+                maximum_width, CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
+            zero_entry = ggml_new_tensor_3d(ctx, GGML_TYPE_F32,
+                static_cast<int64_t>(maximum_entry_stride), CASSI_APPRENTICE_COMPONENT_COUNT, CASSI_APPRENTICE_SCALE_COUNT);
+            probe_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
+            metadata_physical = ggml_new_tensor_4d(ctx, GGML_TYPE_F32,
+                6, 8, CASSI_APPRENTICE_SCALE_COUNT, maximum_entries);
+            scalar_output = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 8);
+            candidate_validation = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 1);
+            symbol_input = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, 1);
+            byte_input = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, 1);
+            ggml_set_name(field, "cassi_apprentice_H");
+            ggml_set_name(candidate_memory, "cassi_apprentice_candidate_memory");
+            ggml_set_name(sense_candidate, "cassi_apprentice_sense_candidate");
+
+            std::map<uint32_t, uint32_t> max_entries_by_width;
+            for (const auto & page : page_descriptors) {
+                max_entries_by_width[page.width] = std::max(max_entries_by_width[page.width], page.entries);
+            }
+            for (const auto & item : max_entries_by_width) {
+                width_resources resource;
+                resource.width = item.first;
+                resource.max_entries = item.second;
+                resource.codebooks = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
+                    static_cast<int64_t>(resource.width) * 2 * CASSI_APPRENTICE_SCALE_COUNT, ALPHABET_SIZE);
+                resource.byte_codebooks = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
+                    static_cast<int64_t>(resource.width) * 2, 256);
+                resource.omega2 = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, CASSI_APPRENTICE_SCALE_COUNT);
+                for (uint32_t scale = 0; scale < CASSI_APPRENTICE_SCALE_COUNT; ++scale) {
+                    resource.inverse_permutations[scale] = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, resource.width);
+                }
+                resource.probe_encoded = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, 2);
+                resource.probe_weights = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, resource.max_entries);
+                resource.probe_distances = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, resource.max_entries);
+                resource.byte_scores = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 256);
+                resources.emplace(resource.width, resource);
+            }
         }
 
         static_buffer.reset(ggml_backend_alloc_ctx_tensors(static_context.get(), backend.get()));

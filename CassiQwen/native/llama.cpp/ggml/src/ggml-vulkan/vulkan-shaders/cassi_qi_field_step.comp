@@ -21,6 +21,10 @@ layout(push_constant) uniform parameter {
     float scale_ratio;
     float energy_floor;
     float read_floor;
+    uint read_absolute;
+    uint memory_write;
+    uint unwritten_latch;
+    float scale_read_taper;
 } pc;
 
 float qi_clamp(float x, float lo, float hi) { return min(max(x, lo), hi); }
@@ -71,6 +75,17 @@ void main() {
                 work[scale * 9u + component] = qi_state_value(state_in.values[off]);
             }
         }
+        // The pinned readout averages `chi` over the available scales, so a mode reads at the
+        // same rate whatever symbol the bank gives it. The taper weights scale `s` by how well
+        // that scale resolves the mode's own rate, which is what lets a fast mode fall faster
+        // than the shared cascade. Zero leaves every weight exactly 1.
+        float read_weight[4] = float[4](1.0, 1.0, 1.0, 1.0);
+        if (pc.scale_read_taper != 0.0) {
+            float mode_damping = qi_clamp(abs(mode_params.values[mode]), pc.damping_min, pc.damping_max);
+            for (uint scale = 0u; scale < pc.scale_count; ++scale) {
+                read_weight[scale] = exp(-pc.scale_read_taper * float(scale) * mode_damping * dt_base);
+            }
+        }
         for (uint token = 0u; token < pc.token_count; ++token) {
             int seq_id = sequence_ids.values[token];
             if (seq_id < 0 || seq_id >= int(pc.sequence_count)) {
@@ -84,6 +99,7 @@ void main() {
             if (seq_id != int(sequence)) continue;
             float read_re = 0.0, read_im = 0.0, chi_sum = 0.0, phase_sum = 0.0;
             uint available_count = 0u;
+            float weight_sum = 0.0;
             float rho_local[4], q_local[4], chi_local[4];
             uint avail_local[4];
             for (uint scale = 0u; scale < pc.scale_count; ++scale) {
@@ -91,10 +107,14 @@ void main() {
                 if (avail_local[scale] != 0u) {
                     float dr = work[scale * 9u + 0u] - pc.phi * work[scale * 9u + 2u];
                     float di = work[scale * 9u + 1u] - pc.phi * work[scale * 9u + 3u];
-                    float norm = 1.0 / sqrt(max(rho_local[scale], 1.0e-12));
-                    read_re += chi_local[scale] * dr * norm;
-                    read_im += chi_local[scale] * di * norm;
-                    chi_sum += chi_local[scale]; ++available_count;
+                    // scaling the state by k scales dr by k and rho by k^2, so dr / sqrt(rho) is
+                    // k-invariant; the absolute readout keeps the field's own magnitude instead
+                    float norm = pc.read_absolute != 0u ? 1.0 : 1.0 / sqrt(max(rho_local[scale], 1.0e-12));
+                    read_re += read_weight[scale] * chi_local[scale] * dr * norm;
+                    read_im += read_weight[scale] * chi_local[scale] * di * norm;
+                    chi_sum += read_weight[scale] * chi_local[scale];
+                    weight_sum += read_weight[scale];
+                    ++available_count;
                 }
                 if (scale > 0u && avail_local[scale - 1u] != 0u && avail_local[scale] != 0u) {
                     float d0r = work[(scale - 1u) * 9u + 0u] - pc.phi * work[(scale - 1u) * 9u + 2u];
@@ -106,37 +126,65 @@ void main() {
                 }
             }
             float cross = available_count > 1u ? qi_clamp(phase_sum / float(available_count - 1u), 0.0, 1.0) : (available_count == 1u ? 1.0 : 0.0);
-            float read_gate = available_count > 0u ? qi_clamp((chi_sum / float(available_count)) * cross, 0.0, 1.0) : 0.0;
+            // `cross` stays on the unweighted scale count: it asks how many scales agree, which
+            // is not a magnitude. The gate and the divisor take the weighted sum, which at
+            // taper 0 is exactly the scale count, so the pinned readout is unchanged.
+            float read_gate = available_count > 0u ? qi_clamp((chi_sum / weight_sum) * cross, 0.0, 1.0) : 0.0;
             if (mode < pc.wave_mode_count) {
                 uint flux_off = token * wave_stride + 2u * mode;
                 if (available_count > 0u && read_gate >= pc.read_floor) {
-                    output_data.values[flux_off + 0u] = pc.coupling * read_gate * read_re / float(available_count);
-                    output_data.values[flux_off + 1u] = pc.coupling * read_gate * read_im / float(available_count);
+                    output_data.values[flux_off + 0u] = pc.coupling * read_gate * read_re / weight_sum;
+                    output_data.values[flux_off + 1u] = pc.coupling * read_gate * read_im / weight_sum;
                 } else {
                     output_data.values[flux_off + 0u] = 0.0;
                     output_data.values[flux_off + 1u] = 0.0;
                 }
             }
-            float sr = mode < pc.wave_mode_count ? sense.values[token * wave_stride + 2u * mode + 0u] : 0.0;
-            float si = mode < pc.wave_mode_count ? sense.values[token * wave_stride + 2u * mode + 1u] : 0.0;
-            float cr, ci; qi_chirp(0u, mode, cr, ci);
-            float source_re = cr * sr - ci * si;
-            float source_im = cr * si + ci * sr;
-            float source_energy = source_re * source_re + source_im * source_im;
-            float structured = qi_clamp(source_energy / (1.0 + source_energy), 0.0, 1.0);
-            float write_gate = avail_local[0] == 0u ? 1.0 : structured * (1.0 - q_local[0]);
-            float write_gain = qi_clamp(dt_base * write_gate, 0.0, 0.5);
-            last_write[0] = write_gate;
-            work[0] = qi_state_value((1.0 - write_gain) * work[0] + 0.5 * write_gain * source_re);
-            work[1] = qi_state_value((1.0 - write_gain) * work[1] + 0.5 * write_gain * source_im);
-            work[2] = qi_state_value((1.0 - write_gain) * work[2] - 0.5 * write_gain * source_re / pc.phi);
-            work[3] = qi_state_value((1.0 - write_gain) * work[3] - 0.5 * write_gain * source_im / pc.phi);
+            // A persistent mode has no sense channel, so it copies the field's own state at the
+            // mirror mode.  That state already holds the field's own gated write, so the copy
+            // takes the base rate and does not gate the state a second time.
+            if (mode < pc.wave_mode_count) {
+                float sr = sense.values[token * wave_stride + 2u * mode + 0u];
+                float si = sense.values[token * wave_stride + 2u * mode + 1u];
+                float cr, ci; qi_chirp(0u, mode, cr, ci);
+                float source_re = cr * sr - ci * si;
+                float source_im = cr * si + ci * sr;
+                float source_energy = source_re * source_re + source_im * source_im;
+                float structured = qi_clamp(source_energy / (1.0 + source_energy), 0.0, 1.0);
+                // The full-gain latch belongs to a mode that has never been written. Keeping it on
+                // every mode below the energy floor lets a silent input reset a decayed trace at dt
+                // per token, so a faded memory drains to zero instead of fading out.
+                bool latch = pc.unwritten_latch != 0u ? rho_local[0] == 0.0 : avail_local[0] == 0u;
+                float write_gate = latch ? 1.0 : structured * (1.0 - q_local[0]);
+                float write_gain = qi_clamp(dt_base * write_gate, 0.0, 0.5);
+                last_write[0] = write_gate;
+                work[0] = qi_state_value((1.0 - write_gain) * work[0] + 0.5 * write_gain * source_re);
+                work[1] = qi_state_value((1.0 - write_gain) * work[1] + 0.5 * write_gain * source_im);
+                work[2] = qi_state_value((1.0 - write_gain) * work[2] - 0.5 * write_gain * source_re / pc.phi);
+                work[3] = qi_state_value((1.0 - write_gain) * work[3] - 0.5 * write_gain * source_im / pc.phi);
+            } else if (pc.memory_write != 0u) {
+                uint mirror = sequence * state_stride + (mode - pc.wave_mode_count) * 9u;
+                float memory_rho, memory_q, memory_chi;
+                uint memory_available;
+                qi_metrics(state_in.values[mirror + 0u], state_in.values[mirror + 1u],
+                           state_in.values[mirror + 2u], state_in.values[mirror + 3u],
+                           max(state_in.values[mirror + 8u], 0.0),
+                           memory_rho, memory_q, memory_chi, memory_available);
+                float memory_gain = memory_available != 0u ? qi_clamp(dt_base * memory_chi, 0.0, 0.5) : 0.0;
+                last_write[0] = memory_gain;
+                for (uint c = 0u; c < 9u; ++c) {
+                    work[c] = qi_state_value((1.0 - memory_gain) * work[c] +
+                        memory_gain * qi_state_value(state_in.values[mirror + c]));
+                }
+            }
             for (uint step = 0u; step < pc.steps; ++step) {
                 float damping = qi_clamp(abs(mode_params.values[mode]), pc.damping_min, pc.damping_max);
                 float dr = work[0] - pc.phi * work[2];
                 float di = work[1] - pc.phi * work[3];
-                float ayr = dr - damping * work[4], ayi = di - damping * work[5];
-                float air = -dr / pc.phi - damping * work[6], aii = -di / pc.phi - damping * work[7];
+                // The differential needs a restoring sign, or every mode grows without bound and
+                // stops at the state clamp. A bounded mode keeps turning and carries history.
+                float ayr = -dr - damping * work[4], ayi = -di - damping * work[5];
+                float air = dr / pc.phi - damping * work[6], aii = di / pc.phi - damping * work[7];
                 work[4] = qi_state_value(work[4] + ayr * dt_base);
                 work[5] = qi_state_value(work[5] + ayi * dt_base);
                 work[6] = qi_state_value(work[6] + air * dt_base);
@@ -174,25 +222,29 @@ void main() {
             }
             float final_read_re = 0.0, final_read_im = 0.0, final_chi_sum = 0.0;
             uint final_available = 0u;
+            float final_weight_sum = 0.0;
             for (uint final_scale = 0u; final_scale < pc.scale_count; ++final_scale) {
                 float final_rho, final_q, final_chi; uint final_avail;
                 qi_metrics(work[final_scale * 9u + 0u], work[final_scale * 9u + 1u], work[final_scale * 9u + 2u], work[final_scale * 9u + 3u], max(work[final_scale * 9u + 8u], 0.0), final_rho, final_q, final_chi, final_avail);
                 if (final_avail != 0u) {
                     float fdr = work[final_scale * 9u + 0u] - pc.phi * work[final_scale * 9u + 2u];
                     float fdi = work[final_scale * 9u + 1u] - pc.phi * work[final_scale * 9u + 3u];
-                    float fnorm = 1.0 / sqrt(max(final_rho, 1.0e-12));
-                    final_read_re += final_chi * fdr * fnorm;
-                    final_read_im += final_chi * fdi * fnorm;
-                    final_chi_sum += final_chi;
+                    // scaling the state by k scales fdr by k and rho by k^2, so fdr / sqrt(rho) is
+                    // k-invariant; the absolute readout keeps the field's own magnitude instead
+                    float fnorm = pc.read_absolute != 0u ? 1.0 : 1.0 / sqrt(max(final_rho, 1.0e-12));
+                    final_read_re += read_weight[final_scale] * final_chi * fdr * fnorm;
+                    final_read_im += read_weight[final_scale] * final_chi * fdi * fnorm;
+                    final_chi_sum += read_weight[final_scale] * final_chi;
+                    final_weight_sum += read_weight[final_scale];
                     ++final_available;
                 }
             }
-            float final_gate = final_available > 0u ? qi_clamp(final_chi_sum / float(final_available), 0.0, 1.0) : 0.0;
+            float final_gate = final_available > 0u ? qi_clamp(final_chi_sum / final_weight_sum, 0.0, 1.0) : 0.0;
             if (mode < pc.wave_mode_count) {
                 uint final_flux_off = token * wave_stride + 2u * mode;
                 if (final_available > 0u && final_gate >= pc.read_floor) {
-                    output_data.values[final_flux_off + 0u] = pc.coupling * final_gate * final_read_re / float(final_available);
-                    output_data.values[final_flux_off + 1u] = pc.coupling * final_gate * final_read_im / float(final_available);
+                    output_data.values[final_flux_off + 0u] = pc.coupling * final_gate * final_read_re / final_weight_sum;
+                    output_data.values[final_flux_off + 1u] = pc.coupling * final_gate * final_read_im / final_weight_sum;
                 } else {
                     output_data.values[final_flux_off + 0u] = 0.0;
                     output_data.values[final_flux_off + 1u] = 0.0;

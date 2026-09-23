@@ -22,6 +22,7 @@ extern "C" {
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -337,6 +338,12 @@ struct llama_cassi_context {
     int32_t prediction_limit = 0;
     pending_event pending;
     llama_cassi_stats stats = {};
+    llama_cassi_sampler_params sampler = {
+        LLAMA_CASSI_SAMPLER_GREEDY,
+        1.0f,
+        0,
+        0.0,
+    };
     std::vector<llama_cassi_service_stats> service_stats;
     std::vector<uint64_t> service_node_baseline;
     std::vector<uint64_t> service_weight_baseline;
@@ -355,7 +362,7 @@ struct llama_cassi_context {
             fail("apprentice_backend_unsupported");
         }
         if (params_value.teacher_policy < LLAMA_CASSI_ADAPTIVE || params_value.teacher_policy > LLAMA_CASSI_NEVER ||
-            params_value.route_policy < LLAMA_CASSI_AUTO || params_value.route_policy > LLAMA_CASSI_PIPELINE) {
+            params_value.route_policy < LLAMA_CASSI_AUTO || params_value.route_policy > LLAMA_CASSI_EXACT_PIPELINE) {
             fail("apprentice_configuration_invalid");
         }
         if (native_params.cassi_modal || native_params.cassi_field_step || native_params.cassi_qi_field ||
@@ -374,7 +381,12 @@ struct llama_cassi_context {
         public_params.model_path = model_path.c_str();
 
         metadata = read_metadata(model_path);
-        model_hash = hash_file(model_path);
+        if (params_value.model_sha256 != nullptr) {
+            std::memcpy(model_hash.data(), params_value.model_sha256, model_hash.size());
+        } else {
+            model_hash = hash_file(model_path);
+        }
+        public_params.model_sha256 = nullptr;
         if (model->arch != LLM_ARCH_QWEN35) {
             fail("apprentice_model_metadata_invalid");
         }
@@ -387,6 +399,10 @@ struct llama_cassi_context {
             }
         } else if (public_params.teacher_policy != LLAMA_CASSI_NEVER) {
             fail("apprentice_model_weights_required");
+        }
+        if (public_params.route_policy == LLAMA_CASSI_EXACT_PIPELINE &&
+                (!fully_loaded || public_params.teacher_policy != LLAMA_CASSI_NEVER)) {
+            fail("apprentice_exact_pipeline_requires_native_model");
         }
         if (native_params.n_ctx == 0 || native_params.n_ctx > metadata.context_length) {
             fail("apprentice_context_invalid");
@@ -412,9 +428,12 @@ struct llama_cassi_context {
         field_config.vocabulary_size = metadata.vocabulary_size;
         field_config.memory_bytes = public_params.memory_bytes;
         field_config.device = field_device;
+        field_config.scratch_only = public_params.route_policy == LLAMA_CASSI_EXACT_PIPELINE;
         field = std::make_unique<llama_cassi_field>(field_config);
-        field->profile_sha256(profile_hash.data());
-        context_snapshot.resize(field->context_snapshot_size());
+        if (!field_config.scratch_only) {
+            field->profile_sha256(profile_hash.data());
+            context_snapshot.resize(field->context_snapshot_size());
+        }
         attention_owned.resize(metadata.layers);
         stats.field_bytes = field->field_bytes();
         pending_head_input.resize(metadata.embedding_width);
@@ -434,11 +453,27 @@ struct llama_cassi_context {
                 native_backends.push_back(name);
             }
         }
-        for (const cassi_field_page & page : field->pages()) {
-            llama_cassi_service_stats value = {};
-            value.kind = static_cast<uint32_t>(page.kind);
-            value.layer = page.layer;
-            service_stats.push_back(value);
+        if (public_params.route_policy == LLAMA_CASSI_EXACT_PIPELINE) {
+            const auto add_service = [&](uint32_t kind, int32_t layer) {
+                llama_cassi_service_stats value = {};
+                value.kind = kind;
+                value.layer = layer;
+                service_stats.push_back(value);
+            };
+            add_service(LLAMA_CASSI_TEXT, -1);
+            add_service(LLAMA_CASSI_EMBED, -1);
+            add_service(LLAMA_CASSI_HEAD, -1);
+            for (uint32_t layer = 0; layer < metadata.layers; ++layer) {
+                add_service(LLAMA_CASSI_ATTENTION, static_cast<int32_t>(layer));
+                add_service(LLAMA_CASSI_FFN, static_cast<int32_t>(layer));
+            }
+        } else {
+            for (const cassi_field_page & page : field->pages()) {
+                llama_cassi_service_stats value = {};
+                value.kind = static_cast<uint32_t>(page.kind);
+                value.layer = page.layer;
+                service_stats.push_back(value);
+            }
         }
         service_node_baseline.resize(service_stats.size());
         service_weight_baseline.resize(service_stats.size());
@@ -447,6 +482,28 @@ struct llama_cassi_context {
     const llama_vocab * vocab() const {
         return llama_model_get_vocab(model);
     }
+    bool exact_pipeline() const {
+        return public_params.route_policy == LLAMA_CASSI_EXACT_PIPELINE;
+    }
+    int32_t set_sampler(const llama_cassi_sampler_params & value) {
+        if (!exact_pipeline() || (state != session_state::idle && state != session_state::ready)) {
+            fail("apprentice_invalid_transition");
+        }
+        if (value.mode != LLAMA_CASSI_SAMPLER_GREEDY &&
+                value.mode != LLAMA_CASSI_SAMPLER_CATEGORICAL) {
+            fail("apprentice_sampler_invalid");
+        }
+        if (value.mode == LLAMA_CASSI_SAMPLER_CATEGORICAL &&
+                (!std::isfinite(value.temperature) || value.temperature <= 0.0f ||
+                 !std::isfinite(value.draw) || value.draw < 0.0 || value.draw >= 1.0 ||
+                 value.top_k > metadata.vocabulary_size)) {
+            fail("apprentice_sampler_invalid");
+        }
+        sampler = value;
+        return 0;
+    }
+
+
 
     void set_error(const char * code) {
         error = code;
@@ -799,6 +856,27 @@ struct llama_cassi_context {
     }
 
     void rollback_accepted_transaction() {
+        if (exact_pipeline()) {
+            if (state != session_state::ready && state != session_state::done) {
+                fail("apprentice_invalid_transition");
+            }
+            if (stats.committed_tokens == 0 || token_log.size() <= prompt_token_count ||
+                    token_log.back() != accepted.result.token) {
+                fail("apprentice_invalid_transition");
+            }
+            stats.committed_tokens--;
+            stats.native_exact_tokens--;
+            token_log.pop_back();
+            service.reset();
+            service_prefix = 0;
+            service_token_active = false;
+            service_epoch = 0;
+            service_abandoned = false;
+            refresh_cache_gauges();
+            clear_accepted_transaction();
+            state = session_state::ready;
+            return;
+        }
         if (token_log.size() <= prompt_token_count) {
             return;
         }
@@ -996,6 +1074,15 @@ struct llama_cassi_context {
             llama_token token,
             const std::string * piece,
             size_t position) {
+        if (exact_pipeline()) {
+            stats.native_exact_stages++;
+            if (kind == LLAMA_CASSI_ATTENTION) {
+                stats.native_exact_attention_stages++;
+            } else if (kind == LLAMA_CASSI_FFN) {
+                stats.native_exact_ffn_stages++;
+            }
+            return call_native_service(kind, layer, input, token, position);
+        }
         const uint32_t page_index = service_page(kind, layer);
         const cassi_query query = vector_query(page_index, input, token, piece);
         const cassi_probe proposal = timed_probe(query);
@@ -1015,7 +1102,88 @@ struct llama_cassi_context {
         return timed_guide_vector(native);
     }
 
+    llama_token select_exact_logits(ggml_tensor * logits_tensor) {
+        const int64_t logits_count = ggml_nelements(logits_tensor);
+        if (logits_count != metadata.vocabulary_size) {
+            throw std::runtime_error(
+                "apprentice_native_head_shape_invalid:expected=" +
+                std::to_string(metadata.vocabulary_size) +
+                ":actual=" + std::to_string(logits_count));
+        }
+        std::vector<float> logits(metadata.vocabulary_size);
+        ggml_backend_tensor_get(logits_tensor, logits.data(), 0, logits.size() * sizeof(float));
+        stats.native_logits_reads++;
+        for (float value : logits) {
+            if (!std::isfinite(value)) {
+                fail("apprentice_native_service_nonfinite");
+            }
+        }
+
+        if (sampler.mode == LLAMA_CASSI_SAMPLER_GREEDY) {
+            return static_cast<llama_token>(
+                std::distance(logits.begin(), std::max_element(logits.begin(), logits.end())));
+        }
+
+        std::vector<uint32_t> candidates(metadata.vocabulary_size);
+        std::iota(candidates.begin(), candidates.end(), 0U);
+        const auto ranked_before = [&](uint32_t left, uint32_t right) {
+            if (logits[left] != logits[right]) {
+                return logits[left] > logits[right];
+            }
+            return left < right;
+        };
+        const size_t keep = sampler.top_k == 0
+            ? candidates.size()
+            : std::min<size_t>(sampler.top_k, candidates.size());
+        if (keep < candidates.size()) {
+            std::nth_element(candidates.begin(), candidates.begin() + static_cast<std::ptrdiff_t>(keep),
+                candidates.end(), ranked_before);
+            candidates.resize(keep);
+        }
+        std::sort(candidates.begin(), candidates.end(), ranked_before);
+
+        const double inverse_temperature = 1.0 / static_cast<double>(sampler.temperature);
+        const double maximum = static_cast<double>(logits[candidates.front()]) * inverse_temperature;
+        std::vector<double> weights;
+        weights.reserve(candidates.size());
+        double total = 0.0;
+        for (uint32_t candidate : candidates) {
+            const double weight =
+                std::exp(static_cast<double>(logits[candidate]) * inverse_temperature - maximum);
+            weights.push_back(weight);
+            total += weight;
+        }
+        if (!std::isfinite(total) || total <= 0.0) {
+            fail("apprentice_native_sampler_normalization_failed");
+        }
+        stats.native_sampler_draws++;
+        const double target = sampler.draw * total;
+        double cumulative = 0.0;
+        for (size_t index = 0; index < candidates.size(); ++index) {
+            cumulative += weights[index];
+            if (target < cumulative) {
+                return static_cast<llama_token>(candidates[index]);
+            }
+        }
+        return static_cast<llama_token>(candidates.back());
+    }
+
+    llama_cassi_token resolve_exact_head(ggml_tensor * input, llama_token token, size_t position) {
+        stats.native_exact_stages++;
+        ggml_tensor * logits =
+            call_native_service(LLAMA_CASSI_HEAD, -1, input, token, position);
+        llama_cassi_token result = {};
+        result.token = select_exact_logits(logits);
+        result.decision_source = 2;
+        result.native_dependency = 1;
+        result.readout_kind = 3;
+        return result;
+    }
+
     llama_cassi_token resolve_head(ggml_tensor * input, llama_token token, size_t position) {
+        if (exact_pipeline()) {
+            return resolve_exact_head(input, token, position);
+        }
         std::array<uint8_t, TOKEN_BYTES> decoded = {};
         bool available = true;
         bool interpolated = false;
@@ -1090,7 +1258,9 @@ struct llama_cassi_context {
 
     llama_cassi_token process_pipeline_token(size_t position, bool emit_head) {
         check_cancelled();
-        reconstruct_context(position);
+        if (!exact_pipeline()) {
+            reconstruct_context(position);
+        }
         try {
             const llama_token token = token_log[position];
             const std::string piece = token_piece(vocab(), token);
@@ -1128,12 +1298,16 @@ struct llama_cassi_context {
                 }
             }
             service_prefix = position + 1;
-            restore_context();
+            if (!exact_pipeline()) {
+                restore_context();
+            }
             return result;
         } catch (...) {
             service.reset();
             service_token_active = false;
-            restore_context();
+            if (!exact_pipeline()) {
+                restore_context();
+            }
             throw;
         }
     }
@@ -1302,7 +1476,7 @@ struct llama_cassi_context {
         if (prompt == nullptr || n_prompt == 0 || n_prompt > native_params.n_ctx || n_predict < 0) {
             fail("apprentice_request_invalid");
         }
-        if (public_params.teacher_policy == LLAMA_CASSI_NEVER && !state_loaded) {
+        if (!exact_pipeline() && public_params.teacher_policy == LLAMA_CASSI_NEVER && !state_loaded) {
             fail("apprentice_checkpoint_missing");
         }
         for (size_t index = 0; index < n_prompt; ++index) {
@@ -1321,9 +1495,11 @@ struct llama_cassi_context {
         service_epoch = 0;
         service_abandoned = false;
         prompt_token_count = n_prompt;
-        for (uint32_t layer = 0; layer < metadata.layers; ++layer) {
-            attention_owned[layer] = public_params.teacher_policy == LLAMA_CASSI_NEVER ||
-                field->page_mature(service_page(LLAMA_CASSI_ATTENTION, static_cast<int32_t>(layer))) ? 1 : 0;
+        if (!exact_pipeline()) {
+            for (uint32_t layer = 0; layer < metadata.layers; ++layer) {
+                attention_owned[layer] = public_params.teacher_policy == LLAMA_CASSI_NEVER ||
+                    field->page_mature(service_page(LLAMA_CASSI_ATTENTION, static_cast<int32_t>(layer))) ? 1 : 0;
+            }
         }
         pending = {};
         clear_accepted_transaction();
@@ -1341,18 +1517,20 @@ struct llama_cassi_context {
             value.logical_weight_bytes = 0;
         }
         request_started = std::chrono::steady_clock::now();
-        field->reset_context();
-        timed_sense_marker(USER_SYMBOL);
-        for (llama_token token : token_log) {
-            const std::string piece = token_piece(vocab(), token);
-            const auto started = std::chrono::steady_clock::now();
-            field->sense_token(token, piece, false);
-            stats.field_ms += elapsed_ms(started);
-            stats.field_steps += static_cast<uint64_t>(piece.size()) * (1 + metadata.layers);
+        if (!exact_pipeline()) {
+            field->reset_context();
+            timed_sense_marker(USER_SYMBOL);
+            for (llama_token token : token_log) {
+                const std::string piece = token_piece(vocab(), token);
+                const auto started = std::chrono::steady_clock::now();
+                field->sense_token(token, piece, false);
+                stats.field_ms += elapsed_ms(started);
+                stats.field_steps += static_cast<uint64_t>(piece.size()) * (1 + metadata.layers);
+            }
+            timed_sense_marker(END_SYMBOL);
+            timed_sense_marker(ASSISTANT_SYMBOL);
+            idle_field_hash_valid = false;
         }
-        timed_sense_marker(END_SYMBOL);
-        timed_sense_marker(ASSISTANT_SYMBOL);
-        idle_field_hash_valid = false;
         state = n_predict == 0 ? session_state::done : session_state::ready;
         return 0;
     }
@@ -1383,6 +1561,17 @@ struct llama_cassi_context {
         if (stats.committed_tokens >= static_cast<uint64_t>(prediction_limit)) {
             state = session_state::done;
             return LLAMA_CASSI_DONE;
+        }
+        if (exact_pipeline()) {
+            pending = {};
+            pending.result = run_pipeline();
+            if (pending.result.token < 0 ||
+                    static_cast<uint32_t>(pending.result.token) >= metadata.vocabulary_size) {
+                fail("apprentice_token_invalid");
+            }
+            *result = pending.result;
+            state = session_state::pending;
+            return LLAMA_CASSI_TOKEN;
         }
 
         std::array<uint8_t, TOKEN_BYTES> decoded = {};
@@ -1493,6 +1682,16 @@ struct llama_cassi_context {
             fail("apprentice_invalid_transition");
         }
         check_cancelled();
+        if (exact_pipeline()) {
+            token_log.push_back(token);
+            stats.committed_tokens++;
+            stats.native_exact_tokens++;
+            accepted = std::move(pending);
+            pending = {};
+            state = stats.committed_tokens >= static_cast<uint64_t>(prediction_limit) ||
+                llama_vocab_is_eog(vocab(), token) ? session_state::done : session_state::ready;
+            return 0;
+        }
         const uint64_t observations_before = stats.field_observations;
         const uint64_t evictions_before = stats.engram_evictions;
         const bool hash_valid_before = idle_field_hash_valid;
@@ -1571,7 +1770,9 @@ struct llama_cassi_context {
         if (cancelled) {
             cancellation_requested.store(true, std::memory_order_release);
         }
-        restore_pending_field_rollback();
+        if (!exact_pipeline()) {
+            restore_pending_field_rollback();
+        }
         pending = {};
         clear_pending_admissions();
         teacher.reset();
@@ -1580,12 +1781,16 @@ struct llama_cassi_context {
         service_prefix = 0;
         service_token_active = false;
         token_log.clear();
-        field->reset_context();
+        if (!exact_pipeline()) {
+            field->reset_context();
+        }
         stats.native_cache_bytes_remaining = 0;
         clear_accepted_transaction();
-        stats.engram_evictions = field->engram_evictions();
+        if (!exact_pipeline()) {
+            stats.engram_evictions = field->engram_evictions();
+            idle_field_hash_valid = false;
+        }
         stats.wall_ms = elapsed_ms(request_started);
-        idle_field_hash_valid = false;
         state = session_state::idle;
         return 0;
     }
@@ -1743,6 +1948,16 @@ struct llama_cassi_context {
         if (!checkpointable()) {
             fail("apprentice_state_busy");
         }
+        if (exact_pipeline()) {
+            info = {};
+            info.layers = metadata.layers;
+            info.embedding_width = metadata.embedding_width;
+            info.vocabulary_size = metadata.vocabulary_size;
+            info.context_limit = native_params.n_ctx;
+            info.training_context_limit = metadata.context_length;
+            std::memcpy(info.model_sha256, model_hash.data(), model_hash.size());
+            return;
+        }
         if (!idle_field_hash_valid) {
             field->field_sha256(idle_field_hash.data());
             idle_field_hash_valid = true;
@@ -1783,6 +1998,7 @@ llama_cassi_params llama_cassi_default_params(void) {
     result.route_policy = LLAMA_CASSI_AUTO;
     result.field_device = "Vulkan0";
     result.model_path = nullptr;
+    result.model_sha256 = nullptr;
     return result;
 }
 
@@ -1849,6 +2065,24 @@ llama_cassi_status llama_cassi_next(llama_cassi_context * ctx, llama_cassi_token
         return LLAMA_CASSI_ERROR;
     }
 }
+int32_t llama_cassi_set_sampler(
+        llama_cassi_context * ctx,
+        llama_cassi_sampler_params params) {
+    if (ctx == nullptr) {
+        init_error = "apprentice_context_required";
+        return -1;
+    }
+    try {
+        return ctx->set_sampler(params);
+    } catch (const std::exception & exception) {
+        ctx->error = exception.what();
+        return -1;
+    } catch (...) {
+        ctx->error = "apprentice_unknown_error";
+        return -1;
+    }
+}
+
 
 int32_t llama_cassi_accept(llama_cassi_context * ctx, llama_token token) {
     if (ctx == nullptr) {

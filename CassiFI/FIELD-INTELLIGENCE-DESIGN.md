@@ -21,9 +21,39 @@ These labels describe knowledge, not a sequence of bureaucratic approval stages.
 
 Read Section 32 for the regional execution architecture, its implemented core and specified extensions, migration inventory, and measured sustained episode. Read Section 33 for the complete world-model semantics, acquisition algorithms, source responsibilities, implementation dependencies, and end-to-end behavioral requirements. Sections 3–15 retain the mathematical and representational detail; Sections 26–31 preserve component-level evidence and standalone reference semantics. The normal production owner, CLI, and installed-runtime computation path uses the sole regional machine, while retained modules supply fixed codecs, bounded stateless kernels, independent references, and research scenarios.
 
+The [open-ended research organism in Section 35](#35-open-ended-research-organism-and-cumulative-intelligence) integrates the resident researcher, representation and program discovery, independent world evaluation, field hive, and recursive improvement laboratory. Its executable basis now includes a persistent root organism and an independently verified three-generation development campaign in which promoted source becomes the next parent, the live field agenda chooses each question, a typed construction is derived from that parent, causal outcomes are measured, and an acquired investigation procedure transfers first to unfamiliar architecture successors, then from Python-architecture construction into a CassiFI structured-field-program task, and then into an exact Boolean transition-constraint task with an independently enumerated witness. Section 35 still specifies a maximum-ambition developmental system beyond this bounded demonstration; broad semantic cross-domain intelligence is not implied by it.
+
+The [extensible platform and sustained apprenticeship in Section 36](#36-extensible-platform-and-sustained-apprenticeship) specifies the public development surface around that organism. Worlds, source readers, field programs, experience collections, and applications use one owner-backed interface. The same surface supports human-authored and Cassi-authored extensions, while a continuing multi-domain campaign supplies substantial work from which new capabilities can grow.
+
+The [affect and regulation mechanism in Section 37](#37-field-owned-affect-and-regulation) supplies grounded, multi-timescale context for research and learning choices. Experience can change which available work becomes compelling while its source evidence, factual meaning, and authority remain unchanged.
+
 The [Universal Latent Reasoning System design](../CassiQwen/LATENT-REASONING-DESIGN.md) specifies model-instrument integration and the path to field-owned latent computation, state, and emission. It reuses this computer's state, semantic records, and owner lifecycle; model-specific execution remains an explicit external boundary rather than a hidden dependency of standalone field intelligence.
 
-Its [packet-aware reasoning extension](../CassiQwen/LATENT-REASONING-DESIGN.md#packet-aware-reasoning-scope-and-status) specifies how the implemented §26.18 numerical packets participate in resident multi-operation episodes, typed child-state return, lifetime resource accounting, semantic work selection, safe refinement, correction, and acquired interfaces. That extension remains specified; it does not change the current packet reconstruction/impulse evidence into a reasoning-performance claim. The regional image and semantic ownership rules in this document remain authoritative.
+The [integrated general-learning and affective hive upgrade](../CASSI-ENTITY-DESIGN.md#19-integrated-general-learning-and-affective-hive-organism) specifies the complete composition of these mechanisms within the existing entity. Section 37 supplies its detailed field-owned appraisal and regulation semantics. This is a specified upgrade, not a claim that the full organism is already implemented.
+
+[Cassi: A Persistent Field–Brain Entity](../CASSI-ENTITY-DESIGN.md) integrates these components into the autonomous researcher. Its shared cognitive workspace couples field-owned experience and organization with a live pretrained llama.cpp brain; the same lifetime supports conversation, self-originated inquiry, acquisition, affect, scientific tools, multiple research programs, and a public communication API. That entity-level design governs composition and lifecycle of the explicit `field-brain` profile and distinguishes implemented components from remaining integration. This document remains authoritative for the regional computer and its standalone operation.
+
+The [programmable field swarm design](../CASSI-PROGRAMMABLE-SWARM-DESIGN.md)
+specifies a Python interpreter acquired as an executable regional program,
+inspectable and resumable computations, scoped branches, guarded compilation,
+and native CPU/Vulkan execution across independent member owners. Section 32.23
+fixes its relationship to this computer. The interpreter and resident backend
+remain specified extensions; the existing Python source analyzer is not a
+Python execution engine.
+
+The [living memory design](../CASSI-LIVING-MEMORY-DESIGN.md) is implemented
+through the canonical regional semantic kernel and field–brain owner path. It
+connects progressive recall to actual use and outcome, recoverable demotion to
+exact expansion, prospective relevance to correction-triggered reconsideration,
+and memory awareness to the resident research agenda. Canonical regional pages
+are independently content-addressed, readable and scrubbable in bounded pages;
+ordinary kernel execution still reconstructs the verified dense
+`ComputerState`. The companion design states that boundary and the complete
+operational contract for Sections 15–18, 32, 33.20, and 37.
+
+**Current development direction:** use Cassi's established learning to run autonomous research programs. The retained learning/evaluation sections explain mechanisms and existing experiments; their campaigns are not prerequisites for building the researcher and must not be repeated without an explicit user request. Extend the existing owner, residency, organism, and program machinery, checking the actual tools, runtime behavior, and scientific results rather than re-proving learning.
+
+The [packet-aware reasoning extension](../CassiQwen/LATENT-REASONING-DESIGN.md#packet-aware-reasoning-scope-and-status) specifies how the implemented §26.18 numerical packets participate in resident multi-operation episodes, typed child-state return, lifetime resource accounting, semantic work selection, safe refinement, correction, and acquired interfaces. That extension remains specified; it does not change the current packet reconstruction/impulse evidence into a reasoning-performance claim. The regional image and semantic ownership rules in this document remain authoritative.
 
 `prototype/` remains the finalized paper implementation. The variational source and that paper bundle have distinct schemas and evidence. Designing the next system does not reinterpret their checkpoints or retroactively unify their equations.
 
@@ -1853,10 +1883,34 @@ The implemented atlas owns and updates, in one canonical `AtlasState`:
 - frozen prepared action readouts with point-of-use dependency and authority checks, durable pending operation identity, exactly-once adapter execution, and acknowledgment joined to the original prediction;
 - a persisted seven-pool, two-strand workspace with bounded heartbeat work, activity-modulated breathing, separate evidence time, sparse transport, and source/dissipation accounting;
 - explicit `think` transitions and read-only prepared `query`/explanation, immutable workspace pages, explicit v1 migration, and bounded optional real-time scheduling.
+- resident open-vocabulary episode mining, conservative trajectory
+  segmentation, typed procedure induction, outcome-weighted autonomous
+  learning selection, and support-linked transfer;
+- resumable goal-directed procedure execution with per-step authorization,
+  retained verified feedback, and bounded context-guarded contingent steps;
+- resident agenda formation that prioritizes unresolved obligations and active
+  invalidation as replayable next-objective proposals;
+- bounded field-native curiosity goals from assessed prediction loss and
+  unique observed-event structure, with source-linked explanation queries and
+  replayable provenance;
+- deterministic active-perception selection over owner-supplied observation
+  channels, scoring goal coverage, reliability, novelty, cost, and latency;
+  the selected channel request and its scores are retained as an `Event`, while
+  the owner remains responsible for authorization, adapter execution, and
+  observation admission;
 
 The controlled scenario learns the relative-position program from predictions made before three future outcomes, acquires a bidirectional relocation construction, and uses the same chart chain for completion, fixed-readout action, planning, explanation, and counterfactual dependence. Its restart is byte-exact and its pre-revocation checkpoint is rejected after selective forgetting.
 
-This is a bounded reference result. Autonomous scope and guard discovery, open-domain language acquisition, causal identifiability, empirical probability calibration, useful GPU scaling, authenticated host/CassiCosmos deployment, and behavior under unrestricted real interaction remain undemonstrated. The finite primitive search and one-token aligned construction learner are executable structure acquisition mechanisms, not evidence that the open research questions below have been solved.
+This is a bounded reference result. Unconstrained goal formation, learned
+sensor-interface discovery, raw sensory acquisition, autonomous scope and guard
+discovery outside admitted procedure branches, open-domain language
+acquisition, causal identifiability, empirical probability calibration, useful
+GPU scaling, authenticated host/CassiCosmos deployment, and behavior under
+unrestricted real interaction remain undemonstrated. The finite primitive
+search, resident procedure learner, obligation-driven agenda, evidence-derived
+curiosity generator, and owner-channel perception selector are executable
+structure-acquisition mechanisms, not evidence that the open research
+questions below have been solved.
 
 ### 23.3 The most consequential open mathematics
 
@@ -4848,6 +4902,30 @@ The exercised bounded episode combines the design's capabilities without giving 
 
 The engineering result is one regional image and one executable causal path throughout this bounded episode. `test_strict_sustained_episode_stays_in_one_machine_and_checks_authority` verifies the pause/reopen boundary, premise revision, authorization refusal and success, exactly-once acknowledgment assessment, source revocation, stale-checkpoint rejection, retained unrelated knowledge, and accumulated work while `FieldProgram.execute` is unavailable. The cognitive ambition is that learned relationships and procedures make unfamiliar episodes more capable and economical; that broader claim requires continuing evidence rather than architectural assertion.
 
+### 32.23 Programmable languages and resident swarm execution
+
+The [programmable field swarm design](../CASSI-PROGRAMMABLE-SWARM-DESIGN.md)
+specifies the Python and native CPU/Vulkan realization of this computer.
+The fixed regional interpreter continues to execute one instruction catalog.
+A Python interpreter is an ordinary acquired field program on that machine:
+its language rules, guest heap, frames, imports, exceptions and continuations
+use the same regional state and event path. It is neither a private interpreter
+owned by a region nor a complete hidden evaluator behind a native callback.
+
+General bounded native primitives may accelerate arithmetic, codecs, memory
+panels and other declared operations. The field program owns their composition
+into Python behavior. The existing automaton owns local selection; hardware
+operation groups are reconstructible derivatives. Working branches retain
+Section 32.11 scoped-overlay semantics, and only the existing owner publishes
+a checked successor. Enduring swarm members have separate owners and lineages.
+
+Packed device storage is an exact physical representation under its declared
+profile, not permission to normalize checkpoint bytes or approximate symbolic
+words. New payload schemas require explicit migration. The companion specifies
+inspection, language compatibility, guarded specialization, deoptimization,
+residency, resource coordination and recovery without changing this section's
+logical transitions, authority, learning ownership or persistence rules.
+
 ## 33. Field-native world modeling and lifelong general intelligence
 
 ### 33.1 Decision, ambition, and present boundary
@@ -4987,6 +5065,490 @@ Each correspondence proposal records the features, motion model, exclusion const
 Units, coordinate frames, reference origins, and clock domains are versioned types. Transform programs carry domains and exact or approximate error semantics. Known translation, rotation, permutation, or renaming identities can support canonicalization; learned approximate invariances retain tests and exceptions. A symmetry of observation is not automatically a symmetry of actuation or cost.
 
 This identity structure is shared across uses. Revising which object was seen must invalidate dependent location answers, predictions, language bindings, and unexecuted plan segments. A language-only entity table or planner-local tracking map would violate the design even if serialized into the same checkpoint.
+
+### 33.5.1 Goal-directed observation requests
+
+**Implemented basis.** The field can now choose among observation boundaries
+that an owner makes available without giving the field the observation result.
+Each channel descriptor contains a stable `channel_id`, the semantic
+coordinates it can provide, and declared `reliability`, `novelty`, `cost`, and
+`latency`, plus an opaque owner request payload. The payload is a request
+description only; observed values, outcomes, and result fields are rejected at
+this boundary.
+
+For a curiosity goal with target variables \(V_g\), the bounded selector
+computes
+
+\[
+S(c\mid g)=4\,\operatorname{coverage}(c,V_g)
++1.5\,r_c+0.25\,n_c-0.25\,\operatorname{cost}(c)
+-0.05\,\operatorname{latency}(c),
+\]
+
+where coverage is the fraction of requested variables supplied by the
+channel. It chooses the highest score with a stable channel-ID tie-break. A
+goal with no explicit target uses the declared quality and cost terms; a
+targeted goal with no covering channel returns `support-gap` rather than
+requesting an unrelated measurement. The score coefficients are the current
+bounded policy, not a general information-theoretic law.
+
+`autonomous-perception` retains the complete score table, selected channel,
+goal, and owner request as a derived `Event` with the goal's source
+dependency. `autonomous-agenda` can promote that request above the underlying
+curiosity query and replay the same choice by operation identity. The owner
+still checks authority, executes the adapter, and admits any returned
+measurement through the ordinary observation boundary. A request is therefore
+an information-seeking intention, not evidence that the requested observation
+occurred.
+
+### 33.5.2 Owner execution and observation admission
+
+`FieldIntelligenceOwner.execute_observation_request` is the concrete bridge
+from the field's selected intention to a world observation. It accepts only
+the four-field request emitted by `autonomous-perception`:
+`channel_id`, `goal`, `provides`, and request metadata. The metadata is
+description-only; observed values and result-shaped fields are rejected before
+the adapter is called.
+
+The owner derives a child operation identity for the adapter and binds the
+adapter to its durable journal before execution. The adapter receives an
+`observe` action, the selected channel as target, and the canonical request
+metadata. A terminal `WorldAcknowledgment` is required to carry the same
+operation identity, declared values, an exact source byte payload, and a
+status. Successful acknowledgments are archived as active evidence first.
+Their source revision and archive event become support roots for the semantic
+`observe` admission, so the field event cannot claim a measurement without an
+owner evidence record.
+
+The bridge is replay-safe at both boundaries. A durable adapter acknowledgment
+is resolved instead of re-executed, and the field's evidence, semantic
+observation, and optional follow-up agenda each replay by their child
+operation identity. An executing adapter journal entry without a terminal
+acknowledgment is indeterminate and fails closed. The returned record exposes
+the acknowledgment, evidence, admitted observation, and next agenda result;
+it does not treat an intention or a transport acknowledgment as field truth.
+
+
+### 33.5.3 CassiCosmos 7599 observation boundary
+
+`CassiFI/cassi_cosmos_adapter.py` is the live loopback implementation of the
+owner adapter contract. It speaks the CassiCosmos mind-engine protocol as
+line-delimited JSON and opens one request/response connection per
+acknowledged observation. The observation allowlist is deliberately narrower
+than the engine protocol: `ping`, `state`, `project`, `qi_state`, and
+`qi_project` are accepted; `deposit`, `step`, `clear`, `snapshot`,
+`qi_snapshot`, and `qi_clear` are rejected before a socket request is sent.
+
+Each channel declares its command and scalar extraction fields. Direct state
+channels can expose `step`, `t`, `mean_ey`, `mean_ei`, and `max_eps2`.
+Projection channels expose the selected top cell or Qi mode through named
+scalar fields. The engine's complete response line remains the exact
+`WorldAcknowledgment.source_content`; extraction is a separate typed view and
+cannot rewrite the evidence bytes. A successful response must be finite and
+must contain every requested field. A transport failure becomes a terminal
+`unknown` acknowledgment, while an engine error or malformed response becomes
+`failed`; both remain durable and replayable.
+
+This boundary observes the live field without granting the cognitive field
+authority to mutate CassiCosmos. It does not claim that a zero or static
+readout is informative: liveness is reported by the engine's own `step` and
+`t` fields, and any future seeded-world channel must retain the same raw
+response and scalar-support contract.
+
+### 33.5.4 Owner-authorized seeded-world watch
+
+Passive observation needs a changing world, but the observation adapter must
+not acquire mutation authority. `CassiCosmosSeedController` is therefore a
+separate capability. A caller must construct
+`authorize_cassicosmos_seed(reason)` explicitly, bind a separate durable
+journal, and provide a bounded list of finite deposits plus a bounded step
+count. The controller emits only those `deposit` commands and the final
+`step`; it never issues `clear`, so resetting the world remains a process
+lifecycle decision rather than an implicit observation operation.
+
+The entire seed-and-advance sequence is one journaled mutation. A complete
+response returns the post-step scalar state and the raw deposit/step response
+lines. A connection loss, rejected mutation, malformed response, or missing
+post-step state is terminal `unknown`, because a partial physical mutation
+must never be replayed speculatively. The controller is not accepted by
+`execute_observation_request`; after seeding, a separately constructed
+read-only adapter watches the resulting state.
+
+This makes the physics-learning question measurable without conflating
+authority and observation: the owner can create one declared nonzero initial
+condition, then admit a time-ordered sequence of state and projection
+observations as evidence. Learning a law from that trajectory remains a
+separate inference question; the first obligation is that the field receives
+the changing world, not a precomputed physics label.
+
+### 33.5.5 Fresh-world reality residency
+
+`CassiCosmosWorldFactoryController` is the resettable-world counterpart to the
+read-only adapter and non-resetting seed controller. It requires an explicit
+owner capability and a dedicated durable journal. One operation clears the
+designated engine, applies either a bounded initial deposit set or up to 16
+scheduled source segments at declared step boundaries, advances through
+declared strictly increasing cumulative horizons, and records both scalar
+state and top-cell projection at every horizon. The complete schedule is
+validated before mutation, including exact final-clock agreement and global
+deposit and step limits. A transport ambiguity remains terminal `unknown`;
+the operation is never replayed speculatively. This controller is reserved
+for declared test worlds and is not accepted by the ordinary
+observation-request surface.
+
+`CassiFI/cassi_reality_residency.py` composes that physical boundary with the
+resident semantic cognition field. Its fixed curriculum contains eight
+training worlds and a sealed prospective population of single-source
+holdouts, unseen two-source compositions, no-deposit controls, and exact
+repeats. The candidate families are committed before execution. The resident
+field selects a translation-equivariant localization law and the coupled
+Yang/Yin global-response law from the training evidence, then records every
+prospective prediction as field evidence before any sealed world is created.
+Global response is represented in conserved total field charge rather than
+cell mean so the competing coupled, uncoupled, swapped, opposite-sign, and
+inert laws remain experimentally identifiable.
+
+The same residency performs a closed-loop intervention: the acquired
+global-response law predicts the result of four predeclared counter-deposits,
+selects the smallest predicted field magnitude, and observes the chosen
+physical world against an untreated baseline. Its final checks close and
+reopen the owner field, demand an identical mechanism result and field-state
+digest, and attempt the same mechanism in a fresh lesion resident. Thus the
+learned laws, their prospective predictions, and the control decision remain
+owned by `QiFieldState.field`; the world journal, sealed manifest, and receipt
+are evidence and replay state rather than an adaptive model.
+
+### 33.5.6 Autonomous scheduled-world physics residency
+
+`CassiFI/cassi_autonomous_physics_residency.py` uses the same resident owner
+and physical boundary without supplying candidate representations to the
+learner. Its sealed 36-world curriculum spans sequential source composition,
+simultaneous collision, delayed collision, co-located nonlinear clamping, and
+temporal evolution through horizons 1, 8, 32, and 128. The manifest commits
+every training, holdout, transfer, surprise, and repeat world before execution
+and records the resident's capacity contract. The resident reserves 1,572,864
+field modes with 4,096 default task words under 128 MiB workspace and 256 MiB
+state limits, so every returned state and projection reading can be admitted
+rather than replaced by selected summaries.
+
+Representation induction receives typed evidence and a bounded construction
+grammar, not an owner-authored candidate list. Selection first ranks
+prospective fit and support, then training rare-case coverage, errors, and
+coverage, and only then construction complexity and work. This ordering is
+load-bearing when several candidates happen to be perfect on a small holdout:
+a simpler representation cannot displace a representation that explains the
+admitted training evidence. In the live curriculum the field originates
+scale-sum representations for composition and clamping, order relations for
+collision, and observed/prior temporal relations. These are persisted
+`auto:*` field representations rather than receipt-side classifications.
+
+The campaign makes failed prediction operational. A strong left source
+evolves for 120 steps before a slightly weaker fresh right source arrives.
+The first collision representation orders raw source strengths and
+prospectively predicts left. The physical outcome is right: resident peak
+\(q=16.9303\) before the arrival, followed by final right peak
+\(q=110.8439\). The admitted Assessment changes the field's experiment choice
+to delayed collision from the bounded owner-declared question channels. New
+worlds then support a version-2 collision representation that orders the
+measured resident peak \(q\) against a calibrated incoming peak \(q\). Both
+sealed delayed-collision transfer predictions are committed before their
+outcomes and resolve correctly.
+
+The live campaign completes 45 physical worlds. Its first 36 retain the full
+representation curriculum and all 10/10 sealed transfer predictions: two each
+for composition, simultaneous collision, delayed collision, nonlinear
+clamping, and temporal direction. The final nine comprise three generations
+of field-originated experiments, each with a trial, mirrored transfer, and
+exact repeat. They are not owner-authored curriculum entries.
+
+The owner supplies a sealed primitive grammar: left/center/right sources,
+strengths \(4,8,12\), step counts \(16,32,64\), four available raw fields, four
+safe derived-observable operators, and hard limits of three segments, three
+deposits, 128 steps, and total absolute charge 36. It supplies no candidate
+schedule, experiment family, derived quantity, distinction, expected answer,
+constructor revision, research question, or program stage.
+
+`synthesize-experiment-language` creates
+`physics:experiment-constructor` as a field-resident `Program`. The constructor
+performs bounded compositional enumeration over source paths, strength
+profiles, step profiles, sensor choices, derived-observable constructions, and
+distinctions. It retains eight distinct canonical schedules per generation and
+selects among them using its own versioned strategy. The owner only validates
+proposal shape, primitive vocabulary, resource bounds, observation program,
+and exact mirrored transfer.
+
+Constructor version 1 prefers restoration and selects left → right → left,
+using strength 8 and segment lengths \(64,32,32\). It defines `zone_path`,
+`transition_count`, and `coherence_retention_ratio`, predicts
+`restored-origin`, and receives no answer during synthesis. The live trial
+resolves left → right → left. That correct Assessment promotes the generated
+language from candidate to active capability; its precommitted mirror resolves
+right → left → right, and a separate execution reproduces the selected
+observations exactly.
+
+`revise-experiment-constructor` reads the correct trial and transfer
+Assessments from the field, records the tested schedule fingerprint, and
+writes content version 2 under the same constructor identity. Its strategy
+changes from steady restoration to directed traversal with rising strength.
+The second synthesis excludes the first mirror-canonical fingerprint and
+originates left at strength 4 for 64 steps, center at strength 8 for 32, and
+right at strength 12 for 32. The live top-\(q\) locations are
+\(-0.5556,0.0159,0.5873\); the sealed mirror traverses the opposite direction,
+and its repeat is exact.
+
+The second successful distinction revises the same constructor to content
+version 3. This revision retains structured discovery entries for both
+languages: their distinctions, observables, expected classes, schedule
+fingerprints, language references, and supporting Assessment references. Its
+strategy now prefers a rising-strength, directed, nonmonotone route. Thus the
+constructor carries a cumulative scientific history rather than only the most
+recent generation state.
+
+`synthesize-research-program` reads that constructor history and creates
+`physics:autonomous-research-program` as another field-resident `Program`. Its
+body contains the two discovery records, semantic coverage over topologies,
+route shapes, strength profiles, expected classes, and observables, and an
+ordered stage plan. The field identifies
+`trajectory-transport-mechanism` as an unresolved uncertainty: a path of
+top-\(q\) peaks distinguishes spatial outcomes but cannot distinguish coherent
+transport from independent local rewriting near successive sources.
+
+The same operation creates an `Obligation` for one bounded read-only primitive,
+`top_phase_current_x`, scoped to the top-coherence cell. This observable is
+\[
+J_x=E_Y\partial_xE_I-E_I\partial_xE_Y=q\,\partial_x\theta ,
+\]
+evaluated by periodic central difference along the deposit/projection \(x\)
+axis from the existing \(E_Y,E_I\) readback. It introduces no GPU pass,
+writable field state, or adaptive sidecar. The request names the missing
+`phase-flow-direction` support and its work bound; it does not modify the
+grammar or authorize itself.
+
+The sealed grammar exposes that exact primitive. The fixed owner review
+therefore returns `authorized-existing-primitive` with a grant limited to
+`top-coherence-cell`, while proving that the grammar is unchanged and no
+implicit authority was created. `record-research-authority` admits this
+decision as an `Assessment` and revises the program's authority state. A
+forged denial inconsistent with the primitive check fails closed.
+
+The still-actionable program stage binds the next experiment synthesis to
+`directed-traversal`, rising strength, and a nonmonotone route. Generation 3
+originates:
+
+- left, strength 4, 64 steps;
+- right, strength 8, 32 steps;
+- center, strength 12, 32 steps.
+
+The trial predicts and realizes left → right → center at top-\(q\) locations
+\(-0.5556,0.5873,0.0159\), with peak \(q\) values
+\(0.2003,1.0937,3.9493\). Its sealed mirror realizes
+\(0.5873,-0.5556,0.0159\), and the repeat is exact. Its schedule fingerprint
+`e760807fa5147eddb7d4d6fb86b7cbd3252155deaa4c1876188de1d53f4165e3`
+is distinct from both earlier fingerprints.
+
+The successful third trial and transfer revise the constructor to content
+version 4 with all three discoveries. `advance-research-program` verifies that
+the planned language was earned, linked to the correct program and stage, and
+supported by correct trial and transfer Assessments. It completes the third
+stage and exposes `phase-flow-mechanism-measurement` with authorized status.
+
+`design-mechanism-experiment` then reads the active program, authority
+Assessment, and sealed primitive grammar. It enumerates the bounded
+source-bracketing designs and selects the one available mirrored central
+contrast without receiving a candidate family:
+
+- control: center strength 8, then observe at 64 steps;
+- trial: left strength 12 for 64 steps, then center strength 8 for 64 steps;
+- mirror: right strength 12 for 64 steps, then center strength 8 for 64 steps.
+
+The separate owner boundary validates proposal shape, primitive membership,
+resource bounds, exact matched control, mirror symmetry, and the presence of
+the authorized phase-current sensor. Mutation of the prior strength outside
+the grammar is rejected. The field receives the raw values only after the
+three worlds have been executed and archived.
+
+At the first trial horizons the field measures equal and opposite directional
+currents at the prior peaks:
+\[
+J_x^\mathrm{left}=+0.369465094110822,\qquad
+J_x^\mathrm{right}=-0.369465094110822,
+\]
+with \(q=1.80250983094024\). At the final target horizon, the isolated control
+and both sequential arms are exactly equal:
+\[
+J_x=0,\qquad
+q=1.27182183278688,\qquad
+x=0.0158730158730158.
+\]
+Both sequential-minus-control current deltas and both \(q\) deltas are zero.
+They lie inside the declared current tolerance
+\(1.000000001\times10^{-9}\) and \(q\) tolerance
+\(1.3718218327868798\times10^{-6}\), while the target remains the top cell.
+
+`assess-mechanism-experiment` consequently records
+`local-rewriting-at-peak`, scoped to
+`top-coherence-cell-at-final-sampled-horizon`. The statement is deliberately
+local: the prior directional pattern is real, but it leaves no detectable
+contribution in the later driven maximum under this schedule. The result
+distinguishes how successive top-\(q\) peaks arise without claiming that
+phase transport is absent elsewhere in the lattice.
+
+The first Assessment completes the peak-cell mechanism stage but retains its
+scope as a prior resolution rather than treating it as a global transport
+answer. The research program reformulates the unresolved question around
+distributed transport and emits an `Obligation` for
+`phase_profile_x_16`. The authorized read-only surface divides the periodic
+lattice into sixteen \(x\)-slabs and returns, at each sampled horizon,
+\(\sum q\), \(\sum J_x\), and \(\sum |J_x|\). It is computed from the existing
+EY/EI readback; it adds no GPU state or evolution pass, and ordinary worlds
+leave it disabled.
+
+From this new observable the field originates a second three-arm mechanism
+experiment without supplied candidate families. The control measures an
+isolated center pulse. The trial establishes a left prior and later applies
+the same center pulse; the mirror establishes the corresponding right prior.
+Together they sample the prior world at horizons 16, 32, 48, and 64 and the
+response world at horizons 80, 96, 112, and 128. The owner boundary verifies
+the read-only sensor, exact matched target, mirror symmetry, time resolution,
+grammar membership, and resource bounds before execution.
+
+Every later center-pulse profile matches its paired control exactly in
+\(q\), signed \(J_x\), and absolute \(|J_x|\). The prior pattern nevertheless
+remains on its original side. In the left arm its \(q\)-centroid moves only
+\(0.0017296702\) toward center, from \(-0.5624317128\) to
+\(-0.5607020426\). In the mirror arm it remains at \(0.5625038534\), with
+signed displacement toward center of \(-3.8204\times10^{-6}\). Both arms
+retain off-target coherence equal to \(0.7737366453\) of the matched control.
+The field therefore records
+`local-nucleation-with-remote-persistence`, with primary mechanism
+`local-nucleation`, scoped to
+`sixteen-x-slabs-across-eight-sampled-horizons`. The later peak forms locally;
+the earlier field pattern persists remotely rather than advecting into it.
+
+The distributed Assessment resolves its axial question while retaining the
+earlier peak-cell result in `prior_resolutions`. The field then reopens the
+program around the remaining topology question and requests the bounded
+read-only primitive `phase_topology_xyz_4`. This surface bins the existing
+readback into a periodic \(4\times4\times4\) lattice and returns
+\[
+q=E_Y^2+E_I^2,\qquad
+\mathbf J=E_Y\nabla E_I-E_I\nabla E_Y=q\nabla\theta .
+\]
+It adds no writable state or evolution pass.
+
+Without supplied candidate families, the field originates four matched worlds:
+left and right controls containing only the strength-12 remote prior, and
+left and right trials adding a strength-8 center source to the same prior.
+The worlds expose only horizons 32, 33, and 96. Trial-minus-control
+differences isolate the response to adding the center source, conditional on
+the prior. Periodic central differences derive
+\(\nabla\times\Delta\mathbf J\), while the lattice supplies radial current,
+added coherence, and coarse-bin mirror agreement. Current components are
+bin averages, coherence is a bin sum, and coarse derivatives use one bin
+as their spacing.
+
+At horizon 96 both directional arms measure
+\[
+\|\Delta\mathbf J\|_1=2.7589547\times10^{-5},\qquad
+\|\nabla\times\Delta\mathbf J\|_1=5.5179206\times10^{-5},
+\]
+giving normalized curl \(2.0000041\). This passes the declared material-current
+and curl thresholds. It does not establish a mirrored vortex: the relative
+cellwise mirror error is \(0.9419819\), above the fixed \(0.75\) limit. Both
+arms have inward radial flux near \(-1.3794773\times10^{-5}\), so there is no
+outward/inward reversal at the sampled horizons. The added coherence's
+weighted mean radius is \(0.0351592\) bins; its positive difference beyond
+one bin is \(7.6772440\times10^{-13}\). The radius remains below the one-bin
+delayed-spread threshold. The receipt key `centroid_radius_bins` denotes this
+mean radius, not the magnitude of a vector centroid.
+
+`assess-phase-current-topology` therefore records
+`static-remote-persistence`, scoped to
+`four-cubed-lattice-across-three-sampled-horizons`. The added-center response
+stays localized while supporting a weak, curl-bearing inward phase current.
+The remote prior persists independently in both controls and trials. The
+coarse-bin mirror test does not establish physical reflection failure:
+native reflection about the center source cuts across these bins, and the
+combined mirror metric includes coherence sums alongside current averages.
+Its threshold failure therefore leaves vortex structure unresolved. Curl of
+\(q\nabla\theta\) is not itself a phase-winding measurement, and averaging
+can hide sub-bin circulation.
+
+The full readout adds periodic central divergence
+\(\nabla\cdot\Delta\mathbf J\), in the same per-bin convention as curl.
+The field assesses the unchanged observations from its retained pre-assessment
+checkpoint in a separate evidence home, with zero new physical executions.
+At horizon 96 the divergence L1 norm is \(2.7589701\times10^{-5}\);
+normalized divergence is \(1.0000056\) per bin, and signed extrema are
+approximately \(\pm6.8973867\times10^{-6}\). This distinguishes local
+convergence and divergence from curl; the near-zero signed sum follows from
+the periodic difference operator and is not an additional conservation result.
+
+The completion receipt is
+`D:/CassiFI-evidence/canonical/autonomous-field-research-program-v8-divergence-completion/receipt.json`,
+with body SHA-256
+`8bb8a77d0f72bfcd72f90021d8209e3b82cda837f0320741306e646e56fa3fec`.
+An independent NumPy calculation reproduces all 24 per-sample divergence
+statistics. Close/reopen preserves the exact field digest and recovers the
+complete assessment from the field-owned operation index. A blank-field
+program query returns `support-gap`, and its assessment attempt raises
+`UNKNOWN_SEMANTIC_RECORD`. The original receipt, metrics, and recorded
+classification remain unchanged; the physical interpretation above is scoped
+to what the coarse readout can distinguish.
+
+The next field-originated continuation adds an exact native phase-winding
+surface to the same topology experiment. The owner grants the combined
+read-only scope `four-cubed-periodic-phase-current-lattice-plus-native-closed-loops`:
+the \(4^3\) binned \(q,\mathbf J\) view remains available, while the native
+engine also samples closed square loops on the \(64^3\) grid in the \(xy\),
+\(xz\), and \(yz\) planes at radii 2, 4, and 8 cells. Each loop reports the
+unwrapped phase circulation, winding number, line integral of \(\mathbf J\),
+and minimum sampled \(q\). The probe reads the existing \(E_Y,E_I\) arrays;
+it adds no writable state and no evolution coupling.
+
+The fresh continuation executes the same four matched worlds and retains the
+same 55-world residency boundary. The native readout is present in every
+topology observation and is reflection-consistent: native mirror relative
+error is \(4.5642681\times10^{-12}\). At horizon 96 both directional arms
+measure native current-circulation L1
+\(2.4332879\times10^{-2}\), while the largest native winding magnitude is
+\(2.4848083\times10^{-18}\). The sampled loop minimum is \(q_{\min}=0\), so
+the phase winding is not physically supported on at least one loop point;
+the field therefore records `native-circulation-without-winding`, not a
+vortex detection. This is a stronger result than the coarse mirror metric:
+the native loop comparison is symmetric and the field carries measurable
+closed-loop phase current, but the selected loops do not provide nonzero
+coherence everywhere required to interpret a topological winding number.
+
+The continuation receipt is
+`D:/CassiFI-evidence/canonical/autonomous-field-research-program-v8-native-winding-completion/receipt.json`,
+with body SHA-256
+`4a5ade5acb62601327fb08ae32de32caee9b9610593fdfe0c92b0b99d3eee526` and
+file SHA-256
+`bb3f567f121b2f15b4c8dd7d3b7319de86373c439ffd29725e6d4fad6cde424f`.
+Its status is `supported`; all transfer predictions, exact repeat pairs,
+restart, owner authority, and field-lesion checks remain successful.
+
+Close/reopen preserves field digest
+`896f138d9f3499b9c9983ff2d09a00be3dede04742a8f4e7ebecf22aa1d77e64`,
+constructor version 4, all three executable languages, all three mechanism
+Assessments, and the resolved program. A blank-field lesion returns
+`support-gap` for the languages, learned representations, and research
+program. The journal contains exactly 55 physical effects, replay performs no
+second mutation, all five scheduled repeat pairs are exact, and all 10 sealed
+curriculum transfer predictions remain correct.
+
+The canonical receipt is
+`D:/CassiFI-evidence/canonical/autonomous-field-research-program-v8-canonical-final/receipt.json`.
+Its independently reproduced body SHA-256 is
+`d538199c39d3a1368b17e4972d1b44cdac1e57aa61a99baae945b9976a2afd2c`,
+and the receipt file SHA-256 is
+`7b3d66033e094df770d041f51ac4f077a8030ad11d1e227eace8d087c69f0fd7`.
+The adaptive state remains `QiFieldState.field`. The controller, primitive
+grammar, owner review, journal, manifest, and receipt supply fixed authority,
+execution, and evidence; they do not select schedules, formulate the
+uncertainty, plan stages, classify the measured mechanism, or retain an
+adaptive sidecar.
 
 ### 33.6 Hybrid mechanisms and observation models
 
@@ -5566,7 +6128,7 @@ The central research wager is precise: a bounded typed program language, shared 
 
 At the final frozen checkpoint, each of the four world families reaches `48/48` across the three seeds (`16/16` per seed). The learning curves are `0/48` at checkpoint zero and `48/48` at checkpoints 16, 32, 48, and 64. The cold, structural-disabled, and irrelevant-pretraining controls are `0/48` per family. The shared-belief challenge reaches `21/27`; recurrence reaches `64/64` at every trained checkpoint; six reduced-sensory modalities reach `18/18`; and three permissioned repository sources reach `9/9`.
 
-The retained resource boundary is explicit. The default profile reaches its execution-resource limit after 16 completed feedback events and three acquisitions, so the continuation uses the declared `393216`-mode, `524288`-word profile, increasing value capacity by `128x`. The full run takes `7h24m0.6s`, reaches a peak process working set of `691,949,568` bytes, and retains `3,846,158,186` data-home bytes. The source codec, fixed semantic grammar, acquisition schedule, and supplied answer-bearing alignments remain experimental structure; automatic task understanding and open-ended curriculum discovery are not claimed.
+The retained resource boundary is explicit. The default profile reaches its execution-resource limit after 16 completed feedback events and three acquisitions, so the continuation uses the declared `393216`-mode, `524288`-word profile, increasing value capacity by `128x`. The full run takes `7h24m0.6s`, reaches a peak process working set of `691,949,568` bytes, and retains `3,846,158,186` data-home bytes. The source codec, fixed semantic grammar, acquisition schedule, and supplied answer-bearing alignments remain experimental structure; the live field now discovers recurring grounded action transitions from resident episodes, while automatic task understanding and unrestricted open-ended curriculum discovery are not claimed.
 
 The primary comparison is the same computer before and after experience, at matched observation access, authority, and resource allocations. Success on an already implemented exact solver is useful computational competence; improvement beyond that fixed competence requires a learning-dependent comparison. Neither a Turing-complete instruction set nor seven input codecs establishes general intelligence.
 
@@ -5590,11 +6152,46 @@ A single thin training/evaluation runner is sufficient. Its adapters supply worl
 
 ### 34.3 What training means on the current implementation
 
-Training is identified experience admitted through the owner, followed by explicit field-owned acquisition and revision operations. There is no optimizer, learned codec, neural head, or teacher model in the learner.
+Training is identified experience admitted through the owner, followed by
+field-owned acquisition, revision, and opportunity selection. There is no
+optimizer, learned codec, neural head, or teacher model in the learner.
 
-The input path currently constructs an `observe` request. Reading a file alone does not automatically discover representations, train language constructions, or choose a curriculum. The driver must explicitly invoke the existing operations such as `learn-representation`, `learn-parameters`, `learn-mechanism`, `learn-procedure`, and `learn-construction` when the declared training condition provides their required evidence.
+The input path constructs an `observe` request, while a bounded
+`autonomous-learn` request may either present accessible candidate learning
+operations or omit them. The resident field scores explicit candidates using
+expected gain, urgency, novelty, cost, risk, prior selections, active
+invalidation pressure, and outcome credit accumulated from earlier autonomous
+learning events. It dispatches exactly one selected operation through the
+ordinary learning surface and retains the selection event, score components,
+experience summary, and result in the same image.
 
-The initial condition uses a fixed, domain-independent acquisition schedule. It reports that scheduling assistance. A separate autonomy condition lets field-owned inquiry and control choose among accessible opportunities and bounded learning operations; its action-selection trace must show that the driver only executes the selected alternative. If that production control path is unavailable for a task, the result remains assisted rather than being described as autonomous.
+When candidates are omitted, the resident field scans successful
+open-vocabulary episodes already admitted to its `Event` region, groups
+structurally recurring transitions, and synthesizes an action-schema candidate.
+Episodes carrying validated `trajectory_id` and `trajectory_index` metadata are
+additionally grouped into repeated multi-step traces; events without that
+metadata receive conservative online segmentation from state continuity and
+shared bound entities. Failed trajectories become held-out safety traces,
+while successful traces support synthesis of a bounded typed procedure
+candidate. The procedure retains every supporting event dependency, may be
+selected through the same autonomous path, and can be executed through
+`invoke-procedure` against typed bindings to yield a proposed action sequence.
+
+`plan-procedure` grounds that sequence against the procedure's postconditions,
+rejects an unsatisfied goal, and emits the ordinary owner-authorized action
+proposal and lifecycle. Each acknowledged step becomes a retained event and
+completed-step record; its verified observation is carried into the next
+proposal's context. A procedure step may expose bounded equality guards over
+that feedback and select a contingent next action. `autonomous-curiosity`
+derives bounded goals from assessed prediction loss and structurally unique
+observed events. Each goal carries its source reference, objective, priority,
+and owner-facing explanation query; the generated curiosity Event is retained
+as its provenance root. `autonomous-agenda` reads the same resident image to
+merge those goals with unresolved obligations and active invalidation as a
+replayable next-objective proposal. Explicit opportunities remain the
+extension point for learning families that do not yet have a resident
+discovery rule. The next capability boundary is unconstrained goal formation
+and raw sensory acquisition, not another adapter around the same sequence.
 
 Every interactive learning event follows the same order:
 
@@ -5818,3 +6415,1338 @@ Each completed comparison delivers:
 - a statement of which supplied structure and fixed primitives the result depends on.
 
 The first substantive target is cumulative cross-task usefulness: experience in one setting improves an unfamiliar task, the improvement depends on retained learned state, and the same acquired relation changes prediction, action, and language coherently after correction. Broad intelligence remains the open empirical question. This program makes incremental progress and architectural limits visible without substituting engineering integrity or familiar benchmark success for that question.
+
+## 35. Open-ended research organism and cumulative intelligence
+
+### 35.1 Destination and architectural decision
+
+**Specified mechanism—2026-09-19; entity integration refined—2026-09-20.** Build one continuing Cassi research organism, expressed through a persistent root field and a population of independently learning field members. Its work is to understand unfamiliar situations, invent useful representations and procedures, test them against external consequences, teach what transfers, and improve how it performs those activities. In the explicit `field-brain` deployment, the existing entity service and its current owner are the integration entry point; residency and organism code provide scientific methods and member lifecycles. Standalone field profiles remain explicit and model-optional. There is no new executive model, parallel memory service, or independent agent framework.
+
+The design has two connected improvement loops:
+
+1. **Capability development:** experience produces a concept, explanation, solver, procedure, or communication ability that improves a real task.
+2. **Development-method improvement:** experience produces a better way to acquire, test, remember, compose, or discover capabilities on later unfamiliar tasks.
+
+A faster program is useful. A better way to discover programs can affect many later programs. Both loops run through the same field-owned representations and outcome-learning path.
+
+Maximum potential means preserving room to grow: the organism can construct new programs, learn new conceptual distinctions, propose new investigations, acquire interfaces, specialize members, and reorganize its own computation. A finite catalog of complete tasks, solutions, curricula, or personality roles must not become its permanent intelligence ceiling. Each actual execution remains bounded, interruptible, attributable, and compatible with user-owned authority.
+
+**Research hypothesis [INFERENCE].** Combining open-ended typed construction, grounded causal learning, cumulative transfer, and measured improvement of learning methods can produce increasing intellectual capability across domains. This is a direction to develop and measure, not a theorem that the architecture converges to superintelligence. The substantive destination is sustained ability to solve unfamiliar consequential intellectual work better than strong expert baselines at explicitly reported resources.
+
+This section extends the existing architecture rather than replacing its mathematics or ownership rules. Section 32 governs execution; Section 33 governs shared meaning and world modeling; Section 34 governs the separation of learning, selection, and independent evaluation. The additions here close their developmental loop across an enduring organism and its population.
+
+The [integrated upgrade in the entity design](../CASSI-ENTITY-DESIGN.md#19-integrated-general-learning-and-affective-hive-organism) connects this field specification to active-brain research, question-centered groups, collective synthesis, delegate/adopt/study choices, affect, and lifetime-preserving migration. Sections 35.13 and 35.17 describe evidence for acquisition or comparative-improvement claims; they do not require rerunning settled learning campaigns before ordinary scientific work or collaboration.
+
+### 35.2 The existing basis and the work still to build
+
+The source boundaries below are the basis inspected for this design. A row describes available machinery, not evidence that the complete organism already exists.
+
+|Existing basis|Present boundary|Required extension|
+|---|---|---|
+|`cassi_research_residency.py`|A continuing `cognition.field` owns mission, work catalog, cursor, observations, assessments, and learning; the host executes a bounded catalog|Field-generated research work and durable multi-member development, while preserving the owner path|
+|`cassi_field_cognition.py`, `cassi_field_program.py`|Shared semantic records, bounded acquisition, mechanism/program families, agendas, and procedure use|Expandable field-owned construction frontiers and acquired search programs beyond supplied complete candidate lists|
+|`cassi_research_worlds.py`|Bounded physics observation and a local market-world path|A common observation/action/evaluation lifecycle with actual independent task consequences|
+|`cassi_research_development.py`|Read-only source study and isolated candidates for the published CassiMindField lab example|Field-generated typed candidates against authorized unfamiliar source worlds|
+|`../CassiMindField/architecture_ir.py`, `../CassiMindField/architecture_synthesizer.py`|Typed architecture descriptions and deterministic candidate materialization|Learned construction of descriptions and transformations; no hidden host candidate designer|
+|`../CassiMindField/promotion_kernel.py`|Immutable generations, state/source binding, integrity checks, and a publication pointer|Co-versioned publication of the real regional owner closure and an independently evaluated development method|
+|`cassi_hive_runtime.py`, `cassi_hive_store.py`|Real owner-side adoption, immutable objects, lineage, and operation evidence|Execution-backed transfer assessment, active dependency retraction, and durable campaign continuation|
+|`cassi_hive_rollout.py`|Real member adoption with caller-supplied outcome metrics; multi-round comparison state held by the runner|Measured control/treatment outcomes and canonical field-owned campaign state|
+|`cassi_hive_collective.py`, `cassi_hive_promotion.py`|Review, quorum, population summaries, and persisted reviewer profiles|Root-field calibration and allocation, evidence-conditioned selection, and externally constrained publication|
+
+**Implemented development slice—2026-09-19.** The CassiMindField
+`redesign_lab.py` campaign now promotes each accepted candidate as the next
+cycle's actual source instead of restarting from the original example. The
+field agenda selects among questions compiled from that live source; compilation
+derives a new module name, dependencies, operation sequence, and migration
+binding from the parent topology rather than looking up a complete candidate
+architecture. Each candidate carries a pre-execution causal prediction, and
+isolated assessment records the corresponding module, migration, and behavioral
+outcomes. Executed traces train an ordinary field-owned procedure. That
+retained procedure transfers to both later architecture successors and proposes
+their three primitive investigation steps; the matched fresh-field control has
+no procedure and returns an exception on the final task. The independently
+checked campaign retains the lineage across restart and replay, measures
+positive net savings of two steps across the procedure's two training traces,
+and fires on mutations to the parent state, source, and persisted field.
+
+The same procedure then crosses from the final promoted Python architecture
+into a CassiFI structured-field-program construction task derived from that
+architecture's measured topology. Its three-step organization constructs and
+executes a real `FieldComputer` program whose accumulator and stacks match the
+declared causal prediction. Under the frozen bounded-plan comparison, the
+experienced arm examines three primitive plan steps; the fresh arm has no
+procedure and its explicit evaluation control examines six steps across three
+candidate plans before reaching the same valid construction. This is a measured
+three-step work reduction across two construction representations. Independent
+replay and source-IR and plan-order mutations guard the receipt.
+
+The procedure also transfers into a topology-derived Boolean transition
+constraint with two state bits, one input bit, and a four-step horizon. The
+canonical constraint compiler emits the bounded source and the exact conflict
+field returns SAT after 23 transitions. Its witness,
+`phase@0=1`, `carry@0=0`, `drive=[1,1,0,1]`, reaches the predicted
+`phase=0`, `carry=1` boundary. An independent source-level enumerator finds one
+and only one valid input trace. The experienced arm again examines three plan
+steps against six for the fresh bounded-search control, while the fresh field's
+procedure invocation remains an exception. Receipt replay and recomputed-digest
+source, witness, and plan-order mutations all fire.
+
+**Implemented computation-policy slice—2026-09-19.** The same retained
+procedure is now paired with a learned exact-reasoning regime. The field trains
+on source-distinct SAT and UNSAT families, then selects a normalized reasoning
+regime on held-out tasks while a fresh policy supplies the control. The SAT
+holdout is a four-step phase/carry transition; local propagation returns a
+source-checked witness, and exhaustive source evaluation finds one valid input
+trace. The UNSAT holdout is a six-variable CNF containing both XOR parities.
+Independent enumeration finds no model. Local propagation stops at an explicit
+`exhausted` boundary without manufacturing a certificate; the learned
+algebraic regime returns an audited hybrid certificate in one field transition.
+The fresh policy selects conflict resolution and reaches the same UNSAT result
+in 95 transitions, so the learned regime saves 94 field transitions.
+
+The persisted paired receipt records the training observations, held-out
+selection, fresh-policy contrast, witness, hybrid certificate, construction
+procedure transfer, causal prediction, and replay identity. Its independent
+verifier reconstructs the task from the promoted source, enumerates both
+outcome spaces, checks the SAT witness against the original transition
+semantics, audits both the learned hybrid and fresh resolution certificates,
+and fires recomputed-digest mutations to the source, witness, certificate,
+policy selection, and construction plan. This demonstrates a field-owned
+method choice between exact reasoning regimes on two bounded problem classes;
+it does not establish general solver superiority or unrestricted problem
+discovery.
+
+This establishes bounded construction-method transfer, not unrestricted code
+invention, autonomous discovery of arbitrary problems, a superior learned
+development method against expert baselines, or broad semantic cross-domain
+intelligence.
+
+In particular, the current generational hive campaign supplies both its successor program construction and its accuracy values. Its adoption path is real; the supplied values do not establish discovered improvement. A matching content digest proves identity of recorded bytes, not that the claimed experiment happened.
+
+The current resident also selects from a bounded supplied work catalog, and its development adapter explicitly refuses full-repository redesign. These remain useful bootstrap and regression fixtures. Their results must not be relabeled as autonomous task discovery or general code invention.
+
+The existing multi-round runner's in-memory history and SQLite-backed reviewer calibration identify two ownership changes required by this design. A continuing organism must checkpoint the adaptive campaign and trust state inside its field; merely saving a final report is insufficient.
+
+### 35.3 One organism, independent members, and two forms of parallelism
+
+The **root field** is the continuing user-facing identity. It retains the mission, shared understanding, research questions, learned allocation strategy, unresolved disagreements, accepted lessons, and its own development history. The root is also a learner; it is not an omniscient merger or a privileged source of truth.
+
+Each **member field** is an independent organism with its own canonical image, observations, acquired methods, and unfinished work. Members can share immutable evidence and transferable lessons without sharing mutable adaptive pages. A member may decline a lesson because its prerequisites, authority, resources, or observed consequences differ.
+
+The hive has two distinct parallel execution modes:
+
+- **Within one organism:** workers evaluate bounded computations over immutable regional views. They return proposals to the same logical publisher. Every retained branch, search cursor, and result dependency belongs to that organism's field.
+- **Between organisms:** members learn independently and communicate explicit claims, lessons, requests, and results. Their fields can disagree. The root admits their reports as attributed evidence rather than averaging their state tensors.
+
+A copy of one checkpoint is useful for controlled comparison but is not an independent intellectual lineage. The population records shared ancestors, teaching sources, proposal ancestry, world exposure, and evaluator exposure. Independence is assessed relative to the claim being made.
+
+One member can act as investigator, builder, critic, integrator, or teacher for a particular question. Roles are task assignments informed by demonstrated competence, not permanent faculties or separate cognitive architectures. The root preserves a bounded allocation for underexplored approaches and unresolved minority hypotheses.
+
+The owner/controller remains external nonlearned machinery. It enforces permissions, resource ceilings, publication order, and recovery. A leader lease or publication fence grants a process the right to submit one publication, not permission to expand the mission or manipulate another member's field.
+
+### 35.4 Canonical state and the shared developmental vocabulary
+
+Reuse the six semantic record families. New concepts below are payload roles and stored programs, not six new databases or private Python objects.
+
+|Family|Developmental contents|
+|---|---|
+|`Value`|Measurements, typed terms, hypothesis parameters, world-context descriptions, candidate frontiers, allocations, resident campaign state, and explicit random-generator state where used|
+|`Binding`|Entity and role correspondence, concept applicability, source spans, program dependencies, member lineage, and cross-domain correspondence claims|
+|`Event`|Observations, proposals, predictions, selected expansions, world acknowledgments, trial outcomes, teaching episodes, corrections, and migration events|
+|`Program`|Mechanisms, parsers, procedures, abstractions, search/update/curriculum programs, typed candidate code, and their guarded executable interfaces|
+|`Assessment`|Prediction error, correctness class, uncertainty, costs, transfer effects, retention effects, reviewer forecasts and calibration, and method comparisons|
+|`Obligation`|Research questions, missing distinctions, unresolved counterexamples, experiment requests, pending acknowledgments, retraction work, and incomplete deployment|
+
+All authoritative references include identity, version, scope, dependency versions, and epistemic type. An unobserved outcome is represented as unknown or hypothetical, never as a convenient default value. A proposed new concept is a hypothesis until its intended use earns support.
+
+The separation remains `(F, E, A, K)`:
+
+- **F:** every learned value, relevance judgment, adaptive credit, selected program, frontier, continuation, and unresolved cognitive state.
+- **E:** exact immutable source material, actual world traces, completed proofs, evaluation artifacts, and published descriptions.
+- **A:** user objectives and permissions, resource grants, current revocations, publication fences, and effect-recovery journals.
+- **K:** fixed codecs, checked instruction semantics, bounded arithmetic, bootstrap validation, and external evaluation machinery.
+
+An external index can map exact versions to byte locations or reproduce a deterministic dependency view. It cannot decide learned relevance, fill a missing learned policy on restart, or become the only place where a retained idea exists. An archived candidate program has an authoritative field-resident identity and executable representation when it participates in cognition.
+
+A campaign is a scoped collection of these records in the root image. Member assignments, question states, pending comparisons, eligibility, previous comparison references, and remaining allocations are durable before dispatch. An immutable ledger is an exported view of that state, not the state owner.
+
+### 35.5 The complete developmental lifecycle
+
+The resident executes one shared lifecycle, at both task and method levels:
+
+```text
+mission and current understanding
+    → select an unresolved consequential distinction
+    → retrieve evidence and construct competing explanations
+    → choose reasoning, practice, experiment, or a new representation
+    → construct an executable proposal
+    → execute within the granted world boundary
+    → admit the actual acknowledgment and consequences
+    → assess prediction, utility, cost, and attribution
+    → revise understanding and acquire a reusable method
+    → teach and independently test transfer
+    → use the experience to improve the next investigation
+```
+
+The resident's stored cursor distinguishes proposal construction, execution preparation, dispatch, acknowledgment, admission, assessment, learning, transfer, and completion. Each phase binds the predecessor image and exact input identities. Advancing one phase cannot silently repeat the previous external effect.
+
+Existing `submit`, `invoke`, `advance`, and owner-authorized execution remain the public path. Investigation, invention, rehearsal, and method comparison are stored programs using that path, not additional live interpreters. Bootstrap host drivers may transport requests and invoke fixed checks; they may not choose the answer-bearing decomposition for the learner and then credit the field with discovery.
+
+The loop can suspend for missing evidence, inadequate representation, exhausted resources, unavailable worlds, stale dependencies, or absent authority. These causes remain distinct. A failed experiment can be informative, an unavailable experiment supplies no outcome, and a failed execution may reveal an implementation defect rather than a false hypothesis.
+
+A process restart loads the field checkpoint and resolves external operation journals. It does not infer the next intellectual action by scanning report files. Historical permission is not permission for a new effect.
+
+### 35.6 An expandable construction engine
+
+The core addition is a **field-resident construction frontier**. It can build explanations, representations, programs, experiments, and improved construction methods in one typed executable language.
+
+Each frontier entry retains the problem and source roots, a partial term or program, unresolved typed holes, variable scope, applicability assumptions, read/write/effect bounds, parent constructions, counterexamples, search-program version, consumed work, and evaluation status. Suspended expansion is part of the field, including tie-breaks and enumeration or random-generator state.
+
+Bootstrap construction uses a small fixed set of compositional operations:
+
+1. Introduce or bind a typed variable from accessible evidence.
+2. Apply a compatible primitive or admitted procedure to compatible arguments.
+3. Compose operations, factor a repeated expression, or replace constants with parameters.
+4. Split a context, add a discriminating guard, or retain alternative identities.
+5. Introduce bounded iteration, a resumable call, or recursive decomposition with explicit frames and fuel.
+6. Form a measurement or experiment that distinguishes surviving alternatives.
+7. Generalize a successful structure while retaining its counterexamples and exceptional cases.
+
+These are syntax and computation rules, not a fixed list of finished solutions. A construction can have a shape absent from training and from the bootstrap templates. No host callback enumerates all useful plans or supplies a completed architecture for the field merely to rank.
+
+The initial search program is deterministic and understandable: expand well-typed holes in bounded cost/depth layers; reuse applicable acquired procedures; retain diverse unresolved structures; reject type/effect violations; test cheap counterexamples before expensive executions; reserve work for unexplored alternatives. The profile bounds the active frontier and each quantum. Eviction records why a branch was dropped and does not imply it was disproved.
+
+More precisely, the bootstrap alternates fairly across ready research obligations and orders their unchecked candidates by edit depth, canonical description length, then canonical identity. One expansion may add an observed coordinate, construct a compatible relational variable, split a guard, anti-unify two structures, compose admitted procedures, introduce an explicit alternative, or factor a reusable macro. Units, frame, time, scope, and effects constrain every step. Canonical variable renaming removes syntactic duplicates; agreement on a few examples never proves semantic equivalence. A profile-defined exploration interval preserves this base ordering even when learned guidance becomes available.
+
+Search guidance then becomes acquired `Program` and `Assessment` content. Experience can teach which decomposition, abstraction, experiment, or transformation tends to be useful under a particular structure. The field may replace its proposal program after an independent comparison on later problems. It does not replace the meaning of an instruction or the rules that check effects.
+
+The first learned successor can reorder those neighborhoods using their field-resident, context-conditioned history of usable answers, prediction loss, transfer, repair, and complete work. Compare candidates on a common eligible workload, retaining coverage and failures, so selecting an easy subset cannot masquerade as a better method. Larger changes construct a new search program and use the method-level comparison in Section 35.17. Candidate construction, assessment work, and failed branches are all charged.
+
+Counterexample-guided synthesis is the ordinary loop: candidate → independent execution or valid proof attempt → specific counterexample or supported result → retained frontier update. Passing examples establish empirical scope; a checked proof establishes only its declared domain and assumptions. General program equivalence, unrestricted causal identification, and optimal synthesis remain undecidable or resource-limited in relevant cases.
+
+Novelty is recorded along separate axes: new parameters, a new composition, a new control/data structure, a new learned representation, a new mechanism family, or a new search method. A changed name, source digest, or generation number establishes none of those semantic distinctions.
+
+### 35.7 Representation discovery and grounded perception
+
+The organism must be able to change the distinctions through which it sees a problem. A useful representation is an executable, supported way to preserve consequences—not just a newly named record.
+
+Representation proposals originate in:
+
+- repeated prediction errors under related conditions;
+- histories that look identical now but have different future consequences;
+- repeated plan repair or expensive rediscovery of the same relationship;
+- conflicting identity correspondences across views;
+- a reusable structure shared by otherwise different successful procedures;
+- a teacher's explicitly attributed explanation that can be tested.
+
+A proposal includes an encoder/constructor program, role and type definitions, applicable context, dependencies, uncertainty, expected useful questions, and a migration/use plan. The current representation remains available while the proposal is evaluated.
+
+Concrete learning operations include scoped anti-unification of repeated programs, lifting constants into roles, factoring shared subgraphs, retaining predictive history, splitting ambiguous contexts, proposing latent variables with identifiable observational consequences, and composing admitted numerical or relational transforms. Continuous chart updates and discrete structural construction use the same field references.
+
+Evaluate a representation on future prediction, planning, communication, and total computational cost. Compression alone is insufficient: a compressed description that loses a rare consequential guard is worse for that use. Alternative representations may coexist under different conditions; there is no compulsory global ontology merge.
+
+For raw sensory input, fixed codecs expose samples, byte spans, time, coordinates, units, masks, and declared transforms. Learned correspondence and meaning belong to field programs and bindings. Active observation can test whether an apparent object persists, whether two signals share a cause, or whether a relation survives a change of viewpoint. A sensor-supplied identity remains supplied structure.
+
+The first tractable sensory surfaces are exact text and source syntax, tables, small arrays, event streams, and bounded image/audio windows. Larger continuous streams require selective sampling and measured decoding/memory cost. Adding more pixels or corpus bytes is not a substitute for discovering a useful representation.
+
+New interfaces are acquired in the same way: inspect authorized documentation or examples, construct a typed interpretation, test in a harmless sandbox, and retain observed behavior. A learned API description can request an existing capability; it cannot register a new privileged adapter or discover permission by inference.
+
+### 35.8 Nonverbal reasoning, causal inquiry, and long-horizon action
+
+Reasoning operates over shared relational, temporal, numerical, and executable structures before any verbal explanation is generated. One supported relation can guide prediction, a plan, an utterance, and an explanation through the same identity.
+
+A question opens scoped candidate workspaces with explicit assumptions. Bounded exact solvers, variational/resonant computation, simulation of acquired mechanisms, retrieval, and program execution can each reduce particular unresolved obligations. A stored reasoning program chooses which valid operation to try, using field-owned knowledge of its applicability and cost.
+
+Keep prediction, intervention, and counterfactual reconstruction distinct. A passive correlation does not identify the effect of an unavailable intervention. If multiple mechanisms explain the accessible evidence, preserve them and search for a permitted discriminating observation.
+
+The initial inquiry selector prefers operations that distinguish decision-relevant alternatives at affordable cost. If justified probabilities exist, it can estimate expected information or decision improvement. Otherwise it uses explicit outcome sets, worst-case distinctions, and bounded exploration rather than inventing likelihoods.
+
+Planning maintains goals, alternative subgoals, coarse future segments, and immediately executable steps. Distant segments are refined when their distinctions become consequential. After each actual acknowledgment, update the same belief and invalidate only affected assumptions, branches, and macros. A fresh authorization is checked where an external effect is requested.
+
+Imagination is computational work over a hypothesis. It may identify a counterexample within a model, suggest a distinguishing experiment, or prove a consequence under assumptions. It does not create additional real-world observations. A desired result never becomes a training target merely because it makes a plan coherent.
+
+The trusted boundary enforces eligibility and resource limits; field activity ranks eligible computation. This permits learned attention and computational strategy without allowing activation to create truth or permission.
+
+### 35.9 Self-directed curriculum and invention of research work
+
+Replace the resident's permanent catalog of complete research jobs with a field-generated, revisable frontier. The catalog remains a set of bootstrap exercises and accessible world descriptions, not an exhaustive menu of future intellectual work.
+
+The frontier draws from user missions, failed predictions, unresolved explanations, expensive successful methods, recurring exceptions, contradictory reports, promising transferred ideas, and questions about the organism's own computation. Every internally generated goal points back to a supported need or an authorized exploratory objective. Arbitrary ungrounded goal creation is unnecessary.
+
+Work selection is a constrained portfolio:
+
+- immediate usefulness for the user's objective;
+- likely reduction of a consequential uncertainty;
+- reusable learning or cross-domain transfer potential;
+- retention and correction of already valuable knowledge;
+- exploration of approaches poorly represented in current experience;
+- actual expected computation, observation, and risk costs.
+
+Hard permissions, resource ceilings, and forbidden outcomes are constraints, not terms that can be outweighed by a high predicted reward. During bootstrap, a fixed transparent mix and fairness rule prevents starvation. Learned estimates may improve allocation only through admitted outcomes; there is no external bandit table or hidden adaptive planner.
+
+The field may generate practice problems, change accessible world parameters, or construct adversarial counterexamples for another member. Such generated work is training or selection material. It cannot certify the generating method's own superiority. Challenge diversity includes new mechanisms and structures, not merely renaming familiar objects.
+
+Difficulty should remain informative: overly easy work supplies little new evidence; repeatedly impossible work can consume the organism without improving it. An unsolved task can trigger prerequisite learning, an observation request, a representation change, a different method, or an explicit return to the user.
+
+The curriculum is itself a candidate development method. A proposed curriculum earns support only when it helps acquire later unfamiliar abilities under matched total resources, including the cost of constructing and running that curriculum.
+
+### 35.10 Acquiring human knowledge and productive language
+
+The organism should exploit human knowledge rather than rediscover every elementary fact. It can study authorized documents, source code, examples, numerical datasets, worked explanations, and lessons from people or explicitly identified external models.
+
+Study is active. The field selects a source, forms a question, preserves the exact relevant spans, constructs candidate meanings, checks implications where possible, practices the method, and revisits disagreement. Source statements remain attributed assertions until the appropriate evidence supports their use. Large sources are streamed through bounded windows with field-selected revisitation; no learned external retrieval index owns semantic relevance.
+
+A teaching episode records who supplied the solution, demonstration, vocabulary, decomposition, or candidate code. Outside models can be tutors or instruments at that boundary. They are not an inference fallback for native Cassi capability. Assisted and field-native performance remain separate, with teacher access and its full cost reported.
+
+Learned language constructions connect arbitrary source spans to the same scoped terms, roles, quantifiers, relations, and procedures used in reasoning. Interpretation preserves competing bindings when ambiguous. Expression begins with supported meaning, intended audience, and allowed source visibility; it must preserve negation, quantity, identity, uncertainty, and attribution.
+
+A fixed renderer can expose the current state while productive language develops. It does not count as acquired linguistic competence. Conversely, a fluent external paraphrase is not evidence that Cassi supplied the underlying reasoning.
+
+The target interaction with Carina is a continuing conversation about goals, discoveries, alternatives, and useful next actions. The resident asks for clarification when ambiguity changes a consequential objective, not whenever a difficult reasoning step appears. Human corrections become sourced learning events without rewriting the historical record.
+
+### 35.11 Lifelong memory, consolidation, and constructive rest
+
+Retain one continuing knowledge state rather than training disposable domain-specific minds. New tasks update shared concepts and methods while preserving applicable earlier knowledge, rare exceptions, and the ability to revise a mistaken abstraction.
+
+Consolidation has distinct operations:
+
+1. Lossless storage compaction and relocation.
+2. Exact derivation or query-relative reduction with its assumptions.
+3. Extraction of guarded reusable procedures from experience.
+4. Representation migration with preserved identities and counterexamples.
+5. Assessed lossy abstraction or retirement under an explicit retention policy.
+
+The first two are execution/storage changes. The others can change capability and must be assessed on future and retained uses. Replaying an old event does not multiply its independent evidential weight.
+
+Constructive rest means using available work to reconcile explanations, rehearse relevant old abilities, combine discoveries, inspect failures, and test abstractions in reversible workspaces. Imagined experience remains labeled. A checked derived consequence can support learning as a derivation without being misrepresented as a newly observed event.
+
+The resonant field supplies a possible working medium for active integration and reusable dynamical computation. Exact factual identity and indefinite memory must not depend on an unmaintained transient oscillation. Written-pattern lifetime, maintenance work, readout reach, and interference require their own measured accounting; surviving amplitude is not sufficient evidence that the intended content remains usable.
+
+Retention policies and learned relevance belong to the field. The archive preserves authorized evidence; disposable indexes accelerate exact access. Deleting an index must not erase a learned skill, and replaying an archive must not silently reconstruct a missing adaptive state.
+
+Capacity pressure first triggers selective execution, compaction, guarded consolidation, or an authorized growth request. Silent overwriting, forced confidence, and hidden reset are not acceptable substitutes for capacity.
+
+### 35.12 World laboratories and independent consequences
+
+Use a common world boundary for scientific simulation, software, mathematics, data analysis, communication tasks, and local market research. Domain adapters expose observations, legal requests, actual acknowledgments, availability, and resource use. They do not contain the organism's task-specific solution or supply hidden simulator state.
+
+Each operation binds its accessible source/world revision, request, action and observation schema, effect scope, horizon, resource allocation, and operation identity. An environment can own its own physical or simulated state without becoming a parallel learner.
+
+The evaluator is separate from the candidate being evaluated. It executes or inspects actual consequences through a declared, independently maintained procedure. It may be a fixed interpreter/reference, a proof checker, an external simulator, an executable behavioral specification, or an identified human assessment. Its limits and possible errors remain visible.
+
+Hidden answers, hidden world state, split membership that reveals answers, and evaluator-only source files are absent from the learner-visible workspace. Candidate processes receive minimal file access, no ambient credentials, explicit network policy, and bounded CPU, memory, elapsed time, output, and subprocess privileges. A timeout alone is not an isolation boundary.
+
+On the current Windows workstation, a genuinely hostile code candidate requires an enforced restricted execution environment such as a suitably configured disposable virtual machine or equivalent OS boundary. If that boundary is unavailable, untrusted arbitrary execution remains unavailable; the typed verified subset can still be exercised within its narrower threat model. Do not describe an ordinary temporary directory as a security sandbox.
+
+Unavailable CassiCosmos or another external world produces an availability result, not a fabricated observation and not an invisible substitute world. The root can explicitly choose another named investigation and retain the blocked obligation. Local markets remain simulations; live orders and other consequential external effects require separate point-of-effect authorization.
+
+World-generated evidence is admitted through the existing owner. If a rich trace is too large for one operation, preserve its exact source and let the field request bounded portions by identity and position. A sampling summary must expose its selection rule and coverage. Learning only from a positive status string cannot establish understanding of the underlying trajectory.
+
+### 35.13 Measured acquisition and transfer instead of supplied scores
+
+Population assessment must execute the capability being claimed. Replace caller-authoritative outcome metrics with a request identifying an independently executable comparison. A metric remains a decoded result; it is not proof of its own production.
+
+The comparison identifies:
+
+- the question, task family, observable consequence, metric units and direction;
+- candidate, search/learning method, predecessor field, and proposed successor identities;
+- world and evaluator versions, observation boundary, horizon, and resource profile;
+- construction, selection, and untouched evaluation roots, including common source ancestry;
+- baseline/control/treatment definitions, permitted learning, and allocation/randomization policy;
+- actual executions, acknowledgments, predictions, resource consumption, and missing outcomes.
+
+For a resettable world, create evaluation branches from the same pre-adoption member checkpoint. One branch retains the incumbent; another adopts the candidate through the real owner path. Run them on matched fresh world instances with the same initial conditions and exogenous-event rules. If their actions diverge, score each actual trajectory; do not force identical observations after different actions. Field state and world state are both part of the comparison.
+
+For frozen-knowledge transfer, allow working state and action reconciliation but prohibit new capability learning during evaluation. For adaptation efficiency, allow the same defined teaching opportunities and report the entire learning curve and cost. These are different claims. A pre-adoption score on one task followed by a post-adoption score on an easier task establishes neither.
+
+A live nonresettable world requires a separate design: randomized opportunities where lawful and feasible, matched comparison groups, or explicitly limited observational evidence. Never claim the unobserved alternative trajectory was measured. Repeated trials must not conceal repeated real-world effects.
+
+Keep three result dimensions separate:
+
+|Dimension|Examples|
+|---|---|
+|Adoption/execution|Applied, replayed, incompatible, execution error, exhausted|
+|Observation availability|Complete, delayed, unavailable, ambiguous, censored, contaminated|
+|Capability assessment|Supported gain, no detected gain, supported regression, unresolved comparison|
+
+All assigned work remains visible. Timeouts and resource limits count in operational performance; missing truth is still missing for calibration. Report attempts, completed observations, supported decisions, uncertainty, retention, and full cost rather than selecting only answered or successful cases.
+
+The evaluator produces metric rows from actual traces and binds them to the executed field/source versions. An independent checker can replay or rescore the accessible evidence. Hash verification and a trusted producer identity support integrity; neither substitutes for a correct scoring rule. Some human/world outcomes remain independently unverifiable and retain that limitation.
+
+There are two feedback channels. Independent development trials can return observed outcomes to the root for learning, reviewer calibration, and next-candidate selection; once used this way they are development evidence. Untouched reporting evaluations run on isolated snapshots and return neither labels nor aggregate scores to the adaptive root, its curriculum, or its reviewers. If those results are later released for learning, their role changes and subsequent claims require fresh evaluation roots. Independent execution alone does not make repeatedly consulted feedback an untouched test.
+
+Changing only a summary score, misbinding a trace to another member, substituting an easier world, or claiming success without execution must change or invalidate the assessment. These are direct failure cases to exercise when implementing the path.
+
+The production cutover removes `MemberRolloutSpec.metrics` as an authoritative input to population learning. `HiveField.adopt_and_record_outcome` must consume execution-backed assessment references after real adoption and evaluation, rather than turn supplied floats into learning evidence. Existing synthetic campaign receipts remain fixtures under their original meaning and identity.
+
+### 35.14 Population diversity, collaboration, and common understanding
+
+A useful population explores different explanations and methods, not merely different labels. The root tracks experience overlap, proposal ancestry, teaching sources, problem families, learned representations, search methods, and observed failure patterns.
+
+Diversity is relative to the purpose. Independent reproduction benefits from distinct execution and evidence roots. Discovery benefits from different hypotheses and methods. Specialization benefits from sustained practice. A source family can be shared for teaching without being counted as multiple independent confirmations.
+
+The root allocates bounded work among:
+
+- developing a promising candidate;
+- independently reproducing it;
+- seeking a discriminating counterexample;
+- attempting transfer into a different context;
+- composing it with an existing ability;
+- exploring an underrepresented approach.
+
+Members exchange structured claims, executable methods, unresolved questions, and concrete counterexamples. Debate can expose assumptions, but conversation alone does not replace execution. Agreement among members sharing one teacher or ancestor remains correlated evidence.
+
+The leader transports and publishes decisions obtained through the root field plus fixed eligibility checks. It does not own a hidden policy. The root can learn which members or methods are useful in a domain, while authority, independence requirements, and resource ceilings remain external constraints.
+
+Distributed publication uses an explicit branch head and monotonically fenced authority. A delayed worker returns a result tied to its original base; incompatible or stale results cannot overwrite a newer generation. The learner may reconsider useful stale evidence under a new explicit operation.
+
+Population size is an allocation decision under measured resource limits. More members help only when their marginal discoveries or independent checks repay communication, duplication, and execution costs. Preserve fewer useful, genuinely different lives rather than maximizing process count.
+
+### 35.15 Teaching, assimilation, and a common capability library
+
+The common library is a catalog of transferable material and evidence. Its live meaning is acquired within recipient fields; it is not an external semantic engine that bypasses them.
+
+A lesson capsule carries:
+
+- exact origin, ancestry, teaching role, and authorized source references;
+- the typed executable representation or procedure and dependency closure;
+- input/output roles, units, frames, preconditions, effects, and resource bounds;
+- the explanation or mechanism it claims to embody;
+- demonstrations, counterexamples, uncertainty, and known failure conditions;
+- evidence distinguishing supplied teaching, observed success, derived correctness, and hypothetical applicability;
+- a recipient-facing practice and assessment description with private evaluator material excluded.
+
+Assimilation follows a real learning sequence: inspect compatibility; bind the lesson to local meanings; retain unresolved correspondences; practice when needed; evaluate on fresh local work; then retain or revise its applicability. Portable program bytes can be imported without proving that their concepts are grounded in the receiver's world.
+
+Cross-domain transfer proposes a structural correspondence, such as delayed observation, conservation, dependency closure, symmetry, or reversible transformation. The correspondence has an executable mapping and explicit assumptions. Similar words or a common vector direction cannot authorize a transfer claim.
+
+Composition uses typed role wiring and effect compatibility, preserving all guards and source dependencies. If two lessons conflict, keep conditional alternatives or open a distinguishing inquiry. A majority vote is not a substitute for finding the missing context.
+
+The root can distill several useful experiences into a simpler lesson, but consolidation preserves the distinction between independent evidence and repeated presentation. It does not erase minority exceptions merely to produce a convenient common rule.
+
+A common bundle generation therefore means “this material is eligible for local consideration under these conditions.” It does not mean every member is rewritten into an identical mind or that every recipient is already competent.
+
+### 35.16 Credit, reviewer calibration, and learning ownership
+
+Adaptive credit belongs in the field that uses it. Root-field `Assessment`, `Value`, and `Program` records retain reviewer calibration, method usefulness, transfer history, expected costs, and allocation policy.
+
+The current `ReputationLedger` documents become immutable projections of that state for audit and transport. They cannot be a second adaptive owner loaded directly into a learning allocator. On restart, the root loads its canonical checkpoint; it does not reconstruct its learned trust from the latest database row.
+
+Before an outcome is available, a reviewer records the exact proposition, domain, applicable member/world population, predicted effect or probability, uncertainty, and information used. Calibration joins that forecast to the later matching observed consequence. It does not score every reviewer against one population-wide acceptance Boolean.
+
+Use probability scoring only for explicitly probabilistic forecasts of well-defined events. Measure effect predictions in their declared units. Domain shift, lineage correlation, censored outcomes, evaluator changes, and missing observations limit which comparisons can be pooled. Abstention and coverage are reported alongside correctness; fabricated certainty and blanket refusal are both visible.
+
+Task success, benefit from a taught skill, and benefit from a better learning method are different credits:
+
+- A correct answer produced by fixed machinery establishes execution competence.
+- Better performance after relevant acquired support, versus an appropriate matched control, supports acquisition or transfer.
+- Faster or broader acquisition on subsequent fresh tasks supports an improvement in learning.
+
+Credit assignment can use paired branches, selective removal of acquired support, randomized allocations where appropriate, and explicit causal dependency analysis. Association with a successful episode alone is not a unique causal attribution. Keep attribution unresolved when several components changed together.
+
+Fixed quorum checks can remain eligibility conditions for publication. Learned trust helps prioritize investigation; it cannot turn a false result into a true one, grant permissions, or let a reviewer assess its own undisclosed contribution as independent evidence.
+
+### 35.17 Recursive improvement of the learner
+
+The organism's own computation is an accessible research domain. It can observe where it spends work, what fails, what repeats, what transfers, and what it forgets, then propose a better method.
+
+Different kinds of change require different comparisons:
+
+|Change|What it modifies|What must be established|
+|---|---|---|
+|Task procedure|A particular solver, explanation, or action method|Correctness/applicability and useful consequences in its stated domain|
+|Representation|The distinctions used by multiple consumers|Prospective usefulness, preserved identities/guards, and consistent migration of dependent uses|
+|Search or inquiry program|Which constructions or observations are attempted|Better later discoveries under matched complete resources|
+|Learning or retention program|How experience changes knowledge|Improved acquisition/retention tradeoff on later unfamiliar and recurring work|
+|Execution optimization|How the same transitions are computed|Preserved declared behavior, restart, effects, and improved full physical cost|
+|Source/runtime generation|Implementation and possibly schema/arithmetic profile|Independent evaluation, complete state compatibility/migration, authorized publication, and exact recovery|
+
+Task and development methods are ordinary field-resident programs. They can inspect permitted state through typed views, construct candidates, and request evaluation. They cannot directly modify the evaluator, hidden answers, mission, authority, or trusted instruction meanings.
+
+The bootstrap proposer uses existing typed operations. A learned successor can generate new operation sequences, new abstractions, guarded code transformations, different search schedules, or new learning programs. Architecture synthesis materializes a field-produced typed description; a deterministic host compiler is not credited with inventing that description.
+
+The learning-method comparison starts from the same parent learner and accessible training opportunities. Incumbent and candidate run separate lifetimes under the same total allocation. Measure how much unfamiliar capability they acquire, what old competence they retain, and the complete cost of search, teaching, assessment, and execution. A method that wins only on its construction tasks remains specialized.
+
+The development loop includes teacher proposals when explicitly requested, with origin and cost retained. Teacher output is candidate material. Field-native construction and externally assisted construction remain separate evidence categories.
+
+Arbitrary kernel mutation is unnecessary for open-ended program growth. The fixed universal substrate already permits indefinitely many finite programs as storage and budgets expand. A proposed primitive or runtime replacement enters an external engineering-review path, with an explicit new implementation/profile and current authorization; it is never silently installed as a learned fact.
+
+A candidate may propose a better evaluator or a new scientific measurement. That proposal is itself assessed outside the candidate's authority. It cannot use its own replacement score to certify that the replacement or its creator improved.
+
+### 35.18 Publication, restart, correction, and rollback
+
+Every published organism generation binds the source/runtime manifest, field image and schema, active program versions, arithmetic/resource profile, migration evidence, and parent identity. Reuse the immutable generation and publication-pointer pattern in `../CassiMindField/promotion_kernel.py`; its current lab `FieldState` is not a substitute for the complete production regional owner closure.
+
+For a source change, materialize the candidate in isolation, validate it, run fresh-process comparisons, stage the paired source and field closure, and publish one verified pointer. The running process does not overwrite its loaded source. A stale base, changed manifest, unsupported migration, or incomplete closure leaves the incumbent active.
+
+Canonical campaign records retain pending work and comparison identities before external dispatch. Transport journals retain sent/acknowledged/ambiguous operation status. Reopening resolves their relationship without reconstructing adaptive state from report prose. A missing acknowledgment is not permission to replay an unknown effect.
+
+A completed round publishes an immutable ledger and stores its reference in the root field atomically with the corresponding assessment transition. Duplicate delivery of the same observation or outcome cannot yield another learning update. An interrupted publication can be repaired using its exact staged identity.
+
+Comparisons have a semantic identity covering world family, evaluator, assistance, measurement definitions, horizon, budget, learning mode, and relevant cohort conditions. Changing that identity starts a new comparison series. Long-term progress can be compared through unchanged anchor tasks and explicit bridges; equally named metrics under different conditions are not automatically comparable.
+
+Revocation has two parts: stop new use and invalidate affected existing uses. Propagate the dependency change to active programs, belief, plans, assessments, exports, and members. Preserve unrelated learning. A recipient can perform selective retraction when its supported update algebra allows it; otherwise it quarantines affected behavior and restores/rebuilds from an identified compatible checkpoint with explicitly replayed admissible inputs.
+
+Rollback restores a compatible source/field pair. It does not erase external effects, cancel a published message, or make elapsed world time disappear. The effect journal survives rollback, and later valid experience requires deliberate reconciliation rather than blind loss. Exact privacy deletion is a separate owner-authorized operation with its own target and retention consequences.
+
+### 35.19 Field-native efficiency and scaling
+
+The useful scaling variable is capability gained per complete resource expenditure. Record logical work, elapsed time, observation cost, physical memory, persistent storage, copying, decoding, transfer, and evaluation cost. Energy is reported only when measured.
+
+The implementation should preserve these opportunities:
+
+- sparse active regional execution with complete dependency coverage;
+- reusable typed procedures and guarded specialization;
+- branch overlays and shared immutable bases instead of unnecessary full copies;
+- region-local decoding, incremental validation, and incremental checkpoint publication;
+- exact query-relative reductions and properly bounded approximate computation;
+- batched bounded arithmetic with stable input/output versions;
+- hot, warm, and cold placement of one logical field;
+- scheduling work according to measured marginal usefulness.
+
+Do not reserialize and revalidate an entire growing semantic history for a local unchanged computation when an equivalent incremental path is available. Do not hide the work of scanning all candidates inside one nominal instruction. Logical accounting and physical measurements remain separate.
+
+Use the current CPU reference and actual Windows/AMD execution environment first. CPU work suits exact control, sparse bookkeeping, small typed search, and many checks; a GPU can be useful for sufficiently large compatible numerical batches. There is no assumed GPU acceleration, exact cross-backend replay, or energy advantage. Arithmetic-changing backends have explicit profiles and numerical comparisons.
+
+An independent world/candidate process pool can share immutable input material and return immutable evidence. Adaptive selection, random-generator state, credit, and unfinished search stay with the canonical owner. On a single GPU, explicit memory/work leases prevent nominally parallel members from overwhelming the same device.
+
+For larger hardware, separate sharding of one logical organism from federation of independent organisms. Sharded workers obey one commit order and return version-bound proposals. Federated members retain their own learning and communicate lessons. Both use backpressure, admission budgets, and explicit unavailable-resource states.
+
+Resonant, transceiver, and fractal representations are available computational research directions within this architecture. Their use earns its place through demonstrated content-sensitive influence and complete-cost advantage, not by resemblance to a biological rhythm or by the presence of a named geometry.
+
+Finite active memory, finite bandwidth, combinatorial search, numerical sensitivity, and evidence scarcity remain real. Increasing a quota may permit more work; it cannot by itself supply the missing learning algorithm.
+
+### 35.20 Ambition inside an explicit authority boundary
+
+The user owns the mission, resources, privacy scope, and permission to affect the outside world. The organism can derive subgoals and propose expanded investigations; it cannot convert a prediction of usefulness into authorization.
+
+Provide a broad preauthorized local research domain: isolated computation, owned disposable candidate workspaces, approved source collections, and simulated worlds. This permits substantial independent investigation without asking permission for each arithmetic step.
+
+Consequential actions outside that domain require confirmation of the exact target, scope, and values at the point of risk. Financial transactions, account/security changes, publication, private-data disclosure, and actions in other high-impact domains do not become authorized because a program was promoted or a predecessor once had permission.
+
+Runtime checks enforce scope at the effect boundary, including after restart, delegation, migration, and source changes. The learner, teacher, retrieved document, candidate program, and other members cannot rewrite those checks.
+
+Member privacy includes content and metadata. Hashes, filenames, model prompts, source spans, and supposedly generic examples can disclose sensitive material. Export only approved information, with lineage sufficient to identify limitations. A claim whose evidence cannot be shared can remain a locally supported or externally attested claim; the hive does not invent independent verification.
+
+The user-facing surface exposes what Cassi is trying to learn, why that work matters, what it discovered, what changed in its abilities, what remains unresolved, and what it costs. Detailed evidence is available on demand under access control. A generated explanation must follow actual supporting records rather than retrospectively invent a rationale.
+
+Stopping the resident preserves intellectual continuity. It does not trigger unrequested replication, resource acquisition, background persistence, or attempts to prevent interruption.
+
+### 35.21 One complete example: discovery improves the next discovery
+
+The following is a specified integrated workload, not a reported experiment.
+
+**Mission:** understand an unfamiliar simulated instrument and construct an efficient controller that continues to work when the instrument or observation conditions change.
+
+The root receives an accessible interface description, measurements, legal sandbox controls, and a task objective. It receives no hidden mechanism, correct solver, semantic name for the decisive variable, or ready-made research sequence.
+
+One member explores spatial/relational explanations; another explores delayed-state explanations; another studies the instrument's permitted software interface and alternative numerical methods. They share the initial user goal but develop different hypotheses from their actual experiences.
+
+The first models explain ordinary behavior but fail when observation timing changes. The field retains competing causes: a changed instrument law, delayed observation, an incorrect identity binding, or a command whose effect has not completed. It selects a permitted distinguishing experiment and predicts the alternatives before observing the result.
+
+Actual acknowledgments support a delayed-observation explanation. A member constructs a typed predictive-state representation and a controller program. Another member finds an exception under reset and supplies a counterexample. The revised program retains a reset guard instead of erasing the inconvenient history.
+
+Independent comparisons execute incumbent and candidate from matched field/world snapshots on fresh instrument instances. They measure task success, error, unnecessary actions, resource use, and retained competence. The candidate is adopted only where its applicability is supported.
+
+A software-world member then proposes that the acquired delayed-observation structure may explain a stale-response problem in an unfamiliar API. It supplies an explicit correspondence between measurement time, request identity, and completion state. That analogy is evaluated through actual execution; a failed correspondence remains a failed transfer rather than a linguistic success.
+
+The root distills a guarded lesson and a construction method: when superficially identical states yield different outcomes after a delay, consider retained history and acknowledgment identity before adding an arbitrary exception. The lesson affects future reasoning and language through the same representation.
+
+Finally, the organism compares its incumbent search method with one that uses this acquired distinction to propose temporal representations earlier. Both start from a common parent and encounter new source/world families. If the candidate method acquires useful controllers or programs with less complete work while retaining prior abilities, it earns a development-method improvement.
+
+After interruption and reopen, the resident continues with its questions, learned methods, counterexamples, and pending effects intact. A later instrument is approached differently because of that retained learning. This is the intended unit of progress: an actual discovery improves subsequent discovery.
+
+### 35.22 Existing-file integration and clean cutover
+
+Implementation extends the existing components. The following assignments are source responsibilities, not independent adaptive services.
+
+|Source surface|Integrated responsibility|
+|---|---|
+|`cassi_field_cognition.py`|Shared research obligations, construction frontier, hypothesis/inquiry programs, learned representation use, curriculum, credit, and field-owned calibration|
+|`cassi_field_affect.py`|Pure appraisal/context projections and bounded modulation; learned appraisal, regulation, and contextual credit remain canonical programs and records specified in Section 37|
+|`cassi_field_program.py`|Typed construction forms, guarded composition, bounded control/call semantics, validation, and lowering through the existing computer|
+|`cassi_field_regions.py`, `cassi_regional_catalog.py`, `cassi_learning_computer.py`|Canonical continuations, bounded native quanta, references, reservations, replay, and efficient regional execution|
+|`cassi_field_owner.py`|Evidence admission, effect authorization, exact operation binding, atomic adaptive publication, retraction, and compatible restoration|
+|`cassi_research_residency.py`|Continuing scientific methods over field-generated obligations, attached to the existing entity owner in the `field-brain` profile; no competing director or hidden host agenda|
+|`cassi_research_worlds.py`|Real domain requests, actual observations, world identity, availability, and bounded evaluation adapters|
+|`cassi_research_development.py`|Source-study requests, materialization of field-generated typed candidates, independent execution, and complete source/effect accounting|
+|`../CassiMindField/architecture_ir.py`, `../CassiMindField/architecture_synthesizer.py`, `../CassiMindField/self_observatory.py`|Checked candidate structure, source/dependency indexing, deterministic materialization, and observation of candidate execution|
+|`../CassiMindField/redesign_lab.py`, `../CassiMindField/promotion_kernel.py`|Isolated comparative development and co-versioned publication under an external supervisor|
+|`cassi_hive_runtime.py`, `cassi_hive_rollout.py`|Recipient adoption, independent local execution, measured transfer, and resumable campaign operations bound to field records|
+|`cassi_hive_collective.py`, `cassi_hive_promotion.py`, `cassi_hive_store.py`|Immutable exchange/evidence, fixed publication checks, root-field decisions, fencing, and dependency-aware revocation|
+|`cassi_hive_bridge.py`, `run_cassi_research_residency.py`|Semantic transport and a transparent continuing user/runtime surface; no adaptive decisions in presentation|
+
+The interface flow is intentionally small:
+
+|Request entering an existing boundary|Authoritative inputs|Observable output|
+|---|---|---|
+|Investigate or construct|Field obligation, evidence references, active program, allocation|A retained frontier, supported candidate, or typed unresolved state|
+|Observe or act|Exact proposal, scope, current authority, world request|An acknowledged consequence or explicit missing/ambiguous result|
+|Assess|Frozen prediction/candidate, actual trace, independent evaluator identity|A scoped assessment with effect, uncertainty, resource and coverage information|
+|Learn or consolidate|Admitted experience and assessment with dependencies|One successor field and preserved continuation|
+|Teach or adopt|Approved capsule, recipient bindings, compatibility and permissions|Actual local adoption followed by independent competence evidence|
+|Improve a method|Parent learner, candidate program/source, comparison allocation|A supported successor, specialization, or retained failure with incumbent preserved|
+
+These names describe program roles; they do not assert that new CLI flags or Python APIs already exist.
+
+The cutover has explicit completion conditions:
+
+1. Production research work can be generated by the field; fixed catalogs remain identified fixtures.
+2. Candidate construction can emit new typed compositions/control structures instead of selecting only a host-supplied variant.
+3. Population outcomes used for learning come from actual independent executions, never unverified caller metrics.
+4. Campaign progress, learned calibration, allocation, and method state restore from the canonical field.
+5. Revocation invalidates already imported dependent uses as well as future adoption.
+6. Self-improvement publishes a compatible source/field pair and preserves the external effect journal.
+7. CLI, resident, hive, and teaching surfaces use the same owner path; obsolete live dispatch and policy sidecars are removed.
+
+Migrate every affected caller, test, and example together. Historical immutable artifacts retain their original schema and meaning; a read-only historical decoder is not a compatibility route into current learning. No old receipt is rewritten to imply stronger evidence.
+
+Section 36 specifies the public extension and packaging surface for this cutover. Its developer interface, first-party migrations, and sustained apprenticeship belong to the same integrated build; they do not introduce another resident or defer extensibility until after the research population is established.
+
+### 35.23 One full build, with concrete dependency boundaries
+
+All of the following belong to the complete integrated build. Development can proceed in parallel where ownership is disjoint, but it must converge on one resident lifecycle rather than produce isolated demonstrations.
+
+|Workstream|Runnable responsibility|Shared dependency|
+|---|---|---|
+|Continuity and ownership|Checkpoint the full mission, campaign, frontier, learned allocation, and pending operation state|Existing owner and six record families|
+|Construction and understanding|Generate and execute new typed representations, hypotheses, plans, and programs|Common types, effects, references, and bounded execution|
+|World learning|Run real observations, interventions, and independent comparisons|Actual trace/evidence binding and explicit world authority|
+|Developmental curriculum|Create useful research/practice obligations and learn how to allocate work|Shared assessments and a field-owned construction frontier|
+|Population learning|Teach, independently assess transfer, preserve diversity, and retract failures|Recipient-local execution and durable root/member identities|
+|Recursive improvement|Compare and publish better search/learning programs and isolated source generations|Independent future-task evaluation and compatible field migration|
+|Efficient operation and interaction|Sustain the lifetime at useful cost and explain its real state to the user|Complete resource accounting, exact dependencies, and canonical surfaces|
+
+The first integration target includes the entire discovery → actual consequence → acquired method → independent transfer → improved next investigation loop. It must support a real unknown-outcome run, interrupted continuation, a negative transfer, an unavailable world, and a failed self-modification while preserving the continuing learner.
+
+The workstreams do not wait for separate protocol documents or ceremonial approvals. Implement the source behavior, run the actual scenario, inspect the failure, and improve it. Keep focused regressions for genuinely uncertain invariants and observed defects. Explicit user approval is required for consequential authority changes, not for every local development step.
+
+Representational breadth, sensory scale, member population, problem horizon, and source complexity then increase as independently adjustable resource/capability axes. The architecture must support that expansion from the start; success at an initial setting is not a claim that all larger settings work.
+
+### 35.24 What the continuing system must demonstrate
+
+The primary product is an improving research resident with concrete useful results. Its evidence should make the following distinctions visible without reducing the project to a single score.
+
+|Question|Discriminating behavior|
+|---|---|
+|Did it discover something?|A useful construction absent from the supplied complete candidate set, with its actual construction history and assistance identified|
+|Did the field learn it?|A later decision or capability depends on the acquired field support, with matched cold/irrelevant/disabled comparisons where meaningful|
+|Did it understand a reusable structure?|New instances, compositions, contexts, or mechanisms are handled under explicit applicability, not only memorized trajectories|
+|Did transfer help?|A recipient performs unfamiliar work better than its own matched no-lesson control, including learning and execution cost|
+|Did inquiry matter?|The selected observation separates relevant explanations or improves decisions compared with an appropriate accessible alternative|
+|Did the population help?|Diverse independent work adds useful capability beyond a matched single-learner/resource comparison|
+|Did learning improve learning?|A successor development method acquires later unfamiliar abilities more effectively at matched total resources|
+|Did memory endure?|Useful older abilities, rare guards, corrected dependencies, and unfinished work survive intervening learning and restart|
+|Did scale help?|Increased allocation changes the useful capability/cost frontier, rather than only the number of records, members, or attempted candidates|
+|Can the evidence be wrong visibly?|Incorrect outputs, contaminated comparisons, missing acknowledgments, altered traces, and invalid authority are actually detected|
+
+Separate source families and latent world roots before augmentation, renaming, or rendering. Use fresh later evaluations after a method has been selected; repeated access turns an evaluation into selection material. The final comparison data do not choose the next candidate. Development feedback is usable and explicitly labeled as such.
+
+Report per-family, transfer, retention, assistance, and resource-conditioned outcomes. Different profiles or a changing curriculum do not justify subtracting incomparable aggregate scores. Include unresolved and failed attempts, compare coverage and uncertainty, and avoid independent-sample claims for multiple observations from one shared source.
+
+The capability record is a structured map: what Cassi can do, under what conditions, with what assistance, after which experience, at what cost, and with what counterexamples. A broad expert comparison becomes appropriate as those abilities span unfamiliar real work. Neither a passing software suite, successful distribution, a universal interpreter, nor one high benchmark score establishes superintelligence.
+
+No runtime or measurement claim is created by writing this design. The specified organism must be exercised through its actual public owner/resident paths.
+
+### 35.25 The highest-potential choices and the unresolved research
+
+The design deliberately commits to the following choices:
+
+1. **Learning representations and methods together.** A new abstraction can change what becomes easy to learn and compute.
+2. **A generative program language rather than a permanent answer catalog.** Acquired concepts and skills can become constituents of unanticipated constructions.
+3. **A persistent intellectual lifetime.** Experience changes later work instead of disappearing at the end of a demonstration.
+4. **Independent, diverse learning with executable teaching.** Parallel discovery can accumulate while incompatible ideas remain testable.
+5. **Active experiments and shared causal meaning.** Perception, prediction, action, language, and explanation use the same acquired structures.
+6. **Improvement of the development process itself.** Search, inquiry, curriculum, representation, and retention become objects of measured learning.
+7. **Complete cost and explicit authority.** Useful efficiency and continuity make sustained autonomy possible without granting the learner control over truth or permission.
+
+The main unresolved questions are substantive. Can the construction process find useful abstractions without prohibitive search? Can modest evidence distinguish the latent mechanisms that matter? Can grounding scale beyond supplied alignments and small sensory windows? Can retained structure survive a long varied lifetime without consuming unbounded active work? Does population transfer repay its coordination costs? Do improved learning methods generalize beyond the tasks used to select them?
+
+An unfavorable answer changes the relevant algorithm or representation, not the meaning of the result. More members cannot repair a shared missing primitive. More examples cannot reveal an unobservable distinction. More memory cannot guarantee efficient retrieval. More self-modifications do not imply improvement.
+
+The positive target is precise: Cassi encounters a new difficulty, constructs and tests a useful response, carries the resulting understanding forward, and becomes better at the next unfamiliar difficulty because of it. Repeating that process across problems, members, and learning methods is the developmental architecture proposed here.
+
+## 36. Extensible platform and sustained apprenticeship
+
+### 36.1 Destination and scope
+
+**Specified mechanism—2026-09-19.** Make Cassi easy to embed, extend, study, and develop around while giving the existing organism a sustained intellectual life. The public development surface and the apprenticeship campaign are one design: each new environment supplies experience, each acquired method can become a reusable field program, and the same facilities let Cassi construct extensions of its own.
+
+The ordinary developer should implement domain behavior rather than checkpointing, learning ownership, replay, hive publication, or private regional decoding. Adding a simulator, document source, mathematical method, curriculum, or application must not require editing the field owner or adding a domain branch to the cognition engine.
+
+This section specifies an overhaul of the surrounding development surface, not a replacement intelligence. Sections 32 and 33 remain authoritative for execution and shared meaning; Section 35 supplies the organism and recursive-development lifecycle. The proposed package namespace and new extension facilities below are design targets, not currently available APIs.
+
+### 36.2 Reuse the actual extension seams
+
+The inspected source already contains useful boundaries:
+
+|Existing source|Reusable boundary|Required development improvement|
+|---|---|---|
+|`cassi_hive_session.py`|`open_field_session` and `attach_field_session` are canonical session constructors|One discoverable package entry with explicit options and typed session operations|
+|`cassi_field_owner.py`|`SourceInput`, `WorldAdapter`, `WorldAcknowledgment`, operation identities, authority, and durable publication|Public bounded evidence/state views and scoped extension access without exposing the raw owner|
+|`cassi_field_input.py`|Deterministic paged source codecs with source identity|Register additional readers through the same evidence path|
+|`cassi_field_program.py`|Structured program compilation and regional execution|Composable program libraries, declared interfaces, and reusable authoring support|
+|`cassi_field_regions.py`, `cassi_regional_catalog.py`|An immutable, fingerprinted `KernelCatalog` of stateless bounded operations|Preserve the closed runtime profile; treat new native kernels as explicit runtime development|
+|`cassi_research_residency.py`, `cassi_research_organism.py`|Persistent research and population lifecycles|Public continuation/record access and externally supplied domain packages|
+|`cassi_research_worlds.py`|Real domain execution and explicit unavailable results|Replace the central domain-kind branch with a resolved extension catalog|
+|`cassi_hive_runtime.py`, `cassi_hive_policy.py`|Session identity, owner-mediated exchange, separate import/export and adoption policy|Expose those facilities consistently to every application without another exchange layer|
+
+Current integration costs include research code reaching through private `_value` and `_register` methods, world dispatch naming each domain centrally, and cross-tree loading through `sys.path`. The overhaul removes those requirements for ordinary callers. Internal implementation modules can retain private helpers; applications and extensions must use their supported public equivalents.
+
+### 36.3 Stable core, extensible programs, ordinary applications
+
+There are three responsibilities:
+
+1. **Core runtime:** canonical field ownership, bounded execution, typed references, evidence identity, resource accounting, permissions, durable publication, and recovery.
+2. **Capability packages:** executable field programs and narrowly scoped source/world/tool integrations.
+3. **Applications:** research residency, hive population, command-line tools, viewers, and other products composed from those packages.
+
+Learning algorithms, representations, inquiry strategies, and curricula remain improvable. A stable core means stable meanings and dependable lifecycle boundaries, not permanently frozen intelligence. Most new abilities should be compositions of field programs. A genuinely new primitive enters the existing independently evaluated runtime-generation path.
+
+Every adaptive quantity used by Cassi remains in its canonical field. Extension configuration, immutable source material, effect journals, and reproducible caches are ordinary host data. A simulator may retain its own physical world state; that is not an additional Cassi learning state. An extension must not hide learned priorities, search history, skill weights, or a parallel memory in its Python object or database.
+
+### 36.4 One public entry and one execution path
+
+The proposed public Python namespace is `cassifi`. Move the existing session implementation behind that package boundary and retain the established `open_field_session` name. Do not add competing `Cassi.open`, `connect_mind`, or private-owner shortcuts. All first-party callers migrate in the same cutover.
+
+The normal experience is: import the session entry, open or resume a named field, select installed capability packages, and submit work. Persistence, lineage, supported exchange, and continuation are supplied by the session. A single application needs neither a daemon nor a population.
+
+The public surface covers:
+
+- Session identity, capabilities, explicit resource limits, close/reopen, and checkpoint lineage.
+- Bounded source admission and source-linked observation views.
+- Typed program construction, installation, invocation, and resumption.
+- Research obligations, selected work, outcome admission, and supported learning operations.
+- Read-only record/program/result inspection with versioned references.
+- Existing hive import, export, preview, adoption, and revocation operations.
+
+These operations lower into the existing owner and regional machine; they do not implement cognition in a new facade. The CLI and any remote client encode the same requests and outcomes. Invocation is a bounded operation or a durable work handle, not a promise that a long investigation completes in one call. Handles distinguish completed work, retained continuation, missing support, exhausted resources, rejected input, and unresolved effects.
+
+Typed definitions, validation, introspection, and generated API reference material share one source. Errors identify the failing field, expected meaning, affected operation, whether state changed, and the available recovery action. Advanced callers can inspect declared capabilities without learning the entire internal module graph.
+
+### 36.5 A small set of extension forms
+
+|Extension form|Developer supplies|Runtime supplies|
+|---|---|---|
+|Source reader|A bounded deterministic mapping from authorized bytes to typed pages, retaining original spans|Source identity, provenance, paging, admission, and visibility|
+|World or tool|Available observations/actions, request schemas, limits, acknowledgment and recovery behavior|Authority checking, operation binding, durable effects, and evidence admission|
+|Field-program library|Typed functions, representations, solvers, inquiry or learning programs with dependencies and applicability|Compilation, bounded execution, field-owned state, continuation, and teaching|
+|Experience collection|Sources, substantial objectives, accessible environments, lineage, assistance labels, and development/evaluation separation|Resident work selection, exposure accounting, outcome learning, and retention|
+|Evaluator|An independently selected computation over actual traces or results|Pinned evaluator identity and admission of scoped assessments|
+|Application or viewer|Presentation, user interaction, and composition of public operations|One session lifecycle and owner-mediated changes|
+
+An extension can expose several forms in one package. The catalog locates compatible implementations; it does not decide which problem, method, or experiment is intellectually valuable. Learned relevance and selection remain in the field.
+
+New concepts use versioned payloads of the existing six semantic record families. Domain schemas declare types, units, coordinate frames, clocks, uncertainty, missing values, and source relationships where relevant. Matching two fields by name is not enough to compose them. Explicit checked conversions bridge different meanings, and the learner can acquire new interpretations as field programs.
+
+### 36.6 Package identity, discovery, and dependencies
+
+Each package has a declarative descriptor containing its namespaced identity, version, complete code/dependency identity, compatible public API and field profiles, exported capabilities, request/result schemas, dependencies, requested effects, resource bounds, and recovery/migration behavior. Applicability and examples accompany executable programs; they are not evidence that an advertised capability works.
+
+Discovery reads descriptors without executing package code. The session resolves an explicitly selected dependency set once, reports conflicts and missing requirements clearly, and pins the resulting identities for each run. It must not scan arbitrary directories, import every installed package, fetch dependencies, or activate newly discovered code during a learning operation.
+
+Optional integrations stay optional and load only when selected. Opening a basic field session must not require Godot, a local language model, a market service, or another project's private imports. Ordinary local development uses standard Python package imports from outside the repository as well as inside it; no working-directory assumption or `sys.path` mutation is part of the public API.
+
+An owner-visible capability view describes what is installed, available, authorized, compatible, and currently executable. These are distinct states. A missing engine reports an unavailable capability while preserving the work that needs it.
+
+### 36.7 Two execution boundaries, not arbitrary cognitive callbacks
+
+**Field programs** execute through the existing bounded regional machine. They use typed references, canonical continuations, declared work, and the same admission/learning semantics as built-in programs. An extension cannot install an arbitrary Python `solve` callback as a native instruction or keep a hidden whole-solver instance alive.
+
+**Host integrations** perform declared I/O or fixed transformations outside the adaptive state. Their results return through the existing evidence boundary. The owner remains the only publisher of Cassi state, and only current owner-issued capabilities authorize effects.
+
+Trusted reviewed integrations may run in process. Cassi-authored or otherwise untrusted host code requires an actually restricted execution environment with explicit filesystem, network, process, credential, and device access. A Python protocol, process boundary, descriptor, or content hash alone is not a security sandbox. If the required isolation is unavailable, execution remains unavailable rather than falling back to an unrestricted process.
+
+The native catalog stays immutable for a running profile. A necessary new bounded primitive declares its exact semantics, state schema, read/write footprint, indivisible work, and implementation closure. Admission creates a new runtime/profile generation with checked migration; it does not mutate the live catalog through a plugin hook.
+
+### 36.8 The shared experience and effect lifecycle
+
+Every extension participates in the same flow:
+
+```text
+mission or field-selected work
+    → typed request with source/program dependencies
+    → owner checks authority, versions, and resource availability
+    → bounded field computation or authorized external operation
+    → actual result or explicit unresolved outcome
+    → source-linked evidence and independent assessment
+    → field-owned learning and retained continuation
+    → permitted teaching and later reuse
+```
+
+Reuse `SourceInput`, `WorldAcknowledgment`, the existing observation/admission path, and execution-backed assessment machinery. The developer supplies domain facts and behavior, not caller-authored claims of learning success. Raw evidence remains recoverable; derived metrics retain the exact computation and source identity.
+
+Operation identities bind the exact target, input, package version, and invocation. An acknowledged operation can be recovered without repeating its effect. An ambiguous external action requires reconciliation; a restarted extension cannot infer success or retry simply because no result reached the caller. Multi-step work retains its continuation and dependency versions in the field.
+
+Pure and effectful operations are declared separately. Composing several actions does not make their physical effects transactional or reversible. Cancellation stops future authorized work and preserves what already happened.
+
+### 36.9 Versioning without losing the learner
+
+Public API versions, package versions, field schemas, runtime profiles, and learned program versions are separate identities. An active continuation pins the implementations and schemas it uses. An upgrade never silently rebinds an unfinished investigation to new code.
+
+At a safe boundary, a compatible upgrade stages its new source/program set and any required field migration, checks retained behavior and unfinished work, and publishes a recoverable successor. On failure the incumbent remains usable. The effect journal survives rollback. Rapid development can reload changed code between bounded invocations or in a fork, never inside a committed invocation.
+
+Disabling an integration removes its availability, not the knowledge acquired through it. Dependent work remains visible and resumable. Uninstalling code, retracting unsupported knowledge, and deleting source evidence are separate owner-controlled actions.
+
+Supported API meanings remain stable within a version. A deliberate breaking change supplies explicit migration and moves every first-party caller together; obsolete live aliases and dispatch paths are removed. Historical evidence remains readable without turning its old schema into an alternate current execution route.
+
+### 36.10 A developer workbench that removes routine plumbing
+
+Provide a small SDK with reusable bounded-reader and durable-adapter support, program construction helpers, a local extension runner, capability inspection, and execution/replay inspection. These helpers reuse the owner lifecycle rather than introduce their own scheduler or persistence framework.
+
+The ordinary workflow is to declare a capability, implement its domain behavior, run it against a local session, inspect its actual observations and continuation, and package the result for another application. A complete example must work through the public API outside the checkout; private imports are not part of the tutorial.
+
+The local checker exercises meaningful boundaries such as interrupted continuation, unavailable dependencies, duplicate delivery, bad inputs, and explicitly refused effects where applicable. Diagnostics expose the request, evidence, package version, resource use, and reason for an unresolved result. Read-only inspection must not train the field or trigger world actions.
+
+First-party mathematics, source study, CassiCosmos, and planning integrations use the same extension surface. The strongest usability check is extending an application without changing the core or contacting its author to understand private state.
+
+### 36.11 Extensibility is also a learned capability
+
+Cassi uses the same descriptions, examples, and authoring facilities available to a human developer. An investigation can expose a missing measurement, decomposition, data reader, or experiment. The organism can then construct a field program or propose a host integration to supply it.
+
+The proposed extension develops in an isolated workspace, is evaluated through actual work, and receives only explicitly authorized capabilities. A successful field program can travel through existing hive teaching. Installing or executing new host code is a separate decision; receiving a lesson does not grant that lesson filesystem, process, network, or device authority.
+
+Evaluators and adoption rules are selected outside the candidate's control. Cassi can propose an improved evaluator, but cannot certify its own extension by replacing the judge. The shared capability library contains executable material, applicability, dependencies, and evidence; the live learned use of that material remains in recipient fields.
+
+### 36.12 The sustained apprenticeship portfolio
+
+Use the existing root organism with an initial proposed cohort of eight persistent investigators, two per research track. Population size and allocation are configurable rather than a new architectural constant. Different members receive genuinely different projects, source families, and histories; cloning a checkpoint does not itself supply independent experience.
+
+|Track|Continuing responsibility|Reusable products|
+|---|---|---|
+|Mathematics and algorithms|Study methods, reconstruct arguments, find decompositions, and solve progressively harder unfamiliar problems|Solvers, representations, derivations, and search methods|
+|Software engineering|Understand real authorized codebases, implement useful changes, diagnose failures, and improve execution cost|Programs, development procedures, instruments, and isolated candidate improvements|
+|Experimental physics|Investigate CassiCosmos mechanisms and learn to create, sustain, and control structures|Observables, causal explanations, experiment programs, and controllers|
+|Planning and adaptation|Operate persistent simulated systems with partial observations, delays, resource limits, failures, and changing conditions|Planning methods, diagnostic strategies, and transferable control procedures|
+
+An active source library supplies mathematics, algorithms, worked examples, code/documentation, scientific evidence, and Cassi research history. Study proceeds into reconstruction, execution, changed conditions, composition, and teaching. Preserve assistance and attribution; a document being imported is not evidence that its methods have been acquired. Teacher tools are explicit learning inputs, never hidden native-inference fallbacks.
+
+The initial portfolio seeds substantial missions. Failed predictions, expensive successes, contradictory explanations, transfer failures, and blocked prerequisites generate later work through the field's existing agenda. The population can construct new practice and challenges, while fresh external sources and independently assessed outcomes prevent its self-generated curriculum from becoming its whole intellectual world.
+
+The shared flagship is **learn to engineer persistent structures in the Cassi field**: discover accessible structures; construct observables; investigate stability, interaction, and decay; develop creation and maintenance methods; build the necessary analysis tools; and transfer a supported method to another dynamical system. Mathematics, engineering, and planning members contribute actual components of the same undertaking.
+
+Useful discoveries are taught with their conditions and counterexamples. Consolidation, rehearsal, correction, and continuation preserve the lifetime; each research round does not create a fresh learner. Self-improvement follows encountered bottlenecks in learning, representation, search, retention, or execution.
+
+### 36.13 Sustainable operation and shared policy
+
+Persistent identities do not imply one continuously busy process per member. Schedule bounded CPU work and explicitly leased GPU/world work against observed capacity. On the current workstation, GPU scene work remains serialized; a larger population must not create competing Godot runtimes.
+
+Resolve package dependencies at session boundaries, use immutable shared evidence and bounded regional views, and batch compatible operations. Do not copy or serialize the entire growing field for every extension call, replay all history to inspect a record, or eagerly load unused domain dependencies. Account for observation, compilation, storage, transfer, assessment, and execution costs as well as logical field steps.
+
+Reuse `SkillPolicy` rather than add per-extension sharing switches. Ordinary sessions preserve the canonical export-enabled behavior for an already authorized hive and visibility scope; import and application remain explicit. Private or isolated comparisons can explicitly disable exchange. Preserve an existing instance's recorded policy on migration, and never interpret package discovery as permission to publish private material or contact a new remote destination.
+
+The root sets research priorities through field-owned state under the user's mission and resource allowance. Extension declarations inform what can be attempted, not what the organism must value. Missing capacity retains unfinished work and a specific unmet requirement rather than resetting the learner.
+
+### 36.14 Integrated implementation and completion
+
+The overhaul extends and reorganizes the inspected implementation rather than writing a new kernel. Its dependency order is:
+
+1. Establish the canonical package entry, typed requests/results, capability inspection, and bounded public record/source views around the existing owner.
+2. Resolve declared extension packages through that entry; preserve native catalog closure and implement real authority/isolation for the applicable execution forms.
+3. Move first-party sources, worlds, research programs, and applications onto the same surface. Replace central domain dispatch and private application access; remove obsolete live routes.
+4. Carry package identities, continuation pins, compatible migrations, recovery, and supported hive transfer through actual application lifecycles.
+5. Equip the continuing population with the connected source library, four research tracks, self-generated follow-up work, and shared flagship mission.
+6. Exercise the whole development experience on substantial work and use its costs and failures to improve the same platform.
+
+Migrate affected CLI entry points, the research residency and organism, runtime builders/manifests, and CassiPi/CassiQwen consumers together where their imports or schemas change. Keep domain dependencies out of the basic import path. No alternate interpreter, adaptive plugin registry, shadow learning service, or new agent framework is introduced.
+
+Completion means an independently developed domain package can be added, used in a continuing mission, paused, reopened, and shared through supported teaching without a core source edit. A compatible upgrade preserves learned state and unfinished work; a missing or refused integration remains explicit; an ambiguous effect cannot repeat on restart. Built-in and separately developed packages receive the same rules and diagnostics.
+
+The campaign's primary outputs are useful capabilities and completed research undertakings. Track unfamiliar work accomplished, assistance required, acquired methods not supplied as completed answers, cross-domain reuse, retention, and complete resource cost. Routine behavioral checks support that work; accumulating small demonstration counts is not its purpose.
+
+The intended compounding loop is concrete: richer environments create useful experience; experience produces new capabilities; a clear extension surface lets those capabilities improve Cassi's instruments and learning methods; those improvements make the next unfamiliar undertaking more tractable.
+
+## 37. Field-owned affect and regulation
+
+### 37.1 Implemented basis and ownership
+
+`cassi_field_affect.py` supplies fixed appraisal and modulation rules for the existing `cognition.field` kernel. Appraisals and regulation decisions are canonical `Event` records inside the regional owner image. The helper derives transient views of those records; it owns no adaptive cache, model, checkpoint, or second learner.
+
+The semantic operations are `appraise-experience`, `affect-state`, and `regulate-affect`. Autonomous learning can appraise its executed outcome when given a `project_id` and optional `object_id`. The research organism appraises actual development assessments and supplies construction-derived opportunity features to its existing agenda. These paths use the same owner, continuation, and publication machinery as other cognition operations.
+
+### 37.2 Coloring without changing what happened
+
+Each appraisal binds a source record and version to a project and an optional object. Eligible sources are an executed autonomous-learning outcome or an assessed research-organism development result carrying measured accuracy and error. A proposed decision, an affect summary, or a frozen reporting assessment is not another experience.
+
+Seven bounded dimensions describe progress, obstruction, activation, controllability, uncertainty, novelty, and capacity. Research progress compares measured error with prior experience of the same bound object; acquisition outcomes use their supported/completed or unsupported/resource-limited result. These are declared computational appraisals, not an inference of human emotion from prose.
+
+Each unique experience enters a fast and a slow moving response. Global, project, and object-local views coexist, with the most specific available view receiving the most weight. Updating happens on admitted experience, not inspection or wall-clock passage. This supports a local setback within a different project-level or background tendency without creating separate mutable state stores.
+
+The source identity is deduplicated across requests. Reconsidering a result cannot turn it into repeated independent experience or silently rebind it to another project. Source withdrawal or correction excludes its old appraisal and dependent appraisals from the live context. Factual records, support, epistemic status, and effect permissions remain outside the modulation.
+
+### 37.3 Regulation with outcome memory
+
+Four working modes supply an initial bounded repertoire:
+
+|Mode|Opportunity preference|
+|---|---|
+|Explore|Novel, uncertain opportunities with limited declared risk|
+|Persist|Expected gain relative to effort|
+|Verify|Uncertainty reduction with less preference for novelty|
+|Consolidate|Useful, less costly, familiar work|
+
+The current appraisal dimensions produce mode scores. A recorded regulation choice can acquire credit only from a later eligible experience in its context. The mean subsequent progress supplies a bounded adjustment to that mode's score; recording or inspecting a mode earns no credit. This is empirical outcome association, not a causal demonstration that the mode produced the progress.
+
+The selected mode supplies a bounded priority adjustment through the existing autonomous agenda and learning selector. Its absolute contribution is at most 0.5; unavailable work, evidence requirements, and authorization remain governed by their existing mechanisms. The mode named `consolidate` biases opportunity choice rather than independently dispatching a consolidation routine. No new execution authority is introduced.
+
+These fixed modes and learned outcome preferences are the implemented regulation mechanism. Discovering new regulation programs, changing association geometry, and coupling affect into numerical wave dynamics remain research directions. The current mechanism modulates semantic work selection; it does not change the physical resonant-field equations or establish subjective feeling.
+
+### 37.4 Research integration and observed boundary
+
+Development assessments enter the root organism's affect history. Independent member candidate/control evaluations run in their existing frozen-reporting branches and do not feed affect learning. Read-only organism inspection derives the current context without publishing another appraisal or regulation decision.
+
+The retained run at `_diag/affect-research-20260919/exercise-results.json` completed two population rounds with two members. After the completed rounds the root held three and five unique appraisals, respectively, and its reported working mode changed from `explore` to `persist`. Each completed round was reopened and replayed: affect context and effect-journal count remained unchanged. Repeated inspection preserved the owner hash. Inspection of all eight persisted member evaluation branches found a real frozen assessment in each and zero affect appraisals.
+
+Four rounds were requested. The third attempt stopped with `field construction search produced no executable proposal`; the fourth was not run. The failed attempt's development observation remains visible in the retained state. This bounded instrument fixture does not demonstrate open-ended research or an advantage from affect. Its accepted candidate improvements are comparisons with the instrument baseline, not an affect-on versus affect-off experiment.
+
+The integrated upgrade below extends the mechanism through continuing work. Appropriate neutral/adaptive comparisons can support a particular claim of regulatory benefit when that claim is investigated; they are not prerequisites for implementing or using the researcher. Useful outcomes are better recovery, strategy changes, retained competence, and completed work. A favorable internal state is not itself the objective.
+
+### 37.5 Complete affective learning design
+
+**Specified mechanism—2026-09-20.** Affect becomes acquired, situated
+significance throughout cognition: what an experience means for a goal, the
+understanding gained, the ability to influence the next outcome, the resources
+available, and relationships involved in the work. Its behavior is part of the
+[integrated organism upgrade](../CASSI-ENTITY-DESIGN.md#19-integrated-general-learning-and-affective-hive-organism),
+not an optional mood display or a separate adaptive controller.
+
+Sections 37.1–37.4 describe the implemented fixed appraisals, mode association,
+and bounded priority mechanism. Sections 37.5–37.14 specify its extension.
+Broader cognitive effects, new evidence eligibility, context-sensitive
+appraisal programs, and multi-step regulation are not implied by the retained
+priority-modulation result.
+
+The implementation preserves the distinction between an experience, its
+interpretation relative to commitments, the response selected, and the
+consequence of that response. Emotional words can summarize appraisal patterns;
+neither those words nor a numerical coordinate establishes subjective feeling.
+No change to physical resonant-field equations or native model activations is
+required by this semantic regulation design.
+
+### 37.6 Appraisal records and evidence eligibility
+
+Use the existing `Event`, `Assessment`, `Program`, `Binding`, `Value`, and
+`Obligation` families. A logical appraisal retains:
+
+- the receiving owner/member identity and source record identity/version;
+- the actual experience/effect identity and original evidence roots;
+- project, question, object/relationship bindings, and goal/expectation versions;
+- the appraisal-program version and exact relevant pre-response context;
+- bounded dimension values with explicit known/unknown status and their basis;
+- the preceding applicable regulation reference, if any;
+- a revision link when corrected evidence or changed context changes meaning.
+
+The source outcome and its assessment remain separately addressable. An
+appraisal refers to a measured error, claim, goal, or resource value rather than
+copying it into a new authoritative fact. Derived context is reconstructible
+from canonical records and programs; the Python helper retains no adaptive
+profile, moving-average cache, trust table, or learned weights beside the field.
+
+**Target payload decision.** Use versioned payloads inside these existing
+records: `affect_appraisal.schema = cassifi.affect-appraisal.v2` and
+`affect_regulation.schema = cassifi.affect-regulation.v2`. Existing unversioned
+payloads are the implicit first format, not evidence that a v2 path already
+exists. Every local semantic reference is the canonical
+`{id, kind, content_version}` shape; a foreign record additionally binds its
+owner/member lineage and immutable transport artifact.
+
+| Appraisal v2 field | Required representation |
+|---|---|
+| `experience_ref`, `experience_key` | Current source reference; stable original operation/source lineage, independent of appraisal context |
+| `projection_key`, `revises_ref` | Deterministic context-slot identity; prior appraisal reference or null |
+| `project_id`, `question_ref`, `object_refs`, `goal_ref`, `expectation_refs` | Explicit semantic bindings; absent optional context is null/empty, never an invented goal |
+| `context_ref`, `appraisal_program_ref` | Versioned field-held pre-response context and canonical `Program` reference |
+| `signals` | Exactly the seven named signals, each `{status, value, basis_refs}`; `status` is known/unknown and unknown has null value |
+| `learning_assessment_ref`, `relationship_assessment_refs` | Separate scoped Assessments; null/empty means unassessed, not no learning or neutral trust |
+| `prior_choice_ref`, `origin` | Applicable prior choice or null; live/migrated origin; credit belongs to the separately joined outcome Assessment |
+
+Causal semantic inputs also appear in the record's typed `dependencies`;
+merely putting their IDs in payload prose or `support_roots` is insufficient
+for invalidation. Historical lineage (`revises_ref`, migration ancestry) and
+forward bookkeeping (`outcome_obligation_ref`, response links) are explicitly
+noncausal references: they do not require an old version to remain current or
+create a reverse dependency on a future record. Original evidence roots remain
+in `support_roots`. Identity and visibility come from the actual owner/session,
+not a caller's claim to be another member.
+
+Extend admission through a typed outcome boundary, not by accepting arbitrary
+text or any record named `Assessment`:
+
+| Experience | Required basis | What it can support |
+|---|---|---|
+| Existing autonomous learning/development | The current eligible executed outcome or development assessment with its source bindings | Current appraisal semantics and explicit new contextual projections |
+| Investigation or computation | Owner-admitted actual result, operation/input identity, and applicable outcome assessment | Goal progress, resolved distinctions, controllability, and actual effort |
+| Retrieval or source study | Actual acquisition/inspection result and a retained assessment of its use | Information obtained or missing, interpretation changes, and source-access cost; retrieved assertions retain their own evidence status |
+| Inquiry, delegation, or teaching | Bound request and actual response/use, with participant and source lineage | Collaboration outcome and local learning, not an automatic new confirmation of the reported world claim |
+| Consolidation or regulation | Executed program transition plus an assessed consequence linked to its objective | Retained/recovered capability or changed useful work, not credit for merely choosing the mode |
+| Capacity or infrastructure event | Actual resource/reservation/failure report admitted under its real operation | Ability to continue, need to change work, and explicit missing observations |
+
+Actual internal computations are experiences of computation. Imagined physical
+outcomes remain hypothetical, and a model's assertion remains attributed.
+Inspection, a regulation choice, self-description, mood summary, or repeated
+delivery is not a new outcome. Existing `frozen-reporting` member evaluation
+branches remain nonlearning, including affect; live member work uses separately
+identified eligible outcomes rather than converting those branches.
+
+### 37.7 Multidimensional significance
+
+Keep exactly seven numeric signal coordinates, with their causes made goal-
+and context-sensitive. Learning value is a separate typed `Assessment`, referred
+to by `learning_assessment_ref`; it is not an eighth coordinate or a reward
+silently added to progress. This preserves practical obstruction and useful
+information as distinct readings.
+
+| Appraisal element | Intended meaning | Required distinction |
+|---|---|---|
+| Progress | Direction of change relative to the bound commitment | Desirability of the outcome differs from whether the experiment or method ran correctly |
+| Obstruction | A relevant obstacle to continuing or accomplishing the goal | Invalid observation, missing prerequisite, execution failure, and contrary evidence are different causes |
+| Activation | Work relevance/urgency within the current commitment | Salience cannot enlarge permission, priority bounds, or resource grants |
+| Controllability | Supported opportunities to influence what happens next | Low agency can call for help or another question, not simply more effort |
+| Uncertainty | Unresolved distinctions relevant to the next decision | Lack of knowledge differs from noisy variation and from an untrusted instrument |
+| Novelty | A meaningful difference from applicable prior experience | New identifiers, repeated retelling, and raw surprise alone are insufficient |
+| Capacity | Available ability/resources relative to the contemplated work | Self-description does not replace real availability or resource accounting |
+| Learning-value Assessment | Distinctions resolved, useful counterexamples, methods acquired, or capabilities unlocked | A negative hypothesis result can be valuable learning; the supporting outcome is identified separately |
+
+Progress is in `[-1, 1]`; the other six signals are in `[0, 1]`. Reject
+nonfinite or out-of-range known values at admission rather than silently
+clamping a malformed learned result. Unknown signal values are null and
+excluded from that coordinate's aggregation; if no eligible value exists the
+context marks it unknown. The declared bootstrap policy may choose a neutral
+operating response without asserting that the missing appraisal is known.
+
+A learning-value Assessment binds its experience, goal, distinctions resolved,
+remaining counterexamples, newly usable program references, actual cost, and
+evidence status. An assessed empty result differs from a null assessment
+reference. No summed happiness score is the objective.
+
+Goal importance, expectation mismatch, and relevant relationship history are
+typed context inputs. Relationship-specific appraisals refer to scoped
+reliability, help received, unmet dependencies, or cooperation outcomes in
+existing `Binding`/`Assessment` records; they are not a global liking score.
+The original evidence supporting a scientific claim remains independent of
+whether its source was helpful or socially salient.
+
+The fixed rules provide initial behavior. An acquired appraisal `Program` can
+refine mappings from context and actual outcomes into these dimensions. Its
+applicability, inputs, output ranges, dependencies, and actual use are explicit.
+It cannot erase a goal, relabel missing evidence as success, or rewrite the
+assessment against which its later consequences are judged.
+
+### 37.8 Event identity, context, and timescales
+
+One admitted source experience has one lineage in an owner. It can have
+explicit per-goal/object projections without becoming several independent
+observations. Summaries deduplicate the underlying experience before pooling;
+root and member identities do not disguise shared evidence as independent.
+
+Preserve existing source/scope bindings during migration. A new contextual
+projection or reappraisal is a declared revision linked to that same episode,
+not silent reassignment of its project or another reward-bearing experience.
+A corrected source version invalidates dependent old projections before an
+eligible revised interpretation is used.
+
+Define `projection_key` from owner lineage, stable `experience_key`, project,
+question identity, sorted object-binding identities, and goal identity.
+Versions are excluded from this stable slot but retained in its content.
+A changed version of the source, context, expectation, or appraisal program
+revises that slot; a genuinely different goal creates another linked projection.
+Only the current live revision participates in context.
+
+The `appraise-experience` request binds the v2 schema, exact source/context/
+goal/expectation/program references, projection identity, and permitted scope.
+Its immutable request digest covers all those values. Exact operation-ID and
+payload replay returns the same result; changed payload under that ID is a
+conflict. A new operation ID with identical projection content returns the
+existing appraisal rather than another event. Within a broader scope, reduce
+an experience's applicable projections once through the identified context
+program before the fast/slow update; adding goals cannot multiply its weight.
+
+Fast local response, slower project disposition, and broader background context
+are views of supported history in the same field. Use the existing event-driven
+fast/slow behavior as the bootstrap. Higher-specificity context remains visible
+alongside broader tendencies so a local setback does not overwrite the meaning
+of unrelated work.
+
+Inspection and wall-clock passage do not update these views by themselves.
+A declared observation of rest, changed capacity, or a new interpretation can
+be an event when it actually occurs. Narrating a state repeatedly cannot amplify
+it. Learned contextual summaries and consolidation programs retain the event
+dependencies necessary to revise them.
+
+### 37.9 Regulation programs and actual cognitive effects
+
+The four current modes seed a repertoire; they do not define the permanent
+space of emotional or regulatory behavior. A regulation `Program` has typed
+context inputs, applicability guards, proposed cognitive operations,
+dependencies, bounded work, expected useful consequences, interruption points,
+and outcome-assessment obligations.
+
+Use a semantic `Program` with `program_role = procedure` and the canonical
+`cassi_field_program.py` semantic-program payload: `schema`, `program_kind`,
+`arguments`, `body`, `guards`, `applicability`, `bounds`, and `effects`.
+This is the current regional procedure representation, not a new Python
+callback interpreter or a second atlas `FieldProgram` state owner. Put
+regulation-specific input/output meaning and outcome requirements in the
+semantic record's role metadata and typed dependencies.
+
+Bindings include current goal/context/appraisal references, available capability
+descriptors, and the remaining allocation. Guards require applicability and
+known values where needed. The bounded result contains typed proposed cognitive
+actions or an explicit support gap, plus expected consequences. The declared
+effects name reads, proposed writes, and emitted requests. They never grant
+permission to carry out those requests.
+
+Extend `regulate-affect` to select the applicable procedure, invoke it through
+the existing `invoke-procedure`/`execute_semantic_program` path, and atomically
+retain a choice Event plus pending outcome Obligation before dispatch. Existing
+`invoke-procedure` produces `proposed_actions`; it does not perform their
+effects. The owner schedules internal semantic operations and routes external
+actions through `plan-procedure`/the current effect machinery. A continuation
+rechecks current versions, applicability, and authority at each dispatch.
+
+Its operations use the same capability and owner path as ordinary work:
+
+| Operation family | Permitted regulatory choice | What remains invariant |
+|---|---|---|
+| Recall and workspace construction | Choose relevant experience, counterexamples, alternative interpretations, or a previous recovery procedure | Source identity, factual content, access scope, and unresolved support |
+| Proposal/search/refinement | Change eligible breadth, representation, branch allocation, or bounded refinement schedule | Type/effect checks, total allocation, and retained alternatives |
+| Observation and checking | Request a distinguishing observation, inspect an instrument, or seek contrary evidence | Actual availability, scientific validity, and authority |
+| Help and teaching | Delegate, request a perspective, offer a supported method, or change role allocation | Recipient policy, private source scope, and attribution |
+| Consolidation and rehearsal | Execute an applicable abstraction, reconstruction, practice, or teaching procedure | Counterexamples, original evidence roots, and independent-observation count |
+| Persistence and recovery | Continue, simplify, change method, reduce concurrent work, wait, or pause | Unfinished obligations and external-effect history |
+
+A choice is recorded before its operation runs. The actual selected operation
+and result must be linked back to that choice. Adding an affect score to an
+agenda is insufficient if a separate selector ignores that agenda when it
+chooses the construction. The integrated transition must consume the chosen
+strategy or report why it was ineligible or superseded.
+
+The current priority adjustment remains bounded by its existing 0.5 absolute
+limit until an explicitly versioned execution profile changes that rule.
+Richer regulation obtains its effect through the selected operations, not an
+unbounded priority multiplier. An acquired program cannot modify its own
+external caps or guarantee execution by escalating urgency.
+
+The active brain receives the relevant causes, commitment, candidate response,
+and unresolved evidence in its workspace. Mood wording or sampling temperature
+alone does not implement regulation. Missing models or instruments retain their
+existing explicit availability behavior.
+
+The concrete consumers are:
+
+| Selected effect | Existing integration point | Required evidence of execution |
+|---|---|---|
+| Recall/workspace selection | `history-select` and `query` in `cassi_field_cognition.py`, followed by the entity workspace projection | Selected record versions and actual returned context, joined to the choice |
+| Question/construction strategy | `autonomous-curiosity`, `autonomous-agenda`, and the organism's `_expand_frontier_locked`/candidate-selection transition | The chosen obligation/program actually consumed, or an explicit supersession/ineligibility result |
+| Observation/inquiry | `autonomous-perception` and `FieldIntelligenceOwner.execute_observation_request` | Authorized request, actual result, and admitted observation reference |
+| Delegation/help/teaching | Existing Hive query/offer transport, field-owned selection, and the selected member's own program/owner path | Request identity, accepted assignment, attributed response, and recipient admission; a matched offer alone is insufficient |
+| Adoption/study | `HiveField.sync`/`adopt` for installation and admitted study/procedure work for understanding | Separate adoption receipt and subsequent local use/learning result |
+| Consolidation/rehearsal | `consolidate` and applicable procedures through `invoke-procedure` | Actual retained/reconstructed state or practice result, with retention and cost assessment |
+
+These are target connections to existing consumers. Current query,
+consolidation, and perception do not acquire affect reach merely because their
+names occur in this table. Extend their typed inputs/continuations where
+necessary; the fixed host bridge routes declared operations without inventing
+the method or independently choosing a different candidate.
+
+### 37.10 Learning to regulate and delayed consequences
+
+A regulation episode links:
+
+`trigger/context → chosen program → actual operations → awaited consequences → assessment`.
+
+The choice retains the goal, source/workspace versions, competing response if
+one was considered, expected direction of useful change, assessment method,
+and bounded observation horizon. Its pending assessment is an `Obligation`.
+The horizon is expressed in the investigation's actual steps/events or declared
+world time; it is neither an arbitrary number of model messages nor permission
+to reset the mission allocation.
+
+**Choice and outcome payloads.** A v2 choice Event carries `episode_id`,
+`goal_ref`, `context_ref`, `appraisal_refs`, `procedure_ref`, `bindings`,
+`candidate_refs`, `proposed_actions`, `expected_consequence`, and
+`outcome_obligation_ref`. Its dependencies include the live goal/context,
+appraisals, and procedure. Each planned child receives a deterministic
+`action_id` derived from the committed choice and step identity; intent,
+acknowledgment, and admitted outcome keep that identity on replay.
+
+The outcome Obligation carries `choice_ref`, `goal_ref`, `action_ids`,
+`required_outcome_kinds`, `assessment_program_ref`, `start_cursor`, and
+`horizon = {basis, deadline}`. Basis is an identified owner-event cursor,
+investigation step counter, or world clock; the deadline is in that basis.
+Its pending status uses the existing obligation lifecycle. Assessment data
+separately distinguishes pending, observed, censored, and invalidated evidence.
+Reaching a deadline without an interpretable outcome closes the waiting
+condition as censored, not as negative progress.
+
+One outcome Assessment joins the exact `choice_ref`, `goal_ref`, outcome-
+obligation reference, covered action IDs, actual result references, measured
+consequences/cost, and `attribution` (association, comparative support, or
+unresolved). It identifies other candidate contributors when several responses
+preceded the result. Revising that Assessment supersedes its previous
+contribution; it cannot award another copy of the same credit.
+
+The dependency direction is source/goal/context/program → appraisal → choice
+→ outcome Obligation and derived outcome Assessment. Completed raw artifacts
+and external-effect journals retain immutable occurrence/provenance links;
+correction invalidates derived usefulness and pending eligibility, not the
+fact that an action happened. No backward dependency from a source to its
+later appraisal is introduced. New appraisals of later outcomes are new
+downstream records, so the correction graph remains acyclic.
+
+Join consequences by episode, action, dependency, and goal identity, not merely
+by selecting the next positive result in the project. A response that involves
+several operations can receive a later assessment. Missing/censored outcomes
+remain pending or explicitly unresolved; they are not invented failures or
+successes. Several preceding contributions can remain plausible causes.
+
+Useful observations include recovery from an obstacle, improved prediction,
+completed work, retained competence, useful transfer, and complete cost.
+Immediate mood relief, extra commentary, time spent, and recording a mode earn
+no competence credit. Practical achievement and information gained can have
+different signs and are assessed separately.
+
+Retain empirical associations with their context and uncertainty. A causal
+claim about a strategy requires an appropriate actual comparison or derivation;
+the learner need not perform such a campaign before using an applicable
+strategy. The current next-outcome mean-progress mechanism remains bootstrap
+association only. Migrated history does not acquire the missing action links
+or become evidence for the new episode-linked credit path.
+
+Candidate regulation and appraisal programs arise from recurring obstacles,
+successful recoveries, peer methods, and attributed brain proposals. Evaluate
+their use in ongoing work, retain failures, and specialize when benefit is
+context-dependent. Existing held methods remain available rather than being
+replaced globally by a single favorable episode.
+
+### 37.11 Hive affect and cooperative regulation
+
+A member can send an attributed concern, opportunity, request for help, or
+regulation lesson through existing hive exchange. Include the member and
+question identity, relevant goal, original evidence references or explicitly
+restricted provenance, interpretation, desired assistance, and applicability.
+Export and visibility policy applies to the causes as well as the summary.
+
+The recipient admits a report as attributed material, then appraises its
+significance for its own work. It does not copy the donor's affect coordinates
+into its field or grant the donor's confidence factual authority. A received
+report can be a cooperation experience without being another observation of
+the underlying physical event. Multiple reports derived from one source retain
+that common root.
+
+Use an attributed `Event` payload with
+`schema = cassifi.affect-report.v1`, stable `message_id`, sender lineage,
+recipient scope, `question_ref`, `goal_ref`, original episode/evidence roots,
+interpretation status, `requested_help`, and allowed visibility references.
+Archive the exact message and bind its receipt to the authenticated transport
+identity. Foreign references retain their sender owner and immutable artifact;
+local receipt, interpretation, and appraisal have separate local references.
+
+Private provenance uses only policy-permitted opaque references; unavailable
+causes remain explicitly restricted and cannot be treated as independently
+inspected support. Receiving the same message again is delivery replay. A
+changed payload under its identity is a conflict. Delegation replies, adopted
+program bindings, and study outcomes preserve the message/request lineage and
+original source roots rather than relabeling the material as locally observed.
+
+The root can allocate complementary help without imposing one hive-wide mood.
+Interest in exploration and concern about a fragile assumption can coexist
+productively. Group-level context preserves which object, goal, and member
+supplied each concern; counting excited or worried members is not evidence
+aggregation.
+
+Regulation lessons use ordinary portable-program review, compatibility,
+recipient binding, and adoption. A recipient may delegate to a skilled member,
+adopt a method, or study the underlying idea. Actual assistance can improve
+context-specific expectations of cooperation; popularity does not certify a
+scientific claim or authorize an action.
+
+### 37.12 Correction, consolidation, and persistence
+
+Retraction or correction of a source, expectation, goal interpretation,
+appraisal program, or regulation dependency invalidates the affected live
+projections and credit. Preserve the historical event and decisions actually
+taken; reconstruct supported current context and reassess pending work.
+Correction changes present interpretation, not past effects.
+
+Consolidation may abstract a recovery pattern and retain affect-indexed cues
+for a turning point, misleading success, rare exception, or useful collaborator.
+Keep the original conditions, counterexamples, and source paths. Salience can
+increase retrieval or rehearsal priority but cannot increase factual support.
+
+Checkpoint the active regulation program, scope bindings, pending outcome
+obligations, resource use, and versioned context with the normal field image.
+Restart reconstructs transient views; it does not replay old outcomes for new
+credit. A migration preserves the old appraisal basis and marks unavailable
+new dimensions unknown. It neither synthesizes missing history nor resets a
+member's disposition to fabricate a fresh learning run.
+
+The first-format migration is explicit and idempotent. Append v2 content
+versions for existing appraisal/choice records, retaining their IDs, original
+source/scope, seven known signal values, and historical references. Bind them
+to an identified bootstrap-rule version. Missing goal/context links and learning
+assessments stay null; no action IDs or outcomes are invented.
+Existing standalone `affect_regulation` Events migrate to
+`affect_regulation.v2` choice content versions under the same semantic IDs,
+preserving their original mode, source, scope, rule identity, and history.
+Rebind an appraisal's `following_regulation` or `preceding_regulation` only
+when its exact referenced Event migrated successfully. Otherwise retain that
+old reference as historical lineage and set the corresponding live v2 choice
+reference null/unavailable. Do not infer a choice, action, or credit join from
+event order alone.
+
+Mark these versions `origin = migrated` and preserve any prior mode/progress
+association as an identified historical Assessment with its source
+dependencies. It may seed the declared bootstrap context, but cannot settle a
+new v2 outcome Obligation or earn episode-linked credit. Retain prior fast/slow
+context under its original rule profile until actual new eligible experience
+updates it. Migration itself is ineligible as affective experience.
+
+The current runtime reads only the migrated format. Historical source records
+remain available for evidence and rollback; they are not an alternate live
+learning path. A failed/incomplete migration leaves the incumbent source/field
+pair available and resumes neither partial credit nor partially rebound work.
+
+If an appraisal program or its dependencies cannot execute, retain the issue
+and use the available declared bootstrap/neutral regulatory behavior only.
+Do not infer replacement feelings from free-form model prose. Ordinary
+evidence, authority, and recovery semantics remain effective without a
+particular affect projection.
+
+### 37.13 Source integration and public views
+
+| Existing surface | Upgrade responsibility |
+|---|---|
+| `cassi_field_affect.py` | Fixed eligibility/range checks and reconstructible context/modulation views; no adaptive sidecar |
+| `cassi_field_cognition.py` | Versioned appraisal/response records, goal/object dependencies, acquired program selection, downstream consequence assessment, and correction |
+| `cassi_field_program.py`, `cassi_field_regions.py` | Bounded executable regulation and appraisal programs through the common machine |
+| `cassi_field_owner.py` | Exactly-once admission, current-source checks, publication, effect authority, and recovery |
+| `cassi_research_residency.py`, `cassi_research_organism.py` | Eligible actual work outcomes and consumption of selected strategies; preserve frozen-reporting branches |
+| `cassi_hive_collective.py`, `cassi_hive_runtime.py` | Attributed concerns and reviewed regulation lessons with local interpretation and policy |
+| `../CassiQwen/cassi_autonomous_researcher.py`, `../CassiQwen/cassi_field_brain_entity.py` | Workspace causes/strategy, active brain participation, real cognitive actions, and subsequent outcome admission |
+
+Extend `appraise-experience`, `affect-state`, and `regulate-affect` through
+versioned payloads and the existing owner path. Inspection exposes current
+scope, dimension basis/unknowns, source versions, selected strategy, actual
+linked actions, and pending consequences. It stays read-only. Migrate callers,
+dependent schema handling, and current tests together; do not retain a second
+legacy affect path with different learning semantics.
+
+### 37.14 Integrated behavior and evidence boundary
+
+In the persistent-structure mission, an unsupported winding loop can produce
+obstruction of the immediate measurement and positive learning value from
+localizing its cause. A selected regulation program can request geometry
+expertise, construct a support-aware instrument, and later assess whether that
+change produced a valid observation or a better-defined limitation.
+
+The important behavior is the complete link from grounded appraisal to an
+actual cognitive choice and its retained consequence. Check duplicate delivery,
+read-only inspection, missing outcomes, source correction, member scope,
+policy restrictions, frozen reporting, and continuation in the changed path.
+Do not infer benefit merely from changed mode names or a higher appraisal score.
+
+This is direct implementation and useful research on the continuing fields.
+Existing learning and native-flow evidence remain intact. The design introduces
+no preregistration, new frozen verdict, separate affect learner, or requirement
+to establish subjective emotion before the component can improve work.

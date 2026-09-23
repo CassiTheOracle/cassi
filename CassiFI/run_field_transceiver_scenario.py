@@ -26,6 +26,7 @@ from cassi_field_owner import AuthorityGrant, FieldIntelligenceOwner, SourceInpu
 from cassi_field_transceiver import (
     advance_transceiver, condense_workspace, inspect_transceiver, reset_transceiver,
 )
+from cassi_hive_session import open_field_session
 from cassi_resonant_field import ResonantNumericalError, ResonantProfile, initial_workspace
 
 CONTEXT = {"mechanism": "connected"}
@@ -101,7 +102,7 @@ def trace(kernel: Mapping[str, Any], name: str, inputs: list[float], *, full: bo
 
 def numerical_scenario(home: Path, *, beta: float) -> Mapping[str, Any]:
     initial = AtlasState(resonant_workspace=initial_workspace(ResonantProfile(beta=beta, damping=0.5)))
-    with FieldIntelligenceOwner(home, initial_state=initial) as owner:
+    with open_field_session(home, initial_state=initial) as owner:
         learn_instrument(owner, "gain", 2.0)
         memory = canonical_json_bytes([chart.as_dict() for chart in owner.state.charts])
         evidence_tick = owner.state.logical_tick
@@ -140,7 +141,7 @@ def numerical_scenario(home: Path, *, beta: float) -> Mapping[str, Any]:
 
 def owner_scenario(home: Path) -> Mapping[str, Any]:
     initial = AtlasState(resonant_workspace=initial_workspace(ResonantProfile(beta=0.0, damping=0.5)))
-    owner = FieldIntelligenceOwner(home, initial_state=initial)
+    owner = open_field_session(home, initial_state=initial)
     try:
         revisions = learn_instrument(owner, "first", 2.0)
         learn_instrument(owner, "second", -0.5)
@@ -165,7 +166,7 @@ def owner_scenario(home: Path) -> Mapping[str, Any]:
         bundle = owner.state.encode_bundle()
         require(AtlasState.decode_bundle(bundle).state_sha256 == identity, "bundle lost transceiver phase")
         owner.close()
-        owner = FieldIntelligenceOwner(home)
+        owner = open_field_session(home)
         require(owner.state.state_sha256 == identity, "restart lost transceiver phase")
         read_identity = owner.state.state_sha256
         owner.inspect_transceivers()
@@ -269,7 +270,7 @@ class CurriculumSession:
         initial = AtlasState(resonant_workspace=initial_workspace(
             ResonantProfile(beta=0.0, damping=0.5),
         ))
-        self.owner = FieldIntelligenceOwner(home, initial_state=initial)
+        self.owner = open_field_session(home, initial_state=initial)
         self.sequence = 0
         self.priors: dict[str, Mapping[str, Any]] = {}
         self.training_hashes: set[str] = set()
@@ -546,7 +547,7 @@ class CurriculumSession:
         require(AtlasState.decode_bundle(bundle).state_sha256 == identity, "bundle lost curriculum")
         started = perf_counter()
         self.owner.close()
-        self.owner = FieldIntelligenceOwner(self.home)
+        self.owner = open_field_session(self.home)
         restart_seconds = perf_counter() - started
         self.costs["restart_seconds"] += restart_seconds
         require(self.owner.state.state_sha256 == identity, "restart changed canonical field")

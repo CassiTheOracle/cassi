@@ -10,13 +10,21 @@ from __future__ import annotations
 
 import base64
 import copy
-from dataclasses import asdict, dataclass, replace
+from concurrent.futures import Future, ThreadPoolExecutor
+from contextvars import ContextVar
+from dataclasses import asdict, dataclass, field as dataclass_field, replace
 import hashlib
 import json
+import os
+import zlib
+from functools import lru_cache
+from threading import Lock
 from types import CodeType, FunctionType, MappingProxyType
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Iterator, Mapping, Sequence
 
 import numpy as np
+from cassi_field_residency import ResourceLimits, ResourceWait, ResidencyManager
+from cassi_field_storage import ObjectOverlay, ObjectSubset, StorageError, object_bytes
 
 from cassi_constraint_dynamics import (
     ExcitableConstraintController,
@@ -31,6 +39,54 @@ REGIONAL_LAYOUT_REVISION = 1
 U32_MAX = 2**32 - 1
 U64_MAX = 2**64 - 1
 PERSISTENCE_PAGE_WORDS = 4_096
+PERSISTENCE_CHUNK_SCHEMA = "cassifi.regional-page-chunks.v1"
+PERSISTENCE_CHUNK_CODEC = "u32-le-zlib.v1"
+PAGED_STATE_KIND_FLAT = "logical-f64-v1"
+PAGED_STATE_KIND_ROOT = "page-tree-v1"
+PAGED_STATE_IDENTITY_SCHEMA = "cassifi.regional-page-state.v1"
+NEURAL_MEMBRANE_SCHEMA = "cassifi.neural-membrane.v1"
+NEURAL_MEMBRANE_PLANES = ("observation", "yang", "yin", "readback")
+NEURAL_MEMBRANE_PLANE_COUNT = len(NEURAL_MEMBRANE_PLANES)
+NEURAL_MEMBRANE_FIRST_PLANE = 9 - NEURAL_MEMBRANE_PLANE_COUNT
+NEURAL_MEMBRANE_MODE_QUANTUM = 65_536
+NEURAL_MEMBRANE_DEFAULT_GAIN_PPM = 1_000
+# Field-derived activity may modulate the automaton's priority among
+# already-eligible continuations.  The rule is bounded, versioned, and off by
+# default: with no declared activity the drive is exactly ``priority + 1``.
+ACTIVITY_SCHEMA = "cassifi.regional-activity.v1"
+ACTIVITY_UNIT = 1024
+ACTIVITY_MIN_FACTOR = ACTIVITY_UNIT // 2
+ACTIVITY_MAX_FACTOR = 2 * ACTIVITY_UNIT
+INPUT_REGION_PAGE_BYTES = 64 * 1024
+MAX_INPUT_REGION_BYTES = 64 * 1024 * 1024
+MAX_INPUT_WINDOW_BYTES = 1024 * 1024
+
+DEFAULT_ACTIVITY_WEIGHT = 0
+_RUN_REGISTRY_CACHE: ContextVar[
+    dict[tuple[int, int, int], dict[str, Any]] | None
+] = ContextVar("_RUN_REGISTRY_CACHE", default=None)
+_RUN_CANONICAL_PADDING: ContextVar[
+    set[tuple[int, int]] | None
+] = ContextVar("_RUN_CANONICAL_PADDING", default=None)
+_HASH_EXECUTOR_LOCK = Lock()
+_HASH_EXECUTOR: ThreadPoolExecutor | None = None
+
+
+_CATALOG_FINGERPRINT_CACHE: dict[int, tuple[Any, str]] = {}
+
+
+# Hashing releases the GIL; retain the pool across short runs so each
+# immutable field transition does not pay thread creation and join costs.
+def _shared_hash_executor(workers: int) -> ThreadPoolExecutor:
+    global _HASH_EXECUTOR
+    if _HASH_EXECUTOR is None:
+        with _HASH_EXECUTOR_LOCK:
+            if _HASH_EXECUTOR is None:
+                _HASH_EXECUTOR = ThreadPoolExecutor(max_workers=workers)
+    return _HASH_EXECUTOR
+
+
+
 
 HEADER_WORDS = 64
 DIRECTORY_WORDS = 16
@@ -166,12 +222,14 @@ SEMANTIC_EPISTEMIC_KINDS = (
 )
 SEMANTIC_ANSWER_STATUSES = (
     "alternatives",
+    "authority-denied",
     "non-identifiable",
     "pending-observation",
     "representation-insufficient",
     "resource-exhausted",
     "support-gap",
     "supported",
+    "unresolved",
     "waiting",
 )
 
@@ -241,6 +299,56 @@ def _identifier(value: Any, name: str) -> str:
     return value
 
 
+class ImmutableInputPages:
+    """Read-only bounded windows over one immutable sensory byte buffer.
+
+    The buffer remains separate from the adaptive regional field.  Pages are
+    logical fixed-size windows into the producer's immutable ``bytes`` object,
+    so publication does not copy or materialise a dense field.
+    """
+
+    __slots__ = ("_pixels", "byte_length", "sha256")
+
+    def __init__(self, pixels: bytes) -> None:
+        if not isinstance(pixels, bytes):
+            raise RegionalFieldError("input region must be immutable bytes")
+        if len(pixels) > MAX_INPUT_REGION_BYTES:
+            raise RegionalFieldError("input region exceeds the bounded byte limit")
+        self._pixels = pixels
+        self.byte_length = len(pixels)
+        self.sha256 = hashlib.sha256(pixels).hexdigest()
+
+    @property
+    def page_count(self) -> int:
+        return (
+            self.byte_length + INPUT_REGION_PAGE_BYTES - 1
+        ) // INPUT_REGION_PAGE_BYTES
+
+    def read_page(self, page_index: int) -> bytes:
+        page_index = _integer(
+            page_index, "input page index", maximum=max(0, self.page_count - 1)
+        )
+        start = page_index * INPUT_REGION_PAGE_BYTES
+        return self._pixels[
+            start : min(self.byte_length, start + INPUT_REGION_PAGE_BYTES)
+        ]
+
+    def read_window(self, offset: int, length: int) -> bytes:
+        offset = _integer(offset, "input window offset", maximum=self.byte_length)
+        length = _integer(length, "input window length", maximum=MAX_INPUT_WINDOW_BYTES)
+        end = offset + length
+        if end > self.byte_length:
+            raise RegionalFieldError("input window exceeds the published byte range")
+        return self._pixels[offset:end]
+
+    def page_views(self) -> Iterator[memoryview]:
+        view = memoryview(self._pixels)
+        for start in range(0, self.byte_length, INPUT_REGION_PAGE_BYTES):
+            yield view[
+                start : min(self.byte_length, start + INPUT_REGION_PAGE_BYTES)
+            ]
+
+
 def _sha_words(digest: str) -> tuple[int, ...]:
     if not isinstance(digest, str) or len(digest) != 64:
         raise RegionalFieldError("SHA-256 text is invalid")
@@ -267,27 +375,49 @@ def _write_u64(flat: np.ndarray, offset: int, value: int) -> None:
     flat[offset + 1] = value >> 32
 
 
-def _json_words(value: Any) -> tuple[int, ...]:
-    raw = _canonical(value)
+def _json_words_from_raw(raw: bytes) -> np.ndarray:
     if len(raw) > U32_MAX:
         raise RegionalFieldError("JSON payload exceeds u32 length")
     framed = len(raw).to_bytes(4, "little") + raw
     framed += b"\x00" * ((-len(framed)) % 4)
-    return tuple(int.from_bytes(framed[index:index + 4], "little") for index in range(0, len(framed), 4))
+    return np.frombuffer(framed, dtype="<u4")
 
 
-def _decode_json_words(words: Sequence[int]) -> Any:
-    raw = b"".join(_integer(int(word), "payload word").to_bytes(4, "little") for word in words)
+def _json_words(value: Any) -> np.ndarray:
+    return _json_words_from_raw(_canonical(value))
+
+
+def _decode_json_words(
+    words: Sequence[int] | np.ndarray,
+    *,
+    _validated: bool = False,
+) -> Any:
+    try:
+        packed = np.asarray(words)
+    except (TypeError, ValueError) as exc:
+        raise RegionalFieldError("payload words are invalid") from exc
+    if not _validated:
+        if packed.ndim != 1 or packed.dtype.kind not in {"i", "u", "f"}:
+            raise RegionalFieldError("payload words are invalid")
+        if packed.size:
+            if packed.dtype.kind == "f" and (
+                not np.isfinite(packed).all()
+                or not np.equal(packed, np.floor(packed)).all()
+            ):
+                raise RegionalFieldError("payload word must be an integer")
+            if np.any(packed < 0) or np.any(packed > U32_MAX):
+                raise RegionalFieldError("payload word is outside the u32 range")
+    raw = packed.astype("<u4", copy=False).tobytes()
     if len(raw) < 4:
         raise RegionalFieldError("JSON payload frame is truncated")
     length = int.from_bytes(raw[:4], "little")
     if length > len(raw) - 4 or any(raw[4 + length:]):
         raise RegionalFieldError("JSON payload frame is noncanonical")
     try:
-        value = json.loads(raw[4:4 + length].decode("utf-8"))
+        value = json.loads(raw[4:4 + length])
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RegionalFieldError("JSON payload is invalid") from exc
-    if _canonical(value) != raw[4:4 + length]:
+    if not _validated and _canonical(value) != raw[4:4 + length]:
         raise RegionalFieldError("JSON payload is noncanonical")
     return value
 
@@ -314,6 +444,8 @@ class RegionalProfile:
     reclaim_quantum: int = 1_024
     max_native_work: int = 1_000_000
     kernel_names: tuple[str, ...] = ()
+    neural_membrane: bool = False
+    neural_membrane_gain_ppm: int = NEURAL_MEMBRANE_DEFAULT_GAIN_PPM
 
     def __post_init__(self) -> None:
         for name in (
@@ -325,6 +457,13 @@ class RegionalProfile:
         ):
             _integer(getattr(self, name), name, minimum=1)
         _integer(self.max_steps, "max_steps", minimum=0, maximum=U64_MAX - 1)
+        if not isinstance(self.neural_membrane, bool):
+            raise RegionalFieldError("neural_membrane must be boolean")
+        _integer(
+            self.neural_membrane_gain_ppm,
+            "neural_membrane_gain_ppm",
+            maximum=1_000_000,
+        )
         if not isinstance(self.kernel_names, tuple) or any(
             not isinstance(name, str) or not name for name in self.kernel_names
         ):
@@ -339,7 +478,7 @@ class RegionalProfile:
             + self.ledger_words + (4 * self.automaton_sites + 8)
             + 4 * self.default_value_words
         )
-        if minimum + boot > self.total_words:
+        if minimum + boot > self.workspace_words:
             raise RegionalFieldError("regional profile cannot hold its bootstrap closure")
         if self.max_events > self.max_registry_entries:
             raise RegionalFieldError("event capacity exceeds identity capacity")
@@ -349,6 +488,31 @@ class RegionalProfile:
         return 9 * self.mode_count
 
     @property
+    def workspace_words(self) -> int:
+        """Words available to the regional allocator, excluding the membrane."""
+
+        planes = (
+            NEURAL_MEMBRANE_FIRST_PLANE
+            if self.neural_membrane
+            else 9
+        )
+        return planes * self.mode_count
+
+    @property
+    def neural_membrane_words(self) -> int:
+        return (
+            NEURAL_MEMBRANE_PLANE_COUNT * self.mode_count
+            if self.neural_membrane
+            else 0
+        )
+
+    @property
+    def neural_membrane_offset(self) -> int:
+        if not self.neural_membrane:
+            raise RegionalFieldError("regional profile has no neural membrane")
+        return self.workspace_words
+
+    @property
     def shape(self) -> tuple[int, int, int]:
         return (1, self.total_words, 1)
 
@@ -356,8 +520,8 @@ class RegionalProfile:
     def state_bytes(self) -> int:
         return self.total_words * np.dtype(np.float64).itemsize
 
-    @property
-    def catalog_sha256(self) -> str:
+    @lru_cache(maxsize=64)
+    def _catalog_sha256(self) -> str:
         return hashlib.sha256(_canonical({
             "operations": _CATALOG_OPERATIONS,
             "kernels": self.kernel_names,
@@ -365,9 +529,16 @@ class RegionalProfile:
         })).hexdigest()
 
     @property
-    def fingerprint(self) -> str:
+    def catalog_sha256(self) -> str:
+        return self._catalog_sha256()
+
+    @lru_cache(maxsize=64)
+    def _fingerprint(self) -> str:
         value = asdict(self)
         value["kernel_names"] = list(self.kernel_names)
+        if not self.neural_membrane:
+            value.pop("neural_membrane")
+            value.pop("neural_membrane_gain_ppm")
         return hashlib.sha256(_canonical({
             "schema": REGIONAL_SCHEMA,
             "layout": REGIONAL_LAYOUT,
@@ -376,12 +547,19 @@ class RegionalProfile:
         })).hexdigest()
 
     @property
+    def fingerprint(self) -> str:
+        return self._fingerprint()
+
+    @property
     def profile_sha256(self) -> str:
         return self.fingerprint
 
     def as_dict(self) -> dict[str, Any]:
         value = asdict(self)
         value["kernel_names"] = list(self.kernel_names)
+        if not self.neural_membrane:
+            value.pop("neural_membrane")
+            value.pop("neural_membrane_gain_ppm")
         return value
 
     @classmethod
@@ -473,7 +651,6 @@ def _semantic_json(value: Any, name: str) -> Any:
 
 def canonical_semantic_record(value: Mapping[str, Any]) -> dict[str, Any]:
     """Validate and detach one of the six shared semantic record families."""
-
     required = {
         "applicability",
         "content_version",
@@ -493,8 +670,6 @@ def canonical_semantic_record(value: Mapping[str, Any]) -> dict[str, Any]:
         "units",
         "valid_time",
     }
-    if not isinstance(value, Mapping) or set(value) != required:
-        raise RegionalFieldError("semantic record does not match the closed header")
     record = _semantic_json(dict(value), "semantic record")
     record_id = _identifier(record["id"], "semantic record ID")
     kind = record["kind"]
@@ -522,7 +697,7 @@ def canonical_semantic_record(value: Mapping[str, Any]) -> dict[str, Any]:
     else:
         supersedes = SemanticRef.from_dict(supersedes_value)
         if (
-            supersedes.id != record_id
+            supersedes.id != record["id"]
             or supersedes.kind != kind
             or supersedes.content_version + 1 != version
         ):
@@ -698,6 +873,11 @@ class KernelResult:
     work: int = 1
     output: Any = None
     events: tuple[Mapping[str, Any], ...] = ()
+    _state_words: np.ndarray = dataclass_field(
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     def __post_init__(self) -> None:
         if self.status not in {"done", "yield", "blocked", "fault"}:
@@ -705,7 +885,29 @@ class KernelResult:
         _integer(self.work, "native work", minimum=0)
         if not isinstance(self.events, tuple) or any(not isinstance(event, Mapping) for event in self.events):
             raise RegionalFieldError("native kernel events must be a tuple of mappings")
-        _canonical(self.state)
+        trusted_raw = getattr(
+            self.state, "_cassi_canonical_json", None
+        )
+        if (
+            not isinstance(trusted_raw, bytes)
+            or not getattr(
+                self.state,
+                "_cassi_canonical_json_trusted",
+                False,
+            )
+        ):
+            trusted_raw = _canonical(self.state)
+        if getattr(self.state, "_cassi_region_reusable", False):
+            setattr(
+                self.state,
+                "_cassi_canonical_json",
+                trusted_raw,
+            )
+        object.__setattr__(
+            self,
+            "_state_words",
+            _json_words_from_raw(trusted_raw),
+        )
         _canonical(self.output)
 
 
@@ -742,6 +944,7 @@ def _code_identity(code: CodeType) -> Mapping[str, Any]:
     }
 
 
+@lru_cache(maxsize=128)
 def _kernel_identity(kernel: NativeKernel) -> str:
     if not isinstance(kernel, FunctionType) or kernel.__closure__:
         raise RegionalFieldError(
@@ -837,7 +1040,11 @@ class KernelCatalog:
 
     @property
     def fingerprint(self) -> str:
-        return hashlib.sha256(
+        cache_key = id(self)
+        cached = _CATALOG_FINGERPRINT_CACHE.get(cache_key)
+        if cached is not None and cached[0] is self:
+            return cached[1]
+        digest = hashlib.sha256(
             _canonical(
                 {
                     "kernels": {
@@ -857,6 +1064,8 @@ class KernelCatalog:
                 }
             )
         ).hexdigest()
+        _CATALOG_FINGERPRINT_CACHE[cache_key] = (self, digest)
+        return digest
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -915,49 +1124,92 @@ def _read_region(flat: np.ndarray, profile: RegionalProfile, ref: RegionRef) -> 
     row = _row_for_ref(flat, profile, ref, right=RIGHT_READ)
     words = _payload_words(flat, row)
     if int(row[D_CODEC]) == CODEC_JSON:
-        return _decode_json_words([int(word) for word in words])
+        return _decode_json_words(words, _validated=True)
     if int(row[D_CODEC]) == CODEC_WORDS:
         return [int(word) for word in words]
     raise RegionalFieldError("region codec is unsupported")
 
 
-def _write_region(flat: np.ndarray, profile: RegionalProfile, ref: RegionRef, value: Any) -> bool:
+def _write_region(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+    ref: RegionRef,
+    value: Any,
+    *,
+    _encoded_json_words: np.ndarray | None = None,
+) -> bool:
     row = _row_for_ref(flat, profile, ref, right=RIGHT_WRITE)
     if int(row[D_FLAGS]) & FLAG_IMMUTABLE:
         raise RegionalFieldError("immutable region cannot be written")
     if int(row[D_CODEC]) == CODEC_JSON:
-        words = _json_words(value)
+        words = (
+            _json_words(value)
+            if _encoded_json_words is None
+            else _encoded_json_words
+        )
     elif int(row[D_CODEC]) == CODEC_WORDS:
-        if isinstance(value, (str, bytes, bytearray)) or not isinstance(value, Sequence):
-            raise RegionalFieldError("word region requires a finite sequence")
-        words = tuple(_integer(int(word), "region word") for word in value)
+        if isinstance(value, (str, bytes, bytearray)) or not isinstance(
+            value, Sequence
+        ):
+            raise RegionalFieldError(
+                "word region requires a finite sequence"
+            )
+        words = tuple(
+            _integer(int(word), "region word") for word in value
+        )
     else:
         raise RegionalFieldError("region codec is unsupported")
     if len(words) > int(row[D_CAPACITY]):
-        raise RegionalFieldError("region value exceeds allocated capacity")
+        raise RegionalFieldError(
+            "region value exceeds allocated capacity"
+            f" (slot {ref.slot}: {len(words)} > {int(row[D_CAPACITY])} words)"
+        )
     base = int(row[D_BASE])
     old_used = int(row[D_USED])
-    old = tuple(int(word) for word in flat[base:base + old_used])
-    if old == words:
+    if old_used == len(words) and np.array_equal(
+        flat[base:base + old_used], words
+    ):
         return False
     version = _read_u64(row, D_VERSION)
     if version >= U64_MAX:
         raise RegionalFieldError("region version is exhausted")
-    flat[base:base + int(row[D_CAPACITY])] = 0
-    if words:
+    padding_cache = _RUN_CANONICAL_PADDING.get()
+    padding_key = (ref.slot, ref.generation)
+    first_write = padding_cache is None or padding_key not in padding_cache
+    if first_write and not isinstance(flat, _PagedFieldView):
+        flat[base:base + int(row[D_CAPACITY])] = 0
+    elif len(words) < old_used:
+        flat[base + len(words):base + old_used] = 0
+    if first_write and padding_cache is not None:
+        padding_cache.add(padding_key)
+    if len(words):
         flat[base:base + len(words)] = words
     row[D_USED] = len(words)
     _write_u64(row, D_VERSION, version + 1)
     return True
 
 
-def _registry(flat: np.ndarray, profile: RegionalProfile) -> tuple[RegionRef, dict[str, Any]]:
+def _registry(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+) -> tuple[RegionRef, dict[str, Any]]:
     ref = _descriptor_ref(flat, H_REGISTRY)
     if ref is None:
         raise RegionalFieldError("regional image has no registry")
+    row = _row_for_ref(flat, profile, ref)
+    cache_key = (
+        ref.slot,
+        ref.generation,
+        _read_u64(row, D_VERSION),
+    )
+    cache = _RUN_REGISTRY_CACHE.get()
+    if cache is not None and cache_key in cache:
+        return ref, cache[cache_key]
     value = _read_region(flat, profile, ref)
     if not isinstance(value, dict):
         raise RegionalFieldError("reference registry is invalid")
+    if cache is not None:
+        cache[cache_key] = value
     return ref, value
 
 
@@ -993,7 +1245,7 @@ def _find_payload_base(flat: np.ndarray, profile: RegionalProfile, capacity: int
         if cursor + capacity <= start:
             return cursor
         cursor = max(cursor, end)
-    if cursor + capacity > profile.total_words:
+    if cursor + capacity > profile.workspace_words:
         raise RegionalFieldError("payload arena is exhausted")
     return cursor
 
@@ -1051,7 +1303,7 @@ def _allocate_raw(
     row[D_SCOPE_ID] = scope_id
     _write_u64(row, D_VERSION, 1)
     flat[base:base + capacity] = 0
-    if words:
+    if len(words):
         flat[base:base + len(words)] = words
     flat[H_FREE_CURSOR] = (selected + 1) % profile.directory_capacity
     ref = RegionRef(selected + 1, generation, rights=RIGHT_ALL)
@@ -1283,7 +1535,7 @@ def canonical_program(program: Any) -> list[dict[str, Any]]:
     return [_canonical_instruction(row, len(rows), index) for index, row in enumerate(rows)]
 
 
-def _initial_registry_words(profile: RegionalProfile, ref: RegionRef) -> tuple[int, ...]:
+def _initial_registry_words(profile: RegionalProfile, ref: RegionRef) -> np.ndarray:
     registry = {
         "entries": {
             "1": {
@@ -1510,7 +1762,7 @@ def _validate_directory(flat: np.ndarray, profile: RegionalProfile) -> None:
         if int(row[D_KIND]) not in KIND_NAMES or int(row[D_CODEC]) not in (CODEC_JSON, CODEC_WORDS):
             raise RegionalFieldError("directory kind or codec is invalid")
         base, used, capacity = (int(row[D_BASE]), int(row[D_USED]), int(row[D_CAPACITY]))
-        if capacity <= 0 or used > capacity or base < arena_start or base + capacity > profile.total_words:
+        if capacity <= 0 or used > capacity or base < arena_start or base + capacity > profile.workspace_words:
             raise RegionalFieldError("directory payload range is invalid")
         if int(row[D_RESERVED]) != 0:
             raise RegionalFieldError("directory reserved word is nonzero")
@@ -1540,7 +1792,7 @@ def _validate_directory(flat: np.ndarray, profile: RegionalProfile) -> None:
             if used != 0:
                 raise RegionalFieldError("quarantined region cannot expose used words")
         elif int(row[D_CODEC]) == CODEC_JSON:
-            _decode_json_words([int(word) for word in _payload_words(flat, row)])
+            _decode_json_words(_payload_words(flat, row))
         else:
             for word in _payload_words(flat, row):
                 _integer(int(word), "regional word")
@@ -1756,7 +2008,7 @@ def _descriptor_metadata_for_row(
             "descriptor dependencies are not canonical"
         )
     state_value = _decode_json_words(
-        [int(word) for word in _payload_words(flat, row)]
+        _payload_words(flat, row), _validated=True
     )
     if (
         not isinstance(state_value, Mapping)
@@ -1989,25 +2241,84 @@ def _validate_queue(flat: np.ndarray, profile: RegionalProfile, queue: Any) -> N
         raise RegionalFieldError("named value bindings are invalid")
 
 
-def state_sha256(field: np.ndarray, profile: RegionalProfile) -> str:
-    digest = hashlib.sha256(_canonical({
+def _state_digest_head(profile: RegionalProfile) -> Any:
+    """The canonical preamble every logical-state digest starts from."""
+
+    return hashlib.sha256(_canonical({
         "layout": REGIONAL_LAYOUT,
         "profile_sha256": profile.fingerprint,
         "shape": profile.shape,
     }))
-    digest.update(field.tobytes(order="C"))
+
+
+def state_sha256(field: np.ndarray, profile: RegionalProfile) -> str:
+    digest = _state_digest_head(profile)
+    digest.update(memoryview(field))
     return digest.hexdigest()
 
 
-def _program_for(flat: np.ndarray, profile: RegionalProfile, object_id: int) -> list[dict[str, Any]]:
-    ref = _resolve_object(flat, profile, object_id, right=RIGHT_EXECUTE)
+def paged_root_state_sha256(
+    profile: RegionalProfile,
+    root_sha256: str,
+    page_count: int,
+) -> str:
+    """Exact Merkle identity for a paged image without a dense field scan."""
+
+    return hashlib.sha256(
+        _canonical(
+            {
+                "schema": PAGED_STATE_IDENTITY_SCHEMA,
+                "profile_sha256": profile.fingerprint,
+                "root_sha256": root_sha256,
+                "page_count": page_count,
+                "page_words": PERSISTENCE_PAGE_WORDS,
+            }
+        )
+    ).hexdigest()
+
+
+def _program_for(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+    object_id: int,
+    *,
+    _program_cache: dict[
+        tuple[int, int, int], list[dict[str, Any]]
+    ] | None = None,
+) -> list[dict[str, Any]]:
+    ref = _resolve_object(
+        flat,
+        profile,
+        object_id,
+        right=RIGHT_EXECUTE,
+    )
     row = _row_for_ref(flat, profile, ref)
     if int(row[D_KIND]) != KIND_PROGRAM:
         raise RegionalFieldError("event program identity has the wrong kind")
+    cache_key = (
+        ref.slot,
+        ref.generation,
+        _read_u64(row, D_VERSION),
+    )
+    if _program_cache is not None and cache_key in _program_cache:
+        return _program_cache[cache_key]
     value = _read_region(flat, profile, ref)
-    if not isinstance(value, dict) or value.get("schema") != "cassifi.regional-program.v1":
+    if (
+        not isinstance(value, dict)
+        or value.get("schema") != "cassifi.regional-program.v1"
+    ):
         raise RegionalFieldError("regional program record is invalid")
-    return canonical_program(value.get("instructions"))
+    program = canonical_program(value.get("instructions"))
+    if _program_cache is not None:
+        stale_keys = [
+            key
+            for key in _program_cache
+            if key[:2] == (ref.slot, ref.generation)
+        ]
+        for stale_key in stale_keys:
+            del _program_cache[stale_key]
+        _program_cache[cache_key] = program
+    return program
 
 
 def _scope_live(flat: np.ndarray, profile: RegionalProfile, scope_id: int) -> bool:
@@ -2079,12 +2390,60 @@ def _refresh_descriptor_dependencies(
         )
 
 
+def _descriptor_watch(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+    row: np.ndarray,
+) -> tuple[tuple[int, int, int], ...]:
+    watched: list[tuple[int, int, int]] = []
+    for offset in (
+        D_READ_CAPS,
+        D_WRITE_CAPS,
+        D_PARENT_REF,
+        D_TYPE_REF,
+        D_DEPENDENCY_REF,
+    ):
+        object_id = int(row[offset])
+        if not object_id:
+            continue
+        ref = _resolve_object(flat, profile, object_id)
+        target = _row_for_ref(flat, profile, ref)
+        watched.append(
+            (
+                ref.slot,
+                ref.generation,
+                _read_u64(target, D_VERSION),
+            )
+        )
+    return tuple(watched)
+
+
+def _descriptor_watch_current(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+    watched: Sequence[tuple[int, int, int]],
+) -> bool:
+    for slot, generation, version in watched:
+        row = _row_for_ref(
+            flat,
+            profile,
+            RegionRef(slot, generation, rights=RIGHT_READ),
+        )
+        if _read_u64(row, D_VERSION) != version:
+            return False
+    return True
+
+
 def _native_contract_status(
     flat: np.ndarray,
     profile: RegionalProfile,
     catalog: KernelCatalog,
     event: Mapping[str, Any],
     instruction: Mapping[str, Any],
+    *,
+    _descriptor_cache: dict[
+        tuple[int, int], dict[str, Any]
+    ] | None = None,
 ) -> str | None:
     contract = (catalog.contracts or {}).get(instruction["kernel"])
     state_ref = _resolve_object(
@@ -2093,9 +2452,33 @@ def _native_contract_status(
     state_row = _row_for_ref(
         flat, profile, state_ref, right=RIGHT_WRITE
     )
-    metadata = _descriptor_metadata_for_row(
-        flat, profile, catalog, state_row
+    descriptor_key = (state_ref.slot, state_ref.generation)
+    state_version = _read_u64(state_row, D_VERSION)
+    cached = (
+        None
+        if _descriptor_cache is None
+        else _descriptor_cache.get(descriptor_key)
     )
+    if (
+        cached is not None
+        and cached["state_version"] == state_version
+        and _descriptor_watch_current(
+            flat, profile, cached["watched"]
+        )
+    ):
+        metadata = cached["metadata"]
+    else:
+        metadata = _descriptor_metadata_for_row(
+            flat, profile, catalog, state_row
+        )
+        if _descriptor_cache is not None:
+            _descriptor_cache[descriptor_key] = {
+                "metadata": metadata,
+                "state_version": state_version,
+                "watched": _descriptor_watch(
+                    flat, profile, state_row
+                ),
+            }
     if contract is None:
         return None
     kernel_type = (
@@ -2131,15 +2514,35 @@ def _native_contract_status(
     return None
 
 
-def _eligibility(flat: np.ndarray, profile: RegionalProfile, event: Mapping[str, Any], catalog: KernelCatalog) -> tuple[bool, str | None, dict[str, Any] | None]:
+def _eligibility(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+    event: Mapping[str, Any],
+    catalog: KernelCatalog,
+    *,
+    _descriptor_cache: dict[
+        tuple[int, int], dict[str, Any]
+    ] | None = None,
+    _program_cache: dict[
+        tuple[int, int, int], list[dict[str, Any]]
+    ] | None = None,
+) -> tuple[bool, str | None, dict[str, Any] | None]:
     if event["state"] not in {"ready", "waiting"}:
         return False, event.get("reason") or event["state"], None
-    if event["state"] == "waiting" and event.get("reason") == "kernel-blocked":
+    if (
+        event["state"] == "waiting"
+        and event.get("reason") == "kernel-blocked"
+    ):
         return False, "kernel-blocked", None
     try:
         if not _scope_live(flat, profile, int(event["scope_id"])):
             return False, "scope-closed", None
-        program = _program_for(flat, profile, int(event["program_id"]))
+        program = _program_for(
+            flat,
+            profile,
+            int(event["program_id"]),
+            _program_cache=_program_cache,
+        )
         pc = int(event["pc"])
         if not 0 <= pc < len(program):
             return False, "fault", None
@@ -2155,7 +2558,11 @@ def _eligibility(flat: np.ndarray, profile: RegionalProfile, event: Mapping[str,
             target = _read_region(
                 flat,
                 profile,
-                _resolve_object(flat, profile, instruction["target"]),
+                _resolve_object(
+                    flat,
+                    profile,
+                    instruction["target"],
+                ),
             )
             if (
                 not isinstance(target, Mapping)
@@ -2166,19 +2573,40 @@ def _eligibility(flat: np.ndarray, profile: RegionalProfile, event: Mapping[str,
             if instruction["kernel"] not in catalog.kernels:
                 return False, "fault", instruction
             contract_status = _native_contract_status(
-                flat, profile, catalog, event, instruction
+                flat,
+                profile,
+                catalog,
+                event,
+                instruction,
+                _descriptor_cache=_descriptor_cache,
             )
             if contract_status is not None:
                 return False, contract_status, instruction
-            _resolve_object(flat, profile, instruction["state"], right=RIGHT_WRITE)
+            _resolve_object(
+                flat,
+                profile,
+                instruction["state"],
+                right=RIGHT_WRITE,
+            )
             arguments = instruction.get("arguments", {})
             if not isinstance(arguments, Mapping):
                 _resolve_object(flat, profile, arguments)
         for key in ("source", "target", "output"):
             if key in instruction:
-                right = RIGHT_READ if key == "source" else RIGHT_WRITE
-                _resolve_object(flat, profile, instruction[key], right=right)
+                right = (
+                    RIGHT_READ
+                    if key == "source"
+                    else RIGHT_WRITE
+                )
+                _resolve_object(
+                    flat,
+                    profile,
+                    instruction[key],
+                    right=right,
+                )
         return True, None, instruction
+    except PageUnavailable:
+        raise
     except (RegionalFieldError, ValueError, TypeError):
         return False, "fault", None
 
@@ -2190,13 +2618,95 @@ def _event_sort_key(event: Mapping[str, Any]) -> tuple[int, int, int, int, int]:
     )
 
 
+def canonical_activity(
+    values: Mapping[Any, Any] | None,
+) -> dict[int, float]:
+    """Validate caller-supplied field activity against the declared range.
+
+    Keys are event sequence numbers and values are finite numbers in
+    ``[-1, 1]``.  Values outside the range are clamped, not refused: the
+    modulation rule is bounded by construction, so an over-range caller
+    measurement saturates rather than selecting a different rule.
+    """
+
+    if values is None:
+        return {}
+    if not isinstance(values, Mapping):
+        raise RegionalFieldError("field activity must be a mapping")
+    canonical: dict[int, float] = {}
+    for key, value in values.items():
+        sequence = _integer(key, "field activity event sequence")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise RegionalFieldError("field activity value is not numeric")
+        number = float(value)
+        if not bool(np.isfinite(number)):
+            raise RegionalFieldError("field activity value is not finite")
+        canonical[sequence] = max(-1.0, min(1.0, number))
+    return canonical
+
+
+def _activity_drive(
+    candidates: Sequence[Mapping[str, Any]],
+    eligible: Sequence[bool],
+    activity: Mapping[int, float],
+    weight: int,
+) -> tuple[list[int], dict[str, Any] | None]:
+    """Modulate automaton drive among already-eligible candidates only.
+
+    Field-derived activity reorders the positive drive the existing excitable
+    automaton receives; it cannot make an ineligible candidate eligible, does
+    not touch the fairness interval, and with no declared activity the drive is
+    exactly ``priority + 1``.  The modulation factor is bounded to one half and
+    twice the declared weight unit, and every applied value is recorded.
+    """
+
+    positive = [int(event["priority"]) + 1 for event in candidates]
+    if not activity or weight == 0:
+        return positive, None
+    weight = _integer(weight, "field activity weight", minimum=0)
+    weight = min(weight, ACTIVITY_UNIT)
+    record: dict[str, Any] = {
+        "schema": ACTIVITY_SCHEMA,
+        "unit": ACTIVITY_UNIT,
+        "weight": weight,
+        "applied": [],
+        "unmatched": 0,
+    }
+    for index, event in enumerate(candidates):
+        value = activity.get(int(event["sequence"]))
+        if value is None:
+            record["unmatched"] += 1
+            continue
+        if not eligible[index]:
+            continue
+        scaled = int(value * ACTIVITY_UNIT)
+        factor = ACTIVITY_UNIT + (weight * scaled) // ACTIVITY_UNIT
+        factor = max(ACTIVITY_MIN_FACTOR, min(ACTIVITY_MAX_FACTOR, factor))
+        modulated = max(1, (positive[index] * factor) // ACTIVITY_UNIT)
+        if modulated != positive[index]:
+            record["applied"].append(
+                {
+                    "sequence": int(event["sequence"]),
+                    "activity": scaled,
+                    "factor": factor,
+                    "drive": modulated,
+                }
+            )
+        positive[index] = modulated
+    if not record["applied"] and not record["unmatched"]:
+        return positive, None
+    return positive, record
+
+
 def _advance_automaton(
     flat: np.ndarray,
     profile: RegionalProfile,
     queue: Mapping[str, Any],
     candidates: Sequence[Mapping[str, Any]],
     eligible: Sequence[bool],
-) -> tuple[int | None, Mapping[str, Any]]:
+    activity: Mapping[int, float] | None = None,
+    activity_weight: int = DEFAULT_ACTIVITY_WEIGHT,
+) -> tuple[int | None, Mapping[str, Any], dict[str, Any] | None]:
     automaton_id = _integer(queue.get("automaton_id"), "automaton object ID", minimum=1)
     ref = _resolve_object(flat, profile, automaton_id, right=RIGHT_WRITE)
     words = _read_region(flat, profile, ref)
@@ -2205,13 +2715,15 @@ def _advance_automaton(
         size=profile.automaton_sites, scale=profile.automaton_scale,
         max_ticks=profile.automaton_max_ticks,
     ))
-    positive = [int(event["priority"]) + 1 for event in candidates]
+    positive, modulation = _activity_drive(
+        candidates, eligible, canonical_activity(activity), activity_weight
+    )
     negative = [0 for _event in candidates]
     selected, receipt = controller.advance_lanes(
         lanes, positive=positive, negative=negative, eligible=eligible,
     )
     _write_region(flat, profile, ref, [int(value) for value in lanes])
-    return (None if selected is None else selected - 1), receipt
+    return (None if selected is None else selected - 1), receipt, modulation
 
 
 def _queue_ref(flat: np.ndarray) -> RegionRef:
@@ -2285,6 +2797,10 @@ def _execute_instruction(
     instruction: Mapping[str, Any],
     *,
     clock: int,
+    _native_state_cache: dict[tuple[int, int, int], Any] | None = None,
+    _state_cache_updates: list[
+        tuple[tuple[int, int, int], Any]
+    ] | None = None,
 ) -> tuple[str, Any, int, list[dict[str, Any]]]:
     op = instruction["op"]
     output: Any = None
@@ -2293,8 +2809,22 @@ def _execute_instruction(
     if op == "HALT":
         return "done", None, work, emitted
     if op in {"READ", "COPY"}:
-        value = _read_region(flat, profile, _resolve_object(flat, profile, instruction["source"]))
-        _write_region(flat, profile, _resolve_object(flat, profile, instruction["target"], right=RIGHT_WRITE), value)
+        value = _read_region(
+            flat,
+            profile,
+            _resolve_object(flat, profile, instruction["source"]),
+        )
+        _write_region(
+            flat,
+            profile,
+            _resolve_object(
+                flat,
+                profile,
+                instruction["target"],
+                right=RIGHT_WRITE,
+            ),
+            value,
+        )
         output = value
     elif op in {"WRITE", "WRITE_EMIT"}:
         value = instruction.get("value")
@@ -2343,8 +2873,24 @@ def _execute_instruction(
     elif op == "NATIVE":
         kernel_name = instruction["kernel"]
         kernel = catalog.kernels[kernel_name]
-        state_ref = _resolve_object(flat, profile, instruction["state"], right=RIGHT_WRITE)
-        state = _read_region(flat, profile, state_ref)
+        state_ref = _resolve_object(
+            flat, profile, instruction["state"], right=RIGHT_WRITE
+        )
+        state_row = _row_for_ref(
+            flat, profile, state_ref, right=RIGHT_WRITE
+        )
+        state_cache_key = (
+            state_ref.slot,
+            state_ref.generation,
+            _read_u64(state_row, D_VERSION),
+        )
+        state = (
+            _native_state_cache.get(state_cache_key)
+            if _native_state_cache is not None
+            else None
+        )
+        if state is None:
+            state = _read_region(flat, profile, state_ref)
         raw_arguments = instruction.get("arguments", {})
         if isinstance(raw_arguments, Mapping):
             arguments = dict(raw_arguments)
@@ -2364,7 +2910,13 @@ def _execute_instruction(
         result = kernel(state, arguments, bound)
         if not isinstance(result, KernelResult) or result.work > bound:
             raise RegionalFieldError("native kernel exceeded its declared quantum")
-        _write_region(flat, profile, state_ref, result.state)
+        _write_region(
+            flat,
+            profile,
+            state_ref,
+            result.state,
+            _encoded_json_words=result._state_words,
+        )
         output = result.output
         work = result.work
         if "output" in instruction:
@@ -2381,6 +2933,18 @@ def _execute_instruction(
                 _event_from_spec(
                     flat, profile, queue, event, spec, clock=clock
                 )
+            )
+        if (
+            _state_cache_updates is not None
+            and getattr(result.state, "_cassi_region_reusable", False)
+        ):
+            state_cache_key = (
+                state_ref.slot,
+                state_ref.generation,
+                _read_u64(state_row, D_VERSION),
+            )
+            _state_cache_updates.append(
+                (state_cache_key, result.state)
             )
         if result.status in {"yield", "blocked", "fault"}:
             return result.status, output, work, emitted
@@ -2444,14 +3008,31 @@ def step_field(
     profile: RegionalProfile,
     catalog: KernelCatalog = EMPTY_KERNEL_CATALOG,
     *,
+    activity: Mapping[Any, Any] | None = None,
+    activity_weight: int = DEFAULT_ACTIVITY_WEIGHT,
     _input_validated: bool = False,
     _validate_output: bool = True,
+    _native_state_cache: dict[
+        tuple[int, int, int], Any
+    ] | None = None,
+    _descriptor_cache: dict[
+        tuple[int, int], dict[str, Any]
+    ] | None = None,
+    _program_cache: dict[
+        tuple[int, int, int], list[dict[str, Any]]
+    ] | None = None,
+    _previous_state_sha256: str | None = None,
+    _defer_state_sha256: bool = False,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """Execute one automaton-selected, bounded regional transition."""
 
     if not _input_validated:
         validate_field(field, profile, catalog)
-    before_sha = state_sha256(field, profile)
+    before_sha = (
+        _previous_state_sha256
+        if _previous_state_sha256 is not None
+        else state_sha256(field, profile)
+    )
     flat_before = field.reshape(-1)
     status = int(flat_before[H_STATUS])
     if status not in (STATUS_RUNNING, STATUS_WAITING):
@@ -2473,7 +3054,11 @@ def step_field(
             "schema": REGIONAL_SCHEMA, "kind": "counter-exhausted",
             "status": "counter-exhausted", "reason": "counter-exhausted",
             "previous_state_sha256": before_sha,
-            "state_sha256": state_sha256(successor, profile),
+            "state_sha256": (
+                None
+                if _defer_state_sha256
+                else state_sha256(successor, profile)
+            ),
             "logical_transition": U64_MAX,
         }
     if clock >= profile.max_steps:
@@ -2486,7 +3071,11 @@ def step_field(
         return successor, {
             "schema": REGIONAL_SCHEMA, "kind": "exhausted", "status": "exhausted",
             "reason": "max_steps", "previous_state_sha256": before_sha,
-            "state_sha256": state_sha256(successor, profile), "logical_transition": clock,
+            "state_sha256": (
+                None
+                if _defer_state_sha256
+                else state_sha256(successor, profile)
+            ), "logical_transition": clock,
         }
 
     mutable_field = np.array(field, copy=True, order="C")
@@ -2495,9 +3084,21 @@ def step_field(
     queue = _read_region(flat, profile, queue_ref)
     events = [dict(event) for event in queue["events"]]
     candidates = sorted(events, key=_event_sort_key)
-    eligibility_rows = [_eligibility(flat, profile, event, catalog) for event in candidates]
+    eligibility_rows = [
+        _eligibility(
+            flat,
+            profile,
+            event,
+            catalog,
+            _descriptor_cache=_descriptor_cache,
+            _program_cache=_program_cache,
+        )
+        for event in candidates
+    ]
     eligible = [row[0] for row in eligibility_rows]
-    automaton_index, automaton_receipt = _advance_automaton(flat, profile, queue, candidates, eligible)
+    automaton_index, automaton_receipt, activity_modulation = _advance_automaton(
+        flat, profile, queue, candidates, eligible, activity, activity_weight
+    )
     ready_indices = [index for index, flag in enumerate(eligible) if flag]
     if not ready_indices:
         for event, row in zip(candidates, eligibility_rows):
@@ -2516,8 +3117,17 @@ def step_field(
             "status": STATUS_NAMES[int(flat[H_STATUS])], "reason": REASON_NAMES[int(flat[H_REASON])],
             "blocked_reasons": [row[1] for row in eligibility_rows],
             "previous_state_sha256": before_sha,
-            "state_sha256": state_sha256(successor, profile), "logical_transition": clock + 1,
+            "state_sha256": (
+                None
+                if _defer_state_sha256
+                else state_sha256(successor, profile)
+            ), "logical_transition": clock + 1,
             "automaton": dict(automaton_receipt),
+            **(
+                {}
+                if activity_modulation is None
+                else {"activity_modulation": activity_modulation}
+            ),
         }
 
     dispatch_count = int(queue["dispatch_count"]) + 1
@@ -2537,10 +3147,13 @@ def step_field(
     work = 0
     emitted: list[dict[str, Any]] = []
     fault_detail: str | None = None
-    trial_field = np.array(mutable_field, copy=True, order="C")
+    trial_field = mutable_field
     trial_flat = trial_field.reshape(-1)
     trial_queue = copy.deepcopy(queue)
     trial_selected = copy.deepcopy(selected)
+    state_cache_updates: list[
+        tuple[tuple[int, int, int], Any]
+    ] = []
     try:
         disposition, output, work, emitted = _execute_instruction(
             trial_flat,
@@ -2550,6 +3163,8 @@ def step_field(
             trial_selected,
             instruction,
             clock=clock + 1,
+            _native_state_cache=_native_state_cache,
+            _state_cache_updates=state_cache_updates,
         )
         mutable_field = trial_field
         flat = trial_flat
@@ -2558,6 +3173,15 @@ def step_field(
     except RegionalFieldError as exc:
         fault_detail = str(exc)
         disposition = "fault"
+        mutable_field = np.array(field, copy=True, order="C")
+        flat = mutable_field.reshape(-1)
+        _advance_automaton(
+            flat,
+            profile,
+            queue,
+            candidates,
+            eligible,
+        )
 
     survivors = [event for event in candidates if int(event["event_id"]) != int(selected["event_id"])]
     if disposition in {"continue", "yield"}:
@@ -2592,6 +3216,10 @@ def step_field(
     ledger["native_work"] = int(ledger["native_work"]) + int(work)
     ledger["scheduler_work"] = int(ledger["scheduler_work"]) + len(candidates)
     ledger["automaton_local_ops"] = int(ledger["automaton_local_ops"]) + int(automaton_receipt["work"]["local_ops"])
+    if activity_modulation is not None:
+        ledger["activity_modulated"] = int(
+            ledger.get("activity_modulated", 0)
+        ) + len(activity_modulation["applied"])
     _write_region(flat, profile, ledger_ref, ledger)
 
     _write_u64(flat, H_CLOCK, clock + 1)
@@ -2605,6 +3233,33 @@ def step_field(
         {"event_id": int(event["event_id"]), "eligible": bool(row[0]), "reason": row[1]}
         for event, row in zip(candidates, eligibility_rows)
     ])).hexdigest()
+    if _native_state_cache is not None:
+        for cache_key, cached_state in state_cache_updates:
+            slot, generation, _version = cache_key
+            stale_keys = [
+                key
+                for key in _native_state_cache
+                if key[:2] == (slot, generation)
+            ]
+            for stale_key in stale_keys:
+                del _native_state_cache[stale_key]
+            _native_state_cache[cache_key] = cached_state
+            if _descriptor_cache is not None:
+                descriptor_key = (slot, generation)
+                descriptor = _descriptor_cache.get(descriptor_key)
+                schema = (
+                    cached_state.get("schema")
+                    if isinstance(cached_state, Mapping)
+                    else None
+                )
+                if descriptor is None or not isinstance(schema, str):
+                    _descriptor_cache.pop(descriptor_key, None)
+                else:
+                    descriptor["state_version"] = cache_key[2]
+                    descriptor["metadata"] = {
+                        **descriptor["metadata"],
+                        "state_schema": schema,
+                    }
     return successor, {
         "schema": REGIONAL_SCHEMA,
         "kind": "regional-transition",
@@ -2620,8 +3275,17 @@ def step_field(
         "work": {"native": int(work), "scheduler": len(candidates), **dict(automaton_receipt["work"])},
         "eligibility_sha256": eligibility_digest,
         "automaton": dict(automaton_receipt),
+        **(
+            {}
+            if activity_modulation is None
+            else {"activity_modulation": activity_modulation}
+        ),
         "previous_state_sha256": before_sha,
-        "state_sha256": state_sha256(successor, profile),
+        "state_sha256": (
+            None
+            if _defer_state_sha256
+            else state_sha256(successor, profile)
+        ),
         "logical_transition": clock + 1,
     }
 
@@ -2632,43 +3296,137 @@ def run_field(
     catalog: KernelCatalog = EMPTY_KERNEL_CATALOG,
     *,
     steps: int | None = None,
+    activity: Mapping[Any, Any] | None = None,
+    activity_weight: int = DEFAULT_ACTIVITY_WEIGHT,
+    _input_validated: bool = False,
+    _skip_final_validation: bool = False,
+    _native_state_cache: dict[tuple[int, int, int], Any] | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    validate_field(field, profile, catalog)
+    if not _input_validated:
+        validate_field(field, profile, catalog)
     if steps is not None:
         steps = _integer(steps, "steps")
     initial_sha = state_sha256(field, profile)
+    current_sha = initial_sha
     current = field
     receipts: list[dict[str, Any]] = []
-    while int(current.reshape(-1)[H_STATUS]) in (STATUS_RUNNING, STATUS_WAITING):
-        if steps is not None and len(receipts) >= steps:
-            break
-        successor, receipt = step_field(
-            current,
-            profile,
-            catalog,
-            _input_validated=True,
-            _validate_output=False,
+    native_state_cache = (
+        {} if _native_state_cache is None else _native_state_cache
+    )
+    descriptor_cache: dict[
+        tuple[int, int], dict[str, Any]
+    ] = {}
+    program_cache: dict[
+        tuple[int, int, int], list[dict[str, Any]]
+    ] = {}
+    hash_workers = min(16, os.cpu_count() or 1)
+    hash_executor = (
+        _shared_hash_executor(hash_workers)
+        if (
+            field.nbytes >= 1_048_576
+            and hash_workers > 1
+            and (steps is None or steps > 1)
         )
-        receipts.append(receipt)
-        if successor is current or receipt["kind"] in {"no-ready-event", "exhausted", "counter-exhausted"}:
+        else None
+    )
+    pending_hashes: list[tuple[int, Future[str]]] = []
+    registry_cache_token = _RUN_REGISTRY_CACHE.set({})
+    padding_cache_token = _RUN_CANONICAL_PADDING.set(set())
+    try:
+        while int(current.reshape(-1)[H_STATUS]) in (
+            STATUS_RUNNING,
+            STATUS_WAITING,
+        ):
+            if steps is not None and len(receipts) >= steps:
+                break
+            successor, receipt = step_field(
+                current,
+                profile,
+                catalog,
+                activity=activity,
+                activity_weight=activity_weight,
+                _input_validated=True,
+                _validate_output=False,
+                _native_state_cache=native_state_cache,
+                _descriptor_cache=descriptor_cache,
+                _program_cache=program_cache,
+                _previous_state_sha256=(
+                    current_sha
+                    if hash_executor is None or not receipts
+                    else ""
+                ),
+                _defer_state_sha256=hash_executor is not None,
+            )
+            receipts.append(receipt)
+            if hash_executor is None:
+                current_sha = str(receipt["state_sha256"])
+            else:
+                pending_hashes.append(
+                    (
+                        len(receipts) - 1,
+                        hash_executor.submit(
+                            state_sha256,
+                            successor,
+                            profile,
+                        ),
+                    )
+                )
+                if len(pending_hashes) > hash_workers * 2:
+                    index, future = pending_hashes.pop(0)
+                    completed_sha = future.result()
+                    receipts[index]["state_sha256"] = completed_sha
+                    receipts[index + 1][
+                        "previous_state_sha256"
+                    ] = completed_sha
+            if successor is current or receipt["kind"] in {
+                "no-ready-event",
+                "exhausted",
+                "counter-exhausted",
+            }:
+                current = successor
+                break
             current = successor
-            break
-        current = successor
-    validate_field(current, profile, catalog)
+        if not _skip_final_validation:
+            validate_field(current, profile, catalog)
+        for index, future in pending_hashes:
+            completed_sha = future.result()
+            receipts[index]["state_sha256"] = completed_sha
+            if index + 1 < len(receipts):
+                receipts[index + 1][
+                    "previous_state_sha256"
+                ] = completed_sha
+            current_sha = completed_sha
+    finally:
+        try:
+            _RUN_CANONICAL_PADDING.reset(padding_cache_token)
+        finally:
+            _RUN_REGISTRY_CACHE.reset(registry_cache_token)
     return current, {
         "schema": REGIONAL_SCHEMA,
         "initial_state_sha256": initial_sha,
-        "state_sha256": state_sha256(current, profile),
+        "state_sha256": current_sha,
         "status": STATUS_NAMES[int(current.reshape(-1)[H_STATUS])],
         "reason": REASON_NAMES[int(current.reshape(-1)[H_REASON])],
-        "paused": steps is not None and len(receipts) >= steps and int(current.reshape(-1)[H_STATUS]) == STATUS_RUNNING,
+        "paused": (
+            steps is not None
+            and len(receipts) >= steps
+            and int(current.reshape(-1)[H_STATUS]) == STATUS_RUNNING
+        ),
         "transitions_executed": len(receipts),
         "transition_receipts": receipts,
     }
 
 
-def inspect_field(field: np.ndarray, profile: RegionalProfile, catalog: KernelCatalog) -> dict[str, Any]:
-    validate_field(field, profile, catalog)
+def inspect_field(
+    field: np.ndarray,
+    profile: RegionalProfile,
+    catalog: KernelCatalog,
+    *,
+    _input_validated: bool = False,
+    _state_sha256: str | None = None,
+) -> dict[str, Any]:
+    if not _input_validated:
+        validate_field(field, profile, catalog)
     flat = field.reshape(-1)
     queue = _read_region(flat, profile, _queue_ref(flat))
     ledger = _read_region(flat, profile, _ledger_ref(flat))
@@ -2710,7 +3468,11 @@ def inspect_field(field: np.ndarray, profile: RegionalProfile, catalog: KernelCa
         "layout": REGIONAL_LAYOUT,
         "profile_sha256": profile.fingerprint,
         "catalog_sha256": catalog.fingerprint,
-        "state_sha256": state_sha256(field, profile),
+        "state_sha256": (
+            state_sha256(field, profile)
+            if _state_sha256 is None
+            else _state_sha256
+        ),
         "status": STATUS_NAMES[int(flat[H_STATUS])],
         "reason": REASON_NAMES[int(flat[H_REASON])],
         "logical_transition": _read_u64(flat, H_CLOCK),
@@ -2727,10 +3489,14 @@ def descriptor(
     field: np.ndarray,
     profile: RegionalProfile,
     catalog: KernelCatalog,
+    *,
+    _input_validated: bool = False,
+    _state_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Encode the logical image as canonical nonzero persistence pages."""
 
-    validate_field(field, profile, catalog)
+    if not _input_validated:
+        validate_field(field, profile, catalog)
     flat = field.reshape(-1)
     pages: list[dict[str, Any]] = []
     for index, start in enumerate(
@@ -2755,12 +3521,297 @@ def descriptor(
         "catalog_sha256": catalog.fingerprint,
         "page_words": PERSISTENCE_PAGE_WORDS,
         "field_pages": pages,
-        "state_sha256": state_sha256(field, profile),
+        "state_sha256": (
+            state_sha256(field, profile)
+            if _state_sha256 is None
+            else _state_sha256
+        ),
     }
 
+def chunked_descriptor(
+    field: np.ndarray,
+    profile: RegionalProfile,
+    catalog: KernelCatalog,
+    *,
+    _input_validated: bool = False,
+    _state_sha256: str | None = None,
+) -> tuple[dict[str, Any], Mapping[str, bytes]]:
+    """Encode independently recoverable immutable pages for checkpoint storage.
+
+    The regional image is defined over canonical u32 words represented in
+    float64 cells.  Checkpoint chunks store those validated words directly,
+    with both decoded and physical identities.  Zero pages remain implicit.
+    """
+
+    if not _input_validated:
+        validate_field(field, profile, catalog)
+    flat = field.reshape(-1)
+    chunks: list[dict[str, Any]] = []
+    objects: dict[str, bytes] = {}
+    for index, start in enumerate(
+        range(0, profile.total_words, PERSISTENCE_PAGE_WORDS)
+    ):
+        page = flat[start:start + PERSISTENCE_PAGE_WORDS]
+        if not np.any(page):
+            continue
+        if (
+            not np.isfinite(page).all()
+            or not np.equal(page, np.floor(page)).all()
+            or np.any(page < 0)
+            or np.any(page > U32_MAX)
+        ):
+            raise RegionalFieldError(
+                "regional persistence page is not a canonical u32 image"
+            )
+        decoded = page.astype("<u4", copy=False).tobytes(order="C")
+        physical = zlib.compress(decoded, level=6)
+        decoded_sha = hashlib.sha256(decoded).hexdigest()
+        object_sha = hashlib.sha256(physical).hexdigest()
+        prior = objects.get(object_sha)
+        if prior is not None and prior != physical:
+            raise RegionalFieldError("regional chunk identity collision")
+        objects[object_sha] = physical
+        chunks.append(
+            {
+                "codec": PERSISTENCE_CHUNK_CODEC,
+                "decoded_bytes": len(decoded),
+                "decoded_sha256": decoded_sha,
+                "index": index,
+                "object_bytes": len(physical),
+                "object_sha256": object_sha,
+                "start_word": start,
+                "words": int(page.size),
+            }
+        )
+    descriptor_value = {
+        "schema": PERSISTENCE_CHUNK_SCHEMA,
+        "layout": REGIONAL_LAYOUT,
+        "profile": profile.as_dict(),
+        "profile_sha256": profile.fingerprint,
+        "catalog_sha256": catalog.fingerprint,
+        "page_words": PERSISTENCE_PAGE_WORDS,
+        "byte_order": "little",
+        "word_encoding": "u32",
+        "chunks": chunks,
+        "state_sha256": (
+            state_sha256(field, profile)
+            if _state_sha256 is None
+            else _state_sha256
+        ),
+    }
+    return descriptor_value, MappingProxyType(objects)
+
+
+def decode_chunked_page(
+    descriptor_value: Mapping[str, Any],
+    page_index: int,
+    objects: Mapping[str, bytes],
+) -> np.ndarray:
+    """Decode and verify one page without materialising the complete image."""
+
+    if not isinstance(descriptor_value, Mapping):
+        raise RegionalFieldError("regional chunk descriptor is invalid")
+    chunks = descriptor_value.get("chunks")
+    if not isinstance(chunks, list):
+        raise RegionalFieldError("regional chunk directory is invalid")
+    selected = next(
+        (
+            row
+            for row in chunks
+            if isinstance(row, Mapping) and row.get("index") == page_index
+        ),
+        None,
+    )
+    if selected is None:
+        profile = RegionalProfile.from_dict(descriptor_value.get("profile", {}))
+        start = page_index * PERSISTENCE_PAGE_WORDS
+        if page_index < 0 or start >= profile.total_words:
+            raise RegionalFieldError("regional chunk page index is invalid")
+        words = min(PERSISTENCE_PAGE_WORDS, profile.total_words - start)
+        return np.zeros(words, dtype=np.float64)
+    required = {
+        "codec",
+        "decoded_bytes",
+        "decoded_sha256",
+        "index",
+        "object_bytes",
+        "object_sha256",
+        "start_word",
+        "words",
+    }
+    if set(selected) != required or selected["codec"] != PERSISTENCE_CHUNK_CODEC:
+        raise RegionalFieldError("regional chunk record is invalid")
+    object_sha = selected["object_sha256"]
+    if not isinstance(object_sha, str):
+        raise RegionalFieldError("regional chunk object identity is invalid")
+    physical = objects.get(object_sha)
+    if (
+        not isinstance(physical, bytes)
+        or len(physical) != selected["object_bytes"]
+        or hashlib.sha256(physical).hexdigest() != object_sha
+    ):
+        raise RegionalFieldError("regional chunk object is missing or corrupt")
+    try:
+        decoded = zlib.decompress(physical)
+    except zlib.error as exc:
+        raise RegionalFieldError("regional chunk cannot be decoded") from exc
+    if (
+        len(decoded) != selected["decoded_bytes"]
+        or hashlib.sha256(decoded).hexdigest() != selected["decoded_sha256"]
+        or len(decoded) != int(selected["words"]) * 4
+    ):
+        raise RegionalFieldError("regional decoded chunk identity mismatches")
+    return np.frombuffer(decoded, dtype="<u4").astype(np.float64)
+
+
+def from_chunked_descriptor(
+    value: Mapping[str, Any],
+    objects: Mapping[str, bytes],
+    catalog: KernelCatalog,
+    *,
+    page_indices: Sequence[int] | None = None,
+    accept_recorded_catalog: bool = False,
+) -> tuple[RegionalProfile, np.ndarray]:
+    """Restore a complete image or a bounded verified page view.
+
+    ``accept_recorded_catalog`` admits a retained image whose recorded catalog
+    fingerprint differs from the running catalog while the profile's kernel
+    names still agree.  The retained bytes are verified against their own state
+    digest before the recorded catalog identity is replaced by the running one,
+    and the restored field is then validated by the running catalog, so the
+    image is re-identified rather than trusted.
+    """
+
+    required = {
+        "schema",
+        "layout",
+        "profile",
+        "profile_sha256",
+        "catalog_sha256",
+        "page_words",
+        "byte_order",
+        "word_encoding",
+        "chunks",
+        "state_sha256",
+    }
+    allowed = required | {
+        "state_sha256_kind",
+        "resident_limit",
+        "dirty_limit",
+    }
+    if not isinstance(value, Mapping) or not required <= set(value) <= allowed:
+        raise RegionalFieldError("regional chunk descriptor keys are invalid")
+    if (
+        value["schema"] != PERSISTENCE_CHUNK_SCHEMA
+        or value["layout"] != REGIONAL_LAYOUT
+        or value["page_words"] != PERSISTENCE_PAGE_WORDS
+        or value["byte_order"] != "little"
+        or value["word_encoding"] != "u32"
+    ):
+        raise RegionalFieldError("regional chunk descriptor identity is invalid")
+    profile = RegionalProfile.from_dict(value["profile"])
+    if "resident_limit" in value:
+        _integer(
+            value["resident_limit"],
+            "resident page limit",
+            minimum=1,
+            maximum=MAX_RESIDENCY_PAGES,
+        )
+    if "dirty_limit" in value:
+        _integer(
+            value["dirty_limit"],
+            "dirty page limit",
+            minimum=1,
+            maximum=MAX_RESIDENCY_PAGES,
+        )
+    if value["profile_sha256"] != profile.fingerprint:
+        raise RegionalFieldError(
+            "regional chunk descriptor profile or catalog digest mismatches"
+        )
+    recorded_catalog = value["catalog_sha256"]
+    reidentify = recorded_catalog != catalog.fingerprint
+    if reidentify:
+        if not accept_recorded_catalog:
+            raise RegionalFieldError(
+                "regional chunk descriptor profile or catalog digest mismatches"
+            )
+        _sha_words(recorded_catalog)
+        if catalog.names != profile.kernel_names:
+            raise RegionalFieldError("runtime kernel catalog does not match profile")
+    raw_chunks = value["chunks"]
+    if not isinstance(raw_chunks, list):
+        raise RegionalFieldError("regional chunk directory is invalid")
+    indices: list[int] = []
+    previous = -1
+    page_count = (
+        profile.total_words + PERSISTENCE_PAGE_WORDS - 1
+    ) // PERSISTENCE_PAGE_WORDS
+    for raw in raw_chunks:
+        if not isinstance(raw, Mapping):
+            raise RegionalFieldError("regional chunk record is invalid")
+        index = _integer(raw.get("index"), "page index")
+        start = index * PERSISTENCE_PAGE_WORDS
+        expected_words = min(
+            PERSISTENCE_PAGE_WORDS, profile.total_words - start
+        )
+        if (
+            index <= previous
+            or index >= page_count
+            or raw.get("start_word") != start
+            or raw.get("words") != expected_words
+        ):
+            raise RegionalFieldError("regional chunk geometry is invalid")
+        previous = index
+        indices.append(index)
+    selected = indices if page_indices is None else sorted(set(page_indices))
+    if page_indices is not None:
+        if any(
+            isinstance(index, bool)
+            or not isinstance(index, int)
+            or index < 0
+            or index >= page_count
+            for index in selected
+        ):
+            raise RegionalFieldError("requested regional page is invalid")
+        pages = np.zeros((len(selected), PERSISTENCE_PAGE_WORDS), dtype=np.float64)
+        for output_index, page_index in enumerate(selected):
+            decoded = decode_chunked_page(value, page_index, objects)
+            pages[output_index, : decoded.size] = decoded
+        return profile, pages
+    field = np.zeros(profile.shape, dtype=np.float64)
+    flat = field.reshape(-1)
+    for page_index in indices:
+        decoded = decode_chunked_page(value, page_index, objects)
+        start = page_index * PERSISTENCE_PAGE_WORDS
+        flat[start:start + decoded.size] = decoded
+    identity_kind = value.get("state_sha256_kind", PAGED_STATE_KIND_FLAT)
+    if identity_kind == PAGED_STATE_KIND_ROOT:
+        directory = PageDirectory(
+            profile.fingerprint,
+            page_count,
+            tuple(PageLeaf.from_record(record) for record in raw_chunks),
+        )
+        expected_state_sha256 = paged_root_state_sha256(
+            profile,
+            directory.tree(profile).root_sha256,
+            page_count,
+        )
+    elif identity_kind == PAGED_STATE_KIND_FLAT:
+        expected_state_sha256 = state_sha256(field, profile)
+    else:
+        raise RegionalFieldError("regional chunk state identity kind is invalid")
+    if value["state_sha256"] != expected_state_sha256:
+        raise RegionalFieldError("regional chunked state digest mismatches")
+    if reidentify:
+        flat[H_CATALOG_SHA:H_CATALOG_SHA + 8] = _sha_words(catalog.fingerprint)
+    validate_field(field, profile, catalog)
+    return profile, field
 
 def from_descriptor(
-    value: Mapping[str, Any], catalog: KernelCatalog
+    value: Mapping[str, Any],
+    catalog: KernelCatalog,
+    *,
+    accept_recorded_catalog: bool = False,
 ) -> tuple[RegionalProfile, np.ndarray]:
     required = {
         "schema", "layout", "profile", "profile_sha256",
@@ -2773,13 +3824,20 @@ def from_descriptor(
     if value["page_words"] != PERSISTENCE_PAGE_WORDS:
         raise RegionalFieldError("regional persistence page geometry is invalid")
     profile = RegionalProfile.from_dict(value["profile"])
-    if (
-        value["profile_sha256"] != profile.fingerprint
-        or value["catalog_sha256"] != catalog.fingerprint
-    ):
+    if value["profile_sha256"] != profile.fingerprint:
         raise RegionalFieldError(
             "regional descriptor profile or catalog digest mismatches"
         )
+    recorded_catalog = value["catalog_sha256"]
+    reidentify = recorded_catalog != catalog.fingerprint
+    if reidentify:
+        if not accept_recorded_catalog:
+            raise RegionalFieldError(
+                "regional descriptor profile or catalog digest mismatches"
+            )
+        _sha_words(recorded_catalog)
+        if catalog.names != profile.kernel_names:
+            raise RegionalFieldError("runtime kernel catalog does not match profile")
     encoded_pages = value["field_pages"]
     if not isinstance(encoded_pages, list):
         raise RegionalFieldError("regional descriptor pages are invalid")
@@ -2823,9 +3881,11 @@ def from_descriptor(
         raise RegionalFieldError(
             "regional descriptor pages are invalid"
         ) from exc
-    validate_field(field, profile, catalog)
     if value["state_sha256"] != state_sha256(field, profile):
         raise RegionalFieldError("regional descriptor state digest mismatches")
+    if reidentify:
+        flat[H_CATALOG_SHA:H_CATALOG_SHA + 8] = _sha_words(catalog.fingerprint)
+    validate_field(field, profile, catalog)
     return profile, field
 def enqueue_event(
     field: np.ndarray,
@@ -2904,20 +3964,15 @@ def enqueue_event(
     }
 
 
-def write_named_value(
-    field: np.ndarray,
+def _write_named_value_flat(
+    flat: np.ndarray,
     profile: RegionalProfile,
-    catalog: KernelCatalog,
     name: str,
     value: Any,
-) -> tuple[np.ndarray, dict[str, Any]]:
-    """Publish one host-lowered input as an explicit regional transition."""
+) -> dict[str, Any]:
+    """Publish one named value into a mutable flat image or staged view."""
 
-    validate_field(field, profile, catalog)
     _identifier(name, "named value")
-    before = state_sha256(field, profile)
-    mutable = np.array(field, copy=True, order="C")
-    flat = mutable.reshape(-1)
     clock = _read_u64(flat, H_CLOCK)
     if clock >= U64_MAX - 1 or clock >= profile.max_steps:
         raise RegionalFieldError("input publication has no remaining transition capacity")
@@ -2932,31 +3987,48 @@ def write_named_value(
         _write_u64(
             flat, H_BASE_EPOCH, _read_u64(flat, H_BASE_EPOCH) + 1
         )
-    validate_field(mutable, profile, catalog)
-    return mutable, {
+    return {
         "schema": REGIONAL_SCHEMA,
         "kind": "input-publication",
         "name": name,
         "changed": changed,
         "logical_transition": clock + 1,
-        "previous_state_sha256": before,
-        "state_sha256": state_sha256(mutable, profile),
     }
-def restart_field(
+
+
+def write_named_value(
     field: np.ndarray,
     profile: RegionalProfile,
     catalog: KernelCatalog,
+    name: str,
+    value: Any,
     *,
-    entry: int = 0,
-    values: Mapping[str, Any] | None = None,
+    _input_validated: bool = False,
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    """Restart the admitted root program without resetting unrelated state."""
+    """Publish one host-lowered input as an explicit regional transition."""
 
-    validate_field(field, profile, catalog)
-    entry = _integer(entry, "entry")
+    if not _input_validated:
+        validate_field(field, profile, catalog)
     before = state_sha256(field, profile)
     mutable = np.array(field, copy=True, order="C")
-    flat = mutable.reshape(-1)
+    detail = _write_named_value_flat(mutable.reshape(-1), profile, name, value)
+    validate_field(mutable, profile, catalog)
+    return mutable, {
+        **detail,
+        "previous_state_sha256": before,
+        "state_sha256": state_sha256(mutable, profile),
+    }
+def _restart_flat(
+    flat: np.ndarray,
+    profile: RegionalProfile,
+    catalog: KernelCatalog,
+    *,
+    entry: int,
+    values: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Restart the admitted root program inside a mutable flat image or view."""
+
+    entry = _integer(entry, "entry")
     clock = _read_u64(flat, H_CLOCK)
     if clock >= U64_MAX - 1 or clock >= profile.max_steps:
         raise RegionalFieldError("restart has no remaining transition capacity")
@@ -3034,13 +4106,39 @@ def restart_field(
     _write_u64(flat, H_CLOCK, clock + 1)
     _write_u64(flat, H_BASE_EPOCH, _read_u64(flat, H_BASE_EPOCH) + 1)
     flat[H_STATUS] = STATUS_RUNNING
-    flat[H_REASON] = REASON_NONE
-    validate_field(mutable, profile, catalog)
-    return mutable, {
+    return {
         "schema": REGIONAL_SCHEMA,
         "kind": "restart",
         "replaced_events": replaced,
         "logical_transition": clock + 1,
+    }
+
+
+def restart_field(
+    field: np.ndarray,
+    profile: RegionalProfile,
+    catalog: KernelCatalog,
+    *,
+    entry: int = 0,
+    values: Mapping[str, Any] | None = None,
+    _input_validated: bool = False,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Restart the admitted root program without resetting unrelated state."""
+
+    if not _input_validated:
+        validate_field(field, profile, catalog)
+    before = state_sha256(field, profile)
+    mutable = np.array(field, copy=True, order="C")
+    detail = _restart_flat(
+        mutable.reshape(-1),
+        profile,
+        catalog,
+        entry=entry,
+        values=values,
+    )
+    validate_field(mutable, profile, catalog)
+    return mutable, {
+        **detail,
         "previous_state_sha256": before,
         "state_sha256": state_sha256(mutable, profile),
     }
@@ -3066,16 +4164,79 @@ def grow_field(
     successor_profile = replace(
         profile, mode_count=mode_count, max_steps=target_steps
     )
-    clock = _read_u64(field.reshape(-1), H_CLOCK)
+    old_flat = field.reshape(-1)
+    clock = _read_u64(old_flat, H_CLOCK)
     if clock >= U64_MAX - 1 or clock + 1 > target_steps:
         raise RegionalFieldError("growth has no representable successor transition")
+    old_directory = _directory(old_flat, profile)
+    old_rows: list[tuple[int, np.ndarray, np.ndarray]] = []
+    for index, row in enumerate(old_directory):
+        flags = int(row[D_FLAGS])
+        if not flags & (FLAG_LIVE | FLAG_QUARANTINED):
+            continue
+        capacity = int(row[D_CAPACITY])
+        base = int(row[D_BASE])
+        old_rows.append(
+            (
+                index,
+                np.array(row, copy=True),
+                np.array(old_flat[base:base + capacity], copy=True),
+            )
+        )
     successor = np.zeros(successor_profile.shape, dtype=np.float64)
-    successor.reshape(-1)[: profile.total_words] = field.reshape(-1)
     flat = successor.reshape(-1)
+    flat[:HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity] = (
+        old_flat[:HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity]
+    )
     flat[H_TOTAL_WORDS] = successor_profile.total_words
     flat[H_PROFILE_SHA:H_PROFILE_SHA + 8] = _sha_words(
         successor_profile.fingerprint
     )
+    arena_start = HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity
+    cursor = arena_start
+    resized_regions: list[dict[str, int]] = []
+    for index, row, payload in sorted(old_rows, key=lambda item: int(item[1][D_BASE])):
+        old_capacity = int(row[D_CAPACITY])
+        new_capacity = old_capacity
+        if int(row[D_KIND]) == KIND_VALUE:
+            if mode_count > profile.mode_count:
+                new_capacity = max(
+                    new_capacity,
+                    (old_capacity * mode_count + profile.mode_count - 1)
+                    // profile.mode_count,
+                )
+            used = int(row[D_USED])
+            if used * 2 >= old_capacity:
+                new_capacity = max(
+                    new_capacity, old_capacity + max(4096, old_capacity // 4)
+                )
+        if cursor + new_capacity > successor_profile.workspace_words:
+            raise RegionalFieldError("growth cannot fit relocated payload arena")
+        flat[cursor:cursor + len(payload)] = payload
+        row[D_BASE] = cursor
+        row[D_CAPACITY] = new_capacity
+        flat[
+            HEADER_WORDS + index * DIRECTORY_WORDS:
+            HEADER_WORDS + (index + 1) * DIRECTORY_WORDS
+        ] = row
+        if new_capacity != old_capacity:
+            resized_regions.append(
+                {
+                    "slot": index + 1,
+                    "kind": int(row[D_KIND]),
+                    "old_capacity": old_capacity,
+                    "new_capacity": new_capacity,
+                }
+            )
+        cursor += new_capacity
+    if profile.neural_membrane:
+        old_planes = old_flat.reshape(9, profile.mode_count)
+        new_planes = flat.reshape(9, successor_profile.mode_count)
+        new_planes[
+            NEURAL_MEMBRANE_FIRST_PLANE:,
+            : profile.mode_count,
+        ] = old_planes[NEURAL_MEMBRANE_FIRST_PLANE:, :]
+    flat[H_FREE_CURSOR] = old_flat[H_FREE_CURSOR]
     _write_u64(flat, H_CLOCK, clock + 1)
     _write_u64(flat, H_BASE_EPOCH, _read_u64(flat, H_BASE_EPOCH) + 1)
     validate_field(successor, successor_profile, catalog)
@@ -3088,7 +4249,110 @@ def grow_field(
         "previous_state_sha256": state_sha256(field, profile),
         "state_sha256": state_sha256(successor, successor_profile),
         "copied_words": profile.total_words,
+        "relocated_payload_words": int(sum(len(payload) for _, _, payload in old_rows)),
+        "resized_regions": resized_regions,
     }
+
+def enable_neural_membrane(
+    field: np.ndarray,
+    profile: RegionalProfile,
+    catalog: KernelCatalog,
+    *,
+    minimum_modes: int,
+    gain_ppm: int = NEURAL_MEMBRANE_DEFAULT_GAIN_PPM,
+) -> tuple[RegionalProfile, np.ndarray, dict[str, Any]]:
+    """Reserve four physical field planes without changing prior payload bytes."""
+
+    validate_field(field, profile, catalog)
+    minimum_modes = _integer(minimum_modes, "minimum membrane modes", minimum=1)
+    gain_ppm = _integer(gain_ppm, "neural membrane gain", maximum=1_000_000)
+    old_workspace = profile.workspace_words
+    target_modes = max(
+        minimum_modes,
+        profile.mode_count if profile.neural_membrane else 0,
+        (old_workspace + NEURAL_MEMBRANE_FIRST_PLANE - 1)
+        // NEURAL_MEMBRANE_FIRST_PLANE,
+    )
+    target_modes = (
+        (target_modes + NEURAL_MEMBRANE_MODE_QUANTUM - 1)
+        // NEURAL_MEMBRANE_MODE_QUANTUM
+        * NEURAL_MEMBRANE_MODE_QUANTUM
+    )
+    if (
+        profile.neural_membrane
+        and target_modes == profile.mode_count
+        and gain_ppm == profile.neural_membrane_gain_ppm
+    ):
+        raise RegionalFieldError("neural membrane already satisfies the request")
+    successor_profile = replace(
+        profile,
+        mode_count=target_modes,
+        neural_membrane=True,
+        neural_membrane_gain_ppm=gain_ppm,
+    )
+    if successor_profile.workspace_words < old_workspace:
+        raise RegionalFieldError("neural membrane migration would discard workspace")
+    old_flat = field.reshape(-1)
+    clock = _read_u64(old_flat, H_CLOCK)
+    if clock >= U64_MAX - 1 or clock + 1 > successor_profile.max_steps:
+        raise RegionalFieldError(
+            "neural membrane migration has no representable successor transition"
+        )
+    successor = np.zeros(successor_profile.shape, dtype=np.float64)
+    flat = successor.reshape(-1)
+    flat[:old_workspace] = old_flat[:old_workspace]
+    preserved_membrane_words = 0
+    if profile.neural_membrane:
+        old_planes = old_flat.reshape(9, profile.mode_count)
+        new_planes = flat.reshape(9, successor_profile.mode_count)
+        new_planes[
+            NEURAL_MEMBRANE_FIRST_PLANE:,
+            :profile.mode_count,
+        ] = old_planes[NEURAL_MEMBRANE_FIRST_PLANE:, :]
+        preserved_membrane_words = profile.neural_membrane_words
+    flat[H_TOTAL_WORDS] = successor_profile.total_words
+    flat[H_PROFILE_SHA:H_PROFILE_SHA + 8] = _sha_words(
+        successor_profile.fingerprint
+    )
+    _write_u64(flat, H_CLOCK, clock + 1)
+    _write_u64(flat, H_BASE_EPOCH, _read_u64(old_flat, H_BASE_EPOCH) + 1)
+    validate_field(successor, successor_profile, catalog)
+    return successor_profile, successor, {
+        "schema": NEURAL_MEMBRANE_SCHEMA,
+        "kind": "enable-neural-membrane",
+        "old_profile_sha256": profile.fingerprint,
+        "profile_sha256": successor_profile.fingerprint,
+        "previous_state_sha256": state_sha256(field, profile),
+        "state_sha256": state_sha256(successor, successor_profile),
+        "logical_transition": clock + 1,
+        "workspace_words_preserved": old_workspace,
+        "membrane_words_preserved": preserved_membrane_words,
+        "membrane_modes": successor_profile.mode_count,
+        "membrane_gain_ppm": gain_ppm,
+    }
+
+
+def neural_membrane_planes(
+    field: np.ndarray,
+    profile: RegionalProfile,
+    *,
+    copy_planes: bool = False,
+) -> np.ndarray:
+    """Return the four exact u32-backed membrane planes."""
+
+    if not profile.neural_membrane:
+        raise RegionalFieldError("regional profile has no neural membrane")
+    if (
+        not isinstance(field, np.ndarray)
+        or field.dtype != np.float64
+        or field.shape != profile.shape
+    ):
+        raise RegionalFieldError("regional field shape or dtype is invalid")
+    planes = field.reshape(9, profile.mode_count)[
+        NEURAL_MEMBRANE_FIRST_PLANE:,
+        :,
+    ]
+    return np.array(planes, copy=True) if copy_planes else planes
 
 
 def intervene_automaton(
@@ -3172,10 +4436,13 @@ def named_values(
     profile: RegionalProfile,
     catalog: KernelCatalog,
     names: Sequence[str],
+    *,
+    _input_validated: bool = False,
 ) -> dict[str, Any]:
     """Read several named values through one validated field snapshot."""
 
-    validate_field(field, profile, catalog)
+    if not _input_validated:
+        validate_field(field, profile, catalog)
     flat = field.reshape(-1)
     queue = _read_region(flat, profile, _queue_ref(flat))
     identifiers = queue["named_values"]
@@ -3189,6 +4456,3588 @@ def named_values(
             flat, profile, _resolve_object(flat, profile, object_id)
         )
     return result
+
+
+# ---------------------------------------------------------------------------
+# Versioned page directory, bounded residency, and page-aware execution.
+#
+# The logical image remains one validated regional field.  The physical layer
+# is an ordered page directory over immutable content-addressed chunks, so
+# instructions, reductions, and publication operate on bounded views, stage
+# private dirty pages, and suspend on absent residency with a typed wait
+# instead of materialising the complete image.
+# ---------------------------------------------------------------------------
+
+PAGE_TREE_SCHEMA = "cassifi.regional-page-tree.v1"
+PAGED_MANIFEST_SCHEMA = "cassifi.regional-paged-manifest.v1"
+LAYOUT_MIGRATION_SCHEMA = "cassifi.regional-layout-migration.v1"
+RESIDENCY_WAIT_SCHEMA = "cassifi.regional-residency-wait.v1"
+RESIDENCY_CONTINUATION_SCHEMA = "cassifi.regional-residency-continuation.v1"
+DEFAULT_RESIDENT_PAGES = 24
+DEFAULT_DIRTY_PAGES = 24
+MAX_RESIDENCY_PAGES = 65_536
+PAGE_SEGMENTS = (
+    "control",
+    "registry",
+    "queue",
+    "programs",
+    "stacks",
+    "automaton",
+    "ledger",
+    "continuation",
+    "values",
+    "quarantine",
+)
+CONTROL_CLOSURE_SEGMENTS = (
+    "control",
+    "registry",
+    "queue",
+    "programs",
+    "stacks",
+    "automaton",
+    "ledger",
+    "continuation",
+)
+
+
+class ResidencyWait(Exception):
+    """A bounded view needs pages that are not currently resident.
+
+    This is a typed wait in the continuation machinery, not a fault: the
+    requesting instruction, the exact page identities, the authority scope,
+    completed work, the remaining allowance, and the private successor
+    references travel with it.
+    """
+
+    def __init__(
+        self,
+        stage: str,
+        pages: Sequence[int],
+        *,
+        versions: Sequence[str] = (),
+        scope: int = 0,
+        work: int = 0,
+        allowance: int | None = None,
+        private_pages: Sequence[int] = (),
+        reason: str = "absent",
+        segments: Sequence[str] = (),
+    ) -> None:
+        indices = tuple(sorted({int(index) for index in pages}))
+        self.stage = str(stage)
+        self.pages = indices
+        self.versions = tuple(str(version) for version in versions)
+        self.scope = int(scope)
+        self.work = int(work)
+        self.allowance = None if allowance is None else int(allowance)
+        self.private_pages = tuple(sorted({int(index) for index in private_pages}))
+        self.reason = str(reason)
+        self.segments = tuple(sorted({str(name) for name in segments}))
+        super().__init__(
+            f"regional pages {list(indices)} are not resident for {self.stage}"
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema": RESIDENCY_WAIT_SCHEMA,
+            "kind": "residency-wait",
+            "stage": self.stage,
+            "pages": list(self.pages),
+            "page_versions": list(self.versions),
+            "authority_scope": self.scope,
+            "completed_work": self.work,
+            "remaining_allowance": self.allowance,
+            "private_pages": list(self.private_pages),
+            "segments": list(self.segments),
+            "reason": self.reason,
+        }
+
+
+class PageUnavailable(RegionalFieldError):
+    """A required object is missing, corrupt, revoked, or unsupported."""
+
+    def __init__(self, kind: str, detail: str, *, pages: Sequence[int] = ()) -> None:
+        self.kind = str(kind)
+        self.pages = tuple(sorted({int(index) for index in pages}))
+        self.detail = str(detail)
+        super().__init__(f"regional page {self.kind}: {self.detail}")
+
+
+_LEAF_DIGEST_CACHE_LIMIT = 262_144
+_LEAF_DIGESTS: dict[tuple[Any, ...], str] = {}
+
+
+@dataclass(frozen=True, slots=True)
+class PageLeaf:
+    """One committed nonzero page: logical placement and content identity."""
+
+    index: int
+    start_word: int
+    words: int
+    codec: str = PERSISTENCE_CHUNK_CODEC
+    decoded_bytes: int = 0
+    decoded_sha256: str = ""
+    object_bytes: int = 0
+    object_sha256: str = ""
+
+    def __post_init__(self) -> None:
+        _integer(self.index, "page index")
+        _integer(self.start_word, "page start word")
+        _integer(self.words, "page words", minimum=1)
+        if self.codec != PERSISTENCE_CHUNK_CODEC:
+            raise RegionalFieldError("regional page codec is unsupported")
+        if self.decoded_bytes != self.words * 4:
+            raise RegionalFieldError("regional page decoded length is invalid")
+        for name in ("decoded_sha256", "object_sha256"):
+            digest = getattr(self, name)
+            if not isinstance(digest, str) or len(digest) != 64:
+                raise RegionalFieldError("regional page digest is invalid")
+        _integer(self.object_bytes, "page object bytes", minimum=1)
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "codec": self.codec,
+            "decoded_bytes": self.decoded_bytes,
+            "decoded_sha256": self.decoded_sha256,
+            "index": self.index,
+            "object_bytes": self.object_bytes,
+            "object_sha256": self.object_sha256,
+            "start_word": self.start_word,
+            "words": self.words,
+        }
+
+    @property
+    def digest(self) -> str:
+        """Content identity of this leaf.
+
+        A leaf is immutable and content-addressed, and every bounded step of a
+        paged image re-derives the digest of every live page, so the value is
+        memoised by the leaf's own identity fields.
+        """
+
+        key = (
+            self.index,
+            self.start_word,
+            self.words,
+            self.codec,
+            self.decoded_bytes,
+            self.decoded_sha256,
+            self.object_bytes,
+            self.object_sha256,
+        )
+        cached = _LEAF_DIGESTS.get(key)
+        if cached is not None:
+            return cached
+        digest = hashlib.sha256(_canonical(self.as_record())).hexdigest()
+        if len(_LEAF_DIGESTS) >= _LEAF_DIGEST_CACHE_LIMIT:
+            _LEAF_DIGESTS.clear()
+        _LEAF_DIGESTS[key] = digest
+        return digest
+
+    def __repr__(self) -> str:
+        return (
+            f"PageLeaf(index={self.index}, words={self.words},"
+            f" sha256={self.object_sha256[:12]})"
+        )
+
+    @classmethod
+    def from_record(cls, value: Mapping[str, Any]) -> "PageLeaf":
+        required = {
+            "codec",
+            "decoded_bytes",
+            "decoded_sha256",
+            "index",
+            "object_bytes",
+            "object_sha256",
+            "start_word",
+            "words",
+        }
+        if not isinstance(value, Mapping) or set(value) != required:
+            raise RegionalFieldError("regional page record keys are invalid")
+        try:
+            return cls(
+                codec=str(value["codec"]),
+                decoded_bytes=int(value["decoded_bytes"]),
+                decoded_sha256=str(value["decoded_sha256"]),
+                index=int(value["index"]),
+                object_bytes=int(value["object_bytes"]),
+                object_sha256=str(value["object_sha256"]),
+                start_word=int(value["start_word"]),
+                words=int(value["words"]),
+            )
+        except (TypeError, ValueError) as exc:
+            raise RegionalFieldError("regional page record is invalid") from exc
+
+
+@lru_cache(maxsize=None)
+def _zero_page_digest(index: int, start_word: int, words: int) -> str:
+    """Content identity of an implicit zero page.
+
+    The digest is a pure function of its arguments and every bounded step of a
+    paged image re-derives it for every absent page, so it is memoised.  The
+    key space is bounded by the image's page count.
+    """
+
+    return hashlib.sha256(
+        _canonical(
+            {
+                "codec": "zero",
+                "index": index,
+                "start_word": start_word,
+                "words": words,
+            }
+        )
+    ).hexdigest()
+
+
+@lru_cache(maxsize=262_144)
+def _node_digest(first: int, count: int, left: str, right: str) -> str:
+    """One inner commitment node.  Pure, so repeated tree rebuilds reuse it."""
+
+    return hashlib.sha256(
+        _canonical(
+            {
+                "schema": PAGE_TREE_SCHEMA,
+                "first": first,
+                "count": count,
+                "left": left,
+                "right": right,
+            }
+        )
+    ).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class _PageNode:
+    """One node of the versioned page commitment tree."""
+
+    first: int
+    count: int
+    digest: str
+    left: "_PageNode | None" = None
+    right: "_PageNode | None" = None
+
+    @property
+    def leaf(self) -> bool:
+        return self.count == 1
+
+    def nodes(self) -> int:
+        if self.leaf:
+            return 1
+        return 1 + self.left.nodes() + self.right.nodes()
+
+    def collect(self, into: list["_PageNode"]) -> None:
+        into.append(self)
+        if not self.leaf:
+            self.left.collect(into)
+            self.right.collect(into)
+
+
+class PageTree:
+    """Versioned commitment over the logical page directory.
+
+    Leaves bind logical placement, length, codec, and decoded-content
+    identity.  Updating a bounded set of pages rebuilds only the paths to the
+    changed leaves; every untouched subtree keeps its node identity, so the
+    remaining image is neither decoded nor rehashed.
+    """
+
+    __slots__ = ("page_count", "_digests", "root")
+
+    def __init__(self, page_count: int, digests: Sequence[str], *, _reuse: Any = None) -> None:
+        self.page_count = _integer(page_count, "page count", minimum=1)
+        self._digests = tuple(str(digest) for digest in digests)
+        if len(self._digests) != self.page_count:
+            raise RegionalFieldError("page tree digest count is invalid")
+        self.root = self._build(0, self.page_count, _reuse)
+
+    def _build(self, first: int, count: int, reuse: Any) -> _PageNode:
+        if count == 1:
+            if reuse is not None:
+                reused = reuse.get((first, 1))
+                if reused is not None and reused.digest == self._digests[first]:
+                    return reused
+            return _PageNode(first, 1, self._digests[first])
+        half = count // 2
+        left = self._build(first, half, reuse)
+        right = self._build(first + half, count - half, reuse)
+        return _PageNode(
+            first, count, _node_digest(first, count, left.digest, right.digest), left, right
+        )
+
+    @property
+    def root_sha256(self) -> str:
+        return self.root.digest
+
+    def digest(self, index: int) -> str:
+        return self._digests[_integer(index, "page index", maximum=self.page_count - 1)]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema": PAGE_TREE_SCHEMA,
+            "page_count": self.page_count,
+            "root_sha256": self.root_sha256,
+            "node_count": self.root.nodes(),
+        }
+
+    def audit_path(self, index: int) -> tuple[str, ...]:
+        """One leaf digest plus its sibling digests, from the leaf upward."""
+
+        target = _integer(index, "page index", maximum=self.page_count - 1)
+        siblings: list[str] = []
+        node = self.root
+        while not node.leaf:
+            half = node.count // 2
+            if target < node.first + half:
+                siblings.append(node.right.digest)
+                node = node.left
+            else:
+                siblings.append(node.left.digest)
+                node = node.right
+        return (self.digest(target), *reversed(siblings))
+
+    def verify_audit_path(self, index: int, path: Sequence[str]) -> bool:
+        """Recompute the root from one leaf and its sibling path.
+
+        The check uses only the page index, the declared page count, and the
+        supplied digests, so a holder of the leaf, the path, and the root can
+        confirm membership without the tree itself.
+        """
+
+        target = _integer(index, "page index", maximum=self.page_count - 1)
+        siblings: list[tuple[int, int, bool]] = []
+        first, count = 0, self.page_count
+        while count > 1:
+            half = count // 2
+            if target < first + half:
+                siblings.append((first + half, count - half, True))
+                count = half
+            else:
+                siblings.append((first, half, False))
+                first += half
+                count -= half
+        if len(path) != len(siblings) + 1:
+            return False
+        digest = str(path[0])
+        if digest != self.digest(target):
+            return False
+        first, count = target, 1
+        for (sibling_first, sibling_count, sibling_right), sibling in zip(
+            reversed(siblings), path[1:]
+        ):
+            if sibling_right:
+                digest = _node_digest(first, count + sibling_count, digest, str(sibling))
+            else:
+                digest = _node_digest(
+                    sibling_first, count + sibling_count, str(sibling), digest
+                )
+            first = min(first, sibling_first)
+            count += sibling_count
+        return digest == self.root_sha256
+
+    def updated(self, changed: Mapping[int, str]) -> "PageTree":
+        """Rebuild only the paths to changed pages, reusing every other node."""
+
+        updates = {
+            _integer(int(index), "page index", maximum=self.page_count - 1): str(digest)
+            for index, digest in changed.items()
+        }
+        digests = list(self._digests)
+        reuse: dict[tuple[int, int], _PageNode] = {}
+        pending = sorted(updates)
+        for index in pending:
+            digests[index] = updates[index]
+        self._index_nodes(reuse, pending)
+        if all(digests[index] == self._digests[index] for index in pending):
+            return self
+        return PageTree(self.page_count, digests, _reuse=reuse)
+
+    def _index_nodes(self, reuse: dict[tuple[int, int], _PageNode], pending: Sequence[int]) -> None:
+        """Index the untouched subtrees that the update must preserve."""
+
+        wanted = set(pending)
+
+        def walk(node: _PageNode) -> None:
+            span = range(node.first, node.first + node.count)
+            if not any(index in wanted for index in span):
+                reuse[(node.first, node.count)] = node
+                return
+            if node.leaf:
+                return
+            walk(node.left)
+            walk(node.right)
+
+        walk(self.root)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PageTree):
+            return NotImplemented
+        return (
+            self.page_count == other.page_count
+            and self.root_sha256 == other.root_sha256
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.page_count, self.root_sha256))
+
+    def shared_nodes(self, previous: "PageTree") -> int:
+        """Count nodes whose object identity survived from ``previous``."""
+
+        if not isinstance(previous, PageTree) or previous.page_count != self.page_count:
+            return 0
+        prior = {id(node) for node in self._nodes(previous)}
+        return sum(1 for node in self._nodes(self) if id(node) in prior)
+
+    @staticmethod
+    def _nodes(tree: "PageTree") -> list[_PageNode]:
+        collected: list[_PageNode] = []
+        tree.root.collect(collected)
+        return collected
+
+
+@dataclass(frozen=True, slots=True)
+class PageDirectory:
+    """Ordered committed page records with implicit zero pages."""
+
+    profile_sha256: str
+    page_count: int
+    leaves: tuple[PageLeaf, ...] = ()
+
+    def __post_init__(self) -> None:
+        _integer(self.page_count, "page count", minimum=1)
+        previous = -1
+        for leaf in self.leaves:
+            if leaf.index <= previous or leaf.index >= self.page_count:
+                raise RegionalFieldError("regional page directory order is invalid")
+            previous = leaf.index
+
+    def leaf(self, index: int) -> PageLeaf | None:
+        target = _integer(index, "page index", maximum=self.page_count - 1)
+        if not self.leaves:
+            return None
+        low, high = 0, len(self.leaves)
+        while low < high:
+            middle = (low + high) // 2
+            if self.leaves[middle].index < target:
+                low = middle + 1
+            else:
+                high = middle
+        if low < len(self.leaves) and self.leaves[low].index == target:
+            return self.leaves[low]
+        return None
+
+    def records(self) -> list[dict[str, Any]]:
+        return [leaf.as_record() for leaf in self.leaves]
+
+    def page_words(self, total_words: int, index: int) -> int:
+        start = index * PERSISTENCE_PAGE_WORDS
+        return min(PERSISTENCE_PAGE_WORDS, total_words - start)
+
+    def digests(self, profile: "RegionalProfile") -> tuple[str, ...]:
+        digests: list[str] = []
+        for index in range(self.page_count):
+            leaf = self.leaf(index)
+            if leaf is None:
+                digests.append(
+                    _zero_page_digest(
+                        index,
+                        index * PERSISTENCE_PAGE_WORDS,
+                        self.page_words(profile.total_words, index),
+                    )
+                )
+            else:
+                digests.append(leaf.digest)
+        return tuple(digests)
+
+    def tree(
+        self, profile: "RegionalProfile", *, previous: "PageTree | None" = None
+    ) -> PageTree:
+        """Commitment over this directory, reusing the previous tree's paths."""
+
+        digests = self.digests(profile)
+        if previous is None or previous.page_count != self.page_count:
+            return PageTree(self.page_count, digests)
+        changed = {
+            index: digest
+            for index, digest in enumerate(digests)
+            if digest != previous.digest(index)
+        }
+        return previous.updated(changed)
+
+    def with_changes(
+        self, profile: "RegionalProfile", changed: Mapping[int, "PageLeaf | None"]
+    ) -> "PageDirectory":
+        rows = {leaf.index: leaf for leaf in self.leaves}
+        for index, leaf in changed.items():
+            target = _integer(int(index), "page index", maximum=self.page_count - 1)
+            if leaf is None:
+                rows.pop(target, None)
+            else:
+                rows[target] = leaf
+        return PageDirectory(self.profile_sha256, self.page_count, tuple(rows[key] for key in sorted(rows)))
+
+
+def _page_count(profile: "RegionalProfile") -> int:
+    return (profile.total_words + PERSISTENCE_PAGE_WORDS - 1) // PERSISTENCE_PAGE_WORDS
+
+
+def _control_pages(profile: "RegionalProfile") -> tuple[int, ...]:
+    """The pinned control closure: header and directory pages.
+
+    Every bounded request walks the control closure first, so an allowance
+    below it could never serve a request and is refused as inadmissible.
+    """
+
+    control_words = HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity
+    return tuple(
+        range((control_words + PERSISTENCE_PAGE_WORDS - 1) // PERSISTENCE_PAGE_WORDS)
+    )
+
+
+def _encode_page(page: np.ndarray) -> PageLeaf | None:
+    """Encode one canonical u32 page; zero pages stay implicit."""
+
+    if not np.any(page):
+        return None
+    if (
+        not np.isfinite(page).all()
+        or not np.equal(page, np.floor(page)).all()
+        or np.any(page < 0)
+        or np.any(page > U32_MAX)
+    ):
+        raise RegionalFieldError("regional persistence page is not a canonical u32 image")
+    decoded = page.astype("<u4", copy=False).tobytes(order="C")
+    return decoded
+
+
+class PagedFieldImage:
+    """The logical regional image addressed through bounded, versioned pages."""
+
+    __slots__ = (
+        "profile", "catalog", "directory", "objects", "resident_limit",
+        "dirty_limit", "predecessor", "transition", "revoked_roots",
+        "audited_state_sha256", "state_sha256_kind", "_logical_digest",
+        "_tree", "_resident", "_resident_order", "_resident_tokens",
+        "_placements", "_placement_tokens", "_placement_payloads", "_pinned",
+        "_counters", "_validated_pages", "_validated_root", "_resource_manager",
+        "program_id",
+    )
+
+    def __init__(
+        self,
+        profile: "RegionalProfile",
+        catalog: "KernelCatalog",
+        directory: PageDirectory,
+        objects: Mapping[str, bytes],
+        *,
+        resident_limit: int = DEFAULT_RESIDENT_PAGES,
+        dirty_limit: int = DEFAULT_DIRTY_PAGES,
+        predecessor: Mapping[str, Any] | None = None,
+        transition: Mapping[str, Any] | None = None,
+        revoked_roots: Sequence[str] = (),
+        audited_state_sha256: str | None = None,
+        state_sha256_kind: str | None = None,
+        pinned: Sequence[int] = (),
+        previous_tree: "PageTree | None" = None,
+        _objects_verified: bool = False,
+        resource_limits: ResourceLimits | Mapping[str, Any] | None = None,
+        resource_manager: ResidencyManager | None = None,
+        program_id: str | None = None,
+    ) -> None:
+        if not isinstance(profile, RegionalProfile):
+            raise RegionalFieldError("regional profile required for a paged image")
+        if not isinstance(catalog, KernelCatalog):
+            raise RegionalFieldError("kernel catalog required for a paged image")
+        if directory.profile_sha256 != profile.fingerprint:
+            raise RegionalFieldError("page directory profile mismatches the image profile")
+        if directory.page_count != _page_count(profile):
+            raise RegionalFieldError("page directory geometry mismatches the profile")
+        _integer(resident_limit, "resident page limit", minimum=1, maximum=MAX_RESIDENCY_PAGES)
+        _integer(dirty_limit, "dirty page limit", minimum=1, maximum=MAX_RESIDENCY_PAGES)
+        identity_kind = (
+            PAGED_STATE_KIND_FLAT
+            if state_sha256_kind is None
+            else str(state_sha256_kind)
+        )
+        if identity_kind not in {PAGED_STATE_KIND_FLAT, PAGED_STATE_KIND_ROOT}:
+            raise RegionalFieldError("paged state identity kind is invalid")
+        if identity_kind == PAGED_STATE_KIND_ROOT and audited_state_sha256 is not None:
+            raise RegionalFieldError("page-tree identity cannot masquerade as a flat audit")
+        if not isinstance(objects, Mapping):
+            raise RegionalFieldError("regional page objects must be a mapping")
+        lazy_backing = not isinstance(objects, (dict, MappingProxyType))
+        for key in objects:
+            if not isinstance(key, str) or len(key) != 64:
+                raise RegionalFieldError("regional page object address is invalid")
+        if not lazy_backing and not _objects_verified:
+            for key in objects:
+                value = objects[key]
+                if not isinstance(value, bytes) or hashlib.sha256(value).hexdigest() != key:
+                    raise PageUnavailable("corrupt", "object digest does not match its address")
+        self.profile = profile
+        self.catalog = catalog
+        self.directory = directory
+        self.objects = objects
+        self.resident_limit = int(resident_limit)
+        self.dirty_limit = int(dirty_limit)
+        self.predecessor = None if predecessor is None else dict(predecessor)
+        self.transition = (
+            {"kind": "storage-only"}
+            if transition is None
+            else dict(transition)
+        )
+        self.revoked_roots = tuple(str(root) for root in revoked_roots)
+        self.audited_state_sha256 = audited_state_sha256
+        self.state_sha256_kind = identity_kind
+        self._logical_digest: str | None = None
+        self._placements: dict[str, set[int]] = {"ram": set(), "vram": set(), "storage": set()}
+        self._placement_tokens: dict[tuple[str, int], Any] = {}
+        self._placement_payloads: dict[tuple[str, int], np.ndarray] = {}
+        self._tree = directory.tree(profile, previous=previous_tree)
+        self._resident_tokens: dict[int, Any] = {}
+        self._resident: dict[int, np.ndarray] = {}
+        self._resident_order: list[int] = []
+        self._pinned: set[int] = {int(index) for index in pinned}
+        if self.resident_limit < len(self._pinned):
+            raise RegionalFieldError(
+                f"residency allowance must hold the {len(self._pinned)} pinned "
+                "control pages"
+            )
+        self._validated_pages: set[int] = set()
+        self._validated_root = self._tree.root_sha256
+        self._resource_manager = (
+            resource_manager
+            if resource_manager is not None
+            else ResidencyManager(resource_limits)
+        )
+        self.program_id = None if program_id is None else str(program_id)
+        self._counters: dict[str, int] = {
+            "page_decodes": 0,
+            "page_misses": 0,
+            "page_evictions": 0,
+            "decoded_words": 0,
+            "resident_high_water_pages": 0,
+            "dense_materialisations": 0,
+            "objects_written": 0,
+            "objects_reused": 0,
+            "object_verifications": 0 if lazy_backing else sum(1 for _ in objects),
+            "deferred_object_verifications": sum(1 for _ in objects) if lazy_backing else 0,
+        }
+
+    # -- construction ----------------------------------------------------
+
+    @classmethod
+    def from_dense(
+        cls,
+        field: np.ndarray,
+        profile: "RegionalProfile",
+        catalog: "KernelCatalog" = EMPTY_KERNEL_CATALOG,
+        *,
+        resident_limit: int = DEFAULT_RESIDENT_PAGES,
+        dirty_limit: int = DEFAULT_DIRTY_PAGES,
+        validate: bool = True,
+        pin_control: bool = True,
+        resource_limits: ResourceLimits | Mapping[str, Any] | None = None,
+        resource_manager: ResidencyManager | None = None,
+        program_id: str | None = None,
+    ) -> "PagedFieldImage":
+        if validate:
+            validate_field(field, profile, catalog)
+        flat = field.reshape(-1)
+        leaves: list[PageLeaf] = []
+        objects: dict[str, bytes] = {}
+        for index in range(_page_count(profile)):
+            start = index * PERSISTENCE_PAGE_WORDS
+            page = flat[start:start + PERSISTENCE_PAGE_WORDS]
+            decoded = _encode_page(page)
+            if decoded is None:
+                continue
+            physical = zlib.compress(decoded, level=6)
+            object_sha = hashlib.sha256(physical).hexdigest()
+            objects[object_sha] = physical
+            leaves.append(
+                PageLeaf(
+                    index=index,
+                    start_word=start,
+                    words=int(page.size),
+                    decoded_bytes=len(decoded),
+                    decoded_sha256=hashlib.sha256(decoded).hexdigest(),
+                    object_bytes=len(physical),
+                    object_sha256=object_sha,
+                )
+            )
+        directory = PageDirectory(profile.fingerprint, _page_count(profile), tuple(leaves))
+        image = cls(
+            profile,
+            catalog,
+            directory,
+            objects,
+            resident_limit=resident_limit,
+            dirty_limit=dirty_limit,
+            audited_state_sha256=state_sha256(field, profile),
+            pinned=_control_pages(profile) if pin_control else (),
+            _objects_verified=True,
+            resource_limits=resource_limits,
+            resource_manager=resource_manager,
+            program_id=program_id,
+        )
+        image._validated_pages = set(range(directory.page_count))
+        if pin_control:
+            # Only the header and directory must stay resident for every
+            # bounded operation; the rest of the control closure is read on
+            # demand so the allowance is never exceeded by policy alone.
+            image.pin(_control_pages(profile))
+        return image
+
+    @classmethod
+    def from_descriptor(
+        cls,
+        value: Mapping[str, Any],
+        objects: Mapping[str, bytes] | None = None,
+        catalog: "KernelCatalog" = EMPTY_KERNEL_CATALOG,
+        *,
+        profile: "RegionalProfile | None" = None,
+        resident_limit: int = DEFAULT_RESIDENT_PAGES,
+        dirty_limit: int = DEFAULT_DIRTY_PAGES,
+        verify: str = "control",
+        revoked_roots: Sequence[str] = (),
+        _objects_verified: bool = False,
+        resource_limits: ResourceLimits | Mapping[str, Any] | None = None,
+        resource_manager: ResidencyManager | None = None,
+        program_id: str | None = None,
+    ) -> "PagedFieldImage":
+        """Reopen a paged image from its descriptor.
+
+        ``verify="control"`` loads and verifies the control/continuation
+        closure; other chunks are verified when they are accessed.  No
+        dormant byte is claimed as freshly audited.
+        """
+
+        required = {
+            "schema",
+            "layout",
+            "profile",
+            "profile_sha256",
+            "catalog_sha256",
+            "page_words",
+            "byte_order",
+            "word_encoding",
+            "pages",
+            "root_sha256",
+            "page_count",
+        }
+        allowed = required | {
+            "state_sha256",
+            "state_sha256_kind",
+            "segments",
+            "control_pages",
+            "predecessor",
+            "transition",
+            "semantic",
+            "numerical",
+            "continuations",
+            "retention",
+            "resource",
+            "correction",
+            "clock",
+            "base_epoch",
+        }
+        if not isinstance(value, Mapping) or not required <= set(value) <= allowed:
+            raise RegionalFieldError("paged regional descriptor keys are invalid")
+        if (
+            value["schema"] != PAGED_MANIFEST_SCHEMA
+            or value["layout"] != REGIONAL_LAYOUT
+            or value["page_words"] != PERSISTENCE_PAGE_WORDS
+            or value["byte_order"] != "little"
+            or value["word_encoding"] != "u32"
+        ):
+            raise RegionalFieldError("paged regional descriptor identity is invalid")
+        resolved = RegionalProfile.from_dict(value["profile"])
+        if profile is not None and profile.fingerprint != resolved.fingerprint:
+            raise RegionalFieldError("paged descriptor profile mismatches the requested image")
+        if (
+            value["profile_sha256"] != resolved.fingerprint
+            or value["catalog_sha256"] != catalog.fingerprint
+        ):
+            raise RegionalFieldError("paged descriptor profile or catalog digest mismatches")
+        raw_pages = value["pages"]
+        if not isinstance(raw_pages, list):
+            raise RegionalFieldError("paged descriptor page directory is invalid")
+        leaves: list[PageLeaf] = []
+        previous = -1
+        count = _page_count(resolved)
+        if value["page_count"] != count:
+            raise RegionalFieldError("paged descriptor page count mismatches the profile")
+        for raw in raw_pages:
+            leaf = PageLeaf.from_record(raw)
+            if (
+                leaf.index <= previous
+                or leaf.index >= count
+                or leaf.start_word != leaf.index * PERSISTENCE_PAGE_WORDS
+                or leaf.words
+                != min(
+                    PERSISTENCE_PAGE_WORDS,
+                    resolved.total_words - leaf.start_word,
+                )
+            ):
+                raise RegionalFieldError("paged descriptor page geometry is invalid")
+            previous = leaf.index
+            leaves.append(leaf)
+        directory = PageDirectory(resolved.fingerprint, count, tuple(leaves))
+        tree = directory.tree(resolved)
+        if tree.root_sha256 != value["root_sha256"]:
+            raise RegionalFieldError("paged descriptor page-tree root mismatches")
+        identity_kind = value.get("state_sha256_kind", PAGED_STATE_KIND_FLAT)
+        declared_state_sha256 = value.get("state_sha256")
+        if identity_kind == PAGED_STATE_KIND_ROOT:
+            expected_state_sha256 = paged_root_state_sha256(
+                resolved,
+                tree.root_sha256,
+                count,
+            )
+            if declared_state_sha256 != expected_state_sha256:
+                raise RegionalFieldError("paged page-tree state identity mismatches")
+            audited_state_sha256 = None
+        elif identity_kind == PAGED_STATE_KIND_FLAT:
+            audited_state_sha256 = declared_state_sha256
+        else:
+            raise RegionalFieldError("paged state identity kind is invalid")
+        image = cls(
+            resolved,
+            catalog,
+            directory,
+            objects,
+            resident_limit=resident_limit,
+            dirty_limit=dirty_limit,
+            predecessor=value.get("predecessor"),
+            transition=value.get("transition"),
+            revoked_roots=revoked_roots,
+            _objects_verified=_objects_verified,
+            resource_limits=(
+                resource_limits
+                if resource_limits is not None
+                else value.get("resource")
+            ),
+            resource_manager=resource_manager,
+            program_id=program_id,
+            audited_state_sha256=audited_state_sha256,
+            state_sha256_kind=identity_kind,
+        )
+        if image._tree.root_sha256 in image.revoked_roots:
+            raise PageUnavailable("revoked", "page-tree root is revoked")
+        if verify not in {"none", "control"}:
+            raise RegionalFieldError("paged reopen verification mode is unsupported")
+        if verify == "control":
+            for index in image.control_closure():
+                image._verify_page(index)
+        return image
+
+    @classmethod
+    def from_chunked_descriptor(
+        cls,
+        value: Mapping[str, Any],
+        objects: Mapping[str, bytes],
+        catalog: "KernelCatalog" = EMPTY_KERNEL_CATALOG,
+        **kwargs: Any,
+    ) -> "PagedFieldImage":
+        """Reopen the established chunked checkpoint format as a paged image."""
+
+        if not isinstance(value, Mapping) or value.get("schema") != PERSISTENCE_CHUNK_SCHEMA:
+            raise RegionalFieldError("regional chunk descriptor identity is invalid")
+        profile = RegionalProfile.from_dict(value["profile"])
+        if value.get("profile_sha256") != profile.fingerprint:
+            raise RegionalFieldError("regional chunk descriptor profile mismatches")
+        if "resident_limit" in value:
+            kwargs.setdefault(
+                "resident_limit",
+                _integer(
+                    value["resident_limit"],
+                    "resident page limit",
+                    minimum=1,
+                    maximum=MAX_RESIDENCY_PAGES,
+                ),
+            )
+        if "dirty_limit" in value:
+            kwargs.setdefault(
+                "dirty_limit",
+                _integer(
+                    value["dirty_limit"],
+                    "dirty page limit",
+                    minimum=1,
+                    maximum=MAX_RESIDENCY_PAGES,
+                ),
+            )
+        manifest = {
+            "schema": PAGED_MANIFEST_SCHEMA,
+            "layout": REGIONAL_LAYOUT,
+            "profile": profile.as_dict(),
+            "profile_sha256": profile.fingerprint,
+            "catalog_sha256": value["catalog_sha256"],
+            "page_words": PERSISTENCE_PAGE_WORDS,
+            "byte_order": "little",
+            "word_encoding": "u32",
+            "pages": [dict(record) for record in value["chunks"]],
+            "page_count": _page_count(profile),
+            "root_sha256": PageDirectory(
+                profile.fingerprint,
+                _page_count(profile),
+                tuple(PageLeaf.from_record(record) for record in value["chunks"]),
+            ).tree(profile).root_sha256,
+            "state_sha256": value["state_sha256"],
+            "predecessor": {
+                "root_sha256": None,
+                "state_sha256": value["state_sha256"],
+                "layout": REGIONAL_LAYOUT,
+            },
+            "transition": {"kind": "storage-only"},
+        }
+        if "state_sha256_kind" in value:
+            manifest["state_sha256_kind"] = value["state_sha256_kind"]
+            manifest["predecessor"]["state_sha256_kind"] = value[
+                "state_sha256_kind"
+            ]
+        if "resource" in value:
+            manifest["resource"] = value["resource"]
+        kwargs.setdefault("_objects_verified", True)
+        return cls.from_descriptor(
+            manifest,
+            objects,
+            catalog,
+            profile=profile,
+            **kwargs,
+        )
+
+    # -- identity and directory -----------------------------------------
+
+    @property
+    def page_count(self) -> int:
+        return self.directory.page_count
+
+    @property
+    def root_sha256(self) -> str:
+        return self._tree.root_sha256
+
+    @property
+    def tree(self) -> PageTree:
+        return self._tree
+
+    @property
+    def counters(self) -> Mapping[str, int]:
+        return MappingProxyType(dict(self._counters))
+    @property
+    def resource_manager(self) -> ResidencyManager:
+        return self._resource_manager
+
+    @property
+    def resource_limits(self) -> ResourceLimits:
+        return self._resource_manager.limits
+
+    def with_resource_limits(
+        self, limits: ResourceLimits | Mapping[str, Any]
+    ) -> "PagedFieldImage":
+        successor = PagedFieldImage(
+            self.profile,
+            self.catalog,
+            self.directory,
+            self.objects,
+            resident_limit=self.resident_limit,
+            dirty_limit=self.dirty_limit,
+            predecessor=self.predecessor,
+            transition=self.transition,
+            revoked_roots=self.revoked_roots,
+            audited_state_sha256=self.audited_state_sha256,
+            state_sha256_kind=self.state_sha256_kind,
+            pinned=self._pinned,
+            previous_tree=self._tree,
+            _objects_verified=True,
+            resource_limits=ResourceLimits.from_dict(limits),
+            program_id=self.program_id,
+        )
+        self.release_resident()
+        return successor
+
+    def place_pages(
+        self,
+        pages: Sequence[int],
+        tier: str,
+        *,
+        root_sha256: str | None = None,
+        max_pages: int = 16,
+        continuation: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Move at most ``max_pages`` exact pages without changing root identity."""
+        if tier not in {"ram", "vram", "storage"}:
+            raise RegionalFieldError("page placement tier is invalid")
+        max_pages = _integer(max_pages, "max_pages", minimum=1, maximum=MAX_RESIDENCY_PAGES)
+        expected = self.root_sha256 if root_sha256 is None else str(root_sha256)
+        requested = list(pages)
+        if expected != self.root_sha256:
+            raise RegionalFieldError("page placement root is stale")
+        if continuation is not None:
+            if continuation.get("root_sha256") != self.root_sha256:
+                raise RegionalFieldError("page placement continuation root is stale")
+            if continuation.get("tier") != tier:
+                raise RegionalFieldError("page placement continuation tier is invalid")
+            continued_pages = [int(index) for index in continuation.get("remaining_pages", ())]
+            versions = continuation.get("page_versions", ())
+            if len(continued_pages) != len(versions) or any(
+                self.tree.digest(index) != str(version)
+                for index, version in zip(continued_pages, versions)
+            ):
+                raise RegionalFieldError("page placement continuation versions are stale")
+            requested = continued_pages
+        unique = []
+        seen: set[int] = set()
+        for index in requested:
+            index = _integer(index, "page index", maximum=self.page_count - 1)
+            if index not in seen:
+                seen.add(index)
+                unique.append(index)
+        batch = unique[:max_pages]
+        remaining = unique[max_pages:]
+        bytes_needed = 0
+        for index in batch:
+            leaf = self.directory.leaf(index)
+            bytes_needed += int(leaf.object_bytes if tier == "storage" and leaf else self.directory.page_words(self.profile.total_words, index) * 8)
+        if bytes_needed and self.resource_manager.available(tier) < bytes_needed:
+            # A placement pays for itself out of the resident cache first.
+            self.release_to_fit(tier, bytes_needed)
+        if bytes_needed and self.resource_manager.available(tier) < bytes_needed:
+            raise ResourceWait(tier, bytes_needed, self.resource_manager.available(tier), reason="placement")
+        moved: list[int] = []
+        for index in batch:
+            page = self.page(index)
+            leaf = self.directory.leaf(index)
+            if tier == "storage":
+                backing = self.objects
+                put = getattr(backing, "put", None)
+                if not callable(put):
+                    backing = getattr(backing, "source", None)
+                    put = getattr(backing, "put", None)
+                if not callable(put):
+                    raise RegionalFieldError("storage placement requires a writable object store")
+                if leaf is not None:
+                    put(self.objects[leaf.object_sha256], digest=leaf.object_sha256)
+            elif index not in self._placements[tier]:
+                if tier == "ram" and index in self._resident:
+                    token = None
+                else:
+                    page_bytes = max(1, int(page.nbytes))
+                    try:
+                        token = self.resource_manager.reserve(
+                            tier, page_bytes, kind="resident",
+                            program_id=self.program_id,
+                        )
+                    except ResourceWait:
+                        self.release_to_fit(tier, page_bytes)
+                        token = self.resource_manager.reserve(
+                            tier, page_bytes, kind="resident",
+                            program_id=self.program_id,
+                        )
+                self._placement_tokens[(tier, index)] = token
+                self._placement_payloads[(tier, index)] = np.array(page, copy=True)
+        next_cont = None
+        if remaining:
+            versions = [self.tree.digest(index) for index in remaining]
+            next_cont = {
+                "schema": "cassifi.page-placement.v1",
+                "root_sha256": self.root_sha256,
+                "tier": tier,
+                "page_versions": versions,
+            }
+        return {
+            "schema": "cassifi.page-placement.v1",
+            "root_sha256": self.root_sha256,
+            "tier": tier,
+            "moved_pages": moved,
+            "remaining_pages": remaining,
+            "continuation": next_cont,
+            "bytes": sum(
+                int(self.directory.leaf(index).object_bytes)
+                if tier == "storage" and self.directory.leaf(index) else
+                int(self.directory.page_words(self.profile.total_words, index) * 8)
+                for index in moved
+            ),
+            "residency": self._resource_manager.report(),
+        }
+
+    def _verify_page(self, index: int) -> np.ndarray:
+        """Decode and verify one page's decoded-content identity."""
+
+        leaf = self.directory.leaf(index)
+        if leaf is None:
+            return np.zeros(
+                self.directory.page_words(self.profile.total_words, index),
+                dtype=np.float64,
+            )
+        try:
+            physical = self.objects[leaf.object_sha256]
+        except (KeyError, StorageError) as exc:
+            raise PageUnavailable(
+                "missing", f"page {index} object is absent from storage", pages=[index]
+            ) from exc
+        self._counters["object_verifications"] += 1
+        if not isinstance(physical, bytes):
+            raise PageUnavailable("corrupt", f"page {index} object is not bytes", pages=[index])
+        if len(physical) != leaf.object_bytes:
+            raise PageUnavailable(
+                "corrupt", f"page {index} object length mismatches", pages=[index]
+            )
+        try:
+            decoded = zlib.decompress(physical)
+        except zlib.error as exc:
+            raise PageUnavailable(
+                "corrupt", f"page {index} cannot be decoded", pages=[index]
+            ) from exc
+        if (
+            len(decoded) != leaf.decoded_bytes
+            or hashlib.sha256(decoded).hexdigest() != leaf.decoded_sha256
+        ):
+            raise PageUnavailable(
+                "corrupt", f"page {index} decoded identity mismatches", pages=[index]
+            )
+        self._validated_pages.add(index)
+        return np.frombuffer(decoded, dtype="<u4").astype(np.float64)
+    def page(self, index: int) -> np.ndarray:
+        """Return one resident page, reserving its decoded bytes first."""
+
+        target = _integer(index, "page index", maximum=self.page_count - 1)
+        resident = self._resident.get(target)
+        if resident is not None:
+            self._touch(target)
+            return resident
+        self._counters["page_misses"] += 1
+        words = self.directory.page_words(self.profile.total_words, target)
+        needed = max(1, int(words * np.dtype(np.float64).itemsize))
+        try:
+            token = self._resource_manager.reserve(
+                "ram", needed, kind="resident", program_id=self.program_id,
+            )
+        except ResourceWait:
+            # The cache is asked to pay for the page it is about to hold.
+            self.release_to_fit("ram", needed)
+            token = self._resource_manager.reserve(
+                "ram", needed, kind="resident", program_id=self.program_id,
+            )
+        try:
+            page = self._verify_page(target)
+            self._counters["page_decodes"] += 1
+            self._counters["decoded_words"] += int(page.size)
+            self._insert(target, page, token)
+        except Exception:
+            token.release()
+            raise
+        return page
+    def _touch(self, index: int) -> None:
+        order = self._resident_order
+        try:
+            order.remove(index)
+        except ValueError:  # pragma: no cover - defensive
+            pass
+        order.append(index)
+
+    def _evict_to_allowance(self, requested: int | None = None) -> None:
+        """Release unlocked pages until the allowance holds again."""
+
+        while len(self._resident) > self.resident_limit:
+            candidates = [
+                key for key in self._resident_order if key not in self._pinned
+            ]
+            if not candidates:
+                # Every resident page is pinned: the request cannot be served
+                # under the declared allowance.  This is a typed resource wait,
+                # never an oversized silent allocation.
+                raise ResidencyWait(
+                    "residency",
+                    [requested] if requested is not None else [],
+                    versions=(
+                        []
+                        if requested is None
+                        else [self._tree.digest(requested)]
+                    ),
+                    reason="resource",
+                    allowance=self.resident_limit,
+                    segments=(
+                        []
+                        if requested is None
+                        else [
+                            name
+                            for name, segment_pages in self.segments().items()
+                            if requested in segment_pages
+                        ]
+                    ),
+                )
+            victim = candidates[0]
+            self._resident.pop(victim, None)
+            self._resident_order.remove(victim)
+            token = self._resident_tokens.pop(victim, None)
+            if token is not None:
+                token.release()
+            self._counters["page_evictions"] += 1
+
+    def _release_one(self, index: int) -> None:
+        """Drop one page from the resident cache and release its reservation."""
+
+        self._resident.pop(index, None)
+        self._resident_order.remove(index)
+        token = self._resident_tokens.pop(index, None)
+        if token is not None:
+            token.release()
+        self._counters["page_evictions"] += 1
+
+    def _resident_bytes(self) -> int:
+        return sum(
+            int(getattr(token, "nbytes", 0))
+            for token in self._resident_tokens.values()
+        )
+
+    def release_resident(self) -> None:
+        """Return every reservation this image holds to its manager.
+
+        A value-object transition replaces this image with its successor, so
+        the resident pages and placements it holds become unreachable while the
+        manager keeps charging their bytes: nothing else can release a holding
+        whose image is dropped, and the field's accounting then climbs for the
+        whole run while the live state stays tens of pages.  Both holdings
+        leave here, so a successor under the same manager starts from the
+        memory its predecessor actually returned.
+        """
+
+        for index in sorted(self._resident):
+            token = self._resident_tokens.pop(index, None)
+            if token is not None:
+                token.release()
+            self._counters["page_evictions"] += 1
+        self._resident.clear()
+        self._resident_order.clear()
+        for key in sorted(self._placement_tokens):
+            token = self._placement_tokens.pop(key)
+            if token is not None:
+                token.release()
+        self._placement_payloads.clear()
+        for tier in self._placements:
+            self._placements[tier].clear()
+
+    def release_to_fit(self, tier: str, byte_count: int) -> None:
+        """Release unlocked resident pages so a reservation can be made.
+
+        A page fetch reserves its bytes before it can know which older pages
+        are now useless, so a full tier would refuse a page that its own cache
+        could pay for.  Releasing least-recently-used unlocked pages first
+        keeps the declaration honest: the cache pays for what the work holds.
+        When the machine itself is the short side, the cache is given back to
+        the declared low watermark, and only a locked set or a machine still
+        short after that escalates as a typed wait.
+        """
+
+        manager = self._resource_manager
+        while manager.available(tier) < byte_count:
+            candidates = [
+                key for key in self._resident_order if key not in self._pinned
+            ]
+            if not candidates:
+                return
+            if manager.room(tier) < byte_count:
+                if self._resident_bytes() <= manager.watermark_floor(tier):
+                    return
+            self._release_one(candidates[0])
+
+    def _insert(self, index: int, page: np.ndarray, token: Any) -> None:
+        self._resident[index] = page
+        self._resident_tokens[index] = token
+        self._touch(index)
+        self._evict_to_allowance(index)
+        self._counters["resident_high_water_pages"] = max(
+            self._counters["resident_high_water_pages"], len(self._resident)
+        )
+
+    def pin(self, pages: Sequence[int]) -> None:
+        for index in pages:
+            self._pinned.add(_integer(int(index), "page index", maximum=self.page_count - 1))
+
+    def unpin(self, pages: Sequence[int]) -> None:
+        for index in pages:
+            self._pinned.discard(int(index))
+
+    def pinned(self) -> tuple[int, ...]:
+        return tuple(sorted(self._pinned))
+
+    # -- segments --------------------------------------------------------
+
+    def segments(self) -> dict[str, tuple[int, ...]]:
+        """Logical segments as page ranges, for bounded reopen and traversal."""
+
+        groups: dict[str, set[int]] = {name: set() for name in PAGE_SEGMENTS}
+        groups["control"].update(_control_pages(self.profile))
+        flat = _SegmentReader(self)
+        header = flat.words(0, HEADER_WORDS)
+        kinds = {
+            KIND_REGISTRY: "registry",
+            KIND_QUEUE: "queue",
+            KIND_PROGRAM: "programs",
+            KIND_PROCEDURE: "programs",
+            KIND_AUTOMATON: "automaton",
+            KIND_LEDGER: "ledger",
+            KIND_CONTINUATION: "continuation",
+            KIND_QUARANTINE: "quarantine",
+        }
+        stack_slots = {
+            int(header[H_LEFT_STACK]),
+            int(header[H_RIGHT_STACK]),
+        }
+        for slot in range(1, self.profile.directory_capacity + 1):
+            row = flat.words(HEADER_WORDS + (slot - 1) * DIRECTORY_WORDS, DIRECTORY_WORDS)
+            if not int(row[D_FLAGS]) & (FLAG_LIVE | FLAG_QUARANTINED):
+                continue
+            base = int(row[D_BASE])
+            capacity = int(row[D_CAPACITY])
+            if capacity <= 0:
+                continue
+            segment = kinds.get(int(row[D_KIND]))
+            if segment is None:
+                segment = "stacks" if slot in stack_slots else "values"
+            first = base // PERSISTENCE_PAGE_WORDS
+            last = (base + capacity - 1) // PERSISTENCE_PAGE_WORDS
+            groups[segment].update(range(first, last + 1))
+        return {
+            name: tuple(sorted(groups[name]))
+            for name in PAGE_SEGMENTS
+            if groups[name]
+        }
+
+    def control_closure(self) -> tuple[int, ...]:
+        groups = self.segments()
+        pages: set[int] = set()
+        for name in CONTROL_CLOSURE_SEGMENTS:
+            pages.update(groups.get(name, ()))
+        return tuple(sorted(pages))
+
+    # -- views and staging ----------------------------------------------
+
+    def view(self, staging: "PagedFieldStaging | None" = None, *, write: bool = False) -> "_PagedFieldView":
+        return _PagedFieldView(self, staging, write=write)
+
+    def header_words(self, start: int, length: int) -> np.ndarray:
+        """Read a bounded word range without materialising the whole image."""
+
+        return _SegmentReader(self).words(start, length)
+
+    def stage(self, *, stage: str = "transition") -> "PagedFieldStaging":
+        return PagedFieldStaging(self, stage=stage)
+
+    def materialise(
+        self, *, pages: Sequence[int] | None = None, bounded: bool = False
+    ) -> np.ndarray:
+        """Materialise the complete dense image through an explicit audit.
+
+        Bounded storage is the default working mode; this path is the
+        declared full audit, so it lifts the residency allowance unless the
+        caller asks for a bounded reconstruction.
+        """
+
+        self._counters["dense_materialisations"] += 1
+        field = np.zeros(self.profile.shape, dtype=np.float64)
+        flat = field.reshape(-1)
+        selected = range(self.page_count) if pages is None else pages
+        limit = self.resident_limit
+        if not bounded:
+            self.resident_limit = max(limit, self.page_count)
+        try:
+            for index in selected:
+                page = self.page(index)
+                start = index * PERSISTENCE_PAGE_WORDS
+                flat[start:start + page.size] = page
+        finally:
+            self.resident_limit = limit
+            self._evict_to_allowance()
+        return field
+
+    def with_resident_limit(self, limit: int) -> "PagedFieldImage":
+        """Return a twin of this image under a different page allowance."""
+
+        target = _integer(
+            limit, "resident page limit", minimum=1, maximum=MAX_RESIDENCY_PAGES
+        )
+        if target < len(self._pinned):
+            raise RegionalFieldError(
+                f"residency allowance must hold the {len(self._pinned)} pinned pages"
+            )
+        if target == self.resident_limit:
+            return self
+        successor = PagedFieldImage(
+            self.profile, self.catalog, self.directory, self.objects,
+            resident_limit=target, dirty_limit=self.dirty_limit,
+            predecessor=self.predecessor, transition=self.transition,
+            revoked_roots=self.revoked_roots,
+            audited_state_sha256=self.audited_state_sha256,
+            state_sha256_kind=self.state_sha256_kind, pinned=self._pinned,
+            previous_tree=self._tree, _objects_verified=True,
+            resource_manager=self._resource_manager, program_id=self.program_id,
+        )
+        self.release_resident()
+        return successor
+
+    def with_resource_manager(
+        self,
+        manager: ResidencyManager,
+        *,
+        program_id: str | None = None,
+    ) -> "PagedFieldImage":
+        if not isinstance(manager, ResidencyManager):
+            raise RegionalFieldError("residency manager is invalid")
+        successor = PagedFieldImage(
+            self.profile, self.catalog, self.directory, self.objects,
+            resident_limit=self.resident_limit, dirty_limit=self.dirty_limit,
+            predecessor=self.predecessor, transition=self.transition,
+            revoked_roots=self.revoked_roots,
+            audited_state_sha256=self.audited_state_sha256,
+            state_sha256_kind=self.state_sha256_kind, pinned=self._pinned,
+            previous_tree=self._tree, _objects_verified=True,
+            resource_manager=manager,
+            program_id=self.program_id if program_id is None else program_id,
+        )
+        self.release_resident()
+        return successor
+
+    def flat_digest(self) -> str:
+        return state_sha256(self.materialise(), self.profile)
+
+    def logical_state_sha256(self) -> str:
+        """The logical state identity, streamed page by page.
+
+        Equal to ``flat_digest`` without holding the dense image: the page
+        allowance bounds the working set, and the result is cached because a
+        committed image never changes.  A recorded commit audit is reused.
+        """
+
+        audited = self.audited_state_sha256
+        if audited is not None:
+            return audited
+        cached = self._logical_digest
+        if cached is None:
+            digest = _state_digest_head(self.profile)
+            for index in range(self.page_count):
+                page = self.page(index)
+                digest.update(
+                    memoryview(np.ascontiguousarray(page, dtype="<f8"))
+                )
+            cached = digest.hexdigest()
+            self._logical_digest = cached
+        return cached
+
+    def state_identity_sha256(self) -> str:
+        """Persistent exact identity; wide page trees avoid a dense rehash."""
+
+        if self.state_sha256_kind == PAGED_STATE_KIND_ROOT:
+            return paged_root_state_sha256(
+                self.profile,
+                self.root_sha256,
+                self.page_count,
+            )
+        return self.logical_state_sha256()
+
+    def residency_report(self) -> dict[str, Any]:
+        live = {leaf.object_sha256 for leaf in self.directory.leaves if leaf}
+        unique_bytes = sum(leaf.object_bytes for leaf in self.directory.leaves if leaf)
+        decoded_bytes = sum(leaf.decoded_bytes for leaf in self.directory.leaves if leaf)
+        resident_words = sum(int(page.size) for page in self._resident.values())
+        return {
+            "schema": "cassifi.regional-residency.v1",
+            "page_words": PERSISTENCE_PAGE_WORDS,
+            "page_count": self.page_count,
+            "committed_pages": len(self.directory.leaves),
+            "implicit_zero_pages": self.page_count - len(self.directory.leaves),
+            "logical_words": self.profile.total_words,
+            "resident_pages": len(self._resident),
+            "resident_limit": self.resident_limit,
+            "resident_words": resident_words,
+            "resident_high_water_pages": self._counters["resident_high_water_pages"],
+            "pinned_pages": len(self._pinned),
+            "unique_physical_bytes": unique_bytes,
+            "decoded_physical_bytes": decoded_bytes,
+            "validated_pages": len(self._validated_pages),
+            "unvalidated_pages": self.page_count - len(self._validated_pages),
+            "live_objects": len(live),
+            "backing_kind": type(self.objects).__name__,
+            "object_verifications": self._counters["object_verifications"],
+            "deferred_object_verifications": self._counters["deferred_object_verifications"],
+            "resources": self._resource_manager.report(),
+            **{key: value for key, value in self._counters.items()},
+        }
+
+    def object_store(self) -> Mapping[str, bytes]:
+        """Return a lazy metadata-only view of referenced objects."""
+
+        referenced = {
+            leaf.object_sha256
+            for leaf in self.directory.leaves
+            if leaf is not None
+        }
+        return ObjectSubset(self.objects, referenced)
+
+    def missing_objects(self) -> tuple[str, ...]:
+        return tuple(
+            sorted(
+                leaf.object_sha256
+                for leaf in self.directory.leaves
+                if leaf is not None and leaf.object_sha256 not in self.objects
+            )
+        )
+
+    # -- publication -----------------------------------------------------
+
+    def successor(
+        self,
+        directory: PageDirectory,
+        objects: Mapping[str, bytes],
+        *,
+        transition: Mapping[str, Any] | None = None,
+        audited_state_sha256: str | None = None,
+    ) -> "PagedFieldImage":
+        identity_kind = (
+            PAGED_STATE_KIND_FLAT
+            if audited_state_sha256 is not None or not self.profile.neural_membrane
+            else PAGED_STATE_KIND_ROOT
+        )
+        predecessor = {
+            "root_sha256": self.root_sha256,
+            "state_sha256": self.state_identity_sha256(),
+            "layout": REGIONAL_LAYOUT,
+        }
+        if self.state_sha256_kind != PAGED_STATE_KIND_FLAT:
+            predecessor["state_sha256_kind"] = self.state_sha256_kind
+        successor = PagedFieldImage(
+            self.profile, self.catalog, directory, objects,
+            resident_limit=self.resident_limit, dirty_limit=self.dirty_limit,
+            predecessor=predecessor, transition=transition or self.transition,
+            revoked_roots=self.revoked_roots,
+            audited_state_sha256=audited_state_sha256,
+            state_sha256_kind=identity_kind, pinned=self._pinned,
+            previous_tree=self._tree, _objects_verified=True,
+            resource_manager=self._resource_manager, program_id=self.program_id,
+        )
+        self.release_resident()
+        return successor
+
+    def with_backing(self, store: Mapping[str, bytes]) -> "PagedFieldImage":
+        """Publish referenced objects to ``store`` and switch to that backing."""
+        put = getattr(store, "put", None)
+        if not callable(put):
+            raise RegionalFieldError("backing store must expose put(raw, digest=...)")
+        refs = self.object_store()
+        for key in refs:
+            put(refs[key], digest=key)
+        successor = PagedFieldImage(
+            self.profile, self.catalog, self.directory, store,
+            resident_limit=self.resident_limit, dirty_limit=self.dirty_limit,
+            predecessor=self.predecessor, transition=self.transition,
+            revoked_roots=self.revoked_roots,
+            audited_state_sha256=self.audited_state_sha256,
+            state_sha256_kind=self.state_sha256_kind, pinned=self._pinned,
+            previous_tree=self._tree, _objects_verified=False,
+            resource_manager=self._resource_manager, program_id=self.program_id,
+        )
+        self.release_resident()
+        return successor
+
+    def descriptor(self, **blocks: Any) -> dict[str, Any]:
+        """The durable paged descriptor: root plus its bound identity blocks."""
+        value = {
+            "schema": PAGED_MANIFEST_SCHEMA,
+            "layout": REGIONAL_LAYOUT,
+            "profile": self.profile.as_dict(),
+            "profile_sha256": self.profile.fingerprint,
+            "catalog_sha256": self.catalog.fingerprint,
+            "page_words": PERSISTENCE_PAGE_WORDS,
+            "byte_order": "little",
+            "word_encoding": "u32",
+            "pages": self.directory.records(),
+            "page_count": self.page_count,
+            "root_sha256": self.root_sha256,
+            "segments": {name: list(pages) for name, pages in self.segments().items()},
+            "control_pages": list(self.control_closure()),
+            "predecessor": self.predecessor,
+            "transition": self.transition,
+            "resource": self.resource_limits.as_dict(),
+        }
+        value["state_sha256"] = self.state_identity_sha256()
+        if self.state_sha256_kind != PAGED_STATE_KIND_FLAT:
+            value["state_sha256_kind"] = self.state_sha256_kind
+        for key, block in blocks.items():
+            if block is not None:
+                value[key] = block
+        return value
+
+    def chunks(self) -> tuple[list[dict[str, Any]], Mapping[str, bytes]]:
+        """The established chunked checkpoint view of this image."""
+
+        return self.directory.records(), self.object_store()
+
+
+class _SegmentReader:
+    """Bounded word reader used for structural inspection only."""
+
+    __slots__ = ("_image",)
+
+    def __init__(self, image: PagedFieldImage) -> None:
+        self._image = image
+
+    def words(self, start: int, length: int) -> np.ndarray:
+        out = np.zeros(length, dtype=np.float64)
+        first = start // PERSISTENCE_PAGE_WORDS
+        last = (start + length - 1) // PERSISTENCE_PAGE_WORDS
+        for index in range(first, last + 1):
+            page = self._image.page(index)
+            base = index * PERSISTENCE_PAGE_WORDS
+            lo = max(start, base)
+            hi = min(start + length, base + page.size)
+            out[lo - start:hi - start] = page[lo - base:hi - base]
+        return out
+
+
+class PagedFieldStaging:
+    """Private dirty pages for one uncommitted transition.
+
+    Reads fall through the overlay, spilled staging chunks, resident pages,
+    and storage.  Writes never touch the committed image, so an abandoned
+    transition is discarded rather than repaired, and a crash before
+    publication leaves the predecessor untouched.
+    """
+
+    __slots__ = (
+        "image",
+        "stage",
+        "dirty",
+        "staging_objects",
+        "spilled",
+        "counters",
+        "_dirty_order",
+        "_parent",
+        "dirty_limit",
+        "_staging_tokens",
+    )
+
+    def __init__(
+        self,
+        image: PagedFieldImage,
+        *,
+        stage: str = "transition",
+        parent: "PagedFieldStaging | None" = None,
+        dirty_limit: int | None = None,
+    ) -> None:
+        self.image = image
+        self.stage = str(stage)
+        self.dirty_limit = (
+            image.dirty_limit
+            if dirty_limit is None
+            else _integer(
+                dirty_limit, "dirty page limit", minimum=1, maximum=MAX_RESIDENCY_PAGES
+            )
+        )
+        self.dirty: dict[int, np.ndarray] = {}
+        self.staging_objects: dict[str, bytes] = {}
+        self._staging_tokens: dict[int, Any] = {}
+        self.spilled: dict[int, PageLeaf] = {}
+        self._dirty_order: list[int] = []
+        self._parent = parent
+        self.counters: dict[str, int] = {
+            "staged_pages": 0,
+            "staged_words": 0,
+            "spilled_pages": 0,
+            "detached_writes": 0,
+            "windows": 0,
+            "window_pages": 0,
+        }
+
+    @property
+    def page_count(self) -> int:
+        return self.image.page_count
+
+    @property
+    def profile(self) -> "RegionalProfile":
+        return self.image.profile
+
+    def view(self, *, write: bool = True) -> "_PagedFieldView":
+        return _PagedFieldView(self.image, self, write=write)
+
+    def page(self, index: int) -> np.ndarray:
+        target = _integer(index, "page index", maximum=self.page_count - 1)
+        page = self.dirty.get(target)
+        if page is not None:
+            self._touch(target)
+            return page
+        leaf = self.spilled.get(target)
+        if leaf is not None:
+            return self._decode_staged(target, leaf)
+        if self._parent is not None:
+            return self._parent.page(target)
+        return self.image.page(target)
+
+    def _leaf_in_chain(self, index: int) -> PageLeaf | None:
+        node: PagedFieldStaging | None = self
+        while node is not None:
+            leaf = node.spilled.get(index)
+            if leaf is not None:
+                return leaf
+            if index in node.dirty:
+                return None
+            node = node._parent
+        return None
+
+    def _object_in_chain(self, object_sha256: str) -> bytes | None:
+        node: PagedFieldStaging | None = self
+        while node is not None:
+            value = node.staging_objects.get(object_sha256)
+            if value is not None:
+                return value
+            node = node._parent
+        try:
+            return self.image.objects[object_sha256]
+        except (KeyError, StorageError):
+            return None
+
+    def _chain(self) -> list["PagedFieldStaging"]:
+        chain: list[PagedFieldStaging] = []
+        node: PagedFieldStaging | None = self
+        while node is not None:
+            chain.append(node)
+            node = node._parent
+        return chain
+
+    def _decode_staged(self, index: int, leaf: PageLeaf) -> np.ndarray:
+        physical = self._object_in_chain(leaf.object_sha256)
+        if physical is None:
+            raise PageUnavailable(
+                "missing", f"staged page {index} is absent", pages=[index]
+            )
+        try:
+            decoded = zlib.decompress(physical)
+        except zlib.error as exc:
+            raise PageUnavailable("corrupt", f"staged page {index} is corrupt", pages=[index]) from exc
+        if hashlib.sha256(decoded).hexdigest() != leaf.decoded_sha256:
+            raise PageUnavailable("corrupt", f"staged page {index} is corrupt", pages=[index])
+        return np.frombuffer(decoded, dtype="<u4").astype(np.float64)
+
+    def _touch(self, index: int) -> None:
+        order = self._dirty_order
+        try:
+            order.remove(index)
+        except ValueError:  # pragma: no cover - defensive
+            pass
+        order.append(index)
+
+    def stage_page(self, index: int) -> np.ndarray:
+        """Return a writable overlay page, copying the committed page once."""
+
+        target = _integer(index, "page index", maximum=self.page_count - 1)
+        page = self.dirty.get(target)
+        if page is not None:
+            self._touch(target)
+            return page
+        leaf = self.spilled.pop(target, None)
+        source = (
+            self._decode_staged(target, leaf)
+            if leaf is not None
+            else (
+                self._parent.page(target)
+                if self._parent is not None
+                else self.image.page(target)
+            )
+        )
+        overlay = np.array(source, copy=True)
+        needed = max(1, int(overlay.nbytes))
+        try:
+            token = self.image.resource_manager.reserve(
+                "ram", needed, kind="scratch",
+                program_id=self.image.program_id,
+            )
+        except ResourceWait:
+            # A staging page is paid for out of the cache before the machine
+            # is asked to grow anything.
+            self.spill_if_needed()
+            self.image.release_to_fit("ram", needed)
+            token = self.image.resource_manager.reserve(
+                "ram", needed, kind="scratch",
+                program_id=self.image.program_id,
+            )
+        self.dirty[target] = overlay
+        self._staging_tokens[target] = token
+        self._touch(target)
+        self.counters["staged_pages"] += 1
+        self.counters["staged_words"] += int(overlay.size)
+        self.spill_if_needed()
+        return overlay
+
+    def spill_if_needed(self) -> None:
+        while len(self.dirty) > self.dirty_limit:
+            spare = [key for key in self._dirty_order if key in self.dirty]
+            if not spare:
+                return
+            victim = spare[0]
+            self.spill(victim)
+
+    def spill(self, index: int) -> None:
+        """Spill one dirty page to an immutable, unpublished staging chunk."""
+
+        page = self.dirty.pop(index, None)
+        token = self._staging_tokens.pop(index, None)
+        if page is None:
+            if token is not None:
+                token.release()
+            return
+        try:
+            self._dirty_order.remove(index)
+        except ValueError:  # pragma: no cover - defensive
+            pass
+        decoded = _encode_page(page)
+        if decoded is None:
+            self.spilled.pop(index, None)
+            if token is not None:
+                token.release()
+            return
+        physical = zlib.compress(decoded, level=6)
+        object_sha = hashlib.sha256(physical).hexdigest()
+        backing = self.image.objects
+        if object_sha not in backing:
+            put = getattr(backing, "put", None)
+            if callable(put):
+                put(physical, digest=object_sha)
+            else:
+                self.staging_objects.setdefault(object_sha, physical)
+        self.spilled[index] = PageLeaf(
+            index=index,
+            start_word=index * PERSISTENCE_PAGE_WORDS,
+            words=int(page.size),
+            decoded_bytes=len(decoded),
+            decoded_sha256=hashlib.sha256(decoded).hexdigest(),
+            object_bytes=len(physical),
+            object_sha256=object_sha,
+        )
+        if token is not None:
+            token.release()
+        self.counters["spilled_pages"] += 1
+
+    def stage_words(self, offsets: Sequence[int], values: Sequence[float]) -> None:
+        """Stage a vector write while touching each backing page only once."""
+
+        raw_offsets = np.asarray(offsets, dtype=np.int64).reshape(-1)
+        raw_values = np.asarray(values, dtype=np.float64).reshape(-1)
+        count = min(raw_offsets.size, raw_values.size)
+        if count == 0:
+            return
+        raw_offsets = raw_offsets[:count]
+        raw_values = raw_values[:count]
+        page_indices = raw_offsets // PERSISTENCE_PAGE_WORDS
+        for index in np.unique(page_indices):
+            selected = page_indices == index
+            local_offsets = (
+                raw_offsets[selected] % PERSISTENCE_PAGE_WORDS
+            ).astype(np.int64, copy=False)
+            selected_values = raw_values[selected]
+            page = self.stage_page(int(index))
+            if np.unique(local_offsets).size == local_offsets.size:
+                page[local_offsets] = selected_values
+            else:
+                for offset, value in zip(local_offsets, selected_values):
+                    page[int(offset)] = float(value)
+
+    def fill(self, start: int, length: int, value: float) -> None:
+        if length <= 0:
+            return
+        first = start // PERSISTENCE_PAGE_WORDS
+        last = (start + length - 1) // PERSISTENCE_PAGE_WORDS
+        for index in range(first, last + 1):
+            page = self.stage_page(index)
+            base = index * PERSISTENCE_PAGE_WORDS
+            lo = max(start, base)
+            hi = min(start + length, base + page.size)
+            page[lo - base:hi - base] = value
+
+    def spawn(self, *, stage: str | None = None) -> "PagedFieldStaging":
+        """Nested staging for a trial transition that can be discarded whole."""
+
+        return PagedFieldStaging(
+            self.image,
+            stage=stage or self.stage,
+            parent=self,
+            dirty_limit=self.dirty_limit,
+        )
+
+    def changed_pages(self) -> tuple[int, ...]:
+        changed: set[int] = set()
+        for node in self._chain():
+            changed |= set(node.dirty) | set(node.spilled)
+        return tuple(sorted(changed))
+
+    def release_overlay(self) -> None:
+        """Return this overlay's reservations and drop its staged pages.
+
+        A committed chain is one transaction: its successor carries the merged
+        content of every node, and the caller that spawned a trial drops the
+        parent once the trial is done with it.  Nothing reads a spent overlay
+        again, so its staged pages and their scratch reservations leave here
+        rather than staying charged to a manager that no live state can
+        release them from.
+        """
+
+        for token in self._staging_tokens.values():
+            token.release()
+        self._staging_tokens.clear()
+        self.dirty.clear()
+        self.spilled.clear()
+        self.staging_objects.clear()
+        self._dirty_order.clear()
+
+    def release_chain(self) -> None:
+        """End this transaction: release every overlay in the spawn chain."""
+
+        for node in self._chain():
+            node.release_overlay()
+
+    def commit(
+        self,
+        *,
+        blocks: Mapping[str, Any] | None = None,
+        audit_digest: bool = False,
+        require_clean: bool = True,
+    ) -> tuple[PagedFieldImage, dict[str, Any]]:
+        """Publish this overlay as the successor image.
+
+        Immutable chunks are written before the successor descriptor that
+        references them; unchanged pages keep their leaf records and objects.
+        """
+
+        if require_clean and self.counters["detached_writes"]:
+            raise RegionalFieldError(
+                "staged transition contains writes detached from the page store"
+            )
+        pre_root = self.image.root_sha256
+        chain = self._chain()
+        changed: dict[int, PageLeaf | None] = {}
+        new_objects: dict[str, bytes] = {}
+        reused = 0
+        changed_indices: set[int] = set()
+        for node in chain:
+            changed_indices |= set(node.dirty) | set(node.spilled)
+        for index in sorted(changed_indices):
+            leaf = self._leaf_in_chain(index)
+            page = None
+            for node in chain:
+                if index in node.dirty:
+                    page = node.dirty[index]
+                    break
+            if page is None:
+                if leaf is None:  # pragma: no cover - defensive
+                    continue
+                previous = self.image.directory.leaf(index)
+                if previous is not None and previous.digest == leaf.digest:
+                    reused += 1
+                    continue
+                changed[index] = leaf
+                physical = self._object_in_chain(leaf.object_sha256)
+                if physical is None:  # pragma: no cover - defensive
+                    raise PageUnavailable("missing", leaf.object_sha256)
+                new_objects[leaf.object_sha256] = physical
+                continue
+            decoded = _encode_page(page)
+            if decoded is None:
+                if self.image.directory.leaf(index) is None:
+                    continue
+                changed[index] = None
+                continue
+            physical = zlib.compress(decoded, level=6)
+            object_sha = hashlib.sha256(physical).hexdigest()
+            leaf = PageLeaf(
+                index=index,
+                start_word=index * PERSISTENCE_PAGE_WORDS,
+                words=int(page.size),
+                decoded_bytes=len(decoded),
+                decoded_sha256=hashlib.sha256(decoded).hexdigest(),
+                object_bytes=len(physical),
+                object_sha256=object_sha,
+            )
+            previous = self.image.directory.leaf(index)
+            if previous is not None and previous.digest == leaf.digest:
+                reused += 1
+                continue
+            changed[index] = leaf
+            new_objects[object_sha] = physical
+        directory = self.image.directory.with_changes(self.profile, changed)
+        merged_objects: Mapping[str, bytes] = ObjectOverlay(new_objects, self.image.objects)
+        backing_put = getattr(self.image.objects, "put", None)
+        if callable(backing_put):
+            for digest, physical in new_objects.items():
+                backing_put(physical, digest=digest)
+            merged_objects = self.image.objects
+        live_objects = {
+            leaf.object_sha256 for leaf in directory.leaves if leaf is not None
+        }
+        objects: Mapping[str, bytes] = ObjectSubset(merged_objects, live_objects)
+        successor = self.image.successor(
+            directory,
+            objects,
+            transition={"kind": "storage-only"},
+        )
+        successor._validated_pages = {
+            index
+            for index in self.image._validated_pages
+            if index not in changed
+        }
+        successor._counters["objects_written"] = len(new_objects)
+        successor._counters["objects_reused"] = reused
+        shared = successor.tree.shared_nodes(self.image.tree)
+        receipt = {
+            "schema": PAGED_MANIFEST_SCHEMA,
+            "kind": "paged-commit",
+            "stage": self.stage,
+            "predecessor_root_sha256": pre_root,
+            "root_sha256": successor.root_sha256,
+            "changed_pages": sorted(changed),
+            "released_pages": sorted(
+                index for index, leaf in changed.items() if leaf is None
+            ),
+            "unchanged_leaf_pages": reused,
+            "objects_written": len(new_objects),
+            "object_bytes_written": sum(len(value) for value in new_objects.values()),
+            "tree_nodes": successor.tree.root.nodes(),
+            "tree_nodes_shared": shared,
+            "staging": dict(self.counters),
+            "residency": successor.residency_report(),
+        }
+        if audit_digest:
+            digest = successor.flat_digest()
+            object.__setattr__  # noqa: B018 - successor is mutable by design
+            successor.audited_state_sha256 = digest
+            successor.state_sha256_kind = PAGED_STATE_KIND_FLAT
+            receipt["state_sha256"] = digest
+        if blocks:
+            receipt["blocks"] = {key: value for key, value in blocks.items()}
+        self.release_chain()
+        return successor, receipt
+
+    def discard(self) -> dict[str, Any]:
+        report = dict(self.counters)
+        self.release_overlay()
+        return {"schema": PAGED_MANIFEST_SCHEMA, "kind": "paged-discard", **report}
+
+
+class _PagedWindow(np.ndarray):
+    """A bounded materialised window whose writes stage into its overlay.
+
+    The regional machine mutates descriptor rows and payload ranges through
+    ordinary numpy views.  This subclass preserves those semantics over paged
+    storage: reads use the materialised window, and every write additionally
+    lands in the staged successor pages, so the committed image is never
+    modified in place.
+    """
+
+    def __new__(
+        cls,
+        buffer: np.ndarray,
+        *,
+        staging: "PagedFieldStaging | None",
+        logical_start: int,
+    ) -> "_PagedWindow":
+        window = np.asarray(buffer, dtype=np.float64).view(cls)
+        window._staging = staging
+        window._logical_start = int(logical_start)
+        window._root = window
+        window._root_start = int(logical_start)
+        return window
+
+    def __array_finalize__(self, obj: Any) -> None:
+        if obj is None:
+            return
+        self._staging = getattr(obj, "_staging", None)
+        self._logical_start = getattr(obj, "_logical_start", 0)
+        self._root = getattr(obj, "_root", None)
+        self._root_start = getattr(obj, "_root_start", 0)
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        super().__setitem__(key, value)
+        self._stage(key)
+
+    def _stage(self, key: Any) -> None:
+        staging = getattr(self, "_staging", None)
+        root = getattr(self, "_root", None)
+        if staging is None or root is None:
+            return
+        if self.base is not None and not np.shares_memory(self, root):
+            staging.counters["detached_writes"] += 1
+            return
+        if not np.shares_memory(self, root):
+            staging.counters["detached_writes"] += 1
+            return
+        offset_bytes = self.ctypes.data - root.ctypes.data
+        if offset_bytes < 0 or offset_bytes % self.itemsize:
+            staging.counters["detached_writes"] += 1
+            return
+        index = np.arange(self.size).reshape(self.shape)[key]
+        positions = np.asarray(index).reshape(-1)
+        if positions.size == 0:
+            return
+        written = np.asarray(self)[key]
+        values = np.asarray(written, dtype=np.float64).reshape(-1)
+        if values.size == 1 and positions.size > 1:
+            values = np.full(positions.size, float(values[0]))
+        if values.size != positions.size:
+            staging.counters["detached_writes"] += 1
+            return
+        base = offset_bytes // self.itemsize
+        offsets = (getattr(root, "_root_start", 0) + base) + positions.astype(np.int64)
+        staging.stage_words(offsets, values)
+
+
+class _PagedFieldView:
+    """Bounded, paged address space with the slice semantics of a flat image."""
+
+    __slots__ = ("_image", "_staging", "_write", "_total")
+
+    def __init__(
+        self,
+        image: PagedFieldImage,
+        staging: PagedFieldStaging | None,
+        *,
+        write: bool = False,
+    ) -> None:
+        self._image = image
+        self._staging = staging
+        self._write = bool(write)
+        self._total = image.profile.total_words
+
+    # -- array-like surface used by the regional machine -----------------
+
+    @property
+    def shape(self) -> tuple[int]:
+        return (self._total,)
+
+    @property
+    def ndim(self) -> int:
+        return 1
+
+    @property
+    def size(self) -> int:
+        return self._total
+
+    @property
+    def dtype(self) -> np.dtype:
+        return np.dtype(np.float64)
+
+    def __len__(self) -> int:
+        return self._total
+
+    def reshape(self, *shape: Any) -> "_PagedFieldView":
+        resolved = shape[0] if len(shape) == 1 else shape
+        if resolved in ((-1,), (self._total,), (1, self._total, 1)):
+            return self
+        raise RegionalFieldError("paged view supports only flat logical reshape")
+
+    def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, slice):
+            start, stop, step = key.indices(self._total)
+            if step != 1:
+                raise RegionalFieldError("paged view does not support strided access")
+            return self.window(start, stop)
+        if isinstance(key, (int, np.integer)) and not isinstance(key, bool):
+            offset = int(key)
+            if offset < 0:
+                offset += self._total
+            if not 0 <= offset < self._total:
+                raise RegionalFieldError("paged view index is out of range")
+            return float(self._read_word(offset))
+        raise RegionalFieldError("paged view requires an integer or slice index")
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        if not self._write or self._staging is None:
+            raise RegionalFieldError("paged view is read-only")
+        if isinstance(key, slice):
+            start, stop, step = key.indices(self._total)
+            if step != 1:
+                raise RegionalFieldError("paged view does not support strided writes")
+            array = np.asarray(value, dtype=np.float64) if not np.isscalar(value) else None
+            if array is None:
+                self._staging.fill(start, stop - start, float(value))
+                return
+            window = self.window(start, stop)
+            window[...] = array
+            return
+        if isinstance(key, (int, np.integer)) and not isinstance(key, bool):
+            offset = int(key)
+            if offset < 0:
+                offset += self._total
+            if not 0 <= offset < self._total:
+                raise RegionalFieldError("paged view index is out of range")
+            self._staging.stage_words([offset], [float(value)])
+            return
+        raise RegionalFieldError("paged view requires an integer or slice index")
+
+    # -- bounded windows -------------------------------------------------
+
+    def window(self, start: int, stop: int) -> _PagedWindow:
+        """Materialise ``[start, stop)`` within the declared residency bound."""
+
+        start = _integer(start, "window start", maximum=self._total)
+        stop = _integer(stop, "window stop", maximum=self._total)
+        if stop < start:
+            raise RegionalFieldError("paged window range is reversed")
+        length = stop - start
+        if length == 0:
+            return _PagedWindow(
+                np.zeros(0, dtype=np.float64),
+                staging=self._staging,
+                logical_start=start,
+            )
+        first = start // PERSISTENCE_PAGE_WORDS
+        last = (stop - 1) // PERSISTENCE_PAGE_WORDS
+        page_span = last - first + 1
+        limit = self._image.resident_limit
+        if page_span > limit:
+            # An indivisible working set beyond the allowance suspends for
+            # resources rather than allocating past the declared bound.
+            span = list(range(first, last + 1))
+            segments = self._image.segments()
+            raise ResidencyWait(
+                "window",
+                span,
+                versions=[
+                    self._image.tree.digest(index) for index in span
+                ],
+                reason="resource",
+                allowance=limit,
+                work=length,
+                segments=[
+                    name
+                    for name, segment_pages in segments.items()
+                    if any(index in segment_pages for index in span)
+                ],
+            )
+        buffer = np.zeros(length, dtype=np.float64)
+        for index in range(first, last + 1):
+            page = (
+                self._staging.page(index)
+                if self._staging is not None
+                else self._image.page(index)
+            )
+            base = index * PERSISTENCE_PAGE_WORDS
+            lo = max(start, base)
+            hi = min(stop, base + page.size)
+            buffer[lo - start:hi - start] = page[lo - base:hi - base]
+        staging = self._staging
+        if staging is not None:
+            staging.counters["windows"] += 1
+            staging.counters["window_pages"] += page_span
+        return _PagedWindow(buffer, staging=staging, logical_start=start)
+
+    def _read_word(self, offset: int) -> float:
+        index = offset // PERSISTENCE_PAGE_WORDS
+        page = (
+            self._staging.page(index)
+            if self._staging is not None
+            else self._image.page(index)
+        )
+        return float(page[offset % PERSISTENCE_PAGE_WORDS])
+
+    def read_region(self, ref: "RegionRef") -> Any:
+        return _read_region(self, self._image.profile, ref)
+
+    def object(self, object_id: int) -> Any:
+        return _read_region(
+            self,
+            self._image.profile,
+            _resolve_object(self, self._image.profile, object_id),
+        )
+
+    def named_values(self, names: Sequence[str]) -> dict[str, Any]:
+        queue = _read_region(self, self._image.profile, _queue_ref(self))
+        return {
+            name: _read_region(
+                self,
+                self._image.profile,
+                _resolve_object(
+                    self,
+                    self._image.profile,
+                    _integer(queue["named_values"].get(name), "named object ID", minimum=1),
+                ),
+            )
+            for name in names
+        }
+
+
+def validate_paged_delta(
+    predecessor: PagedFieldImage,
+    successor: PagedFieldImage,
+    *,
+    changed_pages: Sequence[int] | None = None,
+) -> dict[str, Any]:
+    """Incremental validation of a paged successor.
+
+    The immutable predecessor was validated at admission or by an earlier
+    delta, and every chunk is verified against its decoded-content identity
+    when it is loaded.  This check re-establishes the structural invariants
+    that changed pages can affect: header/profile agreement, directory
+    geometry, payload disjointness, descriptor words, and counter bounds.
+    """
+
+    profile = successor.profile
+    reader = _SegmentReader(successor)
+    header = reader.words(0, HEADER_WORDS)
+    if (
+        int(header[H_MAGIC]) != REGIONAL_MAGIC
+        or int(header[H_LAYOUT_REVISION]) != REGIONAL_LAYOUT_REVISION
+        or int(header[H_TOTAL_WORDS]) != profile.total_words
+        or int(header[H_DIRECTORY_CAPACITY]) != profile.directory_capacity
+    ):
+        raise RegionalFieldError("paged image header mismatches its profile")
+    if tuple(int(word) for word in header[H_PROFILE_SHA:H_PROFILE_SHA + 8]) != _sha_words(
+        profile.fingerprint
+    ):
+        raise RegionalFieldError("paged image header profile digest mismatches")
+    if tuple(int(word) for word in header[H_CATALOG_SHA:H_CATALOG_SHA + 8]) != _sha_words(
+        successor.catalog.fingerprint
+    ):
+        raise RegionalFieldError("paged image header catalog digest mismatches")
+    clock = _read_u64(header, H_CLOCK)
+    if clock > U64_MAX - 1:
+        raise RegionalFieldError("paged image clock is out of range")
+    if int(header[H_STATUS]) not in STATUS_NAMES:
+        raise RegionalFieldError("paged image status is invalid")
+    if int(header[H_REASON]) not in REASON_NAMES:
+        raise RegionalFieldError("paged image reason is invalid")
+    arena_start = HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity
+    ranges: list[tuple[int, int, int]] = []
+    for slot in range(1, profile.directory_capacity + 1):
+        row = reader.words(HEADER_WORDS + (slot - 1) * DIRECTORY_WORDS, DIRECTORY_WORDS)
+        if _read_u64(row, D_VERSION) > U64_MAX:
+            raise RegionalFieldError("paged image region version is out of range")
+        flags = int(row[D_FLAGS])
+        if not flags & (FLAG_LIVE | FLAG_QUARANTINED):
+            continue
+        base, used, capacity = int(row[D_BASE]), int(row[D_USED]), int(row[D_CAPACITY])
+        if not arena_start <= base <= base + capacity <= profile.workspace_words:
+            raise RegionalFieldError("paged image region range is outside the arena")
+        if used > capacity:
+            raise RegionalFieldError("paged image region usage exceeds its capacity")
+        if int(row[D_KIND]) not in KIND_NAMES or int(row[D_CODEC]) not in (CODEC_JSON, CODEC_WORDS):
+            raise RegionalFieldError("paged image region kind or codec is invalid")
+        if int(row[D_GENERATION]) <= 0:
+            raise RegionalFieldError("paged image live region has no generation")
+        ranges.append((base, base + capacity, slot))
+    ranges.sort()
+    for (start, stop, slot), (next_start, _next_stop, next_slot) in zip(ranges, ranges[1:]):
+        if stop > next_start:
+            raise RegionalFieldError(
+                f"paged image regions overlap (slots {slot} and {next_slot})"
+            )
+    changed = (
+        tuple(int(index) for index in changed_pages)
+        if changed_pages is not None
+        else None
+    )
+    if changed is not None:
+        for index in changed:
+            leaf = successor.directory.leaf(index)
+            if leaf is None:
+                continue
+            page = successor.page(index)
+            if (
+                not np.isfinite(page).all()
+                or not np.equal(page, np.floor(page)).all()
+                or np.any(page < 0)
+                or np.any(page > U32_MAX)
+            ):
+                raise RegionalFieldError("paged image page is not a canonical u32 image")
+    return {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        "kind": "paged-delta-validation",
+        "predecessor_root_sha256": predecessor.root_sha256,
+        "root_sha256": successor.root_sha256,
+        "changed_pages": list(changed or ()),
+        "checked_slots": profile.directory_capacity,
+        "checked_pages": len(successor._validated_pages),
+    }
+
+
+def validate_paged_structure(image: PagedFieldImage) -> dict[str, Any]:
+    """Bounded structural validation of one paged image.
+
+    Reads the control closure only: identity words, the committed directory,
+    and the named regions the machine dereferences.  Page contents are bound
+    by their recorded digests and verified when a page is decoded, so a
+    bounded check is the paged analogue of holding a validated dense image;
+    ``validate_paged_image`` is the declared full audited read.
+    """
+
+    profile = image.profile
+    catalog = image.catalog
+    header = image.header_words(0, HEADER_WORDS)
+    directory = image.header_words(
+        HEADER_WORDS, DIRECTORY_WORDS * profile.directory_capacity
+    ).reshape(profile.directory_capacity, DIRECTORY_WORDS)
+    if (
+        int(header[H_MAGIC]) != REGIONAL_MAGIC
+        or int(header[H_LAYOUT_REVISION]) != REGIONAL_LAYOUT_REVISION
+    ):
+        raise RegionalFieldError("paged header identity is invalid")
+    if (
+        int(header[H_TOTAL_WORDS]) != profile.total_words
+        or int(header[H_DIRECTORY_CAPACITY]) != profile.directory_capacity
+    ):
+        raise RegionalFieldError("paged header geometry is invalid")
+    if (
+        _words_sha(
+            [int(word) for word in header[H_PROFILE_SHA:H_PROFILE_SHA + 8]]
+        )
+        != profile.fingerprint
+    ):
+        raise RegionalFieldError("paged profile digest is invalid")
+    if (
+        _words_sha(
+            [int(word) for word in header[H_CATALOG_SHA:H_CATALOG_SHA + 8]]
+        )
+        != catalog.fingerprint
+    ):
+        raise RegionalFieldError("paged catalog digest is invalid")
+    if int(header[H_STATUS]) not in STATUS_NAMES or int(
+        header[H_REASON]
+    ) not in REASON_NAMES:
+        raise RegionalFieldError("paged status or reason is invalid")
+    committed = image.directory.tree(profile, previous=image.tree)
+    if committed.root_sha256 != image.root_sha256:
+        raise RegionalFieldError("paged page root does not match its directory")
+    if image.audited_state_sha256 is not None and (
+        len(image.audited_state_sha256) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in image.audited_state_sha256
+        )
+    ):
+        raise RegionalFieldError("paged audited state digest is invalid")
+    live = 0
+    for row in directory:
+        flags = int(row[D_FLAGS])
+        if not flags & (FLAG_LIVE | FLAG_QUARANTINED):
+            continue
+        live += 1
+        if int(row[D_KIND]) not in KIND_NAMES:
+            raise RegionalFieldError("paged directory kind is invalid")
+        if int(row[D_CODEC]) not in (CODEC_JSON, CODEC_WORDS):
+            raise RegionalFieldError("paged directory codec is invalid")
+        base = int(row[D_BASE])
+        capacity = int(row[D_CAPACITY])
+        if capacity <= 0 or base + capacity > profile.workspace_words:
+            raise RegionalFieldError("paged region extent is outside the image")
+    for index in range(image.page_count):
+        leaf = image.directory.leaf(index)
+        if leaf is None:
+            continue
+        physical = image.objects.get(leaf.object_sha256)
+        if physical is None:
+            raise PageUnavailable(
+                "missing",
+                f"page {index} object is absent from storage",
+                pages=[index],
+            )
+        if len(physical) != leaf.object_bytes:
+            raise PageUnavailable(
+                "corrupt", f"page {index} object length mismatches", pages=[index]
+            )
+    view = image.view()
+    _read_region(view, profile, _queue_ref(view))
+    _read_region(view, profile, _ledger_ref(view))
+    return {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        "kind": "paged-structure",
+        "root_sha256": image.root_sha256,
+        "state_sha256": image.state_identity_sha256(),
+        "profile_sha256": profile.fingerprint,
+        "catalog_sha256": catalog.fingerprint,
+        "status": STATUS_NAMES[int(header[H_STATUS])],
+        "reason": REASON_NAMES[int(header[H_REASON])],
+        "checked_slots": profile.directory_capacity,
+        "checked_regions": live,
+        "checked_pages": image.page_count,
+        "check": "bounded-structure",
+    }
+
+
+def validate_paged_image(image: PagedFieldImage) -> dict[str, Any]:
+    """Full audited validation: materialise, verify structure, re-hash."""
+
+    field = image.materialise()
+    validate_field(field, image.profile, image.catalog)
+    digest = state_sha256(field, image.profile)
+    if (
+        image.audited_state_sha256 is not None
+        and digest != image.audited_state_sha256
+    ):
+        raise RegionalFieldError("paged image audited digest mismatches")
+    image._validated_pages = set(range(image.page_count))
+    return {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        "kind": "paged-full-validation",
+        "root_sha256": image.root_sha256,
+        "state_sha256": digest,
+        "pages": image.page_count,
+        "residency": image.residency_report(),
+    }
+
+
+def _paged_commit_blocks(
+    image: PagedFieldImage, stage: str, clock: int | None
+) -> dict[str, Any]:
+    return {
+        "clock": None if clock is None else int(clock),
+        "base_epoch": int(_read_u64(_SegmentReader(image).words(0, HEADER_WORDS), H_BASE_EPOCH)),
+    }
+
+
+def _paged_status_receipt(
+    successor: PagedFieldImage,
+    predecessor: PagedFieldImage,
+    record: Mapping[str, Any],
+    *,
+    kind: str,
+    status: int,
+    reason: int,
+    clock: int,
+    extra: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    receipt: dict[str, Any] = {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        "kind": kind,
+        "paged": True,
+        "status": STATUS_NAMES[int(status)],
+        "reason": REASON_NAMES[int(reason)],
+        "previous_state_sha256": predecessor.state_identity_sha256(),
+        "state_sha256": successor.state_identity_sha256(),
+        "predecessor_root_sha256": predecessor.root_sha256,
+        "root_sha256": successor.root_sha256,
+        "logical_transition": int(clock),
+        "commit": dict(record),
+    }
+    if extra:
+        receipt.update(extra)
+    return receipt
+
+
+def residency_continuation(
+    wait: "ResidencyWait",
+    *,
+    root_sha256: str,
+    staging: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Canonical record of one suspended paged transition.
+
+    A residency wait is a continuation, not a fault: it carries the requesting
+    stage, the exact page identities and versions, the declared layout segments
+    under authority, the completed work, the remaining allowance, the root the
+    request was made against, and the private successor references.  The host
+    may checkpoint it and resume the same transition later; it grants no
+    authority beyond the storage operation already authorised by the stage.
+    """
+
+    if not isinstance(wait, ResidencyWait):
+        raise RegionalFieldError("residency continuation requires a wait")
+    if not isinstance(root_sha256, str) or len(root_sha256) != 64:
+        raise RegionalFieldError("residency continuation root is invalid")
+    return {
+        "schema": RESIDENCY_CONTINUATION_SCHEMA,
+        "kind": "paged-continuation",
+        "stage": wait.stage,
+        "root_sha256": root_sha256,
+        "pages": list(wait.pages),
+        "page_versions": list(wait.versions),
+        "segments": list(wait.segments),
+        "authority_scope": wait.scope,
+        "completed_work": wait.work,
+        "remaining_allowance": wait.allowance,
+        "private_pages": list(wait.private_pages),
+        "reason": wait.reason,
+        "staging": None if staging is None else dict(staging),
+    }
+
+
+def read_residency_continuation(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate one canonical residency continuation record."""
+
+    required = {
+        "schema",
+        "kind",
+        "stage",
+        "root_sha256",
+        "pages",
+        "page_versions",
+        "segments",
+        "authority_scope",
+        "completed_work",
+        "remaining_allowance",
+        "private_pages",
+        "reason",
+        "staging",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise RegionalFieldError("invalid residency continuation keys")
+    if (
+        value["schema"] != RESIDENCY_CONTINUATION_SCHEMA
+        or value["kind"] != "paged-continuation"
+    ):
+        raise RegionalFieldError("unsupported residency continuation")
+    root = value["root_sha256"]
+    if not isinstance(root, str) or len(root) != 64:
+        raise RegionalFieldError("residency continuation root is invalid")
+    pages = [_integer(index, "residency continuation page", minimum=0) for index in value["pages"]]
+    if len(set(pages)) != len(pages):
+        raise RegionalFieldError("residency continuation pages repeat")
+    versions = value["page_versions"]
+    if not isinstance(versions, Sequence) or isinstance(versions, (str, bytes)):
+        raise RegionalFieldError("residency continuation versions are invalid")
+    for version in versions:
+        if not isinstance(version, str) or len(version) != 64:
+            raise RegionalFieldError("residency continuation version is invalid")
+    if len(versions) != len(pages):
+        raise RegionalFieldError("residency continuation version count mismatch")
+    segments = value["segments"]
+    if not isinstance(segments, Sequence) or isinstance(segments, (str, bytes)):
+        raise RegionalFieldError("residency continuation segments are invalid")
+    for name in segments:
+        if not isinstance(name, str) or not name:
+            raise RegionalFieldError("residency continuation segment is invalid")
+    _integer(value["authority_scope"], "residency continuation scope", minimum=0)
+    _integer(value["completed_work"], "residency continuation work", minimum=0)
+    if value["remaining_allowance"] is not None:
+        _integer(
+            value["remaining_allowance"],
+            "residency continuation allowance",
+            minimum=1,
+        )
+    if not isinstance(value["reason"], str) or not value["reason"]:
+        raise RegionalFieldError("residency continuation reason is invalid")
+    if not isinstance(value["stage"], str) or not value["stage"]:
+        raise RegionalFieldError("residency continuation stage is invalid")
+    if value["staging"] is not None and not isinstance(value["staging"], Mapping):
+        raise RegionalFieldError("residency continuation staging is invalid")
+    return dict(value)
+
+
+def step_paged_image(
+    image: PagedFieldImage,
+    *,
+    catalog: "KernelCatalog | None" = None,
+    stage: str = "transition",
+    record_audit_digest: bool = False,
+    resident_limit: int | None = None,
+    activity: Mapping[Any, Any] | None = None,
+    activity_weight: int = DEFAULT_ACTIVITY_WEIGHT,
+    _native_state_cache: dict[tuple[int, int, int], Any] | None = None,
+    _descriptor_cache: dict[tuple[int, int], dict[str, Any]] | None = None,
+    _program_cache: dict[tuple[int, int, int], list[dict[str, Any]]] | None = None,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Execute one automaton-selected transition over bounded pages.
+
+    The committed image is never modified: the transition's writes live in a
+    private overlay until publication, so a fault, a residency wait, or a
+    crash discards them and leaves the predecessor intact.
+    """
+
+    profile = image.profile
+    if catalog is None:
+        catalog = image.catalog
+    if not isinstance(catalog, KernelCatalog):
+        raise RegionalFieldError("kernel catalog required for a paged transition")
+    if catalog.fingerprint != image.catalog.fingerprint:
+        raise RegionalFieldError("paged image catalog mismatches the requested catalog")
+    caller_image = image
+    if resident_limit is not None:
+        image = image.with_resident_limit(resident_limit)
+    staging = image.stage(stage=stage)
+    trial: PagedFieldStaging | None = None
+    try:
+        view = staging.view()
+        status = int(view[H_STATUS])
+        if status not in (STATUS_RUNNING, STATUS_WAITING):
+            report = staging.discard()
+            return image, {
+                "schema": PAGED_MANIFEST_SCHEMA,
+                "kind": "noop",
+                "paged": True,
+                "status": STATUS_NAMES[status],
+                "reason": REASON_NAMES[int(view[H_REASON])],
+                "state_unchanged": True,
+                "previous_state_sha256": image.state_identity_sha256(),
+                "state_sha256": image.state_identity_sha256(),
+                "root_sha256": image.root_sha256,
+                "staging": report,
+            }
+        clock = _read_u64(view, H_CLOCK)
+        if clock >= U64_MAX - 1:
+            _write_u64(view, H_CLOCK, U64_MAX)
+            view[H_STATUS] = STATUS_COUNTER_EXHAUSTED
+            view[H_REASON] = REASON_COUNTER_EXHAUSTED
+            successor, record = staging.commit(
+                blocks=_paged_commit_blocks(image, stage, U64_MAX),
+                audit_digest=record_audit_digest,
+            )
+            validate_paged_delta(image, successor, changed_pages=record["changed_pages"])
+            return successor, _paged_status_receipt(
+                successor,
+                image,
+                record,
+                kind="counter-exhausted",
+                status=STATUS_COUNTER_EXHAUSTED,
+                reason=REASON_COUNTER_EXHAUSTED,
+                clock=U64_MAX,
+            )
+        if clock >= profile.max_steps:
+            view[H_STATUS] = STATUS_EXHAUSTED
+            view[H_REASON] = REASON_STEP_BUDGET
+            successor, record = staging.commit(
+                blocks=_paged_commit_blocks(image, stage, clock),
+                audit_digest=record_audit_digest,
+            )
+            validate_paged_delta(image, successor, changed_pages=record["changed_pages"])
+            return successor, _paged_status_receipt(
+                successor,
+                image,
+                record,
+                kind="exhausted",
+                status=STATUS_EXHAUSTED,
+                reason=REASON_STEP_BUDGET,
+                clock=clock,
+            )
+        queue_ref = _queue_ref(view)
+        queue = _read_region(view, profile, queue_ref)
+        events = [dict(event) for event in queue["events"]]
+        candidates = sorted(events, key=_event_sort_key)
+        eligibility_rows = [
+            _eligibility(
+                view,
+                profile,
+                event,
+                catalog,
+                _descriptor_cache=_descriptor_cache,
+                _program_cache=_program_cache,
+            )
+            for event in candidates
+        ]
+        eligible = [row[0] for row in eligibility_rows]
+        automaton_index, automaton_receipt, activity_modulation = (
+            _advance_automaton(
+                view,
+                profile,
+                queue,
+                candidates,
+                eligible,
+                activity,
+                activity_weight,
+            )
+        )
+        ready_indices = [index for index, flag in enumerate(eligible) if flag]
+        if not ready_indices:
+            for event, row in zip(candidates, eligibility_rows):
+                event["state"] = "faulted" if row[1] == "fault" else "waiting"
+                event["reason"] = row[1]
+            queue["events"] = sorted(candidates, key=lambda event: int(event["sequence"]))
+            _write_region(view, profile, queue_ref, queue)
+            _write_u64(view, H_CLOCK, clock + 1)
+            faulted = any(row[1] == "fault" for row in eligibility_rows)
+            view[H_STATUS] = STATUS_FAULTED if faulted else STATUS_WAITING
+            view[H_REASON] = (
+                REASON_INVALID_INSTRUCTION if faulted else REASON_NO_READY_EVENT
+            )
+            successor, record = staging.commit(
+                blocks=_paged_commit_blocks(image, stage, clock + 1),
+                audit_digest=record_audit_digest,
+            )
+            validate_paged_delta(image, successor, changed_pages=record["changed_pages"])
+            return successor, _paged_status_receipt(
+                successor,
+                image,
+                record,
+                kind="no-ready-event",
+                status=STATUS_FAULTED if faulted else STATUS_WAITING,
+                reason=REASON_INVALID_INSTRUCTION if faulted else REASON_NO_READY_EVENT,
+                clock=clock + 1,
+                extra={
+                    "blocked_reasons": [row[1] for row in eligibility_rows],
+                    "events": len(candidates),
+                    "automaton": dict(automaton_receipt),
+                    **(
+                        {}
+                        if activity_modulation is None
+                        else {"activity_modulation": activity_modulation}
+                    ),
+                },
+            )
+        dispatch_count = int(queue["dispatch_count"]) + 1
+        if dispatch_count % profile.fairness_interval == 0:
+            selected_index = min(
+                ready_indices,
+                key=lambda index: (
+                    int(candidates[index]["ready_at"]),
+                    int(candidates[index]["sequence"]),
+                ),
+            )
+        else:
+            selected_index = (
+                automaton_index if automaton_index in ready_indices else ready_indices[0]
+            )
+        selected = candidates[selected_index]
+        instruction = eligibility_rows[selected_index][2]
+        if instruction is None:
+            raise RegionalFieldError("eligible event has no instruction")
+        selected["state"] = "active"
+        selected["reason"] = None
+        output: Any = None
+        work = 0
+        emitted: list[dict[str, Any]] = []
+        fault_detail: str | None = None
+        trial = staging.spawn(stage=f"{stage}:trial")
+        trial_queue = copy.deepcopy(queue)
+        trial_selected = copy.deepcopy(selected)
+        state_cache_updates: list[tuple[tuple[int, int, int], Any]] = []
+        try:
+            disposition, output, work, emitted = _execute_instruction(
+                trial.view(),
+                profile,
+                catalog,
+                trial_queue,
+                trial_selected,
+                instruction,
+                clock=clock + 1,
+                _native_state_cache=_native_state_cache,
+                _state_cache_updates=state_cache_updates,
+            )
+        except PageUnavailable:
+            trial.discard()
+            report = staging.discard()
+            raise
+        except ResidencyWait:
+            trial.discard()
+            report = staging.discard()
+            raise
+        except RegionalFieldError as exc:
+            fault_detail = str(exc)
+            disposition = "fault"
+            trial.discard()
+            # A fault abandons everything the transition staged, including
+            # the pre-dispatch automaton step, and replays that step on the
+            # committed image: the dense machine rolls back to the image it
+            # was handed and never keeps a partial advance.
+            staging.discard()
+            staging = image.stage(stage=stage)
+            view = staging.view()
+            _advance_automaton(view, profile, queue, candidates, eligible)
+        else:
+            queue = trial_queue
+            selected = trial_selected
+            staging = trial
+            view = staging.view()
+        survivors = [
+            event
+            for event in candidates
+            if int(event["event_id"]) != int(selected["event_id"])
+        ]
+        if disposition in {"continue", "yield"}:
+            sequence = _read_u64(view, H_NEXT_SEQUENCE)
+            if sequence >= U64_MAX:
+                raise RegionalFieldError("event sequence is exhausted")
+            selected["state"] = "ready"
+            selected["reason"] = None
+            selected["ready_at"] = clock + 1
+            selected["sequence"] = sequence
+            _write_u64(view, H_NEXT_SEQUENCE, sequence + 1)
+            survivors.append(selected)
+        elif disposition == "blocked":
+            selected["state"] = "waiting"
+            selected["reason"] = "kernel-blocked"
+            survivors.append(selected)
+        elif disposition == "fault":
+            selected["state"] = "faulted"
+            selected["reason"] = "kernel-fault"
+            survivors.append(selected)
+        survivors.extend(emitted)
+        if len(survivors) > profile.max_events:
+            raise RegionalFieldError("event queue is exhausted")
+        queue["events"] = sorted(survivors, key=lambda event: int(event["sequence"]))
+        queue["dispatch_count"] = dispatch_count
+        _write_region(view, profile, queue_ref, queue)
+        ledger_ref = _ledger_ref(view)
+        ledger = dict(_read_region(view, profile, ledger_ref))
+        ledger["dispatches"] = int(ledger["dispatches"]) + 1
+        ledger["logical_transitions"] = int(ledger["logical_transitions"]) + 1
+        ledger["native_work"] = int(ledger["native_work"]) + int(work)
+        ledger["scheduler_work"] = int(ledger["scheduler_work"]) + len(candidates)
+        ledger["automaton_local_ops"] = int(ledger["automaton_local_ops"]) + int(
+            automaton_receipt["work"]["local_ops"]
+        )
+        if activity_modulation is not None:
+            ledger["activity_modulated"] = int(
+                ledger.get("activity_modulated", 0)
+            ) + len(activity_modulation["applied"])
+        _write_region(view, profile, ledger_ref, ledger)
+        _write_u64(view, H_CLOCK, clock + 1)
+        _write_u64(view, H_BASE_EPOCH, _read_u64(view, H_BASE_EPOCH) + 1)
+        view[H_STATUS] = (
+            STATUS_FAULTED
+            if disposition == "fault"
+            else (STATUS_HALTED if not survivors else STATUS_RUNNING)
+        )
+        view[H_REASON] = (
+            REASON_KERNEL_FAULT
+            if disposition == "fault"
+            else (REASON_HALT if not survivors else REASON_NONE)
+        )
+        eligibility_digest = hashlib.sha256(
+            _canonical(
+                [
+                    {"event_id": int(event["event_id"]), "eligible": bool(row[0]), "reason": row[1]}
+                    for event, row in zip(candidates, eligibility_rows)
+                ]
+            )
+        ).hexdigest()
+        successor, record = staging.commit(
+            blocks=_paged_commit_blocks(image, stage, clock + 1),
+            audit_digest=record_audit_digest,
+        )
+        validate_paged_delta(image, successor, changed_pages=record["changed_pages"])
+        successor._validated_pages |= set(image._validated_pages) - set(record["changed_pages"])
+        if _native_state_cache is not None:
+            for cache_key, cached_state in state_cache_updates:
+                slot, generation, _version = cache_key
+                for stale_key in [
+                    key for key in _native_state_cache if key[:2] == (slot, generation)
+                ]:
+                    del _native_state_cache[stale_key]
+                _native_state_cache[cache_key] = cached_state
+        final_header = _SegmentReader(successor).words(H_STATUS, 2)
+        return successor, {
+            "schema": PAGED_MANIFEST_SCHEMA,
+            "kind": "regional-transition",
+            "paged": True,
+            "status": STATUS_NAMES[int(final_header[0])],
+            "reason": REASON_NAMES[int(final_header[1])],
+            "event_id": int(selected["event_id"]),
+            "program_id": int(selected["program_id"]),
+            "pc": int(selected["pc"]),
+            "operation": instruction["op"],
+            "disposition": disposition,
+            "fault_detail": fault_detail,
+            "output": output,
+            "work": {
+                "native": int(work),
+                "scheduler": len(candidates),
+                **dict(automaton_receipt["work"]),
+            },
+            "eligibility_sha256": eligibility_digest,
+            "automaton": dict(automaton_receipt),
+            **(
+                {}
+                if activity_modulation is None
+                else {"activity_modulation": activity_modulation}
+            ),
+            "previous_state_sha256": image.state_identity_sha256(),
+            "state_sha256": successor.state_identity_sha256(),
+            "predecessor_root_sha256": image.root_sha256,
+            "root_sha256": successor.root_sha256,
+            "logical_transition": clock + 1,
+            "commit": record,
+        }
+    except ResidencyWait as wait:
+        report = dict(staging.counters)
+        if trial is not None:
+            trial.release_chain()
+        staging.release_chain()
+        continuation = residency_continuation(
+            wait, root_sha256=image.root_sha256, staging=report
+        )
+        return caller_image, {
+            "schema": PAGED_MANIFEST_SCHEMA,
+            "kind": "residency-wait",
+            "paged": True,
+            "status": STATUS_NAMES[int(_SegmentReader(image).words(H_STATUS, 1)[0])],
+            "reason": REASON_NAMES[int(_SegmentReader(image).words(H_REASON, 1)[0])],
+            "state_unchanged": True,
+            "previous_state_sha256": image.state_identity_sha256(),
+            "state_sha256": image.state_identity_sha256(),
+            "root_sha256": image.root_sha256,
+            "wait": wait.as_dict(),
+            "continuation": continuation,
+        }
+    except BaseException:
+        # A physical resource wait or failed transition cannot retain any
+        # scratch reservation from either the trial or its parent overlay.
+        if trial is not None:
+            trial.release_chain()
+        staging.release_chain()
+        raise
+
+
+def run_paged_image(
+    image: PagedFieldImage,
+    *,
+    steps: int | None = None,
+    catalog: "KernelCatalog | None" = None,
+    record_audit_digest: bool = False,
+    activity: Mapping[Any, Any] | None = None,
+    activity_weight: int = DEFAULT_ACTIVITY_WEIGHT,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Run bounded paged transitions until halt, exhaustion, or a wait."""
+
+    if steps is not None:
+        _integer(steps, "paged run steps", minimum=0, maximum=U64_MAX)
+    transitions: list[dict[str, Any]] = []
+    waiting: dict[str, Any] | None = None
+    executed = 0
+    current = image
+    limit = profile_steps = current.profile.max_steps if steps is None else steps
+    while executed < limit:
+        successor, receipt = step_paged_image(
+            current,
+            catalog=catalog,
+            record_audit_digest=record_audit_digest,
+            stage="run",
+            activity=activity,
+            activity_weight=activity_weight,
+        )
+        if receipt.get("kind") == "noop":
+            stop = "settled" if executed else "noop"
+            return successor, {
+                "schema": PAGED_MANIFEST_SCHEMA,
+                "kind": "paged-run",
+                "steps": executed,
+                "stop": stop,
+                "status": receipt["status"],
+                "reason": receipt["reason"],
+                "root_sha256": successor.root_sha256,
+                "state_sha256": successor.state_identity_sha256(),
+                "transitions": transitions,
+                "residency": successor.residency_report(),
+            }
+        if receipt.get("kind") == "residency-wait":
+            waiting = receipt
+            break
+        transitions.append(dict(receipt))
+        current = successor
+        executed += 1
+        if receipt["status"] in {"halted", "faulted", "exhausted", "counter-exhausted"}:
+            break
+    summary: dict[str, Any] = {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        "kind": "paged-run",
+        "steps": executed,
+        "stop": "wait" if waiting is not None else (
+            "settled" if executed < limit else "step-budget"
+        ),
+        "root_sha256": current.root_sha256,
+        "state_sha256": current.state_identity_sha256(),
+        "transitions": transitions,
+        "residency": current.residency_report(),
+    }
+    if waiting is not None:
+        summary["wait"] = waiting["wait"]
+        summary["continuation"] = waiting["continuation"]
+    return current, summary
+
+
+def _paged_flat_transition(
+    image: PagedFieldImage,
+    operation: Any,
+    *,
+    stage: str,
+    record_audit_digest: bool,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Run one flat-image mutation over staged pages and publish it.
+
+    The committed image is never modified: the operation writes into a private
+    overlay, and only a successful, canonically validated overlay becomes the
+    successor.  A resource wait or a refused transition discards the overlay
+    and leaves the predecessor exactly as it was.
+    """
+
+    staging = PagedFieldStaging(image, stage=stage)
+    view = staging.view()
+    clock = _read_u64(view, H_CLOCK)
+    try:
+        detail = operation(view)
+    except ResidencyWait as wait:
+        # A refused input is a continuation, not a fault: the committed image
+        # is untouched and the same operation resumes under a larger allowance.
+        report = staging.discard()
+        return image, {
+            "schema": PAGED_MANIFEST_SCHEMA,
+            "kind": "residency-wait",
+            "paged": True,
+            "stage": stage,
+            "status": STATUS_NAMES[int(_SegmentReader(image).words(H_STATUS, 1)[0])],
+            "reason": REASON_NAMES[int(_SegmentReader(image).words(H_REASON, 1)[0])],
+            "state_unchanged": True,
+            "previous_state_sha256": image.state_identity_sha256(),
+            "state_sha256": image.state_identity_sha256(),
+            "root_sha256": image.root_sha256,
+            "wait": wait.as_dict(),
+            "continuation": residency_continuation(
+                wait, root_sha256=image.root_sha256, staging=report
+            ),
+        }
+    except (PageUnavailable, RegionalFieldError):
+        staging.discard()
+        raise
+    successor, record = staging.commit(
+        blocks=_paged_commit_blocks(image, stage, clock + 1),
+        audit_digest=record_audit_digest,
+    )
+    validate_paged_delta(
+        image, successor, changed_pages=record["changed_pages"]
+    )
+    successor._validated_pages |= set(image._validated_pages) - set(
+        record["changed_pages"]
+    )
+    return successor, {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        **detail,
+        "paged": True,
+        "stage": stage,
+        "previous_state_sha256": image.state_identity_sha256(),
+        "state_sha256": successor.state_identity_sha256(),
+        "predecessor_root_sha256": image.root_sha256,
+        "root_sha256": successor.root_sha256,
+        "commit": record,
+    }
+
+
+def write_named_value_paged(
+    image: PagedFieldImage,
+    name: str,
+    value: Any,
+    *,
+    stage: str = "named-value",
+    record_audit_digest: bool = False,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Publish one host-lowered input over bounded pages."""
+
+    return _paged_flat_transition(
+        image,
+        lambda flat: _write_named_value_flat(flat, image.profile, name, value),
+        stage=stage,
+        record_audit_digest=record_audit_digest,
+    )
+
+
+def restart_paged(
+    image: PagedFieldImage,
+    *,
+    entry: int = 0,
+    values: Mapping[str, Any] | None = None,
+    stage: str = "restart",
+    record_audit_digest: bool = False,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Restart the admitted root program over bounded pages."""
+
+    return _paged_flat_transition(
+        image,
+        lambda flat: _restart_flat(
+            flat, image.profile, image.catalog, entry=entry, values=values
+        ),
+        stage=stage,
+        record_audit_digest=record_audit_digest,
+    )
+
+
+def inspect_paged_image(image: PagedFieldImage) -> dict[str, Any]:
+    """Read-only bounded inspection that decodes only control-closure pages."""
+
+    view = image.view()
+    profile = image.profile
+    header = view.window(0, HEADER_WORDS)
+    queue = _read_region(view, profile, _queue_ref(view))
+    ledger = _read_region(view, profile, _ledger_ref(view))
+    segments = image.segments()
+    directory = view.window(
+        HEADER_WORDS,
+        HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity,
+    ).reshape(profile.directory_capacity, DIRECTORY_WORDS)
+    regions: list[dict[str, Any]] = []
+    for index in range(profile.directory_capacity):
+        row = directory[index]
+        flags = int(row[D_FLAGS])
+        if not flags & (FLAG_LIVE | FLAG_QUARANTINED):
+            continue
+        regions.append(
+            {
+                "slot": index + 1,
+                "generation": int(row[D_GENERATION]),
+                "kind": KIND_NAMES[int(row[D_KIND])],
+                "flags": flags,
+                "capacity_words": int(row[D_CAPACITY]),
+                "used_words": int(row[D_USED]),
+                "scope_id": _read_u64(row, D_SCOPE_ID),
+                "version": _read_u64(row, D_VERSION),
+            }
+        )
+    return {
+        "schema": PAGED_MANIFEST_SCHEMA,
+        "kind": "paged-inspection",
+        "layout": REGIONAL_LAYOUT,
+        "profile_sha256": profile.fingerprint,
+        "catalog_sha256": _words_sha(
+            [int(word) for word in header[H_CATALOG_SHA:H_CATALOG_SHA + 8]]
+        ),
+        "field_bytes": profile.total_words * 8,
+        "status": STATUS_NAMES[int(header[H_STATUS])],
+        "reason": REASON_NAMES[int(header[H_REASON])],
+        "clock": _read_u64(header, H_CLOCK),
+        "logical_transition": _read_u64(header, H_CLOCK),
+        "sequence": _read_u64(header, H_NEXT_SEQUENCE),
+        "base_epoch": _read_u64(header, H_BASE_EPOCH),
+        "events": len(queue["events"]),
+        "dispatch_count": int(queue["dispatch_count"]),
+        "named_values": dict(queue["named_values"]),
+        "named_value_names": sorted(queue["named_values"]),
+        "ledger": dict(ledger),
+        "resource_ledger": dict(ledger),
+        "regions": regions,
+        "regions_metadata": "deferred",
+        "segments": {name: len(pages) for name, pages in segments.items()},
+        "control_pages": list(image.control_closure()),
+        "root_sha256": image.root_sha256,
+        "state_sha256": image.state_identity_sha256(),
+        "residency": image.residency_report(),
+    }
+
+
+def paged_state_sha256(image: PagedFieldImage) -> str:
+    """The logical state identity of one paged image, streamed page by page."""
+
+    return image.logical_state_sha256()
+
+
+def named_values_paged(
+    image: PagedFieldImage, names: Sequence[str]
+) -> dict[str, Any]:
+    """Read named values through one bounded paged view."""
+
+    return image.view().named_values(names)
+
+
+def object_value_paged(image: PagedFieldImage, object_id: int) -> Any:
+    """Read one object through a bounded paged view."""
+
+    return image.view().object(object_id)
+
+
+def migrate_flat_to_paged(
+    field: np.ndarray | Mapping[str, Any],
+    *,
+    profile: "RegionalProfile | None" = None,
+    catalog: "KernelCatalog" = EMPTY_KERNEL_CATALOG,
+    objects: Mapping[str, bytes] | None = None,
+    transition: Mapping[str, Any] | None = None,
+    operator_versions: Mapping[str, Any] | None = None,
+    resident_limit: int = DEFAULT_RESIDENT_PAGES,
+    resource_limits: ResourceLimits | Mapping[str, Any] | None = None,
+    validate: bool = True,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Migrate a dense image or chunked checkpoint onto the paged layout.
+
+    The predecessor's flat digest, logical layout, and identity are retained;
+    a storage-only migration changes placement and identity protocol, never
+    the numerical law.  A new numerical law is a separate declared kind.
+    """
+
+    kind = "storage-only" if transition is None else str(transition.get("kind"))
+    if kind not in {"storage-only", "numerical-law"}:
+        raise RegionalFieldError("paged migration kind is unsupported")
+    if isinstance(field, Mapping):
+        if profile is None:
+            profile = RegionalProfile.from_dict(field["profile"])
+        if not isinstance(objects, Mapping):
+            raise RegionalFieldError("migration from a checkpoint requires its objects")
+        packed = field
+        image = PagedFieldImage.from_descriptor(
+            {
+                "schema": PAGED_MANIFEST_SCHEMA,
+                "layout": REGIONAL_LAYOUT,
+                "profile": profile.as_dict(),
+                "profile_sha256": profile.fingerprint,
+                "catalog_sha256": packed["catalog_sha256"],
+                "page_words": PERSISTENCE_PAGE_WORDS,
+                "byte_order": "little",
+                "word_encoding": "u32",
+                "pages": [dict(record) for record in packed["chunks"]],
+                "page_count": _page_count(profile),
+                "root_sha256": PageDirectory(
+                    profile.fingerprint,
+                    _page_count(profile),
+                    tuple(PageLeaf.from_record(record) for record in packed["chunks"]),
+                )
+                .tree(profile)
+                .root_sha256,
+                "state_sha256": packed["state_sha256"],
+                "predecessor": {
+                    "root_sha256": None,
+                    "state_sha256": packed["state_sha256"],
+                    "layout": REGIONAL_LAYOUT,
+                },
+                "transition": {"kind": kind},
+            },
+            objects,
+            catalog,
+            resident_limit=resident_limit,
+            resource_limits=resource_limits,
+            verify="none",
+        )
+        predecessor = {
+            "root_sha256": None,
+            "state_sha256": packed["state_sha256"],
+            "layout": REGIONAL_LAYOUT,
+            "kind": "flat-checkpoint",
+        }
+    else:
+        if profile is None:
+            raise RegionalFieldError("migration from a dense image requires its profile")
+        image = PagedFieldImage.from_dense(
+            field,
+            profile,
+            catalog,
+            resident_limit=resident_limit,
+            resource_limits=resource_limits,
+            validate=validate,
+        )
+        predecessor = {
+            "root_sha256": None,
+            "state_sha256": image.logical_state_sha256(),
+            "layout": "dense-regional-image-v1",
+            "kind": "dense-image",
+        }
+        if objects is not None:
+            image = image.with_backing(objects)
+    record = {
+        "schema": LAYOUT_MIGRATION_SCHEMA,
+        "kind": kind,
+        "predecessor": predecessor,
+        "successor": {
+            "root_sha256": image.root_sha256,
+            "layout": REGIONAL_LAYOUT,
+            "page_words": PERSISTENCE_PAGE_WORDS,
+            "page_count": image.page_count,
+            "segments": {name: list(pages) for name, pages in image.segments().items()},
+        },
+        "logical_mapping": {
+            "start_word": 0,
+            "length": profile.total_words,
+            "offset": 0,
+            "layout": REGIONAL_LAYOUT,
+        },
+        "operator_versions": dict(operator_versions or {}),
+        "identity": {
+            "profile_sha256": profile.fingerprint,
+            "catalog_sha256": catalog.fingerprint,
+        },
+        "resource_limits": image.resource_limits.as_dict(),
+    }
+    image.predecessor = predecessor
+    image.transition = {"kind": kind, **(dict(transition or {}))}
+    return image, record
+
+
+def migrate_paged_layout(
+    image: PagedFieldImage,
+    profile: "RegionalProfile",
+    *,
+    catalog: "KernelCatalog | None" = None,
+    transition: Mapping[str, Any] | None = None,
+    operator_versions: Mapping[str, Any] | None = None,
+    resource_limits: ResourceLimits | Mapping[str, Any] | None = None,
+    validate: bool = True,
+    relocate_regions: bool = False,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Publish an explicit layout successor without dense reconstruction."""
+
+    if not isinstance(profile, RegionalProfile):
+        raise RegionalFieldError("regional profile required for a layout migration")
+    catalog = image.catalog if catalog is None else catalog
+    kind = "storage-only" if transition is None else str(transition.get("kind"))
+    if kind not in {"storage-only", "numerical-law"}:
+        raise RegionalFieldError("paged migration kind is unsupported")
+    if profile.total_words < image.profile.total_words:
+        raise RegionalFieldError("layout migration cannot discard logical words")
+    if profile.directory_capacity != image.profile.directory_capacity:
+        raise RegionalFieldError(
+            "layout migration cannot move the arena start: region bases would need an explicit remap"
+        )
+    new_count = _page_count(profile)
+    reader = _SegmentReader(image)
+    target_pages: dict[int, np.ndarray] = {}
+
+
+    def write_target(start: int, values: Sequence[float]) -> None:
+        raw = np.asarray(values, dtype=np.float64).reshape(-1)
+        first = start // PERSISTENCE_PAGE_WORDS
+        last = (start + raw.size - 1) // PERSISTENCE_PAGE_WORDS if raw.size else first
+        for index in range(first, last + 1):
+            page = target_pages.setdefault(
+                index,
+                np.zeros(
+                    min(PERSISTENCE_PAGE_WORDS, profile.total_words - index * PERSISTENCE_PAGE_WORDS),
+                    dtype=np.float64,
+                ),
+            )
+            base = index * PERSISTENCE_PAGE_WORDS
+            lo = max(start, base)
+            hi = min(start + raw.size, base + page.size)
+            page[lo - base:hi - base] = raw[lo - start:hi - start]
+
+    control_words = HEADER_WORDS + DIRECTORY_WORDS * profile.directory_capacity
+    write_target(0, reader.words(0, control_words))
+    old_rows: list[tuple[int, np.ndarray, np.ndarray]] = []
+    old_header = reader.words(0, HEADER_WORDS)
+    for slot in range(profile.directory_capacity):
+        row = reader.words(HEADER_WORDS + slot * DIRECTORY_WORDS, DIRECTORY_WORDS)
+        flags = int(row[D_FLAGS])
+        if not flags & (FLAG_LIVE | FLAG_QUARANTINED):
+            continue
+        capacity = int(row[D_CAPACITY])
+        old_rows.append((slot, row, reader.words(int(row[D_BASE]), capacity)))
+    cursor = control_words
+    resized_regions: list[dict[str, int]] = []
+    for slot, row, payload in sorted(old_rows, key=lambda item: int(item[1][D_BASE])):
+        old_capacity = int(row[D_CAPACITY])
+        new_capacity = old_capacity
+        if relocate_regions and int(row[D_KIND]) == KIND_VALUE:
+            if profile.mode_count > image.profile.mode_count:
+                new_capacity = max(
+                    new_capacity,
+                    (old_capacity * profile.mode_count + image.profile.mode_count - 1)
+                    // image.profile.mode_count,
+                )
+            used = int(row[D_USED])
+            if used * 2 >= old_capacity:
+                new_capacity = max(
+                    new_capacity, old_capacity + max(4096, old_capacity // 4)
+                )
+        target_base = cursor if relocate_regions else int(row[D_BASE])
+        if target_base + new_capacity > profile.workspace_words:
+            raise RegionalFieldError("growth cannot fit relocated payload arena")
+        write_target(target_base, payload)
+        if relocate_regions:
+            row[D_BASE] = target_base
+            row[D_CAPACITY] = new_capacity
+        write_target(HEADER_WORDS + slot * DIRECTORY_WORDS, row)
+        if new_capacity != old_capacity:
+            resized_regions.append({
+                "slot": slot + 1,
+                "kind": int(row[D_KIND]),
+                "old_capacity": old_capacity,
+                "new_capacity": new_capacity,
+            })
+        if relocate_regions:
+            cursor += new_capacity
+    write_target(H_TOTAL_WORDS, [profile.total_words])
+    write_target(H_PROFILE_SHA, _sha_words(profile.fingerprint))
+    write_target(H_CATALOG_SHA, _sha_words(catalog.fingerprint))
+    write_target(H_FREE_CURSOR, [old_header[H_FREE_CURSOR]])
+    if profile.neural_membrane and image.profile.neural_membrane:
+        for plane in range(NEURAL_MEMBRANE_PLANE_COUNT):
+            old_start = image.profile.neural_membrane_offset + plane * image.profile.mode_count
+            new_start = profile.neural_membrane_offset + plane * profile.mode_count
+            write_target(new_start, reader.words(old_start, image.profile.mode_count))
+    changed_objects: dict[str, bytes] = {}
+    leaves: list[PageLeaf] = []
+    for index, page in sorted(target_pages.items()):
+        if not np.any(page):
+            continue
+        decoded = _encode_page(page)
+        if decoded is None:
+            continue
+        physical = zlib.compress(decoded, level=6)
+        object_sha = hashlib.sha256(physical).hexdigest()
+        changed_objects[object_sha] = physical
+        leaves.append(PageLeaf(
+            index=index,
+            start_word=index * PERSISTENCE_PAGE_WORDS,
+            words=int(page.size),
+            decoded_bytes=len(decoded),
+            decoded_sha256=hashlib.sha256(decoded).hexdigest(),
+            object_bytes=len(physical),
+            object_sha256=object_sha,
+        ))
+    directory = PageDirectory(profile.fingerprint, new_count, tuple(leaves))
+    predecessor = {
+        "root_sha256": image.root_sha256,
+        "state_sha256": image.state_identity_sha256(),
+        "layout": REGIONAL_LAYOUT,
+    }
+    successor = PagedFieldImage(
+        profile,
+        catalog,
+        directory,
+        ObjectOverlay(changed_objects, image.objects),
+        resident_limit=image.resident_limit,
+        dirty_limit=image.dirty_limit,
+        predecessor=predecessor,
+        transition={"kind": kind, **dict(transition or {})},
+        revoked_roots=image.revoked_roots,
+        state_sha256_kind=image.state_sha256_kind,
+        pinned=tuple(index for index in image.pinned() if index < new_count),
+        previous_tree=None,
+        _objects_verified=True,
+        resource_limits=(
+            image.resource_limits if resource_limits is None else resource_limits
+        ),
+    )
+    record = {
+        "schema": LAYOUT_MIGRATION_SCHEMA,
+        "kind": kind,
+        "predecessor": predecessor,
+        "successor": {
+            "root_sha256": successor.root_sha256,
+            "layout": REGIONAL_LAYOUT,
+            "page_words": PERSISTENCE_PAGE_WORDS,
+            "page_count": successor.page_count,
+            "segments": {name: list(pages) for name, pages in successor.segments().items()},
+        },
+        "logical_mapping": {
+            "start_word": 0,
+            "length": image.profile.total_words,
+            "offset": 0,
+            "layout": REGIONAL_LAYOUT,
+        },
+        "operator_versions": dict(operator_versions or {}),
+        "identity": {
+            "profile_sha256": profile.fingerprint,
+            "catalog_sha256": catalog.fingerprint,
+        },
+        "resized_regions": resized_regions,
+        "resource_limits": successor.resource_limits.as_dict(),
+    }
+    if validate:
+        validate_paged_structure(successor)
+    image.release_resident()
+    return successor, record
+
+def grow_paged_field(
+    image: PagedFieldImage,
+    profile: "RegionalProfile",
+    *,
+    catalog: "KernelCatalog | None" = None,
+    transition: Mapping[str, Any] | None = None,
+    operator_versions: Mapping[str, Any] | None = None,
+    resource_limits: ResourceLimits | Mapping[str, Any] | None = None,
+    validate: bool = True,
+) -> tuple[PagedFieldImage, dict[str, Any]]:
+    """Grow a paged field while relocating named regions incrementally."""
+    if profile.total_words <= image.profile.total_words:
+        raise RegionalFieldError("paged growth must increase total capacity")
+    return migrate_paged_layout(
+        image,
+        profile,
+        catalog=catalog,
+        transition={"kind": "storage-only", **dict(transition or {})},
+        operator_versions=operator_versions,
+        resource_limits=resource_limits,
+        validate=validate,
+        relocate_regions=True,
+    )
+
 
 
 __all__ = [
@@ -3213,14 +8062,59 @@ __all__ = [
     "REGIONAL_LAYOUT",
     "REGIONAL_MAGIC",
     "REGIONAL_SCHEMA",
+    "NEURAL_MEMBRANE_DEFAULT_GAIN_PPM",
+    "NEURAL_MEMBRANE_FIRST_PLANE",
+    "NEURAL_MEMBRANE_MODE_QUANTUM",
+    "NEURAL_MEMBRANE_PLANES",
+    "NEURAL_MEMBRANE_PLANE_COUNT",
+    "NEURAL_MEMBRANE_SCHEMA",
     "RIGHT_ALL",
     "RIGHT_EMIT",
     "RIGHT_EXECUTE",
     "RIGHT_MANAGE",
     "RIGHT_READ",
     "RIGHT_WRITE",
+    "DEFAULT_DIRTY_PAGES",
+    "DEFAULT_RESIDENT_PAGES",
+    "LAYOUT_MIGRATION_SCHEMA",
+    "PAGED_MANIFEST_SCHEMA",
+    "paged_state_sha256",
+    "validate_paged_structure",
+    "PAGE_TREE_SCHEMA",
+    "PERSISTENCE_PAGE_WORDS",
+    "PageDirectory",
+    "PageLeaf",
+    "PageTree",
+    "PageUnavailable",
+    "PagedFieldImage",
+    "PagedFieldStaging",
+    "ACTIVITY_SCHEMA",
+    "ACTIVITY_UNIT",
+    "DEFAULT_ACTIVITY_WEIGHT",
+    "RESIDENCY_CONTINUATION_SCHEMA",
+    "RESIDENCY_WAIT_SCHEMA",
+    "canonical_activity",
+    "read_residency_continuation",
+    "residency_continuation",
     "RegionRef",
+    "ImmutableInputPages",
+    "INPUT_REGION_PAGE_BYTES",
+    "MAX_INPUT_REGION_BYTES",
+    "MAX_INPUT_WINDOW_BYTES",
     "RegionalFieldError",
+    "ResidencyWait",
+    "inspect_paged_image",
+    "migrate_flat_to_paged",
+    "restart_paged",
+    "write_named_value_paged",
+    "migrate_paged_layout",
+    "grow_paged_field",
+    "named_values_paged",
+    "object_value_paged",
+    "run_paged_image",
+    "step_paged_image",
+    "validate_paged_delta",
+    "validate_paged_image",
     "RegionalProfile",
     "SEMANTIC_ANSWER_STATUSES",
     "SEMANTIC_EPISTEMIC_KINDS",
@@ -3233,6 +8127,8 @@ __all__ = [
     "descriptor",
     "from_descriptor",
     "grow_field",
+    "enable_neural_membrane",
+    "neural_membrane_planes",
     "initial_field",
     "inspect_field",
     "intervene_automaton",

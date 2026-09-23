@@ -23,6 +23,7 @@ from cassi_field_input import (
     CODEC_TEXT,
 )
 from cassi_field_owner import FieldIntelligenceOwner, SourceInput
+from cassi_hive_session import open_field_session
 
 
 SCHEMA = "cassifi.general-intelligence-program.v1"
@@ -108,7 +109,7 @@ def _peak_working_set_bytes() -> int | None:
 
 
 def _task(owner: FieldIntelligenceOwner) -> dict[str, Any]:
-    task = owner.state.computers[0].inspect()["task"]
+    task = owner.state.computers[0]._value("task")
     if not isinstance(task, dict) or task.get("family") != "cognition.field":
         raise RuntimeError("the resident computer is not cognition.field")
     return task
@@ -122,7 +123,7 @@ def _settle(
 ) -> list[dict[str, Any]]:
     receipts: list[dict[str, Any]] = []
     for continuation in range(1024):
-        session = owner.state.computers[0].inspect()["session"]
+        session = owner.state.computers[0]._value("session")
         status = session["status"]
         if status == "halted":
             return receipts
@@ -183,7 +184,7 @@ def _initialize_owner(
     profile: Mapping[str, int] = EXPANDED_REGIONAL_PROFILE,
 ) -> None:
     root.mkdir(parents=True, exist_ok=False)
-    with FieldIntelligenceOwner(root) as owner:
+    with open_field_session(root) as owner:
         owner.operate_computer(
             f"{identity}:configure",
             computer_id="main",
@@ -640,7 +641,7 @@ def evaluate_snapshot(
     shutil.copytree(snapshot, branch)
     rows: list[dict[str, Any]] = []
     evaluation_started_ns = time.perf_counter_ns()
-    with FieldIntelligenceOwner(branch) as owner:
+    with open_field_session(branch) as owner:
         before = _knowledge_digest(owner)
         start_work = int(_task(owner)["ledger"]["work"])
         initial_computer_sha256 = owner.state.computers[0].state_sha256
@@ -789,7 +790,7 @@ def train_lifetime(
             )
         )
     order = _domain_order(seed_index)
-    with FieldIntelligenceOwner(root) as owner:
+    with open_field_session(root) as owner:
         event_count = 0
         for block in range(1, blocks + 1):
             domains = ("measurement",) if irrelevant else order
@@ -932,7 +933,7 @@ def train_primary_lifetime(
         )
     )
     order = _domain_order(seed_index)
-    owner = FieldIntelligenceOwner(root)
+    owner = open_field_session(root)
     try:
         resource_curve.append(
             _resource_point(
@@ -980,7 +981,7 @@ def train_primary_lifetime(
                     decisions=decisions,
                 )
             )
-            owner = FieldIntelligenceOwner(root)
+            owner = open_field_session(root)
             resource_curve.append(
                 _resource_point(
                     owner,
@@ -1027,7 +1028,7 @@ def run_intervention(
     if branch.exists():
         shutil.rmtree(branch)
     shutil.copytree(snapshot, branch)
-    with FieldIntelligenceOwner(branch) as owner:
+    with open_field_session(branch) as owner:
         task = _task(owner)
         target = task["current"]["Program"].get(
             "representation:measurement-relative"
@@ -1045,7 +1046,7 @@ def run_intervention(
         decisions=decisions,
         domains=("measurement",),
     )
-    with FieldIntelligenceOwner(branch) as owner:
+    with open_field_session(branch) as owner:
         result, _ = _semantic(
             owner,
             f"intervention:{seed}:revoke-measurement",
@@ -1088,7 +1089,7 @@ def run_shared_belief_challenge(
         shutil.rmtree(branch)
     shutil.copytree(snapshot, branch)
     rows: list[dict[str, Any]] = []
-    with FieldIntelligenceOwner(branch) as owner:
+    with open_field_session(branch) as owner:
         initial, _ = _semantic(
             owner,
             f"shared:{seed}:measurement-before",
@@ -1178,7 +1179,7 @@ def run_shared_belief_challenge(
                 {"check": "perspective-update", "passed": perspective.get("world_fact_promoted") is False, "value": perspective.get("world_fact_promoted")},
             ]
         )
-    with FieldIntelligenceOwner(branch) as owner:
+    with open_field_session(branch) as owner:
         after_restart = owner.state.computers[0].state_sha256
         restart_query, _ = _semantic(
             owner,
@@ -1241,7 +1242,7 @@ def run_reduced_sensory(
             shutil.rmtree(modality_branch)
         shutil.copytree(snapshot, modality_branch)
         try:
-            with FieldIntelligenceOwner(modality_branch) as owner:
+            with open_field_session(modality_branch) as owner:
                 pages = _admit_source_pages(
                     owner,
                     f"sensory:{seed}:{index}:admit",
@@ -1324,7 +1325,7 @@ def run_real_sources(
                 codec=codec,
                 media_type=media_type,
             )
-            with FieldIntelligenceOwner(source_branch) as owner:
+            with open_field_session(source_branch) as owner:
                 pages = _admit_source_pages(
                     owner,
                     f"real-source:{seed}:{index}:admit",
@@ -1411,7 +1412,7 @@ def run_default_capacity_sizing(
     acquisitions: list[dict[str, Any]] = []
     failure: dict[str, Any] | None = None
     attempted_event = 0
-    owner = FieldIntelligenceOwner(root)
+    owner = open_field_session(root)
     try:
         for block in range(1, blocks + 1):
             for domain in DOMAINS:
@@ -1584,7 +1585,10 @@ def _aggregate(report: Mapping[str, Any]) -> dict[str, Any]:
     ]
     for evaluation in intervention_evaluations:
         control_rows.extend(evaluation["rows"])
+    status_counts: dict[str, int] = defaultdict(int)
     for row in (*primary_rows, *control_rows):
+        status = str(row["status"])
+        status_counts[status] += 1
         key = f"{row['control']}|{row['checkpoint']}|{row['domain']}"
         grouped[key]["correct"] += int(row["correct"])
         grouped[key]["total"] += 1
@@ -1664,9 +1668,11 @@ def _aggregate(report: Mapping[str, Any]) -> dict[str, Any]:
             "attribution": (
                 "execution-resource"
                 if row["status"] == "resource-exhausted"
-                else "representation-or-acquisition"
-                if row["status"] != "supported"
+                else "representation-insufficient"
+                if row["status"] == "representation-insufficient"
                 else "transfer"
+                if row["status"] == "supported"
+                else "unsupported"
             ),
             "case_id": row["case_id"],
             "control": row["control"],
@@ -1720,6 +1726,8 @@ def _aggregate(report: Mapping[str, Any]) -> dict[str, Any]:
             "passed": sum(row["passed"] for row in report["shared_belief"]),
             "total": sum(row["total"] for row in report["shared_belief"]),
         },
+        "status_counts": dict(sorted(status_counts.items())),
+        "sizing_status": report["sizing"]["status"],
         "transfer": transfer,
         "uncertainty": _row_score((*primary_rows, *control_rows)),
         "worst_family_correct": min(

@@ -259,7 +259,7 @@ public:
         ggml_tensor * output = ggml_cassi_qi_field_step(
             context.get(), sense_tensor, state_tensor, mode_tensor, sequence_tensor,
             SCALE_COUNT, PHI, 0.005f, 0.5f, 0.01f, 0.5f,
-            0.618033988749895f, SCALE_RATIO, 1.0e-6f, READ_FLOOR, 1);
+            0.618033988749895f, SCALE_RATIO, 1.0e-6f, READ_FLOOR, 0.0f, false, false, true, 1);
         ggml_cgraph * graph = ggml_new_graph_custom(context.get(), GGML_DEFAULT_GRAPH_SIZE, false);
         ggml_build_forward_expand(graph, output);
         ggml_backend_buffer_ptr buffer(ggml_backend_alloc_ctx_tensors(context.get(), backend));

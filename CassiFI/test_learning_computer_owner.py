@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import copy
 import json
+from dataclasses import replace
 from typing import Mapping
+from unittest import mock
 
 import pytest
 
@@ -14,16 +16,28 @@ from cassi_field_atlas import (
 )
 from cassi_field_owner import (
     CapacityLimits,
+    DeterministicWorldAdapter,
     FieldIntelligenceOwner,
     FieldIntelligenceSurface,
     RPC_SCHEMA,
     SourceInput,
+    WorldAcknowledgment,
 )
 from cassi_field_program import (
     SCHEMA as STRUCTURED_SCHEMA,
     semantic_program_payload,
 )
 from run_cassi_computer import main as computer_cli, program_arguments
+from cassi_field_computer import FieldComputer
+import cassi_field_regions as regions
+from cassi_field_regions import RegionalFieldError, RegionalProfile, from_chunked_descriptor
+from cassi_field_residency import ResourceLimits, ResidencyManager, ResourceWait
+from cassi_learning_computer import LearningComputer, LearningComputerError
+from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
+from programs.model.kernel import regional_kernel as model_kernel
+from programs.model.records import build_model_package
+from programs.model.runtime import RESIDENT_STAGE_RESULT_SCHEMA, advance as advance_model, initial_state as initial_model_state
+from programs.runtime.kernel import regional_kernel as program_kernel, regional_state as initial_program_state
 
 
 def call(owner, op, action, **arguments):
@@ -38,6 +52,213 @@ def computer_task(owner):
 
 def computer_policy_sha256(owner):
     return owner.state.computers[0].inspect()["policy_state_sha256"]
+
+
+def test_a_resource_wait_while_validating_is_a_wait_not_an_invalid_image() -> None:
+    """A read that cannot reserve must not be read as a corrupt image.
+
+    The membrane finish publishes its successor through the constructor that
+    validates it, and validating reads pages.  ResourceWait is a ValueError
+    subclass, so the constructor's shape conversion reported the wait as an
+    invalid regional computer image; the owner relabelled that as
+    INVALID_COMPUTER and the entity above it reported an unavailable brain for a
+    condition the request can simply wait out.
+    """
+
+    profile = RegionalProfile(
+        mode_count=16_384,
+        max_steps=128,
+        max_events=256,
+        kernel_names=STANDARD_KERNEL_CATALOG.names,
+    )
+    machine = FieldComputer.regional(profile, catalog=STANDARD_KERNEL_CATALOG)
+    program = tuple(
+        {"op": "COPY", "source": "input", "target": "output", "next": index + 1}
+        for index in range(4)
+    ) + ({"op": "HALT"},)
+    dense = machine.initial(program, values={"input": {"token": 17}, "output": None})
+    paged, _record = machine.paged_state(dense, resident_limit=4)
+    computer = LearningComputer(computer_id="wait-image", profile=profile, field=paged)
+
+    wait = ResourceWait("ram", 32_768, 0, kind="resident", reason="capacity")
+    with mock.patch.object(FieldComputer, "validate_paged", side_effect=wait):
+        with pytest.raises(ResourceWait) as raised:
+            replace(computer, field=paged)
+    assert raised.value is wait
+
+    # The companion case: a shape failure is still an invalid image, so the
+    # wait passthrough discriminates rather than disabling the conversion.
+    with mock.patch.object(
+        FieldComputer, "validate_paged", side_effect=TypeError("bad shape")
+    ):
+        with pytest.raises(LearningComputerError):
+            replace(computer, field=paged)
+
+
+def test_paged_resource_wait_releases_staged_pages_for_retry() -> None:
+    profile = RegionalProfile(
+        mode_count=16_384,
+        max_steps=128,
+        max_events=256,
+        kernel_names=STANDARD_KERNEL_CATALOG.names,
+    )
+    machine = FieldComputer.regional(profile, catalog=STANDARD_KERNEL_CATALOG)
+    dense = machine.initial(
+        ({"op": "COPY", "source": "input", "target": "output", "next": 1}, {"op": "HALT"}),
+        values={"input": {"token": 17}, "output": None},
+    )
+    paged, _ = machine.paged_state(dense, resident_limit=4)
+    manager = ResidencyManager(ResourceLimits(auto_grow=False))
+    image = paged.image.with_resource_manager(manager)
+    root = image.root_sha256
+    reserve = manager.reserve
+    scratch_calls = 0
+
+    def refuse_second_scratch(tier, byte_count, *, kind="resident", **kwargs):
+        nonlocal scratch_calls
+        if kind == "scratch":
+            scratch_calls += 1
+            if scratch_calls >= 2:
+                raise ResourceWait(tier, byte_count, 0, kind=kind, reason="capacity")
+        return reserve(tier, byte_count, kind=kind, **kwargs)
+
+    with mock.patch.object(manager, "reserve", side_effect=refuse_second_scratch):
+        with pytest.raises(ResourceWait):
+            regions.step_paged_image(image)
+    assert scratch_calls >= 2
+    assert image.root_sha256 == root
+    image.release_resident()
+    assert manager.report()["used_bytes"]["ram"] == 0
+
+    successor, receipt = regions.step_paged_image(image)
+    assert receipt["kind"] == "regional-transition"
+    assert successor.root_sha256 != root
+    successor.release_resident()
+    assert manager.report()["used_bytes"]["ram"] == 0
+
+
+def test_resident_model_fused_resume_preserves_next_stage_and_token() -> None:
+    source_sha = "a" * 64
+    package = build_model_package(
+        program_id="fused-model-token",
+        architecture="qwen35moe",
+        graph=[
+            {"op": stage, "stage": stage, "parameters": {"source_sha256": source_sha}}
+            for stage in ("qwen-embedding", "qwen-head")
+        ],
+        tensors={},
+        tokenizer={"vocab_size": 32},
+    )
+    state = initial_model_state(
+        package, prompt_tokens=[7], owner_id="main", member_id="member",
+        lineage_id="lineage", operation_id="token", max_new_tokens=1,
+        backend_policy="logical-cpu",
+    )
+    model_before = copy.deepcopy(state)
+    direct = model_kernel(state, {}, 1)
+    assert state == model_before
+    scheduler = initial_program_state(
+        owner_id="main", member_id="member", runtime_id="model-scheduler",
+        imported_task=state, imported_kind="model", imported_task_id="task",
+    )
+    scheduler_before = copy.deepcopy(scheduler)
+    scheduled = program_kernel(
+        scheduler, {"operation": "advance-task", "task_id": "task", "quantum": 1}, 1
+    )
+    assert scheduler == scheduler_before
+    assert scheduled.state["tasks"]["task"]["state"] == direct.state
+
+    waiting, *_ = advance_model(state, {}, 1)
+    for stage in ("qwen-embedding", "qwen-head"):
+        operation_id = waiting["await_target"]
+        request = waiting["operations"][operation_id]["request"]
+        assert request["stage"] == stage
+        result = {
+            key: request[key]
+            for key in ("operation_id", "source_sha256", "stage", "layer", "position", "request_sha256")
+        }
+        result.update(schema=RESIDENT_STAGE_RESULT_SCHEMA, snapshot={})
+        if stage == "qwen-head":
+            result.update(token=17, eog=False)
+
+        resumed, _, resume_work, _, _ = advance_model(
+            waiting,
+            {"operation": "resume-resident-model", "operation_id": operation_id, "result": result},
+            1,
+        )
+        if resumed["phase"] == "running":
+            sequential, _, next_work, _, _ = advance_model(resumed, {}, 1)
+        else:
+            sequential, next_work = resumed, 0
+        fused, _, fused_work, _, _ = advance_model(
+            waiting,
+            {
+                "operation": "resume-resident-model-and-advance",
+                "operation_id": operation_id,
+                "result": result,
+            },
+            2,
+        )
+        assert fused == sequential
+        assert fused_work == resume_work + next_work
+        assert waiting["phase"] == "waiting"
+        waiting = fused
+    assert waiting["phase"] == "completed"
+    assert waiting["generated_tokens"] == [17]
+
+
+def test_a_resource_wait_reaches_the_caller_as_a_wait(tmp_path):
+    """Physical room is a wait, not an invalid request.
+
+    The owner reports request-shape failures as INVALID_COMPUTER, and a
+    ResourceWait is a ValueError subclass, so the conversion used to swallow
+    it: a caller that only needed to wait was told its computer request was
+    invalid, and the entity above it reported an unavailable brain for a
+    condition the request can simply wait out.  A wait must also commit
+    nothing, so the same operation can be dispatched again later.
+    """
+
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(
+            owner,
+            "wait-configure",
+            "configure",
+            profile={"program_capacity": 16, "stack_capacity": 2, "max_steps": 100},
+        )
+        call(
+            owner,
+            "wait-load",
+            "load",
+            program=[[1, 0, 7, 1, 0], [0, 0, 0, 0, 0]],
+        )
+        before = owner.state.state_sha256
+        row = owner.state.computers[0]
+        wait = ResourceWait("ram", 32768, 19456, reason="capacity")
+        with mock.patch.object(type(row), "invoke", side_effect=wait):
+            with pytest.raises(ResourceWait) as raised:
+                owner.operate_computer(
+                    "wait-invoke",
+                    computer_id="main",
+                    action="invoke",
+                    arguments={"arguments": {"operation": "consume"}, "steps": 1},
+                )
+        assert raised.value is wait
+        assert owner.state.state_sha256 == before
+
+        # The companion case: a request-shape failure is still reported as an
+        # invalid computer, so the wait passthrough above discriminates rather
+        # than disabling the conversion.
+        with mock.patch.object(type(row), "invoke", side_effect=TypeError("bad shape")):
+            with pytest.raises(FieldIntelligenceError) as invalid:
+                owner.operate_computer(
+                    "shape-invoke",
+                    computer_id="main",
+                    action="invoke",
+                    arguments={"arguments": {"operation": "consume"}, "steps": 1},
+                )
+        assert invalid.value.code == "INVALID_COMPUTER"
+        assert owner.state.state_sha256 == before
 
 
 def test_owner_exhaustion_growth_restart_and_replay(tmp_path):
@@ -66,6 +287,116 @@ def test_owner_exhaustion_growth_restart_and_replay(tmp_path):
         restored = AtlasState.decode_bundle(owner.state.encode_bundle())
         assert restored.state_sha256 == owner.state.state_sha256
         assert restored.computers[0].inspect() == state
+
+
+def test_computer_checkpoint_uses_verified_independent_chunks(tmp_path):
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(
+            owner,
+            "chunk-configure",
+            "configure",
+            profile={
+                "program_capacity": 128,
+                "stack_capacity": 128,
+                "max_steps": 256,
+            },
+        )
+        call(
+            owner,
+            "chunk-load",
+            "load",
+            program=[
+                [1, 0, 7, 1, 0],
+                [1, 0, 7, 2, 0],
+                [0, 0, 0, 0, 0],
+            ],
+        )
+        call(owner, "chunk-advance", "advance", steps=16)
+        computer = owner.state.computers[0]
+        descriptor, objects = computer.persistence_dict()
+        field_descriptor = descriptor["field"]
+        assert field_descriptor["schema"] == "cassifi.regional-page-chunks.v1"
+        assert objects
+        assert all(
+            row["object_sha256"] in objects
+            for row in field_descriptor["chunks"]
+        )
+        page_index = field_descriptor["chunks"][0]["index"]
+        profile, pages = from_chunked_descriptor(
+            field_descriptor,
+            objects,
+            STANDARD_KERNEL_CATALOG,
+            page_indices=[page_index],
+        )
+        assert profile.fingerprint == computer.profile.fingerprint
+        assert pages.shape[0] == 1
+        assert pages.any()
+        persisted_page, page_receipt = owner.read_computer_page(
+            computer_id="main",
+            page_index=page_index,
+        )
+        chunk_record = field_descriptor["chunks"][0]
+        assert page_receipt["decoded_sha256"] == chunk_record["decoded_sha256"]
+        assert page_receipt["object_sha256"] == chunk_record["object_sha256"]
+        assert page_receipt["objects_read"] == 1
+        assert page_receipt["physical_bytes_read"] == chunk_record["object_bytes"]
+        assert len(persisted_page) == chunk_record["decoded_bytes"]
+
+        occupied = {row["index"] for row in field_descriptor["chunks"]}
+        page_count = (
+            computer.profile.total_words + field_descriptor["page_words"] - 1
+        ) // field_descriptor["page_words"]
+        zero_page_index = next(index for index in range(page_count) if index not in occupied)
+        zero_page, zero_receipt = owner.read_computer_page(
+            computer_id="main",
+            page_index=zero_page_index,
+        )
+        assert zero_receipt["zero_page"] is True
+        assert zero_receipt["objects_read"] == 0
+        assert not any(zero_page)
+        storage = owner.memory_storage_diagnostics()
+        assert storage["logical_computer_bytes"] == computer.profile.state_bytes
+        assert storage["resident_regional_bytes"] == computer.profile.state_bytes
+        assert storage["unique_physical_bytes"] > 0
+        assert storage["checkpoint_growth_bytes"] > 0
+        assert storage["shared_objects_with_predecessor"] > 0
+        assert storage["recovery"] == {
+            "protected_objects": storage["recovery"]["protected_objects"],
+            "present_objects": storage["recovery"]["protected_objects"],
+            "missing_objects": [],
+            "current_owner_validated": True,
+        }
+        scrub_cursor = 0
+        scrubbed = 0
+        while True:
+            scrub = owner.scrub_memory_storage(
+                cursor=scrub_cursor,
+                maximum=2,
+            )
+            assert scrub["status"] == "supported"
+            assert scrub["failures"] == []
+            scrubbed += scrub["checked_objects"]
+            if scrub["next_cursor"] is None:
+                break
+            scrub_cursor = scrub["next_cursor"]
+        assert scrubbed == storage["recovery"]["protected_objects"]
+
+        corrupt = dict(objects)
+        object_sha256 = field_descriptor["chunks"][0]["object_sha256"]
+        corrupt[object_sha256] = bytes(
+            [corrupt[object_sha256][0] ^ 1, *corrupt[object_sha256][1:]]
+        )
+        with pytest.raises(RegionalFieldError, match="missing or corrupt"):
+            from_chunked_descriptor(
+                field_descriptor,
+                corrupt,
+                STANDARD_KERNEL_CATALOG,
+            )
+
+        restored = AtlasState.decode_bundle(owner.state.encode_bundle())
+        assert restored.state_sha256 == owner.state.state_sha256
+        assert restored.computers[0].inspect() == computer.inspect()
 
 
 def test_learning_is_persistent_exactly_once_and_frozen_on_request(tmp_path):
@@ -2889,6 +3220,1333 @@ def test_semantic_owner_pause_authority_assessment_and_exact_reopen(
         assert computer_task(owner) == final_task
 
 
+def test_semantic_owner_forms_curiosity_goal_from_observation(tmp_path):
+    from cassi_field_cognition import semantic_cognition_state
+
+    root = tmp_path / "semantic-curiosity-owner"
+    observe = {
+        "operation": "observe",
+        "operation_id": "owner-curiosity-observe",
+        "delivery_id": "delivery:owner-curiosity",
+        "event_id": "event:owner-curiosity",
+        "time": {"start": 1.0, "end": 1.0},
+        "observations": [{
+            "binding_id": "binding:temperature",
+            "subject": "world",
+            "attribute": "temperature",
+            "value": 21.0,
+        }],
+    }
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "curiosity-owner-configure", "configure")
+        call(
+            owner,
+            "curiosity-owner-submit",
+            "submit",
+            kernel="cognition.field",
+            state=semantic_cognition_state(),
+            arguments=observe,
+            steps=1,
+        )
+        call(owner, "curiosity-owner-observe", "advance", steps=16)
+        call(
+            owner,
+            "curiosity-owner-agenda",
+            "invoke",
+            arguments={
+                "operation": "autonomous-agenda",
+                "operation_id": "owner-curiosity-agenda",
+                "max_items": 1,
+                "observation_channels": [
+                    {
+                        "channel_id": "owner:generic",
+                        "provides": ["shape"],
+                        "cost": 5.0,
+                        "reliability": 0.1,
+                        "request": {"adapter": "generic"},
+                    },
+                    {
+                        "channel_id": "owner:temperature",
+                        "provides": ["temperature"],
+                        "cost": 0.1,
+                        "reliability": 0.9,
+                        "request": {"adapter": "thermometer", "scope": "ambient"},
+                    },
+                ],
+            },
+            steps=128,
+        )
+        result = owner.state.computers[0].inspect()["consumed_result"]
+        assert result["status"] == "supported"
+        assert result["curiosity_goal_count"] >= 1
+        assert result["selected"]["kind"] == "active-perception"
+        assert result["selected"]["request"]["channel_id"] == "owner:temperature"
+        assert result["perception_event"]["kind"] == "Event"
+
+
+def test_owner_executes_active_perception_through_world_adapter(tmp_path):
+    from cassi_field_cognition import semantic_cognition_state
+
+    root = tmp_path / "active-perception-world-loop"
+    channels = [
+        {
+            "channel_id": "owner:temperature",
+            "provides": ["temperature"],
+            "cost": 0.1,
+            "reliability": 0.9,
+            "request": {"adapter": "thermometer", "scope": "ambient"},
+        },
+        {
+            "channel_id": "owner:generic",
+            "provides": ["shape"],
+            "cost": 5.0,
+            "reliability": 0.1,
+            "request": {"adapter": "generic"},
+        },
+    ]
+    transition_calls = []
+
+    def transition(action, target, payload):
+        transition_calls.append({"action": action, "target": target, "payload": dict(payload)})
+        return WorldAcknowledgment(
+            acknowledgment_id="ack:owner-active-perception",
+            operation_id="owner-active-perception:adapter",
+            status="succeeded",
+            observed_values={"temperature": 22.53},
+            context={"instrument": "thermometer", "scope": "ambient"},
+            source_content=canonical_json_bytes({
+                "channel_id": target,
+                "observed_values": {"temperature": 22.53},
+            }),
+        )
+
+    def run(owner, adapter):
+        call(owner, "world-loop-configure", "configure")
+        call(
+            owner,
+            "world-loop-seed",
+            "submit",
+            kernel="cognition.field",
+            state=semantic_cognition_state(),
+            arguments={
+                "operation": "observe",
+                "operation_id": "world-loop-seed",
+                "delivery_id": "delivery:world-loop-seed",
+                "event_id": "event:world-loop-seed",
+                "observations": [{
+                    "binding_id": "binding:temperature",
+                    "subject": "world",
+                    "attribute": "temperature",
+                    "value": 21.0,
+                }],
+            },
+            steps=1,
+        )
+        call(owner, "world-loop-seed-advance", "advance", steps=16)
+        call(
+            owner,
+            "world-loop-agenda",
+            "invoke",
+            arguments={
+                "operation": "autonomous-agenda",
+                "operation_id": "world-loop-agenda",
+                "max_items": 1,
+                "observation_channels": channels,
+            },
+            steps=128,
+        )
+        agenda = owner.state.computers[0].inspect()["consumed_result"]
+        selected = agenda["selected"]["request"]
+        result = owner.execute_observation_request(
+            operation_id="owner-active-perception",
+            observation_request=selected,
+            adapter=adapter,
+            observation_channels=channels,
+            expected_state_sha256=owner.state.state_sha256,
+        )
+        return result, selected
+
+    adapter = DeterministicWorldAdapter(transition, adapter_id="owner-world")
+    with FieldIntelligenceOwner(root) as owner:
+        first, selected = run(owner, adapter)
+        assert first["status"] == "supported"
+        assert selected["channel_id"] == "owner:temperature"
+        assert first["observation"]["status"] == "supported"
+        assert first["evidence"]["source"]["status"] == "active"
+        assert transition_calls[0]["action"] == "observe"
+        assert transition_calls[0]["target"] == "owner:temperature"
+        assert adapter.execute_count == 1
+        assert len(transition_calls) == 1
+        digest = owner.state.state_sha256
+        replay = owner.execute_observation_request(
+            operation_id="owner-active-perception",
+            observation_request=selected,
+            adapter=adapter,
+            observation_channels=channels,
+            expected_state_sha256=digest,
+        )
+        assert replay["replayed"] is True
+        assert adapter.execute_count == 1
+        assert len(transition_calls) == 1
+        assert owner.state.state_sha256 == digest
+
+    reopened_adapter = DeterministicWorldAdapter(transition, adapter_id="owner-world")
+    with FieldIntelligenceOwner(root) as owner:
+        replay = owner.execute_observation_request(
+            operation_id="owner-active-perception",
+            observation_request=selected,
+            adapter=reopened_adapter,
+            observation_channels=channels,
+            expected_state_sha256=owner.state.state_sha256,
+        )
+        assert replay["replayed"] is True
+        assert reopened_adapter.execute_count == 0
+        assert len(transition_calls) == 1
+
+
+def test_owner_calibrates_noise_verdict_boundaries(
+    tmp_path,
+) -> None:
+    root = tmp_path / "noise-boundary-owner"
+    from cassi_field_cognition import semantic_cognition_state
+
+    offsets = [0.05, 0.5, 1.0, 2.0, 4.0]
+    trajectory = [1.0, 2.1, 4.0, 8.1, *[16.2 + offset for offset in offsets]]
+    calls: list[dict[str, object]] = []
+
+    def transition(action, target, payload):
+        index = len(calls)
+        value = trajectory[index]
+        calls.append(
+            {"action": action, "target": target, "payload": dict(payload)}
+        )
+        return WorldAcknowledgment(
+            acknowledgment_id=f"ack:noise-boundary:{index}",
+            operation_id=f"noise-boundary-frame-{index}:adapter",
+            status="succeeded",
+            observed_values={"x": value},
+            context={"source": "noise-boundary-sweep"},
+            source_content=canonical_json_bytes(
+                {"frame": index, "observed_values": {"x": value}}
+            ),
+        )
+
+    adapter = DeterministicWorldAdapter(
+        transition,
+        adapter_id="noise-boundary-world",
+    )
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "noise-boundary-configure", "configure")
+        call(
+            owner,
+            "noise-boundary-seed",
+            "submit",
+            kernel="cognition.field",
+            state=semantic_cognition_state(),
+            arguments={
+                "operation": "observe",
+                "operation_id": "noise-boundary-seed",
+                "delivery_id": "delivery:noise-boundary-seed",
+                "event_id": "event:noise-boundary-seed",
+                "observations": [
+                    {
+                        "binding_id": "binding:noise-boundary-seed",
+                        "subject": "world",
+                        "attribute": "x",
+                        "value": 1.0,
+                    }
+                ],
+            },
+            steps=1,
+        )
+        call(
+            owner,
+            "noise-boundary-seed-advance",
+            "advance",
+            steps=16,
+        )
+
+        frames = [
+            owner.execute_observation_request(
+                operation_id=f"noise-boundary-frame-{index}",
+                observation_request={
+                    "channel_id": f"world:x:noise-boundary:{index}",
+                    "goal": {"kind": "one-step-transition"},
+                    "provides": ["x"],
+                    "request": {"instrument": "deterministic"},
+                },
+                adapter=adapter,
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            for index in range(len(trajectory))
+        ]
+        learned = owner.learn_observed_transition(
+            operation_id="noise-boundary-fit",
+            observations=frames[:4],
+            variables=["x"],
+            expected_state_sha256=owner.state.state_sha256,
+        )
+        results = [
+            owner.score_observed_transition(
+                operation_id=f"noise-boundary-score-{index}",
+                learned=learned,
+                predecessor=frames[3],
+                outcome=frames[4 + index],
+                expected_state_sha256=owner.state.state_sha256,
+                retain_ratio=2.0,
+                reject_ratio=4.0,
+            )
+            for index in range(len(offsets))
+        ]
+        statuses = [result["status"] for result in results]
+        ratios = [result["model"]["ratio"] for result in results]
+        normalized_errors = [
+            result["model"]["normalized_error"] for result in results
+        ]
+        assert statuses == ["retain", "refine", "reject", "reject", "reject"]
+        assert ratios == sorted(ratios)
+        assert normalized_errors == sorted(normalized_errors)
+        assert ratios[0] < 2.0 <= ratios[1] < 4.0 <= ratios[2]
+        assert all(
+            result["assessment"]["status"] == "supported"
+            for result in results
+        )
+        assert len(calls) == len(trajectory)
+
+def test_owner_calibrates_coupled_coordinate_noise(
+    tmp_path,
+) -> None:
+    root = tmp_path / "coupled-noise-boundary-owner"
+    from cassi_field_cognition import semantic_cognition_state
+
+    candidates = [
+        ("x-small", (32.55, 34.45)),
+        ("x-refine", (32.8, 34.45)),
+        ("x-reject", (33.0, 34.45)),
+        ("y-refine", (32.55, 34.65)),
+        ("xy-refine", (32.8, 34.65)),
+    ]
+    trajectory = [
+        (1.0, 3.0),
+        (2.05, 4.05),
+        (4.0, 6.2),
+        (8.1, 10.1),
+        (16.25, 18.2),
+        *(values for _, values in candidates),
+    ]
+    calls: list[dict[str, object]] = []
+
+    def transition(action, target, payload):
+        index = len(calls)
+        x, y = trajectory[index]
+        calls.append(
+            {"action": action, "target": target, "payload": dict(payload)}
+        )
+        return WorldAcknowledgment(
+            acknowledgment_id=f"ack:coupled-noise:{index}",
+            operation_id=f"coupled-noise-frame-{index}:adapter",
+            status="succeeded",
+            observed_values={"x": x, "y": y},
+            context={"source": "coupled-coordinate-noise"},
+            source_content=canonical_json_bytes(
+                {
+                    "frame": index,
+                    "observed_values": {"x": x, "y": y},
+                }
+            ),
+        )
+
+    adapter = DeterministicWorldAdapter(
+        transition,
+        adapter_id="coupled-coordinate-noise-world",
+    )
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "coupled-noise-configure", "configure")
+        call(
+            owner,
+            "coupled-noise-seed",
+            "submit",
+            kernel="cognition.field",
+            state=semantic_cognition_state(),
+            arguments={
+                "operation": "observe",
+                "operation_id": "coupled-noise-seed",
+                "delivery_id": "delivery:coupled-noise-seed",
+                "event_id": "event:coupled-noise-seed",
+                "observations": [
+                    {
+                        "binding_id": "binding:coupled-noise-seed:x",
+                        "subject": "world",
+                        "attribute": "x",
+                        "value": 1.0,
+                    },
+                    {
+                        "binding_id": "binding:coupled-noise-seed:y",
+                        "subject": "world",
+                        "attribute": "y",
+                        "value": 3.0,
+                    },
+                ],
+            },
+            steps=1,
+        )
+        call(owner, "coupled-noise-seed-advance", "advance", steps=16)
+        frames = [
+            owner.execute_observation_request(
+                operation_id=f"coupled-noise-frame-{index}",
+                observation_request={
+                    "channel_id": f"world:xy:coupled-noise:{index}",
+                    "goal": {"kind": "one-step-transition"},
+                    "provides": ["x", "y"],
+                    "request": {"instrument": "deterministic"},
+                },
+                adapter=adapter,
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            for index in range(len(trajectory))
+        ]
+        learned = owner.learn_observed_transition(
+            operation_id="coupled-noise-fit",
+            observations=frames[:5],
+            variables=["x", "y"],
+            expected_state_sha256=owner.state.state_sha256,
+        )
+        results = [
+            owner.score_observed_transition(
+                operation_id=f"coupled-noise-score-{index}",
+                learned=learned,
+                predecessor=frames[4],
+                outcome=frames[5 + index],
+                expected_state_sha256=owner.state.state_sha256,
+                retain_ratio=2.0,
+                reject_ratio=4.0,
+            )
+            for index in range(len(candidates))
+        ]
+        robust_result = owner.score_observed_transition(
+            operation_id="coupled-noise-score-robust",
+            learned=learned,
+            predecessor=frames[4],
+            outcome=frames[5],
+            expected_state_sha256=owner.state.state_sha256,
+            retain_ratio=2.0,
+            reject_ratio=4.0,
+            residual_envelope="median_mad",
+        )
+        assert results[0]["model"]["residual_envelope"] == "maximum"
+        assert robust_result["model"]["residual_envelope"] == "median_mad"
+        assert robust_result["model"]["predicted"] == results[0]["model"][
+            "predicted"
+        ]
+        assert robust_result["model"]["actual"] == results[0]["model"]["actual"]
+        assert robust_result["model"]["prediction_id"] != results[0]["model"][
+            "prediction_id"
+        ]
+        robust_assessment_id = robust_result["assessment"]["prediction"]["id"]
+        robust_assessment_record = owner.state.computers[0].inspect()["task"][
+            "records"
+        ][robust_assessment_id][-1]
+        robust_source = robust_assessment_record["derivation"]["source"]
+        assert robust_source["residual_envelope"] == "median_mad"
+        assert robust_source["training_residual_envelope"] == pytest.approx(
+            robust_result["model"]["training_residual_envelope"]
+        )
+        assert [result["status"] for result in results] == [
+            "retain",
+            "refine",
+            "reject",
+            "refine",
+            "refine",
+        ]
+        x_small_errors = results[0]["model"]["normalized_errors"]
+        x_refine_errors = results[1]["model"]["normalized_errors"]
+        y_refine_errors = results[3]["model"]["normalized_errors"]
+        xy_refine_errors = results[4]["model"]["normalized_errors"]
+        assert x_refine_errors["x"] > x_small_errors["x"]
+        assert x_refine_errors["y"] == pytest.approx(x_small_errors["y"])
+        assert y_refine_errors["y"] > x_small_errors["y"]
+        assert y_refine_errors["x"] == pytest.approx(x_small_errors["x"])
+        assert xy_refine_errors["x"] > x_small_errors["x"]
+        assert xy_refine_errors["y"] > x_small_errors["y"]
+        assert all(
+            result["assessment"]["status"] == "supported"
+            for result in results
+        )
+        assert len(calls) == len(trajectory)
+
+def test_owner_auto_selects_residual_envelope_from_tail_diagnostic(
+    tmp_path,
+) -> None:
+    from cassi_field_cognition import semantic_cognition_state
+
+    def run_case(name: str, trajectory: list[float]):
+        root = tmp_path / f"auto-envelope-{name}"
+        calls: list[dict[str, object]] = []
+
+        def transition(action, target, payload):
+            index = len(calls)
+            value = trajectory[index]
+            calls.append(
+                {"action": action, "target": target, "payload": dict(payload)}
+            )
+            return WorldAcknowledgment(
+                acknowledgment_id=f"ack:auto-envelope:{name}:{index}",
+                operation_id=f"auto-envelope-{name}-frame-{index}:adapter",
+                status="succeeded",
+                observed_values={"x": value},
+                context={"source": "auto-envelope-tail-diagnostic"},
+                source_content=canonical_json_bytes(
+                    {"frame": index, "observed_values": {"x": value}}
+                ),
+            )
+
+        adapter = DeterministicWorldAdapter(
+            transition,
+            adapter_id=f"auto-envelope-{name}-world",
+        )
+        with FieldIntelligenceOwner(root) as owner:
+            call(owner, f"auto-envelope-{name}-configure", "configure")
+            call(
+                owner,
+                f"auto-envelope-{name}-seed",
+                "submit",
+                kernel="cognition.field",
+                state=semantic_cognition_state(),
+                arguments={
+                    "operation": "observe",
+                    "operation_id": f"auto-envelope-{name}-seed",
+                    "delivery_id": f"delivery:auto-envelope-{name}-seed",
+                    "event_id": f"event:auto-envelope-{name}-seed",
+                    "observations": [
+                        {
+                            "binding_id": f"binding:auto-envelope-{name}:x",
+                            "subject": "world",
+                            "attribute": "x",
+                            "value": trajectory[0],
+                        }
+                    ],
+                },
+                steps=1,
+            )
+            call(
+                owner,
+                f"auto-envelope-{name}-seed-advance",
+                "advance",
+                steps=16,
+            )
+            frames = [
+                owner.execute_observation_request(
+                    operation_id=f"auto-envelope-{name}-frame-{index}",
+                    observation_request={
+                        "channel_id": f"world:x:auto-envelope:{name}:{index}",
+                        "goal": {"kind": "one-step-transition"},
+                        "provides": ["x"],
+                        "request": {"instrument": "deterministic"},
+                    },
+                    adapter=adapter,
+                    expected_state_sha256=owner.state.state_sha256,
+                )
+                for index in range(len(trajectory))
+            ]
+            learned = owner.learn_observed_transition(
+                operation_id=f"auto-envelope-{name}-fit",
+                observations=frames[:6],
+                variables=["x"],
+                include_intercept=False,
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            result = owner.score_observed_transition(
+                operation_id=f"auto-envelope-{name}-score",
+                learned=learned,
+                predecessor=frames[5],
+                outcome=frames[6],
+                expected_state_sha256=owner.state.state_sha256,
+                residual_envelope="auto",
+            )
+            assessment_id = result["assessment"]["prediction"]["id"]
+            assessment_record = owner.state.computers[0].inspect()["task"][
+                "records"
+            ][assessment_id][-1]
+            return result, assessment_record["derivation"]["source"]
+
+
+    ordinary, ordinary_source = run_case(
+        "ordinary",
+        [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
+    )
+    heavy, heavy_source = run_case(
+        "heavy",
+        [1.0, 2.0, 4.0, 8.0, 40.0, 16.0, 32.0],
+    )
+
+    assert ordinary["model"]["residual_envelope"] == "maximum"
+    assert ordinary["model"]["residual_envelope_request"] == "auto"
+    assert ordinary["model"]["tail_diagnostic"]["heavy_tail"] is False
+    assert heavy["model"]["residual_envelope"] == "median_mad"
+    assert heavy["model"]["residual_envelope_request"] == "auto"
+    assert heavy["model"]["tail_diagnostic"]["heavy_tail"] is True
+    assert heavy["model"]["tail_diagnostic"]["sample_count"] == 5
+    assert heavy_source["residual_envelope"] == "median_mad"
+    assert heavy_source["residual_envelope_request"] == "auto"
+    assert heavy_source["tail_diagnostic"] == heavy["model"]["tail_diagnostic"]
+    assert ordinary["assessment"]["status"] == "supported"
+    assert heavy["assessment"]["status"] == "supported"
+
+
+def test_owner_stabilizes_verdicts_across_bounded_noise_shapes(
+    tmp_path,
+) -> None:
+    from cassi_field_cognition import semantic_cognition_state
+
+    shapes = [
+        ("x+", (1.0, 0.0)),
+        ("x-", (-1.0, 0.0)),
+        ("y+", (0.0, 1.0)),
+        ("y-", (0.0, -1.0)),
+        ("both+", (1.0, 1.0)),
+        ("cross+", (1.0, -1.0)),
+        ("cross-", (-1.0, 1.0)),
+        ("both-", (-1.0, -1.0)),
+    ]
+    expected_statuses = {
+        0.05: ["retain"] * len(shapes),
+        0.2: [
+            "retain",
+            "refine",
+            "refine",
+            "retain",
+            "refine",
+            "retain",
+            "refine",
+            "refine",
+        ],
+        0.5: ["reject"] * len(shapes),
+    }
+
+    def run_amplitude(amplitude: float):
+        tag = str(amplitude).replace(".", "_")
+        candidates = [
+            (32.5 + amplitude * x, 34.45 + amplitude * y)
+            for _, (x, y) in shapes
+        ]
+        trajectory = [
+            (1.0, 3.0),
+            (2.05, 4.05),
+            (4.0, 6.2),
+            (8.1, 10.1),
+            (16.25, 18.2),
+            *candidates,
+        ]
+        calls: list[dict[str, object]] = []
+
+        def transition(action, target, payload):
+            index = len(calls)
+            x, y = trajectory[index]
+            calls.append(
+                {
+                    "action": action,
+                    "target": target,
+                    "payload": dict(payload),
+                }
+            )
+            return WorldAcknowledgment(
+                acknowledgment_id=f"ack:bounded-noise:{tag}:{index}",
+                operation_id=f"bounded-noise-{tag}-frame-{index}:adapter",
+                status="succeeded",
+                observed_values={"x": x, "y": y},
+                context={"source": "bounded-noise-realization"},
+                source_content=canonical_json_bytes(
+                    {
+                        "frame": index,
+                        "observed_values": {"x": x, "y": y},
+                    }
+                ),
+            )
+
+        adapter = DeterministicWorldAdapter(
+            transition,
+            adapter_id=f"bounded-noise-world-{tag}",
+        )
+        with FieldIntelligenceOwner(tmp_path / f"amplitude-{tag}") as owner:
+            call(owner, f"bounded-noise-{tag}-configure", "configure")
+            call(
+                owner,
+                f"bounded-noise-{tag}-seed",
+                "submit",
+                kernel="cognition.field",
+                state=semantic_cognition_state(),
+                arguments={
+                    "operation": "observe",
+                    "operation_id": f"bounded-noise-{tag}-seed",
+                    "delivery_id": f"delivery:bounded-noise:{tag}",
+                    "event_id": f"event:bounded-noise:{tag}",
+                    "observations": [
+                        {
+                            "binding_id": f"binding:bounded-noise:{tag}:x",
+                            "subject": "world",
+                            "attribute": "x",
+                            "value": 1.0,
+                        },
+                        {
+                            "binding_id": f"binding:bounded-noise:{tag}:y",
+                            "subject": "world",
+                            "attribute": "y",
+                            "value": 3.0,
+                        },
+                    ],
+                },
+                steps=1,
+            )
+            call(
+                owner,
+                f"bounded-noise-{tag}-advance",
+                "advance",
+                steps=16,
+            )
+            frames = [
+                owner.execute_observation_request(
+                    operation_id=f"bounded-noise-{tag}-frame-{index}",
+                    observation_request={
+                        "channel_id": f"world:xy:bounded-noise:{tag}:{index}",
+                        "goal": {"kind": "one-step-transition"},
+                        "provides": ["x", "y"],
+                        "request": {"instrument": "deterministic"},
+                    },
+                    adapter=adapter,
+                    expected_state_sha256=owner.state.state_sha256,
+                )
+                for index in range(len(trajectory))
+            ]
+            learned = owner.learn_observed_transition(
+                operation_id=f"bounded-noise-{tag}-fit",
+                observations=frames[:5],
+                variables=["x", "y"],
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            results = [
+                owner.score_observed_transition(
+                    operation_id=f"bounded-noise-{tag}-score-{index}",
+                    learned=learned,
+                    predecessor=frames[4],
+                    outcome=frames[5 + index],
+                    expected_state_sha256=owner.state.state_sha256,
+                    retain_ratio=2.0,
+                    reject_ratio=4.0,
+                )
+                for index in range(len(shapes))
+            ]
+            assert len(calls) == len(trajectory)
+            return results
+
+    for amplitude, expected in expected_statuses.items():
+        results = run_amplitude(amplitude)
+        assert [result["status"] for result in results] == expected
+        ratios = [result["model"]["ratio"] for result in results]
+        assert min(ratios) >= 0.0
+        assert all(
+            result["assessment"]["status"] == "supported"
+            for result in results
+        )
+
+
+def test_owner_estimates_seeded_bounded_noise_frequencies(
+    tmp_path,
+) -> None:
+    import random
+
+    from cassi_field_cognition import semantic_cognition_state
+
+    amplitudes = [0.05, 0.2, 0.5]
+    expected_counts = {
+        0.05: {"retain": 8, "refine": 0, "reject": 0},
+        0.2: {"retain": 3, "refine": 5, "reject": 0},
+        0.5: {"retain": 0, "refine": 3, "reject": 5},
+    }
+    rng = random.Random(20260918)
+    shapes = [
+        (rng.uniform(-1.0, 1.0), rng.uniform(-1.0, 1.0))
+        for _ in range(8)
+    ]
+
+    def run_amplitude(amplitude: float):
+        tag = str(amplitude).replace(".", "_")
+        candidates = [
+            (32.5 + amplitude * x, 34.45 + amplitude * y)
+            for x, y in shapes
+        ]
+        trajectory = [
+            (1.0, 3.0),
+            (2.05, 4.05),
+            (4.0, 6.2),
+            (8.1, 10.1),
+            (16.25, 18.2),
+            *candidates,
+        ]
+        calls: list[dict[str, object]] = []
+
+        def transition(action, target, payload):
+            index = len(calls)
+            x, y = trajectory[index]
+            calls.append(
+                {
+                    "action": action,
+                    "target": target,
+                    "payload": dict(payload),
+                }
+            )
+            return WorldAcknowledgment(
+                acknowledgment_id=f"ack:seeded-ensemble:{tag}:{index}",
+                operation_id=f"seeded-ensemble-{tag}-frame-{index}:adapter",
+                status="succeeded",
+                observed_values={"x": x, "y": y},
+                context={"source": "seeded-bounded-noise"},
+                source_content=canonical_json_bytes(
+                    {
+                        "frame": index,
+                        "observed_values": {"x": x, "y": y},
+                    }
+                ),
+            )
+
+        adapter = DeterministicWorldAdapter(
+            transition,
+            adapter_id=f"seeded-ensemble-world-{tag}",
+        )
+        with FieldIntelligenceOwner(tmp_path / f"ensemble-{tag}") as owner:
+            call(owner, f"seeded-ensemble-{tag}-configure", "configure")
+            call(
+                owner,
+                f"seeded-ensemble-{tag}-seed",
+                "submit",
+                kernel="cognition.field",
+                state=semantic_cognition_state(),
+                arguments={
+                    "operation": "observe",
+                    "operation_id": f"seeded-ensemble-{tag}-seed",
+                    "delivery_id": f"delivery:seeded-ensemble:{tag}",
+                    "event_id": f"event:seeded-ensemble:{tag}",
+                    "observations": [
+                        {
+                            "binding_id": f"binding:seeded-ensemble:{tag}:x",
+                            "subject": "world",
+                            "attribute": "x",
+                            "value": 1.0,
+                        },
+                        {
+                            "binding_id": f"binding:seeded-ensemble:{tag}:y",
+                            "subject": "world",
+                            "attribute": "y",
+                            "value": 3.0,
+                        },
+                    ],
+                },
+                steps=1,
+            )
+            call(
+                owner,
+                f"seeded-ensemble-{tag}-advance",
+                "advance",
+                steps=16,
+            )
+            frames = [
+                owner.execute_observation_request(
+                    operation_id=f"seeded-ensemble-{tag}-frame-{index}",
+                    observation_request={
+                        "channel_id": f"world:xy:seeded-ensemble:{tag}:{index}",
+                        "goal": {"kind": "one-step-transition"},
+                        "provides": ["x", "y"],
+                        "request": {"instrument": "deterministic"},
+                    },
+                    adapter=adapter,
+                    expected_state_sha256=owner.state.state_sha256,
+                )
+                for index in range(len(trajectory))
+            ]
+            learned = owner.learn_observed_transition(
+                operation_id=f"seeded-ensemble-{tag}-fit",
+                observations=frames[:5],
+                variables=["x", "y"],
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            results = [
+                owner.score_observed_transition(
+                    operation_id=f"seeded-ensemble-{tag}-score-{index}",
+                    learned=learned,
+                    predecessor=frames[4],
+                    outcome=frames[5 + index],
+                    expected_state_sha256=owner.state.state_sha256,
+                    retain_ratio=2.0,
+                    reject_ratio=4.0,
+                )
+                for index in range(len(shapes))
+            ]
+            assert len(calls) == len(trajectory)
+            return results
+
+    for amplitude in amplitudes:
+        results = run_amplitude(amplitude)
+        statuses = [result["status"] for result in results]
+        counts = {
+            status: statuses.count(status)
+            for status in ("retain", "refine", "reject")
+        }
+        assert counts == expected_counts[amplitude]
+        assert all(
+            result["assessment"]["status"] == "supported"
+            for result in results
+        )
+
+def test_owner_estimates_noise_frequencies_across_independent_seeds(
+    tmp_path,
+) -> None:
+    import math
+    import random
+
+    from cassi_field_cognition import semantic_cognition_state
+
+    seeds = [20260918, 20260919, 20260920]
+    amplitudes = [0.05, 0.2, 0.5]
+    expected_counts = {
+        20260918: {
+            0.05: {"retain": 8, "refine": 0, "reject": 0},
+            0.2: {"retain": 3, "refine": 5, "reject": 0},
+            0.5: {"retain": 0, "refine": 3, "reject": 5},
+        },
+        20260919: {
+            0.05: {"retain": 8, "refine": 0, "reject": 0},
+            0.2: {"retain": 3, "refine": 5, "reject": 0},
+            0.5: {"retain": 0, "refine": 2, "reject": 6},
+        },
+        20260920: {
+            0.05: {"retain": 8, "refine": 0, "reject": 0},
+            0.2: {"retain": 5, "refine": 3, "reject": 0},
+            0.5: {"retain": 1, "refine": 3, "reject": 4},
+        },
+    }
+    shapes_by_seed = {}
+    for seed in seeds:
+        rng = random.Random(seed)
+        shapes_by_seed[seed] = [
+            (rng.uniform(-1.0, 1.0), rng.uniform(-1.0, 1.0))
+            for _ in range(8)
+        ]
+
+    def wilson_interval(successes: int, total: int) -> tuple[float, float]:
+        z = 1.96
+        proportion = successes / total
+        denominator = 1.0 + z * z / total
+        center = (
+            proportion + z * z / (2.0 * total)
+        ) / denominator
+        half_width = (
+            z
+            * math.sqrt(
+                proportion * (1.0 - proportion) / total
+                + z * z / (4.0 * total * total)
+            )
+            / denominator
+        )
+        return center - half_width, center + half_width
+
+    def run_case(seed: int, amplitude: float):
+        tag = f"{seed}-{str(amplitude).replace('.', '_')}"
+        shapes = shapes_by_seed[seed]
+        candidates = [
+            (32.5 + amplitude * x, 34.45 + amplitude * y)
+            for x, y in shapes
+        ]
+        trajectory = [
+            (1.0, 3.0),
+            (2.05, 4.05),
+            (4.0, 6.2),
+            (8.1, 10.1),
+            (16.25, 18.2),
+            *candidates,
+        ]
+        calls: list[dict[str, object]] = []
+
+        def transition(action, target, payload):
+            index = len(calls)
+            x, y = trajectory[index]
+            calls.append(
+                {
+                    "action": action,
+                    "target": target,
+                    "payload": dict(payload),
+                }
+            )
+            return WorldAcknowledgment(
+                acknowledgment_id=f"ack:seed-confidence:{tag}:{index}",
+                operation_id=f"seed-confidence-{tag}-frame-{index}:adapter",
+                status="succeeded",
+                observed_values={"x": x, "y": y},
+                context={"source": "seed-confidence-ensemble"},
+                source_content=canonical_json_bytes(
+                    {
+                        "frame": index,
+                        "observed_values": {"x": x, "y": y},
+                    }
+                ),
+            )
+
+        adapter = DeterministicWorldAdapter(
+            transition,
+            adapter_id=f"seed-confidence-world-{tag}",
+        )
+        with FieldIntelligenceOwner(tmp_path / f"confidence-{tag}") as owner:
+            call(owner, f"seed-confidence-{tag}-configure", "configure")
+            call(
+                owner,
+                f"seed-confidence-{tag}-seed",
+                "submit",
+                kernel="cognition.field",
+                state=semantic_cognition_state(),
+                arguments={
+                    "operation": "observe",
+                    "operation_id": f"seed-confidence-{tag}-seed",
+                    "delivery_id": f"delivery:seed-confidence:{tag}",
+                    "event_id": f"event:seed-confidence:{tag}",
+                    "observations": [
+                        {
+                            "binding_id": f"binding:seed-confidence:{tag}:x",
+                            "subject": "world",
+                            "attribute": "x",
+                            "value": 1.0,
+                        },
+                        {
+                            "binding_id": f"binding:seed-confidence:{tag}:y",
+                            "subject": "world",
+                            "attribute": "y",
+                            "value": 3.0,
+                        },
+                    ],
+                },
+                steps=1,
+            )
+            call(
+                owner,
+                f"seed-confidence-{tag}-advance",
+                "advance",
+                steps=16,
+            )
+            frames = [
+                owner.execute_observation_request(
+                    operation_id=f"seed-confidence-{tag}-frame-{index}",
+                    observation_request={
+                        "channel_id": f"world:xy:seed-confidence:{tag}:{index}",
+                        "goal": {"kind": "one-step-transition"},
+                        "provides": ["x", "y"],
+                        "request": {"instrument": "deterministic"},
+                    },
+                    adapter=adapter,
+                    expected_state_sha256=owner.state.state_sha256,
+                )
+                for index in range(len(trajectory))
+            ]
+            learned = owner.learn_observed_transition(
+                operation_id=f"seed-confidence-{tag}-fit",
+                observations=frames[:5],
+                variables=["x", "y"],
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            results = [
+                owner.score_observed_transition(
+                    operation_id=f"seed-confidence-{tag}-score-{index}",
+                    learned=learned,
+                    predecessor=frames[4],
+                    outcome=frames[5 + index],
+                    expected_state_sha256=owner.state.state_sha256,
+                    retain_ratio=2.0,
+                    reject_ratio=4.0,
+                )
+                for index in range(len(shapes))
+            ]
+            assert len(calls) == len(trajectory)
+            return results
+
+    aggregate = {
+        amplitude: {"retain": 0, "refine": 0, "reject": 0}
+        for amplitude in amplitudes
+    }
+    for seed in seeds:
+        for amplitude in amplitudes:
+            results = run_case(seed, amplitude)
+            statuses = [result["status"] for result in results]
+            counts = {
+                status: statuses.count(status)
+                for status in ("retain", "refine", "reject")
+            }
+            assert counts == expected_counts[seed][amplitude]
+            for status, count in counts.items():
+                aggregate[amplitude][status] += count
+            assert all(
+                result["assessment"]["status"] == "supported"
+                for result in results
+            )
+
+    assert aggregate == {
+        0.05: {"retain": 24, "refine": 0, "reject": 0},
+        0.2: {"retain": 11, "refine": 13, "reject": 0},
+        0.5: {"retain": 1, "refine": 8, "reject": 15},
+    }
+    intervals = {
+        amplitude: {
+            status: wilson_interval(count, 24)
+            for status, count in counts.items()
+        }
+        for amplitude, counts in aggregate.items()
+    }
+    assert intervals[0.05]["retain"][0] > 0.8
+    assert intervals[0.2]["refine"][0] > 0.3
+    assert intervals[0.5]["reject"][0] > 0.4
+
+def test_owner_detects_heavy_tail_noise_across_independent_seeds(
+    tmp_path,
+) -> None:
+    import math
+    import random
+
+    from cassi_field_cognition import semantic_cognition_state
+
+    seeds = [20260918, 20260919, 20260920, 20260921, 20260922]
+    amplitudes = [0.2, 0.5]
+    expected_counts = {
+        20260918: {
+            0.2: {"retain": 0, "refine": 1, "reject": 7},
+            0.5: {"retain": 0, "refine": 0, "reject": 8},
+        },
+        20260919: {
+            0.2: {"retain": 1, "refine": 1, "reject": 6},
+            0.5: {"retain": 0, "refine": 1, "reject": 7},
+        },
+        20260920: {
+            0.2: {"retain": 2, "refine": 1, "reject": 5},
+            0.5: {"retain": 0, "refine": 1, "reject": 7},
+        },
+        20260921: {
+            0.2: {"retain": 2, "refine": 0, "reject": 6},
+            0.5: {"retain": 0, "refine": 2, "reject": 6},
+        },
+        20260922: {
+            0.2: {"retain": 2, "refine": 2, "reject": 4},
+            0.5: {"retain": 1, "refine": 1, "reject": 6},
+        },
+    }
+
+    robust_expected_counts = {
+        20260918: {
+            0.2: {"retain": 1, "refine": 4, "reject": 3},
+            0.5: {"retain": 0, "refine": 0, "reject": 8},
+        },
+        20260919: {
+            0.2: {"retain": 1, "refine": 2, "reject": 5},
+            0.5: {"retain": 1, "refine": 0, "reject": 7},
+        },
+        20260920: {
+            0.2: {"retain": 3, "refine": 2, "reject": 3},
+            0.5: {"retain": 0, "refine": 3, "reject": 5},
+        },
+        20260921: {
+            0.2: {"retain": 2, "refine": 2, "reject": 4},
+            0.5: {"retain": 1, "refine": 1, "reject": 6},
+        },
+        20260922: {
+            0.2: {"retain": 3, "refine": 2, "reject": 3},
+            0.5: {"retain": 1, "refine": 2, "reject": 5},
+        },
+    }
+
+    def clipped_cauchy(rng: random.Random) -> float:
+        value = math.tan(math.pi * (rng.random() - 0.5))
+        return max(-4.0, min(4.0, value))
+
+    shapes_by_seed = {}
+    for seed in seeds:
+        rng = random.Random(seed)
+        shapes_by_seed[seed] = [
+            (clipped_cauchy(rng), clipped_cauchy(rng))
+            for _ in range(8)
+        ]
+
+    def run_case(seed: int, amplitude: float):
+        tag = f"{seed}-{str(amplitude).replace('.', '_')}"
+        candidates = [
+            (32.5 + amplitude * x, 34.45 + amplitude * y)
+            for x, y in shapes_by_seed[seed]
+        ]
+        trajectory = [
+            (1.0, 3.0),
+            (2.05, 4.05),
+            (4.0, 6.2),
+            (8.1, 10.1),
+            (16.25, 18.2),
+            *candidates,
+        ]
+        calls: list[dict[str, object]] = []
+
+        def transition(action, target, payload):
+            index = len(calls)
+            x, y = trajectory[index]
+            calls.append(
+                {
+                    "action": action,
+                    "target": target,
+                    "payload": dict(payload),
+                }
+            )
+            return WorldAcknowledgment(
+                acknowledgment_id=f"ack:heavy-tail:{tag}:{index}",
+                operation_id=f"heavy-tail-{tag}-frame-{index}:adapter",
+                status="succeeded",
+                observed_values={"x": x, "y": y},
+                context={"source": "clipped-cauchy-noise"},
+                source_content=canonical_json_bytes(
+                    {
+                        "frame": index,
+                        "observed_values": {"x": x, "y": y},
+                    }
+                ),
+            )
+
+        adapter = DeterministicWorldAdapter(
+            transition,
+            adapter_id=f"heavy-tail-world-{tag}",
+        )
+        with FieldIntelligenceOwner(tmp_path / f"heavy-tail-{tag}") as owner:
+            call(owner, f"heavy-tail-{tag}-configure", "configure")
+            call(
+                owner,
+                f"heavy-tail-{tag}-seed",
+                "submit",
+                kernel="cognition.field",
+                state=semantic_cognition_state(),
+                arguments={
+                    "operation": "observe",
+                    "operation_id": f"heavy-tail-{tag}-seed",
+                    "delivery_id": f"delivery:heavy-tail:{tag}",
+                    "event_id": f"event:heavy-tail:{tag}",
+                    "observations": [
+                        {
+                            "binding_id": f"binding:heavy-tail:{tag}:x",
+                            "subject": "world",
+                            "attribute": "x",
+                            "value": 1.0,
+                        },
+                        {
+                            "binding_id": f"binding:heavy-tail:{tag}:y",
+                            "subject": "world",
+                            "attribute": "y",
+                            "value": 3.0,
+                        },
+                    ],
+                },
+                steps=1,
+            )
+            call(
+                owner,
+                f"heavy-tail-{tag}-advance",
+                "advance",
+                steps=16,
+            )
+            frames = [
+                owner.execute_observation_request(
+                    operation_id=f"heavy-tail-{tag}-frame-{index}",
+                    observation_request={
+                        "channel_id": f"world:xy:heavy-tail:{tag}:{index}",
+                        "goal": {"kind": "one-step-transition"},
+                        "provides": ["x", "y"],
+                        "request": {"instrument": "deterministic"},
+                    },
+                    adapter=adapter,
+                    expected_state_sha256=owner.state.state_sha256,
+                )
+                for index in range(len(trajectory))
+            ]
+            learned = owner.learn_observed_transition(
+                operation_id=f"heavy-tail-{tag}-fit",
+                observations=frames[:5],
+                variables=["x", "y"],
+                expected_state_sha256=owner.state.state_sha256,
+            )
+            results = []
+            robust_results = []
+            for index in range(8):
+                score = owner.score_observed_transition(
+                    operation_id=f"heavy-tail-{tag}-score-{index}",
+                    learned=learned,
+                    predecessor=frames[4],
+                    outcome=frames[5 + index],
+                    expected_state_sha256=owner.state.state_sha256,
+                    retain_ratio=2.0,
+                    reject_ratio=4.0,
+                )
+                robust_score = owner.score_observed_transition(
+                    operation_id=f"heavy-tail-{tag}-robust-score-{index}",
+                    learned=learned,
+                    predecessor=frames[4],
+                    outcome=frames[5 + index],
+                    expected_state_sha256=owner.state.state_sha256,
+                    retain_ratio=2.0,
+                    reject_ratio=4.0,
+                    residual_envelope="median_mad",
+                )
+                assert robust_score["model"]["residual_envelope"] == (
+                    "median_mad"
+                )
+                results.append(score)
+                robust_results.append(robust_score)
+            assert len(calls) == len(trajectory)
+            return results, robust_results
+
+    aggregate = {
+        amplitude: {"retain": 0, "refine": 0, "reject": 0}
+        for amplitude in amplitudes
+    }
+    robust_aggregate = {
+        amplitude: {"retain": 0, "refine": 0, "reject": 0}
+        for amplitude in amplitudes
+    }
+    for seed in seeds:
+        for amplitude in amplitudes:
+            results, robust_results = run_case(seed, amplitude)
+            statuses = [result["status"] for result in results]
+            counts = {
+                status: statuses.count(status)
+                for status in ("retain", "refine", "reject")
+            }
+            robust_statuses = [
+                result["status"] for result in robust_results
+            ]
+            robust_counts = {
+                status: robust_statuses.count(status)
+                for status in ("retain", "refine", "reject")
+            }
+            assert counts == expected_counts[seed][amplitude]
+            assert robust_counts == robust_expected_counts[seed][amplitude]
+            for status, count in counts.items():
+                aggregate[amplitude][status] += count
+            for status, count in robust_counts.items():
+                robust_aggregate[amplitude][status] += count
+            assert all(
+                result["assessment"]["status"] == "supported"
+                for result in robust_results
+            )
+            assert all(
+                result["assessment"]["status"] == "supported"
+                for result in results
+            )
+
+    assert aggregate == {
+        0.2: {"retain": 7, "refine": 5, "reject": 28},
+        0.5: {"retain": 1, "refine": 5, "reject": 34},
+    }
+    assert robust_aggregate == {
+        0.2: {"retain": 10, "refine": 12, "reject": 18},
+        0.5: {"retain": 3, "refine": 6, "reject": 31},
+    }
+    assert aggregate[0.2]["reject"] > robust_aggregate[0.2]["reject"]
+    assert aggregate[0.5]["reject"] > robust_aggregate[0.5]["reject"]
+    assert robust_aggregate[0.2]["refine"] > aggregate[0.2]["refine"]
 def _semantic_parameter_fixture(event_count: int = 6):
     from cassi_field_cognition import semantic_cognition_state
     from cassi_field_program import semantic_program_payload
@@ -3481,6 +5139,108 @@ def test_semantic_candidate_activation_freezes_boundary_before_new_evidence() ->
             },
         )
     assert invented_mass.value.code == "INVALID_PARAMETER_UPDATE"
+
+
+def test_semantic_representation_uses_training_fit_after_equal_holdout() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+
+    examples = [
+        {
+            "example_id": "train-left-1",
+            "features": {"bias": 0.0, "x": 3.0, "y": 1.0},
+            "outcome": "left",
+        },
+        {
+            "example_id": "train-right-1",
+            "features": {"bias": 0.0, "x": 1.0, "y": 3.0},
+            "outcome": "right",
+        },
+        {
+            "example_id": "train-left-2",
+            "features": {"bias": 0.0, "x": 4.0, "y": 2.0},
+            "outcome": "left",
+        },
+        {
+            "example_id": "train-right-2",
+            "features": {"bias": 0.0, "x": 2.0, "y": 4.0},
+            "outcome": "right",
+        },
+        {
+            "example_id": "train-left-3",
+            "features": {"bias": 0.0, "x": 5.0, "y": 1.0},
+            "outcome": "left",
+        },
+    ]
+    holdout = [
+        {
+            "example_id": "holdout-left-1",
+            "features": {"bias": 0.0, "x": 6.0, "y": 2.0},
+            "outcome": "left",
+            "rare_case": True,
+        },
+        {
+            "example_id": "holdout-left-2",
+            "features": {"bias": 0.0, "x": 7.0, "y": 3.0},
+            "outcome": "left",
+            "rare_case": True,
+        },
+    ]
+    candidates = [
+        {
+            "candidate_id": "constant-holdout-fit",
+            "edits": [],
+            "output_roles": ["bias"],
+            "exceptions": [],
+            "frontier": {"remaining": [], "status": "evaluated"},
+            "measured_cost": {},
+            "parameter_initialization": {},
+            "parent_refs": [],
+            "proposal_history": [],
+            "prospective_predictions": [],
+        },
+        {
+            "candidate_id": "ordered-perfect-fit",
+            "edits": [
+                {
+                    "family": "relational-variable",
+                    "guard": None,
+                    "relation": "order",
+                    "sources": ["x", "y"],
+                    "target": "ordering",
+                    "tolerance": 0.0,
+                    "units": "unitless",
+                }
+            ],
+            "output_roles": ["ordering"],
+            "exceptions": [],
+            "frontier": {"remaining": [], "status": "evaluated"},
+            "measured_cost": {},
+            "parameter_initialization": {},
+            "parent_refs": [],
+            "proposal_history": [],
+            "prospective_predictions": [],
+        },
+    ]
+
+    _, learned = _semantic_step(
+        semantic_cognition_state(),
+        operation="learn-representation",
+        operation_id="learn-equal-holdout-different-training-fit",
+        representation_id="equal-holdout-different-training-fit",
+        question={"target": "dominance"},
+        information_boundary={"available": ["features"]},
+        examples=examples,
+        holdout=holdout,
+        candidates=candidates,
+        support_roots=["equal-holdout-training-evidence"],
+    )
+
+    by_id = {row["candidate_id"]: row for row in learned["candidates"]}
+    assert learned["status"] == "supported"
+    assert learned["selected_candidate"] == "ordered-perfect-fit"
+    assert by_id["constant-holdout-fit"]["holdout"]["errors"] == 0
+    assert by_id["constant-holdout-fit"]["training"]["errors"] == 2
+    assert by_id["ordered-perfect-fit"]["training"]["errors"] == 0
 
 
 def test_semantic_discovery_transfers_into_ordinary_query_and_language() -> None:
@@ -4476,3 +6236,157 @@ def test_semantic_migration_consolidation_recovery_and_revocation() -> None:
     assert bounded_state["current"]["Value"]["bounded-source"] == (
         bounded_record["record"]
     )
+
+
+def test_autonomous_learning_selects_and_executes_field_owned_opportunity() -> None:
+    from cassi_field_cognition import semantic_cognition_state
+
+    state = semantic_cognition_state()
+    common_request = {
+        "examples": [
+            {
+                "text": "the key is in the drawer",
+                "bindings": {"item": "key", "place": "drawer"},
+            },
+            {
+                "text": "the cup is in the box",
+                "bindings": {"item": "cup", "place": "box"},
+            },
+        ],
+        "meaning": {
+            "object": {"$role": "place"},
+            "relation": "located-in",
+            "subject": {"$role": "item"},
+        },
+        "speech_act": "assertion",
+    }
+    state, selected = _semantic_step(
+        state,
+        operation="autonomous-learn",
+        operation_id="autonomous-location-learning",
+        goal="acquire a reusable location relation",
+        opportunities=[
+            {
+                "candidate_id": "location-construction",
+                "learning_kind": "construction",
+                "expected_gain": 8.0,
+                "urgency": 1.0,
+                "novelty": 1.0,
+                "cost": 0.25,
+                "request": {
+                    **common_request,
+                    "construction_id": "location-assertion",
+                },
+            },
+            {
+                "candidate_id": "lower-value-location-construction",
+                "learning_kind": "construction",
+                "expected_gain": 1.0,
+                "request": {
+                    **common_request,
+                    "construction_id": "unused-location-assertion",
+                },
+            },
+        ],
+    )
+    assert selected["status"] == "supported"
+    assert selected["selected"]["candidate_id"] == "location-construction"
+    assert selected["selected"]["learning_kind"] == "construction"
+    assert selected["selected"]["score"] > 9.25
+    assert selected["selected"]["experience_adjustment"] > 0.0
+    assert selected["learning"]["learning_kind"] == "construction"
+    selection_record = state["records"][selected["event"]["id"]][-1]
+    assert (
+        selection_record["payload"]["autonomous_learning"][
+            "selected_candidate_id"
+        ]
+        == "location-construction"
+    )
+
+    state, interpreted = _semantic_step(
+        state,
+        operation="interpret",
+        operation_id="interpret-autonomously-learned-location",
+        text="the coin is in the chest",
+        speaker="alice",
+        discourse_id="autonomous-location-discourse",
+    )
+    assert interpreted["status"] == "supported"
+    assert interpreted["interpretation"]["content"] == {
+        "object": "chest",
+        "relation": "located-in",
+        "subject": "coin",
+    }
+
+def test_regional_program_resolution_floor_blocks_subprecision_promotion() -> None:
+
+    import hashlib
+    import math
+
+    from cassi_field_cognition import (
+        regional_kernel,
+        regional_program_promotion_state,
+        regional_program_state,
+    )
+
+    program = {
+        "program_id": "regional-resolution-control",
+        "version": 1,
+        "roles": ["x"],
+        "steps": [
+            {"operation": "identity", "output": "y", "inputs": ["x"]},
+        ],
+        "outputs": ["y"],
+        "status": "candidate",
+        "assessments": [],
+        "support_event_ids": [],
+        "dependencies": [],
+        "guards": [],
+        "prefix_code_bits": 1,
+    }
+    event_id = hashlib.sha256(b"regional-resolution-control").hexdigest()
+    state = regional_program_state(
+        program,
+        {"x": 1000.0},
+        outcome={"y": math.nextafter(1000.0, math.inf)},
+        event_id=event_id,
+        loss_scale=1.0,
+    )
+    response = regional_kernel(state, {}, 64)
+    assert response.status == "done"
+    assessment = response.output
+    assert assessment["resolution_status"] == "unresolved"
+    assert assessment["resolution_floor"] > 0.0
+    assert assessment["normalized_loss"] > 0.0
+    candidate = dict(program)
+    candidate["assessments"] = [
+        {
+            key: assessment[key]
+            for key in (
+                "assessment_id",
+                "event_id",
+                "prediction_id",
+                "prediction",
+                "outcome",
+                "normalized_loss",
+                "resolution_floor",
+                "resolution_status",
+                "sequence",
+                "support_event_ids",
+                "dependency_ids",
+            )
+        }
+    ]
+    promotion = regional_program_promotion_state(
+        (candidate,),
+        ("regional-resolution-control",),
+        minimum_assessments=1,
+        maximum_average_loss=1.0,
+    )
+    promotion_response = regional_kernel(promotion, {}, 64)
+    assert promotion_response.status == "done"
+    assert promotion_response.output["status"] == "refused"
+    evaluated = promotion_response.output["evaluated"][0]
+    assert evaluated["unresolved_assessment_count"] == 1
+    assert evaluated["resolution_statuses"] == ["unresolved"]
+    assert evaluated["resolution_floors"] == [assessment["resolution_floor"]]

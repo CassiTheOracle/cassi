@@ -747,6 +747,9 @@ struct llm_cassi_modal_config {
     float mode_param_max  = 0.0f;
 
     float * state = nullptr; // [n_seq_max][state_stride], context-owned
+    // Learned per-mode symbols replacing the generated ramp. Context-owned and stable for
+    // the context lifetime; null selects the generated profile.
+    const float * mode_bank = nullptr; // [mode_count]
 };
 
 struct llm_cassi_qi_field_config : llm_cassi_modal_config {
@@ -768,6 +771,17 @@ struct llm_cassi_qi_field_config : llm_cassi_modal_config {
     float scale_ratio        = 4.2360679775f;
     float energy_floor       = 1.0e-6f;
     float read_floor         = 0.05f;
+    // Weight each scale's readout by how well that scale resolves the mode's own rate.
+    // Zero is the pinned readout, where every weight is exactly 1 and the divisor is the
+    // scale count; a negative value reads a fast mode at the scales that resolve it.
+    float scale_read_taper   = 0.0f;
+    bool read_absolute       = false; // read the flux at the field's own magnitude
+    bool modulate            = false; // add a bounded field term to the intact recurrent write
+    float modulate_gain      = 0.0f;  // steering coefficient of that term
+    bool attention_history = false; // append field-derived K/V rows to dense attention
+    // Restrict the full-gain write latch to a mode that has never been written. Off, a mode
+    // below the energy floor keeps the energy gate, so a faded trace fades instead of draining.
+    bool unwritten_latch = false;
 };
 
 // Field-step config shares the modal state layout and input plumbing, but
@@ -1009,8 +1023,15 @@ struct llm_graph_params {
                     cassi_qi->scale_ratio == other.cassi_qi->scale_ratio &&
                     cassi_qi->energy_floor == other.cassi_qi->energy_floor &&
                     cassi_qi->read_floor == other.cassi_qi->read_floor &&
+                    cassi_qi->scale_read_taper == other.cassi_qi->scale_read_taper &&
+                    cassi_qi->read_absolute == other.cassi_qi->read_absolute &&
+                    cassi_qi->modulate == other.cassi_qi->modulate &&
+                    cassi_qi->modulate_gain == other.cassi_qi->modulate_gain &&
+                    cassi_qi->attention_history == other.cassi_qi->attention_history &&
                     cassi_qi->mode_param_min == other.cassi_qi->mode_param_min &&
-                    cassi_qi->mode_param_max == other.cassi_qi->mode_param_max;
+                    cassi_qi->mode_param_max == other.cassi_qi->mode_param_max &&
+                    cassi_qi->mode_bank == other.cassi_qi->mode_bank &&
+                    cassi_qi->unwritten_latch == other.cassi_qi->unwritten_latch;
             }() &&
             [&]() {
                 if (cassi_service == nullptr || other.cassi_service == nullptr) {
@@ -1045,6 +1066,7 @@ public:
     ggml_tensor * get_cassi_capture_embed() const { return t_cassi_capture_embed; }
     ggml_tensor * get_cassi_capture_attention_input(int il) const { return t_cassi_capture_attention_input[il]; }
     ggml_tensor * get_cassi_capture_attention_delta(int il) const { return t_cassi_capture_attention_delta[il]; }
+    ggml_tensor * get_cassi_capture_attention_probs(int il) const { return t_cassi_capture_attention_probs[il]; }
     ggml_tensor * get_cassi_capture_ffn_input(int il) const { return t_cassi_capture_ffn_input[il]; }
     ggml_tensor * get_cassi_capture_ffn_delta(int il) const { return t_cassi_capture_ffn_delta[il]; }
     ggml_tensor * get_cassi_capture_head_input() const { return t_cassi_capture_head_input; }
@@ -1055,6 +1077,10 @@ public:
     ggml_tensor * get_cassi_qi_flux() const { return t_cassi_qi_flux; }
     int64_t get_cassi_qi_state_field_width() const { return t_cassi_qi_state_field_width; }
     int64_t get_cassi_qi_state_row_width() const { return t_cassi_qi_state_row_width; }
+    // The modulation seam's budget and applied scale, as scalars the host reads back, so a
+    // capped or unbound gain is reported rather than inferred from the displacement.
+    ggml_tensor * get_cassi_qi_seam_budget() const { return t_cassi_qi_seam_budget; }
+    ggml_tensor * get_cassi_qi_seam_scale()  const { return t_cassi_qi_seam_scale; }
     // Recorded by the seam as it builds, so a refused or capped seam is visible in the receipt
     void set_cassi_qi_state_ownership(int64_t field_width, int64_t row_width) {
         t_cassi_qi_state_field_width = field_width;
@@ -1095,13 +1121,18 @@ public:
     ggml_tensor * t_cassi       = nullptr; // packed [correction 2*M*T, state 8*M*S]
     ggml_tensor * t_cassi_field = nullptr; // packed [correction 2*M*T, state 8*M*S]
     ggml_tensor * t_cassi_qi    = nullptr; // packed [flux 2*M*T, state 9*M*S, diag 10*S]
-    ggml_tensor * t_cassi_qi_flux = nullptr; // [n_embd, n_tokens] view of the flux block, for the substitution seam
+    ggml_tensor * t_cassi_qi_flux = nullptr; // [n_embd, n_tokens] view of the flux block, for the state-write seams
+    ggml_tensor * t_cassi_qi_seam_budget = nullptr; // scalar: the largest scale the modulated write allows
+    ggml_tensor * t_cassi_qi_seam_scale  = nullptr; // scalar: the scale the modulated write applied
     int64_t t_cassi_qi_state_field_width = 0; // channels the seam addressed on this build
     int64_t t_cassi_qi_state_row_width = 0;   // channels in the suppressed state row
     ggml_tensor * t_cassi_service = nullptr; // typed native apprenticeship service result
     ggml_tensor * t_cassi_capture_embed = nullptr;
     std::vector<ggml_tensor *> t_cassi_capture_attention_input;
     std::vector<ggml_tensor *> t_cassi_capture_attention_delta;
+    // Per-head attention probabilities. Only full attention layers that run without flash
+    // attention reach the softmax that produces this tensor, so entries stay null elsewhere.
+    std::vector<ggml_tensor *> t_cassi_capture_attention_probs;
     std::vector<ggml_tensor *> t_cassi_capture_ffn_input;
     std::vector<ggml_tensor *> t_cassi_capture_ffn_delta;
     ggml_tensor * t_cassi_capture_head_input = nullptr;
@@ -1377,7 +1408,9 @@ struct llm_graph_context {
             ggml_tensor * sinks, // [n_head_q]
             ggml_tensor * v_mla, // [n_embd_head_v_mla, n_embd_head_v, n_head_v] // TODO: remove
                   float   kq_scale,
-                    int   il) const;
+                    int   il,
+            ggml_tensor * cassi_history_k = nullptr,
+            ggml_tensor * cassi_history_v = nullptr) const;
 
     llm_graph_input_attn_k  * build_attn_inp_k() const;
 

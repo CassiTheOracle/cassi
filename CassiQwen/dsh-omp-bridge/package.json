@@ -1,0 +1,21 @@
+{
+  "name": "@cassi/dsh-omp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepSeek Harness sessions as oh-my-pi models: an OpenAI-compatible bridge over the harness wire",
+  "type": "module",
+  "main": "bridge.mjs",
+  "exports": {
+    ".": "./bridge.mjs",
+    "./wire": "./dsh-wire.mjs",
+    "./fixture": "./harness-fixture.mjs"
+  },
+  "scripts": {
+    "start": "node bridge.mjs",
+    "verify": "node verify.mjs",
+    "fixture": "node verify.mjs --keep"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

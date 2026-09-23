@@ -10,6 +10,7 @@ import math
 import operator
 import struct
 from functools import reduce
+from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
 
 
@@ -517,6 +518,637 @@ def semantic_observe_request(
     return request
 
 
+LIVE_SURFACE_PAGE_SCHEMA = "cassifi.live-surface-observation-page.v1"
+_MAX_SURFACE_PAGE_BYTES = 1024 * 1024
+LIVE_SURFACE_STRUCTURE_PAGE_SCHEMA = "cassifi.live-surface-structure-page.v1"
+_MAX_SURFACE_STRUCTURE_BYTES = 1024 * 1024
+
+
+def normalize_surface_coverage(
+    value: Any, *, width: int, height: int
+) -> dict[str, Any]:
+    """Detach bounded coverage metadata and make unlocalized gaps explicit."""
+
+    width = _integer(width, "surface width", minimum=1)
+    height = _integer(height, "surface height", minimum=1)
+    if not isinstance(value, Mapping):
+        return {
+            "complete": False,
+            "coverage_reported": False,
+            "missing_regions": [],
+            "redacted_regions": [],
+            "skipped_intervals": [],
+            "unknown_regions": [{"reason": "coverage-not-reported"}],
+        }
+    try:
+        encoded = _canonical(dict(value))
+        if len(encoded) > 64 * 1024:
+            raise SourceViewError("surface coverage exceeds the metadata limit")
+        coverage = json.loads(encoded.decode("utf-8"))
+    except (SourceViewError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SourceViewError("surface coverage is not bounded canonical JSON") from exc
+
+    invalid = False
+    complete = coverage.get("complete")
+    if not isinstance(complete, bool):
+        complete = False
+        invalid = True
+
+    def regions(name: str) -> list[dict[str, Any]]:
+        nonlocal invalid
+        raw = coverage.get(name, [])
+        if isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence) or len(raw) > 4096:
+            invalid = True
+            return []
+        normalized: list[dict[str, Any]] = []
+        for item in raw:
+            if not isinstance(item, Mapping):
+                invalid = True
+                continue
+            normalized_item = regions_from_one(item, width, height)
+            if normalized_item is None:
+                invalid = True
+                continue
+            normalized.append(normalized_item)
+        return normalized
+
+    missing = regions("missing_regions")
+    redacted = regions("redacted_regions")
+    unknown_raw = coverage.get("unknown_regions", [])
+    if (
+        isinstance(unknown_raw, (str, bytes))
+        or not isinstance(unknown_raw, Sequence)
+        or len(unknown_raw) > 4096
+    ):
+        invalid = True
+        unknown = []
+    else:
+        unknown = []
+        for item in unknown_raw:
+            if (
+                isinstance(item, Mapping)
+                and all(key in item for key in ("x", "y", "width", "height"))
+            ):
+                normalized = regions_from_one(item, width, height)
+                if normalized is None:
+                    invalid = True
+                else:
+                    unknown.append(normalized)
+            else:
+                unknown.append(dict(item) if isinstance(item, Mapping) else item)
+
+    skipped = coverage.get("skipped_intervals", [])
+    if (
+        isinstance(skipped, (str, bytes))
+        or not isinstance(skipped, Sequence)
+        or len(skipped) > 4096
+    ):
+        invalid = True
+        skipped = []
+    if complete and (missing or redacted or unknown):
+        complete = False
+    if invalid:
+        unknown = [{"reason": "unlocalized-coverage"}]
+        complete = False
+    if not complete and not missing and not redacted and not unknown:
+        unknown = [{"reason": "coverage-incomplete-without-region"}]
+    result = {
+        **coverage,
+        "complete": complete,
+        "coverage_reported": True,
+        "missing_regions": missing,
+        "redacted_regions": redacted,
+        "skipped_intervals": list(skipped),
+        "unknown_regions": unknown,
+    }
+    try:
+        encoded = _canonical(result)
+    except SourceViewError as exc:
+        raise SourceViewError("surface coverage cannot be normalized") from exc
+    if len(encoded) > 64 * 1024:
+        raise SourceViewError("normalized surface coverage exceeds the metadata limit")
+    return json.loads(encoded.decode("utf-8"))
+
+def normalize_surface_structure_coverage(value: Any) -> dict[str, Any]:
+    """Detach bounded structural coverage without inventing screen geometry."""
+
+    if not isinstance(value, Mapping):
+        return {
+            "complete": False,
+            "coverage_reported": False,
+            "missing_regions": [],
+            "redacted_regions": [],
+            "skipped_intervals": [],
+            "unknown_regions": [{"reason": "coverage-not-reported"}],
+        }
+    try:
+        encoded = _canonical(dict(value))
+        if len(encoded) > 64 * 1024:
+            raise SourceViewError("surface coverage exceeds the metadata limit")
+        coverage = json.loads(encoded.decode("utf-8"))
+    except (SourceViewError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SourceViewError(
+            "surface coverage is not bounded canonical JSON"
+        ) from exc
+    invalid = False
+    complete = coverage.get("complete")
+    if not isinstance(complete, bool):
+        complete = False
+        invalid = True
+    normalized: dict[str, list[Any]] = {}
+    for name in (
+        "missing_regions",
+        "redacted_regions",
+        "skipped_intervals",
+        "unknown_regions",
+    ):
+        raw = coverage.get(name, [])
+        if (
+            isinstance(raw, (str, bytes))
+            or not isinstance(raw, Sequence)
+            or len(raw) > 4096
+        ):
+            normalized[name] = []
+            invalid = True
+        else:
+            normalized[name] = list(raw)
+    if complete and (
+        normalized["missing_regions"]
+        or normalized["redacted_regions"]
+        or normalized["unknown_regions"]
+    ):
+        complete = False
+    if invalid:
+        normalized["unknown_regions"] = [{"reason": "unlocalized-coverage"}]
+        complete = False
+    if not complete and not any(
+        normalized[name]
+        for name in ("missing_regions", "redacted_regions", "unknown_regions")
+    ):
+        normalized["unknown_regions"] = [
+            {"reason": "coverage-incomplete-without-region"}
+        ]
+    result = {
+        **coverage,
+        "complete": complete,
+        "coverage_reported": True,
+        **normalized,
+    }
+    try:
+        encoded = _canonical(result)
+    except SourceViewError as exc:
+        raise SourceViewError("surface coverage cannot be normalized") from exc
+    if len(encoded) > 64 * 1024:
+        raise SourceViewError("normalized surface coverage exceeds the metadata limit")
+    return json.loads(encoded.decode("utf-8"))
+
+
+def regions_from_one(
+    item: Mapping[str, Any], width: int, height: int
+) -> dict[str, Any] | None:
+    if all(key in item for key in ("x", "y", "width", "height")):
+        try:
+            x = _integer(item.get("x"), "surface region x", minimum=0)
+            y = _integer(item.get("y"), "surface region y", minimum=0)
+            region_width = _integer(item.get("width"), "surface region width", minimum=1)
+            region_height = _integer(item.get("height"), "surface region height", minimum=1)
+        except SourceViewError:
+            return None
+        if x + region_width > width or y + region_height > height:
+            return None
+        return {
+            **dict(item),
+            "height": region_height,
+            "width": region_width,
+            "x": x,
+            "y": y,
+        }
+    if "start_sample" in item and "sample_count" in item:
+        try:
+            start_sample = _integer(
+                item.get("start_sample"), "surface sample start", minimum=0
+            )
+            sample_count = _integer(
+                item.get("sample_count"), "surface sample count", minimum=1
+            )
+        except SourceViewError:
+            return None
+        if start_sample + sample_count > width:
+            return None
+        return {
+            **dict(item),
+            "sample_count": sample_count,
+            "start_sample": start_sample,
+        }
+    return None
+
+
+def _surface_format(pixel_format: str) -> tuple[str, str, int | None] | None:
+    normalized = pixel_format.strip().lower().replace("_", "-")
+    token = normalized.rsplit("/", 1)[-1]
+    audio_token = token.removeprefix("audio-").removeprefix("pcm-")
+    audio_types = {
+        "f32le": "f32le",
+        "f64le": "f64le",
+        "i16le": "i16le",
+        "i32le": "i32le",
+        "s16le": "i16le",
+        "s32le": "i32le",
+        "u8": "u8",
+    }
+    if audio_token in audio_types:
+        return audio_types[audio_token], "audio", None
+    raster = {
+        "gray8": 1,
+        "grey8": 1,
+        "gray": 1,
+        "grayscale8": 1,
+        "grey-scale8": 1,
+        "gray-alpha8": 2,
+        "graya8": 2,
+        "la8": 2,
+        "l8": 1,
+        "y8": 1,
+        "rgb8": 3,
+        "bgr8": 3,
+        "rgba8": 4,
+        "bgra8": 4,
+        "argb8": 4,
+        "abgr8": 4,
+    }
+    channels = raster.get(token)
+    if channels is not None:
+        return "u8", "raster", channels
+    return None
+
+
+def _surface_hidden_regions(
+    coverage: Mapping[str, Any],
+    *,
+    modality: str,
+    width: int,
+    height: int,
+) -> tuple[list[Mapping[str, Any]], bool]:
+    missing = coverage.get("missing_regions", [])
+    redacted = coverage.get("redacted_regions", [])
+    unknown = coverage.get("unknown_regions", [])
+    hidden: list[Mapping[str, Any]] = []
+    for collection in (missing, redacted, unknown):
+        if isinstance(collection, (str, bytes)) or not isinstance(collection, Sequence):
+            return [], True
+        for item in collection:
+            if not isinstance(item, Mapping):
+                return [], True
+            if modality == "raster":
+                if not all(key in item for key in ("x", "y", "width", "height")):
+                    return [], True
+                normalized = regions_from_one(item, width, height)
+                if normalized is None or "x" not in normalized:
+                    return [], True
+            elif "start_sample" in item and "sample_count" in item:
+                if (
+                    any(
+                        isinstance(item[key], bool)
+                        or not isinstance(item[key], int)
+                        for key in ("start_sample", "sample_count")
+                    )
+                    or item["start_sample"] < 0
+                    or item["sample_count"] <= 0
+                    or item["start_sample"] + item["sample_count"] > width
+                ):
+                    return [], True
+                normalized = item
+            elif all(key in item for key in ("x", "y", "width", "height")):
+                normalized = regions_from_one(item, width, height)
+                if normalized is None or "x" not in normalized:
+                    return [], True
+            else:
+                return [], True
+            hidden.append(normalized)
+    complete = coverage.get("complete")
+    if not isinstance(complete, bool) or (
+        not complete
+        and not missing
+        and not redacted
+        and not unknown
+    ):
+        return [], True
+    return hidden, False
+
+
+def surface_observation_page(
+    publication: Mapping[str, Any],
+    pixels: bytes,
+    *,
+    byte_offset: int,
+    page_size: int = 128,
+) -> dict[str, Any]:
+    """Decode at most one bounded live pixel/audio window into fixed observations."""
+
+    if not isinstance(publication, Mapping):
+        raise SourceViewError("surface publication must be a mapping")
+    if not isinstance(pixels, bytes) or len(pixels) > _MAX_SURFACE_PAGE_BYTES:
+        raise SourceViewError("surface input must be a bounded exact byte window")
+    page_size = _integer(page_size, "page_size", minimum=1, maximum=_MAX_PAGE_ITEMS)
+    byte_offset = _integer(byte_offset, "byte_offset", minimum=0)
+    binding_id = publication.get("binding_id")
+    generation = publication.get("generation")
+    source_id = publication.get("source_id")
+    source_revision_id = publication.get("sha256")
+    width = _integer(publication.get("width"), "surface width", minimum=1)
+    height = _integer(publication.get("height"), "surface height", minimum=1)
+    byte_length = _integer(publication.get("byte_length"), "surface byte length", minimum=1)
+    sequence = _integer(
+        publication.get("sequence"),
+        "surface sequence",
+        minimum=0,
+        maximum=2**64 - 1,
+    )
+    sample_time_ns = publication.get("sample_time_ns")
+    if sample_time_ns is not None:
+        sample_time_ns = _integer(sample_time_ns, "surface sample time", minimum=0)
+    sample_time_uncertainty_ns = publication.get("sample_time_uncertainty_ns")
+    if sample_time_uncertainty_ns is not None:
+        sample_time_uncertainty_ns = _integer(
+            sample_time_uncertainty_ns, "surface sample time uncertainty", minimum=0
+        )
+    receipt_time_ns = _integer(
+        publication.get("receipt_time_ns"), "surface receipt time", minimum=0
+    )
+    sample_clock_domain = publication.get("sample_clock_domain")
+    receipt_clock_domain = publication.get("receipt_clock_domain")
+    if sample_clock_domain is not None and not isinstance(sample_clock_domain, str):
+        raise SourceViewError("surface sample clock domain is invalid")
+    if not isinstance(receipt_clock_domain, str) or not receipt_clock_domain:
+        raise SourceViewError("surface receipt clock domain is invalid")
+    for name, value in (
+        ("binding_id", binding_id),
+        ("source_id", source_id),
+        ("source_revision_id", source_revision_id),
+    ):
+        if not isinstance(value, str) or not value:
+            raise SourceViewError(f"{name} must be nonempty text")
+    generation = _integer(generation, "surface generation", minimum=1)
+    if len(source_revision_id) != 64 or any(
+        character not in "0123456789abcdef" for character in source_revision_id
+    ):
+        raise SourceViewError("surface content digest is invalid")
+    if byte_offset + len(pixels) > byte_length:
+        raise SourceViewError("surface byte window exceeds the publication extent")
+
+    pixel_format = publication.get("pixel_format")
+    if not isinstance(pixel_format, str) or not pixel_format:
+        raise SourceViewError("surface pixel_format must be nonempty text")
+    spec = _surface_format(pixel_format)
+    if spec is None:
+        raise SourceViewError("surface pixel_format has no fixed decoder")
+    dtype, modality, channels = spec
+    fmt, item_bytes = _DTYPE_FORMATS[dtype]
+    if byte_offset % item_bytes or len(pixels) % item_bytes:
+        raise SourceViewError("surface byte window is not aligned to its fixed codec")
+    shape = (
+        (height, width, channels)
+        if modality == "raster"
+        else ((width,) if height == 1 else (width, height))
+    )
+    total_items = math.prod(shape)
+    if total_items * item_bytes != byte_length:
+        raise SourceViewError("surface dimensions do not match its exact byte extent")
+
+    coverage = publication.get("coverage")
+    if not isinstance(coverage, Mapping):
+        coverage = {
+            "complete": False,
+            "unknown_regions": [{"reason": "coverage-not-reported"}],
+        }
+    hidden, hide_all = _surface_hidden_regions(
+        coverage, modality=modality, width=width, height=height
+    )
+    item_cursor = byte_offset // item_bytes
+    available_items = len(pixels) // item_bytes
+    scan_count = min(available_items, max(page_size * 16, page_size))
+    scan_end = min(total_items, item_cursor + scan_count)
+    observations: list[dict[str, Any]] = []
+    if not hide_all:
+        for index in range(item_cursor, scan_end):
+            if modality == "raster":
+                pixel = index // channels
+                x, y = pixel % width, pixel // width
+                hidden_item = any(
+                    item["x"] <= x < item["x"] + item["width"]
+                    and item["y"] <= y < item["y"] + item["height"]
+                    for item in hidden
+                )
+                coordinates = (y, x, index % channels)
+            else:
+                frame, channel = divmod(index, height)
+                hidden_item = any(
+                    (
+                        item["start_sample"] <= frame
+                        < item["start_sample"] + item["sample_count"]
+                    )
+                    if "start_sample" in item
+                    else (
+                        item["x"] <= frame < item["x"] + item["width"]
+                        and item["y"] <= channel < item["y"] + item["height"]
+                    )
+                    for item in hidden
+                )
+                coordinates = (index,) if height == 1 else (frame, channel)
+            if hidden_item:
+                continue
+            local_index = index - item_cursor
+            value = struct.unpack_from(fmt, pixels, local_index * item_bytes)[0]
+            if isinstance(value, float) and not math.isfinite(value):
+                raise SourceViewError("surface page contains a non-finite sample")
+            descriptor = {
+                "dtype": dtype,
+                "flat_index": index,
+                "index": list(coordinates),
+                "kind": "tensor-element",
+                "source_span": [index * item_bytes, (index + 1) * item_bytes],
+                "value": value,
+            }
+            observations.append(
+                {
+                    "attribute": _path_text(coordinates),
+                    "binding_id": f"surface:{binding_id}:{generation}:{index}",
+                    "epistemic_kind": "observed",
+                    "status": "active",
+                    "subject": source_id,
+                    "value": descriptor,
+                }
+            )
+            if len(observations) >= page_size:
+                break
+    scanned_end = (
+        min(scan_end, observations[-1]["value"]["flat_index"] + 1)
+        if observations and len(observations) == page_size
+        else scan_end
+    )
+    coverage_view = _canonical(dict(coverage))
+    result: dict[str, Any] = {
+        "schema": LIVE_SURFACE_PAGE_SCHEMA,
+        "status": "limited" if hide_all else "supported",
+        "source_id": source_id,
+        "source_instance": publication.get("source_instance"),
+        "source_epoch": publication.get("source_epoch"),
+        "environment_incarnation": publication.get("environment_incarnation"),
+        "geometry_revision": publication.get("geometry_revision"),
+        "source_revision_id": source_revision_id,
+        "binding_id": binding_id,
+        "generation": generation,
+        "sequence": sequence,
+        "pixel_format": pixel_format,
+        "dtype": dtype,
+        "shape": list(shape),
+        "byte_length": byte_length,
+        "byte_offset": byte_offset,
+        "byte_window_length": len(pixels),
+        "content_sha256": source_revision_id,
+        "coverage": json.loads(coverage_view.decode("utf-8")),
+        "sample_time_ns": sample_time_ns,
+        "sample_clock_domain": sample_clock_domain,
+        "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+        "receipt_time_ns": receipt_time_ns,
+        "receipt_clock_domain": receipt_clock_domain,
+        "provenance": publication.get("provenance"),
+        "cursor": item_cursor,
+        "item_count": len(observations),
+        "total_items": total_items,
+        "complete": scanned_end >= total_items,
+        "next_cursor": None if scanned_end >= total_items else scanned_end,
+        "observations": observations,
+    }
+    return {**result, "view_sha256": _digest(result)}
+
+
+def surface_structure_observation_page(
+    publication: Mapping[str, Any],
+    content: bytes,
+    *,
+    cursor: int = 0,
+    page_size: int = 128,
+) -> dict[str, Any]:
+    """Decode one bounded text/accessibility page through the existing field codecs."""
+
+    if not isinstance(publication, Mapping):
+        raise SourceViewError("surface structure publication must be a mapping")
+    if not isinstance(content, bytes) or len(content) > _MAX_SURFACE_STRUCTURE_BYTES:
+        raise SourceViewError("surface structure must be bounded immutable bytes")
+    cursor = _integer(cursor, "cursor", minimum=0)
+    page_size = _integer(page_size, "page_size", minimum=1, maximum=_MAX_PAGE_ITEMS)
+    source_id = publication.get("source_id")
+    source_revision_id = publication.get("sha256")
+    binding_id = publication.get("binding_id")
+    generation = _integer(publication.get("generation"), "generation", minimum=1)
+    for name, value in (
+        ("source_id", source_id),
+        ("source_revision_id", source_revision_id),
+        ("binding_id", binding_id),
+    ):
+        if not isinstance(value, str) or not value:
+            raise SourceViewError(f"{name} must be nonempty text")
+    if hashlib.sha256(content).hexdigest() != source_revision_id:
+        raise SourceViewError("surface structure digest does not match its bytes")
+    codec = publication.get("codec")
+    if codec not in (CODEC_JSON, CODEC_TEXT):
+        raise SourceViewError("surface structure codec is unsupported")
+    coverage = publication.get("coverage")
+    if not isinstance(coverage, Mapping):
+        coverage = normalize_surface_structure_coverage(None)
+    else:
+        coverage = normalize_surface_structure_coverage(coverage)
+    incomplete = (
+        coverage.get("complete") is not True
+        or bool(coverage.get("missing_regions"))
+        or bool(coverage.get("redacted_regions"))
+        or bool(coverage.get("unknown_regions"))
+    )
+    if incomplete:
+        source_page: dict[str, Any] = {
+            "byte_length": len(content),
+            "codec": codec,
+            "decoder_codec": codec,
+            "content_sha256": source_revision_id,
+            "cursor": cursor,
+            "media_type": (
+                "application/json" if codec == CODEC_JSON else "text/plain"
+            ),
+            "modality": "structure",
+            "page_size": page_size,
+            "schema": SOURCE_VIEW_SCHEMA,
+            "source_id": source_id,
+            "source_revision_id": source_revision_id,
+            "source_span": None,
+            "complete": False,
+            "dtype": "json" if codec == CODEC_JSON else "utf8",
+            "item_count": 0,
+            "next_cursor": None,
+            "observations": [],
+            "reason": "surface-coverage-incomplete",
+            "shape": [],
+            "status": "limited",
+            "total_items": 0,
+            "units": [],
+        }
+    else:
+        source = SimpleNamespace(
+            content=content,
+            codec=codec,
+            revision_id=source_revision_id,
+            source_id=source_id,
+            media_type=(
+                "application/json" if codec == CODEC_JSON else "text/plain"
+            ),
+            span=None,
+        )
+        try:
+            source_page = source_observation_page(
+                source, cursor=cursor, page_size=page_size
+            )
+        except (RecursionError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SourceViewError("surface structure could not be decoded") from exc
+    sample_time_ns = publication.get("sample_time_ns")
+    if sample_time_ns is not None:
+        sample_time_ns = _integer(sample_time_ns, "surface sample time", minimum=0)
+    sample_time_uncertainty_ns = publication.get("sample_time_uncertainty_ns")
+    if sample_time_uncertainty_ns is not None:
+        sample_time_uncertainty_ns = _integer(
+            sample_time_uncertainty_ns, "surface sample time uncertainty", minimum=0
+        )
+    receipt_time_ns = _integer(
+        publication.get("receipt_time_ns"), "surface receipt time", minimum=0
+    )
+    sample_clock_domain = publication.get("sample_clock_domain")
+    receipt_clock_domain = publication.get("receipt_clock_domain")
+    if sample_clock_domain is not None and not isinstance(sample_clock_domain, str):
+        raise SourceViewError("surface sample clock domain is invalid")
+    if not isinstance(receipt_clock_domain, str) or not receipt_clock_domain:
+        raise SourceViewError("surface receipt clock domain is invalid")
+    result = {
+        **source_page,
+        "schema": LIVE_SURFACE_STRUCTURE_PAGE_SCHEMA,
+        "modality": "structure",
+        "binding_id": binding_id,
+        "generation": generation,
+        "source_id": source_id,
+        "source_instance": publication.get("source_instance"),
+        "source_epoch": publication.get("source_epoch"),
+        "environment_incarnation": publication.get("environment_incarnation"),
+        "geometry_revision": publication.get("geometry_revision"),
+        "sequence": publication.get("sequence"),
+        "coverage": coverage,
+        "sample_time_ns": sample_time_ns,
+        "sample_clock_domain": sample_clock_domain,
+        "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+        "receipt_time_ns": receipt_time_ns,
+        "receipt_clock_domain": receipt_clock_domain,
+        "provenance": publication.get("provenance"),
+    }
+    return {**result, "view_sha256": _digest(result)}
+
+
 __all__ = [
     "CODEC_AUDIO",
     "CODEC_CODE",
@@ -525,9 +1157,15 @@ __all__ = [
     "CODEC_RASTER",
     "CODEC_TENSOR",
     "CODEC_TEXT",
+    "LIVE_SURFACE_PAGE_SCHEMA",
+    "LIVE_SURFACE_STRUCTURE_PAGE_SCHEMA",
     "SOURCE_VIEW_SCHEMA",
     "SUPPORTED_CODECS",
     "SourceViewError",
+    "normalize_surface_coverage",
+    "normalize_surface_structure_coverage",
     "semantic_observe_request",
     "source_observation_page",
+    "surface_observation_page",
+    "surface_structure_observation_page",
 ]

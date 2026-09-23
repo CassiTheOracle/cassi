@@ -11135,6 +11135,10 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
     const float scale_ratio = ggml_get_op_params_f32(dst, 8);
     const float energy_floor = ggml_get_op_params_f32(dst, 9);
     const float read_floor = ggml_get_op_params_f32(dst, 10);
+    const bool read_absolute = ggml_get_op_params_i32(dst, 11) != 0;
+    const bool memory_write = ggml_get_op_params_i32(dst, 12) != 0;
+    const bool unwritten_latch = ggml_get_op_params_i32(dst, 13) != 0;
+    const float scale_read_taper = ggml_get_op_params_f32(dst, 14);
     GGML_ASSERT(wave_mode_count > 0 && state_mode_count >= wave_mode_count &&
                 scale_count >= 1 && scale_count <= 4);
     GGML_ASSERT(src1->ne[0] == 9 * state_mode_count * scale_count);
@@ -11168,6 +11172,17 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
             float last_write[4] = {};
             float last_consolidation[4] = {};
             const float symbol = std::isfinite(mode_params[mode]) ? mode_params[mode] : 0.0f;
+            // The pinned readout averages `chi` over the available scales, so a mode reads at
+            // the same rate whatever symbol the bank gives it. The taper weights scale `s` by
+            // how well that scale resolves the mode's own rate, which is what lets a fast mode
+            // fall faster than the shared cascade. Zero leaves every weight exactly 1.
+            float read_weight[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+            if (scale_read_taper != 0.0f) {
+                const float damping = cassi_qi_clamp(std::abs(symbol), damping_min, damping_max);
+                for (int64_t scale = 0; scale < scale_count; ++scale) {
+                    read_weight[scale] = std::exp(-scale_read_taper * float(scale) * damping * dt_base);
+                }
+            }
             for (int64_t scale = 0; scale < scale_count; ++scale) {
                 last_consolidation[scale] = 0.0f;
                 for (int64_t component = 0; component < 9; ++component) {
@@ -11191,6 +11206,7 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
 
                 float read_re = 0.0f, read_im = 0.0f, chi_sum = 0.0f, phase_sum = 0.0f;
                 int available_count = 0;
+                float weight_sum = 0.0f;
                 float rho_local[4] = {}, q_local[4] = {}, chi_local[4] = {};
                 bool avail_local[4] = {};
                 for (int64_t scale = 0; scale < scale_count; ++scale) {
@@ -11202,10 +11218,13 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                     if (avail_local[scale]) {
                         const float d_re = work[scale * 9 + 0] - phi * work[scale * 9 + 2];
                         const float d_im = work[scale * 9 + 1] - phi * work[scale * 9 + 3];
-                        const float norm = 1.0f / std::sqrt(std::max(rho_local[scale], 1.0e-12f));
-                        read_re += chi_local[scale] * d_re * norm;
-                        read_im += chi_local[scale] * d_im * norm;
-                        chi_sum += chi_local[scale];
+                        // Scaling the state by k scales d by k and rho by k^2, so d / sqrt(rho) is
+                        // k-invariant. The absolute readout keeps the field's own magnitude instead.
+                        const float norm = read_absolute ? 1.0f : 1.0f / std::sqrt(std::max(rho_local[scale], 1.0e-12f));
+                        read_re += read_weight[scale] * chi_local[scale] * d_re * norm;
+                        read_im += read_weight[scale] * chi_local[scale] * d_im * norm;
+                        chi_sum += read_weight[scale] * chi_local[scale];
+                        weight_sum += read_weight[scale];
                         ++available_count;
                     }
                     if (scale > 0 && avail_local[scale - 1] && avail_local[scale]) {
@@ -11218,40 +11237,69 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                     }
                 }
                 const float cross = available_count > 1 ? cassi_qi_clamp(phase_sum / float(available_count - 1), 0.0f, 1.0f) : (available_count == 1 ? 1.0f : 0.0f);
-                const float read_gate = available_count > 0 ? cassi_qi_clamp((chi_sum / float(available_count)) * cross, 0.0f, 1.0f) : 0.0f;
+                // `cross` stays on the unweighted scale count: it asks how many scales agree, which
+                // is not a magnitude. The gate and the divisor take the weighted sum, which at
+                // taper 0 is exactly the scale count, so the pinned readout is unchanged.
+                const float read_gate = available_count > 0 ? cassi_qi_clamp((chi_sum / weight_sum) * cross, 0.0f, 1.0f) : 0.0f;
                 if (mode < wave_mode_count) {
                     if (read_gate >= read_floor && available_count > 0) {
-                        output[token * sense_stride + 2 * mode + 0] = coupling * read_gate * read_re / float(available_count);
-                        output[token * sense_stride + 2 * mode + 1] = coupling * read_gate * read_im / float(available_count);
+                        output[token * sense_stride + 2 * mode + 0] = coupling * read_gate * read_re / weight_sum;
+                        output[token * sense_stride + 2 * mode + 1] = coupling * read_gate * read_im / weight_sum;
                     } else {
                         output[token * sense_stride + 2 * mode + 0] = 0.0f;
                         output[token * sense_stride + 2 * mode + 1] = 0.0f;
                     }
                 }
 
-                const float signal_re = mode < wave_mode_count ? sense[token * sense_stride + 2 * mode + 0] : 0.0f;
-                const float signal_im = mode < wave_mode_count ? sense[token * sense_stride + 2 * mode + 1] : 0.0f;
-                float chirp_re = 1.0f, chirp_im = 0.0f;
-                cassi_qi_chirp(0, (uint32_t) mode, chirp_re, chirp_im);
-                const float source_re = chirp_re * signal_re - chirp_im * signal_im;
-                const float source_im = chirp_re * signal_im + chirp_im * signal_re;
-                const float source_energy = source_re * source_re + source_im * source_im;
-                const float structured_source = cassi_qi_clamp(source_energy / (1.0f + source_energy), 0.0f, 1.0f);
-                const float write_gate = !avail_local[0] ? 1.0f : structured_source * (1.0f - q_local[0]);
-                const float write_gain = cassi_qi_clamp(dt_base * write_gate, 0.0f, 0.5f);
-                last_write[0] = write_gate;
-                work[0] = cassi_qi_state_value((1.0f - write_gain) * work[0] + 0.5f * write_gain * source_re);
-                work[1] = cassi_qi_state_value((1.0f - write_gain) * work[1] + 0.5f * write_gain * source_im);
-                work[2] = cassi_qi_state_value((1.0f - write_gain) * work[2] - 0.5f * write_gain * source_re / phi);
-                work[3] = cassi_qi_state_value((1.0f - write_gain) * work[3] - 0.5f * write_gain * source_im / phi);
+                // A persistent mode has no sense channel, so it copies the field's own state at the
+                // mirror mode.  That state already holds the field's own gated write, so the copy
+                // takes the base rate and does not gate the state a second time.
+                if (mode < wave_mode_count) {
+                    const float signal_re = sense[token * sense_stride + 2 * mode + 0];
+                    const float signal_im = sense[token * sense_stride + 2 * mode + 1];
+                    float chirp_re = 1.0f, chirp_im = 0.0f;
+                    cassi_qi_chirp(0, (uint32_t) mode, chirp_re, chirp_im);
+                    const float source_re = chirp_re * signal_re - chirp_im * signal_im;
+                    const float source_im = chirp_re * signal_im + chirp_im * signal_re;
+                    const float source_energy = source_re * source_re + source_im * source_im;
+                    const float structured_source = cassi_qi_clamp(source_energy / (1.0f + source_energy), 0.0f, 1.0f);
+                    // The full-gain latch belongs to a mode that has never been written. Keeping it on
+                    // every mode below the energy floor lets a silent input reset a decayed trace at dt
+                    // per token, so a faded memory drains to zero instead of fading out.
+                    const bool latch = unwritten_latch ? rho_local[0] == 0.0f : !avail_local[0];
+                    const float write_gate = latch ? 1.0f : structured_source * (1.0f - q_local[0]);
+                    const float write_gain = cassi_qi_clamp(dt_base * write_gate, 0.0f, 0.5f);
+                    last_write[0] = write_gate;
+                    work[0] = cassi_qi_state_value((1.0f - write_gain) * work[0] + 0.5f * write_gain * source_re);
+                    work[1] = cassi_qi_state_value((1.0f - write_gain) * work[1] + 0.5f * write_gain * source_im);
+                    work[2] = cassi_qi_state_value((1.0f - write_gain) * work[2] - 0.5f * write_gain * source_re / phi);
+                    work[3] = cassi_qi_state_value((1.0f - write_gain) * work[3] - 0.5f * write_gain * source_im / phi);
+                } else if (memory_write) {
+                    const int64_t mirror = sequence * state_stride + (mode - wave_mode_count) * 9;
+                    float memory_rho = 0.0f, memory_q = 0.0f, memory_chi = 0.0f;
+                    bool memory_available = false;
+                    cassi_qi_metrics(state_in[mirror + 0], state_in[mirror + 1],
+                                     state_in[mirror + 2], state_in[mirror + 3],
+                                     std::max(state_in[mirror + 8], 0.0f), phi, energy_floor,
+                                     memory_rho, memory_q, memory_chi, memory_available);
+                    const float memory_gain = memory_available
+                        ? cassi_qi_clamp(dt_base * memory_chi, 0.0f, 0.5f) : 0.0f;
+                    last_write[0] = memory_gain;
+                    for (int64_t component = 0; component < 9; ++component) {
+                        work[component] = cassi_qi_state_value((1.0f - memory_gain) * work[component] +
+                            memory_gain * cassi_qi_state_value(state_in[mirror + component]));
+                    }
+                }
                 for (int64_t step = 0; step < steps; ++step) {
                     const float damping = cassi_qi_clamp(std::abs(symbol), damping_min, damping_max);
                     const float diff_re = work[0] - phi * work[2];
                     const float diff_im = work[1] - phi * work[3];
-                    const float ay_re = diff_re - damping * work[4];
-                    const float ay_im = diff_im - damping * work[5];
-                    const float ai_re = -diff_re / phi - damping * work[6];
-                    const float ai_im = -diff_im / phi - damping * work[7];
+                    // The differential needs a restoring sign, or every mode grows without bound
+                    // and stops at the state clamp. A bounded mode keeps turning and carries history.
+                    const float ay_re = -diff_re - damping * work[4];
+                    const float ay_im = -diff_im - damping * work[5];
+                    const float ai_re = diff_re / phi - damping * work[6];
+                    const float ai_im = diff_im / phi - damping * work[7];
                     work[4] = cassi_qi_state_value(work[4] + ay_re * dt_base);
                     work[5] = cassi_qi_state_value(work[5] + ay_im * dt_base);
                     work[6] = cassi_qi_state_value(work[6] + ai_re * dt_base);
@@ -11308,6 +11356,7 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                 }
                 float final_read_re = 0.0f, final_read_im = 0.0f, final_chi_sum = 0.0f;
                 int final_available = 0;
+                float final_weight_sum = 0.0f;
                 for (int64_t final_scale = 0; final_scale < scale_count; ++final_scale) {
                     float final_rho = 0.0f, final_q = 0.0f, final_chi = 0.0f;
                     bool final_avail = false;
@@ -11318,20 +11367,23 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                     if (final_avail) {
                         const float d_re = work[final_scale * 9 + 0] - phi * work[final_scale * 9 + 2];
                         const float d_im = work[final_scale * 9 + 1] - phi * work[final_scale * 9 + 3];
-                        const float norm = 1.0f / std::sqrt(std::max(final_rho, 1.0e-12f));
-                        final_read_re += final_chi * d_re * norm;
-                        final_read_im += final_chi * d_im * norm;
-                        final_chi_sum += final_chi;
+                        // Scaling the state by k scales d by k and rho by k^2, so d / sqrt(rho) is
+                        // k-invariant. The absolute readout keeps the field's own magnitude instead.
+                        const float norm = read_absolute ? 1.0f : 1.0f / std::sqrt(std::max(final_rho, 1.0e-12f));
+                        final_read_re += read_weight[final_scale] * final_chi * d_re * norm;
+                        final_read_im += read_weight[final_scale] * final_chi * d_im * norm;
+                        final_chi_sum += read_weight[final_scale] * final_chi;
+                        final_weight_sum += read_weight[final_scale];
                         ++final_available;
                     }
                 }
                 const float final_gate = final_available > 0
-                    ? cassi_qi_clamp(final_chi_sum / float(final_available), 0.0f, 1.0f)
+                    ? cassi_qi_clamp(final_chi_sum / final_weight_sum, 0.0f, 1.0f)
                     : 0.0f;
                 if (mode < wave_mode_count) {
                     if (final_available > 0 && final_gate >= read_floor) {
-                        output[token * sense_stride + 2 * mode + 0] = coupling * final_gate * final_read_re / float(final_available);
-                        output[token * sense_stride + 2 * mode + 1] = coupling * final_gate * final_read_im / float(final_available);
+                        output[token * sense_stride + 2 * mode + 0] = coupling * final_gate * final_read_re / final_weight_sum;
+                        output[token * sense_stride + 2 * mode + 1] = coupling * final_gate * final_read_im / final_weight_sum;
                     } else {
                         output[token * sense_stride + 2 * mode + 0] = 0.0f;
                         output[token * sense_stride + 2 * mode + 1] = 0.0f;

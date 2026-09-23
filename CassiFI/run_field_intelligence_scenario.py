@@ -28,6 +28,7 @@ from cassi_field_owner import (
     SourceInput,
     WorldAcknowledgment,
 )
+from cassi_hive_session import open_field_session
 
 
 def _source(
@@ -141,7 +142,7 @@ def _admit_pair(
 
 
 def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str, Any]:
-    owner = FieldIntelligenceOwner(data_home)
+    owner = open_field_session(data_home)
     _configure(owner)
 
     baseline_pairs = (
@@ -208,13 +209,16 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
                 event_id=admitted["event"]["event_id"],
                 loss_scale=10.0,
             )
-    promoted = owner.promote_program(
+    promoted_result = owner.promote_program(
         operation_id="structure:promote:relative-position",
         candidate_ids=candidates,
         minimum_assessments=3,
         maximum_average_loss=1e-12,
         bit_penalty=1e-6,
-    )["program"]
+    )
+    promoted = promoted_result["program"]
+    if promoted["status"] != "promoted":
+        raise RuntimeError("relational program promotion did not resolve")
 
     language_examples: list[Mapping[str, Any]] = []
     for index, (source_position, destination_position) in enumerate(((1.0, 5.0), (2.0, 7.0))):
@@ -261,10 +265,12 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
         expected_roles={"destination": "9", "source": "3"},
         event_id=assessment_episode["event"]["event_id"],
     )
-    owner.promote_language_construction(
+    language_promotion = owner.promote_language_construction(
         operation_id="language:promote:relocation",
         construction_id="construction.relocation",
     )
+    if language_promotion["construction"]["status"] != "promoted":
+        raise RuntimeError("language construction promotion did not resolve")
     interpreted = owner.interpret(text="move from 8 to 13.")
     expressed = owner.express(
         semantic_program_id="language.relocation.roles",
@@ -445,7 +451,7 @@ def run_scenario(data_home: Path, *, horizon_episodes: int = 24) -> Mapping[str,
     before_restart = owner.state.encode()
     manifest_before_forget = owner.checkpoints.current_manifest_sha256
     owner.close()
-    restarted = FieldIntelligenceOwner(data_home)
+    restarted = open_field_session(data_home)
     exact_restart = restarted.state.encode() == before_restart
     replay = restarted.dispatch_effect(
         prediction_id=proposal["prediction"]["prediction_id"],

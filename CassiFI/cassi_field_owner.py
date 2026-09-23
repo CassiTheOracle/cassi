@@ -2,11 +2,16 @@ from __future__ import annotations
 
 """One persistent cognitive owner and thin surfaces for the field atlas."""
 
+import numpy as np
 import base64
 import hashlib
 import json
+import math
 import os
+import shutil
+import tempfile
 import threading
+import statistics
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping, NoReturn, Protocol, Sequence
@@ -28,11 +33,17 @@ from cassi_field_atlas import (
     VariableSpec,
     canonical_json_bytes,
     sha256_value,
+    surface_field_inputs,
 )
 from cassi_resonant_field import (
+    REGIONAL_KERNEL_NAME,
+    REGIONAL_STATE_SCHEMA,
     ResonantNumericalError,
     ResonantWorkspace,
+    inspect_workspace,
+    read_parent_summary as read_parent_summary_workspace,
     score_pool_probes,
+    write_parent_summary as write_parent_summary_workspace,
 )
 from cassi_temporal_field import TemporalField, TemporalFieldError
 from cassi_temporal_inquiry import TemporalInquiryError, choose_temporal_inquiry
@@ -43,11 +54,37 @@ from cassi_field_cognition import (
     InquiryDecision,
     InquiryOperation,
     Survivor,
+    _resolution_floor,
     choose_inquiry,
 )
+from cassi_field_open_vocab import episode_source_payload
+from cassi_field_program import semantic_program_payload
+from cassi_field_residency import (
+    RESOURCE_SCHEMA as ELASTIC_RESOURCE_SCHEMA,
+    ResidencyManager,
+    ResourceLimits,
+    ResourceWait,
+)
 
+from cassi_field_regions import (
+    INPUT_REGION_PAGE_BYTES,
+    MAX_INPUT_REGION_BYTES,
+    MAX_INPUT_WINDOW_BYTES,
+    ImmutableInputPages,
+)
 
 SOURCE_SCHEMA = "cassifi.exact-source.v1"
+# One regional mode is nine planes of one 64-bit word; the owner admits
+# computer geometry with this estimate before the field is constructed.
+MODE_BYTES = 9 * 8
+# One regional page of the persistence layout, in bytes.
+PAGED_PAGE_BYTES = 4096 * 8
+SURFACE_INPUT_PUBLICATION_SCHEMA = "cassifi.surface-input-publication.v1"
+MAX_SURFACE_PINNED_BYTES = 256 * 1024 * 1024
+MAX_SURFACE_PUBLICATIONS = 512
+MAX_SURFACE_PUBLICATIONS_PER_BINDING = 128
+MAX_SURFACE_METADATA_BYTES = 128 * 1024
+CIRCULATION_SCHEMA = "cassifi.circulation-report.v1"
 EVIDENCE_EVENT_SCHEMA = "cassifi.field-evidence-event.v1"
 # The declared event kind of the opt-in evidence variant of the packet read: the
 # read's own recovered deposit admitted as an observation about the world, against
@@ -181,6 +218,16 @@ _TEMPORAL_RECEIPT_KEYS = {
             "task_id",
         }
     ),
+    "materialize-temporal-transition": frozenset(
+        {
+            "schema", "memory_id", "participant_id", "skill_id", "action", "observation",
+            "source_state", "destination_state", "previous_memory_sha256", "memory_sha256",
+            "previous_state_sha256", "state_sha256", "hypothesis_sha256",
+            "materialization_write_sha256", "support_origin", "evidence_class",
+            "training_source_admitted", "observed_outcome", "supported",
+            "execution_authorized", "source_revision_ids",
+        }
+    ),
 }
 _TEMPORAL_ADVANCE_RECEIPT_KEYS = (
     frozenset(
@@ -292,6 +339,255 @@ def _finite(value: Any, label: str, *, nonnegative: bool = False) -> float:
             "INVALID_NUMERIC_VALUE", f"{label} must be finite and valid"
         )
     return result
+def _transition_matrix_rank(matrix: Sequence[Sequence[float]]) -> int:
+    """Return the deterministic numerical rank of a bounded design matrix.
+
+    Columns are normalized before elimination so physical units cannot decide
+    whether a direction is identifiable; the relative pivot floor rejects
+    directions too close to an admitted column for stable prediction.
+    """
+
+    if not matrix or not matrix[0]:
+        return 0
+    raw = [list(map(float, row)) for row in matrix]
+    rows = len(raw)
+    columns = len(raw[0])
+    column_scales = [
+        max(
+            1.0,
+            max((abs(row[column]) for row in raw), default=1.0),
+        )
+        for column in range(columns)
+    ]
+    work = [
+        [
+            raw[row][column] / column_scales[column]
+            for column in range(columns)
+        ]
+        for row in range(rows)
+    ]
+    rank = 0
+    for column in range(columns):
+        pivot = max(
+            range(rank, rows),
+            key=lambda row: abs(work[row][column]),
+            default=rank,
+        )
+        if pivot >= rows or abs(work[pivot][column]) <= 1.0e-6:
+            continue
+        work[rank], work[pivot] = work[pivot], work[rank]
+        pivot_value = work[rank][column]
+        for index in range(rank + 1, rows):
+            factor = work[index][column] / pivot_value
+            if abs(factor) <= 1.0e-15:
+                continue
+            for offset in range(column, columns):
+                work[index][offset] -= factor * work[rank][offset]
+        rank += 1
+        if rank == rows:
+            break
+    return rank
+
+
+def _transition_solve(
+    matrix: Sequence[Sequence[float]], right_hand_side: Sequence[float]
+) -> list[float] | None:
+    """Solve one small square normal equation without introducing state."""
+
+    size = len(matrix)
+    if size == 0 or any(len(row) != size for row in matrix):
+        return None
+    if len(right_hand_side) != size:
+        return None
+    augmented = [
+        [float(value) for value in row] + [float(right_hand_side[index])]
+        for index, row in enumerate(matrix)
+    ]
+    for column in range(size):
+        pivot = max(
+            range(column, size),
+            key=lambda row: abs(augmented[row][column]),
+            default=column,
+        )
+        scale = max(
+            1.0,
+            max(
+                (abs(value) for row in augmented for value in row),
+                default=1.0,
+            ),
+        )
+        if pivot >= size or abs(augmented[pivot][column]) <= 1.0e-12 * scale:
+            return None
+        augmented[column], augmented[pivot] = (
+            augmented[pivot],
+            augmented[column],
+        )
+        pivot_value = augmented[column][column]
+        for offset in range(column, size + 1):
+            augmented[column][offset] /= pivot_value
+        for row in range(size):
+            if row == column:
+                continue
+            factor = augmented[row][column]
+            if abs(factor) <= 1.0e-15:
+                continue
+            for offset in range(column, size + 1):
+                augmented[row][offset] -= factor * augmented[column][offset]
+    return [augmented[row][size] for row in range(size)]
+
+
+def _fit_observed_transition(
+    rows: Sequence[Mapping[str, Any]],
+    variables: Sequence[str],
+    *,
+    include_intercept: bool,
+    tolerance: float,
+) -> dict[str, Any]:
+    """Fit a bounded one-step affine hypothesis from admitted numeric frames."""
+
+    design_candidates = (("intercept",) if include_intercept else ()) + tuple(variables)
+    if not design_candidates:
+        raise FieldIntelligenceError(
+            "INVALID_TRANSITION_LEARNING",
+            "transition learning needs at least one design variable",
+        )
+    design_matrix = [
+        [
+            1.0 if name == "intercept" else float(row["state"][name])
+            for name in design_candidates
+        ]
+        for row in rows
+    ]
+    selected_design: list[str] = []
+    selected_matrix: list[list[float]] = []
+    previous_rank = 0
+    for column, name in enumerate(design_candidates):
+        candidate_matrix = [
+            [
+                *(selected_matrix[row] if selected_matrix else []),
+                design_matrix[row][column],
+            ]
+            for row in range(len(design_matrix))
+        ]
+        candidate_rank = _transition_matrix_rank(candidate_matrix)
+        if candidate_rank > previous_rank:
+            selected_design.append(name)
+            selected_matrix = candidate_matrix
+            previous_rank = candidate_rank
+    if not selected_design:
+        raise FieldIntelligenceError(
+            "INVALID_TRANSITION_LEARNING",
+            "transition design has no identifiable direction",
+        )
+    target_names = tuple(f"next.{name}" for name in variables)
+    while True:
+        column_scales = [
+            max(
+                1.0,
+                max(
+                    (abs(row[column]) for row in selected_matrix),
+                    default=1.0,
+                ),
+            )
+            for column in range(len(selected_design))
+        ]
+        scaled_matrix = [
+            [
+                row[column] / column_scales[column]
+                for column in range(len(selected_design))
+            ]
+            for row in selected_matrix
+        ]
+        gram = [
+            [
+                sum(current[left] * current[right] for current in scaled_matrix)
+                for right in range(len(selected_design))
+            ]
+            for left in range(len(selected_design))
+        ]
+        current_coefficients: dict[str, dict[str, float]] = {}
+        current_residuals: list[dict[str, float]] = []
+        current_maximum_residual = 0.0
+        singular = False
+        for target_name, source_name in zip(target_names, variables, strict=True):
+            right_hand_side = [
+                sum(
+                    scaled_matrix[row][column]
+                    * float(rows[row]["next"][source_name])
+                    for row in range(len(rows))
+                )
+                for column in range(len(selected_design))
+            ]
+            solved = _transition_solve(gram, right_hand_side)
+            if solved is None:
+                singular = True
+                break
+            row_coefficients = {
+                name: float(value / column_scales[column])
+                for column, (name, value) in enumerate(
+                    zip(selected_design, solved, strict=True)
+                )
+            }
+            current_coefficients[source_name] = row_coefficients
+            for row_index, design_row in enumerate(selected_matrix):
+                predicted = sum(
+                    design_row[column]
+                    * row_coefficients[selected_design[column]]
+                    for column in range(len(selected_design))
+                )
+                actual = float(rows[row_index]["next"][source_name])
+                error = actual - predicted
+                current_maximum_residual = max(
+                    current_maximum_residual,
+                    abs(error),
+                )
+                if len(current_residuals) <= row_index:
+                    current_residuals.append({})
+                current_residuals[row_index][source_name] = error
+        if not singular:
+            coefficients = current_coefficients
+            residuals = current_residuals
+            maximum_residual = current_maximum_residual
+            break
+        if len(selected_design) <= 1:
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_LEARNING",
+                "transition design is numerically singular",
+            )
+        selected_design = selected_design[:-1]
+        selected_matrix = [row[:-1] for row in selected_matrix]
+    error_radius = max(float(tolerance), maximum_residual + 1.0e-9)
+    outputs = {
+        target: {
+            "action_terms": {},
+            "bias": 0.0,
+            "error": error_radius,
+            "terms": dict(row_coefficients),
+        }
+        for target, row_coefficients in coefficients.items()
+    }
+    return {
+        "coefficients": coefficients,
+        "design_variables": selected_design,
+        "error_radius": error_radius,
+        "maximum_residual": maximum_residual,
+        "outputs": outputs,
+        "predicted_next": {
+            source_name: sum(
+                coefficient
+                * (
+                    1.0
+                    if design_name == "intercept"
+                    else float(rows[-1]["next"][design_name])
+                )
+                for design_name, coefficient in row_coefficients.items()
+            )
+            for source_name, row_coefficients in coefficients.items()
+        },
+        "residuals": residuals,
+        "target_variables": list(target_names),
+        "variables": list(variables),
+    }
 
 
 def _packet_direction(
@@ -404,8 +700,7 @@ def _atomic_write(path: Path, payload: bytes) -> None:
             pass
 
 
-def _put_object(directory: Path, payload: bytes) -> str:
-    digest = hashlib.sha256(payload).hexdigest()
+def _put_addressed_object(directory: Path, digest: str, payload: bytes) -> str:
     path = directory / digest
     if path.exists():
         if path.read_bytes() != payload:
@@ -415,6 +710,11 @@ def _put_object(directory: Path, payload: bytes) -> str:
         return digest
     _atomic_write(path, payload)
     return digest
+
+
+def _put_object(directory: Path, payload: bytes) -> str:
+    digest = hashlib.sha256(payload).hexdigest()
+    return _put_addressed_object(directory, digest, payload)
 
 
 class OwnerProcessLock:
@@ -1377,6 +1677,18 @@ class ExactEvidenceStore:
         _atomic_write(self.index_path, encoded)
         self._index_cache = dict(json.loads(encoded))
 
+    def refresh(self) -> None:
+        """Reload the durable evidence index after an external rollback."""
+        with self._lock:
+            value = _canonical_read(self.index_path)
+            if not isinstance(value, Mapping):
+                raise FieldIntelligenceError(
+                    "PERSISTENCE_CORRUPT",
+                    "evidence index cannot be refreshed safely",
+                )
+            self._index_cache = self._validate_index(value)
+            self._validate_index_closure(self._index_cache)
+
     def physical_bytes(self) -> int:
         total = 0
         for directory in (self.blobs, self.sources, self.events):
@@ -1680,17 +1992,30 @@ class CheckpointReceipt:
         }
 
 
+def _running_catalog_sha256() -> str:
+    """Return the fingerprint of the catalog this process would run."""
+
+    from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
+
+    return STANDARD_KERNEL_CATALOG.fingerprint
+
+
 class AtlasCheckpointStore:
     def __init__(
         self,
         root: Path,
         *,
         limits: CapacityLimits,
+        page_objects_root: Path | None = None,
         initial_state: AtlasState | None = None,
+        accept_recorded_catalog: bool = False,
     ) -> None:
         self.root = Path(root)
         self.limits = limits
         self.objects = self.root / "objects"
+        self.page_objects_root = (
+            None if page_objects_root is None else Path(page_objects_root)
+        )
         self.manifests = self.root / "manifests"
         self.staging = self.root / "staging"
         self.operations = self.root / "operations"
@@ -1701,6 +2026,7 @@ class AtlasCheckpointStore:
         for directory in (self.objects, self.manifests, self.staging, self.operations):
             directory.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        self._verified_objects: set[str] = set()
         if self.quarantine_path.exists():
             raise FieldIntelligenceError(
                 "STATE_QUARANTINED", "field store requires explicit recovery"
@@ -1724,7 +2050,23 @@ class AtlasCheckpointStore:
             self._initialize(initial_state or AtlasState())
         self.recover()
         self.current_manifest_sha256, self.current_manifest = self._load_current()
-        self.state = self._load_state(self.current_manifest)
+        self.catalog_reidentification: dict[str, str] | None = None
+        try:
+            self.state = self._load_state(self.current_manifest)
+        except FieldIntelligenceError:
+            if not accept_recorded_catalog:
+                raise
+            recorded = self._recorded_catalog_sha256()
+            running = _running_catalog_sha256()
+            if recorded is None or recorded == running:
+                raise
+            self.state = self._load_state(
+                self.current_manifest, accept_recorded_catalog=True
+            )
+            self.catalog_reidentification = {
+                "recorded_catalog_sha256": recorded,
+                "running_catalog_sha256": running,
+            }
         self._validate_history_chain(self.current_manifest)
         self._validate_operation_records()
         fence = self.revocation_fence()
@@ -1843,7 +2185,12 @@ class AtlasCheckpointStore:
             if page_sha in seen_pages:
                 raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "duplicate state page identity")
             seen_pages.add(page_sha)
-            if not isinstance(page, bytes) or hashlib.sha256(page).hexdigest() != page_sha:
+            if not isinstance(page, bytes):
+                raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page identity is invalid")
+            if (
+                page_sha not in self._verified_objects
+                and hashlib.sha256(page).hexdigest() != page_sha
+            ):
                 raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page identity is invalid")
             page_hashes.append(page_sha)
             closure_bytes += len(page)
@@ -1863,12 +2210,34 @@ class AtlasCheckpointStore:
                 "reachable field checkpoint closure exceeds its configured byte limit",
                 details={"bytes": closure_bytes, "limit": self.limits.max_state_bytes},
             )
-        for page in pages.values():
-            _put_object(self.objects, page)
+        for page_sha, page in pages.items():
+            page_path = self.objects / page_sha
+            if page_sha not in self._verified_objects or not page_path.exists():
+                linked = False
+                if self.page_objects_root is not None and not page_path.exists():
+                    source = self.page_objects_root / page_sha
+                    if source.is_file():
+                        if source.read_bytes() != page:
+                            raise FieldIntelligenceError(
+                                "CHECKPOINT_CORRUPT",
+                                "field page backing conflicts with its checkpoint identity",
+                            )
+                        try:
+                            # The paged store already flushed this immutable object.
+                            # Link the same inode instead of flushing a second copy.
+                            os.link(source, page_path)
+                            linked = True
+                        except OSError:
+                            pass  # Cross-volume/unsupported links keep the copy path.
+                if not linked:
+                    _put_addressed_object(self.objects, page_sha, page)
+                self._verified_objects.add(page_sha)
         descriptor_sha = _put_object(self.objects, descriptor)
         return descriptor_sha, state.state_sha256
 
-    def _hydrate_descriptor(self, descriptor_sha256: str) -> AtlasState:
+    def _hydrate_descriptor(
+        self, descriptor_sha256: str, *, accept_recorded_catalog: bool = False
+    ) -> AtlasState:
         path = self.objects / _digest(descriptor_sha256, "state descriptor")
         try:
             encoded = path.read_bytes()
@@ -1902,6 +2271,7 @@ class AtlasCheckpointStore:
             if hashlib.sha256(page).hexdigest() != page_sha:
                 raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page identity is invalid")
             objects[page_sha] = page
+            self._verified_objects.add(page_sha)
             closure_bytes += len(page)
         if closure_bytes > self.limits.max_state_bytes:
             raise FieldIntelligenceError(
@@ -1909,10 +2279,559 @@ class AtlasCheckpointStore:
                 "reachable field checkpoint closure exceeds its configured byte limit",
                 details={"bytes": closure_bytes, "limit": self.limits.max_state_bytes},
             )
-        state = AtlasState.decode(canonical_json_bytes(root["state"]), objects=objects)
-        if state.state_sha256 != _digest(root["state_sha256"], "state_sha256"):
+        state = AtlasState.decode(
+            canonical_json_bytes(root["state"]),
+            objects=objects,
+            accept_recorded_catalog=accept_recorded_catalog,
+        )
+        if (
+            not accept_recorded_catalog
+            and state.state_sha256 != _digest(root["state_sha256"], "state_sha256")
+        ):
             raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "hydrated state identity does not match")
         return state
+    def read_computer_page(
+        self,
+        computer_id: str,
+        page_index: int,
+        *,
+        manifest_sha256: str | None = None,
+    ) -> tuple[bytes, Mapping[str, Any]]:
+        """Read and verify one packed computer page without hydrating its field."""
+
+        with self._lock:
+            computer_id = _identifier(computer_id, "computer_id")
+            if (
+                isinstance(page_index, bool)
+                or not isinstance(page_index, int)
+                or page_index < 0
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_STATE_OBJECT",
+                    "computer page index must be nonnegative",
+                )
+            selected = (
+                self.current_manifest_sha256
+                if manifest_sha256 is None
+                else _digest(manifest_sha256, "manifest_sha256")
+            )
+            manifest = self._retained_manifest(selected)
+            descriptor_sha = _digest(
+                manifest["state_descriptor_sha256"],
+                "state descriptor",
+            )
+            try:
+                descriptor_bytes = (self.objects / descriptor_sha).read_bytes()
+            except OSError as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "state descriptor is unavailable",
+                ) from exc
+            if hashlib.sha256(descriptor_bytes).hexdigest() != descriptor_sha:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "state descriptor identity is invalid",
+                )
+            try:
+                root = json.loads(descriptor_bytes.decode("utf-8"))
+                state_descriptor = root["state"]
+                root_pages = root["pages"]
+                computer_directory_sha = state_descriptor["pages"]["computers"]
+            except (
+                KeyError,
+                TypeError,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+            ) as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer page directory is unavailable",
+                ) from exc
+            if (
+                root.get("schema") != ROOT_SCHEMA
+                or not isinstance(root_pages, list)
+            ):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "state descriptor schema is invalid",
+                )
+            computer_directory_sha = _digest(
+                computer_directory_sha,
+                "computer directory page",
+            )
+            if computer_directory_sha not in root_pages:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer directory is outside the committed closure",
+                )
+            try:
+                directory_bytes = (
+                    self.objects / computer_directory_sha
+                ).read_bytes()
+            except OSError as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer directory page is unavailable",
+                ) from exc
+            if (
+                hashlib.sha256(directory_bytes).hexdigest()
+                != computer_directory_sha
+            ):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer directory page identity is invalid",
+                )
+            try:
+                directory = json.loads(directory_bytes.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer directory page is unreadable",
+                ) from exc
+            matches = [
+                row
+                for row in directory
+                if isinstance(row, Mapping)
+                and row.get("computer_id") == computer_id
+            ] if isinstance(directory, list) else []
+            if len(matches) != 1:
+                raise FieldIntelligenceError(
+                    "INVALID_STATE_OBJECT",
+                    "computer identity is absent or ambiguous",
+                )
+            field_descriptor = matches[0].get("field")
+            if isinstance(field_descriptor, Mapping) and isinstance(
+                field_descriptor.get("field_pages"), list
+            ):
+                from cassi_field_regions import from_descriptor
+                from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
+                try:
+                    decode_descriptor = dict(field_descriptor)
+                    profile_payload = dict(field_descriptor["profile"])
+                    profile_payload["kernel_names"] = list(STANDARD_KERNEL_CATALOG.names)
+                    from cassi_field_regions import RegionalProfile
+                    decoded_profile = RegionalProfile.from_dict(profile_payload)
+                    decode_descriptor["profile"] = decoded_profile.as_dict()
+                    decode_descriptor["profile_sha256"] = decoded_profile.fingerprint
+                    decode_descriptor["catalog_sha256"] = decoded_profile.catalog_sha256
+                    profile, field = from_descriptor(
+                        decode_descriptor, STANDARD_KERNEL_CATALOG
+                    )
+                    start = int(page_index) * int(field_descriptor["page_words"])
+                    flat = field.reshape(-1)
+                    decoded = flat[start:start + int(field_descriptor["page_words"])]
+                    decoded_bytes = decoded.astype("<u4", copy=False).tobytes(order="C")
+                except (TypeError, ValueError) as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE_OBJECT",
+                        "legacy computer page cannot be decoded safely",
+                    ) from exc
+                return decoded_bytes, {
+                    "schema": "cassifi.bounded-computer-page-read.v1",
+                    "manifest_sha256": selected,
+                    "state_sha256": manifest["state_sha256"],
+                    "computer_id": computer_id,
+                    "page_index": page_index,
+                    "words": int(decoded.size),
+                    "logical_bytes": int(decoded.size) * 8,
+                    "decoded_bytes": len(decoded_bytes),
+                    "decoded_sha256": hashlib.sha256(decoded_bytes).hexdigest(),
+                    "object_sha256": None,
+                    "physical_bytes_read": 0,
+                    "objects_read": 0,
+                    "zero_page": not bool(np.any(decoded)),
+                }
+            chunks = (
+                field_descriptor.get("chunks")
+                if isinstance(field_descriptor, Mapping)
+                else None
+            )
+            if not isinstance(chunks, list):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer chunk directory is invalid",
+                )
+            selected_chunk = next(
+                (
+                    row
+                    for row in chunks
+                    if isinstance(row, Mapping)
+                    and row.get("index") == page_index
+                ),
+                None,
+            )
+            objects: dict[str, bytes] = {}
+            physical_bytes = 0
+            object_sha256 = None
+            if selected_chunk is not None:
+                object_sha256 = _digest(
+                    selected_chunk.get("object_sha256"),
+                    "computer page object",
+                )
+                if object_sha256 not in root_pages:
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "computer page is outside the committed closure",
+                    )
+                try:
+                    physical = (self.objects / object_sha256).read_bytes()
+                except OSError as exc:
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "computer page object is unavailable",
+                    ) from exc
+                if hashlib.sha256(physical).hexdigest() != object_sha256:
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "computer page object identity is invalid",
+                    )
+                objects[object_sha256] = physical
+                physical_bytes = len(physical)
+            try:
+                from cassi_field_regions import decode_chunked_page
+
+                decoded = decode_chunked_page(
+                    field_descriptor,
+                    page_index,
+                    objects,
+                )
+            except (TypeError, ValueError) as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_STATE_OBJECT",
+                    "computer page cannot be decoded safely",
+                ) from exc
+            decoded_bytes = decoded.astype("<u4", copy=False).tobytes(order="C")
+            return decoded_bytes, {
+                "schema": "cassifi.bounded-computer-page-read.v1",
+                "manifest_sha256": selected,
+                "state_sha256": manifest["state_sha256"],
+                "computer_id": computer_id,
+                "page_index": page_index,
+                "words": int(decoded.size),
+                "logical_bytes": int(decoded.size) * 8,
+                "decoded_bytes": len(decoded_bytes),
+                "decoded_sha256": hashlib.sha256(decoded_bytes).hexdigest(),
+                "object_sha256": object_sha256,
+                "physical_bytes_read": physical_bytes,
+                "objects_read": 0 if object_sha256 is None else 1,
+                "zero_page": selected_chunk is None,
+            }
+    def storage_diagnostics(
+        self,
+        manifest_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Inspect committed storage placement without decoding regional images."""
+
+        with self._lock:
+            selected = (
+                self.current_manifest_sha256
+                if manifest_sha256 is None
+                else _digest(manifest_sha256, "manifest_sha256")
+            )
+            manifest = self._retained_manifest(selected)
+            descriptor_sha = _digest(
+                manifest["state_descriptor_sha256"], "state descriptor"
+            )
+            try:
+                descriptor_bytes = (self.objects / descriptor_sha).read_bytes()
+            except OSError as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "state descriptor is unavailable"
+                ) from exc
+            if hashlib.sha256(descriptor_bytes).hexdigest() != descriptor_sha:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "state descriptor identity is invalid"
+                )
+            try:
+                root = json.loads(descriptor_bytes.decode("utf-8"))
+                page_ids = {
+                    _digest(value, "state page")
+                    for value in root["pages"]
+                }
+                state_pages = root["state"]["pages"]
+            except (
+                KeyError,
+                TypeError,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+            ) as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "state descriptor is malformed"
+                ) from exc
+            if root.get("schema") != ROOT_SCHEMA:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "state descriptor schema is invalid"
+                )
+
+            chunk_ids: set[str] = set()
+            logical_computer_bytes = 0
+            computer_count = 0
+            computer_directory_sha = state_pages.get("computers")
+            if computer_directory_sha is not None:
+                computer_directory_sha = _digest(
+                    computer_directory_sha, "computer directory page"
+                )
+                if computer_directory_sha not in page_ids:
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "computer directory is outside the committed closure",
+                    )
+                try:
+                    directory_bytes = (self.objects / computer_directory_sha).read_bytes()
+                    directory = json.loads(directory_bytes.decode("utf-8"))
+                except (
+                    OSError,
+                    UnicodeDecodeError,
+                    json.JSONDecodeError,
+                ) as exc:
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "computer directory page is unavailable",
+                    ) from exc
+                if (
+                    hashlib.sha256(directory_bytes).hexdigest()
+                    != computer_directory_sha
+                    or not isinstance(directory, list)
+                ):
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "computer directory page identity is invalid",
+                    )
+                for computer in directory:
+                    field_descriptor = (
+                        computer.get("field")
+                        if isinstance(computer, Mapping)
+                        else None
+                    )
+                    profile = (
+                        field_descriptor.get("profile")
+                        if isinstance(field_descriptor, Mapping)
+                        else None
+                    )
+                    chunks = (
+                        field_descriptor.get("chunks")
+                        if isinstance(field_descriptor, Mapping)
+                        else None
+                    )
+                    legacy_inline = isinstance(field_descriptor, Mapping) and isinstance(
+                        field_descriptor.get("field_pages"), list
+                    )
+                    if not isinstance(profile, Mapping) or (
+                        not isinstance(chunks, list) and not legacy_inline
+                    ):
+                        raise FieldIntelligenceError(
+                            "CHECKPOINT_CORRUPT",
+                            "computer storage descriptor is invalid",
+                        )
+                    try:
+                        from cassi_field_regions import RegionalProfile
+
+                        regional_profile = RegionalProfile.from_dict(profile)
+                    except (TypeError, ValueError) as exc:
+                        raise FieldIntelligenceError(
+                            "CHECKPOINT_CORRUPT",
+                            "computer storage profile is invalid",
+                        ) from exc
+                    computer_count += 1
+                    logical_computer_bytes += regional_profile.state_bytes
+                    for chunk in chunks or ():
+                        if not isinstance(chunk, Mapping):
+                            raise FieldIntelligenceError(
+                                "CHECKPOINT_CORRUPT",
+                                "computer chunk record is invalid",
+                            )
+                        chunk_ids.add(
+                            _digest(
+                                chunk.get("object_sha256"),
+                                "computer chunk object",
+                            )
+                        )
+            if not chunk_ids <= page_ids:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "computer chunks are outside the committed closure",
+                )
+
+            object_ids = page_ids | {descriptor_sha}
+            object_sizes: dict[str, int] = {}
+            missing: list[str] = []
+            for object_id in sorted(object_ids):
+                try:
+                    object_sizes[object_id] = (self.objects / object_id).stat().st_size
+                except OSError:
+                    missing.append(object_id)
+            logical_metadata_bytes = len(descriptor_bytes) + sum(
+                object_sizes.get(object_id, 0)
+                for object_id in page_ids - chunk_ids
+            )
+            predecessor = manifest.get("parent_manifest_sha256")
+            predecessor_objects: set[str] = set()
+            if isinstance(predecessor, str) and predecessor:
+                try:
+                    predecessor_manifest = self._retained_manifest(predecessor)
+                    predecessor_descriptor = _digest(
+                        predecessor_manifest["state_descriptor_sha256"],
+                        "predecessor state descriptor",
+                    )
+                    predecessor_root_bytes = (
+                        self.objects / predecessor_descriptor
+                    ).read_bytes()
+                    if (
+                        hashlib.sha256(predecessor_root_bytes).hexdigest()
+                        == predecessor_descriptor
+                    ):
+                        predecessor_root = json.loads(
+                            predecessor_root_bytes.decode("utf-8")
+                        )
+                        predecessor_objects = {
+                            predecessor_descriptor,
+                            *(
+                                _digest(value, "predecessor state page")
+                                for value in predecessor_root["pages"]
+                            ),
+                        }
+                except (
+                    FieldIntelligenceError,
+                    KeyError,
+                    OSError,
+                    TypeError,
+                    UnicodeDecodeError,
+                    json.JSONDecodeError,
+                ):
+                    predecessor_objects = set()
+            newly_referenced = object_ids - predecessor_objects
+            manifest_bytes = (self.manifests / selected).stat().st_size
+            return {
+                "schema": "cassifi.memory-storage-diagnostics.v1",
+                "manifest_sha256": selected,
+                "state_sha256": manifest["state_sha256"],
+                "generation": manifest["generation"],
+                "logical_retained_bytes": (
+                    logical_metadata_bytes + logical_computer_bytes
+                ),
+                "logical_computer_bytes": logical_computer_bytes,
+                "logical_metadata_bytes": logical_metadata_bytes,
+                "resident_regional_bytes": logical_computer_bytes,
+                "unique_physical_bytes": (
+                    manifest_bytes + sum(object_sizes.values())
+                ),
+                "checkpoint_growth_bytes": (
+                    manifest_bytes
+                    + sum(object_sizes.get(value, 0) for value in newly_referenced)
+                ),
+                "computer_count": computer_count,
+                "chunk_count": len(chunk_ids),
+                "shared_objects_with_predecessor": len(
+                    object_ids & predecessor_objects
+                ),
+                "new_objects_since_predecessor": len(newly_referenced),
+                "recovery": {
+                    "protected_objects": len(object_ids),
+                    "present_objects": len(object_ids) - len(missing),
+                    "missing_objects": missing,
+                    "current_owner_validated": (
+                        selected == self.current_manifest_sha256 and not missing
+                    ),
+                },
+            }
+    def scrub_objects(
+        self,
+        *,
+        cursor: int = 0,
+        maximum: int = 32,
+        manifest_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Verify one bounded page of immutable objects in a checkpoint closure."""
+
+        if isinstance(cursor, bool) or not isinstance(cursor, int) or cursor < 0:
+            raise FieldIntelligenceError(
+                "INVALID_STATE_OBJECT", "scrub cursor must be nonnegative"
+            )
+        if (
+            isinstance(maximum, bool)
+            or not isinstance(maximum, int)
+            or not 1 <= maximum <= 512
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_STATE_OBJECT", "scrub maximum must lie in [1, 512]"
+            )
+        with self._lock:
+            selected = (
+                self.current_manifest_sha256
+                if manifest_sha256 is None
+                else _digest(manifest_sha256, "manifest_sha256")
+            )
+            manifest = self._retained_manifest(selected)
+            descriptor_sha = _digest(
+                manifest["state_descriptor_sha256"], "state descriptor"
+            )
+            try:
+                descriptor_bytes = (self.objects / descriptor_sha).read_bytes()
+                root = json.loads(descriptor_bytes.decode("utf-8"))
+                object_ids = sorted({
+                    descriptor_sha,
+                    *(
+                        _digest(value, "state page")
+                        for value in root["pages"]
+                    ),
+                })
+            except (
+                KeyError,
+                OSError,
+                TypeError,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+            ) as exc:
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "scrub cannot resolve the checkpoint closure",
+                ) from exc
+            if (
+                root.get("schema") != ROOT_SCHEMA
+                or hashlib.sha256(descriptor_bytes).hexdigest() != descriptor_sha
+            ):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "scrub state descriptor identity is invalid",
+                )
+            if cursor > len(object_ids):
+                raise FieldIntelligenceError(
+                    "INVALID_STATE_OBJECT",
+                    "scrub cursor exceeds the checkpoint closure",
+                )
+            selected_ids = object_ids[cursor:cursor + maximum]
+            failures: list[Mapping[str, Any]] = []
+            physical_bytes = 0
+            for object_id in selected_ids:
+                try:
+                    content = (self.objects / object_id).read_bytes()
+                except OSError:
+                    failures.append({
+                        "object_sha256": object_id,
+                        "reason": "unavailable",
+                    })
+                    continue
+                physical_bytes += len(content)
+                if hashlib.sha256(content).hexdigest() != object_id:
+                    failures.append({
+                        "object_sha256": object_id,
+                        "reason": "digest-mismatch",
+                    })
+            next_cursor = cursor + len(selected_ids)
+            return {
+                "schema": "cassifi.memory-storage-scrub.v1",
+                "manifest_sha256": selected,
+                "state_sha256": manifest["state_sha256"],
+                "cursor": cursor,
+                "checked_objects": len(selected_ids),
+                "checked_physical_bytes": physical_bytes,
+                "failures": failures,
+                "next_cursor": (
+                    None if next_cursor >= len(object_ids) else next_cursor
+                ),
+                "remaining_objects": max(0, len(object_ids) - next_cursor),
+                "status": "supported" if not failures else "limited",
+            }
 
     def _initialize(self, state: AtlasState) -> None:
         descriptor_sha, state_sha = self._state_descriptor(state)
@@ -2312,10 +3231,21 @@ class AtlasCheckpointStore:
             if path.is_file() and path.name not in reachable:
                 path.unlink()
 
-    def _load_state(self, manifest: Mapping[str, Any]) -> AtlasState:
-        state = self._hydrate_descriptor(manifest["state_descriptor_sha256"])
+    def _load_state(
+        self,
+        manifest: Mapping[str, Any],
+        *,
+        accept_recorded_catalog: bool = False,
+    ) -> AtlasState:
+        state = self._hydrate_descriptor(
+            manifest["state_descriptor_sha256"],
+            accept_recorded_catalog=accept_recorded_catalog,
+        )
         if (
-            state.state_sha256 != manifest["state_sha256"]
+            (
+                not accept_recorded_catalog
+                and state.state_sha256 != manifest["state_sha256"]
+            )
             or state.generation != manifest["generation"]
             or state.revocation_generation != manifest["revocation_generation"]
         ):
@@ -2646,6 +3576,172 @@ class AtlasCheckpointStore:
                 generation=successor.generation,
                 replayed=False,
             )
+
+    def migrate_catalog_identity(
+        self,
+        *,
+        operation_id: str,
+        catalog_sha256: str,
+        previous_catalog_sha256: str | None = None,
+    ) -> CheckpointReceipt:
+        """Re-identify the retained generation under the running kernel catalog.
+
+        A generation records the catalog identity that produced it.  When the
+        numerical kernels a retained state depends on are unchanged but the
+        catalog fingerprint has moved, the state is re-encoded under the running
+        catalog here: every computer is validated against the current contracts,
+        every descriptor is rebuilt from the live words instead of a retained
+        historical encoding, and the result is appended as one new generation.
+        The historical generation stays readable.
+        """
+
+        _digest(catalog_sha256, "catalog_sha256")
+        if previous_catalog_sha256 is not None:
+            _digest(previous_catalog_sha256, "previous catalog_sha256")
+        from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
+
+        with self._lock:
+            state = self.state
+            retained = any(
+                computer._legacy_field_descriptor is not None
+                for computer in state.computers
+            )
+            declared = tuple(
+                computer.persistence_dict()[0]["field"].get("catalog_sha256")
+                for computer in state.computers
+            )
+            if not retained and all(value == catalog_sha256 for value in declared):
+                return CheckpointReceipt(
+                    operation_id=operation_id,
+                    manifest_sha256=self.current_manifest_sha256,
+                    state_sha256=state.state_sha256,
+                    predecessor_manifest_sha256=self.current_manifest[
+                        "parent_manifest_sha256"
+                    ],
+                    generation=state.generation,
+                    replayed=True,
+                )
+            successor = replace(
+                state,
+                generation=state.generation + 1,
+                _page_cache={},
+                computers=tuple(replace(computer) for computer in state.computers),
+            )
+            for computer in successor.computers:
+                computer.validate()
+                descriptor, _objects = computer.persistence_dict()
+                field = descriptor["field"]
+                if field.get("catalog_sha256") != catalog_sha256:
+                    raise FieldIntelligenceError(
+                        "MIGRATION_INCOMPLETE",
+                        "re-identified computer does not carry the running catalog",
+                    )
+                if list(field.get("profile", {}).get("kernel_names", ())) != list(
+                    STANDARD_KERNEL_CATALOG.names
+                ):
+                    raise FieldIntelligenceError(
+                        "MIGRATION_INCOMPLETE",
+                        "re-identified computer does not carry the running kernels",
+                    )
+            return self.commit(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition={
+                    "kind": "catalog-identity",
+                    "operation": "re-identify",
+                    "catalog_sha256": catalog_sha256,
+                    "previous_catalog_sha256": previous_catalog_sha256,
+                    "predecessor_state_sha256": state.state_sha256,
+                },
+            )
+
+    def _recorded_catalog_sha256(self) -> str | None:
+        """Return the catalog fingerprint the retained generation declares.
+
+        The value is read from the current state descriptor's computer
+        directory without hydrating a computer, so it is available exactly when
+        hydration refuses the generation.
+        """
+
+        try:
+            descriptor_sha = _digest(
+                self.current_manifest["state_descriptor_sha256"],
+                "state descriptor",
+            )
+            root = json.loads(
+                (self.objects / descriptor_sha).read_bytes().decode("utf-8")
+            )
+            page_sha = _digest(
+                root["state"]["pages"]["computers"], "computers page"
+            )
+            entries = json.loads(
+                (self.objects / page_sha).read_bytes().decode("utf-8")
+            )
+        except (
+            FieldIntelligenceError,
+            KeyError,
+            OSError,
+            TypeError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+        ):
+            return None
+        declared = {
+            entry["field"]["catalog_sha256"]
+            for entry in entries
+            if isinstance(entry, Mapping)
+            and isinstance(entry.get("field"), Mapping)
+            and isinstance(entry["field"].get("catalog_sha256"), str)
+        }
+        if len(declared) != 1:
+            return None
+        recorded = declared.pop()
+        try:
+            _digest(recorded, "recorded catalog")
+        except FieldIntelligenceError:
+            return None
+        return recorded
+
+    def recover_recorded_catalog(self) -> CheckpointReceipt | None:
+        """Append one generation re-identified under the running catalog.
+
+        A generation whose recorded catalog fingerprint moved while its kernel
+        names stayed the same is re-identified when the store opens.  Committing
+        the re-identified state here makes every later open strict again; the
+        retained generation stays readable and the transition records both
+        catalog identities.
+        """
+
+        drift = self.catalog_reidentification
+        if drift is None:
+            return None
+        with self._lock:
+            drift = self.catalog_reidentification
+            if drift is None:
+                return None
+            successor = replace(
+                self.state,
+                generation=self.state.generation + 1,
+                _page_cache={},
+            )
+            receipt = self.commit(
+                operation_id=(
+                    "catalog-reidentification:"
+                    + drift["recorded_catalog_sha256"][:16]
+                ),
+                successor=successor,
+                event_id=None,
+                transition={
+                    "kind": "catalog-reidentification",
+                    "computers": [
+                        computer.computer_id for computer in self.state.computers
+                    ],
+                    **drift,
+                },
+            )
+            self.catalog_reidentification = None
+            return receipt
 
     def refresh(self) -> AtlasState:
         with self._lock:
@@ -3306,6 +4402,61 @@ class DeterministicWorldAdapter:
             return result
 
 
+class _OwnerTransaction:
+    """Filesystem transaction for a bounded group of owner publications."""
+
+    _DIRECTORIES = ("field", "evidence", "pending", "pending-failures")
+
+    def __init__(self, owner: Any) -> None:
+        self.owner = owner
+        self.root = Path(
+            tempfile.mkdtemp(
+                prefix=".cassi-owner-tx-",
+                dir=str(owner.data_home.parent),
+            )
+        )
+        self.closed = False
+        for name in self._DIRECTORIES:
+            source = owner.data_home / name
+            if source.is_dir():
+                self._snapshot_tree(source, self.root / name)
+
+    @staticmethod
+    def _snapshot_tree(source: Path, target: Path) -> None:
+        try:
+            shutil.copytree(source, target, copy_function=os.link)
+        except OSError:
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(source, target)
+
+    def _cleanup(self) -> None:
+        shutil.rmtree(self.root, ignore_errors=True)
+        self.closed = True
+
+    def commit(self) -> None:
+        if not self.closed:
+            self._cleanup()
+
+    def rollback(self) -> None:
+        if self.closed:
+            return
+        with self.owner._lock:
+            for name in self._DIRECTORIES:
+                current = self.owner.data_home / name
+                if current.exists():
+                    shutil.rmtree(current)
+                backup = self.root / name
+                if backup.is_dir():
+                    shutil.copytree(backup, current, copy_function=shutil.copy2)
+                else:
+                    current.mkdir(parents=True, exist_ok=True)
+            self.owner.checkpoints.recover()
+            self.owner.evidence.refresh()
+            self.owner.state = self.owner.checkpoints.refresh()
+        self._cleanup()
+
+
 class FieldIntelligenceOwner:
     """Sole publisher for field, evidence, plans, and predictive episodes."""
 
@@ -3380,10 +4531,34 @@ class FieldIntelligenceOwner:
             self.checkpoints = AtlasCheckpointStore(
                 self.data_home / "field",
                 limits=self.limits,
+                page_objects_root=self.data_home / "objects",
                 initial_state=initial_state,
+                accept_recorded_catalog=True,
             )
             self.state = self.checkpoints.state
+            self.catalog_migration: dict[str, Any] | None = None
+            drift = self.checkpoints.catalog_reidentification
+            receipt = self.checkpoints.recover_recorded_catalog()
+            if receipt is not None and drift is not None:
+                self.state = self.checkpoints.state
+                self.catalog_migration = {
+                    "manifest_sha256": receipt.manifest_sha256,
+                    "generation": receipt.generation,
+                    **drift,
+                }
             self._lock = threading.RLock()
+            self._surface_publications: dict[
+                tuple[str, int], dict[str, Any]
+            ] = {}
+            self._surface_current: dict[str, int] = {}
+            self._surface_generation_counters: dict[str, int] = {}
+            self._surface_pinned_bytes = 0
+            self.resource_path = self.data_home / "resources.json"
+            self._resource_policy = self._load_resource_policy()
+            self.object_path = self.data_home / "objects"
+            ResidencyManager.reset_shared(f"{self.data_home.resolve()}::")
+            self._resource_managers: dict[str, ResidencyManager] = {}
+            self._bind_resource_policy()
             self.authority_path = self.data_home / "authority-control.json"
             if not self.authority_path.exists():
                 _atomic_write(
@@ -3412,7 +4587,1722 @@ class FieldIntelligenceOwner:
                 pass
             raise
 
+    def begin_transaction(self) -> _OwnerTransaction:
+        """Snapshot durable owner roots for a bounded multi-operation commit."""
+        return _OwnerTransaction(self)
+
+
+    def _surface_result(
+        self, record: Mapping[str, Any], *, status: str
+    ) -> Mapping[str, Any]:
+        audio_pages = record.get("audio_pages")
+        structure_pages = record.get("structure_pages")
+        return {
+            **dict(record["metadata"]),
+            "status": status,
+            "page_bytes": INPUT_REGION_PAGE_BYTES,
+            "page_count": record["pages"].page_count,
+            "audio_page_count": (
+                audio_pages.page_count
+                if audio_pages is not None
+                else (
+                    record["pages"].page_count
+                    if record["metadata"].get("modality") == "audio"
+                    else 0
+                )
+            ),
+            "structure_page_count": (
+                structure_pages.page_count
+                if structure_pages is not None
+                else (
+                    record["pages"].page_count
+                    if record["metadata"].get("modality") == "structure"
+                    else 0
+                )
+            ),
+            "field_inputs": record["field_inputs"],
+            "pin_count": record["pins"],
+        }
+
+    def _drop_surface_if_unreferenced(
+        self, binding_id: str, generation: int
+    ) -> None:
+        key = (binding_id, generation)
+        record = self._surface_publications.get(key)
+        if (
+            record is not None
+            and record["pins"] == 0
+            and self._surface_current.get(binding_id) != generation
+        ):
+            self._surface_pinned_bytes -= (
+                record["pages"].byte_length
+                + (
+                    record.get("audio_pages").byte_length
+                    if record.get("audio_pages") is not None
+                    else 0
+                )
+                + (
+                    record.get("structure_pages").byte_length
+                    if record.get("structure_pages") is not None
+                    else 0
+                )
+            )
+            del self._surface_publications[key]
+
+    def _invalidate_surface_baseline(self, binding_id: str) -> int | None:
+        generation = self._surface_current.pop(binding_id, None)
+        if generation is not None:
+            record = self._surface_publications.get((binding_id, generation))
+            if record is not None:
+                record["baseline"] = False
+                self._drop_surface_if_unreferenced(binding_id, generation)
+        return generation
+
+    def invalidate_surface_baseline(
+        self, binding_id: str, *, reason: str
+    ) -> Mapping[str, Any]:
+        """Fence a source's delta chain while retaining separately pinned pages."""
+
+        binding_id = _identifier(binding_id, "binding_id")
+        reason = _identifier(reason, "baseline invalidation reason")
+        with self._lock:
+            generation = self._invalidate_surface_baseline(binding_id)
+            return {
+                "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                "binding_id": binding_id,
+                "invalidated_generation": generation,
+                "reason": reason,
+                "status": "invalidated",
+            }
+
+    def admit_surface_publication(
+        self, publication: Mapping[str, Any], pixels: bytes | None = None
+    ) -> Mapping[str, Any]:
+        """Pin a bounded live generation without placing its sensory bytes in state."""
+
+        if not isinstance(publication, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", "surface publication must be a mapping"
+            )
+        if pixels is None:
+            return self._admit_surface_structure_publication(publication)
+        if "pixels" in publication:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION",
+                "binary surface bytes must use the separate pixels argument",
+            )
+        modality = publication.get("modality", "raster")
+        if modality not in {"raster", "audio", "structure"}:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", "surface modality is unsupported"
+            )
+        if not isinstance(pixels, bytes) or (not pixels and modality != "structure"):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION",
+                "surface data must be immutable bytes",
+            )
+        if publication.get("schema") not in (
+            None,
+            SURFACE_INPUT_PUBLICATION_SCHEMA,
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", "surface publication schema is unsupported"
+            )
+
+        def required_text(name: str) -> str:
+            try:
+                return _identifier(publication.get(name), f"surface {name}")
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_PUBLICATION", f"surface {name} is invalid"
+                ) from exc
+
+        def identity_value(name: str) -> str | int:
+            value = publication.get(name)
+            if isinstance(value, bool):
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_PUBLICATION", f"surface {name} is invalid"
+                )
+            if isinstance(value, int) and value >= 0:
+                return value
+            if isinstance(value, str):
+                try:
+                    return _identifier(value, f"surface {name}")
+                except FieldIntelligenceError as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_PUBLICATION", f"surface {name} is invalid"
+                    ) from exc
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", f"surface {name} is invalid"
+            )
+
+        binding_id = required_text("binding_id")
+        source_id = required_text("source_id")
+        source_instance = required_text("source_instance")
+        environment_incarnation = required_text("environment_incarnation")
+        source_epoch = identity_value("source_epoch")
+        geometry_revision = identity_value("geometry_revision")
+        sequence = publication.get("sequence")
+        width = publication.get("width")
+        height = publication.get("height")
+        if (
+            isinstance(sequence, bool)
+            or not isinstance(sequence, int)
+            or not 0 <= sequence <= 2**64 - 1
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", "surface sequence is invalid"
+            )
+        if modality == "structure":
+            pixel_format = publication.get("pixel_format")
+            if (
+                (width is not None and (isinstance(width, bool) or width != 0))
+                or (height is not None and (isinstance(height, bool) or height != 0))
+                or pixel_format not in (None, "", "none")
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_PUBLICATION",
+                    "structural-only input cannot declare raster geometry",
+                )
+            width = 0 if width is None else width
+            height = 0 if height is None else height
+            pixel_format = pixel_format or None
+        else:
+            for name, value in (("width", width), ("height", height)):
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or not 1 <= value <= 1_000_000
+                ):
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_PUBLICATION",
+                        f"surface {name} is invalid",
+                    )
+            pixel_format = required_text("pixel_format")
+        sample_time_ns = publication.get("sample_time_ns")
+        if sample_time_ns is not None:
+            sample_time_ns = _integer(sample_time_ns, "sample_time_ns")
+        sample_clock_domain = publication.get("sample_clock_domain")
+        if sample_clock_domain is not None:
+            sample_clock_domain = _identifier(
+                sample_clock_domain, "sample_clock_domain"
+            )
+        sample_time_uncertainty_ns = publication.get(
+            "sample_time_uncertainty_ns"
+        )
+        if sample_time_uncertainty_ns is not None:
+            sample_time_uncertainty_ns = _integer(
+                sample_time_uncertainty_ns, "sample_time_uncertainty_ns"
+            )
+        receipt_time_ns = publication.get("receipt_time_ns")
+        receipt_time_ns = _integer(receipt_time_ns, "receipt_time_ns")
+        receipt_clock_domain = required_text("receipt_clock_domain")
+
+        from cassi_field_input import (
+            SourceViewError,
+            normalize_surface_coverage,
+            normalize_surface_structure_coverage,
+        )
+
+        try:
+            coverage = (
+                normalize_surface_structure_coverage(publication.get("coverage"))
+                if modality == "structure"
+                else normalize_surface_coverage(
+                    publication.get("coverage"), width=width, height=height
+                )
+            )
+            pages = ImmutableInputPages(pixels)
+        except (SourceViewError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", str(exc)
+            ) from exc
+        byte_length = publication.get("byte_length", len(pixels))
+        if (
+            isinstance(byte_length, bool)
+            or not isinstance(byte_length, int)
+            or byte_length != len(pixels)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION",
+                "surface byte_length does not match the immutable frame bytes",
+            )
+        declared_digest = publication.get("sha256")
+        if declared_digest is not None:
+            try:
+                _digest(declared_digest, "surface content")
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_PUBLICATION", "surface content digest is invalid"
+                ) from exc
+            if declared_digest != pages.sha256:
+                raise FieldIntelligenceError(
+                    "SURFACE_CONTENT_CONFLICT",
+                    "surface content digest does not match the published bytes",
+                )
+
+        update_kind = publication.get("update_kind", "full")
+        if not isinstance(update_kind, str) or update_kind not in {
+            "full",
+            "delta-reconstructed",
+        }:
+            with self._lock:
+                self._invalidate_surface_baseline(binding_id)
+            raise FieldIntelligenceError(
+                "SURFACE_BASELINE_REQUIRED",
+                "surface deltas must be reconstructed before owner publication",
+            )
+        delta_marker = publication.get("delta", update_kind == "delta-reconstructed")
+        if not isinstance(delta_marker, bool):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", "surface delta marker is invalid"
+            )
+        if delta_marker and update_kind != "delta-reconstructed":
+            with self._lock:
+                self._invalidate_surface_baseline(binding_id)
+            raise FieldIntelligenceError(
+                "SURFACE_BASELINE_REQUIRED",
+                "partial surface data cannot publish without reconstruction",
+            )
+        baseline_generation = publication.get("baseline_generation")
+        if update_kind == "delta-reconstructed":
+            if (
+                isinstance(baseline_generation, bool)
+                or not isinstance(baseline_generation, int)
+                or baseline_generation <= 0
+            ):
+                with self._lock:
+                    self._invalidate_surface_baseline(binding_id)
+                raise FieldIntelligenceError(
+                    "SURFACE_BASELINE_REQUIRED",
+                    "reconstructed delta has no valid baseline generation",
+                )
+
+        metadata: dict[str, Any] = {
+            "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+            "binding_id": binding_id,
+            "source_id": source_id,
+            "source_instance": source_instance,
+            "source_epoch": source_epoch,
+            "environment_incarnation": environment_incarnation,
+            "geometry_revision": geometry_revision,
+            "sequence": sequence,
+            "width": width,
+            "height": height,
+            "pixel_format": pixel_format,
+            "byte_length": pages.byte_length,
+            "sha256": pages.sha256,
+            "sample_time_ns": sample_time_ns,
+            "sample_clock_domain": sample_clock_domain,
+            "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+            "receipt_time_ns": receipt_time_ns,
+            "receipt_clock_domain": receipt_clock_domain,
+            "coverage": coverage,
+            "update_kind": update_kind,
+        }
+        if update_kind == "delta-reconstructed":
+            metadata["baseline_generation"] = baseline_generation
+        optional_fields = (
+            "changed_regions",
+            "valid_extent",
+            "channel_revisions",
+            "cursor_treatment",
+            "operations",
+            "capture",
+            "accessibility",
+            "audio",
+            "modality",
+            "structure",
+        )
+        for name in optional_fields:
+            if name in publication:
+                metadata[name] = publication[name]
+        reported_provenance = publication.get("provenance", {})
+        if isinstance(reported_provenance, str):
+            reported_provenance = {"description": reported_provenance}
+        if not isinstance(reported_provenance, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION", "surface provenance must be a mapping"
+            )
+        metadata["provenance"] = {
+            "schema": "cassifi.surface-provenance.v1",
+            "source": {
+                "source_id": source_id,
+                "source_instance": source_instance,
+                "source_epoch": source_epoch,
+                "environment_incarnation": environment_incarnation,
+                "geometry_revision": geometry_revision,
+                "sequence": sequence,
+                "sample_time_ns": sample_time_ns,
+                "sample_clock_domain": sample_clock_domain,
+                "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+                "receipt_time_ns": receipt_time_ns,
+                "receipt_clock_domain": receipt_clock_domain,
+            },
+            "reported": dict(reported_provenance),
+        }
+        try:
+            encoded_metadata = canonical_json_bytes(metadata)
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION",
+                "surface metadata is not canonical JSON",
+            ) from exc
+        if len(encoded_metadata) > MAX_SURFACE_METADATA_BYTES:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_PUBLICATION",
+                "surface metadata exceeds its bounded byte limit",
+            )
+        metadata = json.loads(encoded_metadata.decode("utf-8"))
+
+        with self._lock:
+            current_generation = self._surface_current.get(binding_id)
+            current = (
+                None
+                if current_generation is None
+                else self._surface_publications.get(
+                    (binding_id, current_generation)
+                )
+            )
+            if current is not None:
+                previous = current["metadata"]
+                same_source = all(
+                    metadata[name] == previous[name]
+                    for name in (
+                        "source_id",
+                        "source_instance",
+                        "source_epoch",
+                        "environment_incarnation",
+                    )
+                )
+                if same_source and sequence == previous["sequence"]:
+                    if (
+                        metadata["sha256"] == previous["sha256"]
+                        and metadata["geometry_revision"]
+                        == previous["geometry_revision"]
+                        and metadata["width"] == previous["width"]
+                        and metadata["height"] == previous["height"]
+                        and metadata["pixel_format"] == previous["pixel_format"]
+                        and metadata.get("modality") == previous.get("modality")
+                        and metadata.get("coverage") == previous.get("coverage")
+                        and metadata.get("audio") == previous.get("audio")
+                        and metadata.get("structure") == previous.get("structure")
+                    ):
+                        return self._surface_result(current, status="replayed")
+                    self._invalidate_surface_baseline(binding_id)
+                    raise FieldIntelligenceError(
+                        "SURFACE_SEQUENCE_CONFLICT",
+                        "surface sequence was reused for different content",
+                    )
+                if same_source and sequence < previous["sequence"]:
+                    self._invalidate_surface_baseline(binding_id)
+                    raise FieldIntelligenceError(
+                        "STALE_SURFACE_PUBLICATION",
+                        "surface sequence moved backwards without a source epoch change",
+                    )
+
+            if update_kind == "delta-reconstructed":
+                baseline = self._surface_publications.get(
+                    (binding_id, baseline_generation)
+                )
+                if (
+                    current_generation != baseline_generation
+                    or baseline is None
+                    or not baseline["baseline"]
+                ):
+                    self._invalidate_surface_baseline(binding_id)
+                    raise FieldIntelligenceError(
+                        "SURFACE_BASELINE_REQUIRED",
+                        "surface delta baseline is missing or no longer current",
+                    )
+                previous = baseline["metadata"]
+                if (
+                    any(
+                        metadata[name] != previous[name]
+                        for name in (
+                            "source_id",
+                            "source_instance",
+                            "source_epoch",
+                            "environment_incarnation",
+                            "geometry_revision",
+                            "width",
+                            "height",
+                            "pixel_format",
+                        )
+                    )
+                    or sequence != previous["sequence"] + 1
+                ):
+                    self._invalidate_surface_baseline(binding_id)
+                    raise FieldIntelligenceError(
+                        "SURFACE_BASELINE_REQUIRED",
+                        "surface delta source, geometry, or sequence does not match its baseline",
+                    )
+
+            if self._surface_generation_counters.get(binding_id, 0) >= 2**64 - 1:
+                raise FieldIntelligenceError(
+                    "SURFACE_GENERATION_EXHAUSTED",
+                    "surface generation counter is exhausted",
+                )
+            generation = self._surface_generation_counters.get(binding_id, 0) + 1
+            expected_generation = publication.get("generation")
+            if expected_generation is not None and (
+                isinstance(expected_generation, bool)
+                or not isinstance(expected_generation, int)
+                or expected_generation != generation
+            ):
+                if update_kind == "delta-reconstructed":
+                    self._invalidate_surface_baseline(binding_id)
+                raise FieldIntelligenceError(
+                    "SURFACE_GENERATION_CONFLICT",
+                    "caller generation differs from the next owner generation",
+                )
+            reclaim_current = current is not None and current["pins"] == 0
+            reclaimable_bytes = (
+                current["pages"].byte_length
+                + (
+                    current.get("audio_pages").byte_length
+                    if current.get("audio_pages") is not None
+                    else 0
+                )
+                + (
+                    current.get("structure_pages").byte_length
+                    if current.get("structure_pages") is not None
+                    else 0
+                )
+                if reclaim_current
+                else 0
+            )
+            retained_bytes = self._surface_pinned_bytes - reclaimable_bytes
+            retained_count = len(self._surface_publications) - int(reclaim_current)
+            binding_count = sum(
+                key[0] == binding_id for key in self._surface_publications
+            ) - int(reclaim_current)
+            available = max(0, MAX_SURFACE_PINNED_BYTES - retained_bytes)
+            if (
+                pages.byte_length > MAX_SURFACE_PINNED_BYTES
+                or retained_bytes + pages.byte_length > MAX_SURFACE_PINNED_BYTES
+                or retained_count >= MAX_SURFACE_PUBLICATIONS
+                or binding_count >= MAX_SURFACE_PUBLICATIONS_PER_BINDING
+            ):
+                return {
+                    "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                    "binding_id": binding_id,
+                    "generation": generation,
+                    "status": "resource-wait",
+                    "reason": "surface-page-budget",
+                    "required_bytes": pages.byte_length,
+                    "available_bytes": available,
+                }
+
+            metadata["generation"] = generation
+            field_inputs = surface_field_inputs(metadata)
+            record = {
+                "metadata": metadata,
+                "pages": pages,
+                "audio_pages": None,
+                "structure_pages": None,
+                "field_inputs": field_inputs,
+                "pins": 1,
+                "baseline": True,
+            }
+            self._surface_publications[(binding_id, generation)] = record
+            self._surface_pinned_bytes += pages.byte_length
+            self._surface_generation_counters[binding_id] = generation
+            prior_generation = self._surface_current.get(binding_id)
+            self._surface_current[binding_id] = generation
+            if prior_generation is not None and prior_generation != generation:
+                previous_record = self._surface_publications.get(
+                    (binding_id, prior_generation)
+                )
+                if previous_record is not None:
+                    previous_record["baseline"] = False
+                    self._drop_surface_if_unreferenced(
+                        binding_id, prior_generation
+                    )
+            return self._surface_result(record, status="published")
+
+    def _admit_surface_structure_publication(
+        self, publication: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        if publication.get("schema") not in (
+            None,
+            SURFACE_INPUT_PUBLICATION_SCHEMA,
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "surface structure schema is unsupported"
+            )
+        if "pixels" in publication or "samples" in publication:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE",
+                "structural-only input cannot carry raster or audio bytes",
+            )
+        structure_input = publication.get("structure", {})
+        if not isinstance(structure_input, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "structure descriptor must be a mapping"
+            )
+        screen_text = publication.get("screen_text")
+        accessibility = publication.get("accessibility")
+        has_text = screen_text is not None
+        has_accessibility = accessibility is not None
+        if not has_text and not has_accessibility:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE",
+                "structural-only input requires screen_text or accessibility",
+            )
+        if has_text and not isinstance(screen_text, str):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "screen_text must be Unicode text"
+            )
+        if has_accessibility and not isinstance(accessibility, (Mapping, list)):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE",
+                "accessibility must be a JSON mapping or list",
+            )
+        from cassi_field_input import (
+            CODEC_JSON,
+            CODEC_TEXT,
+            SourceViewError,
+            normalize_surface_structure_coverage,
+        )
+
+        try:
+            if has_accessibility:
+                content = canonical_json_bytes(
+                    {
+                        **({"screen_text": screen_text} if has_text else {}),
+                        "accessibility": accessibility,
+                    }
+                )
+                codec = CODEC_JSON
+            else:
+                content = screen_text.encode("utf-8")
+                codec = CODEC_TEXT
+        except (FieldIntelligenceError, UnicodeEncodeError) as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "structural content is not valid JSON/UTF-8"
+            ) from exc
+        if len(content) > 1024 * 1024:
+            raise FieldIntelligenceError(
+                "SURFACE_STRUCTURE_LIMIT",
+                "structural content exceeds the one-megabyte input bound",
+            )
+
+        def required_text(name: str) -> str:
+            try:
+                return _identifier(publication.get(name), f"surface {name}")
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_STRUCTURE", f"surface {name} is invalid"
+                ) from exc
+
+        binding_id = required_text("binding_id")
+        source_id = required_text("source_id")
+        source_instance = required_text("source_instance")
+        environment_incarnation = required_text("environment_incarnation")
+        source_epoch = publication.get("source_epoch")
+        geometry_revision = publication.get("geometry_revision")
+        for name, value in (
+            ("source_epoch", source_epoch),
+            ("geometry_revision", geometry_revision),
+        ):
+            if isinstance(value, bool) or not (
+                isinstance(value, int)
+                and value >= 0
+                or isinstance(value, str)
+                and bool(value)
+                and len(value) <= 256
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_STRUCTURE", f"surface {name} is invalid"
+                )
+        sequence = publication.get("sequence")
+        if (
+            isinstance(sequence, bool)
+            or not isinstance(sequence, int)
+            or not 0 <= sequence <= 2**64 - 1
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "surface sequence is invalid"
+            )
+        sample_time_ns = publication.get("sample_time_ns")
+        if sample_time_ns is not None:
+            sample_time_ns = _integer(sample_time_ns, "surface sample time")
+        sample_clock_domain = publication.get("sample_clock_domain")
+        if sample_clock_domain is not None:
+            sample_clock_domain = _identifier(
+                sample_clock_domain, "surface sample clock domain"
+            )
+        sample_time_uncertainty_ns = publication.get(
+            "sample_time_uncertainty_ns"
+        )
+        if sample_time_uncertainty_ns is not None:
+            sample_time_uncertainty_ns = _integer(
+                sample_time_uncertainty_ns, "surface sample time uncertainty"
+            )
+        receipt_time_ns = _integer(
+            publication.get("receipt_time_ns"), "surface receipt time"
+        )
+        receipt_clock_domain = required_text("receipt_clock_domain")
+        reported_provenance = publication.get("provenance", {})
+        if isinstance(reported_provenance, str):
+            reported_provenance = {"description": reported_provenance}
+        if not isinstance(reported_provenance, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "surface provenance must be a mapping"
+            )
+        try:
+            coverage = normalize_surface_structure_coverage(
+                publication.get("coverage")
+            )
+        except SourceViewError as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", str(exc)
+            ) from exc
+        source_provenance = {
+            "source_id": source_id,
+            "source_instance": source_instance,
+            "source_epoch": source_epoch,
+            "environment_incarnation": environment_incarnation,
+            "geometry_revision": geometry_revision,
+            "sequence": sequence,
+            "sample_time_ns": sample_time_ns,
+            "sample_clock_domain": sample_clock_domain,
+            "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+            "receipt_time_ns": receipt_time_ns,
+            "receipt_clock_domain": receipt_clock_domain,
+        }
+        provenance = {
+            "schema": "cassifi.surface-provenance.v1",
+            "source": source_provenance,
+            "reported": dict(reported_provenance),
+        }
+        digest = hashlib.sha256(content).hexdigest()
+        declared_codec = structure_input.get("codec")
+        if declared_codec is not None:
+            codec_aliases = {
+                CODEC_TEXT: CODEC_TEXT,
+                "utf-8": CODEC_TEXT,
+                "text/utf-8": CODEC_TEXT,
+                "text-utf8": CODEC_TEXT,
+                CODEC_JSON: CODEC_JSON,
+                "application/json": CODEC_JSON,
+                "json-utf8": CODEC_JSON,
+            }
+            if not isinstance(declared_codec, str) or codec_aliases.get(
+                declared_codec
+            ) != codec:
+                raise FieldIntelligenceError(
+                    "SURFACE_STRUCTURE_CONFLICT",
+                    "structure codec differs from encoded content",
+                )
+        declared_length = structure_input.get("byte_length")
+        if declared_length is not None and (
+            isinstance(declared_length, bool)
+            or not isinstance(declared_length, int)
+            or declared_length != len(content)
+        ):
+            raise FieldIntelligenceError(
+                "SURFACE_STRUCTURE_CONFLICT",
+                "structure length differs from encoded content",
+            )
+        declared_digest = structure_input.get("sha256")
+        if declared_digest is not None and (
+            not isinstance(declared_digest, str) or declared_digest != digest
+        ):
+            raise FieldIntelligenceError(
+                "SURFACE_STRUCTURE_CONFLICT",
+                "structure digest differs from encoded content",
+            )
+        target_generation = publication.get("generation")
+        if target_generation is not None:
+            target_generation = _integer(
+                target_generation, "surface generation", minimum=1
+            )
+        structure = {
+            "schema": "cassifi.surface-structure-input.v1",
+            "modality": "structure",
+            "codec": codec,
+            "binding_id": binding_id,
+            "source_id": source_id,
+            "source_instance": source_instance,
+            "source_epoch": source_epoch,
+            "environment_incarnation": environment_incarnation,
+            "geometry_revision": geometry_revision,
+            "sequence": sequence,
+            "generation": target_generation,
+            "sample_time_ns": sample_time_ns,
+            "sample_clock_domain": sample_clock_domain,
+            "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+            "receipt_time_ns": receipt_time_ns,
+            "receipt_clock_domain": receipt_clock_domain,
+            "coverage": coverage,
+            "provenance": provenance,
+            "byte_length": len(content),
+            "sha256": digest,
+        }
+        if target_generation is None:
+            metadata = {
+                "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                "modality": "structure",
+                "binding_id": binding_id,
+                "source_id": source_id,
+                "source_instance": source_instance,
+                "source_epoch": source_epoch,
+                "environment_incarnation": environment_incarnation,
+                "geometry_revision": geometry_revision,
+                "sequence": sequence,
+                "width": publication.get("width") or 0,
+                "height": publication.get("height") or 0,
+                "pixel_format": publication.get("pixel_format") or "none",
+                "byte_length": len(content),
+                "sha256": digest,
+                "sample_time_ns": sample_time_ns,
+                "sample_clock_domain": sample_clock_domain,
+                "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+                "receipt_time_ns": receipt_time_ns,
+                "receipt_clock_domain": receipt_clock_domain,
+                "coverage": coverage,
+                "update_kind": "full",
+                "provenance": dict(reported_provenance),
+                "structure": structure,
+            }
+            return self.admit_surface_publication(metadata, content)
+
+        try:
+            pages = ImmutableInputPages(content)
+            encoded_structure = canonical_json_bytes(structure)
+        except (FieldIntelligenceError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE", "structural page metadata is invalid"
+            ) from exc
+        if len(encoded_structure) > MAX_SURFACE_METADATA_BYTES:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_STRUCTURE",
+                "structural page metadata exceeds its byte limit",
+            )
+        structure = json.loads(encoded_structure.decode("utf-8"))
+        with self._lock:
+            record = self._surface_publications.get((binding_id, target_generation))
+            if record is None:
+                raise FieldIntelligenceError(
+                    "SURFACE_PUBLICATION_NOT_FOUND",
+                    "structural target generation is no longer retained",
+                )
+            primary = record["metadata"]
+            if any(
+                structure[name] != primary.get(name)
+                for name in (
+                    "binding_id",
+                    "source_id",
+                    "source_instance",
+                    "source_epoch",
+                    "environment_incarnation",
+                    "geometry_revision",
+                    "sequence",
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "SURFACE_STRUCTURE_BINDING_CONFLICT",
+                    "structural identity does not match its owner generation",
+                )
+            existing = primary.get("structure")
+            if existing is not None:
+                if existing == structure:
+                    return self._surface_result(record, status="replayed")
+                raise FieldIntelligenceError(
+                    "SURFACE_STRUCTURE_CONFLICT",
+                    "generation already contains different structural content",
+                )
+            available = max(
+                0, MAX_SURFACE_PINNED_BYTES - self._surface_pinned_bytes
+            )
+            if (
+                pages.byte_length > MAX_SURFACE_PINNED_BYTES
+                or self._surface_pinned_bytes + pages.byte_length
+                > MAX_SURFACE_PINNED_BYTES
+            ):
+                return {
+                    "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                    "binding_id": binding_id,
+                    "generation": target_generation,
+                    "status": "resource-wait",
+                    "reason": "surface-page-budget",
+                    "required_bytes": pages.byte_length,
+                    "available_bytes": available,
+                }
+            try:
+                combined_bytes = canonical_json_bytes(
+                    {**primary, "structure": structure}
+                )
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_STRUCTURE",
+                    "combined surface metadata is not canonical",
+                ) from exc
+            if len(combined_bytes) > MAX_SURFACE_METADATA_BYTES:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_STRUCTURE",
+                    "combined surface metadata exceeds its byte limit",
+                )
+            combined_metadata = json.loads(combined_bytes.decode("utf-8"))
+            field_inputs = surface_field_inputs(combined_metadata)
+            record["metadata"] = combined_metadata
+            record["field_inputs"] = field_inputs
+            record["structure_pages"] = pages
+            self._surface_pinned_bytes += pages.byte_length
+            return self._surface_result(record, status="structure-attached")
+
+    def admit_surface_audio_publication(
+        self,
+        publication: Mapping[str, Any],
+        samples: bytes,
+        *,
+        generation: int | None = None,
+    ) -> Mapping[str, Any]:
+        """Pin audio bytes alone or attach them to an existing sensory generation."""
+
+        if not isinstance(publication, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio publication must be a mapping"
+            )
+        if any(name in publication for name in ("samples", "audio_bytes", "pixels")):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO",
+                "audio bytes must use the separate samples argument",
+            )
+        if not isinstance(samples, bytes) or not samples:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO",
+                "audio samples must be a nonempty immutable byte buffer",
+            )
+        nested = publication.get("audio", {})
+        if not isinstance(nested, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio descriptor must be a mapping"
+            )
+
+        def value(name: str, *aliases: str, default: Any = None) -> Any:
+            for key in (name, *aliases):
+                if key in nested:
+                    return nested[key]
+            for key in (name, *aliases):
+                if key in publication:
+                    return publication[key]
+            return default
+
+        audio_format = value("audio_format", "format", "pixel_format")
+        if not isinstance(audio_format, str):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio format is required"
+            )
+        audio_format = audio_format.strip().lower().replace("_", "-")
+        sample_bytes = {
+            "pcm-u8": 1,
+            "pcm-i16le": 2,
+            "pcm-i32le": 4,
+            "pcm-f32le": 4,
+            "pcm-f64le": 8,
+        }.get(audio_format)
+        if sample_bytes is None:
+            raise FieldIntelligenceError(
+                "UNSUPPORTED_SURFACE_AUDIO", "audio format has no fixed decoder"
+            )
+
+        sample_rate_hz = value("sample_rate_hz")
+        channel_count = value("channel_count", "channels")
+        if (
+            isinstance(sample_rate_hz, bool)
+            or not isinstance(sample_rate_hz, int)
+            or not 8_000 <= sample_rate_hz <= 192_000
+            or isinstance(channel_count, bool)
+            or not isinstance(channel_count, int)
+            or not 1 <= channel_count <= 8
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO",
+                "audio sample rate or channel count is outside its bounded range",
+            )
+        frame_bytes = sample_bytes * channel_count
+        if len(samples) % frame_bytes:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO",
+                "audio byte length does not contain whole interleaved frames",
+            )
+        sample_count = len(samples) // frame_bytes
+        if sample_count <= 0 or sample_count > 1_000_000:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio frame count is outside its bound"
+            )
+        supplied_count = value("sample_count", "frame_count")
+        if supplied_count is not None and (
+            isinstance(supplied_count, bool)
+            or not isinstance(supplied_count, int)
+            or supplied_count != sample_count
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO",
+                "audio sample count does not match its immutable bytes",
+            )
+
+        target_generation = generation
+        if target_generation is None:
+            target_generation = publication.get("generation")
+        if target_generation is not None:
+            target_generation = _integer(
+                target_generation, "surface generation", minimum=1
+            )
+        update_kind = publication.get("update_kind", "full")
+        if update_kind != "full" or publication.get("delta", False) is not False:
+            raise FieldIntelligenceError(
+                "SURFACE_BASELINE_REQUIRED",
+                "audio publication must contain a complete reconstructed sample stream",
+            )
+
+        audio_sequence = value("sequence")
+        if (
+            isinstance(audio_sequence, bool)
+            or not isinstance(audio_sequence, int)
+            or not 0 <= audio_sequence <= 2**64 - 1
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio sequence is invalid"
+            )
+
+        def text(name: str, *, required: bool = True) -> str | None:
+            raw = value(name)
+            if raw is None and not required:
+                return None
+            try:
+                return _identifier(raw, f"surface audio {name}")
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_AUDIO", f"audio {name} is invalid"
+                ) from exc
+
+        binding_id = text("binding_id")
+        source_id = text("source_id")
+        source_instance = text("source_instance")
+        environment_incarnation = text("environment_incarnation")
+        source_epoch = value("source_epoch")
+        geometry_revision = value("geometry_revision")
+        for name, raw in (
+            ("source_epoch", source_epoch),
+            ("geometry_revision", geometry_revision),
+        ):
+            if isinstance(raw, bool) or not (
+                isinstance(raw, int) and raw >= 0
+                or isinstance(raw, str) and bool(raw) and len(raw) <= 256
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_AUDIO", f"audio {name} is invalid"
+                )
+
+        sample_time_ns = value("sample_time_ns")
+        if sample_time_ns is not None:
+            sample_time_ns = _integer(sample_time_ns, "audio sample_time_ns")
+        sample_clock_domain = text("sample_clock_domain", required=False)
+        sample_time_uncertainty_ns = value("sample_time_uncertainty_ns")
+        if sample_time_uncertainty_ns is not None:
+            sample_time_uncertainty_ns = _integer(
+                sample_time_uncertainty_ns, "audio sample_time_uncertainty_ns"
+            )
+        receipt_time_ns = _integer(
+            value("receipt_time_ns"), "audio receipt_time_ns"
+        )
+        receipt_clock_domain = text("receipt_clock_domain")
+        coverage_value = value("coverage")
+        reported_provenance = value("provenance", default={})
+        if isinstance(reported_provenance, str):
+            reported_provenance = {"description": reported_provenance}
+        if not isinstance(reported_provenance, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio provenance must be a mapping"
+            )
+
+        from cassi_field_input import SourceViewError, normalize_surface_coverage
+
+        try:
+            coverage = normalize_surface_coverage(
+                coverage_value, width=sample_count, height=channel_count
+            )
+        except SourceViewError as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", str(exc)
+            ) from exc
+
+        audio_metadata: dict[str, Any] = {
+            "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+            "modality": "audio",
+            "binding_id": binding_id,
+            "source_id": source_id,
+            "source_instance": source_instance,
+            "source_epoch": source_epoch,
+            "environment_incarnation": environment_incarnation,
+            "geometry_revision": geometry_revision,
+            "sequence": audio_sequence,
+            "generation": target_generation,
+            "width": sample_count,
+            "height": channel_count,
+            "pixel_format": audio_format,
+            "audio_format": audio_format,
+            "sample_rate_hz": sample_rate_hz,
+            "channel_count": channel_count,
+            "sample_count": sample_count,
+            "byte_length": len(samples),
+            "sample_time_ns": sample_time_ns,
+            "sample_clock_domain": sample_clock_domain,
+            "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+            "receipt_time_ns": receipt_time_ns,
+            "receipt_clock_domain": receipt_clock_domain,
+            "coverage": coverage,
+            "update_kind": "full",
+            "provenance": {
+                "schema": "cassifi.surface-provenance.v1",
+                "source": {
+                    "source_id": source_id,
+                    "source_instance": source_instance,
+                    "source_epoch": source_epoch,
+                    "environment_incarnation": environment_incarnation,
+                    "geometry_revision": geometry_revision,
+                    "sequence": audio_sequence,
+                    "sample_time_ns": sample_time_ns,
+                    "sample_clock_domain": sample_clock_domain,
+                    "sample_time_uncertainty_ns": sample_time_uncertainty_ns,
+                    "receipt_time_ns": receipt_time_ns,
+                    "receipt_clock_domain": receipt_clock_domain,
+                },
+                "reported": dict(reported_provenance),
+            },
+        }
+        if target_generation is None:
+            return self.admit_surface_publication(audio_metadata, samples)
+
+        try:
+            pages = ImmutableInputPages(samples)
+            audio_metadata["sha256"] = pages.sha256
+            encoded_audio = canonical_json_bytes(audio_metadata)
+        except (FieldIntelligenceError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio metadata or pages are invalid"
+            ) from exc
+        if len(encoded_audio) > MAX_SURFACE_METADATA_BYTES:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_AUDIO", "audio metadata exceeds its byte limit"
+            )
+        audio_metadata = json.loads(encoded_audio.decode("utf-8"))
+
+        with self._lock:
+            record = self._surface_publications.get((binding_id, target_generation))
+            if record is None:
+                raise FieldIntelligenceError(
+                    "SURFACE_PUBLICATION_NOT_FOUND",
+                    "audio target generation is no longer retained",
+                )
+            visual = record["metadata"]
+            if any(
+                audio_metadata[name] != visual.get(name)
+                for name in (
+                    "binding_id",
+                    "source_id",
+                    "source_instance",
+                    "source_epoch",
+                    "environment_incarnation",
+                    "geometry_revision",
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "SURFACE_AUDIO_BINDING_CONFLICT",
+                    "audio identity does not match its visual generation",
+                )
+            existing_audio = visual.get("audio")
+            if existing_audio is not None:
+                if existing_audio == audio_metadata:
+                    return self._surface_result(record, status="replayed")
+                raise FieldIntelligenceError(
+                    "SURFACE_AUDIO_CONFLICT",
+                    "audio generation already contains different sample bytes",
+                )
+            available = max(
+                0, MAX_SURFACE_PINNED_BYTES - self._surface_pinned_bytes
+            )
+            if (
+                pages.byte_length > MAX_SURFACE_PINNED_BYTES
+                or self._surface_pinned_bytes + pages.byte_length
+                > MAX_SURFACE_PINNED_BYTES
+            ):
+                return {
+                    "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                    "binding_id": binding_id,
+                    "generation": target_generation,
+                    "status": "resource-wait",
+                    "reason": "surface-page-budget",
+                    "required_bytes": pages.byte_length,
+                    "available_bytes": available,
+                }
+            try:
+                combined_bytes = canonical_json_bytes(
+                    {**visual, "audio": audio_metadata}
+                )
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_AUDIO",
+                    "combined audiovisual metadata is not canonical",
+                ) from exc
+            if len(combined_bytes) > MAX_SURFACE_METADATA_BYTES:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_AUDIO",
+                    "combined audiovisual metadata exceeds its byte limit",
+                )
+            combined_metadata = json.loads(combined_bytes.decode("utf-8"))
+            try:
+                field_inputs = surface_field_inputs(combined_metadata)
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_AUDIO",
+                    "combined audiovisual field input is invalid",
+                ) from exc
+            record["metadata"] = combined_metadata
+            record["field_inputs"] = field_inputs
+            record["audio_pages"] = pages
+            self._surface_pinned_bytes += pages.byte_length
+            return self._surface_result(record, status="audio-attached")
+
+    def pin_surface_publication(
+        self, binding_id: str, generation: int
+    ) -> Mapping[str, Any]:
+        """Acquire a read pin that keeps an older sensory generation immutable."""
+
+        binding_id = _identifier(binding_id, "binding_id")
+        generation = _integer(generation, "generation", minimum=1)
+        with self._lock:
+            record = self._surface_publications.get((binding_id, generation))
+            if record is None:
+                raise FieldIntelligenceError(
+                    "SURFACE_PUBLICATION_NOT_FOUND",
+                    "surface generation is no longer retained",
+                )
+            if record["pins"] >= 2**32 - 1:
+                raise FieldIntelligenceError(
+                    "SURFACE_PIN_EXHAUSTED", "surface generation pin count is exhausted"
+                )
+            record["pins"] += 1
+            return self._surface_result(record, status="pinned")
+
+    def release_surface_publication(
+        self, binding_id: str, generation: int
+    ) -> Mapping[str, Any]:
+        """Release one publication pin; the current baseline is retained separately."""
+
+        binding_id = _identifier(binding_id, "binding_id")
+        generation = _integer(generation, "generation", minimum=1)
+        with self._lock:
+            record = self._surface_publications.get((binding_id, generation))
+            if record is None:
+                return {
+                    "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                    "binding_id": binding_id,
+                    "generation": generation,
+                    "status": "released",
+                    "already_released": True,
+                }
+            if record["pins"] <= 0:
+                return {
+                    "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                    "binding_id": binding_id,
+                    "generation": generation,
+                    "status": "released",
+                    "pin_count": 0,
+                    "already_released": True,
+                    "retained_as_baseline": (
+                        self._surface_current.get(binding_id) == generation
+                    ),
+                }
+            record["pins"] -= 1
+            remaining = record["pins"]
+            self._drop_surface_if_unreferenced(binding_id, generation)
+            return {
+                "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                "binding_id": binding_id,
+                "generation": generation,
+                "status": "released",
+                "pin_count": remaining,
+                "retained_as_baseline": (
+                    self._surface_current.get(binding_id) == generation
+                ),
+            }
+
+    def read_surface_page(
+        self, binding_id: str, generation: int, offset: int, length: int
+    ) -> bytes:
+        """Read an immutable bounded byte window from a pinned live generation."""
+
+        binding_id = _identifier(binding_id, "binding_id")
+        generation = _integer(generation, "generation", minimum=1)
+        offset = _integer(offset, "offset")
+        length = _integer(length, "length")
+        if length > MAX_INPUT_WINDOW_BYTES:
+            raise FieldIntelligenceError(
+                "SURFACE_WINDOW_LIMIT", "surface read exceeds the bounded window size"
+            )
+        with self._lock:
+            record = self._surface_publications.get((binding_id, generation))
+            if record is None:
+                raise FieldIntelligenceError(
+                    "SURFACE_PUBLICATION_NOT_FOUND",
+                    "surface generation is no longer retained",
+                )
+            try:
+                return record["pages"].read_window(offset, length)
+            except ValueError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_WINDOW", str(exc)
+                ) from exc
+
+    def _read_surface_attached_page(
+        self, binding_id: str, generation: int, offset: int, length: int, modality: str
+    ) -> bytes:
+        binding_id = _identifier(binding_id, "binding_id")
+        generation = _integer(generation, "generation", minimum=1)
+        offset = _integer(offset, "offset")
+        length = _integer(length, "length", minimum=1)
+        if length > MAX_INPUT_WINDOW_BYTES:
+            raise FieldIntelligenceError(
+                "SURFACE_WINDOW_LIMIT", "surface read exceeds the bounded window size"
+            )
+        with self._lock:
+            record = self._surface_publications.get((binding_id, generation))
+            if record is None:
+                raise FieldIntelligenceError(
+                    "SURFACE_PUBLICATION_NOT_FOUND", "surface generation is no longer retained"
+                )
+            metadata = record["metadata"]
+            attached = "audio_pages" if modality == "audio" else "structure_pages"
+            pages = record.get(attached)
+            if pages is None and metadata.get("modality") == modality:
+                pages = record["pages"]
+            if pages is None:
+                raise FieldIntelligenceError(
+                    "SURFACE_MODALITY_UNAVAILABLE", f"surface generation has no {modality} pages"
+                )
+            try:
+                return pages.read_window(offset, length)
+            except ValueError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_WINDOW", str(exc)
+                ) from exc
+
+    def read_surface_audio_page(
+        self, binding_id: str, generation: int, offset: int, length: int
+    ) -> bytes:
+        """Read a bounded audio window; callers enforce the audio.capture grant."""
+        return self._read_surface_attached_page(
+            binding_id, generation, offset, length, "audio"
+        )
+
+    def read_surface_text_page(
+        self, binding_id: str, generation: int, offset: int, length: int
+    ) -> bytes:
+        """Read a bounded structural window from the retained generation."""
+        return self._read_surface_attached_page(
+            binding_id, generation, offset, length, "structure"
+        )
+
+    def surface_observation_readout(
+        self,
+        binding_id: str,
+        generation: int,
+        *,
+        modalities: Sequence[str] | None = None,
+        page_size: int = 128,
+        cursors: Mapping[str, int] | None = None,
+    ) -> Mapping[str, Any]:
+        """Return only the bounded modalities explicitly admitted by the caller."""
+
+        binding_id = _identifier(binding_id, "binding_id")
+        generation = _integer(generation, "generation", minimum=1)
+        page_size = _integer(page_size, "page_size", minimum=1)
+        if page_size > 256:
+            raise FieldIntelligenceError("SURFACE_WINDOW_LIMIT", "surface readout page_size exceeds 256")
+        supported_modalities = {"pixels", "accessibility", "audio"}
+        requested: set[str] = set()
+        if modalities is not None:
+            if isinstance(modalities, (str, bytes)) or not isinstance(
+                modalities, (Sequence, set, frozenset)
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_SURFACE_READOUT",
+                    "surface modalities must be a collection",
+                )
+            for name in modalities:
+                if not isinstance(name, str) or name not in supported_modalities:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_READOUT",
+                        "surface modalities must be pixels, accessibility, or audio",
+                    )
+                requested.add(name)
+        if cursors is None:
+            cursors = {}
+        if not isinstance(cursors, Mapping) or set(cursors) - {
+            "pixels_byte_offset",
+            "audio_byte_offset",
+            "accessibility_cursor",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_READOUT", "surface cursors are invalid"
+            )
+        for name, value in cursors.items():
+            _integer(value, name)
+        try:
+            from cassi_field_input import (
+                SourceViewError,
+                surface_observation_page,
+                surface_structure_observation_page,
+            )
+
+            with self._lock:
+                record = self._surface_publications.get((binding_id, generation))
+                if record is None:
+                    raise FieldIntelligenceError(
+                        "SURFACE_PUBLICATION_NOT_FOUND",
+                        "surface generation is no longer retained",
+                    )
+                metadata = dict(record["metadata"])
+                current_generation = self._surface_current.get(binding_id)
+                primary_pages = record["pages"]
+                audio_pages = record.get("audio_pages")
+                structure_pages = record.get("structure_pages")
+
+            features: dict[str, Any] = {}
+            numeric: dict[str, Any] = {}
+            field_context: dict[str, Any] = {}
+            coverage: dict[str, Any] = {}
+            clocks: dict[str, Any] = {}
+
+            def source_fields(source: Mapping[str, Any]) -> dict[str, Any]:
+                fields = {
+                    name: source.get(name)
+                    for name in (
+                        "source_id",
+                        "source_instance",
+                        "source_epoch",
+                        "environment_incarnation",
+                        "geometry_revision",
+                        "sequence",
+                        "sample_time_ns",
+                        "sample_clock_domain",
+                        "sample_time_uncertainty_ns",
+                        "receipt_time_ns",
+                        "receipt_clock_domain",
+                        "coverage",
+                        "provenance",
+                    )
+                }
+                for name in (
+                    "source_id",
+                    "source_instance",
+                    "source_epoch",
+                    "environment_incarnation",
+                    "geometry_revision",
+                ):
+                    if fields[name] is None:
+                        fields[name] = metadata.get(name)
+                return {
+                    "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                    "binding_id": binding_id,
+                    "generation": generation,
+                    **fields,
+                }
+
+            def publish_field_view(name: str, view: Mapping[str, Any]) -> None:
+                projected = surface_field_inputs(view)
+                numeric[name] = dict(projected["values"])
+                field_context[name] = projected["context"]
+                coverage[name] = view.get("coverage")
+                clocks[name] = {
+                    key: view.get(key)
+                    for key in (
+                        "sample_time_ns",
+                        "sample_clock_domain",
+                        "sample_time_uncertainty_ns",
+                        "receipt_time_ns",
+                        "receipt_clock_domain",
+                        "sequence",
+                    )
+                }
+
+            def read_window(pages: ImmutableInputPages, cursor_name: str):
+                offset = _integer(cursors.get(cursor_name, 0), cursor_name)
+                if offset > pages.byte_length:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_READOUT", f"{cursor_name} exceeds the retained page"
+                    )
+                length = min(pages.byte_length - offset, MAX_INPUT_WINDOW_BYTES)
+                try:
+                    return offset, pages.read_window(offset, length)
+                except ValueError as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_READOUT", str(exc)
+                    ) from exc
+
+            primary_modality = metadata.get("modality", "raster")
+            if "pixels" in requested and primary_modality == "raster":
+                pixel_view = {
+                    **source_fields(metadata),
+                    "modality": "raster",
+                    "width": metadata.get("width"),
+                    "height": metadata.get("height"),
+                    "pixel_format": metadata.get("pixel_format"),
+                    "byte_length": metadata.get("byte_length"),
+                    "sha256": metadata.get("sha256"),
+                    "update_kind": metadata.get("update_kind"),
+                    "changed_regions": metadata.get("changed_regions"),
+                }
+                publish_field_view("pixels", pixel_view)
+                byte_offset, pixel_window = read_window(
+                    primary_pages, "pixels_byte_offset"
+                )
+                try:
+                    pixel_page = surface_observation_page(
+                        pixel_view,
+                        pixel_window,
+                        byte_offset=byte_offset,
+                        page_size=page_size,
+                    )
+                except SourceViewError as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_READOUT", str(exc)
+                    ) from exc
+                features["pixels"] = {"page": pixel_page}
+
+            audio_info = metadata.get("audio")
+            if not isinstance(audio_info, Mapping) and primary_modality == "audio":
+                audio_info = metadata
+            selected_audio_pages = (
+                audio_pages
+                if audio_pages is not None
+                else primary_pages if primary_modality == "audio" else None
+            )
+            if (
+                "audio" in requested
+                and isinstance(audio_info, Mapping)
+                and selected_audio_pages is not None
+            ):
+                audio_descriptor = {
+                    key: audio_info[key]
+                    for key in (
+                        "schema",
+                        "modality",
+                        "binding_id",
+                        "source_id",
+                        "source_instance",
+                        "source_epoch",
+                        "environment_incarnation",
+                        "geometry_revision",
+                        "sequence",
+                        "generation",
+                        "width",
+                        "height",
+                        "pixel_format",
+                        "audio_format",
+                        "sample_rate_hz",
+                        "channel_count",
+                        "sample_count",
+                        "byte_length",
+                        "sha256",
+                        "sample_time_ns",
+                        "sample_clock_domain",
+                        "sample_time_uncertainty_ns",
+                        "receipt_time_ns",
+                        "receipt_clock_domain",
+                        "coverage",
+                        "update_kind",
+                        "provenance",
+                    )
+                    if key in audio_info
+                }
+                audio_descriptor.update(
+                    {
+                        "schema": SURFACE_INPUT_PUBLICATION_SCHEMA,
+                        "modality": "audio",
+                        "binding_id": binding_id,
+                        "generation": generation,
+                    }
+                )
+                audio_width = audio_descriptor.get(
+                    "width", audio_descriptor.get("sample_count")
+                )
+                audio_height = audio_descriptor.get(
+                    "height", audio_descriptor.get("channel_count")
+                )
+                audio_format = audio_descriptor.get(
+                    "pixel_format", audio_descriptor.get("audio_format")
+                )
+                audio_view = {
+                    **source_fields(audio_descriptor),
+                    **audio_descriptor,
+                    "modality": "audio",
+                    "width": audio_width,
+                    "height": audio_height,
+                    "pixel_format": audio_format,
+                    "byte_length": audio_descriptor.get("byte_length"),
+                    "sha256": audio_descriptor.get("sha256"),
+                    "audio": audio_descriptor,
+                    "audio_format": audio_descriptor.get("audio_format"),
+                    "sample_rate_hz": audio_descriptor.get("sample_rate_hz"),
+                    "channel_count": audio_descriptor.get("channel_count"),
+                    "sample_count": audio_descriptor.get("sample_count"),
+                }
+                publish_field_view("audio", audio_view)
+                byte_offset, audio_window = read_window(
+                    selected_audio_pages, "audio_byte_offset"
+                )
+                try:
+                    audio_page = surface_observation_page(
+                        audio_view,
+                        audio_window,
+                        byte_offset=byte_offset,
+                        page_size=page_size,
+                    )
+                except SourceViewError as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_READOUT", str(exc)
+                    ) from exc
+                features["audio"] = {
+                    "descriptor": audio_descriptor,
+                    "page": audio_page,
+                }
+
+            structure_info = metadata.get("structure")
+            selected_structure_pages = structure_pages
+            if primary_modality == "structure" and selected_structure_pages is None:
+                selected_structure_pages = primary_pages
+                structure_info = structure_info or metadata
+            if (
+                "accessibility" in requested
+                and isinstance(structure_info, Mapping)
+                and selected_structure_pages is not None
+            ):
+                structure_descriptor = {
+                    key: structure_info[key]
+                    for key in (
+                        "schema",
+                        "modality",
+                        "codec",
+                        "binding_id",
+                        "source_id",
+                        "source_instance",
+                        "source_epoch",
+                        "environment_incarnation",
+                        "geometry_revision",
+                        "sequence",
+                        "generation",
+                        "sample_time_ns",
+                        "sample_clock_domain",
+                        "sample_time_uncertainty_ns",
+                        "receipt_time_ns",
+                        "receipt_clock_domain",
+                        "coverage",
+                        "provenance",
+                        "byte_length",
+                        "sha256",
+                    )
+                    if key in structure_info
+                }
+                if primary_modality == "structure":
+                    for name in (
+                        "source_id",
+                        "source_instance",
+                        "source_epoch",
+                        "environment_incarnation",
+                        "geometry_revision",
+                        "sequence",
+                        "sample_time_ns",
+                        "sample_clock_domain",
+                        "sample_time_uncertainty_ns",
+                        "receipt_time_ns",
+                        "receipt_clock_domain",
+                        "coverage",
+                        "provenance",
+                    ):
+                        if name not in structure_descriptor and name in metadata:
+                            structure_descriptor[name] = metadata[name]
+                structure_descriptor.update(
+                    {
+                        "schema": "cassifi.surface-structure-input.v1",
+                        "modality": "structure",
+                        "binding_id": binding_id,
+                        "generation": generation,
+                    }
+                )
+                structure_view = {
+                    **source_fields(structure_descriptor),
+                    "modality": "structure",
+                    "codec": structure_descriptor.get("codec"),
+                    "width": 0,
+                    "height": 0,
+                    "pixel_format": "none",
+                    "byte_length": structure_descriptor.get("byte_length"),
+                    "sha256": structure_descriptor.get("sha256"),
+                    "structure": structure_descriptor,
+                }
+                publish_field_view("accessibility", structure_view)
+                try:
+                    structure_content = selected_structure_pages.read_window(
+                        0, selected_structure_pages.byte_length
+                    )
+                    structure_page = surface_structure_observation_page(
+                        structure_view,
+                        structure_content,
+                        cursor=_integer(
+                            cursors.get("accessibility_cursor", 0),
+                            "accessibility_cursor",
+                        ),
+                        page_size=page_size,
+                    )
+                except (SourceViewError, ValueError) as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_SURFACE_READOUT", str(exc)
+                    ) from exc
+                features["accessibility"] = {
+                    "descriptor": structure_descriptor,
+                    "page": structure_page,
+                }
+        except FieldIntelligenceError:
+            raise
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_READOUT",
+                "surface observations could not be derived from the retained generation",
+            ) from exc
+
+        return {
+            "schema": "cassifi.surface-observation-readout.v1",
+            "binding_id": binding_id,
+            "generation": generation,
+            "current_generation": current_generation,
+            "stale": current_generation != generation,
+            "modalities": sorted(requested),
+            "source_id": metadata.get("source_id"),
+            "source_instance": metadata.get("source_instance"),
+            "source_epoch": metadata.get("source_epoch"),
+            "environment_incarnation": metadata.get("environment_incarnation"),
+            "geometry_revision": metadata.get("geometry_revision"),
+            "sequence": metadata.get("sequence"),
+            "coverage": coverage,
+            "clocks": clocks,
+            "numeric": numeric,
+            "field_context": field_context,
+            "features": features,
+        }
+
     def close(self) -> None:
+        with getattr(self, "_lock", threading.RLock()):
+            if hasattr(self, "_surface_publications"):
+                self._surface_publications.clear()
+                self._surface_current.clear()
+                self._surface_generation_counters.clear()
+                self._surface_pinned_bytes = 0
         self._process_lock.close()
 
     def __enter__(self) -> FieldIntelligenceOwner:
@@ -4929,6 +7819,572 @@ class FieldIntelligenceOwner:
             transition={"kind": "revocation-recovery", **details},
         )
 
+    def _load_resource_policy(self) -> dict[str, Any]:
+        """Durable fixed resource policy and per-program residency policy."""
+        try:
+            row = json.loads(self.resource_path.read_text(encoding="ascii"))
+        except FileNotFoundError:
+            return {
+                "schema": ELASTIC_RESOURCE_SCHEMA,
+                "defaults": ResourceLimits().as_dict(),
+                "computers": {},
+                "programs": {},
+            }
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise FieldIntelligenceError(
+                "RESOURCE_POLICY_CORRUPT", "resource policy is unreadable"
+            ) from exc
+        if not isinstance(row, Mapping) or row.get("schema") != ELASTIC_RESOURCE_SCHEMA:
+            raise FieldIntelligenceError(
+                "RESOURCE_POLICY_CORRUPT", "resource policy schema is invalid"
+            )
+        computers = row.get("computers") or {}
+        programs = row.get("programs") or {}
+        if not isinstance(computers, Mapping) or not isinstance(programs, Mapping):
+            raise FieldIntelligenceError(
+                "RESOURCE_POLICY_CORRUPT", "resource policy indexes are invalid"
+            )
+        try:
+            defaults = ResourceLimits.from_dict(row.get("defaults"))
+            overrides = {
+                _identifier(key, "computer_id"): ResourceLimits.from_dict(value)
+                for key, value in computers.items()
+            }
+            normalized_programs = {}
+            for key, value in programs.items():
+                program_id = _identifier(key, "program_id")
+                if not isinstance(value, Mapping):
+                    raise ValueError("program policy must be an object")
+                computer_id = _identifier(value.get("computer_id"), "computer_id")
+                policy = ResidencyManager._program_policy(value.get("policy"))
+                normalized_programs[program_id] = {
+                    "program_id": program_id,
+                    "computer_id": computer_id,
+                    "policy": policy,
+                    "active": bool(value.get("active", False)),
+                }
+        except (ValueError, TypeError) as exc:
+            raise FieldIntelligenceError(
+                "RESOURCE_POLICY_CORRUPT", "resource policy values are invalid"
+            ) from exc
+        return {
+            "schema": ELASTIC_RESOURCE_SCHEMA,
+            "defaults": defaults.as_dict(),
+            "computers": {key: value.as_dict() for key, value in overrides.items()},
+            "programs": normalized_programs,
+        }
+    def _resource_manager_for(self, computer_id: str) -> ResidencyManager:
+        computer_id = _identifier(computer_id, "computer_id")
+        manager = self._resource_managers.get(computer_id)
+        if manager is None:
+            manager = ResidencyManager.shared(
+                f"{self.data_home.resolve()}::{computer_id}",
+                self.resource_limits(computer_id),
+                storage_root=self.data_home,
+            )
+            self._resource_managers[computer_id] = manager
+            for program_id, row in self._resource_policy.get("programs", {}).items():
+                if row.get("computer_id") == computer_id:
+                    manager.configure_program(
+                        program_id,
+                        computer_id=computer_id,
+                        policy=row.get("policy"),
+                    )
+                    if row.get("active"):
+                        manager.activate_program(program_id)
+        return manager
+
+    def _persist_program_policy(self) -> None:
+        _atomic_write(self.resource_path, canonical_json_bytes(self._resource_policy))
+
+    def configure_program_residency(
+        self,
+        program_id: str,
+        *,
+        computer_id: str,
+        policy: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Bind and persist one program's operational residency policy."""
+        program_id = _identifier(program_id, "program_id")
+        computer_id = _identifier(computer_id, "computer_id")
+        manager = self._resource_manager_for(computer_id)
+        prior = self._resource_policy.get("programs", {}).get(program_id, {})
+        chosen = policy if policy is not None else prior.get("policy")
+        report = manager.configure_program(
+            program_id, computer_id=computer_id, policy=chosen
+        )
+        self._resource_policy.setdefault("programs", {})[program_id] = {
+            "program_id": program_id,
+            "computer_id": computer_id,
+            "policy": dict(report["policy"]),
+            "active": bool(prior.get("active", False)),
+        }
+        self._persist_program_policy()
+        return self.program_resources(program_id)
+    def activate_program_residency(self, program_id: str) -> Mapping[str, Any]:
+        program_id = _identifier(program_id, "program_id")
+        row = self._resource_policy.get("programs", {}).get(program_id)
+        if row is None:
+            default = self._default_program_report(program_id)
+            self.configure_program_residency(
+                program_id,
+                computer_id=str(default["computer_id"]),
+                policy=default["policy"],
+            )
+            row = self._resource_policy["programs"][program_id]
+        manager = self._resource_manager_for(row["computer_id"])
+        manager.activate_program(program_id)
+        row["active"] = True
+        computer = next(
+            (item for item in self.state.computers if item.computer_id == row["computer_id"]),
+            None,
+        )
+        if computer is not None and computer.is_paged:
+            bound = computer.with_resource_manager(manager, program_id=program_id)
+            self.state = replace(
+                self.state,
+                computers=tuple(bound if item is computer else item for item in self.state.computers),
+            )
+        self._persist_program_policy()
+        return self.program_resources(program_id)
+    def release_program_residency(self, program_id: str) -> Mapping[str, Any]:
+        program_id = _identifier(program_id, "program_id")
+        row = self._resource_policy.get("programs", {}).get(program_id)
+        if row is None:
+            return self._default_program_report(program_id)
+        manager = self._resource_manager_for(row["computer_id"])
+        manager.release_program(program_id)
+        row["active"] = False
+        computer = next(
+            (item for item in self.state.computers if item.computer_id == row["computer_id"]),
+            None,
+        )
+        if computer is not None and computer.is_paged:
+            released = computer.with_resource_manager(manager, program_id=None)
+            self.state = replace(
+                self.state,
+                computers=tuple(released if item is computer else item for item in self.state.computers),
+            )
+        self._persist_program_policy()
+        return self.program_resources(program_id)
+    def _default_program_report(
+        self,
+        program_id: str,
+        *,
+        computer_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        computer_id = computer_id or program_id
+        if not any(item.computer_id == computer_id for item in self.state.computers):
+            computer_id = (
+                self.state.computers[0].computer_id
+                if self.state.computers
+                else program_id
+            )
+        limits = self.resource_limits(computer_id)
+        return {
+            "program_id": program_id,
+            "computer_id": computer_id,
+            "configured": False,
+            "policy": {
+                "minimum_bytes": 0,
+                "maximum_bytes": limits.ram_bytes,
+                "prefetch_bytes": 0,
+                "borrow": False,
+            },
+            "active": False,
+            "used_bytes": {"ram": 0, "vram": 0, "storage": 0},
+            "available_bytes": limits.ram_bytes,
+            "root_sha256": None,
+            "workspace_root_sha256": None,
+            "program_root_sha256": None,
+            "page_indexes": [],
+            "pages": [],
+        }
+
+    def program_resources(
+        self,
+        program_id: str | None = None,
+        *,
+        computer_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Read one program's configured policy, or the derived default.
+
+        A caller that already knows which computer will host the program names
+        it, so an unconfigured program's default report describes that computer
+        instead of the first one the owner happens to list.
+        """
+
+        programs = self._resource_policy.get("programs", {})
+        wanted = (
+            _identifier(computer_id, "computer_id")
+            if computer_id is not None
+            else None
+        )
+        if program_id is not None:
+            key = _identifier(program_id, "program_id")
+            row = programs.get(key)
+            if row is None:
+                return self._default_program_report(key, computer_id=wanted)
+            report = dict(self._resource_manager_for(row["computer_id"]).program_report(key))
+            report["configured"] = True
+            computer = next(
+                (item for item in self.state.computers if item.computer_id == row["computer_id"]),
+                None,
+            )
+            if computer is not None and computer.is_paged:
+                report["root_sha256"] = computer.field.image.root_sha256
+                report["page_indexes"] = [
+                    int(leaf.index) for leaf in computer.field.image.directory.leaves
+                ]
+                report["pages"] = list(report["page_indexes"])
+            else:
+                report["root_sha256"] = None
+                report["page_indexes"] = []
+                report["pages"] = []
+            report["workspace_root_sha256"] = report["root_sha256"]
+            report["program_root_sha256"] = report["root_sha256"]
+            return report
+        return {key: self.program_resources(key) for key in sorted(programs)}
+    def prefetch_program_pages(
+        self,
+        program_id: str,
+        pages: Sequence[Any],
+        *,
+        expected_root_sha256: str,
+        max_bytes: int | None = None,
+    ) -> Mapping[str, Any]:
+        """Prefetch exact committed pages into RAM without changing field state."""
+        program_id = _identifier(program_id, "program_id")
+        root = _digest(expected_root_sha256, "expected_root_sha256")
+        row_policy = self._resource_policy.get("programs", {}).get(program_id)
+        if row_policy is None:
+            raise FieldIntelligenceError("UNKNOWN_PROGRAM", "program residency is not configured")
+        row = next(
+            (item for item in self.state.computers if item.computer_id == row_policy["computer_id"]),
+            None,
+        )
+        if row is None or not row.is_paged:
+            raise FieldIntelligenceError("UNKNOWN_COMPUTER", "program has no paged computer")
+        residency = row.residency() or {}
+        if residency.get("root_sha256") != root:
+            raise FieldIntelligenceError("STALE_ROOT", "prefetch root is stale")
+        if max_bytes is not None:
+            if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 0:
+                raise FieldIntelligenceError("INVALID_INTEGER", "max_bytes must be nonnegative")
+        indexes: list[int] = []
+        for item in pages:
+            value = item.get("page_index") if isinstance(item, Mapping) else item
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value >= row.field.image.page_count:
+                raise FieldIntelligenceError("INVALID_PAGE", "prefetch page index is invalid")
+            if value not in indexes:
+                indexes.append(value)
+        indexes.sort()
+        page_bytes = [
+            row.field.image.directory.page_words(row.profile.total_words, index) * 8
+            for index in indexes
+        ]
+        bounded: list[int] = []
+        total = 0
+        for index, size in zip(indexes, page_bytes):
+            if max_bytes is not None and total + size > max_bytes:
+                break
+            bounded.append(index)
+            total += size
+        if not bounded and indexes and max_bytes not in (None, 0):
+            return {
+                "schema": ELASTIC_RESOURCE_SCHEMA,
+                "program_id": program_id,
+                "root_sha256": root,
+                "pages": [],
+                "bytes": 0,
+                "status": "bounded",
+                "resource": self.program_resources(program_id),
+            }
+        try:
+            result = row.place_pages(
+                bounded, "ram", root_sha256=root, max_pages=max(1, len(bounded))
+            )
+        except ResourceWait as exc:
+            if exc.reason == "prefetch-pressure":
+                return {
+                    "schema": ELASTIC_RESOURCE_SCHEMA,
+                    "program_id": program_id,
+                    "root_sha256": root,
+                    "pages": [],
+                    "bytes": 0,
+                    "status": "pressure",
+                    "resource_wait": exc.as_dict(),
+                    "resource": self.program_resources(program_id),
+                }
+            raise
+        return {
+            "schema": ELASTIC_RESOURCE_SCHEMA,
+            "program_id": program_id,
+            "root_sha256": root,
+            "pages": list(result.get("moved_pages", [])),
+            "bytes": int(result.get("bytes", total)),
+            "status": "prefetched",
+            "resource": self.program_resources(program_id),
+        }
+
+    def resource_limits(self, computer_id: str) -> ResourceLimits:
+        """The fixed resource policy in force for one computer."""
+
+        row = self._resource_policy["computers"].get(computer_id)
+        return ResourceLimits.from_dict(
+            self._resource_policy["defaults"] if row is None else row
+        )
+
+    def set_resource_limits(
+        self, computer_id: str, limits: ResourceLimits | Mapping[str, Any]
+    ) -> ResourceLimits:
+        """Persist one computer's fixed resource policy.
+
+        A reservation in flight keeps its bytes: an incompatible reduction is
+        refused until the owner releases it.
+        """
+
+        successor = ResourceLimits.from_dict(limits)
+        with self._lock:
+            self._resource_policy["computers"][computer_id] = successor.as_dict()
+            _atomic_write(
+                self.resource_path, canonical_json_bytes(self._resource_policy)
+            )
+        return successor
+
+    def computer_resources(self, computer_id: str) -> Mapping[str, Any]:
+        """Read-only fixed resource policy and measured usage of one computer.
+
+        Reading this view initialises no device and changes no state.
+        """
+
+        computer_id = _identifier(computer_id, "computer_id")
+        with self._lock:
+            limits = self.resource_limits(computer_id)
+            row = next(
+                (item for item in self.state.computers if item.computer_id == computer_id),
+                None,
+            )
+            measured = None if row is None else row.resources()
+            if measured is None and row is not None:
+                measured = ResidencyManager(
+                    limits, storage_root=self.data_home
+                ).report()
+            return {
+                "schema": ELASTIC_RESOURCE_SCHEMA,
+                "computer_id": computer_id,
+                "resource_limits": limits.as_dict(),
+                "device": limits.device,
+                "auto_grow": limits.auto_grow,
+                "resources": measured,
+                "logical_bytes": None if row is None else row.nbytes,
+                "paged": None if row is None else row.is_paged,
+                "residency": None if row is None else row.residency(),
+            }
+
+    def _resource_view(
+        self, computer_id: str, row: Any = None
+    ) -> Mapping[str, Any]:
+        """Replay-stable resource receipt: policy and descriptor facts only.
+
+        Live manager counters move between calls, so they belong to the
+        read-only accessor rather than to a recorded operation result.
+        """
+
+        limits = self.resource_limits(computer_id)
+        if row is None:
+            row = next(
+                (item for item in self.state.computers if item.computer_id == computer_id),
+                None,
+            )
+        residency = None if row is None else row.residency()
+        return {
+            "schema": ELASTIC_RESOURCE_SCHEMA,
+            "computer_id": computer_id,
+            "resource_limits": limits.as_dict(),
+            "device": limits.device,
+            "auto_grow": limits.auto_grow,
+            "logical_bytes": None if row is None else row.nbytes,
+            "paged": None if row is None else row.is_paged,
+            "resident_limit": None if residency is None else residency.get("resident_limit"),
+            "page_count": None if residency is None else residency.get("page_count"),
+            "root_sha256": None if residency is None else residency.get("root_sha256"),
+        }
+
+    def object_store(self) -> Any:
+        """The durable content-addressed store holding this field's page objects."""
+
+        from cassi_field_storage import DiskObjectStore
+
+        return DiskObjectStore(self.object_path)
+
+    def _adopt_within_budget(
+        self,
+        row: Any,
+        *,
+        requested_pages: int,
+        limits: ResourceLimits,
+    ) -> tuple[Any, Mapping[str, Any] | None]:
+        """Adopt paging, widening the page allowance while the policy allows.
+
+        Migration needs pages beyond the requested allowance; the declared RAM
+        budget grants them.  A request the budget cannot satisfy still fails
+        with the field's own numbers.
+        """
+
+        ceiling = max(
+            1,
+            limits.ram_bytes
+            // PAGED_PAGE_BYTES,
+        )
+        allowance = min(requested_pages, ceiling)
+        granted = None
+        last: BaseException | None = None
+        for _attempt in range(8):
+            try:
+                successor = row.adopt_paged(
+                    resident_limit=allowance,
+                    resource_limits=limits.as_dict(),
+                ).with_object_store(self.object_store())
+                successor.inspect()
+            except Exception as exc:  # noqa: BLE001 - a wait carries the need
+                last = exc
+                needed = max(
+                    (int(page) for page in getattr(exc, "pages", ()) or ()),
+                    default=0,
+                )
+                if not limits.auto_grow:
+                    break
+                wider = min(ceiling, max(allowance * 2, needed + 1))
+                if wider <= allowance:
+                    break
+                granted = {
+                    "auto_grow": True,
+                    "reason": "residency-wait-at-adoption",
+                    "requested_pages": requested_pages,
+                    "from_pages": allowance,
+                    "to_pages": wider,
+                    "ceiling_pages": ceiling,
+                    "ram_bytes": limits.ram_bytes,
+                    "requested_page_indexes": sorted(
+                        int(page) for page in getattr(exc, "pages", ()) or ()
+                    ),
+                }
+                allowance = wider
+                continue
+            if granted is not None:
+                granted = {**granted, "to_pages": allowance}
+            return successor, granted
+        raise FieldIntelligenceError(
+            "RESIDENCY_WAIT",
+            f"computer {row.computer_id} cannot adopt paging within its "
+            f"{limits.ram_bytes}-byte RAM budget and {ceiling}-page ceiling: "
+            f"{type(last).__name__ if last else 'capacity'}: {last}"
+            if last is not None
+            else f"computer {row.computer_id} cannot adopt paging at {allowance} pages",
+        ) from last
+
+    def _bind_resource_policy(self) -> None:
+        """Bind durable policy and one shared manager to reopened paged computers."""
+        computers = tuple(self.state.computers)
+        if not computers:
+            return
+        rebound: list[Any] = []
+        changed = False
+        for row in computers:
+            if not getattr(row, "is_paged", False):
+                rebound.append(row)
+                continue
+            try:
+                limits = self.resource_limits(row.computer_id)
+                successor = row.with_resident_limit(
+                    row.resident_limit, resource_limits=limits.as_dict()
+                ).with_object_store(self.object_store())
+                manager = self._resource_manager_for(row.computer_id)
+                active = next(
+                    (
+                        key for key, value in self._resource_policy.get("programs", {}).items()
+                        if value.get("computer_id") == row.computer_id and value.get("active")
+                    ),
+                    None,
+                )
+                successor = successor.with_resource_manager(manager, program_id=active)
+            except BaseException:
+                rebound.append(row)
+                continue
+            changed = changed or successor is not row
+            rebound.append(successor)
+        if not changed:
+            return
+        candidate = replace(self.state, computers=tuple(rebound))
+        if candidate.state_sha256 == self.state.state_sha256:
+            self.state = candidate
+
+    def _auto_widen_residency(
+        self, computer_id: str, row: Any, exc: BaseException
+    ) -> Mapping[str, Any] | None:
+        """Widen a suspended paged computer's page allowance within its budget.
+
+        The field asked for room and the declared policy grants it when the
+        request fits.  The widened computer is published under its own derived
+        identity, so the decision stays visible in the field's own history.
+        """
+
+        limits = self.resource_limits(computer_id)
+        if row is None or not getattr(row, "is_paged", False) or not limits.auto_grow:
+            return None
+        residency = row.residency() or {}
+        page_count = int(residency.get("page_count") or 0)
+        current = int(residency.get("resident_limit") or 0)
+        if page_count < 1 or current < 1:
+            return None
+        page_bytes = max(1, row.nbytes // page_count)
+        ceiling = max(1, limits.ram_bytes // page_bytes)
+        requested = sorted(int(page) for page in getattr(exc, "pages", ()) or ())
+        target = min(ceiling, max(current + max(1, len(requested)), current * 2))
+        if target <= current:
+            return None
+        try:
+            successor_row = row.with_resident_limit(
+                target, resource_limits=limits.as_dict()
+            )
+        except BaseException:  # noqa: BLE001 - keep the honest refusal
+            return None
+        decision = {
+            "auto_grow": True,
+            "reason": "residency-wait",
+            "requested_pages": requested,
+            "from_pages": current,
+            "to_pages": target,
+            "ceiling_pages": ceiling,
+            "ram_bytes": limits.ram_bytes,
+            "page_bytes": page_bytes,
+        }
+        computers = tuple(
+            successor_row if item.computer_id == computer_id else item
+            for item in self.state.computers
+        )
+        successor = self.state.with_transition(
+            "computer-residency",
+            {
+                "computer_id": computer_id,
+                "reason": decision["reason"],
+                "from_pages": current,
+                "to_pages": target,
+            },
+            computers=computers,
+        )
+        self._publish(
+            operation_id=(
+                f"{computer_id}:auto-residency-widen:{current}:{target}"
+            ),
+            successor=successor,
+            event_id=None,
+            transition={"kind": "computer-residency", "decision": decision},
+        )
+        return decision
+
+
     def configure_variable(
         self, operation_id: str, variable: VariableSpec
     ) -> CheckpointReceipt:
@@ -5868,6 +9324,525 @@ class FieldIntelligenceOwner:
             result = dict(transition["result"])
             result["checkpoint_receipt"] = checkpoint.as_dict()
             return result
+    def write_parent_summary(
+        self,
+        operation_id: str,
+        *,
+        expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Write the canonical L level-zero summary as one owner transition."""
+        with self._lock:
+            _identifier(operation_id, "operation_id")
+            if expected_state_sha256 is not None:
+                expected_state_sha256 = _digest(
+                    expected_state_sha256, "expected state"
+                )
+            request = {"expected_state_sha256": expected_state_sha256}
+            transition_prefix = {"kind": "write-parent-summary", **request}
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="write-parent-summary",
+                expected_request=request,
+                expected_result_keys=frozenset({"parent_summary_receipt"}),
+                expected_mapping_result_fields=frozenset(
+                    {"parent_summary_receipt"}
+                ),
+                expected_transition_fields=request,
+            )
+            if committed is not None:
+                manifest, replay, receipt = committed
+                if canonical_json_bytes(
+                    replay["parent_summary_receipt"]
+                ) != canonical_json_bytes(
+                    manifest["transition"].get("parent_summary_receipt")
+                ):
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "committed parent summary result disagrees with its transition",
+                    )
+                replay["checkpoint_receipt"] = receipt.as_dict()
+                return replay
+            if (
+                expected_state_sha256 is not None
+                and expected_state_sha256 != self.state.state_sha256
+            ):
+                raise FieldIntelligenceError(
+                    "LINEAGE_CONFLICT",
+                    "parent summary predecessor does not match current state",
+                )
+            try:
+                successor, parent_summary_receipt = (
+                    self.atlas.write_parent_summary(self.state)
+                )
+            except ResonantNumericalError as exc:
+                raise FieldIntelligenceError(
+                    "RESONANT_NUMERICAL", str(exc)
+                ) from exc
+            self._check_capacity(successor)
+            receipt_value = dict(parent_summary_receipt)
+            transition = {
+                **transition_prefix,
+                "request": request,
+                "request_sha256": sha256_value(request),
+                "parent_summary_receipt": receipt_value,
+                "result": {"parent_summary_receipt": receipt_value},
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition=transition,
+            )
+            result = dict(transition["result"])
+            result["checkpoint_receipt"] = checkpoint.as_dict()
+            return result
+    def freeze_parent(
+        self,
+        operation_id: str,
+        *,
+        expected_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            _identifier(operation_id, "operation_id")
+            if expected_state_sha256 is not None:
+                expected_state_sha256 = _digest(expected_state_sha256, "expected state")
+            if expected_relation_sha256 is not None:
+                expected_relation_sha256 = _digest(expected_relation_sha256, "expected relation")
+            request = {
+                "expected_state_sha256": expected_state_sha256,
+                "expected_relation_sha256": expected_relation_sha256,
+            }
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="freeze-parent",
+                expected_request=request,
+                expected_result_keys=frozenset({"frozen_parent_receipt"}),
+                expected_mapping_result_fields=frozenset({"frozen_parent_receipt"}),
+                expected_transition_fields=request,
+            )
+            if committed is not None:
+                _manifest, replay, checkpoint = committed
+                replay["checkpoint_receipt"] = checkpoint.as_dict()
+                return replay
+            if expected_state_sha256 is not None and expected_state_sha256 != self.state.state_sha256:
+                raise FieldIntelligenceError("LINEAGE_CONFLICT", "freeze parent predecessor does not match current state")
+            try:
+                successor, receipt = self.atlas.freeze_parent(
+                    self.state,
+                    expected_state_sha256=self.state.resonant_workspace.state_sha256
+                    if self.state.resonant_workspace is not None else None,
+                    expected_relation_sha256=expected_relation_sha256,
+                )
+            except FieldIntelligenceError:
+                raise
+            self._check_capacity(successor)
+            receipt_value = dict(receipt)
+            transition = {
+                "kind": "freeze-parent",
+                **request,
+                "request": request,
+                "request_sha256": sha256_value(request),
+                "frozen_parent_receipt": receipt_value,
+                "result": {"frozen_parent_receipt": receipt_value},
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id, successor=successor, event_id=None,
+                transition=transition,
+            )
+            result = dict(transition["result"])
+            result["checkpoint_receipt"] = checkpoint.as_dict()
+            return result
+
+    def apply_frozen_parent_to_child(
+        self,
+        operation_id: str,
+        *,
+        freeze_id: str,
+        base_flow_signal: Sequence[float],
+        work_budget: float,
+        parent_enabled: bool = True,
+        expected_parent_summary_sha256: str | None = None,
+        expected_parent_source_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        expected_child_source_state_sha256: str | None = None,
+        event_kind: str = "reasoning-work",
+        consume: bool = False,
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            _identifier(operation_id, "operation_id")
+            freeze_id = _digest(freeze_id, "freeze_id")
+            signal = tuple(float(value) for value in base_flow_signal)
+            budget = _finite(work_budget, "work_budget")
+            if not 0.0 <= budget <= 1.0:
+                raise FieldIntelligenceError("INVALID_REQUEST", "work_budget must be in [0,1]")
+            expected_parent_summary_sha256 = (
+                None if expected_parent_summary_sha256 is None
+                else _digest(expected_parent_summary_sha256, "expected parent summary")
+            )
+            expected_parent_source_state_sha256 = (
+                None if expected_parent_source_state_sha256 is None
+                else _digest(expected_parent_source_state_sha256, "expected parent source")
+            )
+            expected_relation_sha256 = (
+                None if expected_relation_sha256 is None
+                else _digest(expected_relation_sha256, "expected relation")
+            )
+            expected_child_source_state_sha256 = (
+                None if expected_child_source_state_sha256 is None
+                else _digest(expected_child_source_state_sha256, "expected child source")
+            )
+            event_kind = _identifier(event_kind, "event_kind")
+            request = {
+                "freeze_id": freeze_id,
+                "base_flow_signal": signal,
+                "work_budget": budget,
+                "parent_enabled": bool(parent_enabled),
+                "expected_parent_summary_sha256": expected_parent_summary_sha256,
+                "expected_parent_source_state_sha256": expected_parent_source_state_sha256,
+                "expected_relation_sha256": expected_relation_sha256,
+                "expected_child_source_state_sha256": expected_child_source_state_sha256,
+                "event_kind": event_kind,
+                "consume": bool(consume),
+            }
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="apply-frozen-parent-to-child",
+                expected_request=request,
+                expected_result_keys=frozenset({"frozen_parent_application_receipt"}),
+                expected_mapping_result_fields=frozenset({"frozen_parent_application_receipt"}),
+                expected_transition_fields=request,
+            )
+            if committed is not None:
+                _manifest, replay, checkpoint = committed
+                replay["checkpoint_receipt"] = checkpoint.as_dict()
+                return replay
+            if expected_child_source_state_sha256 is not None and expected_child_source_state_sha256 != self.state.state_sha256:
+                raise FieldIntelligenceError("LINEAGE_CONFLICT", "frozen parent child predecessor does not match current state")
+            successor, receipt = self.atlas.apply_frozen_parent_to_child(
+                self.state,
+                freeze_id=freeze_id,
+                base_flow_signal=signal,
+                work_budget=budget,
+                parent_enabled=parent_enabled,
+                expected_parent_summary_sha256=expected_parent_summary_sha256,
+                expected_parent_source_state_sha256=expected_parent_source_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                expected_child_source_state_sha256=(
+                    self.state.resonant_workspace.state_sha256
+                    if self.state.resonant_workspace is not None else None
+                ),
+                event_kind=event_kind,
+                consume=consume,
+            )
+            self._check_capacity(successor)
+            receipt_value = dict(receipt)
+            transition = {
+                "kind": "apply-frozen-parent-to-child",
+                **request,
+                "request": request,
+                "request_sha256": sha256_value(request),
+                "frozen_parent_application_receipt": receipt_value,
+                "result": {"frozen_parent_application_receipt": receipt_value},
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id, successor=successor, event_id=None,
+                transition=transition,
+            )
+            result = dict(transition["result"])
+            result["checkpoint_receipt"] = checkpoint.as_dict()
+            return result
+
+    def apply_live_child_detail_to_parent(
+        self,
+        operation_id: str,
+        *,
+        work_budget: float,
+        parent_enabled: bool = True,
+        expected_child_source_state_sha256: str | None = None,
+        expected_child_packet_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        event_kind: str = PACKET_IMPULSE_EVENT_KIND,
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            _identifier(operation_id, "operation_id")
+            budget = _finite(work_budget, "work_budget")
+            if not 0.0 <= budget <= 1.0:
+                raise FieldIntelligenceError(
+                    "INVALID_REQUEST", "work_budget must be in [0,1]"
+                )
+            expected_child_source_state_sha256 = (
+                None if expected_child_source_state_sha256 is None
+                else _digest(expected_child_source_state_sha256, "expected child source")
+            )
+            expected_child_packet_sha256 = (
+                None if expected_child_packet_sha256 is None
+                else _digest(expected_child_packet_sha256, "expected child packet")
+            )
+            expected_relation_sha256 = (
+                None if expected_relation_sha256 is None
+                else _digest(expected_relation_sha256, "expected relation")
+            )
+            event_kind = _identifier(event_kind, "event_kind")
+            workspace = self.state.resonant_workspace
+            if workspace is None:
+                raise FieldIntelligenceError(
+                    "RESONANT_UNINITIALIZED",
+                    "child detail to parent requires an existing resonant workspace",
+                )
+            request = {
+                "work_budget": budget,
+                "parent_enabled": bool(parent_enabled),
+                "expected_child_source_state_sha256": expected_child_source_state_sha256,
+                "expected_child_packet_sha256": expected_child_packet_sha256,
+                "expected_relation_sha256": expected_relation_sha256,
+                "event_kind": event_kind,
+            }
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="apply-live-child-detail-to-parent",
+                expected_request=request,
+                expected_result_keys=frozenset({"live_child_detail_receipt"}),
+                expected_mapping_result_fields=frozenset(
+                    {"live_child_detail_receipt"}
+                ),
+                expected_transition_fields=request,
+            )
+            if committed is not None:
+                _manifest, replay, checkpoint = committed
+                replay["checkpoint_receipt"] = checkpoint.as_dict()
+                return replay
+            if (
+                expected_child_source_state_sha256 is not None
+                and expected_child_source_state_sha256 != workspace.state_sha256
+            ):
+                raise FieldIntelligenceError(
+                    "LINEAGE_CONFLICT",
+                    "child detail predecessor does not match current workspace",
+                )
+            try:
+                successor, receipt = self.atlas.apply_live_child_detail_to_parent(
+                    self.state,
+                    work_budget=budget,
+                    parent_enabled=parent_enabled,
+                    expected_child_source_state_sha256=(
+                        workspace.state_sha256
+                        if expected_child_source_state_sha256 is not None else None
+                    ),
+                    expected_child_packet_sha256=expected_child_packet_sha256,
+                    expected_relation_sha256=expected_relation_sha256,
+                    event_kind=event_kind,
+                )
+            except FieldIntelligenceError:
+                raise
+            except ResonantNumericalError as exc:
+                raise FieldIntelligenceError(
+                    "RESONANT_NUMERICAL", str(exc)
+                ) from exc
+            self._check_capacity(successor)
+            receipt_value = dict(receipt)
+            transition = {
+                "kind": "apply-live-child-detail-to-parent",
+                **request,
+                "request": request,
+                "request_sha256": sha256_value(request),
+                "live_child_detail_receipt": receipt_value,
+                "result": {"live_child_detail_receipt": receipt_value},
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition=transition,
+            )
+            result = dict(transition["result"])
+            result["checkpoint_receipt"] = checkpoint.as_dict()
+            return result
+
+    def read_frozen_parent(self) -> Mapping[str, Any]:
+        with self._lock:
+            value = dict(self.atlas.read_frozen_parent(self.state))
+            value.update({
+                "state_sha256": self.state.state_sha256,
+                "manifest_sha256": self.checkpoints.current_manifest_sha256,
+                "generation": self.state.generation,
+                "read_only": True,
+            })
+            return value
+
+    def release_frozen_parent(
+        self,
+        operation_id: str,
+        *,
+        freeze_id: str,
+        expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            _identifier(operation_id, "operation_id")
+            freeze_id = _digest(freeze_id, "freeze_id")
+            expected_state_sha256 = (
+                None if expected_state_sha256 is None
+                else _digest(expected_state_sha256, "expected state")
+            )
+            request = {
+                "freeze_id": freeze_id,
+                "expected_state_sha256": expected_state_sha256,
+            }
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="release-frozen-parent",
+                expected_request=request,
+                expected_result_keys=frozenset({"frozen_parent_release_receipt"}),
+                expected_mapping_result_fields=frozenset({"frozen_parent_release_receipt"}),
+                expected_transition_fields=request,
+            )
+            if committed is not None:
+                _manifest, replay, checkpoint = committed
+                replay["checkpoint_receipt"] = checkpoint.as_dict()
+                return replay
+            if expected_state_sha256 is not None and expected_state_sha256 != self.state.state_sha256:
+                raise FieldIntelligenceError("LINEAGE_CONFLICT", "release predecessor does not match current state")
+            successor, receipt = self.atlas.release_frozen_parent(self.state, freeze_id=freeze_id)
+            self._check_capacity(successor)
+            receipt_value = dict(receipt)
+            transition = {
+                "kind": "release-frozen-parent", **request,
+                "request": request, "request_sha256": sha256_value(request),
+                "frozen_parent_release_receipt": receipt_value,
+                "result": {"frozen_parent_release_receipt": receipt_value},
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id, successor=successor, event_id=None,
+                transition=transition,
+            )
+            result = dict(transition["result"])
+            result["checkpoint_receipt"] = checkpoint.as_dict()
+            return result
+
+    def recompute_parent_summary_from_child(
+        self,
+        operation_id: str,
+        *,
+        expected_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        expected_child_packet_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Explicitly refresh the L parent register from the live LL child."""
+        with self._lock:
+            _identifier(operation_id, "operation_id")
+            if expected_state_sha256 is not None:
+                expected_state_sha256 = _digest(
+                    expected_state_sha256, "expected state"
+                )
+            if expected_relation_sha256 is not None:
+                expected_relation_sha256 = _digest(
+                    expected_relation_sha256, "expected relation"
+                )
+            if expected_child_packet_sha256 is not None:
+                expected_child_packet_sha256 = _digest(
+                    expected_child_packet_sha256, "expected child packet"
+                )
+            request = {
+                "expected_state_sha256": expected_state_sha256,
+                "expected_relation_sha256": expected_relation_sha256,
+                "expected_child_packet_sha256": expected_child_packet_sha256,
+            }
+            transition_prefix = {
+                "kind": "recompute-parent-summary-from-child", **request
+            }
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="recompute-parent-summary-from-child",
+                expected_request=request,
+                expected_result_keys=frozenset({"parent_child_receipt"}),
+                expected_mapping_result_fields=frozenset(
+                    {"parent_child_receipt"}
+                ),
+                expected_transition_fields=request,
+            )
+            if committed is not None:
+                manifest, replay, receipt = committed
+                if canonical_json_bytes(
+                    replay["parent_child_receipt"]
+                ) != canonical_json_bytes(
+                    manifest["transition"].get("parent_child_receipt")
+                ):
+                    raise FieldIntelligenceError(
+                        "CHECKPOINT_CORRUPT",
+                        "committed parent-child result disagrees with transition",
+                    )
+                replay["checkpoint_receipt"] = receipt.as_dict()
+                return replay
+            if expected_state_sha256 is not None and expected_state_sha256 != self.state.state_sha256:
+                raise FieldIntelligenceError(
+                    "LINEAGE_CONFLICT",
+                    "parent-child recompute predecessor does not match current state",
+                )
+            try:
+                workspace = self.state.resonant_workspace
+                if workspace is None:
+                    raise FieldIntelligenceError(
+                        "RESONANT_UNINITIALIZED",
+                        "parent-child recompute requires an existing resonant workspace",
+                    )
+                successor, parent_child_receipt = (
+                    self.atlas.recompute_parent_summary_from_child(
+                        self.state,
+                        expected_source_state_sha256=workspace.state_sha256,
+                        expected_relation_sha256=expected_relation_sha256,
+                        expected_child_packet_sha256=expected_child_packet_sha256,
+                    )
+                )
+            except FieldIntelligenceError:
+                raise
+            except ResonantNumericalError as exc:
+                raise FieldIntelligenceError(
+                    "RESONANT_NUMERICAL", str(exc)
+                ) from exc
+            self._check_capacity(successor)
+            receipt_value = dict(parent_child_receipt)
+            transition = {
+                **transition_prefix,
+                "request": request,
+                "request_sha256": sha256_value(request),
+                "parent_child_receipt": receipt_value,
+                "result": {"parent_child_receipt": receipt_value},
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition=transition,
+            )
+            result = dict(transition["result"])
+            result["checkpoint_receipt"] = checkpoint.as_dict()
+            return result
+
+    def read_parent_summary(self) -> Mapping[str, Any]:
+        """Read only the stored parent summary from the current field page."""
+        with self._lock:
+            workspace = self.state.resonant_workspace
+            if workspace is None:
+                raise FieldIntelligenceError(
+                    "RESONANT_UNINITIALIZED",
+                    "parent summary requires an existing resonant workspace",
+                )
+            try:
+                value = dict(read_parent_summary_workspace(workspace))
+            except ResonantNumericalError as exc:
+                raise FieldIntelligenceError(
+                    "RESONANT_NUMERICAL", str(exc)
+                ) from exc
+            value.update(
+                {
+                    "state_sha256": self.state.state_sha256,
+                    "manifest_sha256": self.checkpoints.current_manifest_sha256,
+                    "generation": self.state.generation,
+                    "read_only": True,
+                }
+            )
+            return value
+
 
     def read_packet_deposit(
         self,
@@ -6615,6 +10590,47 @@ class FieldIntelligenceOwner:
                 participant_id=participant_id,
             )
             return self._publish_temporal(operation_id, request, self._temporal_successor(row, request), receipt)
+    def synthesize_temporal_transition(
+        self, *, memory_id: str, skill_id: str, participant_id: str,
+    ) -> Mapping[str, Any]:
+        """Read a field-owned hypothesis without mutating owner or field state."""
+        with self._lock:
+            return self._temporal_apply(
+                self._temporal_memory(memory_id).synthesize_transition,
+                skill_id, participant_id=participant_id,
+            )
+
+    def materialize_temporal_transition(
+        self, operation_id: str, *, memory_id: str, skill_id: str,
+        participant_id: str, action: str, observation: str,
+        hypothesis_sha256: str, expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Commit an externally observed state-conditioned transition explicitly."""
+        with self._lock:
+            request = {
+                "kind": "materialize-temporal-transition",
+                "memory_id": _identifier(memory_id, "memory_id"),
+                "skill_id": _identifier(skill_id, "skill_id"),
+                "participant_id": _identifier(participant_id, "participant_id"),
+                "action": _identifier(action, "action"),
+                "observation": _identifier(observation, "observation"),
+                "hypothesis_sha256": _digest(hypothesis_sha256, "hypothesis_sha256"),
+                "expected_state_sha256": expected_state_sha256,
+            }
+            replay = self._temporal_replay(operation_id, request)
+            if replay is not None:
+                return replay
+            self._require_temporal_idle(memory_id, participant_id)
+            temporal_expected_state_sha256 = self._temporal_memory(memory_id).state_sha256
+            row, receipt = self._temporal_apply(
+                self._temporal_memory(memory_id).materialize_transition_support,
+                skill_id, participant_id=participant_id, action=action,
+                observation=observation, hypothesis_sha256=hypothesis_sha256,
+                expected_state_sha256=temporal_expected_state_sha256,
+            )
+            return self._publish_temporal(
+                operation_id, request, self._temporal_successor(row, request), receipt,
+            )
 
     def reset_temporal(
         self, operation_id: str, *, memory_id: str, expected_state_sha256: str | None = None,
@@ -8695,6 +12711,100 @@ class FieldIntelligenceOwner:
                 "status": "proposed",
             }
 
+    def propose_program_composition(
+        self,
+        *,
+        operation_id: str,
+        problem_id: str,
+        component_program_ids: Sequence[str],
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            component_ids = tuple(component_program_ids)
+            support_event_ids: list[str] = []
+            for program_id in component_ids:
+                program = self.state.program(program_id)
+                for event_id in program.support_event_ids:
+                    if event_id not in support_event_ids:
+                        support_event_ids.append(event_id)
+            for event_id in support_event_ids:
+                self._active_event(event_id)
+            successor, candidate_ids = self.cognition.propose_program_composition(
+                self.state,
+                problem_id=problem_id,
+                component_program_ids=component_ids,
+            )
+            if successor is self.state:
+                return {"candidate_ids": list(candidate_ids), "status": "replayed"}
+            receipt = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition={
+                    "candidate_ids": list(candidate_ids),
+                    "component_program_ids": list(component_ids),
+                    "kind": "program-compositions-proposed",
+                    "problem_id": problem_id,
+                },
+            )
+            return {
+                "candidate_ids": list(candidate_ids),
+                "receipt": receipt.as_dict(),
+                "status": "proposed",
+            }
+
+
+    def propose_program_compositions(
+        self,
+        *,
+        operation_id: str,
+        problem_id: str,
+        program_ids: Sequence[str],
+        minimum_components: int = 2,
+        maximum_components: int = 3,
+        maximum_candidates: int = 32,
+        maximum_steps: int = 16,
+        maximum_prefix_code_bits: int = 256,
+    ) -> Mapping[str, Any]:
+        with self._lock:
+            component_ids = tuple(program_ids)
+            support_event_ids: list[str] = []
+            for program_id in component_ids:
+                program = self.state.program(program_id)
+                for event_id in program.support_event_ids:
+                    if event_id not in support_event_ids:
+                        support_event_ids.append(event_id)
+            for event_id in support_event_ids:
+                self._active_event(event_id)
+            successor, candidate_ids = self.cognition.propose_program_compositions(
+                self.state,
+                problem_id=problem_id,
+                program_ids=component_ids,
+                minimum_components=minimum_components,
+                maximum_components=maximum_components,
+                maximum_candidates=maximum_candidates,
+                maximum_steps=maximum_steps,
+                maximum_prefix_code_bits=maximum_prefix_code_bits,
+            )
+            if successor is self.state:
+                return {"candidate_ids": list(candidate_ids), "status": "replayed"}
+            receipt = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition={
+                    "candidate_ids": list(candidate_ids),
+                    "kind": "program-composition-frontier-proposed",
+                    "maximum_candidates": maximum_candidates,
+                    "maximum_prefix_code_bits": maximum_prefix_code_bits,
+                    "maximum_steps": maximum_steps,
+                    "problem_id": problem_id,
+                },
+            )
+            return {
+                "candidate_ids": list(candidate_ids),
+                "receipt": receipt.as_dict(),
+                "status": "proposed",
+            }
     def begin_program_assessment(
         self,
         *,
@@ -8733,6 +12843,7 @@ class FieldIntelligenceOwner:
         outcome: Mapping[str, Any],
         event_id: str,
         loss_scale: float,
+        resolution_floor: float | None = None,
     ) -> Mapping[str, Any]:
         with self._lock:
             event = self._active_event(event_id)
@@ -8747,6 +12858,7 @@ class FieldIntelligenceOwner:
                 outcome=outcome,
                 event_id=event_id,
                 loss_scale=loss_scale,
+                resolution_floor=resolution_floor,
             )
             receipt = self._publish(
                 operation_id=operation_id,
@@ -9013,7 +13125,474 @@ class FieldIntelligenceOwner:
         """Return a verified standalone v2 checkpoint bundle."""
         with self._lock:
             return self.checkpoints.export_bundle(manifest_sha256)
+    def read_computer_page(
+        self,
+        *,
+        computer_id: str,
+        page_index: int,
+        manifest_sha256: str | None = None,
+    ) -> tuple[bytes, Mapping[str, Any]]:
+        """Read one verified checkpoint page without hydrating the computer."""
 
+        with self._lock:
+            return self.checkpoints.read_computer_page(
+                computer_id,
+                page_index,
+                manifest_sha256=manifest_sha256,
+            )
+    def memory_storage_diagnostics(
+        self,
+        *,
+        manifest_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Inspect logical, resident, physical, growth, and recovery measures."""
+
+        with self._lock:
+            return self.checkpoints.storage_diagnostics(manifest_sha256)
+    def scrub_memory_storage(
+        self,
+        *,
+        cursor: int = 0,
+        maximum: int = 32,
+        manifest_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Verify a bounded checkpoint-object page without changing memory."""
+
+        with self._lock:
+            return self.checkpoints.scrub_objects(
+                cursor=cursor,
+                maximum=maximum,
+                manifest_sha256=manifest_sha256,
+            )
+
+
+    def execute_resident_model_stage(
+        self,
+        operation_id: str,
+        *,
+        computer_id: str,
+        task_id: str,
+        resident_operation_id: str,
+        request: Mapping[str, Any],
+        executor: Any,
+        resume_task: bool = False,
+        batch_to_token: bool = False,
+    ) -> Mapping[str, Any]:
+        """Execute one stage or atomic token batch through the owner field."""
+
+        from cassi_learning_computer import (
+            LearningComputerCapacityError,
+            LearningComputerError,
+            LearningComputerResidencyWait,
+        )
+
+        _identifier(operation_id, "operation_id")
+        _identifier(computer_id, "computer_id")
+        _identifier(task_id, "task_id")
+        _identifier(resident_operation_id, "resident_operation_id")
+        if not isinstance(request, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident model stage request must be an object",
+            )
+        if not callable(getattr(executor, "execute_stage", None)):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident model stage requires an executor",
+            )
+        source_sha256 = request.get("source_sha256")
+        if (
+            not isinstance(source_sha256, str)
+            or source_sha256 != getattr(executor, "source_sha256", None)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident executor source identity disagrees with the stage",
+            )
+        minimum_modes = getattr(executor, "neural_membrane_mode_count", None)
+        if (
+            isinstance(minimum_modes, bool)
+            or not isinstance(minimum_modes, int)
+            or minimum_modes < 1
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident executor has no bounded neural membrane width",
+            )
+        if not isinstance(resume_task, bool):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident model task-resume selection must be boolean",
+            )
+        if not isinstance(batch_to_token, bool) or (
+            batch_to_token and not resume_task
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident token batching requires task resume",
+            )
+        try:
+            stage_request = json.loads(
+                canonical_json_bytes(dict(request)).decode("utf-8")
+            )
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident model stage request is not canonical",
+            ) from exc
+        request_row = {
+            "kind": "neural-membrane-stage",
+            "computer_id": computer_id,
+            "task_id": task_id,
+            "resident_operation_id": resident_operation_id,
+            "minimum_modes": minimum_modes,
+            "stage_request": stage_request,
+            "resume_task": resume_task,
+            "batch_to_token": batch_to_token,
+        }
+        request_sha256 = hashlib.sha256(
+            canonical_json_bytes(request_row)
+        ).hexdigest()
+        with self._lock:
+            committed = self._committed_result(
+                operation_id,
+                expected_kind="neural-membrane-stage",
+                expected_request=request_row,
+                expected_result_keys=frozenset(
+                    {
+                        "stage_result",
+                        "membrane_receipt",
+                        *(("resume_receipt",) if resume_task else ()),
+                        *(("stage_results", "membrane_receipts", "resume_receipts") if batch_to_token else ()),
+                    }
+                ),
+                expected_mapping_result_fields=frozenset(
+                    {
+                        "stage_result",
+                        "membrane_receipt",
+                        *(("resume_receipt",) if resume_task else ()),
+                    }
+                ),
+                require_retained=True,
+            )
+            if committed is not None:
+                _manifest, result, checkpoint = committed
+                return {
+                    **result,
+                    "_checkpoint_receipt": checkpoint.as_dict(),
+                }
+            self._assert_publication_order(operation_id)
+            row = next(
+                (
+                    item
+                    for item in self.state.computers
+                    if item.computer_id == computer_id
+                ),
+                None,
+            )
+            if row is None:
+                raise FieldIntelligenceError(
+                    "UNKNOWN_COMPUTER",
+                    "configure the computer first",
+                )
+            available_bytes = (
+                self.limits.max_workspace_bytes
+                - self.state.workspace_usage()["workspace_bytes"]
+            )
+            replacement_bytes = available_bytes + row.nbytes
+            stage_results: list[dict[str, Any]] = []
+            membrane_receipts: list[dict[str, Any]] = []
+            resume_receipts: list[dict[str, Any]] = []
+            current_request = stage_request
+            current_resident_operation_id = resident_operation_id
+            initial_position = stage_request.get("position")
+            successor_row = row
+            membrane = None
+            try:
+                for _batch_index in range(512):
+                    epoch = {
+                        "schema": "cassifi.neural-membrane-epoch.v1",
+                        "computer_id": computer_id,
+                        "task_id": task_id,
+                        "resident_operation_id": current_resident_operation_id,
+                        "model_source_sha256": source_sha256,
+                        "stage": current_request.get("stage"),
+                        "layer": current_request.get("layer"),
+                        "position": current_request.get("position"),
+                        "stage_request_sha256": current_request.get(
+                            "request_sha256",
+                            hashlib.sha256(
+                                canonical_json_bytes(
+                                    {
+                                        key: value
+                                        for key, value in current_request.items()
+                                        if key != "request_sha256"
+                                    }
+                                )
+                            ).hexdigest(),
+                        ),
+                    }
+                    # Keep the membrane candidate private through the token:
+                    # task resume/dispatch mutates only the task value, while
+                    # every model stage uses this same ordered exchange epoch.
+                    if membrane is None:
+                        membrane = successor_row.begin_neural_membrane_epoch(
+                            minimum_modes=minimum_modes,
+                            epoch=epoch,
+                            max_field_bytes=replacement_bytes,
+                            # The stage is the work the computer was opened for, so
+                            # it reserves under the computer's own declared share
+                            # rather than under the placeholder defaults.
+                            resource_manager=self._resource_manager_for(computer_id),
+                        )
+                        successor_row = membrane.computer
+                    raw_stage_result = executor.execute_stage(
+                        current_request,
+                        activation_exchange=membrane.exchange,
+                    )
+                    if not isinstance(raw_stage_result, Mapping):
+                        raise LearningComputerError(
+                            "resident executor returned a non-object stage result"
+                        )
+                    stage_result = json.loads(
+                        canonical_json_bytes(
+                            dict(raw_stage_result)
+                        ).decode("utf-8")
+                    )
+                    stage_result_sha256 = sha256_value(stage_result)
+                    stage_results.append(stage_result)
+                    if batch_to_token:
+                        membrane.record_stage(
+                            epoch=epoch,
+                            stage_result_sha256=stage_result_sha256,
+                        )
+                    else:
+                        successor_row, membrane_receipt = membrane.finish(
+                            stage_result_sha256=stage_result_sha256,
+                            computer=successor_row,
+                        )
+                        membrane_receipts.append(dict(membrane_receipt))
+                    resume_receipt = None
+                    if resume_task:
+                        successor_row, raw_resume_receipt = successor_row.invoke(
+                            arguments={
+                                "operation": "advance-task",
+                                "task_id": task_id,
+                                "quantum": 2 if batch_to_token else 1,
+                                "arguments": {
+                                    "operation": (
+                                        "resume-resident-model-and-advance"
+                                        if batch_to_token else "resume-resident-model"
+                                    ),
+                                    "operation_id": current_resident_operation_id,
+                                    "result": stage_result,
+                                },
+                            },
+                            steps=1,
+                        )
+                        resume_receipt = {
+                            **dict(raw_resume_receipt),
+                            "computer_id": computer_id,
+                            "action": "invoke",
+                            "computer_state_sha256": sha256_value(
+                                successor_row.as_dict()
+                            ),
+                        }
+                        if batch_to_token:
+                            deferred_state_kind = (
+                                "task-transition-with-deferred-neural-plane"
+                            )
+                            resume_receipt["state_sha256_kind"] = (
+                                deferred_state_kind
+                            )
+                            resume_receipt["computer_state_sha256_kind"] = (
+                                deferred_state_kind
+                            )
+                        resume_receipts.append(resume_receipt)
+                    if not batch_to_token:
+                        break
+
+                    token_boundary = False
+                    next_operation_id: Any = None
+                    next_request: Any = None
+                    for _dispatch_index in range(8):
+                        runtime_state = successor_row.named_value("task")
+                        task_record = (
+                            runtime_state.get("tasks", {}).get(task_id)
+                            if isinstance(runtime_state, Mapping)
+                            else None
+                        )
+                        model_state = (
+                            task_record.get("state")
+                            if isinstance(task_record, Mapping)
+                            else None
+                        )
+                        if not isinstance(model_state, Mapping):
+                            raise LearningComputerError(
+                                "resident token batch lost its model task"
+                            )
+                        resident_state = model_state.get("resident_model")
+                        if model_state.get("phase") in {
+                            "completed",
+                            "faulted",
+                            "cancelled",
+                        }:
+                            token_boundary = True
+                            break
+                        if (
+                            isinstance(resident_state, Mapping)
+                            and resident_state.get("position")
+                            != initial_position
+                        ):
+                            token_boundary = True
+                            break
+                        if model_state.get("phase") == "waiting":
+                            if (
+                                model_state.get("wait_reason")
+                                != "resident-model-stage"
+                            ):
+                                raise LearningComputerError(
+                                    "resident token batch reached an alien wait"
+                                )
+                            next_operation_id = model_state.get("await_target")
+                            next_operation = model_state.get(
+                                "operations", {}
+                            ).get(next_operation_id)
+                            next_request = (
+                                next_operation.get("request")
+                                if isinstance(next_operation, Mapping)
+                                and next_operation.get("phase") == "proposed"
+                                else None
+                            )
+                            break
+                        if model_state.get("phase") != "running":
+                            raise LearningComputerError(
+                                "resident token batch has an invalid phase"
+                            )
+                        successor_row, _advance_receipt = successor_row.invoke(
+                            arguments={
+                                "operation": "advance-task",
+                                "task_id": task_id,
+                                "quantum": 1,
+                            },
+                            steps=1,
+                        )
+                    else:
+                        raise LearningComputerCapacityError(
+                            "resident token batch dispatch exceeds 8 steps"
+                        )
+                    if token_boundary:
+                        break
+                    if (
+                        not isinstance(next_operation_id, str)
+                        or not isinstance(next_request, Mapping)
+                    ):
+                        raise LearningComputerError(
+                            "resident token batch next stage is invalid"
+                        )
+                    if next_request.get("position") != initial_position:
+                        break
+                    current_resident_operation_id = next_operation_id
+                    current_request = json.loads(
+                        canonical_json_bytes(dict(next_request)).decode("utf-8")
+                    )
+                else:
+                    raise LearningComputerCapacityError(
+                        "resident token batch exceeds 512 model stages"
+                    )
+                if batch_to_token:
+                    if membrane is None or not stage_results:
+                        raise LearningComputerError(
+                            "resident token batch finished without a membrane epoch"
+                        )
+                    successor_row, membrane_receipt = membrane.finish(
+                        stage_result_sha256=sha256_value(stage_results[-1]),
+                        computer=successor_row,
+                    )
+                    membrane_receipts = membrane.stage_receipts(
+                        membrane_receipt
+                    )
+            except LearningComputerCapacityError as exc:
+                raise FieldIntelligenceError(
+                    "WORK_CAPACITY",
+                    str(exc),
+                ) from exc
+            except ResourceWait:
+                # Physical room, not a task fault: the stage that ran out of its
+                # declared share keeps its place in its own state, so the wait
+                # must reach the caller rather than becoming an unavailable
+                # brain for a condition the request can simply wait out.
+                raise
+            except LearningComputerResidencyWait:
+                # A typed residency continuation is not an invalid computer: the
+                # pending stage keeps its place and the same request can resume
+                # it, so it must not be relabelled as a broken image.
+                raise
+            except LearningComputerError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_COMPUTER",
+                    str(exc),
+                ) from exc
+            finally:
+                if membrane is not None:
+                    membrane.abort()
+            if successor_row.nbytes > replacement_bytes:
+                raise FieldIntelligenceError(
+                    "WORK_CAPACITY",
+                    "neural membrane exceeds the computer workspace limit",
+                )
+            computers = tuple(
+                successor_row if item.computer_id == computer_id else item
+                for item in self.state.computers
+            )
+            result = {
+                "stage_result": stage_result,
+                "membrane_receipt": dict(membrane_receipt),
+            }
+            if resume_receipt is not None:
+                result["resume_receipt"] = resume_receipt
+            if batch_to_token:
+                result.update(
+                    {
+                        "stage_results": stage_results,
+                        "membrane_receipts": membrane_receipts,
+                        "resume_receipts": resume_receipts,
+                    }
+                )
+            successor = self.state.with_transition(
+                "neural-membrane-stage",
+                {
+                    "computer_id": computer_id,
+                    "task_id": task_id,
+                    "resident_operation_id": resident_operation_id,
+                    "model_source_sha256": source_sha256,
+                    "stage": stage_request.get("stage"),
+                    "stage_count": len(stage_results),
+                    "membrane_state_sha256": membrane_receipt[
+                        "state_sha256"
+                    ],
+                    "site_trace_sha256": membrane_receipt[
+                        "site_trace_sha256"
+                    ],
+                },
+                computers=computers,
+            )
+            transition = {
+                "kind": "neural-membrane-stage",
+                "request": request_row,
+                "request_sha256": request_sha256,
+                "result": result,
+            }
+            checkpoint = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=None,
+                transition=transition,
+            )
+            return {
+                **result,
+                "_checkpoint_receipt": checkpoint.as_dict(),
+            }
 
     def operate_computer(
         self, operation_id: str, *, computer_id: str, action: str,
@@ -9021,10 +13600,18 @@ class FieldIntelligenceOwner:
         expected_state_sha256: str | None = None,
     ) -> Mapping[str, Any]:
         """Execute one bounded, replay-safe operation on an atlas-owned computer."""
-        from cassi_learning_computer import LearningComputer
+        from cassi_learning_computer import (
+            LearningComputer,
+            LearningComputerCapacityError,
+            LearningComputerError,
+            LearningComputerResidencyWait,
+        )
 
         schemas = {
-            "configure": (frozenset(), frozenset({"profile"})),
+            "configure": (
+                frozenset(),
+                frozenset({"profile", "resident_pages", "resource_limits"}),
+            ),
             "load": (frozenset({"program"}), frozenset({"left", "right", "entry"})),
             "advance": (frozenset({"steps"}), frozenset()),
             "submit": (
@@ -9056,12 +13643,19 @@ class FieldIntelligenceOwner:
                 frozenset({"arguments"}),
                 frozenset({"steps"}),
             ),
+            "invoke-settled": (
+                frozenset({"arguments"}),
+                frozenset({"steps", "reserve_fraction"}),
+            ),
             "authorized-invoke": (
                 frozenset({"arguments", "grant", "scope", "target"}),
                 frozenset({"steps"}),
             ),
             "restart": (frozenset(), frozenset({"left", "right", "entry"})),
-            "grow": (frozenset({"stack_capacity"}), frozenset({"max_steps"})),
+            "grow": (
+                frozenset({"stack_capacity"}),
+                frozenset({"max_steps", "relocate_regions"}),
+            ),
             "solve": (
                 frozenset({"source"}),
                 frozenset({"budget", "learn", "method"}),
@@ -9070,17 +13664,23 @@ class FieldIntelligenceOwner:
                 frozenset({"source"}),
                 frozenset({"budget"}),
             ),
+            "residency": (frozenset(), frozenset()),
+            "circulation": (frozenset(), frozenset()),
+            "resources": (frozenset(), frozenset({"limits"})),
+            "place": (
+                frozenset({"pages", "tier"}),
+                frozenset({"root_sha256", "max_pages", "continuation"}),
+            ),
         }
         _identifier(operation_id, "operation_id")
         _identifier(computer_id, "computer_id")
         if not isinstance(action, str) or action not in schemas:
             raise FieldIntelligenceError("INVALID_COMPUTER", "unsupported computer action")
+        required, optional = schemas[action]
         if arguments is not None and not isinstance(arguments, Mapping):
             raise FieldIntelligenceError("INVALID_COMPUTER", "computer arguments must be an object")
         args = dict(arguments or {})
-        required, optional = schemas[action]
-        FieldIntelligenceSurface._require(args, required=required, optional=optional)
-        if action in {"call", "invoke"}:
+        if action in {"call", "invoke", "invoke-settled"}:
             invocation = args.get("arguments")
             if (
                 isinstance(invocation, Mapping)
@@ -9095,6 +13695,9 @@ class FieldIntelligenceOwner:
                     "ordinary computer invocation cannot authorize or "
                     "dispatch an action",
                 )
+        FieldIntelligenceSurface._require(args, required=required, optional=optional)
+        if action == "invoke-settled" and "steps" not in args:
+            args["steps"] = 4096
         if expected_state_sha256 is not None:
             _digest(expected_state_sha256, "expected state")
         dependencies = _regional_source_dependencies(args)
@@ -9104,7 +13707,7 @@ class FieldIntelligenceOwner:
                 "regional request evidence dependencies exceed source-work limit",
             )
         revocation_notice = (
-            action == "invoke"
+            action in {"invoke", "invoke-settled"}
             and isinstance(args.get("arguments"), Mapping)
             and args["arguments"].get("operation") == "revocation"
         )
@@ -9112,7 +13715,13 @@ class FieldIntelligenceOwner:
             for revision_id in dependencies:
                 source = self.evidence.source(revision_id)
                 if not revocation_notice:
-                    self.evidence.read(source)
+                    # A dependency is the revision the request was built from,
+                    # so the request verifies against that revision's own
+                    # bytes.  Superseding it later is how the field moves on,
+                    # and reading it as history keeps the integrity and
+                    # revocation checks that make the binding meaningful:
+                    # revoked or deleted bytes still refuse.
+                    self.evidence.read(source, allow_historical=True)
             request = {
                 "kind": "computer",
                 "computer_id": computer_id,
@@ -9175,7 +13784,53 @@ class FieldIntelligenceOwner:
                     )
                     if successor_row.nbytes > available_bytes:
                         raise FieldIntelligenceError("WORK_CAPACITY", "computer geometry exceeds workspace limit")
-                    receipt = successor_row.inspect()
+                    requested_limits = args.get("resource_limits")
+                    if requested_limits is not None:
+                        limits = self.set_resource_limits(computer_id, requested_limits)
+                        if limits.max_logical_bytes < successor_row.nbytes:
+                            raise FieldIntelligenceError(
+                                "WORK_CAPACITY",
+                                "computer geometry exceeds the declared resource limit",
+                            )
+                    else:
+                        limits = self.resource_limits(computer_id)
+                        if limits.max_logical_bytes < successor_row.nbytes:
+                            limits = self.set_resource_limits(
+                                computer_id,
+                                {
+                                    **limits.as_dict(),
+                                    "max_logical_bytes": successor_row.nbytes,
+                                },
+                            )
+                    adoption_decision = None
+                    resident_pages = args.get("resident_pages")
+                    if resident_pages is not None:
+                        requested_pages = _integer(
+                            resident_pages,
+                            "resident pages",
+                            minimum=1,
+                        )
+                        successor_row, adoption_decision = self._adopt_within_budget(
+                            successor_row,
+                            requested_pages=requested_pages,
+                            limits=limits,
+                        )
+                    # The computer is where staged work runs, so it starts
+                    # holding the manager its own declared policy built: an
+                    # image left to make its own manager reserves under the
+                    # placeholder defaults while the declaration sits unused.
+                    successor_row = successor_row.with_resource_manager(
+                        self._resource_manager_for(computer_id)
+                    )
+                    receipt = {
+                        **successor_row.inspect(),
+                        "resource_limits": limits.as_dict(),
+                        **(
+                            {}
+                            if adoption_decision is None
+                            else {"residency_decision": adoption_decision}
+                        ),
+                    }
                 else:
                     if row is None:
                         raise FieldIntelligenceError("UNKNOWN_COMPUTER", "configure the computer first")
@@ -9184,10 +13839,14 @@ class FieldIntelligenceOwner:
                         "authorized-invoke",
                         "call",
                         "invoke",
+                        "invoke-settled",
                         "submit",
                     }:
                         steps = _integer(
-                            args.get("steps", 1),
+                            args.get(
+                                "steps",
+                                4096 if action == "invoke-settled" else 1,
+                            ),
                             "steps",
                             minimum=1,
                         )
@@ -9321,11 +13980,113 @@ class FieldIntelligenceOwner:
                                         ),
                                     },
                                 )
+                        elif action == "invoke-settled":
+                            args["steps"] = steps
+                            try:
+                                successor_row, receipt = row.invoke_settled(
+                                    **args
+                                )
+                            except LearningComputerCapacityError as exc:
+                                raise FieldIntelligenceError(
+                                    "WORK_CAPACITY", str(exc)
+                                ) from exc
+                            except LearningComputerError as exc:
+                                raise FieldIntelligenceError(
+                                    "INVALID_REGIONAL_TASK", str(exc)
+                                ) from exc
                         elif action == "invoke":
                             args["steps"] = steps
                             successor_row, receipt = row.invoke(**args)
+                            acknowledgment = args.get("arguments")
+                            if (
+                                isinstance(acknowledgment, Mapping)
+                                and acknowledgment.get("operation")
+                                == "acknowledgment"
+                                and acknowledgment.get("status")
+                                in {"succeeded", "failed"}
+                                and isinstance(
+                                    acknowledgment.get("proposal_id"), str
+                                )
+                            ):
+                                self._clear_effect_grant_binding(
+                                    acknowledgment["proposal_id"]
+                                )
                         else:
                             successor_row, receipt = row.advance(**args)
+                    elif action == "residency":
+                        successor_row, receipt = row, row.residency()
+                    elif action == "resources":
+                        requested = args.get("limits")
+                        if requested is not None:
+                            limits = self.set_resource_limits(computer_id, requested)
+                            try:
+                                successor_row = (
+                                    row.with_resident_limit(
+                                        row.resident_limit,
+                                        resource_limits=limits.as_dict(),
+                                    )
+                                    if row.is_paged
+                                    else row
+                                )
+                            except ResourceWait as exc:
+                                raise FieldIntelligenceError(
+                                    "RESOURCE_WAIT", str(exc)
+                                ) from exc
+                        else:
+                            successor_row = row
+                        receipt = self._resource_view(computer_id, successor_row)
+                    elif action == "place":
+                        pages = args.get("pages")
+                        if isinstance(pages, (str, bytes)) or not isinstance(
+                            pages, Sequence
+                        ):
+                            raise FieldIntelligenceError(
+                                "INVALID_COMPUTER", "placement pages must be a list"
+                            )
+                        tier = args.get("tier")
+                        if tier not in {"ram", "vram", "storage"}:
+                            raise FieldIntelligenceError(
+                                "INVALID_COMPUTER",
+                                "placement tier must be ram, vram, or storage",
+                            )
+                        limits = self.resource_limits(computer_id)
+                        if tier == "vram" and limits.device == "cpu":
+                            raise FieldIntelligenceError(
+                                "AUTHORITY_REQUIRED",
+                                "VRAM placement requires a configured device",
+                            )
+                        try:
+                            report = row.place_pages(
+                                [
+                                    _integer(page, "page index", minimum=0)
+                                    for page in pages
+                                ],
+                                tier,
+                                root_sha256=args.get("root_sha256"),
+                                max_pages=min(
+                                    _integer(
+                                        args.get("max_pages", 16),
+                                        "max_pages",
+                                        minimum=1,
+                                    ),
+                                    4096,
+                                ),
+                                continuation=args.get("continuation"),
+                            )
+                        except ResourceWait as exc:
+                            raise FieldIntelligenceError(
+                                "RESOURCE_WAIT", str(exc)
+                            ) from exc
+                        receipt = {
+                            key: value
+                            for key, value in report.items()
+                            if key != "residency"
+                        }
+                        successor_row = row
+                    elif action == "circulation":
+                        successor_row, receipt = row, self.circulation_diagnostics(
+                            computer_id
+                        )
                     elif action == "cancel-call":
                         successor_row, receipt = row.cancel_call(**args)
                     elif action == "restart":
@@ -9367,8 +14128,82 @@ class FieldIntelligenceOwner:
                     else:
                         if row.nbytes > replacement_bytes:
                             raise FieldIntelligenceError("WORK_CAPACITY", "computer growth exceeds workspace limit")
-                        successor_row, receipt = row.grow(**args)
+                        limits = self.resource_limits(computer_id)
+                        request = dict(args)
+                        target = max(
+                            int(row.profile.mode_count),
+                            _integer(
+                                request.get("stack_capacity"),
+                                "stack capacity",
+                                minimum=1,
+                            ),
+                        )
+                        ceiling = max(
+                            int(row.profile.mode_count),
+                            limits.max_logical_bytes // MODE_BYTES,
+                        )
+                        decision = None
+                        if target > ceiling:
+                            if not limits.auto_grow:
+                                raise FieldIntelligenceError(
+                                    "WORK_CAPACITY",
+                                    "grown computer exceeds the declared resource limit",
+                                )
+                            decision = {
+                                "auto_grow": True,
+                                "reason": "declared-logical-ceiling",
+                                "requested_modes": target,
+                                "granted_modes": ceiling,
+                                "ceiling_modes": ceiling,
+                                "max_logical_bytes": limits.max_logical_bytes,
+                            }
+                            request["stack_capacity"] = ceiling
+                        successor_row, receipt = row.grow(
+                            **request, resource_limits=limits.as_dict()
+                        )
+                        if successor_row.nbytes > limits.max_logical_bytes:
+                            raise FieldIntelligenceError(
+                                "WORK_CAPACITY",
+                                "grown computer exceeds the declared resource limit",
+                            )
+                        if decision is not None:
+                            receipt = {
+                                **dict(receipt),
+                                "residency_decision": decision,
+                            }
             except FieldIntelligenceError:
+                raise
+            except LearningComputerResidencyWait as exc:
+                widened = self._auto_widen_residency(computer_id, row, exc)
+                if widened is None:
+                    raise FieldIntelligenceError(
+                        "RESIDENCY_WAIT",
+                        f"computer {computer_id} suspended for pages "
+                        f"{list(exc.pages)}: raise the allowance with "
+                        f"configure(resident_pages=...) or a wider residency",
+                    ) from exc
+                # A residency wait commits nothing, so the same action is
+                # re-dispatched against the widened computer under a derived
+                # identity and the decision is reported with the result.
+                result = self.operate_computer(
+                    f"{operation_id}:auto-residency",
+                    computer_id=computer_id,
+                    action=action,
+                    arguments=arguments,
+                )
+                return {
+                    **result,
+                    "receipt": {
+                        **dict(result["receipt"]),
+                        "residency_decision": widened,
+                    },
+                }
+            except ResourceWait:
+                # Physical room, not a task fault.  A wait commits nothing and
+                # the pending work keeps its place, so it must reach the
+                # caller: converting it here would report an unavailable
+                # computer (and, for a resident model, an unavailable brain)
+                # for a condition the request can simply wait out.
                 raise
             except (TypeError, ValueError) as exc:
                 raise FieldIntelligenceError("INVALID_COMPUTER", str(exc)) from exc
@@ -9601,6 +14436,161 @@ class FieldIntelligenceOwner:
                 "view": page,
             }
 
+    def circulation_diagnostics(self, computer_id: str) -> Mapping[str, Any]:
+        """Read-only circulation and residency picture of one computer.
+
+        Reports where the image actually lives (allowance, residency, pending
+        page waits, publication pressure), the operational work the machine
+        has spent, and the resonant field's circulation ledger when a
+        workspace is resident.  It admits nothing, changes no state, and
+        grants no authority: flow magnitude is never evidence, and a work
+        count is never an observation count.
+        """
+
+        _identifier(computer_id, "computer_id")
+        with self._lock:
+            row = next(
+                (
+                    item
+                    for item in self.state.computers
+                    if item.computer_id == computer_id
+                ),
+                None,
+            )
+            if row is None:
+                raise FieldIntelligenceError(
+                    "UNKNOWN_COMPUTER", "configure the computer first"
+                )
+            inspection = row.inspect()
+            residency = row.residency()
+            workspace = self.state.resonant_workspace
+            circulation: Mapping[str, Any] | None = None
+            if workspace is not None:
+                report = inspect_workspace(workspace)
+                circulation = {
+                    "state_sha256": workspace.state_sha256,
+                    "ledger": dict(workspace.ledger),
+                    "field_ticks": report["field_ticks"],
+                    "heartbeat_phase": report["heartbeat_phase"],
+                    "breath_phase": report["breath_phase"],
+                    "activity": report["activity"],
+                    "energy": report["energy"],
+                    "through_flow": report["counterflow_rail_power"],
+                    "common_rail_power": report["common_rail_power"],
+                    "cycle_power": report["cycle_power"],
+                    "cycle_power_absolute": report["cycle_power_absolute"],
+                    "oriented_edge_count": report["oriented_edge_count"],
+                    "topology": report["topology"],
+                    "semantic_residual_norm": report["semantic_residual_norm"],
+                    "sampling_limits": report["sampling_limits"],
+                }
+            regional_circulation: Mapping[str, Any] | None = None
+            task = inspection.get("task")
+            session = inspection.get("session")
+            if (
+                isinstance(task, Mapping)
+                and isinstance(task.get("circulation"), Mapping)
+                and isinstance(session, Mapping)
+                and session.get("kernel") == REGIONAL_KERNEL_NAME
+                and task.get("schema") == REGIONAL_STATE_SCHEMA
+            ):
+                from cassi_circulation import circulation_readout
+
+                regional_circulation = dict(
+                    circulation_readout(task["circulation"])
+                )
+            return {
+                "schema": CIRCULATION_SCHEMA,
+                "kind": "circulation",
+                "computer_id": row.computer_id,
+                "state_sha256": row.state_sha256,
+                "status": inspection["status"],
+                "logical_transition": inspection["logical_transition"],
+                "residency": residency,
+                "machine_ledger": dict(inspection.get("resource_ledger") or {}),
+                "region_capacity": dict(
+                    inspection.get("region_capacity") or {}
+                ),
+                "circulation": circulation,
+                "regional_circulation": regional_circulation,
+                "publication": {
+                    "residency_schema": (
+                        residency.get("residency") or {}
+                    ).get("schema"),
+                    "pending_waits": list(
+                        (residency.get("residency") or {}).get(
+                            "pending_waits", ()
+                        )
+                    ),
+                },
+                "authority": "operational-report-only",
+            }
+
+    def circulation_modulation(
+        self,
+        events: Sequence[Mapping[str, Any]],
+        *,
+        computer_id: str | None = None,
+        scale: float | None = None,
+    ) -> Mapping[str, Any] | None:
+        """The bounded eligible-work modulation of the resident circulation.
+
+        Reads the resident regional circulation state and produces the declared
+        modulation block for the supplied work events.  The block carries the
+        bounded per-sequence values, the profile scale, and the versioned
+        dependencies binding them to that measured flow; the agenda validates
+        it and applies it as a priority adjustment among eligible work only.
+        Returns ``None`` when no regional circulation is resident, which is the
+        declared no-flow case: no modulation is applied.
+        """
+
+        if computer_id is not None:
+            computer_id = _identifier(computer_id, "computer_id")
+        if scale is not None:
+            scale = _finite(scale, "circulation modulation scale")
+        rows = [dict(row) for row in events]
+        with self._lock:
+            for row in self.state.computers:
+                if computer_id is not None and row.computer_id != computer_id:
+                    continue
+                inspection = row.inspect()
+                task = inspection.get("task")
+                session = inspection.get("session")
+                if not (
+                    isinstance(task, Mapping)
+                    and isinstance(task.get("circulation"), Mapping)
+                    and isinstance(session, Mapping)
+                    and session.get("kernel") == REGIONAL_KERNEL_NAME
+                    and task.get("schema") == REGIONAL_STATE_SCHEMA
+                ):
+                    continue
+                segment = task["circulation"]
+                if not segment.get("enabled"):
+                    continue
+                from cassi_circulation import (
+                    CIRCULATION_ACTIVITY_SCALE,
+                    circulation_modulation,
+                )
+
+                block = circulation_modulation(
+                    segment,
+                    rows,
+                    scale=(
+                        CIRCULATION_ACTIVITY_SCALE if scale is None else scale
+                    ),
+                    dependencies={
+                        "computer_id": row.computer_id,
+                        "state_sha256": row.state_sha256,
+                        "resident_state_sha256": self.state.state_sha256,
+                    },
+                )
+                return {
+                    **block,
+                    "region_count": len(segment["regions"]),
+                    "enabled": True,
+                }
+        return None
+
     def inspect_computers(self) -> Mapping[str, Any]:
         with self._lock:
             return {
@@ -9653,7 +14643,9 @@ class FieldIntelligenceOwner:
                 )
             try:
                 inspection = row.explain(
-                    source, budget=budget, explore=explore
+                    source,
+                    budget=budget,
+                    explore=explore,
                 )
             except (TypeError, ValueError) as exc:
                 raise FieldIntelligenceError(
@@ -9669,6 +14661,1356 @@ class FieldIntelligenceOwner:
                 "read_only": True,
             }
 
+    def _open_vocab_operation(
+        self,
+        operation_id: str,
+        operation: str,
+        arguments: Mapping[str, Any],
+        *,
+        expected_state_sha256: str | None = None,
+        settled: bool = False,
+    ) -> Mapping[str, Any]:
+        """Route open-vocabulary work through the resident computer owner path."""
+        if not isinstance(settled, bool):
+            raise FieldIntelligenceError(
+                "INVALID_REQUEST", "settled must be boolean"
+            )
+        request = {"operation": operation, "operation_id": operation_id, **dict(arguments)}
+        action = "invoke-settled" if settled else "invoke"
+        action_arguments = {"arguments": request, "steps": 4096 if settled else 128}
+        return self.operate_computer(
+            operation_id,
+            computer_id="main",
+            action=action,
+            arguments=action_arguments,
+            expected_state_sha256=expected_state_sha256,
+        )
+    def execute_observation_request(
+        self,
+        *,
+        operation_id: str,
+        observation_request: Mapping[str, Any],
+        adapter: WorldAdapter,
+        observation_channels: Sequence[Mapping[str, Any]] = (),
+        scope: str = "active-perception",
+        expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Execute one selected field request and admit its observation."""
+
+        operation_id = _identifier(
+            operation_id, "observation request operation_id"
+        )
+        scope = _identifier(scope, "observation request scope")
+        if not isinstance(observation_request, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request must be a mapping",
+            )
+        if set(observation_request) != {
+            "channel_id",
+            "goal",
+            "provides",
+            "request",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request shape is invalid",
+            )
+        channel_id = _identifier(
+            observation_request["channel_id"],
+            "observation request channel_id",
+        )
+        provides = observation_request["provides"]
+        if (
+            not isinstance(provides, Sequence)
+            or isinstance(provides, (str, bytes))
+            or not provides
+            or any(not isinstance(name, str) or not name for name in provides)
+            or len(set(provides)) != len(provides)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request provides is invalid",
+            )
+        provides = tuple(
+            _identifier(name, "observation request variable")
+            for name in provides
+        )
+        owner_request = observation_request["request"]
+        if not isinstance(owner_request, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request payload must be a mapping",
+            )
+        if set(owner_request) & {
+            "actual",
+            "observations",
+            "outcome",
+            "result",
+            "values",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request cannot contain observed data",
+            )
+        try:
+            owner_request = json.loads(
+                canonical_json_bytes(dict(owner_request))
+            )
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request payload must be canonical JSON",
+            ) from exc
+        goal = observation_request["goal"]
+        if not isinstance(goal, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request goal must be a mapping",
+            )
+        try:
+            goal = json.loads(canonical_json_bytes(dict(goal)))
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation request goal must be canonical JSON",
+            ) from exc
+        for name in (
+            "adapter_id",
+            "bind_durable_journal",
+            "execute_once",
+            "resolve",
+        ):
+            if not hasattr(adapter, name):
+                raise FieldIntelligenceError(
+                    "ADAPTER_DURABILITY",
+                    "observation adapter does not expose the world adapter surface",
+                )
+        adapter_id = _identifier(adapter.adapter_id, "observation adapter_id")
+        if expected_state_sha256 is not None:
+            _digest(expected_state_sha256, "expected state")
+        with self._lock:
+            if (
+                expected_state_sha256 is not None
+                and expected_state_sha256 != self.state.state_sha256
+            ):
+                raise FieldIntelligenceError(
+                    "LINEAGE_CONFLICT",
+                    "observation request predecessor differs from current field",
+                )
+        self._prepare_world_adapter(adapter)
+        adapter_operation_id = f"{operation_id}:adapter"
+        adapter_payload = {
+            "channel_id": channel_id,
+            "goal": goal,
+            "provides": list(provides),
+            "request": owner_request,
+        }
+        acknowledgment = adapter.resolve(adapter_operation_id)
+        adapter_replayed = acknowledgment is not None
+        if acknowledgment is None:
+            acknowledgment = adapter.execute_once(
+                operation_id=adapter_operation_id,
+                action="observe",
+                target=channel_id,
+                payload=adapter_payload,
+            )
+        if not isinstance(acknowledgment, WorldAcknowledgment):
+            raise FieldIntelligenceError(
+                "INVALID_ACKNOWLEDGMENT",
+                "observation adapter returned an invalid acknowledgment",
+            )
+        if acknowledgment.operation_id != adapter_operation_id:
+            raise FieldIntelligenceError(
+                "INVALID_ACKNOWLEDGMENT",
+                "observation acknowledgment operation identity differs",
+            )
+        if acknowledgment.status == "succeeded":
+            unknown_variables = set(acknowledgment.observed_values) - set(
+                provides
+            )
+            if unknown_variables:
+                raise FieldIntelligenceError(
+                    "INVALID_ACKNOWLEDGMENT",
+                    "observation adapter returned undeclared variables",
+                    details={"variables": sorted(unknown_variables)},
+                )
+            if not acknowledgment.observed_values:
+                raise FieldIntelligenceError(
+                    "INVALID_ACKNOWLEDGMENT",
+                    "successful observation adapter returned no values",
+                )
+        source = SourceInput(
+            source_id=f"world-observation:{adapter_operation_id}",
+            content=acknowledgment.source_content,
+            media_type="application/octet-stream",
+            codec="raw-bytes",
+            observed_timestamp=acknowledgment.acknowledgment_id,
+            scope=scope,
+            claim_category="world-observation",
+            fidelity="exact-record",
+            labels=(f"adapter:{adapter_id}", f"channel:{channel_id}"),
+        )
+        evidence = self.archive_source(
+            operation_id=f"{operation_id}:evidence",
+            source=source,
+            context={
+                "acknowledgment": acknowledgment.as_dict(),
+                "observation_request": {
+                    **dict(observation_request),
+                    "goal": goal,
+                    "provides": list(provides),
+                    "request": owner_request,
+                },
+            },
+            event_kind="observation-channel-ack",
+        )
+        if acknowledgment.status != "succeeded":
+            return {
+                "acknowledgment": acknowledgment.as_dict(),
+                "adapter_id": adapter_id,
+                "channel_id": channel_id,
+                "evidence": evidence,
+                "status": (
+                    "waiting"
+                    if acknowledgment.status == "unknown"
+                    else "failed"
+                ),
+                "observation": None,
+                "replayed": adapter_replayed,
+            }
+
+        source_revision_id = evidence["source"]["revision_id"]
+        event_id = (
+            "event:observation-channel:"
+            + sha256_value(
+                {
+                    "adapter_id": adapter_id,
+                    "adapter_operation_id": adapter_operation_id,
+                    "acknowledgment_id": acknowledgment.acknowledgment_id,
+                }
+            )
+        )
+        semantic_request = {
+            "operation": "observe",
+            "operation_id": f"{operation_id}:observe",
+            "delivery_id": (
+                "delivery:observation-channel:"
+                + sha256_value({"operation_id": adapter_operation_id})
+            ),
+            "event_id": event_id,
+            "observations": [
+                {
+                    "attribute": variable,
+                    "binding_id": f"binding:{channel_id}:{variable}",
+                    "subject": channel_id,
+                    "value": acknowledgment.observed_values[variable],
+                }
+                for variable in sorted(acknowledgment.observed_values)
+            ],
+            "source": {
+                "adapter_id": adapter_id,
+                "adapter_operation_id": adapter_operation_id,
+                "acknowledgment_id": acknowledgment.acknowledgment_id,
+                "channel_id": channel_id,
+                "source_revision_id": source_revision_id,
+            },
+            "support_roots": [evidence["event"]["event_id"]],
+        }
+        def committed_expected_state(
+            child_operation_id: str,
+            fallback: str,
+        ) -> str | None:
+            replay = self._committed_replay(child_operation_id)
+            if replay is None:
+                return fallback
+            manifest = replay[0]
+            transition = manifest.get("transition")
+            if not isinstance(transition, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "observation child transition is not an object",
+                )
+            request = transition.get("request")
+            if not isinstance(request, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "observation child request is not an object",
+                )
+            expected = request.get("expected_state_sha256")
+            if expected is not None:
+                _digest(expected, "committed observation predecessor")
+            return expected
+
+        observe_operation = f"{operation_id}:observe"
+        field_predecessor = self.state.state_sha256
+        computer = self._open_vocab_operation(
+            observe_operation,
+            "observe",
+            {
+                key: value
+                for key, value in semantic_request.items()
+                if key not in {"operation", "operation_id"}
+            },
+            expected_state_sha256=committed_expected_state(
+                observe_operation,
+                field_predecessor,
+            ),
+        )
+        def computer_consumed_result(
+            child_operation_id: str,
+            computer_result: Mapping[str, Any],
+        ) -> Any:
+            checkpoint = computer_result.get("checkpoint_receipt")
+            if (
+                isinstance(checkpoint, Mapping)
+                and checkpoint.get("replayed")
+            ):
+                replay = self._committed_replay(child_operation_id)
+                if replay is not None:
+                    retained = self.checkpoints._load_state(replay[0])
+                    row = next(
+                        (
+                            item
+                            for item in retained.computers
+                            if item.computer_id == "main"
+                        ),
+                        None,
+                    )
+                    if row is None:
+                        raise FieldIntelligenceError(
+                            "CHECKPOINT_CORRUPT",
+                            "replayed observation computer is unavailable",
+                        )
+                    return row.inspect().get("consumed_result")
+            return self.state.computers[0].inspect().get(
+                "consumed_result"
+            )
+
+        observation = computer_consumed_result(
+            observe_operation,
+            computer,
+        )
+        follow_up = None
+        if observation_channels:
+            normalized_channels = [
+                dict(channel) for channel in observation_channels
+            ]
+            agenda_operation = f"{operation_id}:agenda"
+            agenda_result = self._open_vocab_operation(
+                agenda_operation,
+                "autonomous-agenda",
+                {
+                    "max_items": 1,
+                    "observation_channels": normalized_channels,
+                },
+                expected_state_sha256=committed_expected_state(
+                    agenda_operation,
+                    self.state.state_sha256,
+                ),
+            )
+            follow_up = computer_consumed_result(
+                agenda_operation,
+                agenda_result,
+            )
+        field_replayed = bool(
+            isinstance(computer.get("checkpoint_receipt"), Mapping)
+            and computer["checkpoint_receipt"].get("replayed")
+        )
+        return {
+            "acknowledgment": acknowledgment.as_dict(),
+            "adapter_id": adapter_id,
+            "channel_id": channel_id,
+            "computer": computer,
+            "evidence": evidence,
+            "observation": observation,
+            "follow_up_agenda": follow_up,
+            "status": "supported",
+            "replayed": adapter_replayed and field_replayed,
+        }
+
+    def learn_observed_transition(
+        self,
+        *,
+        operation_id: str,
+        observations: Sequence[Mapping[str, Any]],
+        variables: Sequence[str],
+        mechanism_id: str = "observed-world-transition",
+        parameter_set_id: str = "observed-linear-transition",
+        include_intercept: bool = True,
+        tolerance: float = 1.0e-6,
+        expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Form and retain a one-step affine hypothesis from admitted frames.
+
+        Each item must be the result of ``execute_observation_request`` (or a
+        compact equivalent carrying its admitted Event reference and numeric
+        ``observed_values``).  The method never asks the world for another
+        value and never writes to the adapter: it only turns an already
+        admitted trajectory into a field-owned mechanism, sufficient
+        statistics, and a next-step prediction.
+        """
+
+        operation_id = _identifier(
+            operation_id, "observed transition operation identity"
+        )
+        mechanism_id = _identifier(mechanism_id, "observed transition mechanism")
+        parameter_set_id = _identifier(
+            parameter_set_id, "observed transition parameter set"
+        )
+        if not isinstance(include_intercept, bool):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_LEARNING",
+                "include_intercept must be Boolean",
+            )
+        tolerance = _finite(
+            tolerance, "observed transition tolerance", nonnegative=True
+        )
+        if expected_state_sha256 is not None:
+            _digest(expected_state_sha256, "expected transition predecessor")
+        if (
+            isinstance(variables, (str, bytes))
+            or not isinstance(variables, Sequence)
+            or not variables
+            or len(variables) > 64
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_LEARNING",
+                "transition variables must be a bounded nonempty sequence",
+            )
+        normalized_variables = [
+            _identifier(name, "observed transition variable")
+            for name in variables
+        ]
+        if len(set(normalized_variables)) != len(normalized_variables):
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "transition variables must be unique",
+            )
+        if "intercept" in normalized_variables:
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_LEARNING",
+                "intercept is reserved for the fitted design basis",
+            )
+        if (
+            isinstance(observations, (str, bytes))
+            or not isinstance(observations, Sequence)
+            or len(observations) < 2
+            or len(observations) > 256
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_LEARNING",
+                "transition learning needs two to 256 admitted frames",
+            )
+
+        frames: list[dict[str, Any]] = []
+        seen_events: set[tuple[str, str, int]] = set()
+        for index, raw_frame in enumerate(observations):
+            if not isinstance(raw_frame, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_TRANSITION_LEARNING",
+                    f"transition frame {index} must be a mapping",
+                )
+            event = raw_frame.get("event")
+            if event is None:
+                observation = raw_frame.get("observation")
+                if isinstance(observation, Mapping):
+                    event = observation.get("event")
+            values = raw_frame.get("observed_values")
+            if values is None:
+                acknowledgment = raw_frame.get("acknowledgment")
+                if isinstance(acknowledgment, Mapping):
+                    values = acknowledgment.get("observed_values")
+            if not isinstance(event, Mapping) or not isinstance(values, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_TRANSITION_LEARNING",
+                    f"transition frame {index} lacks admitted event values",
+                )
+            event_key = (
+                str(event.get("kind")),
+                _identifier(
+                    event.get("id"), f"transition frame {index} event identity"
+                ),
+                _integer(
+                    event.get("content_version"),
+                    f"transition frame {index} event version",
+                    minimum=1,
+                ),
+            )
+            if event_key[0] != "Event" or event_key in seen_events:
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT",
+                    "transition frames must carry unique Event references",
+                )
+            seen_events.add(event_key)
+            normalized_values: dict[str, float] = {}
+            for name in normalized_variables:
+                if name not in values:
+                    raise FieldIntelligenceError(
+                        "INSUFFICIENT_OBSERVATION",
+                        f"transition frame {index} lacks {name}",
+                    )
+                normalized_values[name] = _finite(
+                    values[name], f"transition frame {index} {name}"
+                )
+            frames.append(
+                {
+                    "event": {
+                        "kind": event_key[0],
+                        "id": event_key[1],
+                        "content_version": event_key[2],
+                    },
+                    "values": normalized_values,
+                }
+            )
+
+        transition_rows = [
+            {
+                "state": dict(frames[index]["values"]),
+                "next": dict(frames[index + 1]["values"]),
+            }
+            for index in range(len(frames) - 1)
+        ]
+        fit = _fit_observed_transition(
+            transition_rows,
+            normalized_variables,
+            include_intercept=include_intercept,
+            tolerance=tolerance,
+        )
+        episodes = [
+            {
+                "episode_id": f"{operation_id}:episode:{index}",
+                "state": {
+                    **row["state"],
+                    **({"intercept": 1.0} if include_intercept else {}),
+                },
+                "next": row["next"],
+                "action": {},
+                "context": {},
+                "interval": {"duration": 1.0},
+                "outcome_status": "observed-and-scored",
+                "collection": {"selection_mode": "unknown"},
+            }
+            for index, row in enumerate(transition_rows)
+        ]
+        mechanism_program = semantic_program_payload(
+            program_kind="affine",
+            body={"clamp": {}, "outputs": fit["outputs"]},
+            reads=list(fit["design_variables"]),
+            writes=list(normalized_variables),
+            max_work=max(1, len(fit["design_variables"]) * len(normalized_variables)),
+        )
+        support_roots = [frame["event"]["id"] for frame in frames]
+
+        def consumed_result(
+            child_operation_id: str, computer_result: Mapping[str, Any]
+        ) -> Mapping[str, Any]:
+            checkpoint = computer_result.get("checkpoint_receipt")
+            if (
+                isinstance(checkpoint, Mapping)
+                and checkpoint.get("replayed")
+            ):
+                replay = self._committed_replay(child_operation_id)
+                if replay is not None:
+                    retained = self.checkpoints._load_state(replay[0])
+                    row = next(
+                        (
+                            item
+                            for item in retained.computers
+                            if item.computer_id == "main"
+                        ),
+                        None,
+                    )
+                    if row is None:
+                        raise FieldIntelligenceError(
+                            "CHECKPOINT_CORRUPT",
+                            "replayed transition learner computer is unavailable",
+                        )
+                    result = row.inspect().get("consumed_result")
+                else:
+                    result = None
+            else:
+                result = self.state.computers[0].inspect().get(
+                    "consumed_result"
+                )
+            if not isinstance(result, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "transition learner did not retain its semantic result",
+                )
+            return result
+        def committed_expected_state(
+            child_operation_id: str,
+            fallback: str | None,
+        ) -> str | None:
+            replay = self._committed_replay(child_operation_id)
+            if replay is None:
+                return fallback
+            transition = replay[0].get("transition")
+            if not isinstance(transition, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "transition learner replay lacks its transition",
+                )
+            request = transition.get("request")
+            if not isinstance(request, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "transition learner replay lacks its request",
+                )
+            expected = request.get("expected_state_sha256")
+            if expected is not None:
+                _digest(expected, "committed transition predecessor")
+            return expected
+
+
+        mechanism_computer = self._open_vocab_operation(
+            f"{operation_id}:mechanism",
+            "learn-mechanism",
+            {
+                "mechanism_id": mechanism_id,
+                "episodes": episodes,
+                "candidates": [
+                    {
+                        "candidate_id": "observed-affine",
+                        "program": mechanism_program,
+                        "selection_assumptions": [
+                            "ordered-admitted-trajectory",
+                            "one-step-transition",
+                        ],
+                    }
+                ],
+                "support_roots": support_roots,
+            },
+            expected_state_sha256=committed_expected_state(
+                f"{operation_id}:mechanism",
+                expected_state_sha256,
+            ),
+        )
+        mechanism_result = consumed_result(
+            f"{operation_id}:mechanism", mechanism_computer
+        )
+        mechanism_ref = mechanism_result.get("mechanism")
+        active_mechanism = (
+            isinstance(mechanism_ref, Mapping)
+            and mechanism_result.get("status") == "supported"
+        )
+        parameter_result: Mapping[str, Any] | None = None
+        if active_mechanism:
+            target_variables = list(fit["target_variables"])
+            all_parameter_variables = [
+                *(["intercept"] if include_intercept else []),
+                *normalized_variables,
+                *target_variables,
+            ]
+            contributions = [
+                {
+                    "contribution_id": (
+                        f"{operation_id}:contribution:{index}"
+                    ),
+                    "evidence": frames[index]["event"],
+                    "values": {
+                        **({"intercept": 1.0} if include_intercept else {}),
+                        **row["state"],
+                        **{
+                            f"next.{name}": row["next"][name]
+                            for name in normalized_variables
+                        },
+                    },
+                }
+                for index, row in enumerate(transition_rows)
+            ]
+            parameter_computer = self._open_vocab_operation(
+                f"{operation_id}:parameters",
+                "learn-parameters",
+                {
+                    "mechanism_id": mechanism_id,
+                    "parameter_set_id": parameter_set_id,
+                    "parameter_path": "observed-sufficient-statistics",
+                    "variables": all_parameter_variables,
+                    "design_variables": fit["design_variables"],
+                    "target_variables": target_variables,
+                    "interpretation": {
+                        "assumptions": [
+                            "ordered-admitted-trajectory",
+                            "one-step-transition",
+                            "fully-observed-numeric-state",
+                        ],
+                        "likelihood_or_compatibility": (
+                            "least-squares-sufficient-statistics"
+                        ),
+                        "probability_model": None,
+                        "semantics": "compatibility",
+                    },
+                    "evidence_prefix": [
+                        frame["event"] for frame in frames[:-1]
+                    ],
+                    "contributions": contributions,
+                    "support_roots": support_roots,
+                },
+            )
+            parameter_result = consumed_result(
+                f"{operation_id}:parameters", parameter_computer
+            )
+        persisted_state: Mapping[str, Any] | None = None
+        if isinstance(parameter_result, Mapping):
+            parameter_set = parameter_result.get("parameter_set")
+            if isinstance(parameter_set, Mapping):
+                raw_state = parameter_set.get("state")
+                if isinstance(raw_state, Mapping):
+                    persisted_state = raw_state
+        predicted_next = {
+            source_name: sum(
+                coefficient
+                * (
+                    1.0
+                    if design_name == "intercept"
+                    else frames[-1]["values"][design_name]
+                )
+                for design_name, coefficient in row_coefficients.items()
+            )
+            for source_name, row_coefficients in fit["coefficients"].items()
+        }
+        return {
+            "status": (
+                "supported"
+                if active_mechanism and parameter_result is not None
+                else str(mechanism_result.get("status", "waiting"))
+            ),
+            "mechanism": mechanism_result,
+            "parameters": parameter_result,
+            "model": {
+                "kind": "one-step-affine",
+                "mechanism_id": mechanism_id,
+                "mechanism_reference": mechanism_ref,
+                "include_intercept": include_intercept,
+                "variables": list(normalized_variables),
+                "design_variables": list(fit["design_variables"]),
+                "target_variables": list(fit["target_variables"]),
+                "coefficients": fit["coefficients"],
+                "error_radius": fit["error_radius"],
+                "maximum_training_residual": fit["maximum_residual"],
+                "training_residuals": fit["residuals"],
+                "predicted_next": predicted_next,
+                "identified": (
+                    None
+                    if persisted_state is None
+                    else persisted_state.get("identified")
+                ),
+                "parameter_state": persisted_state,
+                "evidence_event_ids": [
+                    frame["event"]["id"] for frame in frames
+                ],
+            },
+            "field_state_sha256": self.state.state_sha256,
+        }
+    def score_observed_transition(
+        self,
+        *,
+        operation_id: str,
+        learned: Mapping[str, Any],
+        predecessor: Mapping[str, Any],
+        outcome: Mapping[str, Any],
+        expected_state_sha256: str | None = None,
+        retain_ratio: float = 1.0,
+        reject_ratio: float = 2.0,
+        residual_envelope: str = "maximum",
+        resolution_floor: float | None = None,
+    ) -> Mapping[str, Any]:
+        """Predict and assess one held-out admitted transition.
+
+        The semantic prediction and assessment records are the durable
+        forecast/verdict path.  The normalized error classification is stored
+        in the assessment derivation, so a forecast is not merely a returned
+        Python-side score.  ``residual_envelope`` selects the training-residual
+        scale: ``maximum`` preserves the historical rule, ``median_mad`` uses
+        the median plus three median absolute deviations, and ``auto`` selects
+        between those two using the admitted residual tail diagnostic.
+        """
+
+        operation_id = _identifier(
+            operation_id, "observed transition scoring operation identity"
+        )
+        if expected_state_sha256 is not None:
+            _digest(
+                expected_state_sha256,
+                "expected transition scoring predecessor",
+            )
+        retain_ratio = _finite(
+            retain_ratio, "transition retain ratio", nonnegative=True
+        )
+        reject_ratio = _finite(
+            reject_ratio, "transition reject ratio", nonnegative=True
+        )
+        if residual_envelope not in {"maximum", "median_mad", "auto"}:
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "residual envelope must be maximum, median_mad, or auto",
+            )
+        if reject_ratio <= retain_ratio:
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "reject ratio must exceed retain ratio",
+            )
+        if resolution_floor is not None:
+            resolution_floor = _finite(
+                resolution_floor,
+                "transition resolution floor",
+                nonnegative=True,
+            )
+        if not isinstance(learned, Mapping) or learned.get("status") != "supported":
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "scoring requires a supported learned transition",
+            )
+        model = learned.get("model")
+        if not isinstance(model, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "learned transition model is unavailable",
+            )
+        mechanism_id = _identifier(
+            model.get("mechanism_id"),
+            "observed transition mechanism identity",
+        )
+        variables_raw = model.get("variables")
+        if (
+            not isinstance(variables_raw, Sequence)
+            or isinstance(variables_raw, (str, bytes))
+            or not variables_raw
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "learned transition variables are unavailable",
+            )
+        variables = tuple(
+            _identifier(name, "observed transition scoring variable")
+            for name in variables_raw
+        )
+        if len(set(variables)) != len(variables):
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "learned transition variables are not unique",
+            )
+        evidence_event_ids = model.get("evidence_event_ids")
+        if (
+            not isinstance(evidence_event_ids, Sequence)
+            or isinstance(evidence_event_ids, (str, bytes))
+            or not evidence_event_ids
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "learned transition evidence is unavailable",
+            )
+        evidence_event_ids = [
+            _identifier(item, "learned transition evidence event")
+            for item in evidence_event_ids
+        ]
+
+        def frame_parts(
+            raw_frame: Mapping[str, Any],
+            label: str,
+        ) -> tuple[dict[str, Any], dict[str, float]]:
+            if not isinstance(raw_frame, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_TRANSITION_SCORING",
+                    f"{label} must be a mapping",
+                )
+            event = raw_frame.get("event")
+            if event is None:
+                observation = raw_frame.get("observation")
+                if isinstance(observation, Mapping):
+                    event = observation.get("event")
+            values = raw_frame.get("observed_values")
+            if values is None:
+                acknowledgment = raw_frame.get("acknowledgment")
+                if isinstance(acknowledgment, Mapping):
+                    values = acknowledgment.get("observed_values")
+            if not isinstance(event, Mapping) or not isinstance(values, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_TRANSITION_SCORING",
+                    f"{label} lacks admitted event values",
+                )
+            if event.get("kind") != "Event":
+                raise FieldIntelligenceError(
+                    "INVALID_TRANSITION_SCORING",
+                    f"{label} does not reference an Event",
+                )
+            event_ref = {
+                "kind": "Event",
+                "id": _identifier(
+                    event.get("id"), f"{label} event identity"
+                ),
+                "content_version": _integer(
+                    event.get("content_version"),
+                    f"{label} event version",
+                    minimum=1,
+                ),
+            }
+            normalized_values: dict[str, float] = {}
+            for name in variables:
+                if name not in values:
+                    raise FieldIntelligenceError(
+                        "INSUFFICIENT_OBSERVATION",
+                        f"{label} lacks {name}",
+                    )
+                normalized_values[name] = _finite(
+                    values[name], f"{label} {name}"
+                )
+            return event_ref, normalized_values
+
+        predecessor_event, predecessor_values = frame_parts(
+            predecessor, "transition predecessor"
+        )
+        outcome_event, outcome_values = frame_parts(
+            outcome, "transition outcome"
+        )
+        predecessor_event_id = predecessor_event["id"]
+        outcome_event_id = outcome_event["id"]
+        if predecessor_event_id != evidence_event_ids[-1]:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "prediction predecessor is not the learned trajectory tail",
+            )
+        if outcome_event_id == predecessor_event_id:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "prediction outcome must be a distinct observed Event",
+            )
+        if outcome_event_id in evidence_event_ids:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "prediction outcome must be held out from training evidence",
+            )
+
+        include_intercept = model.get("include_intercept") is True
+        prediction_state = dict(predecessor_values)
+        if include_intercept:
+            prediction_state["intercept"] = 1.0
+        prediction_id = sha256_value(
+            {
+                "kind": "observed-transition-prediction",
+                "mechanism_id": mechanism_id,
+                "operation_id": operation_id,
+                "outcome_event_id": outcome_event_id,
+                "predecessor_event_id": predecessor_event_id,
+                "residual_envelope": residual_envelope,
+                "resolution_floor": resolution_floor,
+            }
+        )
+
+        def committed_expected_state(
+            child_operation_id: str,
+            fallback: str | None,
+        ) -> str | None:
+            replay = self._committed_replay(child_operation_id)
+            if replay is None:
+                return fallback
+            transition = replay[0].get("transition")
+            if not isinstance(transition, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "transition scoring replay lacks its transition",
+                )
+            request = transition.get("request")
+            if not isinstance(request, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "transition scoring replay lacks its request",
+                )
+            expected = request.get("expected_state_sha256")
+            if expected is not None:
+                _digest(expected, "committed scoring predecessor")
+            return expected
+
+        def consumed_result(
+            child_operation_id: str,
+            computer_result: Mapping[str, Any],
+        ) -> Mapping[str, Any]:
+            checkpoint = computer_result.get("checkpoint_receipt")
+            if (
+                isinstance(checkpoint, Mapping)
+                and checkpoint.get("replayed")
+            ):
+                replay = self._committed_replay(child_operation_id)
+                if replay is not None:
+                    retained = self.checkpoints._load_state(replay[0])
+                    row = next(
+                        (
+                            item
+                            for item in retained.computers
+                            if item.computer_id == "main"
+                        ),
+                        None,
+                    )
+                    if row is None:
+                        raise FieldIntelligenceError(
+                            "CHECKPOINT_CORRUPT",
+                            "replayed transition scoring computer is unavailable",
+                        )
+                    result = row.inspect().get("consumed_result")
+                else:
+                    result = None
+            else:
+                result = self.state.computers[0].inspect().get(
+                    "consumed_result"
+                )
+            if not isinstance(result, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "transition scoring did not retain its semantic result",
+                )
+            return result
+
+        prediction_operation = f"{operation_id}:predict"
+        prediction_computer = self._open_vocab_operation(
+            prediction_operation,
+            "predict",
+            {
+                "mechanism_id": mechanism_id,
+                "prediction_id": prediction_id,
+                "state": prediction_state,
+                "horizon": 1,
+                "interval": {"duration": 1.0},
+                "target": list(variables),
+                "support_roots": [predecessor_event_id],
+                "context": {},
+            },
+            expected_state_sha256=committed_expected_state(
+                prediction_operation,
+                expected_state_sha256,
+            ),
+        )
+        prediction_result = consumed_result(
+            prediction_operation, prediction_computer
+        )
+        prediction_status = str(prediction_result.get("status", "waiting"))
+        alternatives = prediction_result.get("alternatives")
+        if prediction_status not in {"supported", "alternatives"} or not isinstance(
+            alternatives, list
+        ) or len(alternatives) != 1:
+            return {
+                "status": "waiting",
+                "verdict": "refine",
+                "prediction": prediction_result,
+                "assessment": None,
+                "model": {
+                    "mechanism_id": mechanism_id,
+                    "prediction_id": prediction_id,
+                    "predecessor_event_id": predecessor_event_id,
+                    "outcome_event_id": outcome_event_id,
+                },
+            }
+        predicted_row = alternatives[0]
+        predicted_all = (
+            predicted_row.get("values")
+            if isinstance(predicted_row, Mapping)
+            else None
+        )
+        if not isinstance(predicted_all, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "semantic prediction did not return numeric values",
+            )
+        predicted_values = {
+            name: _finite(
+                predicted_all.get(name),
+                f"predicted transition {name}",
+            )
+            for name in variables
+        }
+        scales = {
+            name: max(
+                1.0,
+                abs(predecessor_values[name]),
+                abs(outcome_values[name]),
+                abs(predicted_values[name]),
+            )
+            for name in variables
+        }
+        errors = {
+            name: outcome_values[name] - predicted_values[name]
+            for name in variables
+        }
+        normalized_errors = {
+            name: abs(errors[name]) / scales[name]
+            for name in variables
+        }
+        normalized_prediction_values = {
+            name: predicted_values[name] / scales[name] for name in variables
+        }
+        normalized_outcome_values = {
+            name: outcome_values[name] / scales[name] for name in variables
+        }
+        automatic_resolution_floor = _resolution_floor(
+            normalized_prediction_values,
+            normalized_outcome_values,
+            1.0,
+        )
+        selected_resolution_floor = max(
+            automatic_resolution_floor,
+            resolution_floor if resolution_floor is not None else 0.0,
+        )
+        resolution_status = (
+            "unresolved"
+            if (
+                any(
+                    0.0 < value <= selected_resolution_floor
+                    for value in normalized_errors.values()
+                )
+                or (
+                    resolution_floor is not None
+                    and max(normalized_errors.values(), default=0.0)
+                    <= selected_resolution_floor
+                )
+            )
+            else "resolved"
+        )
+        training_residuals = model.get("training_residuals")
+        if not isinstance(training_residuals, Sequence):
+            raise FieldIntelligenceError(
+                "INVALID_TRANSITION_SCORING",
+                "learned transition residuals are unavailable",
+            )
+        normalized_training_errors: list[float] = []
+        for residual_row in training_residuals:
+            if not isinstance(residual_row, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_TRANSITION_SCORING",
+                    "learned transition residual is invalid",
+                )
+            row_error = 0.0
+            for name in variables:
+                if name in residual_row:
+                    row_error = max(
+                        row_error,
+                        abs(
+                            _finite(
+                                residual_row[name],
+                                f"training residual {name}",
+                            )
+                        )
+                        / scales[name],
+                    )
+            normalized_training_errors.append(row_error)
+        training_normalized_error = max(
+            normalized_training_errors,
+            default=0.0,
+        )
+        if normalized_training_errors:
+            training_residual_center = statistics.median(
+                normalized_training_errors
+            )
+            training_residual_mad = statistics.median(
+                abs(value - training_residual_center)
+                for value in normalized_training_errors
+            )
+        else:
+            training_residual_center = 0.0
+            training_residual_mad = 0.0
+        normalized_error = max(normalized_errors.values(), default=0.0)
+        tail_ratio = training_normalized_error / max(
+            training_residual_center,
+            1.0e-12,
+        )
+        tail_threshold = (
+            training_residual_center + 3.0 * training_residual_mad
+        )
+        heavy_tail = (
+            len(normalized_training_errors) >= 4
+            and training_normalized_error > tail_threshold
+            and tail_ratio >= 4.0
+        )
+        tail_diagnostic = {
+            "sample_count": len(normalized_training_errors),
+            "center": training_residual_center,
+            "mad": training_residual_mad,
+            "maximum": training_normalized_error,
+            "threshold": tail_threshold,
+            "ratio": tail_ratio,
+            "heavy_tail": heavy_tail,
+        }
+        selected_residual_envelope = residual_envelope
+        if residual_envelope == "auto":
+            selected_residual_envelope = (
+                "median_mad" if heavy_tail else "maximum"
+            )
+        if selected_residual_envelope == "maximum":
+            envelope = max(training_normalized_error, 1.0e-12)
+        else:
+            envelope = max(tail_threshold, 1.0e-12)
+        ratio = normalized_error / envelope
+        ratio_verdict = (
+            "retain"
+            if ratio <= retain_ratio
+            else "refine"
+            if ratio <= reject_ratio
+            else "reject"
+        )
+        verdict = "refine" if resolution_status == "unresolved" else ratio_verdict
+
+        actual_for_assessment = dict(predicted_all)
+        for name, value in outcome_values.items():
+            actual_for_assessment[name] = value
+        assessment_operation = f"{operation_id}:assess"
+        assessment_computer = self._open_vocab_operation(
+            assessment_operation,
+            "assess-prediction",
+            {
+                "prediction_id": prediction_id,
+                "actual": actual_for_assessment,
+                "event_id": outcome_event_id,
+                "source": {
+                    "kind": "observed-transition-score",
+                    "verdict": verdict,
+                    "resolution_floor": selected_resolution_floor,
+                    "resolution_floor_request": resolution_floor,
+                    "resolution_status": resolution_status,
+                    "residual_envelope": selected_residual_envelope,
+                    "residual_envelope_request": residual_envelope,
+                    "tail_diagnostic": tail_diagnostic,
+                    "normalized_error": normalized_error,
+                    "training_normalized_error": training_normalized_error,
+                    "training_residual_envelope": envelope,
+                    "training_residual_center": training_residual_center,
+                    "training_residual_mad": training_residual_mad,
+                    "ratio": ratio,
+                    "thresholds": {
+                        "retain_ratio": retain_ratio,
+                        "reject_ratio": reject_ratio,
+                    },
+                },
+            },
+            expected_state_sha256=committed_expected_state(
+                assessment_operation,
+                self.state.state_sha256,
+            ),
+        )
+        assessment_result = consumed_result(
+            assessment_operation, assessment_computer
+        )
+        if assessment_result.get("status") != "supported":
+            raise FieldIntelligenceError(
+                "ASSESSMENT_CONFLICT",
+                "semantic prediction assessment was not supported",
+            )
+        return {
+            "status": verdict,
+            "verdict": verdict,
+            "resolution_floor": selected_resolution_floor,
+            "resolution_floor_request": resolution_floor,
+            "resolution_status": resolution_status,
+            "prediction": prediction_result,
+            "assessment": assessment_result,
+            "model": {
+                "mechanism_id": mechanism_id,
+                "prediction_id": prediction_id,
+                "predecessor_event_id": predecessor_event_id,
+                "outcome_event_id": outcome_event_id,
+                "predicted": predicted_values,
+                "actual": outcome_values,
+                "errors": errors,
+                "normalized_errors": normalized_errors,
+                "normalized_error": normalized_error,
+                "resolution_floor": selected_resolution_floor,
+                "resolution_floor_request": resolution_floor,
+                "resolution_status": resolution_status,
+                "training_normalized_error": training_normalized_error,
+                "residual_envelope": selected_residual_envelope,
+                "residual_envelope_request": residual_envelope,
+                "tail_diagnostic": tail_diagnostic,
+                "training_residual_envelope": envelope,
+                "training_residual_center": training_residual_center,
+                "training_residual_mad": training_residual_mad,
+                "ratio": ratio,
+                "retain_ratio": retain_ratio,
+                "reject_ratio": reject_ratio,
+            },
+            "field_state_sha256": self.state.state_sha256,
+        }
+    def admit_open_vocab_episode(
+        self,
+        operation_id: str,
+        source_revision_id: str,
+        episode: Mapping[str, Any],
+        event_id: str,
+        expected_state_sha256: str | None = None,
+        *,
+        settled: bool = False,
+    ) -> Mapping[str, Any]:
+        try:
+            source = self.evidence.source(source_revision_id)
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "SOURCE_STALE", "open-vocabulary episode source is unavailable"
+            ) from exc
+        if source.status != "active" or source_revision_id not in self.evidence.active_revision_ids():
+            raise FieldIntelligenceError(
+                "SOURCE_STALE", "open-vocabulary episode source is not active"
+            )
+        expected_payload = episode_source_payload(episode)
+        try:
+            archived_payload = json.loads(
+                self.evidence.read(source).decode("utf-8")
+            )
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "SOURCE_CORRUPT", "episode source is not canonical JSON"
+            ) from exc
+        if canonical_json_bytes(archived_payload) != canonical_json_bytes(
+            expected_payload
+        ):
+            raise FieldIntelligenceError(
+                "SOURCE_CONFLICT",
+                "episode does not reproduce archived canonical source payload",
+            )
+        return self._open_vocab_operation(
+            operation_id,
+            "admit-open-vocab-episode",
+            {
+                "source_revision_id": source_revision_id,
+                "episode": dict(episode),
+                "event_id": event_id,
+            },
+            expected_state_sha256=expected_state_sha256,
+            settled=settled,
+        )
+    def propose_action_schema(self, operation_id: str, training_event_refs: Sequence[Mapping[str, Any]], holdout_event_refs: Sequence[Mapping[str, Any]] = (), bounds: Mapping[str, Any] | None = None, expected_state_sha256: str | None = None) -> Mapping[str, Any]:
+        return self._open_vocab_operation(operation_id, "propose-action-schema", {"training_event_refs": list(training_event_refs), "holdout_event_refs": list(holdout_event_refs), "bounds": dict(bounds or {})}, expected_state_sha256=expected_state_sha256)
+
+    def admit_action_schema(self, operation_id: str, candidate: Mapping[str, Any], support_event_refs: Sequence[Mapping[str, Any]], source_revision_ids: Sequence[str], support_binding_refs: Sequence[Mapping[str, Any]] = (), expected_state_sha256: str | None = None) -> Mapping[str, Any]:
+        return self._open_vocab_operation(operation_id, "admit-action-schema", {"candidate": dict(candidate), "support_event_refs": list(support_event_refs), "source_revision_ids": list(source_revision_ids), "support_binding_refs": list(support_binding_refs)}, expected_state_sha256=expected_state_sha256)
+    def plan_open_vocab(self, operation_id: str, initial_term: Mapping[str, Any], goal_term: Mapping[str, Any], schema_refs: Sequence[Mapping[str, Any]], limits: Mapping[str, Any] | None = None, expected_state_sha256: str | None = None) -> Mapping[str, Any]:
+        return self._open_vocab_operation(operation_id, "plan-open-vocab", {"initial_term": dict(initial_term), "goal_term": dict(goal_term), "schema_refs": list(schema_refs), "limits": dict(limits or {})}, expected_state_sha256=expected_state_sha256)
+    def interpret_open_vocab(
+        self,
+        operation_id: str,
+        utterance: str,
+        construction_ref: Mapping[str, Any],
+        template_ref: Mapping[str, Any],
+        support_refs: Sequence[Mapping[str, Any]],
+        *,
+        context: Mapping[str, Any] | None = None,
+        max_tokens: int = 128,
+        source_revision_ids: Sequence[str] = (),
+        expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        return self._open_vocab_operation(
+            operation_id,
+            "interpret-open-vocab",
+            {
+                "utterance": utterance,
+                "construction_ref": dict(construction_ref),
+                "template_ref": dict(template_ref),
+                "support_refs": [dict(item) for item in support_refs],
+                "context": dict(context or {}),
+                "max_tokens": max_tokens,
+                "source_revision_ids": list(source_revision_ids),
+            },
+            expected_state_sha256=expected_state_sha256,
+        )
+    def repair_open_vocab_plan(self, operation_id: str, plan: Mapping[str, Any], observation_event_ref: Mapping[str, Any], limits: Mapping[str, Any] | None = None, expected_state_sha256: str | None = None) -> Mapping[str, Any]:
+        return self._open_vocab_operation(operation_id, "repair-open-vocab-plan", {"plan": dict(plan), "observation_event_ref": dict(observation_event_ref), "limits": dict(limits or {})}, expected_state_sha256=expected_state_sha256)
     def inspect(self) -> Mapping[str, Any]:
         field_bytes = self.state.closure_bytes
         evidence_bytes = self.evidence.physical_bytes()
@@ -9697,6 +16039,11 @@ class FieldIntelligenceOwner:
             "resonance": resonance,
             "revocation_generation": self.state.revocation_generation,
             "schema": ATLAS_SCHEMA,
+            "evidence": {
+                "active_revision_ids": sorted(self.evidence.active_revision_ids()),
+                "revision_ids": sorted(self.evidence.all_revision_ids()),
+                "event_ids": sorted(self.evidence.all_event_ids()),
+            },
         }
 
 
@@ -9746,10 +16093,54 @@ class FieldIntelligenceSurface:
             result = self.owner.inspect()
         elif operation == "computer":
             self._require(
-                params, required=frozenset({"operation_id", "computer_id", "action"}),
+                params,
+                required=frozenset({"operation_id", "computer_id", "action"}),
                 optional=frozenset({"arguments", "expected_state_sha256"}),
             )
             result = self.owner.operate_computer(**dict(params))
+        elif operation == "admit_open_vocab_episode":
+            self._require(
+                params,
+                required=frozenset(
+                    {"event_id", "episode", "operation_id", "source_revision_id"}
+                ),
+                optional=frozenset({"expected_state_sha256", "settled"}),
+            )
+            result = self.owner.admit_open_vocab_episode(**dict(params))
+        elif operation == "propose_action_schema":
+            self._require(params, required=frozenset({"operation_id", "training_event_refs"}), optional=frozenset({"bounds", "expected_state_sha256", "holdout_event_refs"}))
+            result = self.owner.propose_action_schema(**dict(params))
+        elif operation == "admit_action_schema":
+            self._require(params, required=frozenset({"candidate", "operation_id", "source_revision_ids", "support_event_refs"}), optional=frozenset({"expected_state_sha256", "support_binding_refs"}))
+            result = self.owner.admit_action_schema(**dict(params))
+        elif operation == "plan_open_vocab":
+            self._require(params, required=frozenset({"goal_term", "initial_term", "operation_id", "schema_refs"}), optional=frozenset({"expected_state_sha256", "limits"}))
+            result = self.owner.plan_open_vocab(**dict(params))
+        elif operation == "interpret_open_vocab":
+            self._require(
+                params,
+                required=frozenset(
+                    {
+                        "operation_id",
+                        "utterance",
+                        "construction_ref",
+                        "template_ref",
+                        "support_refs",
+                    }
+                ),
+                optional=frozenset(
+                    {
+                        "context",
+                        "max_tokens",
+                        "source_revision_ids",
+                        "expected_state_sha256",
+                    }
+                ),
+            )
+            result = self.owner.interpret_open_vocab(**dict(params))
+        elif operation == "repair_open_vocab_plan":
+            self._require(params, required=frozenset({"observation_event_ref", "operation_id", "plan"}), optional=frozenset({"expected_state_sha256", "limits"}))
+            result = self.owner.repair_open_vocab_plan(**dict(params))
         elif operation == "inspect_computers":
             self._require(params, required=frozenset())
             result = self.owner.inspect_computers()
@@ -9810,6 +16201,56 @@ class FieldIntelligenceSurface:
                 optional=frozenset({"expected_state_sha256", "source_enabled"}),
             )
             result = self.owner.advance(**dict(params))
+        elif operation == "write_parent_summary":
+            self._require(
+                params,
+                required=frozenset({"operation_id"}),
+                optional=frozenset({"expected_state_sha256"}),
+            )
+            result = self.owner.write_parent_summary(**dict(params))
+        elif operation == "read_parent_summary":
+            self._require(params, required=frozenset())
+            result = self.owner.read_parent_summary()
+        elif operation == "freeze_parent":
+            self._require(
+                params,
+                required=frozenset({"operation_id"}),
+                optional=frozenset({"expected_state_sha256", "expected_relation_sha256"}),
+            )
+            result = self.owner.freeze_parent(**dict(params))
+        elif operation == "read_frozen_parent":
+            self._require(params, required=frozenset())
+            result = self.owner.read_frozen_parent()
+        elif operation == "apply_frozen_parent_to_child":
+            self._require(
+                params,
+                required=frozenset({"operation_id", "freeze_id", "base_flow_signal", "work_budget"}),
+                optional=frozenset({
+                    "parent_enabled", "expected_parent_summary_sha256",
+                    "expected_parent_source_state_sha256", "expected_relation_sha256",
+                    "expected_child_source_state_sha256", "event_kind", "consume",
+                }),
+            )
+            result = self.owner.apply_frozen_parent_to_child(**dict(params))
+        elif operation == "release_frozen_parent":
+            self._require(
+                params,
+                required=frozenset({"operation_id", "freeze_id"}),
+                optional=frozenset({"expected_state_sha256"}),
+            )
+            result = self.owner.release_frozen_parent(**dict(params))
+        elif operation == "recompute_parent_summary_from_child":
+            self._require(
+                params,
+                required=frozenset({"operation_id"}),
+                optional=frozenset({
+                    "expected_state_sha256",
+                    "expected_relation_sha256",
+                    "expected_child_packet_sha256",
+                }),
+            )
+            result = self.owner.recompute_parent_summary_from_child(**dict(params))
+
         elif operation == "condense_transceiver":
             self._require(
                 params,
@@ -9865,6 +16306,17 @@ class FieldIntelligenceSurface:
                 "operation_id", "memory_id", "action", "observation",
             }), optional=frozenset({"expected_state_sha256", "participant_id"}))
             result = self.owner.advance_temporal(**dict(params))
+        elif operation == "synthesize_temporal_transition":
+            self._require(params, required=frozenset({
+                "memory_id", "participant_id", "skill_id",
+            }))
+            result = self.owner.synthesize_temporal_transition(**dict(params))
+        elif operation == "materialize_temporal_transition":
+            self._require(params, required=frozenset({
+                "operation_id", "memory_id", "participant_id", "skill_id",
+                "action", "observation", "hypothesis_sha256",
+            }), optional=frozenset({"expected_state_sha256"}))
+            result = self.owner.materialize_temporal_transition(**dict(params))
         elif operation == "reset_temporal":
             self._require(params, required=frozenset({"operation_id", "memory_id"}),
                           optional=frozenset({"expected_state_sha256", "participant_id", "known_start"}))
@@ -9911,6 +16363,65 @@ class FieldIntelligenceSurface:
                 "operation_id", "task_id", "proposal_id", "participant_id", "action", "observation",
             }), optional=frozenset({"expected_state_sha256"}))
             result = self.owner.acknowledge_temporal_task(**dict(params))
+        elif operation == "admit_open_vocab_episode":
+            self._require(
+                params,
+                required=frozenset(
+                    {"operation_id", "source_revision_id", "episode", "event_id"}
+                ),
+                optional=frozenset({"expected_state_sha256", "settled"}),
+            )
+            result = self.owner.admit_open_vocab_episode(**dict(params))
+        elif operation == "propose_action_schema":
+            self._require(
+                params,
+                required=frozenset({"operation_id", "training_event_refs"}),
+                optional=frozenset({"holdout_event_refs", "bounds", "expected_state_sha256"}),
+            )
+            result = self.owner.propose_action_schema(**dict(params))
+        elif operation == "admit_action_schema":
+            self._require(
+                params,
+                required=frozenset({"operation_id", "candidate", "support_event_refs", "source_revision_ids"}),
+                optional=frozenset({"expected_state_sha256", "support_binding_refs"}),
+            )
+            result = self.owner.admit_action_schema(**dict(params))
+        elif operation == "plan_open_vocab":
+            self._require(
+                params,
+                required=frozenset({"operation_id", "initial_term", "goal_term", "schema_refs"}),
+                optional=frozenset({"limits", "expected_state_sha256"}),
+            )
+            result = self.owner.plan_open_vocab(**dict(params))
+        elif operation == "interpret_open_vocab":
+            self._require(
+                params,
+                required=frozenset(
+                    {
+                        "operation_id",
+                        "utterance",
+                        "construction_ref",
+                        "template_ref",
+                        "support_refs",
+                    }
+                ),
+                optional=frozenset(
+                    {
+                        "context",
+                        "max_tokens",
+                        "source_revision_ids",
+                        "expected_state_sha256",
+                    }
+                ),
+            )
+            result = self.owner.interpret_open_vocab(**dict(params))
+        elif operation == "repair_open_vocab_plan":
+            self._require(
+                params,
+                required=frozenset({"operation_id", "plan", "observation_event_ref"}),
+                optional=frozenset({"limits", "expected_state_sha256"}),
+            )
+            result = self.owner.repair_open_vocab_plan(**dict(params))
         elif operation == "query":
             self._require(params, required=frozenset({"query_id"}))
             result = self.owner.query(params["query_id"])

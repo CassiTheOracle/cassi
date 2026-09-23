@@ -422,6 +422,13 @@ extern "C" {
         float    cassi_qi_substitute; // field share (0..1) of the suppressed recurrent-state write; 0 = lesion only
         float    cassi_qi_energy_floor; // minimal mode energy rho a scale must exceed to be read
         float    cassi_qi_read_floor; // minimal coherence gate at which the field flux is read back
+        float    cassi_qi_scale_read_taper; // weight each scale's readout by exp(-taper * scale * damping * dt)
+        bool     cassi_qi_read_absolute; // read the flux at the field's own magnitude, not a unit amplitude
+        bool     cassi_qi_modulate; // add a bounded field term to the intact recurrent-state write; needs displacement 2 or less
+        float    cassi_qi_modulate_gain; // steering coefficient of the additive term; 0 is the identity control
+        bool     cassi_qi_attention_history; // append a field-owned KV memory token to dense attention
+        // Restrict the full-gain write latch to a mode that has never been written (default off).
+        bool     cassi_qi_unwritten_latch;
         const uint8_t * cassi_attention_owned; // copied 0/1 mask, one entry per layer
         uint32_t cassi_attention_owned_count;
         // [EXPERIMENTAL]
@@ -768,11 +775,23 @@ extern "C" {
     LLAMA_API const float * llama_cassi_qi_flux_data(const struct llama_context * ctx);
     LLAMA_API int64_t llama_cassi_qi_state_field_width(const struct llama_context * ctx);
     LLAMA_API int64_t llama_cassi_qi_state_row_width(const struct llama_context * ctx);
+    // The modulation seam's budget and applied scale from the last pass that carried it.
+    // Both are 0 when no modulation seam ran.
+    LLAMA_API float llama_cassi_qi_seam_budget(const struct llama_context * ctx);
+    LLAMA_API float llama_cassi_qi_seam_scale(const struct llama_context * ctx);
     LLAMA_API bool llama_cassi_qi_state_set(
             struct llama_context * ctx,
                    llama_seq_id   seq_id,
                    const float * data,
                         size_t   count);
+
+    // Replace the generated per-mode profile with a learned bank of `llama_cassi_qi_mode_count`
+    // symbols. Fails closed unless Qi is enabled and the count matches exactly.
+    LLAMA_API bool llama_cassi_qi_mode_bank_set(
+            struct llama_context * ctx,
+                   const float * data,
+                        size_t   count);
+    LLAMA_API size_t llama_cassi_qi_mode_count(const struct llama_context * ctx);
     LLAMA_API bool llama_cassi_qi_state_get(
             struct llama_context * ctx,
                    llama_seq_id   seq_id,
@@ -802,6 +821,44 @@ extern "C" {
               const llama_token * tokens,
                          float * scores,
                         size_t   count);
+
+    // Cassi graph capture is off by default. Enabling it disables graph reuse and
+    // rebuilds the reserved scheduler so the next graph exposes the selected tensors.
+    // Attention probabilities are absent for flash and linear-attention layers.
+    LLAMA_API bool llama_cassi_capture_enable(struct llama_context * ctx);
+
+    // Tensor selector for llama_cassi_capture_shape and llama_cassi_capture_copy.
+    // The first three values keep the original experimental ABI assignments.
+    enum llama_cassi_capture_kind {
+        LLAMA_CASSI_CAPTURE_HEAD_INPUT       = 0, // [n_embd, n_tokens], final trunk residual
+        LLAMA_CASSI_CAPTURE_ATTENTION_OUTPUT = 1, // [n_embd, n_tokens] per layer
+        LLAMA_CASSI_CAPTURE_ATTENTION_PROBS  = 2, // [n_kv, n_tokens, n_head] per layer
+        LLAMA_CASSI_CAPTURE_EMBEDDING        = 3, // [n_embd, n_tokens], token embedding output
+        LLAMA_CASSI_CAPTURE_LAYER_INPUT      = 4, // [n_embd, n_tokens] per layer
+        LLAMA_CASSI_CAPTURE_FFN_INPUT        = 5, // [n_embd, n_tokens] per layer
+        LLAMA_CASSI_CAPTURE_FFN_OUTPUT       = 6, // [n_embd, n_tokens] per layer
+        LLAMA_CASSI_CAPTURE_HEAD_OUTPUT      = 7, // [n_vocab, n_outputs], final logits
+    };
+
+    // Rank and extents of one capture tensor from the last decoded graph. shape must hold
+    // four entries. Returns 0 when capture is off, the selector is invalid, or the tensor
+    // is absent for that layer.
+    LLAMA_API int32_t llama_cassi_capture_shape(
+            const struct llama_context * ctx,
+                                 int32_t   kind,
+                                uint32_t   layer,
+                                int64_t * shape);
+
+    // Copies one capture tensor into data, which must hold the element count reported by
+    // llama_cassi_capture_shape. Returns false when the tensor is absent, the count differs,
+    // or the tensor is a non-contiguous view.
+    LLAMA_API bool llama_cassi_capture_copy(
+            struct llama_context * ctx,
+                         int32_t   kind,
+                        uint32_t   layer,
+                           float * data,
+                          size_t   count);
+
     //
     // Memory
     //

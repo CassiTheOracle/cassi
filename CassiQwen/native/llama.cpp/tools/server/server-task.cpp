@@ -84,6 +84,9 @@ json task_params::to_json(bool only_metrics) const {
             {"timings_per_token",         timings_per_token},
             {"post_sampling_probs",       post_sampling_probs},
             {"backend_sampling",          sampling.backend_sampling},
+            {"cassi_qi_stream",           sampling.cassi_qi_stream},
+            {"cassi_qi_stream_gain",      sampling.cassi_qi_stream_gain},
+            {"cassi_qi_stream_eog_gain",  sampling.cassi_qi_stream_eog_gain},
             {"lora",                      lora},
         };
     }
@@ -144,6 +147,9 @@ json task_params::to_json(bool only_metrics) const {
         {"timings_per_token",         timings_per_token},
         {"post_sampling_probs",       post_sampling_probs},
         {"backend_sampling",          sampling.backend_sampling},
+        {"cassi_qi_stream",           sampling.cassi_qi_stream},
+        {"cassi_qi_stream_gain",      sampling.cassi_qi_stream_gain},
+        {"cassi_qi_stream_eog_gain",  sampling.cassi_qi_stream_eog_gain},
         {"lora",                      lora},
     };
 }

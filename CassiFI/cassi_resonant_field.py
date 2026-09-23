@@ -11,8 +11,9 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass, field, replace
+from contextlib import contextmanager, nullcontext
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterator, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -22,6 +23,22 @@ from scipy.sparse.linalg import LinearOperator, gmres
 
 SCHEMA = "cassifi.resonant-workspace.v1"
 LAYOUT = "mode-major-9M-1:f64le"
+PARENT_SUMMARY_PATH = "L"
+PARENT_SUMMARY_LAYOUT = "parent-summary-L-level-zero-v1:f64le"
+PARENT_SUMMARY_WIDTH = 4
+PARENT_SUMMARY_METADATA_KEY = "parent_summary_register"
+PARENT_SUMMARY_REGISTER_SCHEMA = "cassifi.resonant-parent-summary-register.v1"
+PARENT_REGISTER_PATHS = ("L", "LL")
+PARENT_REGISTER_LAYOUT = "parent-register-map-v1:f64le"
+PARENT_REGISTER_SCHEMA = "cassifi.resonant-parent-register-map.v1"
+PARENT_REGISTER_SLOT_WIDTH = PARENT_SUMMARY_WIDTH + 2
+PARENT_REGISTER_METADATA_KEY = PARENT_SUMMARY_METADATA_KEY
+FROZEN_PARENT_METADATA_KEY = "frozen_parent"
+FROZEN_PARENT_SCHEMA = "cassifi.frozen-parent.v1"
+FROZEN_PARENT_COUPLING_GAIN = 1.0
+LIVE_CHILD_DETAIL_TO_PARENT_SCHEMA = "cassifi.live-child-detail-to-parent.v1"
+LIVE_CHILD_DETAIL_MODE_INDEX = 1
+LIVE_CHILD_DETAIL_CHANNEL_SLICE = (2, 4)
 SQRT2 = math.sqrt(2.0)
 HELICAL_PACKET_SCHEMA = "cassifi.dual-helical-packet.v1"
 HELICAL_PACKET_BASIS = "balanced-contiguous-haar-phase-space-v1"
@@ -48,6 +65,118 @@ class ResonantNumericalError(ValueError):
 
 class ResonantDeviceUnavailableError(RuntimeError):
     """Requested GPU arithmetic is unavailable."""
+
+
+def _resource_manager(resources: Any) -> Any:
+    """Resolve a caller-owned residency policy without importing it at module load."""
+    if resources is None:
+        return None
+    if hasattr(resources, "reserve") and hasattr(resources, "available"):
+        return resources
+    try:
+        from cassi_field_residency import ResidencyManager
+    except ImportError as exc:
+        raise ResonantNumericalError(
+            "GPU resource limits require cassi_field_residency.ResidencyManager"
+        ) from exc
+    if isinstance(resources, Mapping):
+        return ResidencyManager(resources)
+    if hasattr(resources, "as_dict"):
+        return ResidencyManager(resources)
+    raise TypeError("resources must be a ResidencyManager, ResourceLimits, or mapping")
+
+
+@contextmanager
+def _gpu_residency(resources: Any, *, state_bytes: int, scratch_bytes: int) -> Iterator[Any]:
+    """Charge device state, solver scratch, and transfers before allocating tensors."""
+    manager = _resource_manager(resources)
+    if manager is None:
+        yield None
+        return
+    # Transfer is deliberately charged on both sides of the staging boundary.
+    transfer_bytes = max(1, state_bytes)
+    with manager.reserve("vram", max(1, state_bytes), kind="resident"):
+        with manager.reserve("vram", max(1, scratch_bytes), kind="scratch"):
+            with manager.reserve("vram", transfer_bytes, kind="transfer"):
+                with manager.reserve("ram", transfer_bytes, kind="transfer"):
+                    yield manager
+
+
+def _torch_gmres(
+    matvec: Any,
+    rhs: torch.Tensor,
+    *,
+    tolerance: float,
+    restart: int = 8,
+    max_restarts: int = 8,
+) -> tuple[torch.Tensor, float, int]:
+    """Restarted matrix-free GMRES with O(restart*state) device storage.
+
+    The old GPU path formed an explicit identity and then a dense Jacobian.  This
+    implementation keeps only Krylov vectors and a tiny Hessenberg matrix; every
+    Jacobian action remains the admitted nonlinear flow, including projections and
+    rail reductions.
+    """
+    if rhs.ndim != 1:
+        raise ResonantNumericalError("GPU GMRES expects a vector right-hand side")
+    norm_rhs = float(torch.linalg.vector_norm(rhs).item())
+    target = max(float(tolerance) * 0.05, 64.0 * torch.finfo(rhs.dtype).eps * max(1.0, norm_rhs))
+    if norm_rhs <= target:
+        return torch.zeros_like(rhs), norm_rhs, 0
+    dimension = int(rhs.numel())
+    restart = max(1, min(int(restart), dimension))
+    solution = torch.zeros_like(rhs)
+    applications = 0
+    residual_norm = norm_rhs
+    for _ in range(max(1, int(max_restarts))):
+        residual = rhs - matvec(solution)
+        applications += 1
+        beta = torch.linalg.vector_norm(residual)
+        residual_norm = float(beta.item())
+        if residual_norm <= target:
+            return solution, residual_norm, applications
+        basis = [residual / beta]
+        hessenberg = torch.zeros(
+            (restart + 1, restart), dtype=rhs.dtype, device=rhs.device
+        )
+        projected_rhs = torch.zeros((restart + 1,), dtype=rhs.dtype, device=rhs.device)
+        projected_rhs[0] = beta
+        best = solution
+        best_norm = residual_norm
+        for column in range(restart):
+            candidate = matvec(basis[column])
+            applications += 1
+            for row in range(column + 1):
+                coefficient = torch.dot(basis[row], candidate)
+                hessenberg[row, column] = coefficient
+                candidate = candidate - coefficient * basis[row]
+            next_norm = torch.linalg.vector_norm(candidate)
+            hessenberg[column + 1, column] = next_norm
+            if float(next_norm.item()) > 0.0 and column + 1 < restart:
+                basis.append(candidate / next_norm)
+            solve_rows = column + 2
+            try:
+                coeffs = torch.linalg.lstsq(
+                    hessenberg[:solve_rows, : column + 1],
+                    projected_rhs[:solve_rows],
+                ).solution
+            except RuntimeError as exc:
+                raise ResonantNumericalError("GPU matrix-free least-squares solve failed") from exc
+            trial = solution + torch.stack(basis[: column + 1], dim=1) @ coeffs
+            trial_residual = rhs - matvec(trial)
+            applications += 1
+            trial_norm = float(torch.linalg.vector_norm(trial_residual).item())
+            if trial_norm < best_norm:
+                best, best_norm = trial, trial_norm
+            if trial_norm <= target:
+                return trial, trial_norm, applications
+            if float(next_norm.item()) <= target:
+                break
+        solution = best
+        residual_norm = best_norm
+        if residual_norm <= target:
+            return solution, residual_norm, applications
+    return solution, residual_norm, applications
 
 
 def _finite(a: np.ndarray, name: str) -> None:
@@ -334,7 +463,7 @@ class ResonantWorkspace:
         self.field_ticks = int(field_ticks); self.heartbeat_phase = float(heartbeat_phase); self.heartbeat_cycles = int(heartbeat_cycles)
         self.breath_phase = float(breath_phase); self.breath_cycles = int(breath_cycles); self.activity = float(activity)
         self.evidence_tick = int(evidence_tick); self.subdivision_ticks = int(subdivision_ticks); self.paused = bool(paused)
-        self.ledger = MappingProxyType({"positive_heartbeat_work": 0.0, "extracted_heartbeat_work": 0.0, "dissipated_work": 0.0, "residual_work": 0.0, "parameter_work": 0.0, "balance_defect": 0.0, **{str(k): float(v) for k, v in (ledger or {}).items()}})
+        self.ledger = MappingProxyType({"positive_heartbeat_work": 0.0, "extracted_heartbeat_work": 0.0, "dissipated_work": 0.0, "interface_transfer_work": 0.0, "residual_work": 0.0, "parameter_work": 0.0, "balance_defect": 0.0, **{str(k): float(v) for k, v in (ledger or {}).items()}})
         self.layout_transition = MappingProxyType(dict(layout_transition or {}))
         self._validate()
         self._sealed = True
@@ -428,11 +557,20 @@ class ResonantWorkspace:
         if self._field.shape != self.profile.page_shape or self._field.dtype != np.float64:
             raise ResonantNumericalError("invalid canonical field page")
         n = self.profile.port_count; m = self.profile.mode_count
-        modes = self._field.reshape(-1)[:9*n].reshape(n, 9)
-        if np.any(modes[:, 4:] != 0):
-            raise ResonantNumericalError("unused per-port lanes must be canonical zero")
-        if np.any(self._field[0, 9*n+3:9*m, 0] != 0):
+        flat = self._field.reshape(-1)
+        ll_positions = set(_parent_register_positions(n, "LL"))
+        for index, value in enumerate(flat[:9*n]):
+            if index % 9 >= 4 and index not in ll_positions and value != 0.0:
+                raise ResonantNumericalError("unused per-port lanes must be canonical zero")
+        registers, _relations = _parent_register_transition(
+            self._field, n, self.layout_transition
+        )
+        _frozen_parent_transition(self._field, n, self.layout_transition)
+        l_values = _parent_register_values(self._field, n, "L")
+        if l_values is None and np.any(flat[9*n+3:9*m] != 0):
             raise ResonantNumericalError("unused clock lanes must be canonical zero")
+        if l_values is not None and "L" not in registers:
+            raise ResonantNumericalError("parent summary provenance is missing")
         if not (0.0 <= self.activity <= 1.0):
             raise ResonantNumericalError("activity must lie in [0,1]")
         if self._field[0, 9*n, 0] != self.heartbeat_phase or self._field[0, 9*n+1, 0] != self.breath_phase or self._field[0, 9*n+2, 0] != self.activity:
@@ -520,7 +658,12 @@ def _state_vector(workspace: ResonantWorkspace) -> np.ndarray:
 
 
 def _page_from_state(workspace: ResonantWorkspace, z: np.ndarray, *, heartbeat_phase: float | None = None, breath_phase: float | None = None, activity: float | None = None) -> np.ndarray:
-    n = workspace.profile.port_count; page = workspace._field.copy().reshape(-1)
+    n = workspace.profile.port_count
+    page = workspace._field.copy().reshape(-1)
+    register_values = {
+        path: _parent_register_values(page, n, path)
+        for path in PARENT_REGISTER_PATHS
+    }
     for lane, values in enumerate(np.split(z, 4)):
         page[lane:9*n:9] = values
     m = workspace.profile.mode_count
@@ -528,6 +671,9 @@ def _page_from_state(workspace: ResonantWorkspace, z: np.ndarray, *, heartbeat_p
     page[9*n + 1] = workspace.breath_phase if breath_phase is None else breath_phase
     page[9*n + 2] = workspace.activity if activity is None else activity
     page[9*n + 3:9*m] = 0.0
+    for path, values in register_values.items():
+        if values is not None:
+            page = _parent_register_page_write(page, n, path, values).reshape(-1)
     return page.reshape(workspace.profile.page_shape)
 
 
@@ -541,6 +687,513 @@ def _canonical_sha256(value: Any) -> str:
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
+def _validate_parent_register_path(path: Any) -> str:
+    if not isinstance(path, str) or path not in PARENT_REGISTER_PATHS:
+        raise ResonantNumericalError(
+            f"parent register path must be one of {PARENT_REGISTER_PATHS!r}"
+        )
+    return path
+
+
+def _parent_register_offsets(port_count: int, path: str) -> tuple[int, int, int]:
+    _validate_parent_register_path(path)
+    if path == PARENT_SUMMARY_PATH:
+        start = 9 * int(port_count) + 3
+        return start, start + PARENT_SUMMARY_WIDTH, start + PARENT_SUMMARY_WIDTH + 1
+    # The LL bank occupies otherwise-unused per-mode lanes.  Its positions are
+    # fixed in the canonical page and are independent of resolution.
+    start = 4
+    return start, start + PARENT_SUMMARY_WIDTH, 13
+
+
+def _parent_register_positions(port_count: int, path: str) -> tuple[int, ...]:
+    start, marker_offset, spare_offset = _parent_register_offsets(port_count, path)
+    if path == PARENT_SUMMARY_PATH:
+        return tuple(range(start, marker_offset)) + (marker_offset, spare_offset)
+    return (4, 5, 6, 7, 8, 13)
+
+
+def _parent_register_values(page: Any, port_count: int, path: str) -> np.ndarray | None:
+    positions = _parent_register_positions(port_count, path)
+    flat = np.asarray(page, dtype=np.float64).reshape(-1)
+    values = flat[list(positions[:PARENT_SUMMARY_WIDTH])]
+    marker = float(flat[positions[PARENT_SUMMARY_WIDTH]])
+    spare = float(flat[positions[PARENT_SUMMARY_WIDTH + 1]])
+    if not np.all(np.isfinite(values)) or not math.isfinite(marker) or not math.isfinite(spare):
+        raise ResonantNumericalError(f"parent register {path} is non-finite")
+    if spare != 0.0:
+        raise ResonantNumericalError(f"parent register {path} spare lane must be zero")
+    if marker == 0.0:
+        if np.any(values != 0.0):
+            raise ResonantNumericalError(f"absent parent register {path} has nonzero values")
+        return None
+    if marker != 1.0:
+        raise ResonantNumericalError(f"parent register {path} marker is invalid")
+    return values.copy()
+
+
+def _parent_summary_offsets(port_count: int) -> tuple[int, int, int]:
+    return _parent_register_offsets(port_count, PARENT_SUMMARY_PATH)
+
+
+def _parent_summary_values(page: Any, port_count: int) -> np.ndarray | None:
+    return _parent_register_values(page, port_count, PARENT_SUMMARY_PATH)
+
+
+def _parent_register_digest(metadata: Mapping[str, Any], values: Sequence[float]) -> str:
+    return _canonical_sha256({
+        "layout": metadata["layout"],
+        "path": metadata["path"],
+        "basis": metadata["basis"],
+        "basis_sha256": metadata["basis_sha256"],
+        "support": metadata["support"],
+        "source_state_sha256": metadata["source_state_sha256"],
+        "source_packet_sha256": metadata["source_packet_sha256"],
+        "values": [float(value) for value in values],
+    })
+
+
+def _parent_summary_digest(metadata: Mapping[str, Any], values: Sequence[float]) -> str:
+    return _parent_register_digest(metadata, values)
+
+
+def _parent_register_metadata(
+    metadata: Mapping[str, Any], *, port_count: int, values: Sequence[float],
+) -> None:
+    required = {
+        "schema", "layout", "path", "basis", "basis_sha256", "support",
+        "source_state_sha256", "source_packet_sha256", "summary_sha256",
+    }
+    if set(metadata) != required:
+        raise ResonantNumericalError("parent register provenance is noncanonical")
+    path = _validate_parent_register_path(metadata["path"])
+    if metadata["schema"] != PARENT_REGISTER_SCHEMA or metadata["layout"] != PARENT_REGISTER_LAYOUT:
+        raise ResonantNumericalError("parent register schema or layout is invalid")
+    if metadata["basis"] != HELICAL_PACKET_BASIS:
+        raise ResonantNumericalError("parent register basis is invalid")
+    start, stop = _packet_support(port_count, path)
+    if metadata["support"] != {"start": start, "stop": stop}:
+        raise ResonantNumericalError("parent register support is invalid")
+    for name in ("basis_sha256", "source_state_sha256", "source_packet_sha256", "summary_sha256"):
+        value = metadata[name]
+        if not isinstance(value, str) or len(value) != 64 or any(
+            char not in "0123456789abcdef" for char in value
+        ):
+            raise ResonantNumericalError(f"parent register {name} is invalid")
+    if metadata["summary_sha256"] != _parent_register_digest(metadata, values):
+        raise ResonantNumericalError("parent register digest mismatch")
+
+
+def _parent_summary_metadata(
+    metadata: Mapping[str, Any], *, port_count: int, values: Sequence[float],
+) -> None:
+    if set(metadata) != {
+        "schema", "layout", "path", "basis", "basis_sha256", "support",
+        "source_state_sha256", "source_packet_sha256", "summary_sha256",
+    }:
+        raise ResonantNumericalError("parent summary provenance is noncanonical")
+    if metadata["schema"] != PARENT_SUMMARY_REGISTER_SCHEMA:
+        raise ResonantNumericalError("parent summary register schema is invalid")
+    if metadata["layout"] != PARENT_SUMMARY_LAYOUT or metadata["path"] != PARENT_SUMMARY_PATH:
+        raise ResonantNumericalError("parent summary register layout is invalid")
+    if metadata["basis"] != HELICAL_PACKET_BASIS:
+        raise ResonantNumericalError("parent summary basis is invalid")
+    if metadata["support"] != {"start": 0, "stop": port_count // 2}:
+        raise ResonantNumericalError("parent summary support is invalid")
+    for name in ("basis_sha256", "source_state_sha256", "source_packet_sha256", "summary_sha256"):
+        value = metadata[name]
+        if not isinstance(value, str) or len(value) != 64 or any(
+            char not in "0123456789abcdef" for char in value
+        ):
+            raise ResonantNumericalError(f"parent summary {name} is invalid")
+    if metadata["summary_sha256"] != _parent_summary_digest(metadata, values):
+        raise ResonantNumericalError("parent summary digest mismatch")
+
+
+def _parent_register_page_write(
+    page: Any, port_count: int, path: str, values: Sequence[float],
+) -> np.ndarray:
+    summary = _as_f64(values, (PARENT_SUMMARY_WIDTH,), f"parent register {path} values")
+    if not np.all(np.isfinite(summary)):
+        raise ResonantNumericalError(f"parent register {path} values are non-finite")
+    result = np.asarray(page, dtype=np.float64).copy().reshape(-1)
+    positions = _parent_register_positions(port_count, path)
+    result[list(positions[:PARENT_SUMMARY_WIDTH])] = summary
+    result[positions[PARENT_SUMMARY_WIDTH]] = 1.0
+    result[positions[PARENT_SUMMARY_WIDTH + 1]] = 0.0
+    return result.reshape(np.asarray(page).shape)
+
+
+def _parent_summary_page_write(
+    page: Any, port_count: int, values: Sequence[float],
+) -> np.ndarray:
+    return _parent_register_page_write(page, port_count, PARENT_SUMMARY_PATH, values)
+def _parent_register_transition(
+    page: Any, port_count: int, transition: Mapping[str, Any],
+) -> tuple[dict[str, Mapping[str, Any]], list[Mapping[str, Any]]]:
+    values_by_path = {
+        path: _parent_register_values(page, port_count, path)
+        for path in PARENT_REGISTER_PATHS
+    }
+    metadata = transition.get(PARENT_REGISTER_METADATA_KEY)
+    if metadata is None:
+        if any(value is not None for value in values_by_path.values()):
+            raise ResonantNumericalError("parent register provenance is missing")
+        return {}, []
+    # The legacy flat L envelope is retained solely so the frozen direct
+    # retention receipt remains byte-for-byte compatible.
+    if set(metadata) == {
+        "schema", "layout", "path", "basis", "basis_sha256", "support",
+        "source_state_sha256", "source_packet_sha256", "summary_sha256",
+    }:
+        if values_by_path["L"] is None or values_by_path["LL"] is not None:
+            raise ResonantNumericalError("legacy parent summary map is inconsistent")
+        _parent_summary_metadata(metadata, port_count=port_count, values=values_by_path["L"])
+        return {"L": metadata}, []
+    if not isinstance(metadata, Mapping) or set(metadata) != {"schema", "layout", "slots", "relations"}:
+        raise ResonantNumericalError("parent register map is noncanonical")
+    if metadata["schema"] != PARENT_REGISTER_SCHEMA or metadata["layout"] != PARENT_REGISTER_LAYOUT:
+        raise ResonantNumericalError("parent register map schema or layout is invalid")
+    slots = metadata["slots"]
+    if not isinstance(slots, Mapping) or any(path not in PARENT_REGISTER_PATHS for path in slots):
+        raise ResonantNumericalError("parent register map paths are invalid")
+    if set(slots) != {path for path, value in values_by_path.items() if value is not None}:
+        raise ResonantNumericalError("parent register map slots do not match page markers")
+    normalized: dict[str, Mapping[str, Any]] = {}
+    for path, item in slots.items():
+        if not isinstance(item, Mapping):
+            raise ResonantNumericalError("parent register map slot is invalid")
+        _parent_register_metadata(item, port_count=port_count, values=values_by_path[path])
+        normalized[path] = item
+    relations = metadata["relations"]
+    if not isinstance(relations, list):
+        raise ResonantNumericalError("parent register map relations are invalid")
+    for relation in relations:
+        if not isinstance(relation, Mapping) or set(relation) != {
+            "parent_path", "child_path", "source_state_sha256",
+            "capture_group_sha256", "parent_support", "child_support",
+            "support_contained", "path_prefix", "relation_sha256",
+        }:
+            raise ResonantNumericalError("parent register relation is noncanonical")
+        if relation["parent_path"] != "L" or relation["child_path"] != "LL":
+            raise ResonantNumericalError("unsupported parent register relation")
+        if relation["parent_path"] not in normalized or relation["child_path"] not in normalized:
+            raise ResonantNumericalError("parent register relation references absent slot")
+        parent = normalized["L"]; child = normalized["LL"]
+        if relation["source_state_sha256"] != parent["source_state_sha256"] or relation["source_state_sha256"] != child["source_state_sha256"]:
+            raise ResonantNumericalError("parent register relation source digest mismatch")
+        if relation["parent_support"] != parent["support"] or relation["child_support"] != child["support"]:
+            raise ResonantNumericalError("parent register relation support mismatch")
+        if relation["support_contained"] is not True or relation["path_prefix"] is not True:
+            raise ResonantNumericalError("parent register relation containment is unproven")
+        expected_digest = _canonical_sha256({
+            key: relation[key] for key in (
+                "parent_path", "child_path", "source_state_sha256",
+                "capture_group_sha256", "parent_support", "child_support",
+                "support_contained", "path_prefix",
+            )
+        })
+        if relation["relation_sha256"] != expected_digest:
+            raise ResonantNumericalError("parent register relation digest mismatch")
+    return normalized, list(relations)
+def _frozen_parent_transition(
+    page: Any,
+    port_count: int,
+    transition: Mapping[str, Any],
+) -> Mapping[str, Any] | None:
+    metadata = transition.get(FROZEN_PARENT_METADATA_KEY)
+    if metadata is None:
+        return None
+    required = {
+        "schema", "status", "freeze_id", "parent_path", "child_path",
+        "summary_sha256", "source_state_sha256", "source_packet_sha256",
+        "basis", "basis_sha256", "support", "relation_sha256",
+        "capture_group_sha256",
+    }
+    if not isinstance(metadata, Mapping) or set(metadata) != required:
+        raise ResonantNumericalError("frozen parent descriptor is noncanonical")
+    if metadata["schema"] != FROZEN_PARENT_SCHEMA or metadata["status"] != "active":
+        raise ResonantNumericalError("frozen parent descriptor is invalid")
+    if metadata["parent_path"] != "L" or metadata["child_path"] != "LL":
+        raise ResonantNumericalError("frozen parent path is unsupported")
+    registers, relations = _parent_register_transition(page, port_count, transition)
+    parent = registers.get("L")
+    if parent is None:
+        raise ResonantNumericalError("frozen parent requires an active L register")
+    for name in (
+        "summary_sha256", "source_state_sha256", "source_packet_sha256",
+        "basis", "basis_sha256", "support",
+    ):
+        if metadata[name] != parent[name]:
+            raise ResonantNumericalError("frozen parent provenance does not match L register")
+    relation = next(
+        (
+            item for item in relations
+            if item.get("parent_path") == "L" and item.get("child_path") == "LL"
+        ),
+        None,
+    )
+    if relation is None:
+        raise ResonantNumericalError("frozen parent requires an active L to LL relation")
+    if metadata["relation_sha256"] != relation["relation_sha256"]:
+        raise ResonantNumericalError("frozen parent relation digest mismatch")
+    if metadata["capture_group_sha256"] != relation["capture_group_sha256"]:
+        raise ResonantNumericalError("frozen parent capture group mismatch")
+    if not all(
+        isinstance(metadata[name], str)
+        and len(metadata[name]) == 64
+        and all(char in "0123456789abcdef" for char in metadata[name])
+        for name in (
+            "freeze_id", "summary_sha256", "source_state_sha256",
+            "source_packet_sha256", "basis_sha256", "relation_sha256",
+            "capture_group_sha256",
+        )
+    ):
+        raise ResonantNumericalError("frozen parent digest is invalid")
+    expected_freeze_id = _frozen_parent_id(metadata)
+    if metadata["freeze_id"] != expected_freeze_id:
+        raise ResonantNumericalError("frozen parent identity digest mismatch")
+    return metadata
+
+
+def _frozen_parent_id(metadata: Mapping[str, Any]) -> str:
+    return _canonical_sha256({
+        "schema": FROZEN_PARENT_SCHEMA,
+        "parent_path": metadata["parent_path"],
+        "child_path": metadata["child_path"],
+        "summary_sha256": metadata["summary_sha256"],
+        "source_state_sha256": metadata["source_state_sha256"],
+        "source_packet_sha256": metadata["source_packet_sha256"],
+        "relation_sha256": metadata["relation_sha256"],
+    })
+
+
+def freeze_parent(
+    workspace: ResonantWorkspace,
+    *,
+    parent_path: str = "L",
+    child_path: str = "LL",
+    expected_state_sha256: str | None = None,
+    expected_relation_sha256: str | None = None,
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Lock the canonical L register as a retained parent for later LL writes."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    if parent_path != "L" or child_path != "LL":
+        raise ResonantNumericalError("only the declared L to LL relation is supported")
+    if expected_state_sha256 is not None and expected_state_sha256 != workspace.state_sha256:
+        raise ResonantNumericalError("freeze parent source state digest is stale")
+    registers, relations = _parent_register_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    parent = registers.get("L")
+    if parent is None:
+        raise ResonantNumericalError("freeze parent requires an active L register")
+    relation = next(
+        (
+            item for item in relations
+            if item.get("parent_path") == "L" and item.get("child_path") == "LL"
+        ),
+        None,
+    )
+    if relation is None:
+        raise ResonantNumericalError("freeze parent requires an active L to LL relation")
+    if expected_relation_sha256 is not None and expected_relation_sha256 != relation["relation_sha256"]:
+        raise ResonantNumericalError("freeze parent relation digest is stale")
+    existing = _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    freeze_id = _frozen_parent_id({
+        "parent_path": parent_path,
+        "child_path": child_path,
+        **parent,
+        "relation_sha256": relation["relation_sha256"],
+    })
+    if existing is not None:
+        if existing["freeze_id"] != freeze_id:
+            raise ResonantNumericalError("a different frozen parent is already active")
+        return workspace, {
+            "schema": FROZEN_PARENT_SCHEMA,
+            "accepted": True,
+            "replayed": True,
+            "freeze_id": freeze_id,
+            "source_state_sha256": parent["source_state_sha256"],
+            "summary_sha256": parent["summary_sha256"],
+            "relation_sha256": relation["relation_sha256"],
+            "state_sha256": workspace.state_sha256,
+        }
+    descriptor = {
+        "schema": FROZEN_PARENT_SCHEMA,
+        "status": "active",
+        "freeze_id": freeze_id,
+        "parent_path": parent_path,
+        "child_path": child_path,
+        "summary_sha256": parent["summary_sha256"],
+        "source_state_sha256": parent["source_state_sha256"],
+        "source_packet_sha256": parent["source_packet_sha256"],
+        "basis": parent["basis"],
+        "basis_sha256": parent["basis_sha256"],
+        "support": dict(parent["support"]),
+        "relation_sha256": relation["relation_sha256"],
+        "capture_group_sha256": relation["capture_group_sha256"],
+    }
+    transition = dict(workspace.layout_transition)
+    transition[FROZEN_PARENT_METADATA_KEY] = descriptor
+    successor = workspace._copy(layout_transition=transition)
+    return successor, {
+        "schema": FROZEN_PARENT_SCHEMA,
+        "accepted": True,
+        "replayed": False,
+        "freeze_id": freeze_id,
+        "source_state_sha256": parent["source_state_sha256"],
+        "source_packet_sha256": parent["source_packet_sha256"],
+        "summary_sha256": parent["summary_sha256"],
+        "relation_sha256": relation["relation_sha256"],
+        "capture_group_sha256": relation["capture_group_sha256"],
+        "summary": _parent_register_values(
+            workspace._field, workspace.profile.port_count, "L"
+        ).tolist(),
+        "successor_state_sha256": successor.state_sha256,
+        "successor_is_distinct": successor.state_sha256 != workspace.state_sha256,
+    }
+
+
+def read_frozen_parent(workspace: ResonantWorkspace) -> Mapping[str, Any]:
+    """Read the locked canonical L register without live packet analysis."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    metadata = _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if metadata is None:
+        return {
+            "schema": FROZEN_PARENT_SCHEMA,
+            "present": False,
+            "status": "absent",
+            "freeze_id": None,
+            "values": None,
+        }
+    values = _parent_register_values(workspace._field, workspace.profile.port_count, "L")
+    if values is None:
+        raise ResonantNumericalError("frozen parent register is absent")
+    return {
+        **dict(metadata),
+        "present": True,
+        "values": values.tolist(),
+        "state_sha256": workspace.state_sha256,
+    }
+
+
+def apply_frozen_parent_to_child(
+    workspace: ResonantWorkspace,
+    *,
+    freeze_id: str,
+    base_flow_signal: Sequence[float],
+    work_budget: float,
+    child_path: str = "LL",
+    component: str = "scale",
+    parent_enabled: bool = True,
+    expected_parent_summary_sha256: str | None = None,
+    expected_parent_source_state_sha256: str | None = None,
+    expected_relation_sha256: str | None = None,
+    expected_child_source_state_sha256: str | None = None,
+    event_kind: str = "reasoning-work",
+    consume: bool = False,
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Apply the locked L momentum channels through the native LL impulse path."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    if child_path != "LL":
+        raise ResonantNumericalError("frozen parent child path must be LL")
+    if not isinstance(freeze_id, str) or len(freeze_id) != 64:
+        raise ResonantNumericalError("frozen parent identity is invalid")
+    if expected_child_source_state_sha256 is not None and expected_child_source_state_sha256 != workspace.state_sha256:
+        raise ResonantNumericalError("frozen parent child predecessor digest is stale")
+    metadata = _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if metadata is None or metadata["freeze_id"] != freeze_id:
+        raise ResonantNumericalError("frozen parent identity is stale")
+    if expected_parent_summary_sha256 is not None and expected_parent_summary_sha256 != metadata["summary_sha256"]:
+        raise ResonantNumericalError("frozen parent summary digest is stale")
+    if expected_parent_source_state_sha256 is not None and expected_parent_source_state_sha256 != metadata["source_state_sha256"]:
+        raise ResonantNumericalError("frozen parent source digest is stale")
+    if expected_relation_sha256 is not None and expected_relation_sha256 != metadata["relation_sha256"]:
+        raise ResonantNumericalError("frozen parent relation digest is stale")
+    signal = _as_f64(base_flow_signal, (2,), "base_flow_signal")
+    if not np.all(np.isfinite(signal)):
+        raise ResonantNumericalError("base_flow_signal must be finite")
+    budget = float(work_budget)
+    if not math.isfinite(budget) or not 0.0 <= budget <= 1.0:
+        raise ResonantNumericalError("work_budget must be finite and in [0,1]")
+    values = _parent_register_values(workspace._field, workspace.profile.port_count, "L")
+    if values is None:
+        raise ResonantNumericalError("frozen parent register is absent")
+    parent_flow = values[2:4].copy()
+    effective = signal + FROZEN_PARENT_COUPLING_GAIN * parent_flow if parent_enabled else signal
+    successor, impulse = apply_helical_packet_impulse(
+        workspace,
+        path=child_path,
+        component=component,
+        flow_signal=effective.tolist(),
+        work_budget=budget,
+        evidence_tick=workspace.evidence_tick,
+        event_kind=event_kind,
+    )
+    if consume:
+        transition = dict(successor.layout_transition)
+        transition.pop(FROZEN_PARENT_METADATA_KEY, None)
+        successor = successor._copy(layout_transition=transition)
+    receipt = {
+        "schema": "cassifi.frozen-parent-application.v1",
+        "accepted": bool(impulse["accepted"]),
+        "freeze_id": freeze_id,
+        "parent_path": "L",
+        "child_path": child_path,
+        "component": component,
+        "parent_enabled": bool(parent_enabled),
+        "coupling_gain": FROZEN_PARENT_COUPLING_GAIN,
+        "base_flow_signal": signal.tolist(),
+        "parent_flow_signal": parent_flow.tolist(),
+        "effective_flow_signal": effective.tolist(),
+        "prolongation": "L momentum common/counterflow values[2:4] as native LL flow_signal",
+        "parent_summary_sha256": metadata["summary_sha256"],
+        "parent_source_state_sha256": metadata["source_state_sha256"],
+        "relation_sha256": metadata["relation_sha256"],
+        "child_source_state_sha256": workspace.state_sha256,
+        "consume": bool(consume),
+        "impulse": dict(impulse),
+        "state_sha256": successor.state_sha256,
+    }
+    return successor, receipt
+
+
+def release_frozen_parent(
+    workspace: ResonantWorkspace,
+    *,
+    freeze_id: str,
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Release the lock while preserving the ordinary canonical L register."""
+    metadata = _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if metadata is None or metadata["freeze_id"] != freeze_id:
+        raise ResonantNumericalError("frozen parent identity is stale")
+    transition = dict(workspace.layout_transition)
+    transition.pop(FROZEN_PARENT_METADATA_KEY, None)
+    successor = workspace._copy(layout_transition=transition)
+    return successor, {
+        "schema": FROZEN_PARENT_SCHEMA,
+        "released": True,
+        "freeze_id": freeze_id,
+        "state_sha256": successor.state_sha256,
+    }
+
+def _active_parent_register_paths(page: Any, port_count: int) -> tuple[str, ...]:
+    return tuple(
+        path for path in PARENT_REGISTER_PATHS
+        if _parent_register_values(page, port_count, path) is not None
+    )
 
 def _profile_sha256(profile: ResonantProfile | Mapping[str, Any]) -> str:
     return _canonical_sha256(
@@ -871,6 +1524,360 @@ def analyze_helical_packet(
         path=path,
     )
 
+def _parent_slot_metadata(
+    workspace: ResonantWorkspace, path: str, packet: Mapping[str, Any],
+) -> tuple[dict[str, Any], np.ndarray]:
+    coefficients = _as_f64(packet["coefficients"], name=f"parent register {path} coefficients")
+    if coefficients.ndim != 2 or coefficients.shape[1] != PARENT_SUMMARY_WIDTH:
+        raise ResonantNumericalError(f"parent register {path} has the wrong shape")
+    values = coefficients[0].copy()
+    metadata: dict[str, Any] = {
+        "schema": PARENT_REGISTER_SCHEMA,
+        "layout": PARENT_REGISTER_LAYOUT,
+        "path": path,
+        "basis": HELICAL_PACKET_BASIS,
+        "basis_sha256": str(packet["basis_sha256"]),
+        "support": dict(packet["support"]),
+        "source_state_sha256": workspace.state_sha256,
+        "source_packet_sha256": str(packet["packet_sha256"]),
+    }
+    metadata["summary_sha256"] = _parent_register_digest(metadata, values)
+    return metadata, values
+
+
+def _parent_relation(
+    source_state_sha256: str,
+    captures: Mapping[str, tuple[Mapping[str, Any], np.ndarray]],
+    parent_path: str,
+    child_path: str,
+) -> dict[str, Any]:
+    if parent_path != "L" or child_path != "LL":
+        raise ResonantNumericalError("only the declared L to LL relation is supported")
+    if parent_path not in captures or child_path not in captures:
+        raise ResonantNumericalError("an ancestry relation requires both same-source captures")
+    parent, child = captures[parent_path][0], captures[child_path][0]
+    parent_support, child_support = parent["support"], child["support"]
+    path_prefix = child_path.startswith(parent_path)
+    support_contained = (
+        int(parent_support["start"]) <= int(child_support["start"])
+        and int(child_support["stop"]) <= int(parent_support["stop"])
+    )
+    if parent["source_state_sha256"] != source_state_sha256 or child["source_state_sha256"] != source_state_sha256:
+        raise ResonantNumericalError("ancestry captures do not share the pre-write source digest")
+    if not path_prefix or not support_contained:
+        raise ResonantNumericalError("ancestry path prefix/support containment is not proven")
+    capture_group = _canonical_sha256({
+        "source_state_sha256": source_state_sha256,
+        "captures": {
+            path: {"source_packet_sha256": captures[path][0]["source_packet_sha256"], "support": captures[path][0]["support"]}
+            for path in sorted(captures)
+        },
+    })
+    relation = {
+        "parent_path": parent_path,
+        "child_path": child_path,
+        "source_state_sha256": source_state_sha256,
+        "capture_group_sha256": capture_group,
+        "parent_support": dict(parent_support),
+        "child_support": dict(child_support),
+        "support_contained": True,
+        "path_prefix": True,
+    }
+    relation["relation_sha256"] = _canonical_sha256({
+        key: relation[key] for key in (
+            "parent_path", "child_path", "source_state_sha256",
+            "capture_group_sha256", "parent_support", "child_support",
+            "support_contained", "path_prefix",
+        )
+    })
+    return relation
+
+
+def write_parent_registers(
+    workspace: ResonantWorkspace,
+    *,
+    paths: Sequence[str] = PARENT_REGISTER_PATHS,
+    ancestry_pairs: Sequence[Sequence[str]] = (),
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Atomically capture bounded L/LL registers from one pre-write field state."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    if _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    ) is not None:
+        raise ResonantNumericalError(
+            "parent register write is locked while a frozen parent is active"
+        )
+    if isinstance(paths, (str, bytes)):
+        raise ResonantNumericalError("parent register paths must be a sequence")
+    requested = tuple(_validate_parent_register_path(path) for path in paths)
+    if not requested or len(set(requested)) != len(requested):
+        raise ResonantNumericalError("parent register paths must be nonempty and unique")
+    existing, existing_relations = _parent_register_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if any(path in existing for path in requested):
+        raise ResonantNumericalError("parent register path is already active")
+    source_state_sha256 = workspace.state_sha256
+    captures: dict[str, tuple[Mapping[str, Any], np.ndarray]] = {}
+    for path in requested:
+        packet = analyze_helical_packet(workspace, path=path)
+        captures[path] = _parent_slot_metadata(workspace, path, packet)
+    relations: list[Mapping[str, Any]] = list(existing_relations)
+    for pair in ancestry_pairs:
+        if isinstance(pair, (str, bytes)) or len(pair) != 2:
+            raise ResonantNumericalError("ancestry pair must contain exactly two paths")
+        parent_path, child_path = (_validate_parent_register_path(value) for value in pair)
+        if parent_path not in requested or child_path not in requested:
+            raise ResonantNumericalError("ancestry pair paths must be captured in this write")
+        relations.append(_parent_relation(source_state_sha256, captures, parent_path, child_path))
+    slots: dict[str, Mapping[str, Any]] = {}
+    for path, metadata in existing.items():
+        if metadata["layout"] == PARENT_REGISTER_LAYOUT:
+            slots[path] = metadata
+        else:
+            values = _parent_register_values(workspace._field, workspace.profile.port_count, path)
+            if values is None:
+                raise ResonantNumericalError("active parent register has no values")
+            converted = dict(metadata)
+            converted["schema"] = PARENT_REGISTER_SCHEMA
+            converted["layout"] = PARENT_REGISTER_LAYOUT
+            converted["summary_sha256"] = _parent_register_digest(converted, values)
+            slots[path] = converted
+    page = workspace._field
+    for path in requested:
+        metadata, values = captures[path]
+        slots[path] = metadata
+        page = _parent_register_page_write(page, workspace.profile.port_count, path, values)
+    transition = dict(workspace.layout_transition)
+    transition[PARENT_REGISTER_METADATA_KEY] = {
+        "schema": PARENT_REGISTER_SCHEMA,
+        "layout": PARENT_REGISTER_LAYOUT,
+        "slots": {path: slots[path] for path in sorted(slots)},
+        "relations": [dict(relation) for relation in relations],
+    }
+    successor = workspace._copy(field_page=page, layout_transition=transition)
+    return successor, {
+        "schema": "cassifi.parent-register-write.v1",
+        "paths": list(requested),
+        "source_state_sha256": source_state_sha256,
+        "successor_state_sha256": successor.state_sha256,
+        "slots": {
+            path: {
+                "source_packet_sha256": captures[path][0]["source_packet_sha256"],
+                "summary_sha256": captures[path][0]["summary_sha256"],
+                "values": captures[path][1].tolist(),
+            }
+            for path in requested
+        },
+        "relations": [dict(relation) for relation in relations if relation not in existing_relations],
+        "successor_is_distinct": workspace.state_sha256 != successor.state_sha256,
+    }
+def recompute_parent_summary_from_child(
+    workspace: ResonantWorkspace,
+    *,
+    expected_source_state_sha256: str | None = None,
+    expected_relation_sha256: str | None = None,
+    expected_child_packet_sha256: str | None = None,
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Recompute canonical L summary from the live LL child state."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    if _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    ) is not None:
+        raise ResonantNumericalError(
+            "parent recompute is locked while a frozen parent is active"
+        )
+    registers, relations = _parent_register_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if set(registers) != set(PARENT_REGISTER_PATHS) or not any(
+        relation.get("parent_path") == "L" and relation.get("child_path") == "LL"
+        for relation in relations
+    ):
+        raise ResonantNumericalError(
+            "parent recompute requires an active L to LL relation"
+        )
+    source_state_sha256 = workspace.state_sha256
+    if expected_source_state_sha256 is not None and expected_source_state_sha256 != source_state_sha256:
+        raise ResonantNumericalError("parent recompute source state digest is stale")
+    current_relation = next(
+        relation for relation in relations
+        if relation.get("parent_path") == "L" and relation.get("child_path") == "LL"
+    )
+    if expected_relation_sha256 is not None and expected_relation_sha256 != current_relation["relation_sha256"]:
+        raise ResonantNumericalError("parent recompute relation digest is stale")
+    captures: dict[str, tuple[dict[str, Any], np.ndarray]] = {}
+    for path in PARENT_REGISTER_PATHS:
+        packet = analyze_helical_packet(workspace, path=path)
+        if path == "LL" and expected_child_packet_sha256 is not None and expected_child_packet_sha256 != packet["packet_sha256"]:
+            raise ResonantNumericalError("parent recompute child packet digest is stale")
+        captures[path] = _parent_slot_metadata(workspace, path, packet)
+    relation = _parent_relation(source_state_sha256, captures, "L", "LL")
+    page = workspace._field
+    slots: dict[str, Mapping[str, Any]] = {}
+    for path in PARENT_REGISTER_PATHS:
+        metadata, values = captures[path]
+        slots[path] = metadata
+        page = _parent_register_page_write(page, workspace.profile.port_count, path, values)
+    transition = dict(workspace.layout_transition)
+    transition[PARENT_REGISTER_METADATA_KEY] = {
+        "schema": PARENT_REGISTER_SCHEMA,
+        "layout": PARENT_REGISTER_LAYOUT,
+        "slots": {path: slots[path] for path in sorted(slots)},
+        "relations": [dict(item) for item in relations if item != current_relation]
+        + [relation],
+    }
+    successor = workspace._copy(field_page=page, layout_transition=transition)
+    return successor, {
+        "schema": "cassifi.parent-child-summary-recompute.v1",
+        "parent_path": "L",
+        "child_path": "LL",
+        "source_state_sha256": source_state_sha256,
+        "previous_source_state_sha256": current_relation["source_state_sha256"],
+        "source_packet_sha256": slots["L"]["source_packet_sha256"],
+        "child_packet_sha256": slots["LL"]["source_packet_sha256"],
+        "relation_sha256": relation["relation_sha256"],
+        "previous_relation_sha256": current_relation["relation_sha256"],
+        "summary_sha256": slots["L"]["summary_sha256"],
+        "summary": [float(value) for value in captures["L"][1]],
+        "child": [float(value) for value in captures["LL"][1]],
+        "successor_state_sha256": successor.state_sha256,
+        "successor_is_distinct": successor.state_sha256 != workspace.state_sha256,
+    }
+
+
+def read_parent_register(workspace: ResonantWorkspace, path: str) -> Mapping[str, Any]:
+    """Read one canonical register without recomputing its live packet."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    path = _validate_parent_register_path(path)
+    values = _parent_register_values(workspace._field, workspace.profile.port_count, path)
+    metadata = workspace.layout_transition.get(PARENT_REGISTER_METADATA_KEY)
+    if values is None:
+        if isinstance(metadata, Mapping) and (
+            path == "L" and set(metadata) == {
+                "schema", "layout", "path", "basis", "basis_sha256", "support",
+                "source_state_sha256", "source_packet_sha256", "summary_sha256",
+            }
+        ):
+            raise ResonantNumericalError("parent summary provenance has no register")
+        return {
+            "schema": "cassifi.parent-register-read.v1",
+            "present": False, "path": path, "layout": PARENT_REGISTER_LAYOUT,
+            "values": None, "summary_sha256": None,
+        }
+    registers, _relations = _parent_register_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if path not in registers:
+        raise ResonantNumericalError("parent register provenance is missing")
+    item = registers[path]
+    return {
+        "schema": "cassifi.parent-register-read.v1",
+        "present": True, "path": path, "layout": item["layout"],
+        "basis": item["basis"], "basis_sha256": item["basis_sha256"],
+        "support": dict(item["support"]),
+        "source_state_sha256": item["source_state_sha256"],
+        "source_packet_sha256": item["source_packet_sha256"],
+        "summary_sha256": item["summary_sha256"], "values": values.tolist(),
+    }
+
+
+def read_parent_registers(workspace: ResonantWorkspace) -> Mapping[str, Any]:
+    """Read the bounded canonical map, including only active slots."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    _registers, relations = _parent_register_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    return {
+        "schema": "cassifi.parent-register-map-read.v1",
+        "layout": PARENT_REGISTER_LAYOUT,
+        "slots": {path: dict(read_parent_register(workspace, path)) for path in PARENT_REGISTER_PATHS
+                  if _parent_register_values(workspace._field, workspace.profile.port_count, path) is not None},
+        "relations": [dict(relation) for relation in relations],
+    }
+
+
+def write_parent_summary(
+    workspace: ResonantWorkspace,
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Compatibility adapter retaining the frozen legacy L-register contract."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    if _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    ) is not None:
+        raise ResonantNumericalError(
+            "parent summary write is locked while a frozen parent is active"
+        )
+    if _parent_summary_values(workspace._field, workspace.profile.port_count) is not None:
+        raise ResonantNumericalError("parent summary register is already active")
+    packet = analyze_helical_packet(workspace, path=PARENT_SUMMARY_PATH)
+    coefficients = _as_f64(packet["coefficients"], name="parent summary packet coefficients")
+    if coefficients.ndim != 2 or coefficients.shape[1] != PARENT_SUMMARY_WIDTH:
+        raise ResonantNumericalError("level-zero parent summary has the wrong shape")
+    values = coefficients[0].copy()
+    metadata: dict[str, Any] = {
+        "schema": PARENT_SUMMARY_REGISTER_SCHEMA, "layout": PARENT_SUMMARY_LAYOUT,
+        "path": PARENT_SUMMARY_PATH, "basis": HELICAL_PACKET_BASIS,
+        "basis_sha256": str(packet["basis_sha256"]), "support": dict(packet["support"]),
+        "source_state_sha256": workspace.state_sha256,
+        "source_packet_sha256": str(packet["packet_sha256"]),
+    }
+    metadata["summary_sha256"] = _parent_summary_digest(metadata, values)
+    transition = dict(workspace.layout_transition)
+    transition[PARENT_SUMMARY_METADATA_KEY] = metadata
+    successor = workspace._copy(
+        field_page=_parent_summary_page_write(workspace._field, workspace.profile.port_count, values),
+        layout_transition=transition,
+    )
+    active_digest = _canonical_sha256(_state_vector(workspace).tolist())
+    return successor, {
+        "schema": "cassifi.parent-summary-write.v1", "path": PARENT_SUMMARY_PATH,
+        "layout": PARENT_SUMMARY_LAYOUT, "source_state_sha256": workspace.state_sha256,
+        "successor_state_sha256": successor.state_sha256,
+        "source_packet_sha256": metadata["source_packet_sha256"],
+        "summary_sha256": metadata["summary_sha256"], "summary": values.tolist(),
+        "active_vector_sha256_before": active_digest,
+        "active_vector_sha256_after": _canonical_sha256(_state_vector(successor).tolist()),
+        "successor_is_distinct": workspace.state_sha256 != successor.state_sha256,
+    }
+
+
+def read_parent_summary(workspace: ResonantWorkspace) -> Mapping[str, Any]:
+    """Read only the stored legacy-compatible L register."""
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    values = _parent_summary_values(workspace._field, workspace.profile.port_count)
+    metadata = workspace.layout_transition.get(PARENT_SUMMARY_METADATA_KEY)
+    if values is None:
+        if metadata is not None:
+            raise ResonantNumericalError("parent summary provenance has no register")
+        return {"schema": "cassifi.parent-summary-read.v1", "present": False,
+                "path": PARENT_SUMMARY_PATH, "layout": PARENT_SUMMARY_LAYOUT,
+                "values": None, "summary_sha256": None}
+    if isinstance(metadata, Mapping) and set(metadata) == {
+        "schema", "layout", "slots", "relations",
+    }:
+        item = metadata["slots"].get(PARENT_SUMMARY_PATH)
+        if item is None:
+            raise ResonantNumericalError("parent summary provenance is missing")
+        _parent_register_metadata(item, port_count=workspace.profile.port_count, values=values)
+    else:
+        if not isinstance(metadata, Mapping):
+            raise ResonantNumericalError("parent summary provenance is missing")
+        _parent_summary_metadata(metadata, port_count=workspace.profile.port_count, values=values)
+        item = metadata
+    return {"schema": "cassifi.parent-summary-read.v1", "present": True,
+            "path": PARENT_SUMMARY_PATH, "layout": PARENT_SUMMARY_LAYOUT,
+            "basis": item["basis"], "basis_sha256": item["basis_sha256"],
+            "support": dict(item["support"]), "source_state_sha256": item["source_state_sha256"],
+            "source_packet_sha256": item["source_packet_sha256"],
+            "summary_sha256": item["summary_sha256"], "values": values.tolist()}
+
 
 def helical_packet_channels(packet: Mapping[str, Any]) -> np.ndarray:
     """Reconstruct the four declared phase-space channels for one packet."""
@@ -1010,10 +2017,18 @@ def _packet_momentum_direction(
 class _WaveOperator:
     """One batch-local operator; only scoped matrices and sparse rail edges persist here."""
 
-    def __init__(self, workspace: ResonantWorkspace, problem: ResonantProblem | None, *, device: str | None = None) -> None:
+    def __init__(
+        self,
+        workspace: ResonantWorkspace,
+        problem: ResonantProblem | None,
+        *,
+        device: str | None = None,
+        resources: Any = None,
+    ) -> None:
         self.profile = workspace.profile
         self.n = workspace.profile.port_count
         self.device = device
+        self.resources = resources
         self.applications = 0
         n = self.n
         self.edges = workspace.profile.edges
@@ -1097,11 +2112,6 @@ class _WaveOperator:
         self.absolute_k = abs(self.k)
         self.absolute_b = abs(self.b)
         self.absolute_inv_mass = abs(self.inv_mass)
-        if device is not None:
-            # Device Newton solves batch the whole field; bound their explicit Jacobian storage.
-            if (4 * n) ** 2 * 8 * 4 > 128 * 1024 * 1024:
-                raise ResonantNumericalError("GPU Newton matrix exceeds the declared 128 MiB working allowance")
-            self.identity = torch.eye(4 * n, dtype=torch.float64, device=device)
 
     def array(self, value: Any, *, integer: bool = False) -> Any:
         if self.device is None:
@@ -1254,7 +2264,9 @@ class _WaveOperator:
             if self.norm(residual) <= max(tolerance, rounding):
                 break
             def jacobian(value: Any) -> Any:
-                return value - duration * self.flow(self.derivative(before, candidate, value, quiet), quiet)
+                return value - duration * self.flow(
+                    self.derivative(before, candidate, value, quiet), quiet
+                )
             if self.device is None:
                 operator = LinearOperator((len(before), len(before)), matvec=jacobian, dtype=np.float64)
                 delta, info = gmres(operator, residual, atol=tolerance * 0.05, rtol=1e-10,
@@ -1262,7 +2274,15 @@ class _WaveOperator:
                 if info != 0:
                     raise ResonantNumericalError("bounded matrix-free Newton solve exhausted")
             else:
-                delta = torch.linalg.solve(jacobian(self.identity), residual)
+                delta, gmres_residual, _applications = _torch_gmres(
+                    jacobian,
+                    residual,
+                    tolerance=tolerance,
+                    restart=min(8, len(before)),
+                    max_restarts=8,
+                )
+                if gmres_residual > max(tolerance * 0.05, 1e-11):
+                    raise ResonantNumericalError("bounded GPU matrix-free Newton solve exhausted")
             candidate -= delta
         else:
             raise ResonantNumericalError("bounded nonlinear solve exhausted")
@@ -1603,6 +2623,137 @@ def apply_helical_packet_impulse(
         "source_state_sha256": workspace.state_sha256,
         "state_sha256": result.state_sha256,
     }
+def apply_live_child_detail_to_parent(
+    workspace: ResonantWorkspace,
+    *,
+    work_budget: float,
+    parent_enabled: bool = True,
+    expected_child_source_state_sha256: str | None = None,
+    expected_child_packet_sha256: str | None = None,
+    expected_relation_sha256: str | None = None,
+    event_kind: str = "reasoning-work",
+) -> tuple[ResonantWorkspace, Mapping[str, Any]]:
+    """Apply the live LL top-detail momentum to the native L scale mode.
+
+    The child detail is read from the current field at invocation time.  It is
+    deliberately not retained as a frozen descriptor, and this transition
+    never rewrites the canonical parent register; callers may explicitly use
+    :func:`recompute_parent_summary_from_child` afterward.
+    """
+    if not isinstance(workspace, ResonantWorkspace):
+        raise TypeError("workspace must be ResonantWorkspace")
+    if _frozen_parent_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    ) is not None:
+        raise ResonantNumericalError(
+            "child detail to parent transition is locked while a frozen parent is active"
+        )
+    registers, relations = _parent_register_transition(
+        workspace._field, workspace.profile.port_count, workspace.layout_transition
+    )
+    if set(registers) != set(PARENT_REGISTER_PATHS):
+        raise ResonantNumericalError(
+            "child detail to parent requires active L and LL registers"
+        )
+    relation = next(
+        (
+            item for item in relations
+            if item.get("parent_path") == "L" and item.get("child_path") == "LL"
+        ),
+        None,
+    )
+    if relation is None:
+        raise ResonantNumericalError(
+            "child detail to parent requires an active L to LL relation"
+        )
+    source_state_sha256 = workspace.state_sha256
+    if (
+        expected_child_source_state_sha256 is not None
+        and expected_child_source_state_sha256 != source_state_sha256
+    ):
+        raise ResonantNumericalError("child detail source state digest is stale")
+    if (
+        expected_relation_sha256 is not None
+        and expected_relation_sha256 != relation["relation_sha256"]
+    ):
+        raise ResonantNumericalError("child detail relation digest is stale")
+    packet = analyze_helical_packet(workspace, path="LL")
+    if (
+        expected_child_packet_sha256 is not None
+        and expected_child_packet_sha256 != packet["packet_sha256"]
+    ):
+        raise ResonantNumericalError("child detail packet digest is stale")
+    coefficients = _as_f64(packet["coefficients"], name="LL child packet coefficients")
+    if coefficients.ndim != 2 or coefficients.shape[0] <= LIVE_CHILD_DETAIL_MODE_INDEX:
+        raise ResonantNumericalError("LL child packet has no top detail mode")
+    channel_start, channel_stop = LIVE_CHILD_DETAIL_CHANNEL_SLICE
+    feedback_signal = coefficients[
+        LIVE_CHILD_DETAIL_MODE_INDEX, channel_start:channel_stop
+    ].copy()
+    _finite(feedback_signal, "LL child detail momentum channels")
+    budget = float(work_budget)
+    if (
+        isinstance(work_budget, bool)
+        or not isinstance(work_budget, (int, float))
+        or not math.isfinite(budget)
+        or not 0.0 <= budget <= 1.0
+    ):
+        raise ResonantNumericalError("work_budget must be finite and in [0,1]")
+    if event_kind not in _FIELD_EVENT_KINDS:
+        raise ResonantNumericalError("event_kind is not a supported field event")
+    if parent_enabled:
+        successor, impulse = apply_helical_packet_impulse(
+            workspace,
+            path="L",
+            component="scale",
+            flow_signal=feedback_signal.tolist(),
+            work_budget=budget,
+            evidence_tick=workspace.evidence_tick,
+            event_kind=event_kind,
+        )
+    else:
+        successor = workspace
+        operator = _WaveOperator(workspace, None)
+        energy = float(operator.energy_gradient(_state_vector(workspace))[0])
+        impulse = {
+            "schema": "cassifi.resonant-helical-packet-impulse.v1",
+            "accepted": False,
+            "requested_work": budget,
+            "applied_work": 0.0,
+            "start_energy": energy,
+            "end_energy": energy,
+            "balance_defect": 0.0,
+            "energy_roundoff_allowance": 1e-12,
+            "source_state_sha256": workspace.state_sha256,
+            "state_sha256": workspace.state_sha256,
+        }
+    return successor, {
+        "schema": LIVE_CHILD_DETAIL_TO_PARENT_SCHEMA,
+        "accepted": bool(parent_enabled and impulse["accepted"]),
+        "parent_enabled": bool(parent_enabled),
+        "parent_path": "L",
+        "child_path": "LL",
+        "restriction": {
+            "child_mode_index": LIVE_CHILD_DETAIL_MODE_INDEX,
+            "child_mode": "LL:detail",
+            "child_channels": ["momentum-common", "momentum-counterflow"],
+            "parent_component": "L:scale",
+        },
+        "child_source_state_sha256": source_state_sha256,
+        "child_packet_sha256": str(packet["packet_sha256"]),
+        "relation_sha256": str(relation["relation_sha256"]),
+        "feedback_signal": feedback_signal.tolist(),
+        "requested_work": budget,
+        "applied_work": float(impulse["applied_work"]),
+        "balance_defect": float(impulse["balance_defect"]),
+        "energy_roundoff_allowance": float(impulse["energy_roundoff_allowance"]),
+        "start_energy": float(impulse["start_energy"]),
+        "end_energy": float(impulse["end_energy"]),
+        "impulse": dict(impulse),
+        "source_state_sha256": workspace.state_sha256,
+        "state_sha256": successor.state_sha256,
+        "successor_is_distinct": successor.state_sha256 != workspace.state_sha256,
+    }
 
 
 def score_pool_probes(
@@ -1725,10 +2876,6 @@ def score_pool_probes(
     return {
         "schema": "cassifi.resonant-pool-probe-scores.v1",
         "workspace_state_sha256": before_sha256,
-        "field_ticks": workspace.field_ticks,
-        "evidence_tick": workspace.evidence_tick,
-        "heartbeat_phase": phase,
-        "metric": "normalized-common-phase-space-energy-projection-v1",
         "reference_norm": reference_norm,
         "scores": rows,
         "workspace_unchanged": True,
@@ -1738,7 +2885,7 @@ def score_pool_probes(
 
 def _advance(workspace: ResonantWorkspace, *, problem: ResonantProblem | None, ticks: int, demand: float,
              source_enabled: bool, quiet: bool, max_iterations: int, tolerance: float | None,
-             device: str | None = None) -> tuple[ResonantWorkspace, dict[str, Any]]:
+             device: str | None = None, resources: Any = None) -> tuple[ResonantWorkspace, dict[str, Any]]:
     if not isinstance(workspace, ResonantWorkspace):
         raise TypeError("workspace must be ResonantWorkspace")
     if isinstance(ticks, bool) or not isinstance(ticks, int) or not 0 <= ticks <= 4096:
@@ -1755,7 +2902,7 @@ def _advance(workspace: ResonantWorkspace, *, problem: ResonantProblem | None, t
     tol = profile.tolerance if tolerance is None else min(profile.tolerance, float(tolerance))
     if not math.isfinite(tol) or tol <= 0:
         raise ResonantNumericalError("tolerance must be finite and positive")
-    operator = _WaveOperator(workspace, problem, device=device)
+    operator = _WaveOperator(workspace, problem, device=device, resources=resources)
     z = operator.array(_state_vector(workspace))
     current_energy = operator.energy_gradient(z)[0]
     start_energy = float(workspace.ledger.get("stored_energy", current_energy))
@@ -1837,18 +2984,17 @@ def _advance(workspace: ResonantWorkspace, *, problem: ResonantProblem | None, t
                "start_energy": start_energy, "end_energy": end_energy, **increments,
                "maximum_residual_norm": max_residual, "subdivisions": subdivisions,
                "nonlinear_iterations": iterations, "operator_applications": operator.applications,
-               "source_enabled": bool(source_enabled and not quiet), "pump_energy_ceiling": 1e12,
-               "integration": "projected-backward-euler-quiet-v1" if quiet else profile.integration,
-               "arithmetic": "numpy-matrix-free-float64" if device is None else "torch-batched-float64",
+               "arithmetic": "numpy-matrix-free-float64" if device is None else "torch-matrix-free-float64",
                "device": "cpu" if device is None else device, "state_sha256": result.state_sha256}
     return result, receipt
 
 
 def advance_workspace(workspace: ResonantWorkspace, *, problem: ResonantProblem | None = None, ticks: int = 1,
                       demand: float = 0.0, source_enabled: bool = True, quiet: bool = False,
-                      max_iterations: int = 32, tolerance: float | None = None) -> tuple[ResonantWorkspace, dict[str, Any]]:
+                      max_iterations: int = 32, tolerance: float | None = None,
+                      resources: Any = None) -> tuple[ResonantWorkspace, dict[str, Any]]:
     return _advance(workspace, problem=problem, ticks=ticks, demand=demand, source_enabled=source_enabled,
-                    quiet=quiet, max_iterations=max_iterations, tolerance=tolerance)
+                    quiet=quiet, max_iterations=max_iterations, tolerance=tolerance, resources=resources)
 
 def _diagnostics(workspace: ResonantWorkspace, problem: ResonantProblem | None = None) -> dict[str, Any]:
     operator = _WaveOperator(workspace, problem)
@@ -2024,6 +3170,10 @@ def measure_body_response(profile: ResonantProfile) -> Mapping[str, Any]:
 
 def _layout_successor(workspace: ResonantWorkspace, profile: ResonantProfile, vector: np.ndarray,
                       bindings: Mapping[str, Any], transition: Mapping[str, Any]) -> ResonantWorkspace:
+    if _active_parent_register_paths(workspace._field, workspace.profile.port_count):
+        raise ResonantNumericalError(
+            "resolution change rejects an active parent register map"
+        )
     empty = ResonantWorkspace(profile=profile)
     page = _page_from_state(empty, vector, heartbeat_phase=workspace.heartbeat_phase,
                             breath_phase=workspace.breath_phase, activity=workspace.activity)
@@ -2175,12 +3325,47 @@ def reduce_resolution(workspace: ResonantWorkspace, *, ports_per_pool: int,
 
 def advance_workspace_gpu(workspace: ResonantWorkspace, *, problem: ResonantProblem | None = None,
                           ticks: int = 1, demand: float = 0.0, source_enabled: bool = True,
-                          quiet: bool = False, device: str = "cuda") -> tuple[ResonantWorkspace, dict[str, Any]]:
+                          quiet: bool = False, device: str = "cuda",
+                          resources: Any = None) -> tuple[ResonantWorkspace, dict[str, Any]]:
     if not isinstance(workspace, ResonantWorkspace):
         raise TypeError("workspace must be ResonantWorkspace")
-    workspace.profile.gpu_profile(device)
-    return _advance(workspace, problem=problem, ticks=ticks, demand=demand, source_enabled=source_enabled,
-                    quiet=quiet, max_iterations=32, tolerance=None, device=device)
+    requested_device = str(device)
+    if requested_device == "auto":
+        if not torch.cuda.is_available():
+            result, receipt = advance_workspace(
+                workspace, problem=problem, ticks=ticks, demand=demand,
+                source_enabled=source_enabled, quiet=quiet, resources=resources,
+            )
+            receipt["device_requested"] = "auto"
+            receipt["device_fallback_reason"] = "CUDA unavailable; selected CPU"
+            receipt["device_reason"] = receipt["device_fallback_reason"]
+            return result, receipt
+        requested_device = "cuda"
+    # gpu_profile intentionally raises for an unavailable explicit CUDA request.
+    workspace.profile.gpu_profile(requested_device)
+    state_bytes = 4 * workspace.profile.port_count * np.dtype(np.float64).itemsize
+    # Eight Krylov vectors plus flow/derivative scratch; no N-by-N allocation.
+    scratch_bytes = state_bytes * 10
+    policy = _resource_manager(resources)
+    with _gpu_residency(policy, state_bytes=state_bytes, scratch_bytes=scratch_bytes) as manager:
+        result, receipt = _advance(
+            workspace, problem=problem, ticks=ticks, demand=demand,
+            source_enabled=source_enabled, quiet=quiet, max_iterations=32,
+            tolerance=None, device=requested_device, resources=manager,
+        )
+    receipt["device_requested"] = str(device)
+    receipt["device_fallback_reason"] = None
+    receipt["working_set_bytes"] = state_bytes + scratch_bytes
+    receipt["solver"] = "restarted-matrix-free-gmres-float64"
+    receipt["reservation"] = {
+        "resident_bytes": state_bytes,
+        "scratch_bytes": scratch_bytes,
+        "transfer_bytes": state_bytes,
+        "ram_transfer_bytes": state_bytes,
+    }
+    if manager is not None:
+        receipt["resource_report"] = manager.report()
+    return result, receipt
 
 
  
@@ -2198,15 +3383,20 @@ _REGIONAL_STATE_KEYS = frozenset({
     "subdivisions", "activity", "objective", "request", "continuation",
     "ledger", "paused", "phase", "result",
 })
+# The circulation segment is an optional overlay: a state that omits it stays
+# byte-identical to the pre-circulation regional state.
+_REGIONAL_OPTIONAL_STATE_KEYS = frozenset({"circulation"})
 _REGIONAL_TOTAL_KEYS = (
     "positive_heartbeat_work", "extracted_heartbeat_work",
     "dissipated_work", "numerical_dissipated_work", "residual_work",
     "parameter_work", "boundary_work", "balance_defect",
+    "interface_transfer_work", "circulation_parameter_work",
 )
 _REGIONAL_LOCAL_KEYS = (
     "positive_heartbeat_work", "extracted_heartbeat_work",
     "dissipated_work", "numerical_dissipated_work", "residual_work",
     "maximum_residual_norm", "nonlinear_iterations", "operator_applications",
+    "parameter_work", "interface_transfer_work",
 )
 
 
@@ -2469,7 +3659,36 @@ class _RegionalWaveOperator:
     """Disposable direct arithmetic view used by one regional kernel call."""
 
     def __init__(self, profile: Mapping[str, Any], bindings: Mapping[str, Any],
-                 objective: Mapping[str, Any] | None) -> None:
+                 objective: Mapping[str, Any] | None, *, device: str | None = None,
+                 resources: Any = None) -> None:
+        self.device = device
+        self.resources = resources
+        if device is not None:
+            try:
+                if str(device).startswith("cuda") and not torch.cuda.is_available():
+                    raise ResonantDeviceUnavailableError(
+                        f"requested device {device!r} is unavailable"
+                    )
+                torch.empty((1,), dtype=torch.float64, device=device)
+            except ResonantDeviceUnavailableError:
+                raise
+            except Exception as exc:
+                raise ResonantDeviceUnavailableError(
+                    f"requested device {device!r} is unavailable"
+                ) from exc
+        self._resource_tokens: list[Any] = []
+        if device is not None and str(device).startswith("cuda") and resources is not None:
+            manager = _resource_manager(resources)
+            state_bytes = 4 * int(profile["pools"]) * int(profile["ports_per_pool"]) * 8
+            for tier, amount, kind in (
+                ("vram", state_bytes, "resident"),
+                ("vram", state_bytes * 2, "scratch"),
+                ("vram", state_bytes, "transfer"),
+                ("ram", state_bytes, "transfer"),
+            ):
+                token = manager.reserve(tier, max(1, amount), kind=kind)
+                token.__enter__()
+                self._resource_tokens.append(token)
         self.profile = profile
         self.n = int(profile["pools"]) * int(profile["ports_per_pool"])
         self.transport = _regional_transport(profile)
@@ -2577,6 +3796,11 @@ class _RegionalWaveOperator:
         self.absolute_b = abs(self.b)
         self.absolute_inv_mass = abs(self.inv_mass)
         self.applications = 0
+
+    def close(self) -> None:
+        for token in reversed(self._resource_tokens):
+            token.__exit__(None, None, None)
+        self._resource_tokens.clear()
 
     @staticmethod
     def _multiply(matrix: np.ndarray, value: np.ndarray) -> np.ndarray:
@@ -2698,7 +3922,13 @@ class _RegionalWaveOperator:
         for iteration in range(max_iterations):
             gradient = self.energy_gradient(candidate)[1] if quiet else self.discrete_gradient(before, candidate)
             flow = self.flow(gradient, quiet)
-            residual = candidate - before - duration * flow
+            if self.device is None:
+                residual = candidate - before - duration * flow
+            else:
+                candidate_device = torch.as_tensor(candidate, dtype=torch.float64, device=self.device)
+                before_device = torch.as_tensor(before, dtype=torch.float64, device=self.device)
+                flow_device = torch.as_tensor(flow, dtype=torch.float64, device=self.device)
+                residual = (candidate_device - before_device - duration * flow_device).cpu().numpy()
             rounding = 64 * np.finfo(float).eps * (
                 float(np.max(np.abs(candidate), initial=0.0))
                 + float(np.max(np.abs(before), initial=0.0))
@@ -2709,11 +3939,24 @@ class _RegionalWaveOperator:
                 break
             def jacobian(value: np.ndarray) -> np.ndarray:
                 return value - duration * self.flow(self.derivative(before, candidate, value, quiet), quiet)
-            operator = LinearOperator((len(before), len(before)), matvec=jacobian, dtype=np.float64)
-            delta, info = gmres(operator, residual, atol=tolerance * 0.05, rtol=1e-10,
-                                restart=min(32, len(before)), maxiter=8)
-            if info != 0:
-                raise ResonantNumericalError("regional nonlinear solve exhausted")
+            if self.device is None:
+                operator = LinearOperator((len(before), len(before)), matvec=jacobian, dtype=np.float64)
+                delta, info = gmres(operator, residual, atol=tolerance * 0.05, rtol=1e-10,
+                                    restart=min(32, len(before)), maxiter=8)
+                if info != 0:
+                    raise ResonantNumericalError("regional nonlinear solve exhausted")
+            else:
+                def gpu_jacobian(value: torch.Tensor) -> torch.Tensor:
+                    cpu_value = value.detach().cpu().numpy()
+                    return torch.as_tensor(jacobian(cpu_value), dtype=torch.float64, device=self.device)
+                delta_device, gmres_residual, _applications = _torch_gmres(
+                    gpu_jacobian,
+                    torch.as_tensor(residual, dtype=torch.float64, device=self.device),
+                    tolerance=tolerance, restart=min(8, len(before)), max_restarts=8,
+                )
+                if gmres_residual > max(tolerance * 0.05, 1e-11):
+                    raise ResonantNumericalError("regional GPU matrix-free Newton solve exhausted")
+                delta = delta_device.cpu().numpy()
             candidate -= delta
         else:
             raise ResonantNumericalError("regional nonlinear solve exhausted")
@@ -2769,7 +4012,9 @@ def _regional_zero_accumulator() -> dict[str, float]:
 
 
 def _regional_validate_state(state: Any) -> None:
-    if not isinstance(state, Mapping) or set(state) != _REGIONAL_STATE_KEYS:
+    if not isinstance(state, Mapping) or not (
+        _REGIONAL_STATE_KEYS <= set(state) <= _REGIONAL_STATE_KEYS | _REGIONAL_OPTIONAL_STATE_KEYS
+    ):
         raise ResonantNumericalError("regional resonant state keys are invalid")
     if state["schema"] != REGIONAL_STATE_SCHEMA:
         raise ResonantNumericalError("regional resonant state schema is invalid")
@@ -2803,7 +4048,7 @@ def _regional_validate_state(state: Any) -> None:
         "max_iterations", "tolerance", "impulse",
     }:
         raise ResonantNumericalError("regional resonant request is invalid")
-    if request["operation"] not in {"advance", "impulse", "packet-impulse"}:
+    if request["operation"] not in {"advance", "impulse", "packet-impulse", "circulate"}:
         raise ResonantNumericalError("regional resonant request operation is invalid")
     _regional_integer(request["ticks"], "requested ticks", maximum=4096)
     _regional_number(request["demand"], "requested demand", minimum=0.0, maximum=1.0)
@@ -2871,6 +4116,9 @@ def _regional_validate_state(state: Any) -> None:
         raise ResonantNumericalError("running regional state has a result")
     if state["phase"] in {"done", "fault"} and not isinstance(state["result"], Mapping):
         raise ResonantNumericalError("terminal regional state has no result")
+    if "circulation" in state:
+        from cassi_circulation import validate_circulation
+        validate_circulation(state["circulation"])
 
 
 def regional_state(
@@ -2888,11 +4136,23 @@ def regional_state(
     tolerance: float | None = None,
     impulse: Mapping[str, Any] | None = None,
     packet_impulse: Mapping[str, Any] | None = None,
+    circulation: bool | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Lower one resonant task into JSON-safe regional data."""
+    """Lower one resonant task into JSON-safe regional data.
+
+    ``circulation`` declares the optional circulation overlay.  ``None`` (the
+    default) leaves the state byte-identical to a state without it; ``True``
+    builds a fresh enabled segment over this state's wave words, so the field
+    machine runs one bounded circulation unit as each tick completes;
+    a mapping is carried as the caller's own segment after validation.
+    """
     workspace: ResonantWorkspace | None = source if isinstance(source, ResonantWorkspace) else None
     if workspace is not None:
         selected_profile = _regional_profile_data(workspace.profile)
+        if _active_parent_register_paths(workspace._field, workspace.profile.port_count):
+            raise ResonantNumericalError(
+                "regional serialization rejects an active parent register map"
+            )
         words = _state_vector(workspace).tolist()
         selected_bindings = _jsonable(workspace.bindings)
         phases = {
@@ -2952,6 +4212,7 @@ def regional_state(
         "positive_heartbeat_work": 0.0,
         "extracted_heartbeat_work": 0.0,
         "dissipated_work": 0.0,
+        "interface_transfer_work": 0.0,
         "numerical_dissipated_work": 0.0,
         "residual_work": 0.0,
         "parameter_work": 0.0,
@@ -2995,6 +4256,18 @@ def regional_state(
         "continuation": continuation, "ledger": ledger, "paused": bool(paused),
         "phase": "running", "result": None,
     }
+    if circulation is not None:
+        if isinstance(circulation, bool):
+            if circulation:
+                from cassi_circulation import initial_circulation
+                state["circulation"] = initial_circulation(
+                    selected_profile, enabled=True, words=list(words),
+                )
+        else:
+            from cassi_circulation import validate_circulation
+            segment = json.loads(_regional_canonical(dict(circulation)).decode("utf-8"))
+            validate_circulation(segment)
+            state["circulation"] = segment
     state = json.loads(_regional_canonical(state).decode("utf-8"))
     _regional_validate_state(state)
     return state
@@ -3063,12 +4336,20 @@ def resume_regional_state(
     tolerance: float | None = None,
     impulse: Mapping[str, Any] | None = None,
     packet_impulse: Mapping[str, Any] | None = None,
+    circulation: bool | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Start one operation from a validated owned regional successor."""
+    """Start one operation from a validated owned regional successor.
+
+    ``circulation`` defaults to carrying the source's segment, so a continuing
+    task keeps its interfaces; ``False`` drops it and ``True`` rebuilds it.
+    """
 
     current = json.loads(_regional_canonical(dict(source)).decode("utf-8"))
     workspace = workspace_from_regional_state(
         current, require_complete=True
+    )
+    carried = current.get("circulation") if circulation is None else (
+        None if circulation is False else circulation
     )
     return regional_state(
         workspace,
@@ -3082,6 +4363,7 @@ def resume_regional_state(
         tolerance=tolerance,
         impulse=impulse,
         packet_impulse=packet_impulse,
+        circulation=carried,
     )
 
 
@@ -3130,6 +4412,21 @@ def _regional_prepare(state: dict[str, Any], operator: _RegionalWaveOperator) ->
     state["continuation"] = continuation
 
 
+def _regional_rebase_trial(state: dict[str, Any]) -> None:
+    """Re-base the in-tick working state onto the owned field words.
+
+    A circulation unit transforms the field itself, so the integration that
+    follows must start from the exchanged words rather than from the words the
+    tick was prepared with; otherwise the exchange is integrated away.
+    """
+
+    continuation = dict(state["continuation"])
+    values = list(state["wave_words"]["values"])
+    continuation["base_wave_words"] = list(values)
+    continuation["trial_wave_words"] = list(values)
+    state["continuation"] = continuation
+
+
 def _regional_finish_tick(state: dict[str, Any], profile: Mapping[str, Any]) -> None:
     continuation = dict(state["continuation"])
     phases = dict(state["phases"])
@@ -3161,6 +4458,37 @@ def _regional_finish_tick(state: dict[str, Any], profile: Mapping[str, Any]) -> 
     state["continuation"] = continuation
 
 
+def _regional_circulation_stage(state: dict[str, Any], operator: _RegionalWaveOperator,
+                                *, passes: int, quantum: int = 1) -> dict[str, Any] | None:
+    """Run bounded circulation units and roll their work into the task ledger.
+
+    Returns ``None`` when the state declares no circulation segment.  Every
+    accepted exchange charges its *measured* energy change to
+    ``interface_transfer_work``, so the regional balance closes on the same
+    identity that covers the integration itself; the second-order remainder of
+    the exchange's linearisation is a quality measure of that measurement, not
+    a further energy, and stays visible on the segment ledger and in each unit
+    receipt instead of being charged a second time.
+    """
+    segment = state.get("circulation")
+    if segment is None or not bool(segment["enabled"]):
+        return None
+    from cassi_circulation import circulation_stage
+    continuation = dict(state["continuation"])
+    totals = dict(continuation["totals"])
+    transfer_before = float(segment["ledger"]["interface_transfer_work"])
+    parameter_before = float(segment["ledger"]["parameter_work"])
+    applications_before = int(operator.applications)
+    report = circulation_stage(state, quantum=quantum, passes=int(passes), operator=operator)
+    ledger = segment["ledger"]
+    totals["interface_transfer_work"] += float(ledger["interface_transfer_work"]) - transfer_before
+    totals["circulation_parameter_work"] += float(ledger["parameter_work"]) - parameter_before
+    totals["operator_applications"] += max(0, int(operator.applications) - applications_before)
+    continuation["totals"] = totals
+    state["continuation"] = continuation
+    return report
+
+
 def _regional_finalize(state: dict[str, Any], operator: _RegionalWaveOperator,
                        executed: int) -> field_regions.KernelResult:
     continuation = state["continuation"]
@@ -3168,8 +4496,9 @@ def _regional_finalize(state: dict[str, Any], operator: _RegionalWaveOperator,
     end_energy = operator.energy_gradient(values)[0]
     totals = continuation["totals"]
     defect = (
-        end_energy - continuation["start_energy"] - totals["parameter_work"]
-        - totals["boundary_work"] - totals["positive_heartbeat_work"]
+        end_energy - continuation["recorded_start_energy"] - totals["parameter_work"]
+        - totals["boundary_work"] - totals["interface_transfer_work"]
+        - totals["positive_heartbeat_work"]
         + totals["extracted_heartbeat_work"] + totals["dissipated_work"]
         + totals["numerical_dissipated_work"] - totals["residual_work"]
     )
@@ -3201,8 +4530,10 @@ def _regional_finalize(state: dict[str, Any], operator: _RegionalWaveOperator,
         "dissipated_work": float(totals["dissipated_work"]),
         "numerical_dissipated_work": float(totals["numerical_dissipated_work"]),
         "residual_work": float(totals["residual_work"]),
-        "parameter_work": float(totals["parameter_work"]),
         "boundary_work": float(totals["boundary_work"]),
+        "parameter_work": float(totals["parameter_work"]),
+        "interface_transfer_work": float(totals["interface_transfer_work"]),
+        "circulation_parameter_work": float(totals["circulation_parameter_work"]),
         "balance_defect": float(defect),
         "energy_roundoff_allowance": float(allowance),
         "output_allowance": float(allowance),
@@ -3213,9 +4544,13 @@ def _regional_finalize(state: dict[str, Any], operator: _RegionalWaveOperator,
         "maximum_residual_norm": float(totals["maximum_residual_norm"]),
         "source_enabled": bool(state["request"]["source_enabled"] and not state["request"]["quiet"]),
         "integration": "projected-backward-euler-quiet-v1" if state["request"]["quiet"] else str(state["profile"]["integration"]),
-        "arithmetic": "numpy-matrix-free-float64",
+        "arithmetic": "torch-regional-float64" if operator.device is not None else "numpy-matrix-free-float64",
+        "device": "cpu" if operator.device is None else str(operator.device),
         "reason": "completed",
     }
+    if "circulation" in state:
+        from cassi_circulation import circulation_readout
+        result["circulation"] = circulation_readout(state["circulation"])
     state["phase"] = "done"
     state["result"] = result
     return field_regions.KernelResult(state=state, status="done", work=max(0, executed), output=result)
@@ -3481,45 +4816,104 @@ def regional_kernel(state: Any, arguments: Mapping[str, Any], quantum: int) -> f
     if not isinstance(arguments, Mapping):
         raise ResonantNumericalError("regional resonant arguments must be a mapping")
     request = dict(current["request"])
+    requested_device = arguments.get("device")
+    resource_limits = arguments.get("resource_limits", arguments.get("resources"))
+    if requested_device == "auto":
+        requested_device = "cuda" if torch.cuda.is_available() else None
+    if requested_device is not None and requested_device != "cpu":
+        if not str(requested_device).startswith("cuda"):
+            raise ResonantNumericalError("regional device must be 'cpu', 'cuda', or 'auto'")
+        if not torch.cuda.is_available():
+            raise ResonantDeviceUnavailableError(
+                f"requested device {requested_device!r} is unavailable"
+            )
     if arguments:
         operation = arguments.get("operation", arguments.get("op"))
-        if operation not in {"impulse", "packet-impulse"}:
+        if operation not in {"impulse", "packet-impulse", "circulate"}:
             raise ResonantNumericalError(
-                "regional resonant kernel accepts impulse operations only"
+                "regional resonant kernel accepts impulse and circulate operations only"
             )
-        keys = (
-            ("pool_signal", "work_budget", "evidence_tick", "event_kind")
-            if operation == "impulse"
-            else (
-                "path", "component", "flow_signal", "work_budget",
-                "evidence_tick", "event_kind",
+        if operation == "circulate":
+            current["request"] = {
+                **request,
+                "operation": "circulate",
+                "impulse": None,
+                "ticks": _regional_integer(
+                    arguments.get("ticks", arguments.get("passes", request["ticks"])),
+                    "circulation passes", maximum=4096,
+                ),
+            }
+            request = current["request"]
+        else:
+            keys = (
+                ("pool_signal", "work_budget", "evidence_tick", "event_kind")
+                if operation == "impulse"
+                else (
+                    "path", "component", "flow_signal", "work_budget",
+                    "evidence_tick", "event_kind",
+                )
             )
-        )
-        impulse = {key: arguments[key] for key in keys if key in arguments}
-        current["request"] = {
-            **request,
-            "operation": operation,
-            "impulse": impulse,
-        }
-        request = current["request"]
+            impulse = {key: arguments[key] for key in keys if key in arguments}
+            current["request"] = {
+                **request,
+                "operation": operation,
+                "impulse": impulse,
+            }
+            request = current["request"]
     if request["operation"] == "impulse":
         return _regional_impulse(current, request["impulse"])
     if request["operation"] == "packet-impulse":
         return _regional_packet_impulse(current, request["impulse"])
+    if request["operation"] == "circulate" and "circulation" not in current:
+        return _regional_fault(current, "circulate requires a declared circulation segment", 0)
+    if request["operation"] == "circulate" and not bool(current["circulation"]["enabled"]):
+        return _regional_fault(current, "circulate requires an enabled circulation segment", 0)
     if current["paused"] and int(request["ticks"]) > 0:
         return _regional_fault(current, "paused regional task cannot advance", 0)
-    operator = _RegionalWaveOperator(current["profile"], current["bindings"],
-                                      _regional_objective_data(current["objective"]))
+    operator = _RegionalWaveOperator(
+        current["profile"], current["bindings"],
+        _regional_objective_data(current["objective"]),
+        device=requested_device,
+        resources=resource_limits,
+    )
     executed = 0
     try:
         while executed < bound and current["phase"] == "running":
             continuation = current["continuation"]
-            if continuation["tick"] >= request["ticks"]:
-                _regional_record_ledger(current, executed)
-                return _regional_finalize(current, operator, executed)
+            if request["operation"] == "circulate":
+                if continuation["operation"] == "prepare":
+                    _regional_prepare(current, operator)
+                    continue
+                stage = _regional_circulation_stage(
+                    current, operator, passes=int(request["ticks"]),
+                )
+                executed += 1
+                if bool(stage["complete"]):
+                    _regional_record_ledger(current, executed)
+                    return _regional_finalize(current, operator, executed)
+                continue
             if continuation["operation"] == "prepare":
                 _regional_prepare(current, operator)
                 continue
+            segment = current.get("circulation")
+            if (segment is not None and bool(segment["enabled"])
+                    and int(segment["continuation"]["pending"]) > 0
+                    and continuation["operation"] == "kick"
+                    and int(continuation["substep"]) == 0):
+                from cassi_circulation import circulation_take_pending
+
+                report = _regional_circulation_stage(
+                    current, operator,
+                    passes=int(segment["continuation"]["pass"]) + 1,
+                )
+                circulation_take_pending(segment)
+                if int(report["units"]) > 0:
+                    _regional_rebase_trial(current)
+                executed += 1
+                continue
+            if continuation["tick"] >= request["ticks"]:
+                _regional_record_ledger(current, executed)
+                return _regional_finalize(current, operator, executed)
             profile = current["profile"]
             h = float(profile["time_step"])
             parts = int(continuation["parts"])
@@ -3596,37 +4990,652 @@ def regional_kernel(state: Any, arguments: Mapping[str, Any], quantum: int) -> f
 
                 current["wave_words"] = {"layout": "qY,qI,pY,pI:f64", "values": updated.tolist()}
                 _regional_finish_tick(current, profile)
-                if current["continuation"]["tick"] >= request["ticks"]:
-                    _regional_record_ledger(current, executed)
-                    return _regional_finalize(current, operator, executed)
+                segment = current.get("circulation")
+                if segment is not None and bool(segment["enabled"]):
+                    from cassi_circulation import circulation_defer_unit
+
+                    circulation_defer_unit(segment)
     except (ResonantNumericalError, np.linalg.LinAlgError, TypeError, ValueError) as exc:
         _regional_record_ledger(current, executed)
         return _regional_fault(current, str(exc), executed)
+    finally:
+        operator.close()
     _regional_record_ledger(current, executed)
     return field_regions.KernelResult(state=current, status="yield", work=executed, output=None)
 
 
+
+# ---------------------------------------------------------------------------
+# Section 18: canonical multiscale state, reciprocal exchange, and geometry.
+# These records are immutable-by-convention numerical views.  They never own
+# an adaptive relation table or a second memory representation.
+
+
+class ResonantStageMismatchError(ResonantNumericalError):
+    """A reciprocal exchange attempted to combine unlike numerical stages."""
+
+
+def _metric_vector(metric: Any, size: int, name: str = "metric") -> np.ndarray:
+    values = _as_f64(metric, (size,), name)
+    if np.any(values <= 0.0):
+        raise ResonantNumericalError(f"{name} must be strictly positive")
+    return values
+
+
+@dataclass(frozen=True)
+class ResonantMetricTransform:
+    """A reversible change of coordinates in a diagonal numerical metric.
+
+    ``matrix`` is a metric-orthogonal map: ``A.T M A = M``.  The inverse is
+    therefore the metric adjoint, not an unweighted transpose.
+    """
+
+    metric: Any
+    matrix: Any = None
+    version: str = "metric-transform-v1"
+
+    def __post_init__(self) -> None:
+        m = _metric_vector(self.metric, len(np.asarray(self.metric).reshape(-1)))
+        n = len(m)
+        if self.matrix is None:
+            q = np.eye(n, dtype=np.float64)
+            if n > 1:
+                q[0, 0] = q[0, 1] = q[1, 0] = 1.0 / SQRT2
+                q[1, 1] = -1.0 / SQRT2
+        else:
+            q = _as_f64(self.matrix, (n, n), "metric transform matrix")
+        # Interpret a supplied matrix as an ordinary orthogonal basis map.
+        if not np.allclose(q.T @ q, np.eye(n), atol=2e-12, rtol=0):
+            raise ResonantNumericalError("metric transform basis must be orthogonal")
+        d = np.sqrt(m)
+        a = (q * d[np.newaxis, :]) / d[:, np.newaxis]
+        ai = (q.T * d[np.newaxis, :]) / d[:, np.newaxis]
+        object.__setattr__(self, "metric", m.copy())
+        object.__setattr__(self, "matrix", a)
+        object.__setattr__(self, "_inverse", ai)
+        object.__setattr__(self, "roundoff_bound", float(64 * np.finfo(float).eps * max(1.0, np.linalg.norm(a, ord=2))))
+
+    @property
+    def size(self) -> int:
+        return len(self.metric)
+
+    def restrict(self, values: Any) -> np.ndarray:
+        return self.matrix @ _as_f64(values, (self.size,), "fine coordinates")
+
+    def prolongate(self, coefficients: Any) -> np.ndarray:
+        return self._inverse @ _as_f64(coefficients, (self.size,), "coarse/detail coordinates")
+
+    def roundtrip(self, values: Any) -> tuple[np.ndarray, float]:
+        source = _as_f64(values, (self.size,), "fine coordinates")
+        restored = self.prolongate(self.restrict(source))
+        return restored, float(np.max(np.abs(restored - source), initial=0.0))
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"version": self.version, "metric": self.metric.tolist(), "matrix": self.matrix.tolist(),
+                "roundoff_bound": self.roundoff_bound}
+
+
+def metric_weighted_transform(values: Any, metric: Any, *, matrix: Any = None) -> dict[str, Any]:
+    """Restrict and prolongate one complete coordinate vector."""
+    transform = ResonantMetricTransform(metric, matrix)
+    source = _as_f64(values, (transform.size,), "values")
+    coefficients = transform.restrict(source)
+    restored = transform.prolongate(coefficients)
+    return {"coefficients": coefficients, "restored": restored,
+            "roundtrip_error": float(np.max(np.abs(restored - source), initial=0.0)),
+            "roundoff_bound": transform.roundoff_bound, "transform": transform}
+
+
+def unweighted_transform_error(values: Any, metric: Any, *, matrix: Any = None) -> float:
+    """Negative control: use an unweighted transpose under a nonuniform metric."""
+    source = _as_f64(values, name="values")
+    m = _metric_vector(metric, source.size)
+    if matrix is None:
+        q = np.eye(source.size, dtype=np.float64)
+        if source.size > 1:
+            q[0, 0] = q[0, 1] = q[1, 0] = 1.0 / SQRT2
+            q[1, 1] = -1.0 / SQRT2
+    else:
+        q = _as_f64(matrix, (source.size, source.size), "matrix")
+    restricted = q @ source
+    # The metric adjoint of the unweighted restriction is not its transpose.
+    restored = np.diag(1.0 / m) @ q.T @ np.diag(m) @ restricted
+    return float(np.max(np.abs(restored - source), initial=0.0))
+
+
+@dataclass(frozen=True)
+class ResonantRegionRecord:
+    identity: str
+    owner_scope: str = "resonant"
+    parent_id: str | None = None
+    basis_ref: str = "canonical"
+    content_version: int = 0
+    coarse_coordinates: Any = field(default_factory=lambda: np.zeros(0))
+    detail_coordinates: Any = field(default_factory=lambda: np.zeros(0))
+    coarse_momenta: Any = field(default_factory=lambda: np.zeros(0))
+    detail_momenta: Any = field(default_factory=lambda: np.zeros(0))
+    axial_frame: Any = field(default_factory=lambda: np.eye(3))
+    signed_current: float = 0.0
+    handedness: int = 0
+    relative_phases: Any = field(default_factory=dict)
+    geometric_parameters: Any = field(default_factory=dict)
+    coupling_ports: Any = field(default_factory=tuple)
+    endpoint_turnarounds: Any = field(default_factory=tuple)
+    interface_dependencies: Any = field(default_factory=tuple)
+    arithmetic_profile: str = "numpy-cpu-float64"
+    numerical_time: float = 0.0
+    integration_phase: str = "idle"
+    unfinished_work: Any = field(default_factory=dict)
+    resource_accounts: Any = field(default_factory=dict)
+    interface_work: float = 0.0
+    stale: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.identity:
+            raise ResonantNumericalError("region identity must be nonempty")
+        if self.parent_id == self.identity:
+            raise ResonantNumericalError("a region cannot be its own parent")
+        if self.content_version < 0 or self.numerical_time < 0.0 or not math.isfinite(self.numerical_time):
+            raise ResonantNumericalError("region versions and numerical time must be bounded")
+        for name in ("coarse_coordinates", "detail_coordinates", "coarse_momenta", "detail_momenta"):
+            array = _as_f64(getattr(self, name), name=name).reshape(-1)
+            array.setflags(write=False)
+            object.__setattr__(self, name, array)
+        frame = _as_f64(self.axial_frame, (3, 3), "axial_frame")
+        if not np.allclose(frame.T @ frame, np.eye(3), atol=2e-10, rtol=0) or np.linalg.det(frame) <= 0.0:
+            raise ResonantNumericalError("axial_frame must be a proper rotation")
+        object.__setattr__(self, "axial_frame", frame)
+        if not math.isfinite(float(self.signed_current)) or not math.isfinite(float(self.interface_work)):
+            raise ResonantNumericalError("region flow accounts must be finite")
+        if self.handedness not in (-1, 0, 1):
+            raise ResonantNumericalError("handedness must be -1, 0, or +1")
+
+    @property
+    def version(self) -> str:
+        return f"{self.identity}@{self.content_version}"
+
+    def as_dict(self) -> dict[str, Any]:
+        return _jsonable({name: getattr(self, name) for name in self.__dataclass_fields__})
+
+
+@dataclass(frozen=True)
+class ResonantHierarchySpec:
+    max_nodes: int = 64
+    max_depth: int = 16
+    coverage_limit: int = 64
+    basis_version: str = "metric-haar-v1"
+    parent_map: Mapping[str, str | None] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not 1 <= int(self.max_nodes) <= 1_000_000 or not 0 <= int(self.max_depth) <= 1024:
+            raise ResonantNumericalError("hierarchy bounds are invalid")
+        if not 1 <= int(self.coverage_limit) <= int(self.max_nodes):
+            raise ResonantNumericalError("coverage_limit exceeds hierarchy bound")
+        object.__setattr__(self, "max_nodes", int(self.max_nodes))
+        object.__setattr__(self, "max_depth", int(self.max_depth))
+        object.__setattr__(self, "coverage_limit", int(self.coverage_limit))
+        object.__setattr__(self, "parent_map", MappingProxyType(dict(self.parent_map)))
+
+
+def _axis_projection(directions: Any, weights: Any = None, *, signed_current: float = 0.0,
+                     prior_frame: Any = None, degeneracy_tolerance: float = 1e-12) -> dict[str, Any]:
+    vectors = _as_f64(directions, name="directions")
+    if vectors.size == 0:
+        vectors = np.zeros((0, 3), dtype=np.float64)
+    if vectors.ndim != 2 or vectors.shape[1] != 3:
+        raise ResonantNumericalError("directions must have shape (N,3)")
+    norms = np.linalg.norm(vectors, axis=1)
+    usable = norms > degeneracy_tolerance
+    if weights is None:
+        weight = np.ones(len(vectors), dtype=np.float64)
+    else:
+        weight = _metric_vector(weights, len(vectors), "direction weights")
+    if not np.any(usable):
+        eigvals = np.zeros(3)
+        unresolved = np.eye(3)
+        return {"axis": None, "eigenvalues": eigvals.tolist(), "unresolved_eigenspace": unresolved.tolist(),
+                "resolved": False, "signed_current": float(signed_current), "coverage": 0.0}
+    unit = vectors[usable] / norms[usable, None]
+    w = weight[usable]
+    moment = (unit * w[:, None]).T @ unit / float(w.sum())
+    eigenvalues, eigenvectors = np.linalg.eigh(moment)
+    order = np.argsort(eigenvalues)[::-1]
+    eigenvalues, eigenvectors = eigenvalues[order], eigenvectors[:, order]
+    gap = float(eigenvalues[0] - eigenvalues[1])
+    scale = max(1.0, float(abs(eigenvalues[0])))
+    if gap <= degeneracy_tolerance * scale:
+        unresolved = eigenvectors[:, eigenvalues >= eigenvalues[0] - degeneracy_tolerance * scale]
+        return {"axis": None, "eigenvalues": eigenvalues.tolist(), "unresolved_eigenspace": unresolved.tolist(),
+                "resolved": False, "signed_current": float(signed_current), "coverage": float(w.sum() / weight.sum())}
+    axis = eigenvectors[:, 0]
+    if prior_frame is not None:
+        prior = _as_f64(prior_frame, (3, 3), "prior_frame")[:, 0]
+        if float(axis @ prior) < 0.0:
+            axis = -axis
+    return {"axis": axis.tolist(), "eigenvalues": eigenvalues.tolist(), "unresolved_eigenspace": [],
+            "resolved": True, "signed_current": float(signed_current), "coverage": float(w.sum() / weight.sum())}
+
+
+class ResonantHierarchy:
+    """Bounded ancestry over one workspace with no duplicated learned state."""
+
+    def __init__(self, workspace: ResonantWorkspace | ResonantProfile | None = None, *,
+                 spec: ResonantHierarchySpec | None = None,
+                 regions: Mapping[str, ResonantRegionRecord | Mapping[str, Any]] | None = None,
+                 parent_map: Mapping[str, str | None] | None = None,
+                 max_nodes: int = 64) -> None:
+        self.workspace = workspace if isinstance(workspace, ResonantWorkspace) else initial_workspace(workspace if isinstance(workspace, ResonantProfile) else None)
+        self.spec = spec or ResonantHierarchySpec(max_nodes=max_nodes, parent_map=parent_map or {})
+        self._regions: dict[str, ResonantRegionRecord] = {}
+        root = ResonantRegionRecord(
+            identity="root", owner_scope="workspace", basis_ref=self.workspace.profile.layout_identity,
+            coarse_coordinates=self.workspace.common_coordinates(), detail_coordinates=self.workspace.relative_coordinates(),
+            coarse_momenta=self.workspace.momentum()[:self.workspace.profile.port_count],
+            detail_momenta=self.workspace.momentum()[self.workspace.profile.port_count:],
+            geometric_parameters={"profile": self.workspace.profile.layout_identity},
+        )
+        self._regions["root"] = root
+        for identity, record in (regions or {}).items():
+            self.add_region(record if isinstance(record, ResonantRegionRecord) else ResonantRegionRecord(identity=identity, **dict(record)))
+        self._validate_ancestry()
+
+    @property
+    def regions(self) -> Mapping[str, ResonantRegionRecord]:
+        return MappingProxyType(dict(self._regions))
+
+    def _validate_ancestry(self) -> None:
+        parent_map = dict(self.spec.parent_map)
+        parent_map.update({key: value.parent_id for key, value in self._regions.items()})
+        if len(self._regions) > self.spec.max_nodes:
+            raise ResonantNumericalError("hierarchy node bound exceeded")
+        identities = set(self._regions) | set(parent_map)
+        for identity in identities:
+            seen: set[str] = set()
+            cursor: str | None = identity
+            depth = 0
+            while cursor is not None:
+                if cursor in seen:
+                    raise ResonantNumericalError("representation ancestry contains a cycle")
+                seen.add(cursor)
+                depth += 1
+                if depth > self.spec.max_depth + 1:
+                    raise ResonantNumericalError("hierarchy depth bound exceeded")
+                cursor = parent_map.get(cursor)
+                if cursor is not None and cursor not in identities and cursor != "root":
+                    raise ResonantNumericalError(f"unknown region parent {cursor!r}")
+
+    def add_region(self, record: ResonantRegionRecord) -> None:
+        if not isinstance(record, ResonantRegionRecord):
+            raise TypeError("record must be ResonantRegionRecord")
+        if record.identity in self._regions:
+            raise ResonantNumericalError("duplicate region identity")
+        if len(self._regions) >= self.spec.max_nodes:
+            raise ResonantNumericalError("hierarchy allocation bound exceeded")
+        self._regions[record.identity] = record
+        try:
+            self._validate_ancestry()
+        except Exception:
+            del self._regions[record.identity]
+            raise
+
+    def restrict(self, values: Any, metric: Any = None, *, matrix: Any = None) -> ResonantMetricTransform:
+        source = np.asarray(values, dtype=np.float64).reshape(-1)
+        selected_metric = self.workspace.profile.volumes[:source.size] if metric is None else metric
+        transform = ResonantMetricTransform(selected_metric, matrix)
+        transform.restrict(source)
+        return transform
+
+    def prolongate(self, transform: ResonantMetricTransform, coefficients: Any) -> np.ndarray:
+        if not isinstance(transform, ResonantMetricTransform):
+            raise TypeError("transform must be ResonantMetricTransform")
+        return transform.prolongate(coefficients)
+
+    def coarse_working_set(self, *, max_regions: int | None = None) -> dict[str, Any]:
+        limit = self.spec.coverage_limit if max_regions is None else min(int(max_regions), self.spec.coverage_limit)
+        selected = list(self._regions.values())[:limit]
+        directions = np.asarray([record.axial_frame[:, 0] for record in selected], dtype=np.float64)
+        currents = float(sum(record.signed_current for record in selected))
+        projection = _axis_projection(directions, signed_current=currents)
+        stale = [record.identity for record in selected if record.stale]
+        coverage = 0.0 if not selected else sum(not r.stale for r in selected) / len(selected)
+        projection["coverage"] = float(projection["coverage"] * coverage)
+        return {"schema": "cassifi.resonant-coarse-working-set.v1", "version": max((r.content_version for r in selected), default=0),
+                "signed_current": currents, "axial_order": projection, "region_ids": [r.identity for r in selected],
+                "coverage": coverage, "coverage_limit": limit, "stale_regions": stale}
+
+    def activity_values(self, events: Sequence[Mapping[str, Any]], *,
+                        flow: ResonantGeometryRecord | Mapping[str, Any] | None = None,
+                        scale: float = 1.0) -> dict[int, float]:
+        """Produce bounded eligible-work modulation from canonical geometry.
+
+        For event sequence ``k``, let ``C`` be the non-stale coverage and
+        ``I`` the signed-current sum of the selected regions.  The producer
+        uses the declared bounded reading
+        ``v_k = clip(tanh(scale)*C*tanh(I_r/(1+abs(I_r)))*
+        (1/2 + kappa/(2*(omega+kappa))) *
+        cos(pi*k/2 + pi*handedness/2), -1, 1)``.
+        ``I_r`` is the event's region current (or ``I``), and
+        ``kappa >= 0, omega > 0`` come from the supplied geometry or the
+        hierarchy's declared flow fallback.  Thus every returned value is in
+        ``[-1,1]``; no eligibility or fairness decision is made here.
+        """
+        if not events:
+            return {}
+        selected = list(self._regions.values())[:self.spec.coverage_limit]
+        coverage = 0.0 if not selected else sum(not region.stale for region in selected) / len(selected)
+        total_current = float(sum(region.signed_current for region in selected))
+        if isinstance(flow, ResonantGeometryRecord):
+            kappa, omega, flow_handedness = float(flow.kappa), float(flow.omega), int(flow.handedness)
+        elif isinstance(flow, Mapping):
+            kappa = float(flow.get("kappa", 0.0))
+            omega = float(flow.get("omega", 1.0))
+            flow_handedness = int(flow.get("handedness", 0))
+        else:
+            kappa, omega, flow_handedness = abs(total_current) / (1.0 + abs(total_current)), 1.0, 0
+        from cassi_circulation import _modulation_values
+        return _modulation_values(
+            selected, events, coverage=coverage, total_current=total_current,
+            kappa=kappa, omega=omega, flow_handedness=flow_handedness, scale=scale,
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        spec = {
+            "max_nodes": self.spec.max_nodes, "max_depth": self.spec.max_depth,
+            "coverage_limit": self.spec.coverage_limit, "basis_version": self.spec.basis_version,
+            "parent_map": dict(self.spec.parent_map),
+        }
+        return {"schema": "cassifi.resonant-hierarchy.v1", "spec": spec,
+                "workspace_state_sha256": self.workspace.state_sha256,
+                "regions": {key: value.as_dict() for key, value in self._regions.items()}}
+
+    def regional_state(self, *, interface_work: float | None = None) -> dict[str, Any]:
+        payload = self.as_dict()
+        payload["interface_work"] = float(sum(r.interface_work for r in self._regions.values()) if interface_work is None else interface_work)
+        return payload
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any], workspace: ResonantWorkspace) -> "ResonantHierarchy":
+        if payload.get("schema") != "cassifi.resonant-hierarchy.v1":
+            raise ResonantNumericalError("unsupported resonant hierarchy schema")
+        raw_spec = dict(payload.get("spec", {}))
+        regions = dict(payload.get("regions", {}))
+        regions.pop("root", None)
+        parsed = {key: ResonantRegionRecord(identity=key, **{k: v for k, v in value.items() if k != "identity"})
+                  for key, value in regions.items()}
+        return cls(workspace, spec=ResonantHierarchySpec(**raw_spec), regions=parsed)
+
+
+def metric_weighted_restrict(values: Any, metric: Any, *, matrix: Any = None) -> np.ndarray:
+    """Apply the metric-weighted restriction half of a reversible transform."""
+    transform = ResonantMetricTransform(metric, matrix)
+    return transform.restrict(values)
+
+
+def metric_weighted_prolongate(coefficients: Any, metric: Any, *, matrix: Any = None) -> np.ndarray:
+    """Apply the exact metric-weighted prolongation half of a reversible transform."""
+    transform = ResonantMetricTransform(metric, matrix)
+    return transform.prolongate(coefficients)
+
+
+@dataclass(frozen=True)
+class ResonantExchangeStage:
+    version: str
+    parent_version: str
+    child_version: str
+    digest: str
+
+    @classmethod
+    def bind(cls, parent: Any, child: Any, *, version: str = "stage-0") -> "ResonantExchangeStage":
+        parent_version = str(parent.version if isinstance(parent, ResonantRegionRecord) else parent)
+        child_version = str(child.version if isinstance(child, ResonantRegionRecord) else child)
+        digest = _canonical_sha256({"version": version, "parent": parent_version, "child": child_version})
+        return cls(str(version), parent_version, child_version, digest)
+
+
+def reciprocal_exchange(parent_gradient: Any, child_gradient: Any, transfer: Any, *,
+                        stage: ResonantExchangeStage | None = None,
+                        expected_stage: ResonantExchangeStage | None = None) -> dict[str, Any]:
+    gp = _as_f64(parent_gradient, name="parent gradient").reshape(-1)
+    gc = _as_f64(child_gradient, name="child gradient").reshape(-1)
+    t = _as_f64(transfer, (gp.size, gc.size), "exchange transfer")
+    if stage is None:
+        stage = ResonantExchangeStage.bind("parent", "child")
+    if expected_stage is not None and stage.digest != expected_stage.digest:
+        raise ResonantStageMismatchError("parent and child signals do not share a version-bound stage")
+    parent_delta, child_delta = t @ gc, -t.T @ gp
+    parent_power = float(gp @ parent_delta)
+    child_power = float(gc @ child_delta)
+    return {"stage": stage, "parent_delta": parent_delta, "child_delta": child_delta,
+            "parent_power": parent_power, "child_power": child_power,
+            "interface_transfer_work": parent_power + child_power,
+            "power_imbalance": parent_power + child_power}
+
+
+def reciprocal_exchange_power(parent_gradient: Any, child_gradient: Any, transfer: Any) -> float:
+    result = reciprocal_exchange(parent_gradient, child_gradient, transfer)
+    return float(result["power_imbalance"])
+
+
+def apply_reciprocal_exchange(workspace: ResonantWorkspace, parent_gradient: Any, child_gradient: Any,
+                              transfer: Any, *, stage: ResonantExchangeStage,
+                              expected_stage: ResonantExchangeStage | None = None) -> tuple[ResonantWorkspace, dict[str, Any]]:
+    result = reciprocal_exchange(parent_gradient, child_gradient, transfer, stage=stage, expected_stage=expected_stage)
+    ledger = dict(workspace.ledger)
+    ledger["interface_transfer_work"] = ledger.get("interface_transfer_work", 0.0) + float(result["interface_transfer_work"])
+    result["workspace_state_sha256"] = workspace.state_sha256
+    return workspace._copy(ledger=ledger), result
+
+
+def transported_phase_mismatch(phase_parent: float, phase_child: float, preferred_offset: float = 0.0,
+                              frame_offset: float = 0.0) -> float:
+    return float(phase_child - phase_parent - preferred_offset + frame_offset)
+
+
+def constraint_tangent_gradient(axis: Any, gradient: Any) -> np.ndarray:
+    n = _as_f64(axis, (3,), "axis")
+    norm = float(np.linalg.norm(n))
+    if norm == 0.0:
+        raise ResonantNumericalError("axis cannot be zero")
+    n = n / norm
+    g = _as_f64(gradient, (3,), "axis gradient")
+    return g - float(g @ n) * n
+
+
+def alignment_energy(axis_parent: Any, axis_child: Any, *, a: float = 1.0, b: float = 1.0,
+                     rotation: Any = None, phase_parent: float = 0.0, phase_child: float = 0.0,
+                     preferred_offset: float = 0.0, frame_offset: float = 0.0) -> float:
+    np_ = _as_f64(axis_parent, (3,), "parent axis"); nc = _as_f64(axis_child, (3,), "child axis")
+    np_ /= np.linalg.norm(np_); nc /= np.linalg.norm(nc)
+    q = np.eye(3) if rotation is None else _as_f64(rotation, (3, 3), "frame rotation")
+    if not np.allclose(q.T @ q, np.eye(3), atol=2e-10, rtol=0) or np.linalg.det(q) <= 0.0:
+        raise ResonantNumericalError("alignment rotation must be proper")
+    if a < 0.0 or b < 0.0:
+        raise ResonantNumericalError("alignment weights must be nonnegative")
+    dot = float(nc @ q @ np_)
+    delta = transported_phase_mismatch(phase_parent, phase_child, preferred_offset, frame_offset)
+    return 0.5 * float(a) * (1.0 - dot * dot) + float(b) * (1.0 - math.cos(delta))
+
+
+def alignment_gradients(axis_parent: Any, axis_child: Any, *, a: float = 1.0, b: float = 1.0,
+                        rotation: Any = None, phase_parent: float = 0.0, phase_child: float = 0.0,
+                        preferred_offset: float = 0.0, frame_offset: float = 0.0) -> dict[str, Any]:
+    np_ = _as_f64(axis_parent, (3,), "parent axis"); nc = _as_f64(axis_child, (3,), "child axis")
+    np_ /= np.linalg.norm(np_); nc /= np.linalg.norm(nc)
+    q = np.eye(3) if rotation is None else _as_f64(rotation, (3, 3), "frame rotation")
+    dot = float(nc @ q @ np_)
+    gp = constraint_tangent_gradient(np_, -float(a) * dot * (q.T @ nc))
+    gc = constraint_tangent_gradient(nc, -float(a) * dot * (q @ np_))
+    delta = transported_phase_mismatch(phase_parent, phase_child, preferred_offset, frame_offset)
+    return {"parent_axis": gp, "child_axis": gc, "parent_phase": -float(b) * math.sin(delta),
+            "child_phase": float(b) * math.sin(delta), "dot": dot,
+            "tangent_residual": max(abs(float(np_ @ gp)), abs(float(nc @ gc)))}
+
+
+def alignment_step(axis: Any, gradient: Any, step: float = 0.1) -> tuple[np.ndarray, float]:
+    n = _as_f64(axis, (3,), "axis"); n /= np.linalg.norm(n)
+    projected = constraint_tangent_gradient(n, gradient)
+    updated = n - float(step) * projected
+    updated /= np.linalg.norm(updated)
+    residual = constraint_tangent_gradient(updated, projected)
+    return updated, abs(float(updated @ residual))
+
+
+@dataclass(frozen=True)
+class ResonantGeometryRecord:
+    longitudinal_direction: Any
+    signed_current: float = 0.0
+    handedness: int = 0
+    kappa: float = 0.0
+    omega: float = 1.0
+    axial_speed: float = 0.0
+    angular_convention: str = "declared"
+    divergence: float = 0.0
+
+    def __post_init__(self) -> None:
+        direction = _as_f64(self.longitudinal_direction, (3,), "longitudinal_direction")
+        norm = float(np.linalg.norm(direction))
+        if norm == 0.0:
+            raise ResonantNumericalError("longitudinal direction cannot be zero")
+        object.__setattr__(self, "longitudinal_direction", direction / norm)
+        if self.kappa < 0.0 or self.omega <= 0.0:
+            raise ResonantNumericalError("geometry requires kappa >= 0 and omega > 0")
+        if self.handedness not in (-1, 0, 1):
+            raise ResonantNumericalError("handedness must be -1, 0, or +1")
+
+
+def flow_line(r0: float, s0: float, theta: Any, *, theta0: float = 0.0,
+              kappa: float = 0.0, omega: float = 1.0, axial_speed: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
+    angles = _as_f64(theta, name="theta")
+    if kappa < 0.0 or omega <= 0.0:
+        raise ResonantNumericalError("flow-line rates are invalid")
+    delta = angles - float(theta0)
+    return float(r0) * np.exp(-(float(kappa) / float(omega)) * delta), float(s0) + (float(axial_speed) / float(omega)) * delta
+
+
+def contraction_rate_ratio(contraction: float, delta_theta: float, *, omega: float = 1.0) -> float:
+    if not 0.0 < contraction <= 1.0 or delta_theta <= 0.0 or omega <= 0.0:
+        raise ResonantNumericalError("contraction and angular interval are invalid")
+    return float(omega * math.log(1.0 / contraction) / delta_theta)
+
+
+def uniform_axial_divergence(kappa: float) -> float:
+    if kappa < 0.0:
+        raise ResonantNumericalError("kappa must be nonnegative")
+    return -2.0 * float(kappa)
+
+
+def geometry_from_flow(flow: Any, *, signed_current: float = 0.0, handedness: int = 0,
+                       kappa: float = 0.0, omega: float = 1.0, axial_speed: float = 0.0,
+                       angular_convention: str = "declared") -> ResonantGeometryRecord:
+    return ResonantGeometryRecord(flow, signed_current, handedness, kappa, omega, axial_speed,
+                                  angular_convention, uniform_axial_divergence(kappa))
+
+
+def metric_edge_weights(coordinates: Any, edges: Sequence[Sequence[int]], volumes: Any, *, scale: float = 1.0) -> np.ndarray:
+    points = _as_f64(coordinates, name="coordinates")
+    if points.ndim != 2:
+        raise ResonantNumericalError("coordinates must be a matrix")
+    volume = _metric_vector(volumes, len(points), "volumes")
+    result = []
+    for edge in edges:
+        if len(edge) != 2:
+            raise ResonantNumericalError("edges must be endpoint pairs")
+        source, destination = int(edge[0]), int(edge[1])
+        if not 0 <= source < len(points) or not 0 <= destination < len(points) or source == destination:
+            raise ResonantNumericalError("invalid metric edge")
+        length = float(np.linalg.norm(points[destination] - points[source]))
+        result.append(float(scale) / max(length, np.finfo(float).tiny) / math.sqrt(volume[source] * volume[destination]))
+    return np.asarray(result, dtype=np.float64)
+
+
+def basis_change(q: Any, p: Any, basis: Any, *, operators: Mapping[str, Any] | None = None,
+                 readouts: Mapping[str, Any] | None = None, suspended_view: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    coordinates = _as_f64(q, name="coordinates").reshape(-1)
+    momenta = _as_f64(p, coordinates.shape, "momenta")
+    s = _as_f64(basis, (coordinates.size, coordinates.size), "basis")
+    if abs(float(np.linalg.det(s))) <= 1e-14:
+        raise ResonantNumericalError("basis change must be invertible")
+    inverse = np.linalg.inv(s)
+    inverse_transpose = inverse.T
+    result: dict[str, Any] = {"q": s @ coordinates, "p": inverse_transpose @ momenta,
+                              "mapping": {"S": s.tolist(), "S_inverse_transpose": inverse_transpose.tolist()},
+                              "frame_lineage": {"from": "canonical", "to": _canonical_sha256(s.tolist())},
+                              "invalidated": []}
+    if operators is not None:
+        result["operators"] = {key: s @ _as_f64(value, (coordinates.size, coordinates.size), key) @ inverse
+                               for key, value in operators.items()}
+    if readouts is not None:
+        result["readouts"] = {key: inverse_transpose @ _as_f64(value, (coordinates.size,), key)
+                              for key, value in readouts.items()}
+    if suspended_view is not None:
+        result["suspended_view"] = None
+        result["invalidated"].append("suspended_view")
+    result["invalidated"] += ["solver_iterates", "boundary_responses"]
+    return result
+
+
+def moving_frame_rhs(y: Any, rotation: Any, rotation_rate: Any, force: Any, *,
+                     include_frame_motion: bool = True) -> np.ndarray:
+    vec = _as_f64(y, name="frame coordinates").reshape(-1)
+    r = _as_f64(rotation, (vec.size, vec.size), "rotation")
+    rd = _as_f64(rotation_rate, (vec.size, vec.size), "rotation_rate")
+    f = _as_f64(force, vec.shape, "force")
+    result = r.T @ f
+    if include_frame_motion:
+        result = result - r.T @ rd @ vec
+    return result
+
+
+def passive_rotation_check(y: Any, rotation: Any, rotation_rate: Any, *, force: Any = None) -> dict[str, float]:
+    vec = _as_f64(y, name="frame coordinates").reshape(-1)
+    f = np.zeros_like(vec) if force is None else _as_f64(force, vec.shape, "force")
+    full = moving_frame_rhs(vec, rotation, rotation_rate, f, include_frame_motion=True)
+    omitted = moving_frame_rhs(vec, rotation, rotation_rate, f, include_frame_motion=False)
+    r = _as_f64(rotation, (vec.size, vec.size), "rotation")
+    rd = _as_f64(rotation_rate, (vec.size, vec.size), "rotation_rate")
+    expected_motion = -r.T @ rd @ vec
+    omission_error = omitted - (r.T @ f + expected_motion)
+    return {"with_frame_motion_norm": float(np.linalg.norm(full)), "omitted_term_norm": float(np.linalg.norm(omission_error)),
+            "passive_work_with_term": float(vec @ full), "omitted_work": float(vec @ omission_error)}
+
+
+# Descriptive aliases keep the mathematical operation discoverable to callers
+# that use the Section 18 terminology rather than the implementation names.
+alignment_hamiltonian = alignment_energy
+reciprocal_exchange_block = reciprocal_exchange
+ResonantNumericalStage = ResonantExchangeStage
+ResonantGeometry = ResonantGeometryRecord
+moving_frame_flow = moving_frame_rhs
+axial_order_projection = _axis_projection
+
+def reverse_axis_representative(axis: Any, handedness: int) -> tuple[np.ndarray, int]:
+    n = _as_f64(axis, (3,), "axis")
+    if handedness not in (-1, 0, 1):
+        raise ResonantNumericalError("handedness must be -1, 0, or +1")
+    return -n, int(handedness)
 # Explicit descriptive aliases make the lowering discoverable without adding
 # another implementation or another state owner.
-regional_resonant_state = regional_state
-regional_resonant_kernel = regional_kernel
-
-def gpu_profile(profile: ResonantProfile | None = None, *, device: str = "cuda") -> Mapping[str, Any]:
-    return (profile or ResonantProfile()).gpu_profile(device)
-
-
 __all__ = [
     "SCHEMA", "LAYOUT", "HELICAL_PACKET_SCHEMA", "HELICAL_PACKET_BASIS",
-    "HELICAL_PACKET_CHANNELS", "REGIONAL_KERNEL_NAME",
-    "REGIONAL_KERNEL_MAX_WORK", "REGIONAL_STATE_SCHEMA",
-    "REGIONAL_RESULT_SCHEMA", "ResonantNumericalError",
-    "ResonantDeviceUnavailableError", "ResonantProfile", "ResonantProblem",
-    "ResonantWorkspace", "initial_workspace", "bind_workspace",
-    "apply_pool_impulse", "analyze_helical_packet",
-    "helical_packet_channels", "split_helical_packet",
-    "compose_helical_packets", "apply_helical_packet_impulse",
-    "score_pool_probes", "advance_workspace", "inspect_workspace",
-    "expand_resolution", "reduce_resolution", "advance_workspace_gpu",
-    "gpu_profile", "pulse_primitive", "regional_state", "regional_kernel",
-    "regional_resonant_state", "regional_resonant_kernel",
+    "HELICAL_PACKET_CHANNELS", "PARENT_SUMMARY_PATH", "PARENT_REGISTER_PATHS",
+    "PARENT_SUMMARY_LAYOUT", "PARENT_SUMMARY_REGISTER_SCHEMA",
+    "PARENT_REGISTER_LAYOUT", "PARENT_REGISTER_SCHEMA",
+    "REGIONAL_KERNEL_NAME", "REGIONAL_KERNEL_MAX_WORK",
+    "REGIONAL_STATE_SCHEMA", "REGIONAL_RESULT_SCHEMA",
+    "ResonantNumericalError", "ResonantDeviceUnavailableError",
+    "ResonantStageMismatchError", "ResonantMetricTransform",
+    "ResonantRegionRecord", "ResonantHierarchySpec", "ResonantHierarchy",
+    "ResonantExchangeStage", "ResonantGeometryRecord",
+    "ResonantProfile", "ResonantProblem", "ResonantWorkspace",
+    "initial_workspace", "bind_workspace", "apply_pool_impulse",
+    "metric_weighted_transform", "unweighted_transform_error",
+    "reciprocal_exchange", "reciprocal_exchange_power", "apply_reciprocal_exchange",
+    "transported_phase_mismatch", "constraint_tangent_gradient",
+    "alignment_energy", "alignment_hamiltonian", "alignment_gradients", "alignment_step",
+    "flow_line", "contraction_rate_ratio", "uniform_axial_divergence",
+    "geometry_from_flow", "ResonantGeometry", "metric_edge_weights", "basis_change",
+    "moving_frame_rhs", "moving_frame_flow", "passive_rotation_check", "reverse_axis_representative",
+    "reciprocal_exchange_block", "ResonantNumericalStage",
+    "metric_weighted_restrict", "metric_weighted_prolongate",
+    "axial_order_projection",
 ]

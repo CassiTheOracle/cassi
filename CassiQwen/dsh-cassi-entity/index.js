@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { delimiter } from "node:path";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { CassiEntityClient, CassiEntityHttpError, stableRequestId } from "./entity-client.js";
 import { CassiEntityAdapter } from "./adapter.js";
-
+import { normalizeSourceRoots, readScopedSource } from "./source-reader.js";
+import { HarnessWorkOrderBroker, normalizeWorkOrderTools } from "./work-order-broker.js";
 export const name = "cassi-dsh-entity";
 export const inject = ["connection", "tools", "llm"];
 
@@ -66,12 +68,33 @@ function tool(name, description, parameters, execute) {
   });
 }
 
+function sourceRootValues(config) {
+  if (config.sourceRoots !== undefined && !Array.isArray(config.sourceRoots)) {
+    throw new TypeError("sourceRoots must be an array");
+  }
+  if (Array.isArray(config.sourceRoots) && config.sourceRoots.length > 0) return [...config.sourceRoots];
+  const fromEnvironment = process.env.CASSI_SOURCE_ROOTS;
+  if (typeof fromEnvironment !== "string" || !fromEnvironment.trim()) return [];
+  return fromEnvironment.split(delimiter).map((value) => value.trim()).filter(Boolean);
+}
+
 export function apply(ctx, config = {}) {
   const client = new CassiEntityClient({
     baseUrl: config.baseUrl ?? "http://127.0.0.1:8090",
     token: readToken(config),
     maxEvidenceBytes: config.maxEvidenceBytes,
   });
+  const configuredSourceRoots = sourceRootValues(config);
+  const sourceRoots = normalizeSourceRoots(configuredSourceRoots);
+  const workOrderTools = normalizeWorkOrderTools(config.workOrderTools);
+  const workOrderBroker = workOrderTools.length > 0
+    ? new HarnessWorkOrderBroker(ctx, {
+      workOrderTools,
+      ledgerFile: config.workOrderLedgerFile ?? process.env.CASSI_WORK_ORDER_LEDGER,
+      approvalRequiredTools: config.approvalRequiredTools ?? [],
+      preAuthorizedEffects: config.preAuthorizedEffects,
+    })
+    : undefined;
   const adapter = new CassiEntityAdapter(client, config);
   ctx.connection.rpc.handle(
       "/cassi",
@@ -173,6 +196,49 @@ export function apply(ctx, config = {}) {
       { sha256: { type: "string", required: true }, max_bytes: { type: "integer" } },
       async (args, exec) => client.readEvidence(args.sha256, args.max_bytes, exec.signal),
     ));
-}
 
+  if (sourceRoots.length > 0) {
+    ctx.tools.register(tool(
+        "cassi_read_source",
+        "Read exact bounded source bytes from the configured Cassi source scope.",
+        {
+          path: { type: "string", required: true },
+          start_byte: { type: "integer" },
+          max_bytes: { type: "integer" },
+        },
+        async (args, exec) => readScopedSource({
+          path: args.path,
+          startByte: args.start_byte,
+          maxBytes: args.max_bytes,
+          sourceRoots: configuredSourceRoots,
+          maxSourceBytes: config.maxSourceBytes,
+          maxReadBytes: config.maxSourceReadBytes,
+          signal: exec.signal,
+        }),
+      ));
+  }
+  if (workOrderBroker) {
+    ctx.tools.register(tool(
+      "cassi_execute_work_order",
+      "Execute one entity-authored, identity-bound work order through the configured Harness tool scope. The returned outcome distinguishes completion, failure, cancellation, approval, and unknown external effect.",
+      {
+        operation_id: { type: "string", required: true },
+        program_id: { type: "string", required: true },
+        operation: { type: "string", required: true },
+        tool_name: { type: "string", required: true },
+        arguments: { type: "object", required: true, additionalProperties: true },
+        effect_class: {
+          type: "string",
+          required: true,
+          enum: ["read-only", "observation", "workspace-write", "external", "consequential", "destructive"],
+        },
+        field_predecessor: { type: "string" },
+        authority: { type: "object", additionalProperties: true },
+        budget: { type: "object", additionalProperties: true },
+        expected_output: { type: "object", additionalProperties: true },
+      },
+      async (args, exec) => workOrderBroker.execute(args, exec),
+    ));
+  }
+}
 export { CassiEntityAdapter, CassiEntityClient, CassiEntityHttpError, stableRequestId };

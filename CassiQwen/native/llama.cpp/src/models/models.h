@@ -29,6 +29,10 @@ struct llm_build_delta_net_base : public llm_graph_context {
     // nullptr means the seam is off and the caller keeps the plain suppression
     ggml_tensor * build_cassi_qi_state_source(ggml_tensor * conv_state_last, int il);
 
+    // the field's bounded additive share of an intact recurrent-state write (cassi_qi_modulate);
+    // nullptr means the seam is off and the caller keeps the model write alone
+    ggml_tensor * build_cassi_qi_state_modulated(ggml_tensor * conv_state_last, int il);
+
     // returns pair of output and new state
     std::pair<ggml_tensor *, ggml_tensor *> build_delta_net_chunking(
                 ggml_tensor * q,
@@ -2201,7 +2205,9 @@ struct llama_model_qwen35 : public llama_model_base {
                     ggml_tensor * cur,
                     ggml_tensor * inp_pos,
                             int * sections,
-                            int   il);
+                            int   il,
+                    ggml_tensor * cassi_history_k = nullptr,
+                    ggml_tensor * cassi_history_v = nullptr);
 
         ggml_tensor * build_layer_attn_linear(
              llm_graph_input_rs * inp,
@@ -2249,7 +2255,9 @@ struct llama_model_qwen35moe : public llama_model_base {
                     ggml_tensor * cur,
                     ggml_tensor * inp_pos,
                             int * sections,
-                            int   il);
+                            int   il,
+                    ggml_tensor * cassi_history_k,
+                    ggml_tensor * cassi_history_v);
 
         ggml_tensor * build_layer_attn_linear(
              llm_graph_input_rs * inp,
@@ -2272,6 +2280,8 @@ struct llama_model_qwen35moe : public llama_model_base {
                             int   il);
 
         const llama_model & model;
+        uint32_t qi_displacement;
+        uint32_t qi_layer;
     };
 
     struct graph_mtp : public llm_graph_context {

@@ -292,8 +292,10 @@ struct common_params_sampling {
     std::vector<llama_token>  reasoning_budget_forced;         // forced sequence (message + first end tag)
     std::string               reasoning_budget_message;        // message injected before end tag when budget exhausted
     bool                      reasoning_control = false;       // create the budget sampler on demand so reasoning can be ended at runtime
-
-    bool backend_sampling = false;
+    bool                      cassi_qi_stream   = false;      // apply the persistent Qi phase directly to sampled token scores
+    float                     cassi_qi_stream_gain = 1.0f;    // signed field score added before the sampling chain
+    float                     cassi_qi_stream_eog_gain = 0.0f; // extra field score applied to end-of-generation tokens
+    bool                      backend_sampling = false;
 
     // print the parameters into a string
     std::string print() const;
@@ -506,14 +508,27 @@ struct common_params {
     int32_t cassi_qi_field_layer = 32;
     int32_t cassi_qi_field_scales = 4;
     int32_t cassi_qi_field_wave_modes = 3072;
+    bool cassi_qi_field_fill_modes = false;
+    bool cassi_qi_field_memory_fill = false;
     int32_t cassi_qi_field_row_width = 0;
     std::string cassi_qi_field_state;
+    // Learned per-mode profile: raw F32, exactly cassi_qi_field_wave_modes symbols. Replaces the
+    // generated damping ramp and takes over the integrator's damping clamp.
+    std::string cassi_qi_mode_bank;
     int32_t cassi_qi_intervention = 0;
     int32_t cassi_qi_displacement = 0;
     int32_t cassi_qi_field_steps = 1;
     float cassi_qi_injection_scale = 1.0f;
     float cassi_qi_field_dt = 0.005f;
     float cassi_qi_substitute = 0.0f;
+    float cassi_qi_energy_floor = 1.0e-6f;
+    float cassi_qi_read_floor = 0.05f;
+    float cassi_qi_scale_read_taper = 0.0f;
+    bool cassi_qi_read_absolute = false;
+    bool cassi_qi_modulate = false;
+    float cassi_qi_modulate_gain = 0.0f;
+    bool cassi_qi_attention_history = false;
+    bool cassi_qi_unwritten_latch = false;
     bool cassi_apprentice = false;
     std::string cassi_apprentice_state;
     bool cassi_apprentice_init = false;

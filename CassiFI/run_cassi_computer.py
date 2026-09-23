@@ -20,11 +20,11 @@ from typing import Any, Mapping
 from cassi_field_input import CODEC_TEXT
 from cassi_field_owner import (
     FieldIntelligenceError,
-    FieldIntelligenceOwner,
     FieldIntelligenceSurface,
     RPC_SCHEMA,
     SourceInput,
 )
+from cassi_hive_session import open_field_session
 
 
 def _object(path: Path) -> dict[str, Any]:
@@ -319,8 +319,13 @@ def main(argv: list[str] | None = None) -> int:
                 "expected_state_sha256": args.expected_state_sha256,
             }
         started = time.perf_counter_ns()
-        with FieldIntelligenceOwner(args.data_home) as owner:
-            response = FieldIntelligenceSurface(owner).handle({
+        with open_field_session(
+            args.data_home,
+            role="worker",
+            mode="scout",
+            metadata={"program": "run_cassi_computer"},
+        ) as field:
+            response = FieldIntelligenceSurface(field.owner).handle({
                 "schema": RPC_SCHEMA, "request_id": operation_id,
                 "operation": operation, "params": params,
             })

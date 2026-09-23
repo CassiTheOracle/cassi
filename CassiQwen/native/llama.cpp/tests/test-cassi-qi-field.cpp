@@ -34,7 +34,7 @@ static bool run_backend(ggml_backend_t backend, Receipt & receipt, int horizon, 
     ggml_tensor * modes = ggml_new_tensor_4d(ctx, GGML_TYPE_F32, M, 1, 1, 1);
     ggml_tensor * ids = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, T);
     ggml_tensor * out = ggml_cassi_qi_field_step(ctx, sense, state, modes, ids, S,
-        PHI, 0.005f, 1.0f, 0.01f, 4.0f, epsilon_tau, 4.2360679775f, 1.0e-6f, 1.0e-4f, 1);
+        PHI, 0.005f, 1.0f, 0.01f, 4.0f, epsilon_tau, 4.2360679775f, 1.0e-6f, 1.0e-4f, 0.0f, false, false, true, 1);
     if (!sense || !state || !modes || !ids || !out) { ggml_free(ctx); return false; }
     ggml_cgraph * graph = ggml_new_graph_custom(ctx, 64, false);
     ggml_build_forward_expand(graph, out);

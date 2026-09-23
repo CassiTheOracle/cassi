@@ -83,6 +83,8 @@ denying it. Every direction below is judged against that requirement.
   decide width and frame questions exactly for declared finite families (README,
   "Mixed direct-sum frame obstruction", "Frame separation inside nullity three").
 
+
+
 ### Leading hypothesis (INFERENCE)
 
 **INFERENCE.** A hierarchy of paired circulation cells — nested scales, each
@@ -137,7 +139,7 @@ pooled held-out RMSE without observing the new pairs).
 
 ### Cross-reference to the concurrent harnesses
 
-Sixteen runner/regression pairs, written by other sessions in this checkout, are
+Twenty-three runner/regression pairs, written by other sessions in this checkout, are
 this map's empirical components:
 `run_fractal_geometry_exploration.py` / `test_fractal_geometry_exploration.py`,
 `run_fractal_memory_exploration.py` / `test_fractal_memory_exploration.py`,
@@ -156,8 +158,20 @@ and `run_fractal_lattice_exploration.py` /
 `test_owner_nested_cycle.py`, and `run_memory_store_scale.py` /
 `test_memory_store_scale.py`, and `run_store_addressing_rank.py` /
 `test_store_addressing_rank.py`, and `run_store_addressing_capacity.py` /
-`test_store_addressing_capacity.py`. All sixteen runners exist and have been run
-from this directory, and each writes a receipt that parses:
+`test_store_addressing_capacity.py`, and `run_store_addressing_tree.py` /
+`test_store_addressing_tree.py`, and `run_scale_composition_surface.py` /
+`test_scale_composition_surface.py`, and
+`run_fractal_parent_summary_application_exploration.py` /
+`test_fractal_parent_summary_application_exploration.py`, and
+`run_fractal_bidirectional_recursive_memory_cell.py` /
+`test_fractal_bidirectional_recursive_memory_cell.py`, and
+`run_fractal_recursive_memory_cell.py` /
+`test_fractal_recursive_memory_cell.py`, and
+`run_fractal_multicycle_recursive_memory_cell.py` /
+`test_fractal_multicycle_recursive_memory_cell.py`. The independent verifier is
+`verify_fractal_multicycle_recursive_memory_cell.py`. All twenty-three runners
+exist and have been run from this directory, and each writes a receipt that
+parses:
 
 ```powershell
 python run_fractal_geometry_exploration.py --output _diag/fractal-geometry/exploration.json
@@ -178,7 +192,22 @@ python run_store_addressing_rank.py --output _diag/store-addressing-rank/explora
 python run_store_addressing_capacity.py --block declared-profile
 python run_store_addressing_capacity.py --block higher-resolution
 python run_store_addressing_capacity.py --block merge --output _diag/store-addressing-capacity/exploration.json
-python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py test_memory_store_scale.py test_store_addressing_rank.py test_store_addressing_capacity.py -q
+python run_store_addressing_tree.py --block declared-profile
+python run_store_addressing_tree.py --block higher-resolution
+python run_store_addressing_tree.py --block merge --output _diag/store-addressing-tree/exploration.json
+python run_scale_composition_surface.py --block declared-profile
+python run_scale_composition_surface.py --block higher-resolution
+python run_scale_composition_surface.py --block merge --output _diag/scale-composition-surface/exploration.json
+python run_fractal_parent_summary_application_exploration.py --output _diag/fractal-parent-summary-application/exploration.json
+python -m pytest test_fractal_parent_summary_application_exploration.py -q
+python run_fractal_bidirectional_recursive_memory_cell.py --output _diag/fractal-bidirectional-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_bidirectional_recursive_memory_cell.py -q
+python run_fractal_recursive_memory_cell.py --output _diag/fractal-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_recursive_memory_cell.py -q
+python run_fractal_multicycle_recursive_memory_cell.py --output _diag/fractal-multicycle-recursive-memory-cell/exploration.json
+python verify_fractal_multicycle_recursive_memory_cell.py --receipt _diag/fractal-multicycle-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_multicycle_recursive_memory_cell.py -q
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py test_memory_store_scale.py test_store_addressing_rank.py test_store_addressing_capacity.py test_store_addressing_tree.py test_scale_composition_surface.py -q
 ```
 
 - `_diag/fractal-geometry/exploration.json`, schema
@@ -301,6 +330,16 @@ python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_explor
   its digest unless a measured number or a published row moves; see "Determinism of
   the receipts" for the rule, the merge control and the one thing about this family's
   re-runs that is recorded rather than repaired.)
+- `_diag/fractal-recursive-memory-cell/exploration.json`, schema
+  `cassifi.fractal-recursive-memory-cell.v2`, `content_digest`
+  `5b254001650c8dce821a7a265ea4134ea5f223c8732b1a6a02ec3ddfcdb6ab28`,
+  verdict `PASS_FIELD_OWNED_CLOSED_TWO_CYCLE_ACTIVE_UPWARD_RECURRENCE`.
+- `_diag/fractal-multicycle-recursive-memory-cell/exploration.json`, schema
+  `cassifi.fractal-multicycle-recursive-memory-cell.v1`, `content_digest`
+  `2286b85bdb599baaec552545c72d90b3f15c552fdbd3003ae2db56c4f3d467c3`,
+  verdict `PASS_FIELD_OWNED_BOUNDED_MULTICYCLE_UPWARD_RECURRENCE`.
+
+- `_diag/scale-composition-surface/exploration.json`, schema `cassifi.scale-composition-surface.v1`, `receipt_digest` `19c38e6435efd380893469c78ff619a432405f3f56c26b92ba758901b63a3627` over the two declared blocks (`block-declared-profile.json` `87684098d3e222f160c96b6ba0823755f32dac0d4a861b0fb63518d301a2d8d2`, `block-higher-resolution.json` `2e16e6e07578c684b092e8a91f32c546e1add49fcfd6d561193bf9544859242a`). Its digested body is the measurements and the sweep table, with no construction or source-line record, so no edit to its runner moves its digest unless a measured number or a published row moves; the blocks are the block `content_digest` values of the same rule, and a reader comparing the merged receipt against a block file must re-run the merge rather than compare the two values.
 
 Their figures are quoted in "Measured results from the concurrent harnesses"
 below.
@@ -383,7 +422,7 @@ proposals are marked **INFERENCE**.
 **Run.** Coefficient arithmetic; bounded by `_MAX_TICKS = 4096`; no new adaptive state; §23.3 lists this question as open.
 
 ### B.2 Hierarchy depth
-**Status.** Depth exists only inside the packet view, which is a disposable view rather than stored state (§26.18).
+**Status.** General depth remains unmeasured: the packet view's depth is a disposable view rather than stored state (§26.18); the frozen-parent receipt measures one declared L→LL field application, not hierarchy depth.
 **First step (INFERENCE).** Find the retained-level count at which `compose_helical_packets` reproduces the source state inside the declared roundoff allowance.
 **Measures.** The depth at which composition roundoff is reached and the corresponding coefficient count.
 **Counts against.** §26.18's statement that dropping details does not preserve future dynamics in general; a depth at which details are free would contradict it.
@@ -516,9 +555,9 @@ proposals are marked **INFERENCE**.
 **Run.** One profile variant per run; reconstructible mechanics; needs validator support for the new topology string.
 
 ### D.3 Upward and downward scale connections
-**Status.** Nothing exists for the canonical field; nearest relations are the packet basis, where parent scale and detail are orthogonal combinations of child coefficients (§26.18), and the nested reduction (§26.24).
-**Measured.** Nothing cross-scale was measured. All eleven arrangements vary pool-to-pool transport, and the receipt splits the rail into `intra_pool_strength_l1` and `cross_pool_strength_l1` with no separate upward or downward channel (`_diag/fractal-geometry/exploration.json`).
-**First step (INFERENCE).** Declare parent and child regions and couple them by one upward and one downward edge, then test whether a child impulse reaches the parent scale without passing through every sibling.
+**Status.** One declared L→LL field-level application now exists: a frozen register is prolonged through the native LL impulse, not a general upward/downward graph.
+**Measured.** The frozen-parent receipt reports distinct LL final states for parent-on and parent-off, with zero LR sibling delta; it is one field-level causal wiring path, not a general hierarchy measurement.
+**First step (INFERENCE).** Extend beyond this one declared relation to a second level or relation, then test whether a child impulse reaches a parent scale without passing through every sibling.
 **Measures.** Parent-scale response against sibling activation count.
 **Counts against.** Sibling activation rising in proportion to sibling number, showing cross-scale access is not selective.
 **Run.** Bounded; reconstructible mechanics; §26.18's lost-energy and semantic-error accounting applies to any upward coupling that drops details.
@@ -705,7 +744,7 @@ proposals are marked **INFERENCE**.
 **Run.** Sixteen short runs; §26.13's phase threshold and §26.19's non-invertible rendering bound the options.
 
 ### G.4 Coarse content plus explicit detail
-**Status.** The strongest precedent: the packet hierarchy retains parent scale plus descendant details losslessly to roundoff, and §26.18 states dropping details does not preserve future dynamics in general.
+**Status.** The strongest precedent remains the packet hierarchy, which retains parent scale plus descendant details losslessly to roundoff; a separate frozen L→LL probe now applies a parent signal at the native child scale, but does not encode coarse content or a semantic query.
 **First step (INFERENCE).** Store one item as coarse content plus a detail, answer a coarse query from the coarse part alone, and a precise query by descending.
 **Measures.** Work and activated-port count for coarse versus precise queries.
 **Counts against.** A precise query activating as much as the whole body; §33.10 also forbids a coarse state erasing a needed distinction.
@@ -940,7 +979,7 @@ what remains untested.
 
 ## Measured results from the concurrent harnesses
 
-All sixteen runners exist in this checkout and have been run. Their exact commands:
+All twenty-three runners exist in this checkout and have been run. Their exact commands:
 
 ```powershell
 python run_fractal_geometry_exploration.py --output _diag/fractal-geometry/exploration.json
@@ -961,7 +1000,22 @@ python run_store_addressing_rank.py --output _diag/store-addressing-rank/explora
 python run_store_addressing_capacity.py --block declared-profile
 python run_store_addressing_capacity.py --block higher-resolution
 python run_store_addressing_capacity.py --block merge --output _diag/store-addressing-capacity/exploration.json
-python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py test_memory_store_scale.py test_store_addressing_rank.py test_store_addressing_capacity.py -q
+python run_store_addressing_tree.py --block declared-profile
+python run_store_addressing_tree.py --block higher-resolution
+python run_store_addressing_tree.py --block merge --output _diag/store-addressing-tree/exploration.json
+python run_scale_composition_surface.py --block declared-profile
+python run_scale_composition_surface.py --block higher-resolution
+python run_scale_composition_surface.py --block merge --output _diag/scale-composition-surface/exploration.json
+python run_fractal_parent_summary_application_exploration.py --output _diag/fractal-parent-summary-application/exploration.json
+python run_fractal_bidirectional_recursive_memory_cell.py --output _diag/fractal-bidirectional-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_geometry_exploration.py test_fractal_memory_exploration.py test_fractal_durability_exploration.py test_fractal_placement_exploration.py test_fractal_survival_exploration.py test_fractal_ladder_exploration.py test_fractal_metric_exploration.py test_fractal_lattice_exploration.py test_fractal_feedback_exploration.py test_owner_write_path_exploration.py test_memory_consumer_path.py test_owner_surface_options.py test_owner_nested_cycle.py test_memory_store_scale.py test_store_addressing_rank.py test_store_addressing_capacity.py test_store_addressing_tree.py test_scale_composition_surface.py -q
+python -m pytest test_fractal_parent_summary_application_exploration.py -q
+python -m pytest test_fractal_bidirectional_recursive_memory_cell.py -q
+python run_fractal_recursive_memory_cell.py --output _diag/fractal-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_recursive_memory_cell.py -q
+python run_fractal_multicycle_recursive_memory_cell.py --output _diag/fractal-multicycle-recursive-memory-cell/exploration.json
+python verify_fractal_multicycle_recursive_memory_cell.py --receipt _diag/fractal-multicycle-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_multicycle_recursive_memory_cell.py -q
 ```
 
 `_diag/fractal-geometry/exploration.json` (`receipt_sha256`
@@ -1094,15 +1148,15 @@ floor plus the declared relative floor would not be visible"; and that "the coun
 that did not run are listed with their reasons: an unrun level is not evidence of a
 ceiling, and the structural inventory is measured separately from the arms". Its
 `not_shown` list holds the two readings it cannot give from its own statistic —
-"which dynamical property of the field sets the addressing capacity, beyond the
-measured count of its own scale-tree nodes", and "whether a hierarchical
 (multi-item-per-probe) placement would carry more than the port count; the delivered
 statistic addresses one item per probe".
 Every figure
-below is read from those sixteen files. All sixteen measure canonical-field
+below is read from those twenty-three files. All twenty-three measure canonical-field
 numerical
 proxies — geometric/access, modal-access, the owner transition surface itself, or
-one declared consumer's act on it; none measures task-level memory utility
+one declared consumer's act on it, a declared frozen-parent application, or a
+declared live child-detail-to-parent application; none
+measures task-level memory utility
 or task performance.
 
 ### Geometry
@@ -3236,16 +3290,421 @@ take the result further are these.
 
 Its own regression file, `test_store_addressing_capacity.py`, carries `13` tests
 covering the declared rule against the delivered item list, the addressable count as
-the port count at three resolutions, the install and restore of the extended list,
+the port count at two measured resolutions, the install and restore of the extended list,
 the field's own refusals at a leaf detail and beyond a leaf, every declared level
 accounted for as run, cut or refused, each measured row's booleans against its own
 numbers with all five controls firing, the refuted-reads of the structural boundary,
 the ceiling branch against the published numbers, and the merged and per-block
 digests, and passes in `5.0` s beside the rank file's `15` tests in `47.8` s.
 
-### Reading the sixteen receipts together
+### Store addressing tree
 
-The sixteen receipts measure persistence, transfer, closure, disturbance response,
+The scale-tree receipt asks the question the capacity receipt's inventory raises and
+does not answer: the store declares more scale-tree nodes than it addresses, because
+its own rule refuses a single-port node, so does the addressing act as a *tree* or is
+it a flat list wearing a tree-shaped address space? Its runner's own `question` states
+it, and the runner's docstring fixes the answer's shape before the first run.
+
+The question is answered only at the **field-exposed surfaces** the store's own
+interface returns, and the receipt declares each one before the first run rather than
+assembling it afterwards. The write surface is
+`owner.write_packet_impulse(operation_id, path=, component=, flow_signal=,
+work_budget=)`; the read surface is `owner.read_packet_deposit(path=, component=,
+flow_signal=)`, and the field's own readout is labelled `readout_kind:
+"temporal-prediction"` with `evidence_added: False` — a field-exposed API readout, not
+an admitted observation. **No figure in this receipt is an observation.** The
+addressability authority is one function, `capacity.declared_family(port_count)
+["specs"]` — the delivered eight-item list extended by its own rule: `root-scale`
+(path `""`, component `scale`), `root-detail` (`""`, `detail`), then every *interior*
+node's detail mode, with every single-port node recorded as refused ("a leaf packet
+has no detail mode"). Applied to the address space it gives three classes, and the
+receipt publishes them per surface rather than smoothing them over:
+
+| class | which surface | addressable |
+|---|---|---|
+| `declared_item` | the root's **scale** mode (family item `0`), the root's **detail** mode (family item `1`), and every interior node's detail mode | yes |
+| `field_exposed_undeclared` | a node's **scale** mode anywhere below the root, and a single-port node's scale mode, which is that one port | no |
+| `beyond_leaf` | a path that descends past a leaf: not a node at all | no surface exists |
+
+Two path-sensitive facts are published rather than flattened. The root's **scale**
+mode is `declared_family_item: true` (family item `0`) while every other node's scale
+mode is `false`; and the root's scale item is **not a parent** — it has no children —
+so the level catalogue's root parent is addressed at the root's **detail** mode,
+family item `1`. Addressability is measured, not assumed: the label pass *executes*
+every path's detail and scale surface once and records the outcome beside the label,
+so at four ports per pool the receipt holds `55` probed paths and at eight ports `111`,
+with the field's own refusal text carried at every single-port path.
+
+**The four readings, and what each one is taken at.** All four are constructions over
+readouts — every one of them divides one readout difference by another — and each is
+labelled `observed: false, constructed_from_readouts: true` in the receipt, with its
+surface, its node class, its construction and its parameters published in
+`declared.reading_surfaces` and repeated in its own row beside its numbers:
+
+- **R1 containment** — the parent's **declared-item detail** surface, addressed by the
+  parent's own path (the root parent's is `root-detail`), read after the children are
+  deposited at *their* declared-item detail surfaces, divided by the parent's own
+  response at its own surface. Declared items throughout; carries the branch.
+- **R2 aggregation** — the same parent surface, read after the children are deposited
+  **alone** at the delivered store write budget, with **two** published denominators:
+  the mean of what each child's own surface reads when deposited alone at that budget
+  (`fraction_of_the_childrens_own_deposit`, the value the per-level aggregate
+  publishes) and the parent's own deposit at its own surface
+  (`fraction_of_the_parents_own_deposit`). It is a magnitude reading, not a finite
+  difference, and its floor is the declared numerical term alone. Declared items
+  throughout; carries the branch.
+- **R3 sibling** — one child's declared-item detail surface, read after a deposit at
+  its sibling's, divided by the child's own response at its own surface, against the
+  same measurement for two items that are not siblings. Declared items throughout;
+  carries the branch.
+- **R4 descent** — the child's declared-item detail surface, read after a deposit at
+  its parent's declared-item detail surface, divided by the parent's own response,
+  against a source that is not an ancestor. Declared items throughout; carries the
+  branch.
+- **R1s/R2s companion** — the containment and aggregation constructions moved to the
+  *scale* surfaces: the field-exposed surface where the field's own packet analysis
+  composes a node's summary from its children (`_packet_analyze`'s size-weighted sum).
+  Its declared item status is **path-sensitive and not uniformly undeclared** — the
+  root's scale surface is family item `0`, every other companion surface is
+  field-exposed — so its `declared_item` is published as `null` with its own
+  `declared_item_scope`, and the surfaces it touched are listed by name in
+  `reading.companion_scale_surfaces.declared_items_among_these_surfaces`
+  (`["<root>/scale"]`). It does **not** carry the branch.
+- **R5 descendants** (supplementary) — the parent's declared-item detail surface, read
+  after deposits two levels below it, at this level's grandchildren's own declared-item
+  surfaces, with its own half-budget floor. Declared items throughout, but its
+  *sources* differ between resolutions by construction, so it does not carry the branch
+  and its cross-resolution comparison is reported separately rather than folded into the
+  matched control.
+- **port fallback** — a single-port node's scale surface, which is that port itself:
+  the field executes it and `capacity.declared_family` does not address the node as an
+  item, so it is `declared_family_item: false` with `node_class: single_port_node`. It
+  does not carry the branch.
+
+**The branch rule, and the third branch with equal standing.** The runner declares
+four branches and tests all of them: `the_tree_is_structural`,
+`the_tree_is_decorative`, `no_field_exposed_parent_surface_exists`, and
+`inconclusive`. The third is *not* a failure and not an inconclusive — it is a finding
+about the address space, and it is **tested** rather than asserted: the test is the
+parent's own declared detail write and read *executed per parent*, and the branch can
+only fire if the field refuses a parent's detail mode. The capacity inventory is what
+made that branch a live possibility (at four ports per pool the field declares `28`
+addressable nodes against `55` tree nodes, so a parent could have been a node with no
+address), and the measurement is what settles it: **every parent's own detail surface
+executed at every level of both resolutions** — `7/7`, `15/15`, `23/23`, `27/27` at
+four ports per pool and `31/31` at eight — so the third branch was tested and did not
+fire at any level. A child's detail refusal is a *per-reading* surface limitation, not
+this branch: `run_store_addressing_tree.py` names the refusal, labels the port/scale
+fallback beside it, and never reads it as the absence of a parent surface.
+
+**Measured.** The runner's declared cost cap (`MEASURED_TRIPLE_CAP = 6`, head and tail
+of the level's own order, with `PORT_FALLBACK_CAP = 2`) bounds each level, and each
+level's wall time is published: `125.6` s, `291.4` s, `329.3` s and `303.2` s at four
+ports per pool, and `304.4` s at eight, for two blocks of `1075.25` s and `422.92` s
+inside declared budgets of `4200` s each. The readings, over the measured triples:
+
+| level | complete triples | measured | containment | aggregation | sibling | descent | R5 descendants | companion scale | port fallback |
+|---|---|---|---|---|---|---|---|---|---|
+| `N=8`, res 4 | `3` | `3` | `0.0` at floor `3/3` | `0.0` | `0.0` | `6.906202310012417e-16` | `0.9965520484153771`, at floor `1/3` | `2.99854884730343` | `0/0` |
+| `N=16`, res 4 | `7` | `6` | `5.179651732509319e-16` at floor `6/6` | `5.179651732509314e-16` | `0.0` | `5.179651732509318e-16` | `0.9954509293041962`, at floor `3/6` | `2.9983162139910395` | `0/0` |
+| `N=24`, res 4 | `9` | `6` | `5.179651732509312e-16` at floor `6/6` | `5.179651732509318e-16` | `0.0` | `1.2085854042521727e-15` | `0.9954194705159002`, at floor `3/6` | `2.9982552422519797` | `2/2`, `2.3706605918015504` |
+| `N=28`, res 4 | `11` | `6` | `5.179651732509316e-16` at floor `6/6` | `5.179651732509313e-16` | `0.0` | `1.2085854042521733e-15` | `0.9973539855883697`, at floor `3/6` | `2.998595509734637` | `2/2`, `2.3706578097823616` |
+| `N=32`, res 8 | `15` | `6` | `8.632752887515531e-16` at floor `6/6` | `8.63275288751553e-16` | `0.0` | `3.45310115500621e-16` | `0.9936970481231202`, at floor `3/6` | `2.998253367170277` | `0/0` |
+
+Every level returns **`the_tree_is_decorative`**: every declared-item-surface reading
+is at its floor at every measured triple, `present` is `0` and `assignment_specific`
+is `0` for all four, and all six controls pass — the zero-work probes are rejected and
+move nothing, the duplicate and shared pairs match the single write, every arm moved
+the page, and every blank page reads nothing. The shuffled control is what sharpens
+it: the same contents attached to a parent they were not built from change nothing, so
+the readings are not reading the node count either.
+
+Three further results bound the claim in the other direction, and each is a published
+honest negative rather than a footnote:
+
+- **The companion at the scale surfaces is not at the floor under the declared rule,
+  and the floor is what hides it.** The companion containment runs `2.9985...` to
+  `2.9986` times its own positive control — reproducible to five digits across levels
+  and resolutions — while its declared two-term floor, whose finite-difference term is
+  the level's own half-budget difference, sits *above* the response: `present` is `0`
+  and every measured row carries
+  `a_nonzero_response_the_declared_floor_hides: true`. The deposit reading at the same
+  surfaces has no finite-difference term and *is* present, which pins the effect to the
+  probe arms rather than to the scale surfaces as such. The companion carries its own
+  predicates and cannot decide the branch.
+- **A refined first branch is not refuted, it is at the floor with it.** R5 reaches
+  `0.9936970481231202` to `0.9973539855883697` of its positive control when its sources
+  exist — but at the floor at `1/3` (`N=8`) and `3/6` at every other level, because of
+  the same finite-difference term, so the supplementary reading neither carries the
+  branch nor contradicts it.
+- **The parent can lack a child surface while never lacking its own.** `16` placement
+  patterns at the coarser resolution have a parent surface at every resolution while a
+  child surface does not exist at one — the parent's own detail surface executes and
+  the child is a single-port node whose detail the field refuses. That is the port
+  fallback's territory, and it is recorded with the field's own refusal text, never
+  read as the parent's absence.
+
+**The shuffled control across resolutions.** The same placement patterns are measured
+at both resolutions on a page held under *each resolution's own* profile: `5` patterns
+are measured at both, `6` at one only, and `24` paths exist only at the higher
+resolution. Every pattern measured at both gives the same kind of reading — at the
+floor at both — for the four declared readings, which is the control's job: a reading
+that survived only where a parent surface genuinely exists would be distinguishable
+from an artifact of the node count or of the aggregation, and none does. The
+supplementary R5 reading is compared **separately** for the same reason it is
+supplementary: its sources are each resolution's own grandchildren, so at two
+resolutions it places *different nodes*, and its difference there (at `L` and `R`) is a
+difference of placement, not a reading that follows the node count. The receipt says
+so in `supplementary_reading_scope` and lists the two patterns rather than letting the
+mismatch pass as agreement.
+
+**What this receipt does not show.** Its own limitations, in its own terms: it measures
+one declared operating point — one probe budget, one hold, one delivered write budget,
+one page per level held at the delivered captures — so nothing here is a distribution
+over operating points; it measures at most six complete triples per level, so its
+readings are stated over the measured triples only and the unmeasured ones are not
+claimed; it reports the *address* structure and nothing about semantics, task utility,
+retrieval quality or any advantage over alternative architectures; every figure is a
+construction over the field's own API readouts and no figure is an observation; and the
+floor rule was fixed before the first run and is **not** retuned afterwards, which is
+why the companion's large fractions are published as floor-hidden rather than promoted
+to present readings. Whether the tree carries meaning at a surface *neither* the store's
+family nor the field's own composition exposes is the thing it cannot see: this
+measurement reaches the surfaces the field returns, and it says nothing about a
+hierarchy that would only appear at surfaces that do not exist.
+
+Its own regression file, `test_store_addressing_tree.py`, carries `25` tests covering
+the declared cap against the level's own order with every parent an interior node, the
+field's own refusals at a leaf detail and beyond a leaf on the real surface, the
+receipt's blocks and levels with their complete and measured counts, every published
+reading recomputed from its own responses and floor terms, every per-level aggregate
+against the count of its own rows, the published branch against the branch the declared
+rule returns, the structural and third branches both reachable on perturbed real
+records, the surface census as the third branch's tested evidence, each reading's own
+declared surface with its node class and addressability re-derived from
+`capacity.declared_family`, the probed address space labelled per surface with a firing
+control on a mutated block, the companion's floor-hidden fractions with their declared
+scope, the supplementary reading with its own floor and placements, the port fallback
+against the field's own refusal text, the cross-resolution matched control with the
+supplementary mismatch reported separately, and the merged and per-block digests, and
+passes in `2.0` s.
+
+### Scale composition surface
+
+The tree receipt found the addressing flat: containment, aggregation, sibling and
+descent all sit at their floor. It also left one non-zero reading with no
+structural control -- a companion at the scale surfaces standing about three times
+its own positive control (`fraction_of_the_positive_control` ~2.998 at every level)
+that the spent receipt nonetheless published `at_the_floor`, because the binding
+term of its declared rule was the `10 * |r(B) - r(B/2)|` half-budget difference and
+not the magnitude. `run_scale_composition_surface.py` re-takes that geometry with
+the controls it lacked and asks the one question the companion leaves open: is a
+node's scale response to deposits at its children a **composition** -- a function
+of *which* children were written -- or magnitude alone?
+
+**The rule was worked out on paper before the first arm.** The spent receipt's own
+two-term rule, `|v| > max(10 * |v - v_half|, 1e-9 * |own|)`, does not measure a
+reading's size. A reading that scales with the drive has
+`|v - v_half| = |v| / 2`, so the half-budget term becomes `5 * |v|` -- five times
+the reading -- and the reading can *never* clear it; a reading that has stopped
+moving between neighbouring budgets has that term at or below the numerical term
+and is judged on the numerical term alone. The rule is a statement about the
+reading's **shape**: asking whether the reading scales with the budget asks for
+exactly the shape the rule rejects by construction, and the informative measurement
+is a **budget sweep**. So every measured row now sweeps a declared ladder --
+`0.25, 0.5, 1, 2, 4` times the level's own write budget, fixed before the first run
+-- and publishes the whole sweep: the treatment, its own positive control, and both
+floor terms **separately** rather than folded into a `max`, at every point.
+
+**What the sweep found, at all three measured levels (N=8 and N=28 at resolution 4,
+N=32 at resolution 8):**
+
+| reading | shape | plateau | declared rule admits | binding term at every point |
+| --- | --- | --- | --- | --- |
+| children's **own scale** surfaces to the parent's scale (R-B) | `still_climbing_with_the_drive` | none on the declared ladder | 0 of 15 sweep points per level | `10 * \|v - v_half\|`, 0.0310-0.2066 |
+| children's **declared detail** surfaces to the parent's scale (R-A) | `under_the_numerical_term` | none (the reading is silent) | 0 of 15 | `1e-9 * \|own\|` |
+
+The scale reading rises at every declared point and never plateaus: at N=28's first
+row it goes `0.00502 -> 0.00812 -> 0.01372 -> 0.02425 -> 0.04470` while its own
+positive control goes `0.00126 -> 0.00251 -> 0.00502 -> 0.01005 -> 0.02009`. Its
+magnitude is therefore a **budget artifact**, and the receipt says so in those
+words; the declared rule rejects that shape by construction (0 of 15 points
+admitted, the half-budget term binding at every one), which is a different statement
+from the reading being absent. The declared-detail path is **silent**: at or below
+`1e-9 * |own|` (1.26e-12 to 2.01e-11) at every declared point, and bounded by that
+term. Neither path reaches a plateau above the numerical term, so no row of this
+receipt is claimed as composition evidence *from its sweep*.
+
+**What carries the branch is therefore not the magnitude.** The composition branch
+at all three levels rests on two comparisons that do not scale with the drive: the
+**structural separation** from the shuffled-parent control (0.0129-0.0151 at the
+rows where the field's own same-depth choice exists -- 2 of 3 rows per level; at the
+root the field's own helper falls back to a descendant and the control is *refused
+and recorded* rather than fabricated) against a measured floor of 0.0050-0.0058, and
+the **count test** at a constant total budget -- two children at the write budget
+each versus one child at twice it, the same total work -- which separates at every
+measured row. The companions stay scoped beside the branch: the field's own
+size-weighted composition companion has no control at these levels, the descendants
+reading has a non-ancestor control on 2 of 3 rows, and the port fallback on 2 of 2
+port rows (0 of 0 at N=8, which has no ports).
+
+**The spent receipt's companions, audited from the pinned artifact before the first
+arm.** The receipt re-reads `_diag/store-addressing-tree/` at its declared digests
+and publishes, per level and per companion, whether the arm exists (proven by a
+published value, never by a key: `arms_finite` is `True` for an arm passed as
+`None`) and where a zero is **vacuous** -- the companion's zero at every measured
+level is computed from a reading whose input was zero, so those zeros say nothing
+about the structural question and are not read as a magnitude verdict. The
+companion's structural question is likewise recorded as *untested* at every level
+of the spent receipt, which is why this runner exists.
+
+**Scope.** Every figure is a construction over the field's own readouts
+(`readout_kind: "temporal-prediction"`, `evidence_added: False`) and **none is an
+observation**. The sweep is declared for the two scale-surface geometries; the
+descendants, port, field-composition and delivered-aggregation companions state
+that they carry no sweep of their own rather than borrowing one. The branch is a
+statement about the scale surfaces this level measured, at the two measured
+resolutions, on this store.
+
+Its own regression file, `test_scale_composition_surface.py`, carries `13` tests
+covering the shuffled control's refusal of the field's cross-depth fallback, the
+non-ancestor control never an ancestor, a descendant or equal, the placement null
+never a sibling pair or a parent's own children, a missing control voting nothing, a
+sweep that plateaus above the numerical term classified as evidence with both floor
+terms published separately and the multiple the declared rule starts admitting, a
+sweep that scales with the drive classified as a budget artifact and rejected at
+every point by the rule's own arithmetic, a silent sweep named as bounded rather
+than absent, the composition branch requiring a measured sweep, a separation and the
+count test, and the merged receipt scanned for the word the declared rule rejects,
+and passes in `1.4` s.
+
+Its merged receipt is `_diag/scale-composition-surface/exploration.json`
+(`receipt_digest` `19c38e6435efd380893469c78ff619a432405f3f56c26b92ba758901b63a3627`) over the two blocks
+(`declared-profile` `87684098d3e222f160c96b6ba0823755f32dac0d4a861b0fb63518d301a2d8d2`,
+`higher-resolution` `2e16e6e07578c684b092e8a91f32c546e1add49fcfd6d561193bf9544859242a`); the merged
+receipt carries the sweep table itself as `the_declared_budget_sweep`, the
+per-level sweep shapes, the plateau (or the statement that the ladder never reached
+one) and both floor terms beside every point.
+
+### Frozen parent application into an LL child
+
+`cassi_resonant_field.py` now exposes the bounded parent-register path through
+`write_parent_registers`, `freeze_parent`, `read_frozen_parent`,
+`apply_frozen_parent_to_child`, and `recompute_parent_summary_from_child`.
+`run_fractal_parent_summary_application_exploration.py` captures one L/LL field
+state, freezes the L register, advances once with the source disabled, and
+applies the frozen L level-zero momentum (`values[2:4]`, common/counterflow)
+through the native LL scale impulse. Its focused regression is
+`test_fractal_parent_summary_application_exploration.py`.
+
+The frozen receipt `_diag/fractal-parent-summary-application/exploration.json`
+(`content_digest`
+`6a5f428650a40172358fe180075df5552d92c4ca621eed11b753de26afeadc05`) reports
+`PASS_FIELD_OWNED_FROZEN_PARENT_APPLICATION`. From the same source-off child
+state, parent-on applies effective flow `[0.03331300192959163, 1.0]` and
+`0.0005` work, while parent-off applies `[0.0, 1.0]`; the final child states
+are distinct. The frozen L values survive both arms unchanged (norm `0.0`),
+the LR sibling delta is `0.0`, source-off heartbeat work is `0.0`, and
+zero-work application is an identity (the state digest is unchanged).
+
+The receipt's attempted can-fail controls reject a stale parent source digest
+(`frozen parent source digest is stale`), a tampered freeze identity
+(`frozen parent identity digest mismatch`), and live parent recomputation
+(`parent recompute is locked while a frozen parent is active`). Its declared
+`field_only` is `true`, while `semantic_memory_claim` and `hierarchy_claim` are
+`false`.
+
+**Boundary.** This is field-level causal wiring for one declared L→LL relation:
+the frozen L register changes the native LL application while the register stays
+fixed. It is not semantic recall, a task-level memory result, or evidence of a
+general hierarchy or cross-scale architecture.
+
+### Live LL-detail feedback into an L parent
+
+`run_fractal_bidirectional_recursive_memory_cell.py` measures the native live
+LL-detail → L route: a current LL detail packet is analyzed and applied to the
+L parent through the declared relation, without freezing or persisting the child
+packet as a memory object. The receipt
+`_diag/fractal-bidirectional-recursive-memory-cell/exploration.json`
+(`content_digest`
+`cfd96dd3423f75168c6138753debe15c2b421a166bd5ac2b4e33e41f3cb7561d`)
+reports `PASS_FIELD_OWNED_LIVE_CHILD_DETAIL_TO_PARENT`. Parent-on changes the
+parent summary by `0.03417819603225304`, while parent-off is `0`; the applied
+work is `0.0005000000000000002` and the reported balance defect is `0`.
+
+The receipt's controls cover zero-work identity, applied-work balance, stale
+child source/packet/relation rejection, tampered-relation rejection, and the
+frozen-parent lock. The owner checkpoint reload/replay control replays the same
+operation and preserves the same state. These are can-fail wiring and provenance
+controls for the declared route.
+
+**Boundary.** This is live current-field feedback from an LL detail into its L
+parent. It is not retained child memory, semantic recall, or evidence of a
+general hierarchy.
+
+### Strict two-cycle active upward recurrence
+
+The current strict receipt is `_diag/fractal-recursive-memory-cell/exploration.json`:
+schema `cassifi.fractal-recursive-memory-cell.v2`, verdict
+`PASS_FIELD_OWNED_CLOSED_TWO_CYCLE_ACTIVE_UPWARD_RECURRENCE`, and
+`content_digest`
+`5b254001650c8dce821a7a265ea4134ea5f223c8732b1a6a02ec3ddfcdb6ab28`.
+It runs the causally matched cycle in `LL:detail` mode: frozen parent → child
+application, release, live `LL:detail` → `L:scale` feedback, explicit parent-summary
+recompute, refreeze, then a second frozen `LL:detail` application. The live upward
+impulse is accepted with applied work `0.0005` and balance defect `0.0`.
+
+The receipt records the register distinction explicitly. Before recompute, the
+canonical L register remains equal to the register observed at the released child;
+only the live field coordinates have received the upward impulse. The explicit
+`recompute_parent_summary_from_child` call then materializes the updated parent
+summary before refreezing. In the later-child contrast, full-loop versus
+feedback-off deltas are field-state `0.023945903844438326`, effective-flow
+`0.046296294312366`, and packet-state `0.010747066052609385`.
+
+The source-off predecessor has `source_enabled: false` and positive heartbeat work
+`0.0`; the matched sibling `LR` isolation quantity is `0.0`. The parent-off and
+feedback-off arms remain controls for disabling the corresponding parent channels,
+and stale source, packet, and relation digests on the upward route are rejected.
+
+**Limitation.** This is a field-only, CPU/float64 causal-wiring result for the
+declared L/LL route. It does not establish semantic memory, semantic retrieval,
+embeddings, task utility, general hierarchy, or general cross-scale architecture.
+
+### Bounded three-child active upward recurrence
+
+The current bounded multicycle receipt is
+`_diag/fractal-multicycle-recursive-memory-cell/exploration.json`:
+schema `cassifi.fractal-multicycle-recursive-memory-cell.v1`, verdict
+`PASS_FIELD_OWNED_BOUNDED_MULTICYCLE_UPWARD_RECURRENCE`, and
+`content_digest`
+`2286b85bdb599baaec552545c72d90b3f15c552fdbd3003ae2db56c4f3d467c3`. It
+follows three bounded child routes — `D1/U1`, `D2/U2`, then `D3` terminal —
+and releases the terminal child. The matched arms are feedback-on
+`[on,on]` versus feedback-off `[off,off]`, with the parent enabled in both
+arms. The later-child contrasts are field delta
+`0.04336519945636155`, flow delta `0.027422444347092373`, and packet delta
+`0.019405144059018598`; the persistence ratio is
+`0.22825380024217662`, the selectivity ratio is `0.0`, and the source-off
+heartbeat is `0.0`. Continuity work is `0.0005` for both the full and
+parent-off arms.
+
+The receipt's can-fail controls cover zero-work identity, zero-work downward
+target identity, standalone upward zero-work identity, source-off heartbeat,
+sibling isolation, immutable workspace round-trip, stale source rejection,
+stale packet rejection, stale relation rejection, frozen-parent lock
+rejection, persistence/selectivity mutation, and prior-receipt continuity.
+The three-child route also requires nonzero downward target movement,
+release/materialize/refreeze ordering, preservation of each nonterminal parent
+register before materialization, and terminal release.
+
+**Limitation.** This is field-level bounded recurrent causal wiring only: a
+repeated `L↔LL` route. It does not establish semantic retrieval, embeddings,
+task utility, or an `LLL` hierarchy. No geometry-superiority claim is made.
+
+### Reading the twenty-three receipts together
+
+The twenty-three receipts measure persistence, transfer, closure, disturbance response,
 whether a written item survives a workspace round trip, how much of that survival
 depends on which declared scaffold carries it and how far apart the items sit in
 the declared scale hierarchy, which hooks actually move the body, which ports
@@ -3264,7 +3723,11 @@ whether that crowded store's item-to-deposit map is rank-deficient once it is re
 as a map rather than as a ratio — and if it is not, whether the placement of each
 item is what carries the addressing, and how many items that addressing carries at
 all: where the field's own declared family stops being constructible at one
-declared resolution, and what fixes that number.
+declared resolution, and what fixes that number, and whether the address space is
+a tree at its surfaces or a flat list under one, and whether the scale surface the
+tree receipt left with a non-zero reading and no control composes from *which*
+children were written or answers how much alone — measured as a declared budget
+sweep rather than as a verdict at one drive.
 Their common gap is narrower than "no memory" and is specific:
 the written item outlives a workspace round trip and bounded activity, the
 owner write path now carries it inside the owner's own checkpoint closure through
@@ -3429,7 +3892,7 @@ untouched.
 
 ### Determinism of the receipts
 
-All sixteen receipts are content-deterministic for the source as it stands: their
+All twenty-three receipts are content-deterministic for the source as it stands: their
 cited digests are stable across independent re-runs, while the raw file hash is not,
 because several harnesses record wall-clock fields. The definition is the lattice
 runner's, which declares
@@ -3448,11 +3911,12 @@ helper — and the store addressing capacity receipt added here reuses it the sa
 way (`declared.content_digest_strip_keys_source`:
 "`run_memory_store_scale.STRIP_KEYS`, reused rather than re-derived",
 `run_store_addressing_capacity.py:1398-1400`); each of those is stated in its own
-paragraph below. Thirteen of the sixteen
-carry at least one of those keys — geometry, ladder, lattice, memory consumer path,
-memory store scale, metric, owner nested cycle, owner surface options,
-owner-write-path, placement, store addressing capacity, store addressing rank and
-survival — so a re-run of one
+paragraph below. Nineteen of the twenty-three
+carry at least one of those keys — geometry, ladder, lattice, live child-detail-to-parent,
+memory consumer path, memory store scale, metric, owner nested cycle, owner surface
+options, owner-write-path, placement, recursive memory cell, store addressing capacity,
+store addressing rank, survival, frozen-parent application, and bounded multicycle
+recurrence — so a re-run of one
 of them changes the file hash without changing the digest; the memory consumer path
 receipt declares that its measured body carries no inner wall-clock field, so its set
 removes only the top-level `runtime_seconds`, and the owner surface options receipt
@@ -3749,6 +4213,176 @@ tests pass in `55.67` s.
 
 - **No field-level self-similarity exists.** `ResonantProfile.__post_init__` accepts exactly `{meaningful-helix, undivided, isolated, rewired}` and fixes `pools == 7`, so no arrangement can change the pool count or the minimum port resolution of four. Spatial spacing is inexpressible because `coordinates` has no hook, and `profile.edges` is ignored whenever `projected_transport` is set, so declared arrangements re-declare their structure and carry `topology` as metadata only. Nested, recursive, ladder, quasiperiodic, and sparse-link layouts are therefore reachable as declared pool graphs and were measured once by the geometry harness, but they measure strength and metric declarations, not physical self-similarity; the porous, hyperbolic, and second-center variants (A.5, A.6, A.8) additionally need descriptor support that does not exist.
 - **No demonstrated durable pattern-storage mechanism exists.** `resonant_workspace` is persisted working state and §26.1 keeps learned memory, provisional work, and acknowledged outcomes distinct; the durability receipt writes one declared item into the canonical page and reads it back unchanged across a workspace round trip and records, for its own build, that the owner transition surface accepted no packet impulse and that its restart identity was workspace-level, while the owner write path now adds that transition — an exactly-once owner operation carrying the written pattern inside the owner's checkpoint closure across a close and reopen, with the generation, the logical tick and the evidence clock preserved — and still demonstrates no durable store: the consumer path now measures one declared consumer retrieving a written direction's deposit and acting on it, but as a declared projection of the page under a declared direction, and the memory store scale receipt now measures eight declared items holding and being used for eight declared rounds with every round's queried direction read above its floor and the items not yet acted on drifting by `5.551115123125783e-16` at most — a store that survives being used, with a hold that is "short by declaration, so this receipt makes no claim about holding eight items over a long horizon", and with every act on it destructive by design, so a durable store remains the program's central open item (G.1, `_diag/fractal-durability/exploration.json`, `_diag/owner-write-path/exploration.json`, `_diag/memory-consumer-path/exploration.json`, `_diag/memory-store-scale/exploration.json`).
-- **No multi-level scaffold has been measured at any depth.** Depth, branching, and cross-scale connections exist only inside the disposable packet basis (§26.18) or as nested resolution projections of one fixed body (§26.24), a different object from a many-level physical scaffold.
+- **No general multi-level scaffold has been measured at any depth.** Depth, branching, and cross-scale connections exist only inside the disposable packet basis (§26.18) or as nested resolution projections of one fixed body (§26.24), while the one frozen L→LL receipt measures a single field-level causal wiring path; neither is a many-level physical scaffold or proof of a general hierarchy.
 - **No activity-driven structural change exists.** Change is explicit — condensation, layout transition, revision, revocation — and §26.1 forbids a per-pool Hebbian matrix or oscillator-weight learner, so H.4 must route through admitted evidence.
 - **The exact-solver and theory analogies are analogies.** The width-two certificate, the `omega = 3` measurement, and the one-sided frame test concern cubic incidence matrices; the boundary-sector result concerns a lattice Yang–Mills transfer; J.4 and J.7 use them as shapes of argument, not inherited findings.
+
+## Cue-conditioned field action (present state)
+
+The task-grounded step is a synthetic field-coordinate controller, not a
+semantic memory claim.  `run_cue_conditioned_field_action.py` writes declared
+cue directions through field-owner write methods, reads the four candidates
+through field-owner read methods, and emits one observable owner action per
+selected cue.  Existing harness capture instrumentation supplies the coordinate
+directions.  This scope is explicitly the field-owner read/write methods with
+that existing instrumentation, not strict public-API-only isolation: the audit
+found private helper and instrumentation imports (`arrangement._profile`,
+`durability.capture_items`, and `consumer.frame`).  Nothing here establishes
+semantic cue interpretation, language understanding, or task utility.
+
+Measured-read selection ranks recovered deposits with direction-digest
+tie-breaking.  It selects exactly two only if the second selected score clears
+the named `SCORE_FLOOR = 1e-12` and the positive margin clears the separate
+`SELECTION_MARGIN_FLOOR = 1e-12`.  Otherwise it abstains and records
+`selected_cues=[]`, `selected_actions=[]`, `action_order=[]`, `acts=[]`,
+`abstained=true`, and `action_count=0`; no owner action is attempted.  The
+blank-no-memory and cue-read-suppressed controls require and verify those
+zero-action fields.  Unconditional, wrong-mapping, and action-order controls
+intentionally continue acting, preserving can-fail firing controls rather than
+letting all-zero scores silently produce top-two actions.
+
+The two training combinations recover exactly (`2/2`), and the held-out
+two-cue combination under a new presentation order recovers exactly with
+selection margin `0.0027042377351855105`.  The frozen receipt is
+`_diag/cue-conditioned-field-action/exploration.json`, schema
+`cassifi.cue-conditioned-field-action.v1`, digest
+`373c963975ed58e434ff0d01d953c6756e95a3cf361755f9dbf2ba7aa1669844`.
+The independent verifier imports neither the runner nor the audited field
+implementation, rederives gated selection/action rows and both zero-action
+control predicates from receipt rows, and passed `100` checks including
+positive/negative firing anchors and the declared digest rule.  Reproduce with:
+
+```powershell
+python run_cue_conditioned_field_action.py --output _diag/cue-conditioned-field-action/exploration.json
+python verify_cue_conditioned_field_action.py --receipt _diag/cue-conditioned-field-action/exploration.json
+python -m pytest test_cue_conditioned_field_action.py -q
+```
+
+The result remains limited to controller behavior over the declared
+field-coordinate protocol and this harness-instrumented owner path; broader
+held-out generalization is unmeasured.
+
+### Temporal/evidence action selection
+
+This bounded probe uses the public temporal/evidence owner path
+(`configure_temporal`, `learn_temporal`, `condense_temporal_skill`,
+`bind_temporal`, read-only `select_temporal_action`, and
+`advance_temporal`) rather than a fixed cue-to-action mapping.  The supported
+arm selects `left-skill`/`left-step` with margin `0.035448902588912756` and
+reaches expected observation `left-goal`; reversing presentation order leaves
+the selected candidate and candidate-set digest unchanged.  Applying the
+wrong action fails that expected goal, not merely the action-identity check.
+
+Receipt:
+`_diag/temporal-evidence-action-selection/exploration.json`,
+`cassifi.temporal-evidence-action-selection.v1`,
+`94efb7e88ca7c618b039daa7bc62a2df3225a64721e8fb6b67aa4c7d7354b9e1`.
+The independent verifier and focused regression both pass.  The no-workspace
+control is a true isolated lesion made after setup/learning by initializing a
+fresh owner from `dataclasses.replace(learned_state,
+resonant_workspace=None)`; both admissible operations then abstain with
+`resonant-workspace-unavailable`, `field_setup.available=false`, and no
+consequence.  Forbidden-operation and insufficient-margin controls remain
+distinct abstentions.
+
+The scope is one deterministic two-action controlled world and a
+presentation permutation.  It does not establish open-vocabulary semantics,
+broad planning, general world utility, workspace recovery, or persistence.
+
+### Concurrent temporal/evidence action batch
+
+The batch receipt
+`_diag/temporal-evidence-action-batch/exploration.json` (schema
+`cassifi.temporal-evidence-action-batch.v1`, digest
+`289425f4dc6fb7d79c9915006a6bda76de47e6e24036d780e47603cae5c0c1ac`) records
+11 canonically sorted independent cases executed by a bounded
+`ProcessPoolExecutor`: 4 requested and 4 used workers, with completion and
+per-case elapsed diagnostics excluded from the digest.  It measured the two
+continuity rows, a three-candidate competition, one successful two-transition
+multi-step case, an explicit unsupported held-out-composition case, an
+order-permutation case, and no-workspace, insufficient-margin,
+forbidden-operation, infeasible-operation, and wrong-consequence controls.
+All controls fired; summary counts were rebuilt from rows by the independent
+verifier.
+
+The unsupported row trains only a singleton `bridge-step` primitive source and
+records a held-out ordered two-step source whose digest is absent from all
+training source digests.  The public temporal API requires a supported ordered
+transition to occur contiguously in an admitted source; singleton primitives
+therefore cannot compose this new transition.  Selection remains unresolved,
+so this is an honest unsupported-capability result, not held-out
+generalization.  The verifier independently decodes both source sets and has
+mutation anchors for selected action, expected goal, held-out scope, case count,
+worker concurrency, and a forbidden control.
+
+Commands:
+
+```powershell
+python run_temporal_evidence_action_batch.py --output _diag/temporal-evidence-action-batch/exploration.json --workers 4
+python verify_temporal_evidence_action_batch.py --receipt _diag/temporal-evidence-action-batch/exploration.json
+python -m pytest test_temporal_evidence_action_batch.py -q
+```
+
+This is a bounded field-native categorical action-selection measurement over a
+closed action/observation codec, with temporal reachability and deterministic
+consequence only.  It does not establish open-vocabulary semantics, broad
+planning, general world utility, or independent-distribution performance.
+
+### Present-state boundary: ordered temporal composition
+
+The canonical unsupported-capability receipt is
+`_diag/temporal-composition-probe/receipt.json`, schema
+`cassifi.temporal-composition-probe.v1`, content digest
+`400e75f0135999d52170360bfc55ab72bc98e23195e94a6956bc3884109649f6`.  It
+admits two singleton primitive sources independently into one temporal memory
+and then exercises the exact public sequence
+`configure_temporal -> learn_temporal -> condense_temporal_skill ->
+bind_temporal -> compose_temporal_task -> propose_temporal_task ->
+acknowledge_temporal_task`.  The first primitive is selected and acknowledged;
+the second is unresolved at that post-transition state.  The denied-second
+control also abstains, and source bytes prove that the held-out ordered pair is
+absent from training.
+
+The verdict is **UNSUPPORTED**: task syntax does not count as an unseen A→B
+composition.  This result is scoped to the closed categorical codec and public
+owner path; it does not establish general planning, open-vocabulary
+recombination, or a successful unseen transition.  A supported result requires
+B to be selected after A and the task to complete.  The exact API boundary is
+that `compose_temporal_task` sequences existing skill bindings but does not
+synthesize/transfer a skill policy at the preceding skill's destination.
+Reproduce with:
+
+```powershell
+python run_temporal_composition_probe.py --output _diag/temporal-composition-probe/receipt.json
+python verify_temporal_composition_probe.py --receipt _diag/temporal-composition-probe/receipt.json
+python -m pytest test_temporal_composition_probe.py -q
+```
+
+### Present-state boundary: explicit materialized composition
+
+The opt-in supported-composition receipt is
+`_diag/temporal-materialized-composition/receipt.json`, schema
+`cassifi.temporal-materialized-composition.v1`, content/receipt digest
+`4584e905dc98565e7c1c218cd3d0b24b716ab6e336f0a3489e25cd7a860c3ac3`.
+It retains the singleton A and B sources and proves from their decoded source
+bytes that no A→B training edge was admitted.  After A is consumed, the
+field-owned read-only proposal reports a derived hypothesis with no canonical
+support; pre-commit B exposure is zero.  A separate explicit owner commit
+validates the external B observation, materializes the proposed A-post→B edge
+in the immutable TemporalField canonical planes, publishes changed field/memory
+digests, and consumes B.
+
+This is a distinct API path, not a fallback in `skill_action`,
+`propose_temporal_task`, or `acknowledge_temporal_task`.  Mismatched,
+ambiguous, unknown, stale, or replayed commits fail closed; the receipt includes
+a mismatch control and the independent verifier checks that failed commits do
+not mutate the prior field.  The supported claim is therefore limited to this
+explicit closed-codec, externally observed, state-conditioned materialization
+boundary.  It does not promote the derived proposal to training evidence and
+does not claim general planning or external-world authority.
+
+```powershell
+python run_temporal_materialized_composition.py --output _diag/temporal-materialized-composition/receipt.json
+python verify_temporal_materialized_composition.py _diag/temporal-materialized-composition/receipt.json
+python -m pytest test_temporal_materialized_composition.py -q
+```

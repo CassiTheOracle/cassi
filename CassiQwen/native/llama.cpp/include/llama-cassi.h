@@ -20,8 +20,9 @@ enum llama_cassi_teacher_policy {
 };
 
 enum llama_cassi_route_policy {
-    LLAMA_CASSI_AUTO     = 0,
-    LLAMA_CASSI_PIPELINE = 1,
+    LLAMA_CASSI_AUTO           = 0,
+    LLAMA_CASSI_PIPELINE       = 1,
+    LLAMA_CASSI_EXACT_PIPELINE = 2,
 };
 
 enum llama_cassi_status {
@@ -38,6 +39,18 @@ enum llama_cassi_service_kind {
     LLAMA_CASSI_ATTENTION = 3,
     LLAMA_CASSI_FFN       = 4,
 };
+enum llama_cassi_sampler_mode {
+    LLAMA_CASSI_SAMPLER_GREEDY      = 0,
+    LLAMA_CASSI_SAMPLER_CATEGORICAL = 1,
+};
+
+struct llama_cassi_sampler_params {
+    enum llama_cassi_sampler_mode mode;
+    float temperature;
+    uint32_t top_k;
+    double draw;
+};
+
 
 struct llama_cassi_params {
     uint64_t memory_bytes;
@@ -46,13 +59,15 @@ struct llama_cassi_params {
     enum llama_cassi_route_policy route_policy;
     const char * field_device;
     const char * model_path;
+    // Optional caller-verified raw GGUF digest. Read only during llama_cassi_init.
+    const uint8_t * model_sha256;
 };
 
 struct llama_cassi_token {
     llama_token token;
-    uint32_t decision_source;  // 0 field, 1 teacher-guided
+    uint32_t decision_source;   // 0 field, 1 teacher-guided, 2 exact native pipeline
     uint32_t native_dependency; // 0 none, 1 native services, 2 full teacher
-    uint32_t readout_kind;      // 0 exact, 1 interpolated, 2 guided
+    uint32_t readout_kind;      // 0 exact field, 1 interpolated, 2 guided, 3 exact native
 };
 
 struct llama_cassi_stats {
@@ -71,6 +86,11 @@ struct llama_cassi_stats {
     uint64_t native_logits_reads;
     uint64_t native_replay_tokens;
     uint64_t native_decode_tokens;
+    uint64_t native_exact_tokens;
+    uint64_t native_exact_stages;
+    uint64_t native_exact_attention_stages;
+    uint64_t native_exact_ffn_stages;
+    uint64_t native_sampler_draws;
     uint64_t field_observations;
     uint64_t pending_admission_payload_bytes_peak;
     uint64_t pending_rollback_bytes_peak;
@@ -132,6 +152,9 @@ LLAMA_API int32_t llama_cassi_begin(
 LLAMA_API enum llama_cassi_status llama_cassi_next(
         struct llama_cassi_context * ctx,
         struct llama_cassi_token * result);
+LLAMA_API int32_t llama_cassi_set_sampler(
+        struct llama_cassi_context * ctx,
+        struct llama_cassi_sampler_params params);
 LLAMA_API int32_t llama_cassi_accept(struct llama_cassi_context * ctx, llama_token token);
 LLAMA_API int32_t llama_cassi_rollback_accepted(struct llama_cassi_context * ctx);
 LLAMA_API int32_t llama_cassi_finish(struct llama_cassi_context * ctx, bool cancelled);

@@ -1,5 +1,6 @@
 #include "models.h"
 #include "llama-memory-recurrent.h"
+#include "llama-kv-cache.h"
 
 void llama_model_qwen35::load_arch_hparams(llama_model_loader & ml) {
     ml.get_key(LLM_KV_ATTENTION_LAYERNORM_RMS_EPS,       hparams.f_norm_rms_eps);
@@ -169,15 +170,22 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     ggml_tensor * inp_out_ids = build_inp_out_ids();
     llm_graph_input_cassi_modal * qi_inp = nullptr;
     ggml_tensor * t_qi = nullptr;
-    auto build_qi_correction = [&](ggml_tensor * source) -> ggml_tensor * {
+    ggml_tensor * qi_correction = nullptr;
+    ggml_tensor * qi_history_source = nullptr;
+    auto qi_view_width = [&]() -> int64_t {
+        const int64_t block_width = 2 * (int64_t) params.cassi_qi->wave_mode_count;
+        return params.cassi_qi->row_width > 0
+            ? std::min<int64_t>(params.cassi_qi->row_width, block_width)
+            : (int64_t) hparams.n_embd;
+    };
+    auto ensure_qi_input = [&]() {
         GGML_ASSERT(params.cassi_qi != nullptr && params.cassi_qi->enabled);
+        if (qi_inp != nullptr) {
+            return;
+        }
         const uint32_t state_mode_count = params.cassi_qi->mode_count;
-        const uint32_t wave_mode_count = params.cassi_qi->wave_mode_count;
         const uint32_t n_tokens = ubatch.n_tokens;
         const uint32_t n_seqs = std::max(1u, ubatch.n_seqs_unq);
-        GGML_ASSERT(2 * wave_mode_count >= (uint32_t) hparams.n_embd);
-        GGML_ASSERT(wave_mode_count <= state_mode_count);
-
         auto inp_qi = std::make_unique<llm_graph_input_cassi_modal>(
             static_cast<const llm_cassi_modal_config *>(params.cassi_qi), n_seqs);
         inp_qi->state = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
@@ -189,19 +197,46 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
         ggml_set_input(inp_qi->mode_params);
         ggml_set_input(inp_qi->seq_ids);
         qi_inp = static_cast<llm_graph_input_cassi_modal *>(res->add_input(std::move(inp_qi)));
+    };
+    auto build_qi_state_history = [&]() -> ggml_tensor * {
+        ensure_qi_input();
+        const int64_t wave_mode_count = params.cassi_qi->wave_mode_count;
+        const int64_t state_mode_count = params.cassi_qi->mode_count;
+        ggml_tensor * state0 = ggml_view_3d(ctx0, qi_inp->state,
+                2, wave_mode_count, qi_inp->state->ne[1],
+                9 * sizeof(float), qi_inp->state->nb[1], 0);
+        state0 = ggml_cont(ctx0, state0);
+        ggml_tensor * rows = ggml_reshape_2d(
+            ctx0, state0, 2 * wave_mode_count, qi_inp->state->ne[1]);
+        rows = ggml_get_rows(ctx0, rows, qi_inp->seq_ids);
+        if (rows->ne[0] != qi_view_width()) {
+            rows = ggml_view_2d(ctx0, rows, qi_view_width(), rows->ne[1], rows->nb[1], 0);
+        }
+        return ggml_cont(ctx0, rows);
+    };
+    auto build_qi_correction = [&](ggml_tensor * source) -> ggml_tensor * {
+        GGML_ASSERT(params.cassi_qi != nullptr && params.cassi_qi->enabled);
+        ensure_qi_input();
+        const uint32_t state_mode_count = params.cassi_qi->mode_count;
+        const uint32_t wave_mode_count = params.cassi_qi->wave_mode_count;
+        const uint32_t n_tokens = ubatch.n_tokens;
+        const uint32_t n_seqs = std::max(1u, ubatch.n_seqs_unq);
+        GGML_ASSERT(2 * wave_mode_count >= (uint32_t) hparams.n_embd);
+        GGML_ASSERT(wave_mode_count <= state_mode_count);
 
         ggml_tensor * sense = ggml_reshape_2d(ctx0, source, hparams.n_embd, n_tokens);
         sense = ggml_rms_norm(ctx0, sense, hparams.f_norm_rms_eps);
         sense = ggml_scale(ctx0, sense, 1.0f / std::sqrt((float) hparams.n_embd));
         if (params.cassi_qi->memory_fill && n_seqs == 1) {
-            // Add the field's own memory to the content channels, so the memory reaches the
-            // low modes that the model reads and modulates the content instead of replacing it.
-            const int64_t mem_width = (int64_t) hparams.n_embd;
-            ggml_tensor * mem = ggml_cont(ctx0, ggml_view_2d(ctx0, qi_inp->state,
-                    mem_width, 1, (size_t) params.cassi_qi->state_stride * sizeof(float), 0));
-            mem = ggml_rms_norm(ctx0, mem, hparams.f_norm_rms_eps);
+            const int64_t mem_modes = (int64_t) hparams.n_embd / 2;
+            GGML_ASSERT(hparams.n_embd % 2 == 0 &&
+                        (int64_t) wave_mode_count + mem_modes <= (int64_t) state_mode_count);
+            ggml_tensor * mem = ggml_view_2d(ctx0, qi_inp->state, 2, mem_modes,
+                    (size_t) 9 * sizeof(float), (size_t) wave_mode_count * 9 * sizeof(float));
+            mem = ggml_cont(ctx0, mem);
+            mem = ggml_reshape_1d(ctx0, mem, (int64_t) hparams.n_embd);
             mem = ggml_scale(ctx0, mem, 1.0f / std::sqrt((float) hparams.n_embd));
-            ggml_tensor * wide = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, mem_width, n_tokens);
+            ggml_tensor * wide = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, (int64_t) hparams.n_embd, n_tokens);
             sense = ggml_add(ctx0, sense, ggml_repeat(ctx0, mem, wide));
         }
         const int64_t sense_width = 2 * (int64_t) wave_mode_count;
@@ -210,9 +245,6 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
             if (!params.cassi_qi->fill_modes) {
                 sense = ggml_pad(ctx0, sense, fill_width, 0, 0, 0);
             } else {
-                // Upper modes take the input content: envelope, edges, flipped sense, tiled. The
-                // field's own memory is added when the memory fill is on, so memory modulates the
-                // content and the content still seeds every mode.
                 const int64_t pair_width = (int64_t) hparams.n_embd - 1;
                 ggml_tensor * low_in = ggml_cont(ctx0, ggml_view_2d(ctx0, sense,
                         pair_width, n_tokens, sense->nb[1], 0));
@@ -251,25 +283,104 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
             params.cassi_qi->scale_ratio,
             params.cassi_qi->energy_floor,
             params.cassi_qi->read_floor,
+            params.cassi_qi->scale_read_taper,
+            params.cassi_qi->read_absolute,
+            params.cassi_qi->memory_fill,
+            params.cassi_qi->unwritten_latch,
             params.cassi_qi->steps);
         cb(t_qi, "cassi_qi_field_step", qi_layer);
         res->t_cassi_qi = t_qi;
         ggml_build_forward_expand(gf, t_qi);
-        // The view is bounded by the flux block the field actually holds.
-        const int64_t block_width = (int64_t) 2 * wave_mode_count;
-        const int64_t view_width = params.cassi_qi->row_width > 0
-            ? std::min<int64_t>(params.cassi_qi->row_width, block_width)
-            : (int64_t) hparams.n_embd;
         return ggml_view_2d(
-            ctx0, t_qi, view_width, n_tokens,
+            ctx0, t_qi, qi_view_width(), n_tokens,
             (size_t) 2 * wave_mode_count * sizeof(float), 0);
     };
+    auto build_qi_attention_history = [&](llm_graph_input_attn_kv * attn,
+            ggml_tensor * correction, ggml_tensor * positions, int il)
+            -> std::pair<ggml_tensor *, ggml_tensor *> {
+        GGML_ASSERT(attn != nullptr && correction != nullptr && positions != nullptr);
+
+        ggml_tensor * cache_k = attn->mctx->get_k(ctx0, il);
+        ggml_tensor * cache_v = attn->mctx->get_v(ctx0, il);
+        const int64_t n_tokens = ubatch.n_tokens;
+        const int64_t n_stream = cache_k->ne[3];
+        GGML_ASSERT(n_stream > 0 && n_tokens % n_stream == 0);
+
+        const int64_t hidden_width = hparams.n_embd;
+        const int64_t source_width = correction->ne[0];
+        GGML_ASSERT(hidden_width > 0 && source_width > 0);
+
+        ggml_tensor * history_input = nullptr;
+        const int64_t chunks = (source_width + hidden_width - 1) / hidden_width;
+        for (int64_t chunk = 0; chunk < chunks; ++chunk) {
+            const int64_t offset = chunk * hidden_width;
+            const int64_t piece_width = std::min(hidden_width, source_width - offset);
+            ggml_tensor * piece = ggml_cont(ctx0, ggml_view_2d(ctx0, correction,
+                    piece_width, n_tokens, correction->nb[1], (size_t) offset * sizeof(float)));
+            if (piece_width < hidden_width) {
+                piece = ggml_pad(ctx0, piece, hidden_width - piece_width, 0, 0, 0);
+            }
+            history_input = history_input == nullptr
+                ? piece
+                : ggml_add(ctx0, history_input, piece);
+        }
+        if (chunks > 1) {
+            history_input = ggml_scale(ctx0, history_input, 1.0f / std::sqrt((float) chunks));
+        }
+        history_input = ggml_rms_norm(ctx0, history_input, hparams.f_norm_rms_eps);
+        cb(history_input, "cassi_qi_attention_history_input", il);
+
+        const int64_t head_dim = hparams.n_embd_head_k();
+        const int64_t n_head_kv = hparams.n_head_kv(il);
+        const int64_t history_tokens = n_tokens / n_stream;
+
+        ggml_tensor * history_k = build_lora_mm(model.layers[il].wk, history_input, model.layers[il].wk_s);
+        history_k = ggml_reshape_3d(ctx0, history_k, head_dim, n_head_kv, n_tokens);
+        history_k = build_norm(history_k, model.layers[il].attn_k_norm, nullptr, LLM_NORM_RMS, il);
+        history_k = ggml_rope_multi(
+                ctx0, history_k, positions, nullptr,
+                n_rot, sections, rope_type, n_ctx_orig, freq_base, freq_scale,
+                ext_factor, attn_factor, beta_fast, beta_slow);
+        if (attn->self_k_rot) {
+            history_k = llama_mul_mat_hadamard(ctx0, history_k, attn->self_k_rot);
+        }
+        history_k = ggml_reshape_4d(ctx0, history_k, head_dim, n_head_kv, history_tokens, n_stream);
+        history_k = ggml_cont(ctx0, history_k);
+        if (history_k->type != cache_k->type) {
+            history_k = ggml_cast(ctx0, history_k, cache_k->type);
+        }
+        history_k = ggml_cont(ctx0, history_k);
+
+        ggml_tensor * history_v = build_lora_mm(model.layers[il].wv, history_input, model.layers[il].wv_s);
+        history_v = ggml_reshape_3d(ctx0, history_v, head_dim, n_head_kv, n_tokens);
+        if (attn->self_v_rot) {
+            history_v = llama_mul_mat_hadamard(ctx0, history_v, attn->self_v_rot);
+        }
+        history_v = ggml_reshape_4d(ctx0, history_v, head_dim, n_head_kv, history_tokens, n_stream);
+        if (cache_v->nb[1] > cache_v->nb[2]) {
+            history_v = ggml_cont(ctx0, ggml_permute(ctx0, history_v, 2, 1, 0, 3));
+        } else {
+            history_v = ggml_cont(ctx0, history_v);
+        }
+        if (history_v->type != cache_v->type) {
+            history_v = ggml_cast(ctx0, history_v, cache_v->type);
+        }
+        history_v = ggml_cont(ctx0, history_v);
+
+        return { history_k, history_v };
+    };
+    if (params.cassi_qi != nullptr && params.cassi_qi->enabled &&
+            params.cassi_qi->attention_history) {
+        qi_history_source = build_qi_state_history();
+    }
 
     // MTP/NextN layers are loaded as extra decoder blocks but not executed in the main pass.
     for (int il = 0; il < n_layer; ++il) {
         if (params.cassi_qi != nullptr && params.cassi_qi->enabled &&
-                (params.cassi_qi->intervention == 1 || cparams.cassi_qi_substitute > 0.0f) && (uint32_t) il == qi_layer) {
-            ggml_tensor * correction = build_qi_correction(inpL);
+                (params.cassi_qi->intervention == 1 || cparams.cassi_qi_substitute > 0.0f ||
+                 cparams.cassi_qi_modulate || params.cassi_qi->attention_history) &&
+                (uint32_t) il == qi_layer) {
+            ggml_tensor * correction = qi_correction != nullptr ? qi_correction : build_qi_correction(inpL);
             // The seam consumes this same readout where the suppressed state write is
             // filled, so the field steps once per decode and keeps one channel per layer.
             res->t_cassi_qi_flux = correction;
@@ -301,7 +412,20 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
             if (hparams.is_recr(il)) {
                 cur = build_layer_attn_linear(inp->get_recr(), cur, il);
             } else {
-                cur = build_layer_attn(inp->get_attn(), cur, inp_pos, sections, il);
+                ggml_tensor * history_k = nullptr;
+                ggml_tensor * history_v = nullptr;
+                if (params.cassi_qi != nullptr && params.cassi_qi->enabled &&
+                        params.cassi_qi->attention_history) {
+                    ggml_tensor * history_source = qi_correction != nullptr
+                        ? qi_correction : qi_history_source;
+                    GGML_ASSERT(history_source != nullptr);
+                    const auto history = build_qi_attention_history(
+                        inp->get_attn(), history_source, inp_pos, il);
+                    history_k = history.first;
+                    history_v = history.second;
+                }
+                cur = build_layer_attn(
+                    inp->get_attn(), cur, inp_pos, sections, il, history_k, history_v);
             }
             if (cparams.cassi_capture) {
                 res->t_cassi_capture_attention_delta[il] = cur;
@@ -353,13 +477,14 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     cur = inpL;
 
     if (params.cassi_qi != nullptr && params.cassi_qi->enabled &&
-            params.cassi_qi->intervention == 0 && cparams.cassi_qi_substitute <= 0.0f) {
+            params.cassi_qi->intervention == 0) {
         const uint32_t wave_mode_count = params.cassi_qi->wave_mode_count;
         const uint32_t n_tokens = ubatch.n_tokens;
         const uint32_t n_seqs = std::max(1u, ubatch.n_seqs_unq);
         GGML_ASSERT(qi_layer < (uint32_t) n_layer);
         GGML_ASSERT(res->t_layer_inp[qi_layer] != nullptr);
-        ggml_tensor * correction = build_qi_correction(res->t_layer_inp[qi_layer]);
+        ggml_tensor * correction = qi_correction != nullptr
+            ? qi_correction : build_qi_correction(res->t_layer_inp[qi_layer]);
         if (params.cassi_qi->displacement_level >= 6) {
             const size_t flux_bytes = (size_t) 2 * wave_mode_count * n_tokens * sizeof(float);
             ggml_tensor * state_after = ggml_view_2d(
@@ -675,7 +800,9 @@ ggml_tensor * llama_model_qwen35::graph::build_layer_attn(
         ggml_tensor *             cur,
         ggml_tensor *             inp_pos,
         int *                     sections,
-        int                       il) {
+        int                       il,
+        ggml_tensor *              cassi_history_k,
+        ggml_tensor *              cassi_history_v) {
     const int64_t n_embd_head = hparams.n_embd_head_v();
     GGML_ASSERT(n_embd_head == hparams.n_embd_head_k());
 
@@ -736,7 +863,8 @@ ggml_tensor * llama_model_qwen35::graph::build_layer_attn(
 
     cur = build_attn(inp,
                 nullptr, nullptr, nullptr,
-                Qcur, Kcur, Vcur, nullptr, nullptr, nullptr, kq_scale, il);
+                Qcur, Kcur, Vcur, nullptr, nullptr, nullptr, kq_scale, il,
+                cassi_history_k, cassi_history_v);
     cb(cur, "attn_pregate", il);
 
     ggml_tensor * gate_sigmoid = ggml_sigmoid(ctx0, gate);

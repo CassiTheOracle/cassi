@@ -6435,6 +6435,10 @@ struct ggml_tensor * ggml_cassi_qi_field_step(
         float                 scale_ratio,
         float                 energy_floor,
         float                 read_floor,
+        float                 scale_read_taper,
+        bool                  read_absolute,
+        bool                  memory_write,
+        bool                  unwritten_latch,
         int64_t               steps) {
     GGML_ASSERT(sense->type      == GGML_TYPE_F32);
     GGML_ASSERT(state->type      == GGML_TYPE_F32);
@@ -6455,6 +6459,7 @@ struct ggml_tensor * ggml_cassi_qi_field_step(
     GGML_ASSERT(damping_min >= 0.0f && damping_max >= damping_min);
     GGML_ASSERT(epsilon_tau > 0.0f && epsilon_tau <= 1.0f && scale_ratio > 0.0f);
     GGML_ASSERT(energy_floor >= 0.0f && read_floor >= 0.0f);
+    GGML_ASSERT(isfinite(scale_read_taper));
     GGML_ASSERT(steps >= 1 && steps <= INT32_MAX);
 
     const int64_t wave_mode_count = sense->ne[0] / 2;
@@ -6487,6 +6492,15 @@ struct ggml_tensor * ggml_cassi_qi_field_step(
     ggml_set_op_params_f32(result, 8, scale_ratio);
     ggml_set_op_params_f32(result, 9, energy_floor);
     ggml_set_op_params_f32(result, 10, read_floor);
+    ggml_set_op_params_i32(result, 11, read_absolute ? 1 : 0);
+    // Slot 12 tells the step to feed each persistent mode from the field's own state.
+    ggml_set_op_params_i32(result, 12, memory_write ? 1 : 0);
+    // Slot 13 restricts the full-gain write latch to a mode that has never been written.
+    ggml_set_op_params_i32(result, 13, unwritten_latch ? 1 : 0);
+    // Slot 14 weights each scale's readout by how well that scale resolves the mode's own
+    // rate: `exp(-scale_read_taper * scale * damping * dt)`. Zero is the pinned readout,
+    // where the weight is exactly 1 at every scale and the divisor is the scale count.
+    ggml_set_op_params_f32(result, 14, scale_read_taper);
     result->op     = GGML_OP_CASSI_QI_FIELD_STEP;
     result->src[0] = sense;
     result->src[1] = state;

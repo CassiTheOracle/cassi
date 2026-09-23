@@ -186,6 +186,14 @@ std::vector<std::unique_ptr<field>> make_llama_cmpl_schema(const common_params &
 
     add((new field_bool("backend_sampling", params.sampling.backend_sampling))
         ->set_desc("Use backend sampling instead of llama.cpp sampling"));
+    add((new field_bool("cassi_qi_stream", params.sampling.cassi_qi_stream))
+        ->set_desc("Apply the persistent Qi field directly to sampled token scores"));
+
+    add((new field_num("cassi_qi_stream_gain", params.sampling.cassi_qi_stream_gain))
+        ->set_desc("Signed Qi score added to every candidate token before sampling"));
+
+    add((new field_num("cassi_qi_stream_eog_gain", params.sampling.cassi_qi_stream_eog_gain))
+        ->set_desc("Additional signed Qi score for end-of-generation tokens; positive tends to end sooner"));
 
     add((new field_bool("post_sampling_probs", params.post_sampling_probs))
         ->set_desc("Return probabilities of top n_probs tokens after applying the sampling chain"));

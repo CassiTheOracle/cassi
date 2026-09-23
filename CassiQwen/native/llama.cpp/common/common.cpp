@@ -1362,7 +1362,7 @@ common_init_result::common_init_result(common_params & params, bool model_only) 
     pimpl->samplers_seq_config.resize(cparams.n_seq_max);
 
     for (int i = 0; i < (int) cparams.n_seq_max; ++i) {
-        pimpl->samplers[i].reset(common_sampler_init(model, params.sampling));
+        pimpl->samplers[i].reset(common_sampler_init(model, params.sampling, i));
         pimpl->samplers_seq_config[i] = { i, common_sampler_get(pimpl->samplers[i].get()) };
     }
 
@@ -1399,6 +1399,28 @@ common_init_result::common_init_result(common_params & params, bool model_only) 
         }
         COM_INF("loaded Cassi Qi bridge state: %s (%zu floats)\n",
                 params.cassi_qi_field_state.c_str(), state_count);
+    }
+
+    if (!params.cassi_qi_mode_bank.empty()) {
+        const size_t mode_count = llama_cassi_qi_mode_count(lctx);
+        const size_t expected_bytes = mode_count * sizeof(float);
+        std::ifstream stream(params.cassi_qi_mode_bank, std::ios::binary | std::ios::ate);
+        if (!stream || mode_count == 0 || stream.tellg() != static_cast<std::streamoff>(expected_bytes)) {
+            COM_ERR("Cassi Qi mode bank '%s' must contain exactly %zu raw F32 bytes\n",
+                    params.cassi_qi_mode_bank.c_str(), expected_bytes);
+            pimpl->context.reset();
+            return;
+        }
+        stream.seekg(0);
+        std::vector<float> bank(mode_count);
+        stream.read(reinterpret_cast<char *>(bank.data()), static_cast<std::streamsize>(expected_bytes));
+        if (!stream || !llama_cassi_qi_mode_bank_set(lctx, bank.data(), bank.size())) {
+            COM_ERR("failed to load Cassi Qi mode bank '%s'\n", params.cassi_qi_mode_bank.c_str());
+            pimpl->context.reset();
+            return;
+        }
+        COM_INF("loaded Cassi Qi mode bank: %s (%zu modes)\n",
+                params.cassi_qi_mode_bank.c_str(), mode_count);
     }
 
     set_process_priority(params.cpuparams.priority);
@@ -1754,6 +1776,8 @@ struct llama_context_params common_context_params_to_llama(const common_params &
     cparams.cassi_qi_field_layer = (uint32_t) params.cassi_qi_field_layer;
     cparams.cassi_qi_field_scales = (uint32_t) params.cassi_qi_field_scales;
     cparams.cassi_qi_field_wave_modes = (uint32_t) params.cassi_qi_field_wave_modes;
+    cparams.cassi_qi_field_fill_modes = params.cassi_qi_field_fill_modes;
+    cparams.cassi_qi_field_memory_fill = params.cassi_qi_field_memory_fill;
     cparams.cassi_qi_field_row_width = (uint32_t) params.cassi_qi_field_row_width;
     cparams.cassi_qi_intervention = (uint32_t) params.cassi_qi_intervention;
     cparams.cassi_qi_displacement = (uint32_t) params.cassi_qi_displacement;
@@ -1761,6 +1785,14 @@ struct llama_context_params common_context_params_to_llama(const common_params &
     cparams.cassi_qi_injection_scale = params.cassi_qi_injection_scale;
     cparams.cassi_qi_field_dt = params.cassi_qi_field_dt;
     cparams.cassi_qi_substitute = params.cassi_qi_substitute;
+    cparams.cassi_qi_energy_floor = params.cassi_qi_energy_floor;
+    cparams.cassi_qi_read_floor = params.cassi_qi_read_floor;
+    cparams.cassi_qi_scale_read_taper = params.cassi_qi_scale_read_taper;
+    cparams.cassi_qi_read_absolute = params.cassi_qi_read_absolute;
+    cparams.cassi_qi_modulate = params.cassi_qi_modulate;
+    cparams.cassi_qi_modulate_gain = params.cassi_qi_modulate_gain;
+    cparams.cassi_qi_attention_history = params.cassi_qi_attention_history;
+    cparams.cassi_qi_unwritten_latch = params.cassi_qi_unwritten_latch;
     cparams.cassi_modal_retained_weight = params.cassi_modal_retained_weight;
     cparams.cassi_modal_phi   = params.cassi_modal_phi;
     cparams.cassi_modal_dt    = params.cassi_modal_dt;

@@ -2617,6 +2617,10 @@ extern "C" {
         float                 scale_ratio,
         float                 energy_floor,
         float                 read_floor,
+        float                 scale_read_taper,
+        bool                  read_absolute,
+        bool                  memory_write,
+        bool                  unwritten_latch,
         int64_t               steps);
 
     // Field-owned vocabulary logits. Each score is a deterministic function of

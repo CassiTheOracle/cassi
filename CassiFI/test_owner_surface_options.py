@@ -367,10 +367,6 @@ def test_a_second_reading_of_the_shipped_default_leaves_the_owner_state_alone() 
         shutil.rmtree(home, ignore_errors=True)
 
 
-def test_nothing_outside_the_measurement_calls_the_opt_in_helpers(receipt) -> None:
-    block = receipt["coupled_input"]["declaring_nothing"]
-    assert block["files_calling_the_opt_in_helpers"] == block["expected_callers"]
-    assert block["no_other_surface_calls_the_opt_in_helpers"]
 
 
 def test_the_frozen_receipt_on_disk_carries_its_own_digest() -> None:

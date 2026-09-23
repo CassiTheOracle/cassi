@@ -78,6 +78,12 @@ struct llama_cparams {
     float    cassi_qi_substitute;
     float    cassi_qi_energy_floor;
     float    cassi_qi_read_floor;
+    float    cassi_qi_scale_read_taper;
+    bool     cassi_qi_read_absolute;
+    bool     cassi_qi_modulate;
+    float    cassi_qi_modulate_gain;
+    bool     cassi_qi_attention_history;
+    bool     cassi_qi_unwritten_latch;
     bool     cassi_apprentice;
     bool     cassi_capture;
     std::vector<uint8_t> cassi_attention_owned;

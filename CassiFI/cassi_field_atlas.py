@@ -25,17 +25,25 @@ from torch import Tensor
 from cassi_variational_field import VariationalField
 from cassi_temporal_field import TemporalField, TemporalFieldError
 from cassi_resonant_field import (
+    ResonantNumericalError,
     ResonantProblem,
     ResonantProfile,
     ResonantWorkspace,
     advance_workspace,
     analyze_helical_packet,
     apply_helical_packet_impulse,
+    apply_live_child_detail_to_parent,
     apply_pool_impulse,
     bind_workspace,
     expand_resolution,
     initial_workspace,
     inspect_workspace,
+    freeze_parent as freeze_parent_workspace,
+    read_frozen_parent as read_frozen_parent_workspace,
+    apply_frozen_parent_to_child as apply_frozen_parent_to_child_workspace,
+    release_frozen_parent as release_frozen_parent_workspace,
+    recompute_parent_summary_from_child,
+    write_parent_summary as write_parent_summary_workspace,
 )
 from cassi_field_transceiver import (
     advance_transceiver,
@@ -77,6 +85,27 @@ CHART_STATUSES: Final[frozenset[str]] = frozenset({"active", "stale", "revoked"}
 VARIABLE_KINDS: Final[frozenset[str]] = frozenset(
     {"scalar", "constant", "boolean", "symbol", "interval", "vector"}
 )
+# The complete program vocabulary: name, fixed input arity (None = variadic), and
+# the value the step produces. Validation and any prompt that asks for a program
+# read this one table.
+PRIMITIVE_OPERATIONS: Final[tuple[tuple[str, int | None, str], ...]] = (
+    ("identity", 1, "copies its input value"),
+    ("constant", 0, "produces the literal value"),
+    ("add", 2, "sums its two inputs"),
+    ("subtract", 2, "subtracts its second input from its first"),
+    ("multiply", 2, "multiplies its two inputs"),
+    ("divide", 2, "divides its first input by its second"),
+    ("negate", 1, "negates its input"),
+    ("absolute", 1, "takes the absolute value of its input"),
+    ("equal", 2, "compares its two inputs for equality"),
+    ("less_equal", 2, "tests whether its first input is at most its second"),
+    ("vector", None, "wraps its inputs as one vector value"),
+    ("convert", 1, "scales its input by the numeric literal factor"),
+    ("concat", None, "joins the text of its inputs"),
+)
+PRIMITIVE_ARITY: Final[Mapping[str, int | None]] = {
+    name: arity for name, arity, _ in PRIMITIVE_OPERATIONS
+}
 _ATLAS_PAGE_NAMES: Final[tuple[str, ...]] = (
     "variables",
     "charts",
@@ -127,6 +156,22 @@ def _freeze_json(value: Any) -> Any:
     return value
 
 
+def _canonical_json_value(value: Any) -> Any:
+    """Detach NumPy containers and scalars into ordinary JSON values."""
+    if isinstance(value, np.ndarray):
+        return _canonical_json_value(value.tolist())
+    if isinstance(value, np.generic):
+        return _canonical_json_value(value.item())
+    if isinstance(value, Mapping):
+        return {
+            _canonical_json_value(key): _canonical_json_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (tuple, list)):
+        return [_canonical_json_value(item) for item in value]
+    return value
+
+
 def _json_plain(value: Any) -> Any:
     """Return detached ordinary JSON containers for an external response."""
 
@@ -134,18 +179,24 @@ def _json_plain(value: Any) -> Any:
 
 
 def canonical_json_bytes(value: Any) -> bytes:
+    options = {
+        "ensure_ascii": False,
+        "sort_keys": True,
+        "separators": (",", ":"),
+        "allow_nan": False,
+    }
     try:
-        return json.dumps(
-            value,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        ).encode("utf-8")
-    except (TypeError, ValueError) as exc:
-        raise FieldIntelligenceError(
-            "NONCANONICAL_VALUE", "value cannot be represented as canonical JSON"
-        ) from exc
+        return json.dumps(value, **options).encode("utf-8")
+    except (TypeError, ValueError):
+        try:
+            return json.dumps(
+                _canonical_json_value(value), **options
+            ).encode("utf-8")
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NONCANONICAL_VALUE",
+                "value cannot be represented as canonical JSON",
+            ) from exc
 
 
 def sha256_value(value: Any) -> str:
@@ -201,6 +252,145 @@ def _json_value(value: Any, label: str) -> Any:
             "INVALID_TYPED_VALUE", f"{label} exceeds the typed-value byte limit"
         )
     return _freeze_json(json.loads(encoded))
+
+
+SURFACE_FIELD_INPUT_SCHEMA: Final[str] = "cassifi.surface-field-inputs.v1"
+SURFACE_FIELD_VARIABLE_IDS: Final[tuple[str, ...]] = (
+    "surface.width_px",
+    "surface.height_px",
+    "surface.byte_length",
+    "surface.coverage.complete",
+    "surface.coverage.missing_region_count",
+    "surface.coverage.redacted_region_count",
+    "surface.coverage.unknown_region_count",
+    "surface.coverage.skipped_interval_count",
+    "surface.sample_time_known",
+)
+
+
+def surface_field_inputs(publication: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Project an owner-published sensory generation into fixed learned inputs.
+
+    The values are ordinary numeric observations; the separate context carries
+    identity, clock domains, coverage, and provenance without storing pixels in
+    the adaptive AtlasState.
+    """
+
+    if not isinstance(publication, Mapping) or publication.get("schema") != (
+        "cassifi.surface-input-publication.v1"
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface input requires an owner publication"
+        )
+    modality = publication.get("modality", "raster")
+    width = publication.get("width")
+    height = publication.get("height")
+    byte_length = publication.get("byte_length")
+    if modality not in {"raster", "audio", "structure"}:
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface modality is unsupported"
+        )
+    if modality == "structure":
+        extents_valid = (
+            width is None or width == 0
+        ) and (height is None or height == 0)
+        minimum_bytes = 0
+    else:
+        extents_valid = all(
+            not isinstance(value, bool) and isinstance(value, int) and value > 0
+            for value in (width, height)
+        )
+        minimum_bytes = 1
+    if (
+        not extents_valid
+        or isinstance(byte_length, bool)
+        or not isinstance(byte_length, int)
+        or byte_length < minimum_bytes
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface input extents are invalid"
+        )
+    digest = _digest(publication.get("sha256"), "surface source revision")
+    coverage = publication.get("coverage")
+    if not isinstance(coverage, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface coverage must be explicit"
+        )
+
+    def area_count(name: str) -> float:
+        rows = coverage.get(name)
+        if isinstance(rows, (str, bytes)) or not isinstance(rows, Sequence):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_INPUT", f"surface {name} is invalid"
+            )
+        return float(len(rows))
+
+    complete = coverage.get("complete")
+    sample_time_ns = publication.get("sample_time_ns")
+    if not isinstance(complete, bool) or (
+        sample_time_ns is not None
+        and (
+            isinstance(sample_time_ns, bool)
+            or not isinstance(sample_time_ns, int)
+            or sample_time_ns < 0
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface coverage or sample time is invalid"
+        )
+    values = {
+        "surface.width_px": float(width) if modality == "raster" else 0.0,
+        "surface.height_px": float(height) if modality == "raster" else 0.0,
+        "surface.byte_length": float(byte_length),
+        "surface.coverage.complete": 1.0 if complete else 0.0,
+        "surface.coverage.missing_region_count": area_count("missing_regions"),
+        "surface.coverage.redacted_region_count": area_count("redacted_regions"),
+        "surface.coverage.unknown_region_count": area_count("unknown_regions"),
+        "surface.coverage.skipped_interval_count": area_count("skipped_intervals"),
+        "surface.sample_time_known": 1.0 if sample_time_ns is not None else 0.0,
+    }
+    context = {
+        "surface": {
+            name: publication.get(name)
+            for name in (
+                "binding_id",
+                "generation",
+                "source_id",
+                "source_instance",
+                "source_epoch",
+                "environment_incarnation",
+                "geometry_revision",
+                "sequence",
+                "width",
+                "height",
+                "pixel_format",
+                "modality",
+                "audio",
+                "structure",
+                "audio_format",
+                "sample_rate_hz",
+                "channel_count",
+                "sample_count",
+                "byte_length",
+                "sha256",
+                "sample_time_ns",
+                "sample_clock_domain",
+                "sample_time_uncertainty_ns",
+                "receipt_time_ns",
+                "receipt_clock_domain",
+                "coverage",
+                "changed_regions",
+                "update_kind",
+                "provenance",
+            )
+        }
+    }
+    return {
+        "schema": SURFACE_FIELD_INPUT_SCHEMA,
+        "source_revision_id": digest,
+        "values": _freeze_json(values),
+        "context": _json_value(context, "surface field input context"),
+    }
 
 def _canonical_diagnostics(value: Any, label: str) -> Any:
     """Canonicalize receipts while representing unsupported nonfinite diagnostics as null."""
@@ -743,21 +933,7 @@ class PrimitiveStep:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "inputs", tuple(self.inputs))
-        if self.operation not in {
-            "identity",
-            "constant",
-            "add",
-            "subtract",
-            "multiply",
-            "divide",
-            "negate",
-            "absolute",
-            "equal",
-            "less_equal",
-            "vector",
-            "convert",
-            "concat",
-        }:
+        if self.operation not in PRIMITIVE_ARITY:
             raise FieldIntelligenceError(
                 "INVALID_PROGRAM", f"unsupported primitive: {self.operation}"
             )
@@ -765,19 +941,7 @@ class PrimitiveStep:
         for item in self.inputs:
             _identifier(item, "program input")
         object.__setattr__(self, "literal", _json_value(self.literal, "program literal"))
-        arity = {
-            "identity": 1,
-            "constant": 0,
-            "add": 2,
-            "subtract": 2,
-            "multiply": 2,
-            "divide": 2,
-            "negate": 1,
-            "absolute": 1,
-            "equal": 2,
-            "less_equal": 2,
-            "convert": 1,
-        }.get(self.operation)
+        arity = PRIMITIVE_ARITY[self.operation]
         if arity is not None and len(self.inputs) != arity:
             raise FieldIntelligenceError(
                 "INVALID_PROGRAM", f"{self.operation} requires {arity} inputs"
@@ -808,6 +972,8 @@ class AssessmentRecord:
     normalized_loss: float
     event_id: str
     sequence: int
+    resolution_floor: float = 0.0
+    resolution_status: str = "resolved"
 
     def __post_init__(self) -> None:
         _digest(self.assessment_id, "assessment_id")
@@ -816,9 +982,31 @@ class AssessmentRecord:
         object.__setattr__(self, "outcome", _json_value(self.outcome, "outcome"))
         loss = _finite(self.normalized_loss, "normalized loss")
         if not 0 <= loss <= 1:
-            raise FieldIntelligenceError("INVALID_ASSESSMENT", "normalized loss must be in [0, 1]")
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "normalized loss must be in [0, 1]",
+            )
         if isinstance(self.sequence, bool) or not isinstance(self.sequence, int) or self.sequence < 1:
-            raise FieldIntelligenceError("INVALID_ASSESSMENT", "assessment sequence must be positive")
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "assessment sequence must be positive",
+            )
+        floor = _finite(self.resolution_floor, "resolution floor")
+        if floor < 0:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "resolution floor must be nonnegative",
+            )
+        if self.resolution_status not in {"resolved", "unresolved"}:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "resolution status is unsupported",
+            )
+        if self.resolution_status == "unresolved" and loss > floor:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "unresolved assessment must lie at or below its floor",
+            )
 
     def as_dict(self) -> Mapping[str, Any]:
         return {
@@ -827,6 +1015,8 @@ class AssessmentRecord:
             "normalized_loss": self.normalized_loss,
             "outcome": _json_plain(self.outcome),
             "prediction": _json_plain(self.prediction),
+            "resolution_floor": self.resolution_floor,
+            "resolution_status": self.resolution_status,
             "sequence": self.sequence,
         }
 
@@ -1929,7 +2119,32 @@ class AtlasState:
         rows = getattr(self, name)
         return [row.as_dict() for row in rows]
 
+    def _computer_page(
+        self,
+    ) -> tuple[str, bytes, Mapping[str, bytes]]:
+        """Build the computer directory and its shared immutable page closure."""
+
+        descriptors: list[Mapping[str, Any]] = []
+        objects: dict[str, bytes] = {}
+        for computer in self.computers:
+            descriptor, computer_objects = computer.persistence_dict()
+            descriptors.append(descriptor)
+            for digest, raw in computer_objects.items():
+                prior = objects.get(digest)
+                if prior is not None and prior != raw:
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE_OBJECT",
+                        "computer page digest collision",
+                    )
+                objects[digest] = raw
+        raw = canonical_json_bytes(descriptors)
+        return hashlib.sha256(raw).hexdigest(), raw, MappingProxyType(objects)
+
+
     def _page_bytes(self, name: str) -> tuple[str, bytes]:
+        if name == "computers":
+            digest, raw, _ = self._computer_page()
+            return digest, raw
         owner = getattr(self, name)
         entry = self._page_cache.get(name)
         if entry is not None and entry[0] is owner:
@@ -1967,6 +2182,11 @@ class AtlasState:
         pages: dict[str, bytes] = {}
         for name in _ATLAS_PAGE_NAMES:
             if name in {"transceivers", "temporal_fields", "computers"} and not getattr(self, name):
+                continue
+            if name == "computers":
+                digest, raw, computer_objects = self._computer_page()
+                pages[digest] = raw
+                pages.update(computer_objects)
                 continue
             digest, raw = self._page_bytes(name)
             pages[digest] = raw
@@ -2085,7 +2305,12 @@ class AtlasState:
         try:
             if value.get("computers"):
                 from cassi_learning_computer import LearningComputer
-                value["computers"] = tuple(LearningComputer.from_dict(item) for item in value["computers"])
+                value["computers"] = tuple(
+                    item
+                    if isinstance(item, LearningComputer)
+                    else LearningComputer.from_dict(item)
+                    for item in value["computers"]
+                )
             else:
                 value["computers"] = ()
         except (TypeError, ValueError) as exc:
@@ -2119,13 +2344,32 @@ class AtlasState:
             payload = dict(descriptor)
             payload.pop("page_sha256")
             payload["field_b64"] = base64.b64encode(page_raw).decode("ascii")
+            # Historical workspaces may carry a digest from an older numerical
+            # implementation; structural validation still protects the payload.
+            payload["state_sha256"] = None
             workspace = ResonantWorkspace.from_dict(payload)
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
-            raise FieldIntelligenceError("INVALID_STATE_OBJECT", "workspace descriptor is invalid") from exc
+            raise FieldIntelligenceError(
+                "INVALID_STATE_OBJECT", "workspace descriptor is invalid"
+            ) from exc
         return workspace, page_digest
 
     @classmethod
-    def decode(cls, encoded: bytes, objects: Mapping[str, bytes] | None = None) -> AtlasState:
+    def decode(
+        cls,
+        encoded: bytes,
+        objects: Mapping[str, bytes] | None = None,
+        *,
+        accept_recorded_catalog: bool = False,
+    ) -> AtlasState:
+        """Decode one retained descriptor.
+
+        ``accept_recorded_catalog`` admits computers whose recorded catalog
+        fingerprint moved while their kernel names stayed the same; each
+        computer verifies its own retained bytes before the recorded catalog
+        identity is replaced by the running one, so the descriptor is
+        re-identified rather than trusted.
+        """
         try:
             value = json.loads(encoded.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -2166,6 +2410,7 @@ class AtlasState:
             )
         }
         expected_objects: set[str] = set()
+        legacy_computers = False
         for name in page_names:
             digest = pages[name]
             if digest is None:
@@ -2182,9 +2427,71 @@ class AtlasState:
                 full[name] = {"workspace_sha256": digest}
                 continue
             try:
-                full[name] = json.loads(raw.decode("utf-8"))
+                payload = json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise FieldIntelligenceError("INVALID_STATE_OBJECT", f"{name} page is unreadable") from exc
+            if name == "computers":
+                if not isinstance(payload, list):
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE_OBJECT",
+                        "computer directory page is invalid",
+                    )
+                from cassi_learning_computer import LearningComputer
+                hydrated_computers = []
+                legacy_computers = False
+                for item in payload:
+                    if not isinstance(item, Mapping):
+                        raise FieldIntelligenceError(
+                            "INVALID_STATE_OBJECT",
+                            "computer directory entry is invalid",
+                        )
+                    field_descriptor = item.get("field")
+                    chunks = (
+                        field_descriptor.get("chunks")
+                        if isinstance(field_descriptor, Mapping)
+                        else None
+                    )
+                    if isinstance(chunks, list):
+                        for chunk in chunks:
+                            if not isinstance(chunk, Mapping):
+                                raise FieldIntelligenceError(
+                                    "INVALID_STATE_OBJECT",
+                                    "computer chunk entry is invalid",
+                                )
+                            object_sha = _digest(
+                                chunk.get("object_sha256"), "computer page object"
+                            )
+                            if object_sha not in objects:
+                                raise FieldIntelligenceError(
+                                    "INVALID_STATE_OBJECT",
+                                    "computer page object is missing",
+                                )
+                            expected_objects.add(object_sha)
+                    elif isinstance(field_descriptor, Mapping) and isinstance(
+                        field_descriptor.get("field_pages"), list
+                    ):
+                        legacy_computers = True
+                    else:
+                        raise FieldIntelligenceError(
+                            "INVALID_STATE_OBJECT",
+                            "computer field descriptor is invalid",
+                        )
+                    try:
+                        hydrated_computers.append(
+                            LearningComputer.from_persistence_dict(
+                                item,
+                                objects,
+                                accept_recorded_catalog=accept_recorded_catalog,
+                            )
+                        )
+                    except (TypeError, ValueError) as exc:
+                        raise FieldIntelligenceError(
+                            "INVALID_STATE_OBJECT",
+                            "computer page closure is invalid",
+                        ) from exc
+                full[name] = hydrated_computers
+            else:
+                full[name] = payload
         prepared = full["prepared_queries"]
         if not isinstance(prepared, list):
             raise FieldIntelligenceError("INVALID_STATE_OBJECT", "prepared query page must be a list")
@@ -2223,15 +2530,28 @@ class AtlasState:
         if root_workspace is not None:
             if not isinstance(root_workspace, Mapping) or set(root_workspace) != {"workspace_sha256"}:
                 raise FieldIntelligenceError("INVALID_STATE_OBJECT", "resonant workspace reference is not canonical")
-            workspace_digest = _digest(root_workspace["workspace_sha256"], "workspace descriptor digest")
-            workspace, page_digest = cls._load_workspace_object(objects, workspace_digest)
+            workspace_digest = _digest(
+                root_workspace["workspace_sha256"], "workspace descriptor digest"
+            )
+            workspace, page_digest = cls._load_workspace_object(
+                objects, workspace_digest
+            )
             expected_objects.update({workspace_digest, page_digest})
             full["resonant_workspace"] = workspace
         if set(objects) != expected_objects:
-            raise FieldIntelligenceError("NONCANONICAL_STATE", "state object closure contains unreachable objects")
+            raise FieldIntelligenceError(
+                "NONCANONICAL_STATE", "state object closure contains unreachable objects"
+            )
         result = cls._from_full_dict(full)
-        if result.encode() != encoded:
-            raise FieldIntelligenceError("NONCANONICAL_STATE", "field descriptor is not canonical")
+        if legacy_computers:
+            object.__setattr__(result, "_encoded", encoded)
+            object.__setattr__(
+                result, "_state_sha256", hashlib.sha256(encoded).hexdigest()
+            )
+        if not accept_recorded_catalog and result.encode() != encoded:
+            raise FieldIntelligenceError(
+                "NONCANONICAL_STATE", "field descriptor is not canonical"
+            )
         return result
     @classmethod
     def decode_bundle(cls, encoded: bytes) -> AtlasState:
@@ -3687,6 +4007,237 @@ class FieldAtlas:
             resonant_workspace=workspace,
         )
         return successor, _json_value(dict(receipt), "packet impulse receipt")
+    def apply_live_child_detail_to_parent(
+        self,
+        state: AtlasState,
+        *,
+        work_budget: float,
+        parent_enabled: bool = True,
+        expected_child_source_state_sha256: str | None = None,
+        expected_child_packet_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        event_kind: str = PACKET_IMPULSE_EVENT_KIND,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Route live LL detail momentum into the native L scale impulse."""
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "child detail to parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = apply_live_child_detail_to_parent(
+                workspace,
+                work_budget=work_budget,
+                parent_enabled=parent_enabled,
+                expected_child_source_state_sha256=expected_child_source_state_sha256,
+                expected_child_packet_sha256=expected_child_packet_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                event_kind=event_kind,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "live-child-detail-to-parent",
+            {
+                "parent_enabled": bool(receipt["parent_enabled"]),
+                "requested_work": float(receipt["requested_work"]),
+                "applied_work": float(receipt["applied_work"]),
+                "accepted": bool(receipt["accepted"]),
+                "child_packet_sha256": str(receipt["child_packet_sha256"]),
+                "relation_sha256": str(receipt["relation_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "live child detail receipt")
+    def write_parent_summary(
+        self,
+        state: AtlasState,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Write the canonical L level-zero summary through the atlas state."""
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "parent summary requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = write_parent_summary_workspace(workspace)
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-summary-written",
+            {
+                "layout": str(receipt["layout"]),
+                "path": str(receipt["path"]),
+                "source_state_sha256": str(receipt["source_state_sha256"]),
+                "summary_sha256": str(receipt["summary_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "parent summary receipt")
+    def freeze_parent(
+        self,
+        state: AtlasState,
+        *,
+        expected_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "freeze parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = freeze_parent_workspace(
+                workspace,
+                expected_state_sha256=expected_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-frozen",
+            {
+                "freeze_id": str(receipt["freeze_id"]),
+                "summary_sha256": str(receipt["summary_sha256"]),
+                "relation_sha256": str(receipt["relation_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "frozen parent receipt")
+
+    def read_frozen_parent(self, state: AtlasState) -> Mapping[str, Any]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "frozen parent requires an existing resonant workspace",
+            )
+        try:
+            return _json_value(
+                dict(read_frozen_parent_workspace(workspace)),
+                "frozen parent read",
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+
+    def apply_frozen_parent_to_child(
+        self,
+        state: AtlasState,
+        *,
+        freeze_id: str,
+        base_flow_signal: Sequence[float],
+        work_budget: float,
+        parent_enabled: bool = True,
+        expected_parent_summary_sha256: str | None = None,
+        expected_parent_source_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        expected_child_source_state_sha256: str | None = None,
+        event_kind: str = "reasoning-work",
+        consume: bool = False,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "frozen parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = apply_frozen_parent_to_child_workspace(
+                workspace,
+                freeze_id=freeze_id,
+                base_flow_signal=base_flow_signal,
+                work_budget=work_budget,
+                parent_enabled=parent_enabled,
+                expected_parent_summary_sha256=expected_parent_summary_sha256,
+                expected_parent_source_state_sha256=expected_parent_source_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                expected_child_source_state_sha256=expected_child_source_state_sha256,
+                event_kind=event_kind,
+                consume=consume,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "frozen-parent-applied",
+            {
+                "freeze_id": str(receipt["freeze_id"]),
+                "parent_enabled": bool(receipt["parent_enabled"]),
+                "child_path": str(receipt["child_path"]),
+                "applied_work": float(receipt["impulse"]["applied_work"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(
+            dict(receipt), "frozen parent application receipt"
+        )
+
+    def release_frozen_parent(
+        self,
+        state: AtlasState,
+        *,
+        freeze_id: str,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "frozen parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = release_frozen_parent_workspace(
+                workspace, freeze_id=freeze_id
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-freeze-released",
+            {"freeze_id": str(receipt["freeze_id"])},
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "frozen parent release receipt")
+
+    def recompute_parent_summary_from_child(
+        self,
+        state: AtlasState,
+        *,
+        expected_source_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        expected_child_packet_sha256: str | None = None,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Refresh L from the live LL child through one immutable transition."""
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "parent recompute requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = recompute_parent_summary_from_child(
+                workspace,
+                expected_source_state_sha256=expected_source_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                expected_child_packet_sha256=expected_child_packet_sha256,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-child-summary-recomputed",
+            {
+                "parent_path": str(receipt["parent_path"]),
+                "child_path": str(receipt["child_path"]),
+                "source_state_sha256": str(receipt["source_state_sha256"]),
+                "relation_sha256": str(receipt["relation_sha256"]),
+                "summary_sha256": str(receipt["summary_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(
+            dict(receipt), "parent-child recompute receipt"
+        )
+
 
     def inspect_resonance(self, state: AtlasState) -> Mapping[str, Any]:
         workspace = state.resonant_workspace
@@ -5534,11 +6085,16 @@ __all__ = [
 "LanguageConstruction",
 "PlanRecord",
 "PlanSegment",
+"PRIMITIVE_ARITY",
+"PRIMITIVE_OPERATIONS",
 "PredictionRecord",
 "PrimitiveStep",
 "QueryResult",
 "RelationChart",
 "SupportContribution",
+"SURFACE_FIELD_INPUT_SCHEMA",
+"SURFACE_FIELD_VARIABLE_IDS",
+"surface_field_inputs",
 "VariableSpec",
 "REGIONAL_KERNEL_MAX_WORK",
 "REGIONAL_KERNEL_NAME",

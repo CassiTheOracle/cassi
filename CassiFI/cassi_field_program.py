@@ -13,7 +13,7 @@ import json
 import math
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, cast
 
 from cassi_field_computer import (
     BRANCH,
@@ -43,29 +43,472 @@ SCALAR_SPECIALIZATION_MAX_BLOCK = 32
 
 SEMANTIC_PROGRAM_SCHEMA = "cassifi.semantic-program-payload.v1"
 SEMANTIC_REPRESENTATION_SCHEMA = "cassifi.semantic-representation.v1"
+SEMANTIC_SEQUENCE_SCHEMA = "cassifi.semantic-sequence-program.v1"
+NULLABLE_TABLE_SCHEMA = "cassifi.nullable-table.v1"
+SURFACE_PROCEDURE_SCHEMA = "cassifi.surface-procedure.v1"
+_SURFACE_VALUE_TYPES = frozenset(
+    {"boolean", "integer", "json", "list", "mapping", "number", "string"}
+)
+_SURFACE_CONDITION_OPS = frozenset(
+    {"eq", "ge", "gt", "in", "le", "lt", "missing", "ne", "not-in", "exists"}
+)
+
+
+def _canonical_surface_conditions(value: Any, label: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or len(value) > _CONDITIONAL_MAX_BRANCHES:
+        raise FieldProgramError(f"{label} must be a bounded list")
+    result: list[dict[str, Any]] = []
+    for condition in value:
+        if not isinstance(condition, Mapping):
+            raise FieldProgramError(f"{label} contains an invalid condition")
+        operation = condition.get("op", "eq")
+        if not isinstance(operation, str):
+            raise FieldProgramError(f"{label} contains an invalid condition")
+        required = {"op", "path"} if operation in {"exists", "missing"} else {
+            "op",
+            "path",
+            "value",
+        }
+        if set(condition) != required or operation not in _SURFACE_CONDITION_OPS:
+            raise FieldProgramError(f"{label} contains an invalid condition")
+        path = condition.get("path")
+        if (
+            not isinstance(path, str)
+            or not path
+            or len(path.encode("utf-8")) > 1024
+        ):
+            raise FieldProgramError(f"{label} condition path is invalid")
+        row: dict[str, Any] = {"op": operation, "path": path}
+        if operation not in {"exists", "missing"}:
+            row["value"] = _semantic_program_plain(
+                condition["value"], f"{label} condition value"
+            )
+        result.append(row)
+    return result
+
+
+def _canonical_surface_control(
+    value: Any,
+    *,
+    depth: int,
+    counter: list[int],
+    bounds: Mapping[str, Any],
+) -> dict[str, Any]:
+    counter[0] += 1
+    if depth > _SEQUENCE_MAX_AST_DEPTH or counter[0] > min(
+        int(bounds["max_work"]), _MAX_SOURCE_NODES
+    ):
+        raise FieldProgramError("surface procedure control exceeds its bound")
+    if not isinstance(value, Mapping) or not isinstance(value.get("op"), str):
+        raise FieldProgramError("surface procedure control node is invalid")
+    op = value["op"]
+    if op == "sequence":
+        if set(value) != {"op", "steps"} or not isinstance(value["steps"], list):
+            raise FieldProgramError("surface procedure sequence is invalid")
+        if not value["steps"] or len(value["steps"]) > int(bounds["max_horizon"]):
+            raise FieldProgramError("surface procedure sequence exceeds its bound")
+        return {
+            "op": op,
+            "steps": [
+                _canonical_surface_control(
+                    step, depth=depth + 1, counter=counter, bounds=bounds
+                )
+                for step in value["steps"]
+            ],
+        }
+    if op == "choice":
+        if set(value) - {"branches", "default", "op"} or not isinstance(
+            value.get("branches"), list
+        ):
+            raise FieldProgramError("surface procedure choice is invalid")
+        branches = value["branches"]
+        if not branches or len(branches) > int(bounds["max_branches"]):
+            raise FieldProgramError("surface procedure choice exceeds its bound")
+        canonical_branches = []
+        for branch in branches:
+            if (
+                not isinstance(branch, Mapping)
+                or set(branch) != {"then", "when"}
+            ):
+                raise FieldProgramError("surface procedure choice branch is invalid")
+            conditions = _canonical_surface_conditions(
+                branch["when"], "surface procedure choice conditions"
+            )
+            if not conditions:
+                raise FieldProgramError("surface procedure choice guard is empty")
+            canonical_branches.append(
+                {
+                    "then": _canonical_surface_control(
+                        branch["then"],
+                        depth=depth + 1,
+                        counter=counter,
+                        bounds=bounds,
+                    ),
+                    "when": conditions,
+                }
+            )
+        result = {"branches": canonical_branches, "op": op}
+        if "default" in value:
+            result["default"] = _canonical_surface_control(
+                value["default"],
+                depth=depth + 1,
+                counter=counter,
+                bounds=bounds,
+            )
+        return result
+    if op == "loop":
+        if set(value) != {"body", "max_iterations", "op", "while"}:
+            raise FieldProgramError("surface procedure loop is invalid")
+        conditions = _canonical_surface_conditions(
+            value["while"], "surface procedure loop condition"
+        )
+        if not conditions:
+            raise FieldProgramError("surface procedure loop condition is empty")
+        return {
+            "body": _canonical_surface_control(
+                value["body"], depth=depth + 1, counter=counter, bounds=bounds
+            ),
+            "max_iterations": _integer(
+                value["max_iterations"],
+                "surface procedure loop maximum",
+                minimum=1,
+                maximum=int(bounds["max_horizon"]),
+            ),
+            "op": op,
+            "while": conditions,
+        }
+    if op == "wait":
+        if set(value) - {"op", "timeout_ns", "until"} or "until" not in value:
+            raise FieldProgramError("surface procedure wait is invalid")
+        conditions = _canonical_surface_conditions(
+            value["until"], "surface procedure wait condition"
+        )
+        if not conditions:
+            raise FieldProgramError("surface procedure wait condition is empty")
+        result = {"op": op, "until": conditions}
+        if "timeout_ns" in value:
+            result["timeout_ns"] = _integer(
+                value["timeout_ns"],
+                "surface procedure wait timeout",
+                minimum=1,
+                maximum=9_007_199_254_740_991,
+            )
+        return result
+    if op == "parallel":
+        if set(value) != {"branches", "join", "op"} or value["join"] != "all":
+            raise FieldProgramError("surface procedure parallel join is invalid")
+        branches = value["branches"]
+        if (
+            not isinstance(branches, list)
+            or not 2 <= len(branches) <= int(bounds["max_branches"])
+        ):
+            raise FieldProgramError("surface procedure parallel branches are invalid")
+        return {
+            "branches": [
+                _canonical_surface_control(
+                    branch, depth=depth + 1, counter=counter, bounds=bounds
+                )
+                for branch in branches
+            ],
+            "join": "all",
+            "op": op,
+        }
+    if op == "intent":
+        if set(value) != {"expected_effect", "op", "operation", "payload"}:
+            raise FieldProgramError("surface procedure intent is invalid")
+        operation = value["operation"]
+        if not isinstance(operation, str) or not operation:
+            raise FieldProgramError("surface procedure operation is invalid")
+        payload = _semantic_program_plain(
+            value["payload"], "surface procedure intent payload"
+        )
+        expected_effect = value["expected_effect"]
+        if (
+            not isinstance(payload, Mapping)
+            or not isinstance(expected_effect, Mapping)
+            or not expected_effect
+            or any(not isinstance(path, str) or not path for path in expected_effect)
+        ):
+            raise FieldProgramError(
+                "surface procedure intent payload or effect is invalid"
+            )
+        return {
+            "expected_effect": _semantic_program_plain(
+                dict(expected_effect), "surface procedure expected effect"
+            ),
+            "op": op,
+            "operation": _semantic_program_identifier(
+                operation, "surface procedure operation"
+            ),
+            "payload": dict(payload),
+        }
+    if op == "stop":
+        if set(value) - {"op", "reason", "when"} or "reason" not in value:
+            raise FieldProgramError("surface procedure stop is invalid")
+        reason = _semantic_program_identifier(value["reason"], "stop reason")
+        result = {"op": op, "reason": reason}
+        if "when" in value:
+            conditions = _canonical_surface_conditions(
+                value["when"], "surface procedure stop condition"
+            )
+            if not conditions:
+                raise FieldProgramError("surface procedure stop condition is empty")
+            result["when"] = conditions
+        return result
+    if op in {"cancel", "checkpoint", "complete"}:
+        if set(value) != {"op"}:
+            raise FieldProgramError(f"surface procedure {op} node is invalid")
+        return {"op": op}
+    raise FieldProgramError("surface procedure control operation is unsupported")
+
+
+def _canonical_surface_contract(
+    value: Any,
+    *,
+    bounds: Mapping[str, Any],
+) -> dict[str, Any]:
+    required = {
+        "applicability",
+        "capability_requirements",
+        "control_flow",
+        "dependencies",
+        "expected_effect",
+        "experience",
+        "known_exceptions",
+        "max_duration_ns",
+        "max_intentions",
+        "maximum_observation_age_ns",
+        "purpose",
+        "recovery_choices",
+        "schema",
+        "stop_conditions",
+        "target",
+    }
+    optional = {"resource_reservation"}
+    if (
+        not isinstance(value, Mapping)
+        or not required <= set(value)
+        or set(value) - required - optional
+        or value.get("schema") != SURFACE_PROCEDURE_SCHEMA
+    ):
+        raise FieldProgramError("surface procedure contract has invalid keys")
+    purpose = _semantic_program_identifier(value["purpose"], "procedure purpose")
+    target = _semantic_program_plain(value["target"], "procedure target")
+    if (
+        not isinstance(target, Mapping)
+        or set(target) != {"identity", "kind"}
+        or not isinstance(target["kind"], str)
+        or not target["kind"]
+    ):
+        raise FieldProgramError("surface procedure target is invalid")
+    raw_dependencies = value["dependencies"]
+    if not isinstance(raw_dependencies, list) or not raw_dependencies:
+        raise FieldProgramError("surface procedure dependencies are invalid")
+    dependencies: list[dict[str, str]] = []
+    dependency_paths: set[str] = set()
+    roles: set[str] = set()
+    for dependency in raw_dependencies:
+        if (
+            not isinstance(dependency, Mapping)
+            or set(dependency) != {"path", "role", "type"}
+        ):
+            raise FieldProgramError("surface procedure dependency is invalid")
+        path = dependency["path"]
+        role = dependency["role"]
+        value_type = dependency["type"]
+        if (
+            not isinstance(path, str)
+            or not path
+            or len(path.encode("utf-8")) > 1024
+            or path in dependency_paths
+            or not isinstance(role, str)
+            or role not in {"field", "observed-version", "source", "target"}
+            or not isinstance(value_type, str)
+            or value_type not in _SURFACE_VALUE_TYPES
+        ):
+            raise FieldProgramError("surface procedure dependency is invalid")
+        dependency_paths.add(path)
+        roles.add(role)
+        dependencies.append({"path": path, "role": role, "type": value_type})
+    if not {"observed-version", "target"} <= roles:
+        raise FieldProgramError(
+            "surface procedure needs typed target and observed-version dependencies"
+        )
+    dependencies.sort(key=lambda item: (item["path"], item["role"]))
+    capabilities = value["capability_requirements"]
+    if (
+        not isinstance(capabilities, list)
+        or not capabilities
+        or any(not isinstance(item, str) or not item for item in capabilities)
+        or len(set(capabilities)) != len(capabilities)
+    ):
+        raise FieldProgramError("surface procedure capabilities are invalid")
+    capabilities = sorted(capabilities)
+    expected_effect = _semantic_program_plain(
+        value["expected_effect"], "surface procedure expected effect"
+    )
+    if (
+        not isinstance(expected_effect, Mapping)
+        or not expected_effect
+        or any(not isinstance(path, str) or not path for path in expected_effect)
+    ):
+        raise FieldProgramError("surface procedure expected effect is invalid")
+    applicability = _canonical_surface_conditions(
+        value["applicability"], "surface procedure applicability"
+    )
+    stop_conditions = _canonical_surface_conditions(
+        value["stop_conditions"], "surface procedure stop conditions"
+    )
+    exceptions = value["known_exceptions"]
+    if not isinstance(exceptions, list) or len(exceptions) > int(
+        bounds["max_branches"]
+    ):
+        raise FieldProgramError("surface procedure exceptions are invalid")
+    known_exceptions: list[dict[str, Any]] = []
+    for exception in exceptions:
+        if (
+            not isinstance(exception, Mapping)
+            or set(exception) != {"description", "name", "when"}
+            or not isinstance(exception["description"], str)
+            or not exception["description"]
+        ):
+            raise FieldProgramError("surface procedure exception is invalid")
+        known_exceptions.append(
+            {
+                "description": _semantic_program_identifier(
+                    exception["description"], "exception description"
+                ),
+                "name": _semantic_program_identifier(
+                    exception["name"], "exception name"
+                ),
+                "when": _canonical_surface_conditions(
+                    exception["when"], "surface procedure exception condition"
+                ),
+            }
+        )
+    experience = _semantic_program_plain(
+        value["experience"], "surface procedure experience"
+    )
+    if not isinstance(experience, list):
+        raise FieldProgramError("surface procedure experience must be a list")
+    max_age = _integer(
+        value["maximum_observation_age_ns"],
+        "surface procedure observation age",
+        minimum=1,
+        maximum=9_007_199_254_740_991,
+    )
+    max_duration = _integer(
+        value["max_duration_ns"],
+        "surface procedure maximum duration",
+        minimum=1,
+        maximum=9_007_199_254_740_991,
+    )
+    max_intentions = _integer(
+        value["max_intentions"],
+        "surface procedure intention maximum",
+        minimum=1,
+        maximum=int(bounds["max_horizon"]),
+    )
+    flow = _canonical_surface_control(
+        value["control_flow"],
+        depth=0,
+        counter=[0],
+        bounds=bounds,
+    )
+    recovery_choices = value["recovery_choices"]
+    if not isinstance(recovery_choices, list) or len(recovery_choices) > int(
+        bounds["max_branches"]
+    ):
+        raise FieldProgramError("surface procedure recovery choices are invalid")
+    canonical_recovery = []
+    for recovery in recovery_choices:
+        if (
+            not isinstance(recovery, Mapping)
+            or set(recovery) != {"control", "name", "when"}
+        ):
+            raise FieldProgramError("surface procedure recovery choice is invalid")
+        conditions = _canonical_surface_conditions(
+            recovery["when"], "surface procedure recovery condition"
+        )
+        if not conditions:
+            raise FieldProgramError("surface procedure recovery condition is empty")
+        canonical_recovery.append(
+            {
+                "control": _canonical_surface_control(
+                    recovery["control"],
+                    depth=0,
+                    counter=[0],
+                    bounds=bounds,
+                ),
+                "name": _semantic_program_identifier(
+                    recovery["name"], "surface procedure recovery name"
+                ),
+                "when": conditions,
+            }
+        )
+    result = {
+        "applicability": applicability,
+        "capability_requirements": capabilities,
+        "control_flow": flow,
+        "dependencies": dependencies,
+        "expected_effect": dict(expected_effect),
+        "experience": experience,
+        "known_exceptions": known_exceptions,
+        "max_duration_ns": max_duration,
+        "max_intentions": max_intentions,
+        "maximum_observation_age_ns": max_age,
+        "purpose": purpose,
+        "recovery_choices": canonical_recovery,
+        "schema": SURFACE_PROCEDURE_SCHEMA,
+        "stop_conditions": stop_conditions,
+        "target": dict(target),
+    }
+    if "resource_reservation" in value:
+        reservation = _semantic_program_plain(
+            value["resource_reservation"], "surface procedure reservation"
+        )
+        if not isinstance(reservation, Mapping):
+            raise FieldProgramError("surface procedure reservation is invalid")
+        result["resource_reservation"] = dict(reservation)
+    return result
 SEMANTIC_PROGRAM_KINDS = (
     "affine",
     "construction",
     "consolidation",
+    "context-tree",
     "factor",
     "hybrid",
     "identity",
     "migration",
     "measurement",
     "procedure",
+    "sequence",
     "table",
     "timer",
+    "conditional",
 )
 SEMANTIC_MECHANISM_KINDS = (
     "affine",
+    "context-tree",
     "factor",
     "hybrid",
     "identity",
+    "sequence",
     "table",
     "timer",
+    "conditional",
 )
 MECHANISM_STEP_KERNEL = "learning.mechanism-step"
 MECHANISM_STEP_MAX_WORK = 32
+_SEQUENCE_MAX_ROWS = 8
+_SEQUENCE_MAX_COLUMNS = 8
+_SEQUENCE_MAX_AST_NODES = 256
+_SEQUENCE_MAX_AST_DEPTH = 16
+_SEQUENCE_MAX_STAGES = 8
+_CONDITIONAL_MAX_BRANCHES = 64
+_CONTEXT_TREE_MAX_DEPTH = 8
+_CONTEXT_TREE_MAX_FEATURES = 64
+_SEMANTIC_MECHANISM_MAX_NESTING = 8
 
 
 class FieldProgramError(ValueError):
@@ -1027,6 +1470,524 @@ def _semantic_program_identifier(value: Any, label: str) -> str:
     return value
 
 
+def _canonical_table_cell(value: Any, label: str) -> dict[str, Any]:
+    """Validate one canonical nullable-table cell and return a detached cell."""
+
+    if not isinstance(value, Mapping):
+        raise FieldProgramError(f"{label} must be a typed cell")
+    if value.get("kind") == "null":
+        if set(value) != {"kind"}:
+            raise FieldProgramError(f"{label} null cell has invalid keys")
+        return {"kind": "null"}
+    if value.get("kind") == "integer":
+        if set(value) != {"kind", "value"}:
+            raise FieldProgramError(f"{label} integer cell has invalid keys")
+        integer = value["value"]
+        if (
+            isinstance(integer, bool)
+            or not isinstance(integer, int)
+            or not -32 <= integer <= 32
+        ):
+            raise FieldProgramError(f"{label} integer is outside [-32, 32]")
+        return {"kind": "integer", "value": int(integer)}
+    raise FieldProgramError(f"{label} has an unsupported cell kind")
+
+
+def canonical_table(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate and canonicalize a bounded ``cassifi.nullable-table.v1`` value."""
+
+    if not isinstance(value, Mapping) or set(value) != {"schema", "columns", "rows"}:
+        raise FieldProgramError("nullable table has invalid keys")
+    detached = _semantic_program_plain(dict(value), "nullable table")
+    if detached["schema"] != NULLABLE_TABLE_SCHEMA:
+        raise FieldProgramError("nullable table schema is unsupported")
+    columns = detached["columns"]
+    if (
+        not isinstance(columns, list)
+        or not columns
+        or len(columns) > _SEQUENCE_MAX_COLUMNS
+        or any(
+            not isinstance(column, str) or not column
+            or len(column.encode("utf-8")) > 128
+            or any(ord(character) < 32 for character in column)
+            for column in columns
+        )
+        or columns != sorted(set(columns))
+    ):
+        raise FieldProgramError("nullable table columns are not canonical")
+    rows = detached["rows"]
+    if not isinstance(rows, list) or len(rows) > _SEQUENCE_MAX_ROWS:
+        raise FieldProgramError("nullable table rows exceed their bound")
+    canonical_rows: list[dict[str, Any]] = []
+    expected = set(columns)
+    for index, row in enumerate(rows):
+        if not isinstance(row, Mapping) or set(row) != expected:
+            raise FieldProgramError(f"nullable table row {index} has invalid columns")
+        canonical_rows.append(
+            {
+                column: _canonical_table_cell(
+                    row[column], f"nullable table row {index} column {column!r}"
+                )
+                for column in columns
+            }
+        )
+    return {
+        "schema": NULLABLE_TABLE_SCHEMA,
+        "columns": list(columns),
+        "rows": canonical_rows,
+    }
+
+
+def table_from_rows(
+    rows: Sequence[Any], columns: Sequence[str] = ("x",)
+) -> dict[str, Any]:
+    """Build a canonical nullable table from plain integer/``None`` rows.
+
+    A one-column table accepts scalar rows; multi-column tables accept either
+    aligned sequences or mappings.  Typed cells are accepted as a convenience
+    but are still validated at this boundary.
+    """
+
+    if not isinstance(rows, (list, tuple)):
+        raise FieldProgramError("table rows must be a finite sequence")
+    if len(rows) > _SEQUENCE_MAX_ROWS:
+        raise FieldProgramError("table rows exceed their bound")
+    if not isinstance(columns, (list, tuple)) or not columns:
+        raise FieldProgramError("table columns must be a nonempty sequence")
+    names = list(columns)
+    if any(not isinstance(name, str) for name in names):
+        raise FieldProgramError("table columns must be strings")
+    if names != sorted(set(names)):
+        raise FieldProgramError("table columns must be sorted and unique")
+    if len(names) > _SEQUENCE_MAX_COLUMNS:
+        raise FieldProgramError("table columns exceed their bound")
+
+    def cell(value: Any, label: str) -> dict[str, Any]:
+        if value is None:
+            return {"kind": "null"}
+        if isinstance(value, Mapping):
+            return _canonical_table_cell(value, label)
+        if isinstance(value, bool) or not isinstance(value, int) or not -32 <= value <= 32:
+            raise FieldProgramError(f"{label} must be an integer in [-32, 32] or null")
+        return {"kind": "integer", "value": int(value)}
+
+    canonical_rows: list[dict[str, Any]] = []
+    for index, raw in enumerate(rows):
+        if isinstance(raw, Mapping):
+            if set(raw) != set(names):
+                raise FieldProgramError(f"table row {index} has invalid columns")
+            values = [raw[name] for name in names]
+        elif len(names) == 1:
+            values = [raw]
+        elif isinstance(raw, (list, tuple)) and len(raw) == len(names):
+            values = list(raw)
+        else:
+            raise FieldProgramError(f"table row {index} has invalid shape")
+        canonical_rows.append(
+            {
+                name: cell(values[column_index], f"table row {index} column {name!r}")
+                for column_index, name in enumerate(names)
+            }
+        )
+    return canonical_table(
+        {"schema": NULLABLE_TABLE_SCHEMA, "columns": names, "rows": canonical_rows}
+    )
+
+
+def _sequence_literal_value(value: Any, label: str) -> int | None:
+    if isinstance(value, Mapping):
+        value = _canonical_table_cell(value, label)
+        if value["kind"] == "null":
+            return None
+        return int(value["value"])
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or not -32 <= value <= 32:
+        raise FieldProgramError(f"{label} must be an integer in [-32, 32] or null")
+    return int(value)
+
+
+def _canonical_sequence_expr(raw: Any, depth: int, nodes: list[int]) -> dict[str, Any]:
+    if depth > _SEQUENCE_MAX_AST_DEPTH:
+        raise FieldProgramError("sequence AST depth exceeds its bound")
+    if not isinstance(raw, Mapping) or not isinstance(raw.get("op"), str):
+        raise FieldProgramError("sequence expression must have an op")
+    nodes[0] += 1
+    if nodes[0] > _SEQUENCE_MAX_AST_NODES:
+        raise FieldProgramError("sequence AST exceeds its node bound")
+    op = raw["op"]
+    if op == "column":
+        if set(raw) != {"op", "name"}:
+            raise FieldProgramError("sequence column expression is invalid")
+        return {
+            "op": "column",
+            "name": _semantic_program_identifier(raw["name"], "sequence column"),
+        }
+    if op == "literal":
+        if set(raw) != {"op", "value"}:
+            raise FieldProgramError("sequence literal expression is invalid")
+        return {"op": "literal", "value": _sequence_literal_value(raw["value"], "sequence literal")}
+    if op == "coalesce":
+        if set(raw) != {"op", "args"} or not isinstance(raw["args"], list):
+            raise FieldProgramError("sequence coalesce expression is invalid")
+        if not raw["args"] or len(raw["args"]) > _SEQUENCE_MAX_COLUMNS:
+            raise FieldProgramError("sequence coalesce arguments exceed their bound")
+        return {
+            "op": "coalesce",
+            "args": [
+                _canonical_sequence_expr(item, depth + 1, nodes)
+                for item in raw["args"]
+            ],
+        }
+    raise FieldProgramError(f"sequence expression operation {op!r} is unsupported")
+
+
+def _canonical_sequence_predicate(raw: Any, depth: int, nodes: list[int]) -> dict[str, Any]:
+    if not isinstance(raw, Mapping) or not isinstance(raw.get("op"), str):
+        raise FieldProgramError("sequence predicate must have an op")
+    op = raw["op"]
+    if op in {"eq", "ne", "lt", "gt"}:
+        if set(raw) != {"op", "left", "right"}:
+            raise FieldProgramError("sequence comparison predicate is invalid")
+        return {
+            "op": op,
+            "left": _canonical_sequence_expr(raw["left"], depth + 1, nodes),
+            "right": _canonical_sequence_expr(raw["right"], depth + 1, nodes),
+        }
+    if op == "is_null":
+        if set(raw) != {"op", "expr"}:
+            raise FieldProgramError("sequence is_null predicate is invalid")
+        return {
+            "op": "is_null",
+            "expr": _canonical_sequence_expr(raw["expr"], depth + 1, nodes),
+        }
+    raise FieldProgramError(f"sequence predicate operation {op!r} is unsupported")
+
+
+def _canonical_sequence_stage(raw: Any, depth: int, nodes: list[int]) -> dict[str, Any]:
+    if depth > _SEQUENCE_MAX_AST_DEPTH:
+        raise FieldProgramError("sequence AST depth exceeds its bound")
+    if not isinstance(raw, Mapping) or not isinstance(raw.get("op"), str):
+        raise FieldProgramError("sequence stage must have an op")
+    nodes[0] += 1
+    if nodes[0] > _SEQUENCE_MAX_AST_NODES:
+        raise FieldProgramError("sequence AST exceeds its node bound")
+    op = raw["op"]
+    if op == "project":
+        if set(raw) != {"op", "columns"}:
+            raise FieldProgramError("sequence project stage is invalid")
+        columns = raw["columns"]
+        if isinstance(columns, Mapping):
+            entries = list(columns.items())
+        elif isinstance(columns, list):
+            entries = []
+            for item in columns:
+                if not isinstance(item, Mapping) or set(item) != {"name", "expr"}:
+                    raise FieldProgramError("sequence project column is invalid")
+                entries.append((item["name"], item["expr"]))
+        else:
+            raise FieldProgramError("sequence project columns are invalid")
+        if not entries or len(entries) > _SEQUENCE_MAX_COLUMNS:
+            raise FieldProgramError("sequence project columns exceed their bound")
+        names = [
+            _semantic_program_identifier(name, "sequence projected column")
+            for name, _expr in entries
+        ]
+        if names != sorted(set(names)):
+            raise FieldProgramError("sequence projected columns are not canonical")
+        return {
+            "op": "project",
+            "columns": {
+                name: _canonical_sequence_expr(expr, depth + 1, nodes)
+                for name, (_original, expr) in zip(names, entries)
+            },
+        }
+    if op == "filter":
+        if set(raw) != {"op", "predicate"}:
+            raise FieldProgramError("sequence filter stage is invalid")
+        return {
+            "op": "filter",
+            "predicate": _canonical_sequence_predicate(raw["predicate"], depth + 1, nodes),
+        }
+    if op == "distinct":
+        if set(raw) != {"op"}:
+            raise FieldProgramError("sequence distinct stage is invalid")
+        return {"op": "distinct"}
+    if op == "order":
+        if set(raw) not in ({"op", "expression", "direction", "nulls"}, {"op", "by", "direction", "nulls"}):
+            raise FieldProgramError("sequence order stage is invalid")
+        expression = raw.get("expression", raw.get("by"))
+        direction = raw["direction"]
+        nulls = raw["nulls"]
+        if direction not in {"asc", "desc"} or nulls not in {"first", "last"}:
+            raise FieldProgramError("sequence order direction or null placement is invalid")
+        return {
+            "op": "order",
+            "expression": _canonical_sequence_expr(expression, depth + 1, nodes),
+            "direction": direction,
+            "nulls": nulls,
+        }
+    if op == "limit":
+        if set(raw) != {"op", "count"}:
+            raise FieldProgramError("sequence limit stage is invalid")
+        count = _integer(raw["count"], "sequence limit", minimum=0, maximum=_SEQUENCE_MAX_ROWS)
+        return {"op": "limit", "count": count}
+    raise FieldProgramError(f"sequence stage operation {op!r} is unsupported")
+
+
+def _canonical_sequence_ast(raw: Any, depth: int = 0, nodes: list[int] | None = None) -> dict[str, Any]:
+    nodes = [0] if nodes is None else nodes
+    if depth > _SEQUENCE_MAX_AST_DEPTH:
+        raise FieldProgramError("sequence AST depth exceeds its bound")
+    if not isinstance(raw, Mapping) or not isinstance(raw.get("op"), str):
+        raise FieldProgramError("sequence AST node must have an op")
+    nodes[0] += 1
+    if nodes[0] > _SEQUENCE_MAX_AST_NODES:
+        raise FieldProgramError("sequence AST exceeds its node bound")
+    op = raw["op"]
+    if op == "source":
+        if set(raw) != {"op"}:
+            raise FieldProgramError("sequence source node is invalid")
+        return {"op": "source"}
+    if op != "pipeline" or set(raw) != {"op", "input", "stages"}:
+        raise FieldProgramError("sequence AST pipeline node is invalid")
+    stages = raw["stages"]
+    if not isinstance(stages, list) or len(stages) > _SEQUENCE_MAX_STAGES:
+        raise FieldProgramError("sequence stages exceed their bound")
+    return {
+        "op": "pipeline",
+        "input": _canonical_sequence_ast(raw["input"], depth + 1, nodes),
+        "stages": [
+            _canonical_sequence_stage(stage, depth + 1, nodes)
+            for stage in stages
+        ],
+    }
+
+
+def _canonical_sequence_body(value: Mapping[str, Any]) -> dict[str, Any]:
+    if (
+        not isinstance(value, Mapping)
+        or value.get("schema") != SEMANTIC_SEQUENCE_SCHEMA
+        or set(value) not in ({"schema", "ast"}, {"schema", "ast", "ast_parameter"})
+    ):
+        raise FieldProgramError("sequence program body has invalid schema or keys")
+    detached = _semantic_program_plain(dict(value), "sequence program body")
+    result = {
+        "schema": SEMANTIC_SEQUENCE_SCHEMA,
+        "ast": _canonical_sequence_ast(detached["ast"]),
+    }
+    if "ast_parameter" in detached:
+        parameter = detached["ast_parameter"]
+        result["ast_parameter"] = _semantic_program_identifier(
+            parameter, "sequence AST parameter"
+        )
+    return result
+
+
+
+class _SequenceExhausted(Exception):
+    pass
+
+
+class _SequenceSupportGap(Exception):
+    def __init__(self, limitation: str):
+        super().__init__(limitation)
+        self.limitation = limitation
+
+
+class _SequenceBudget:
+    def __init__(self, maximum: int):
+        self.maximum = int(maximum)
+        self.used = 0
+
+    def charge(self, amount: int = 1) -> None:
+        amount = max(1, int(amount))
+        self.used += amount
+        if self.used > self.maximum:
+            raise _SequenceExhausted
+
+
+def _sequence_cell_value(cell: Mapping[str, Any]) -> int | None:
+    return None if cell["kind"] == "null" else int(cell["value"])
+
+
+def _execute_sequence_program(
+    program: Mapping[str, Any],
+    action_values: Mapping[str, Any],
+) -> dict[str, Any]:
+    if "table" not in action_values:
+        return {
+            "status": "support-gap",
+            "values": {},
+            "alternatives": [],
+            "limitations": ["sequence-table-input-missing"],
+            "work": 1,
+        }
+    table = canonical_table(action_values["table"])
+    sequence_ast = program["body"]["ast"]
+    ast_parameter = program["body"].get("ast_parameter")
+    if ast_parameter is not None:
+        if ast_parameter not in action_values:
+            return {
+                "status": "support-gap",
+                "values": {},
+                "alternatives": [],
+                "limitations": [f"sequence-ast-parameter-missing:{ast_parameter}"],
+                "work": 1,
+            }
+        try:
+            sequence_ast = _canonical_sequence_ast(action_values[ast_parameter])
+        except (FieldProgramError, TypeError, ValueError):
+            return {
+                "status": "support-gap",
+                "values": {},
+                "alternatives": [],
+                "limitations": [f"sequence-ast-parameter-invalid:{ast_parameter}"],
+                "work": 1,
+            }
+    budget = _SequenceBudget(int(program["bounds"]["max_work"]))
+    initial_rows = [
+        (
+            tuple(_sequence_cell_value(row[column]) for column in table["columns"]),
+            ordinal,
+        )
+        for ordinal, row in enumerate(table["rows"])
+    ]
+
+    def expression(
+        raw: Mapping[str, Any],
+        columns: Sequence[str],
+        values: Sequence[int | None],
+    ) -> int | None:
+        budget.charge()
+        op = raw["op"]
+        if op == "column":
+            name = raw["name"]
+            if name not in columns:
+                raise _SequenceSupportGap(f"sequence-column-missing:{name}")
+            return values[columns.index(name)]
+        if op == "literal":
+            return raw["value"]
+        for item in raw["args"]:
+            result = expression(item, columns, values)
+            if result is not None:
+                return result
+        return None
+
+    def predicate(
+        raw: Mapping[str, Any],
+        columns: Sequence[str],
+        values: Sequence[int | None],
+    ) -> bool | None:
+        budget.charge()
+        if raw["op"] == "is_null":
+            return expression(raw["expr"], columns, values) is None
+        left = expression(raw["left"], columns, values)
+        right = expression(raw["right"], columns, values)
+        if left is None or right is None:
+            return None
+        if raw["op"] == "eq":
+            return left == right
+        if raw["op"] == "ne":
+            return left != right
+        if raw["op"] == "lt":
+            return left < right
+        return left > right
+
+    def pipeline(raw: Mapping[str, Any], depth: int) -> tuple[list[str], list[tuple[tuple[int | None, ...], int]]]:
+        if depth > _SEQUENCE_MAX_AST_DEPTH:
+            raise FieldProgramError("sequence AST depth exceeds its bound")
+        if raw["op"] == "source":
+            budget.charge()
+            return list(table["columns"]), initial_rows
+        columns, rows = pipeline(raw["input"], depth + 1)
+        for stage in raw["stages"]:
+            op = stage["op"]
+            if op == "project":
+                next_columns = list(stage["columns"])
+                next_rows: list[tuple[tuple[int | None, ...], int]] = []
+                for values, ordinal in rows:
+                    projected = tuple(
+                        expression(stage["columns"][name], columns, values)
+                        for name in next_columns
+                    )
+                    next_rows.append((projected, ordinal))
+                budget.charge(len(rows))
+                columns, rows = next_columns, next_rows
+            elif op == "filter":
+                next_rows = []
+                for values, ordinal in rows:
+                    accepted = predicate(stage["predicate"], columns, values)
+                    if accepted is True:
+                        next_rows.append((values, ordinal))
+                budget.charge(len(rows))
+                rows = next_rows
+            elif op == "distinct":
+                seen: set[tuple[int | None, ...]] = set()
+                next_rows = []
+                for values, ordinal in rows:
+                    if values not in seen:
+                        seen.add(values)
+                        next_rows.append((values, ordinal))
+                budget.charge(len(rows))
+                rows = next_rows
+            elif op == "order":
+                decorated = [
+                    (
+                        expression(stage["expression"], columns, values),
+                        ordinal,
+                        values,
+                    )
+                    for values, ordinal in rows
+                ]
+                nulls_first = stage["nulls"] == "first"
+                direction = stage["direction"]
+                decorated.sort(
+                    key=lambda item: (
+                        (0 if nulls_first else 1) if item[0] is None else (1 if nulls_first else 0),
+                        0 if item[0] is None else (item[0] if direction == "asc" else -item[0]),
+                        item[1],
+                    )
+                )
+                budget.charge(len(rows))
+                rows = [(values, ordinal) for _key, ordinal, values in decorated]
+            else:
+                count = stage["count"]
+                budget.charge(1)
+                rows = rows[:count]
+        return columns, rows
+
+    try:
+        columns, rows = pipeline(sequence_ast, 0)
+        output = table_from_rows(
+            [dict(zip(columns, values)) for values, _ordinal in rows],
+            columns=columns,
+        )
+    except _SequenceExhausted:
+        return {
+            "status": "resource-exhausted",
+            "values": {},
+            "alternatives": [],
+            "limitations": ["program-work-bound"],
+            "work": budget.maximum,
+        }
+    except _SequenceSupportGap as exc:
+        return {
+            "status": "support-gap",
+            "values": {},
+            "alternatives": [],
+            "limitations": [exc.limitation],
+            "work": max(1, budget.used),
+        }
+    return {
+        "status": "supported",
+        "values": {},
+        "alternatives": [],
+        "limitations": [],
+        "output": output,
+        "work": max(1, budget.used),
+    }
+
 def _semantic_program_number(
     value: Any, label: str, *, nonnegative: bool = False
 ) -> float:
@@ -1036,12 +1997,295 @@ def _semantic_program_number(
     if not math.isfinite(result) or (nonnegative and result < 0.0):
         raise FieldProgramError(f"{label} is outside its numeric domain")
     return result
+def _semantic_conditional_scalar(value: Any, label: str) -> Any:
+    if value is None or isinstance(value, (bool, str, int)):
+        return value
+    if isinstance(value, float) and math.isfinite(value):
+        return value
+    raise FieldProgramError(f"{label} must be a finite scalar")
 
 
-def canonical_semantic_program_payload(
+def _canonical_conditional_body(
+    body: Mapping[str, Any],
+    *,
+    nesting_depth: int,
+) -> dict[str, Any]:
+    if set(body) != {"context_keys", "branches"}:
+        raise FieldProgramError("conditional mechanism body has invalid keys")
+    context_keys = body["context_keys"]
+    branches = body["branches"]
+    if (
+        not isinstance(context_keys, list)
+        or not context_keys
+        or len(context_keys) > 8
+        or any(
+            not isinstance(key, str)
+            or not key
+            or key.split(".", 1)[0] not in {"state", "action", "context"}
+            for key in context_keys
+        )
+        or context_keys != sorted(set(context_keys))
+    ):
+        raise FieldProgramError("conditional context keys are invalid")
+    if (
+        not isinstance(branches, list)
+        or not branches
+        or len(branches) > _CONDITIONAL_MAX_BRANCHES
+    ):
+        raise FieldProgramError("conditional mechanism branches are invalid")
+    normalized: list[dict[str, Any]] = []
+    seen: set[bytes] = set()
+    for branch in branches:
+        if not isinstance(branch, Mapping) or set(branch) != {"when", "program"}:
+            raise FieldProgramError("conditional mechanism branch is invalid")
+        when = branch["when"]
+        if (
+            not isinstance(when, list)
+            or len(when) != len(context_keys)
+            or any(
+                not isinstance(item, Mapping)
+                or set(item) != {"key", "value"}
+                or item["key"] not in context_keys
+                for item in when
+            )
+            or [item["key"] for item in when] != context_keys
+        ):
+            raise FieldProgramError("conditional branch context is invalid")
+        normalized_when = [
+            {
+                "key": key,
+                "value": _semantic_conditional_scalar(
+                    item["value"], "conditional context value"
+                ),
+            }
+            for key, item in zip(context_keys, when)
+        ]
+        nested = _canonical_semantic_program_payload(
+            cast(Mapping[str, Any], branch["program"]),
+            nesting_depth=nesting_depth + 1,
+        )
+        if nested["program_kind"] not in set(SEMANTIC_MECHANISM_KINDS) - {"conditional"}:
+            raise FieldProgramError(
+                "conditional branch must contain a non-conditional mechanism"
+            )
+        normalized_branch = {"when": normalized_when, "program": nested}
+        marker = _canonical(normalized_when)
+        if marker in seen:
+            raise FieldProgramError("conditional branch contexts must be unique")
+        seen.add(marker)
+        normalized.append(normalized_branch)
+    normalized.sort(key=lambda item: _canonical(item["when"]))
+    return {"context_keys": list(context_keys), "branches": normalized}
+
+
+def _canonical_context_tree_body(
+    body: Mapping[str, Any],
+    *,
+    nesting_depth: int,
+) -> dict[str, Any]:
+    if set(body) != {"features", "tree"}:
+        raise FieldProgramError("context tree body has invalid keys")
+    raw_features = body["features"]
+    if (
+        not isinstance(raw_features, list)
+        or len(raw_features) > _CONTEXT_TREE_MAX_FEATURES
+    ):
+        raise FieldProgramError("context tree features are invalid")
+    features: list[dict[str, Any]] = []
+    for raw in raw_features:
+        if not isinstance(raw, Mapping):
+            raise FieldProgramError("context tree feature is invalid")
+        key = raw.get("key")
+        kind = raw.get("kind")
+        if (
+            not isinstance(key, str)
+            or len(key.split(".")) < 2
+            or key.split(".", 1)[0] not in {"state", "action", "context"}
+            or any(not part for part in key.split("."))
+            or kind not in {"categorical", "numeric"}
+        ):
+            raise FieldProgramError("context tree feature identity is invalid")
+        if kind == "numeric":
+            if set(raw) != {"key", "kind", "maximum", "minimum"}:
+                raise FieldProgramError(
+                    "numeric context tree feature is invalid"
+                )
+            minimum = _semantic_program_number(
+                raw["minimum"], "context tree numeric minimum"
+            )
+            maximum = _semantic_program_number(
+                raw["maximum"], "context tree numeric maximum"
+            )
+            if not minimum < maximum:
+                raise FieldProgramError(
+                    "context tree numeric support must have width"
+                )
+            features.append(
+                {
+                    "key": key,
+                    "kind": "numeric",
+                    "maximum": maximum,
+                    "minimum": minimum,
+                }
+            )
+            continue
+        if set(raw) != {"key", "kind", "values"}:
+            raise FieldProgramError(
+                "categorical context tree feature is invalid"
+            )
+        raw_values = raw["values"]
+        if (
+            not isinstance(raw_values, list)
+            or len(raw_values) < 2
+            or len(raw_values) > _CONDITIONAL_MAX_BRANCHES
+        ):
+            raise FieldProgramError(
+                "categorical context tree support is invalid"
+            )
+        values = [
+            _semantic_conditional_scalar(
+                value, "context tree categorical value"
+            )
+            for value in raw_values
+        ]
+        values.sort(key=_canonical)
+        if len({_canonical(value) for value in values}) != len(values):
+            raise FieldProgramError(
+                "context tree categorical values must be unique"
+            )
+        features.append(
+            {
+                "key": key,
+                "kind": "categorical",
+                "values": values,
+            }
+        )
+    features.sort(key=lambda item: item["key"])
+    if len({item["key"] for item in features}) != len(features):
+        raise FieldProgramError("context tree feature keys must be unique")
+    feature_by_key = {item["key"]: item for item in features}
+    leaf_ids: set[str] = set()
+    used_keys: set[str] = set()
+
+    def normalize_node(raw: Any, depth: int) -> dict[str, Any]:
+        if depth > _CONTEXT_TREE_MAX_DEPTH or not isinstance(raw, Mapping):
+            raise FieldProgramError("context tree depth is exhausted")
+        kind = raw.get("kind")
+        if kind == "leaf":
+            if set(raw) != {"kind", "leaf_id", "program"}:
+                raise FieldProgramError("context tree leaf is invalid")
+            leaf_id = _semantic_program_identifier(
+                raw["leaf_id"], "context tree leaf identity"
+            )
+            if leaf_id in leaf_ids:
+                raise FieldProgramError(
+                    "context tree leaf identities must be unique"
+                )
+            leaf_ids.add(leaf_id)
+            nested = _canonical_semantic_program_payload(
+                cast(Mapping[str, Any], raw["program"]),
+                nesting_depth=nesting_depth + 1,
+            )
+            if nested["program_kind"] not in SEMANTIC_MECHANISM_KINDS:
+                raise FieldProgramError(
+                    "context tree leaf must contain a bounded mechanism"
+                )
+            return {
+                "kind": "leaf",
+                "leaf_id": leaf_id,
+                "program": nested,
+            }
+        if kind != "split" or set(raw) != {
+            "kind",
+            "match",
+            "otherwise",
+            "test",
+        }:
+            raise FieldProgramError("context tree node is invalid")
+        test = raw["test"]
+        if not isinstance(test, Mapping) or set(test) != {
+            "key",
+            "operator",
+            "value",
+        }:
+            raise FieldProgramError("context tree split test is invalid")
+        key = test["key"]
+        operator = test["operator"]
+        feature = feature_by_key.get(key)
+        if feature is None:
+            raise FieldProgramError(
+                "context tree split has no feature support"
+            )
+        used_keys.add(key)
+        if feature["kind"] == "numeric":
+            if operator != "le":
+                raise FieldProgramError(
+                    "numeric context tree split must use le"
+                )
+            value = _semantic_program_number(
+                test["value"], "context tree threshold"
+            )
+            if not feature["minimum"] < value < feature["maximum"]:
+                raise FieldProgramError(
+                    "context tree threshold is outside feature support"
+                )
+        else:
+            if operator != "eq":
+                raise FieldProgramError(
+                    "categorical context tree split must use eq"
+                )
+            value = _semantic_conditional_scalar(
+                test["value"], "context tree category"
+            )
+            if _canonical(value) not in {
+                _canonical(item) for item in feature["values"]
+            }:
+                raise FieldProgramError(
+                    "context tree category is outside feature support"
+                )
+        return {
+            "kind": "split",
+            "test": {
+                "key": key,
+                "operator": operator,
+                "value": value,
+            },
+            "match": normalize_node(raw["match"], depth + 1),
+            "otherwise": normalize_node(raw["otherwise"], depth + 1),
+        }
+
+    tree = normalize_node(body["tree"], 0)
+    if len(leaf_ids) > _CONDITIONAL_MAX_BRANCHES:
+        raise FieldProgramError("context tree has too many leaves")
+    if used_keys != set(feature_by_key):
+        raise FieldProgramError(
+            "context tree feature support must exactly match its splits"
+        )
+    return {"features": features, "tree": tree}
+
+
+def _context_tree_shape(tree: Mapping[str, Any]) -> tuple[int, int]:
+    if tree["kind"] == "leaf":
+        return 1, 0
+    match_leaves, match_depth = _context_tree_shape(tree["match"])
+    other_leaves, other_depth = _context_tree_shape(tree["otherwise"])
+    return (
+        match_leaves + other_leaves,
+        1 + max(match_depth, other_depth),
+    )
+
+
+
+def _canonical_semantic_program_payload(
     value: Mapping[str, Any],
+    *,
+    nesting_depth: int,
 ) -> dict[str, Any]:
     """Validate a bounded field-owned representation or mechanism program."""
+    if nesting_depth > _SEMANTIC_MECHANISM_MAX_NESTING:
+        raise FieldProgramError(
+            "semantic mechanism nesting depth is exhausted"
+        )
 
     required = {
         "applicability",
@@ -1138,11 +2382,37 @@ def canonical_semantic_program_payload(
         )
     if not isinstance(result["body"], dict):
         raise FieldProgramError("semantic program body must be a mapping")
+    if result["program_kind"] == "sequence":
+        result["body"] = _canonical_sequence_body(result["body"])
+    if result["program_kind"] == "conditional":
+        result["body"] = _canonical_conditional_body(
+            result["body"], nesting_depth=nesting_depth
+        )
+    if result["program_kind"] == "context-tree":
+        result["body"] = _canonical_context_tree_body(
+            result["body"], nesting_depth=nesting_depth
+        )
+    if (
+        result["program_kind"] == "procedure"
+        and "surface_contract" in result["body"]
+    ):
+        body = result["body"]
+        body["surface_contract"] = _canonical_surface_contract(
+            body["surface_contract"], bounds=result["bounds"]
+        )
     if not isinstance(result["applicability"], dict):
         raise FieldProgramError(
             "semantic program applicability must be a mapping"
         )
     return result
+
+
+def canonical_semantic_program_payload(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate a bounded field-owned representation or mechanism program."""
+
+    return _canonical_semantic_program_payload(value, nesting_depth=0)
 
 
 def semantic_program_payload(
@@ -1829,6 +3099,913 @@ def _semantic_procedure_substitute(
     return True, value
 
 
+def _semantic_select_procedure_branch(
+    value: Mapping[str, Any],
+    *,
+    state: Mapping[str, Any],
+    action: Mapping[str, Any],
+    context: Mapping[str, Any],
+    maximum: int,
+) -> Mapping[str, Any] | None:
+    """Select one bounded contingent procedure step from current context."""
+
+    if "branches" not in value:
+        return value
+    if set(value) - {"branches", "default"}:
+        raise FieldProgramError("procedure branch wrapper has invalid keys")
+    branches = value["branches"]
+    if (
+        not isinstance(branches, list)
+        or not branches
+        or len(branches) > maximum
+    ):
+        raise FieldProgramError("procedure branches are invalid")
+    matches: list[tuple[int, Mapping[str, Any]]] = []
+    for index, branch in enumerate(branches):
+        if (
+            not isinstance(branch, Mapping)
+            or set(branch) != {"step", "when"}
+            or not isinstance(branch["when"], Mapping)
+            or not isinstance(branch["step"], Mapping)
+        ):
+            raise FieldProgramError("procedure branch is invalid")
+        accepted = True
+        for path, expected in branch["when"].items():
+            if not isinstance(path, str) or not path:
+                raise FieldProgramError("procedure branch condition is invalid")
+            available, actual = _semantic_lookup(
+                path, state, action, context
+            )
+            if not available or actual != expected:
+                accepted = False
+                break
+        if accepted:
+            matches.append((index, branch["step"]))
+    if len(matches) > 1:
+        raise FieldProgramError("procedure branches are ambiguous")
+    if matches:
+        branch_index, selected = matches[0]
+        return {
+            **dict(selected),
+            "branch_index": branch_index,
+        }
+    default = value.get("default")
+    if default is None:
+        return None
+    if not isinstance(default, Mapping):
+        raise FieldProgramError("procedure default branch is invalid")
+    return {
+        **dict(default),
+        "branch_index": None,
+    }
+
+
+def _surface_condition(
+    condition: Mapping[str, Any],
+    *,
+    state: Mapping[str, Any],
+    action: Mapping[str, Any],
+    context: Mapping[str, Any],
+) -> bool | None:
+    available, actual = _semantic_lookup(
+        condition["path"], state, action, context
+    )
+    operation = condition["op"]
+    if operation == "exists":
+        return available
+    if operation == "missing":
+        return not available
+    if not available:
+        return None
+    expected = condition["value"]
+    if operation == "eq":
+        return _canonical(actual) == _canonical(expected)
+    if operation == "ne":
+        return _canonical(actual) != _canonical(expected)
+    if operation in {"in", "not-in"}:
+        if not isinstance(expected, list):
+            raise FieldProgramError("surface membership condition is invalid")
+        matched = _canonical(actual) in {_canonical(item) for item in expected}
+        return matched if operation == "in" else not matched
+    if isinstance(actual, bool) or isinstance(expected, bool):
+        return None
+    if not isinstance(actual, (int, float)) or not isinstance(
+        expected, (int, float)
+    ):
+        return None
+    if operation == "lt":
+        return actual < expected
+    if operation == "le":
+        return actual <= expected
+    if operation == "gt":
+        return actual > expected
+    if operation == "ge":
+        return actual >= expected
+    raise FieldProgramError("surface condition operation is invalid")
+
+
+def _surface_conditions(
+    conditions: Sequence[Mapping[str, Any]],
+    *,
+    state: Mapping[str, Any],
+    action: Mapping[str, Any],
+    context: Mapping[str, Any],
+) -> bool | None:
+    unknown = False
+    for condition in conditions:
+        result = _surface_condition(
+            condition, state=state, action=action, context=context
+        )
+        if result is False:
+            return False
+        if result is None:
+            unknown = True
+    return None if unknown else True
+
+
+def advance_surface_procedure(
+    payload: Mapping[str, Any],
+    *,
+    state: Mapping[str, Any],
+    bindings: Mapping[str, Any],
+    context: Mapping[str, Any],
+    cursor: Mapping[str, Any] | None = None,
+    maximum_work: int = 32,
+    complete_pending: bool = False,
+) -> dict[str, Any]:
+    """Advance one bounded field-owned surface procedure control slice.
+
+    This function only returns an intention description. It never calls a
+    surface backend or treats its own proposed action as an external effect.
+    """
+
+    program = canonical_semantic_program_payload(payload)
+    if program["program_kind"] != "procedure":
+        raise FieldProgramError("surface execution requires a procedure program")
+    body = program["body"]
+    contract = body.get("surface_contract")
+    if not isinstance(contract, Mapping):
+        raise FieldProgramError("procedure has no surface contract")
+    if (
+        isinstance(maximum_work, bool)
+        or not isinstance(maximum_work, int)
+        or not 1 <= maximum_work <= int(program["bounds"]["max_work"])
+    ):
+        raise FieldProgramError("surface procedure work quantum is invalid")
+    state_values = _semantic_program_plain(dict(state), "surface procedure state")
+    action_values = _semantic_program_plain(
+        dict(bindings), "surface procedure bindings"
+    )
+    context_values = _semantic_program_plain(
+        dict(context), "surface procedure context"
+    )
+    if not all(
+        isinstance(item, dict)
+        for item in (state_values, action_values, context_values)
+    ):
+        raise FieldProgramError("surface procedure operands must be mappings")
+    for name, descriptor in program["arguments"].items():
+        if descriptor["required"] and name not in action_values:
+            return {
+                "cursor": None,
+                "intent": None,
+                "limitations": [f"missing-argument:{name}"],
+                "status": "support-gap",
+                "work": 1,
+            }
+        if name not in action_values:
+            continue
+        value = action_values[name]
+        expected = descriptor["type"]
+        matches = (
+            expected == "json"
+            or (expected == "boolean" and isinstance(value, bool))
+            or (
+                expected == "integer"
+                and isinstance(value, int)
+                and not isinstance(value, bool)
+            )
+            or (
+                expected == "number"
+                and isinstance(value, (int, float))
+                and not isinstance(value, bool)
+            )
+            or (expected == "string" and isinstance(value, str))
+            or (expected == "mapping" and isinstance(value, Mapping))
+            or (expected == "list" and isinstance(value, list))
+        )
+        if not matches:
+            return {
+                "cursor": None,
+                "intent": None,
+                "limitations": [f"argument-type:{name}:{expected}"],
+                "status": "support-gap",
+                "work": 1,
+            }
+    for guard in program["guards"]:
+        known, accepted = _semantic_guard(
+            guard, state_values, action_values, context_values
+        )
+        if not known or not accepted:
+            return {
+                "cursor": None,
+                "intent": None,
+                "limitations": ["guard-unknown" if not known else "guard-false"],
+                "status": "support-gap",
+                "work": 1,
+            }
+    available, substituted_contract = _semantic_procedure_substitute(
+        contract, action_values
+    )
+    if not available or not isinstance(substituted_contract, Mapping):
+        return {
+            "cursor": None,
+            "intent": None,
+            "limitations": ["procedure-role-binding-missing"],
+            "status": "support-gap",
+            "work": 1,
+        }
+    conditions = cast(
+        Sequence[Mapping[str, Any]], substituted_contract["applicability"]
+    )
+    applicability = _surface_conditions(
+        conditions,
+        state=state_values,
+        action=action_values,
+        context=context_values,
+    )
+    if applicability is not True:
+        return {
+            "cursor": None,
+            "intent": None,
+            "limitations": [
+                "procedure-applicability-unknown"
+                if applicability is None
+                else "procedure-not-applicable"
+            ],
+            "status": "support-gap",
+            "work": 1,
+        }
+    def normalize_frame(raw_frame: Any, depth: int = 0) -> dict[str, Any]:
+        if (
+            depth > _SEQUENCE_MAX_AST_DEPTH
+            or not isinstance(raw_frame, Mapping)
+            or set(raw_frame)
+            - {
+                "active_branch",
+                "branch_states",
+                "index",
+                "iteration",
+                "next_branch",
+                "node",
+                "started_ns",
+            }
+        ):
+            raise FieldProgramError(
+                "surface procedure checkpoint frame is invalid"
+            )
+        node = _canonical_surface_control(
+            raw_frame.get("node"),
+            depth=0,
+            counter=[0],
+            bounds=program["bounds"],
+        )
+        normalized = {
+            "index": _integer(
+                raw_frame.get("index", 0),
+                "surface procedure frame index",
+                minimum=0,
+                maximum=int(program["bounds"]["max_horizon"]),
+            ),
+            "iteration": _integer(
+                raw_frame.get("iteration", 0),
+                "surface procedure loop cursor",
+                minimum=0,
+                maximum=int(program["bounds"]["max_horizon"]),
+            ),
+            "node": node,
+        }
+        if "started_ns" in raw_frame:
+            normalized["started_ns"] = _integer(
+                raw_frame["started_ns"],
+                "surface procedure wait start",
+                minimum=0,
+                maximum=9_007_199_254_740_991,
+            )
+        parallel_keys = {"active_branch", "branch_states", "next_branch"}
+        if "branch_states" in raw_frame:
+            if node["op"] != "parallel" or not parallel_keys <= set(raw_frame):
+                raise FieldProgramError(
+                    "surface parallel checkpoint frame is invalid"
+                )
+            raw_branches = raw_frame["branch_states"]
+            branch_nodes = node["branches"]
+            if not isinstance(raw_branches, list) or len(raw_branches) != len(
+                branch_nodes
+            ):
+                raise FieldProgramError(
+                    "surface parallel checkpoint branches are invalid"
+                )
+            active = raw_frame["active_branch"]
+            if active is not None:
+                active = _integer(
+                    active,
+                    "surface parallel active branch",
+                    minimum=0,
+                    maximum=len(branch_nodes) - 1,
+                )
+            next_branch = _integer(
+                raw_frame["next_branch"],
+                "surface parallel next branch",
+                minimum=0,
+                maximum=len(branch_nodes) - 1,
+            )
+            branch_states = []
+            for index, raw_branch in enumerate(raw_branches):
+                if (
+                    not isinstance(raw_branch, Mapping)
+                    or set(raw_branch)
+                    != {"branch_digest", "stack", "status", "wait_status"}
+                    or raw_branch["branch_digest"]
+                    != sha256_value(branch_nodes[index])
+                    or not isinstance(raw_branch["stack"], list)
+                    or len(raw_branch["stack"])
+                    > int(program["bounds"]["max_horizon"])
+                ):
+                    raise FieldProgramError(
+                        "surface parallel branch checkpoint is invalid"
+                    )
+                status = raw_branch["status"]
+                wait_status = raw_branch["wait_status"]
+                if not isinstance(status, str) or status not in {
+                    "complete",
+                    "ready",
+                    "running",
+                    "waiting",
+                }:
+                    raise FieldProgramError(
+                        "surface parallel branch status is invalid"
+                    )
+                if (
+                    wait_status is not None
+                    and (
+                        not isinstance(wait_status, str)
+                        or wait_status
+                        not in {"awaiting-observation", "waiting"}
+                    )
+                ):
+                    raise FieldProgramError(
+                        "surface parallel branch wait status is invalid"
+                    )
+                if (status == "waiting") != (wait_status is not None):
+                    raise FieldProgramError(
+                        "surface parallel branch wait status is invalid"
+                    )
+                if status == "running" and (
+                    active != index or raw_branch["stack"]
+                ):
+                    raise FieldProgramError(
+                        "surface parallel active branch is invalid"
+                    )
+                if status != "running" and active == index:
+                    raise FieldProgramError(
+                        "surface parallel active branch state is invalid"
+                    )
+                if status in {"complete", "running"} and raw_branch["stack"]:
+                    raise FieldProgramError(
+                        "surface parallel branch stack is invalid"
+                    )
+                if status in {"ready", "waiting"} and not raw_branch["stack"]:
+                    raise FieldProgramError(
+                        "surface parallel runnable branch has no cursor"
+                    )
+                branch_states.append(
+                    {
+                        "branch_digest": raw_branch["branch_digest"],
+                        "stack": [
+                            normalize_frame(frame, depth + 1)
+                            for frame in raw_branch["stack"]
+                        ],
+                        "status": status,
+                        "wait_status": wait_status,
+                    }
+                )
+            if (active is None) != all(
+                branch["status"] != "running" for branch in branch_states
+            ):
+                raise FieldProgramError(
+                    "surface parallel active branch identity is invalid"
+                )
+            normalized.update(
+                {
+                    "active_branch": active,
+                    "branch_states": branch_states,
+                    "next_branch": next_branch,
+                }
+            )
+        elif parallel_keys & set(raw_frame):
+            raise FieldProgramError(
+                "surface parallel checkpoint frame is incomplete"
+            )
+        return normalized
+
+    if cursor is None:
+        control = substituted_contract["control_flow"]
+        current: dict[str, Any] = {
+            "completed_intentions": 0,
+            "stack": [{"index": 0, "iteration": 0, "node": control}],
+        }
+    else:
+        if not isinstance(cursor, Mapping):
+            raise FieldProgramError(
+                "surface procedure checkpoint cursor is invalid"
+            )
+        raw_stack = cursor.get("stack")
+        completed = cursor.get("completed_intentions", 0)
+        if (
+            set(cursor) != {"completed_intentions", "stack"}
+            or not isinstance(raw_stack, list)
+            or isinstance(completed, bool)
+            or not isinstance(completed, int)
+            or completed < 0
+        ):
+            raise FieldProgramError("surface procedure checkpoint cursor is invalid")
+        current = {
+            "completed_intentions": completed,
+            "stack": [normalize_frame(frame) for frame in raw_stack],
+        }
+    if complete_pending:
+        if not current["stack"] or current["stack"][-1]["node"]["op"] != "intent":
+            raise FieldProgramError(
+                "surface procedure has no pending intention to complete"
+            )
+        current["stack"].pop()
+        current["completed_intentions"] += 1
+    if current["completed_intentions"] > int(
+        substituted_contract["max_intentions"]
+    ):
+        return {
+            "cursor": current,
+            "intent": None,
+            "limitations": ["procedure-intention-bound"],
+            "status": "resource-exhausted",
+            "work": 1,
+        }
+    work = 0
+    attempted_parallel: dict[int, set[int]] = {}
+
+    def ensure_parallel_state(
+        frame: dict[str, Any],
+        active_stack: list[dict[str, Any]] | None = None,
+    ) -> None:
+        if "branch_states" in frame:
+            return
+        branches = frame["node"]["branches"]
+        previous_index = frame["index"]
+        active_index = previous_index - 1 if active_stack else None
+        if (
+            active_stack
+            and (
+                active_index is None
+                or active_index < 0
+                or active_index >= len(branches)
+            )
+        ):
+            raise FieldProgramError(
+                "surface parallel active branch cursor is invalid"
+            )
+        branch_states = []
+        for index, branch in enumerate(branches):
+            is_active = index == active_index
+            complete = index < previous_index and not is_active
+            branch_states.append(
+                {
+                    "branch_digest": sha256_value(branch),
+                    "stack": [] if complete or is_active else [
+                        {"index": 0, "iteration": 0, "node": branch}
+                    ],
+                    "status": "complete"
+                    if complete
+                    else "running"
+                    if is_active
+                    else "ready",
+                    "wait_status": None,
+                }
+            )
+        frame["active_branch"] = active_index
+        frame["branch_states"] = branch_states
+        frame["next_branch"] = (
+            (active_index + 1) % len(branches)
+            if active_index is not None
+            else previous_index % len(branches)
+        )
+
+    def pause_active_parallel_branch(status: str) -> bool:
+        stack = current["stack"]
+        for position in range(len(stack) - 1, -1, -1):
+            frame = stack[position]
+            if frame["node"]["op"] != "parallel":
+                continue
+            if "branch_states" not in frame:
+                suffix = stack[position + 1 :]
+                if not suffix:
+                    continue
+                ensure_parallel_state(frame, suffix)
+            branch_index = frame["active_branch"]
+            if branch_index is None:
+                continue
+            branch = frame["branch_states"][branch_index]
+            suffix = stack[position + 1 :]
+            if not suffix:
+                branch["status"] = "complete"
+                branch["stack"] = []
+                branch["wait_status"] = None
+            elif status in {"awaiting-observation", "uncertain", "waiting"}:
+                branch["status"] = "waiting"
+                branch["stack"] = suffix
+                branch["wait_status"] = (
+                    "waiting" if status == "waiting" else "awaiting-observation"
+                )
+            else:
+                branch["status"] = "ready"
+                branch["stack"] = suffix
+                branch["wait_status"] = None
+            frame["active_branch"] = None
+            frame["next_branch"] = (branch_index + 1) % len(
+                frame["branch_states"]
+            )
+            del stack[position + 1 :]
+            return True
+        return False
+
+    while work < maximum_work:
+        work += 1
+        if not current["stack"]:
+            expected_effect = cast(
+                Mapping[str, Any], substituted_contract["expected_effect"]
+            )
+            observed = _surface_conditions(
+                [
+                    {"op": "eq", "path": path, "value": value}
+                    for path, value in expected_effect.items()
+                ],
+                state=state_values,
+                action=action_values,
+                context=context_values,
+            )
+            status = (
+                "complete"
+                if observed is True
+                else "effect-mismatch"
+                if observed is False
+                else "awaiting-observation"
+            )
+            return {
+                "cursor": current,
+                "intent": None,
+                "limitations": [],
+                "status": status,
+                "work": work,
+            }
+        frame = current["stack"][-1]
+        node = frame["node"]
+        op = node["op"]
+        if op == "sequence":
+            if frame["index"] >= len(node["steps"]):
+                current["stack"].pop()
+                continue
+            selected = node["steps"][frame["index"]]
+            frame["index"] += 1
+            current["stack"].append(
+                {"index": 0, "iteration": 0, "node": selected}
+            )
+            continue
+        if op == "choice":
+            matches: list[Mapping[str, Any]] = []
+            unresolved = False
+            for branch in node["branches"]:
+                accepted = _surface_conditions(
+                    branch["when"],
+                    state=state_values,
+                    action=action_values,
+                    context=context_values,
+                )
+                if accepted is None:
+                    unresolved = True
+                elif accepted:
+                    matches.append(branch["then"])
+            if unresolved:
+                if pause_active_parallel_branch("awaiting-observation"):
+                    continue
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-choice-condition-unknown"],
+                    "status": "awaiting-observation",
+                    "work": work,
+                }
+            if len(matches) > 1:
+                if pause_active_parallel_branch("uncertain"):
+                    continue
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-choice-ambiguous"],
+                    "status": "uncertain",
+                    "work": work,
+                }
+            selected = matches[0] if matches else node.get("default")
+            if not isinstance(selected, Mapping):
+                if pause_active_parallel_branch("awaiting-observation"):
+                    continue
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-choice-unmatched"],
+                    "status": "awaiting-observation",
+                    "work": work,
+                }
+            current["stack"].pop()
+            current["stack"].append(
+                {"index": 0, "iteration": 0, "node": selected}
+            )
+            continue
+        if op == "loop":
+            accepted = _surface_conditions(
+                node["while"],
+                state=state_values,
+                action=action_values,
+                context=context_values,
+            )
+            if accepted is None:
+                if pause_active_parallel_branch("awaiting-observation"):
+                    continue
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-loop-condition-unknown"],
+                    "status": "awaiting-observation",
+                    "work": work,
+                }
+            if not accepted:
+                current["stack"].pop()
+                continue
+            if frame["iteration"] >= node["max_iterations"]:
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-loop-bound"],
+                    "status": "resource-exhausted",
+                    "work": work,
+                }
+            frame["iteration"] += 1
+            current["stack"].append(
+                {"index": 0, "iteration": 0, "node": node["body"]}
+            )
+            continue
+        if op == "wait":
+            accepted = _surface_conditions(
+                node["until"],
+                state=state_values,
+                action=action_values,
+                context=context_values,
+            )
+            if accepted is True:
+                current["stack"].pop()
+                continue
+            if accepted is None:
+                if pause_active_parallel_branch("awaiting-observation"):
+                    continue
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["wait-condition-unknown"],
+                    "status": "awaiting-observation",
+                    "work": work,
+                }
+            now_ns = context_values.get("now_ns")
+            started_ns = frame.get("started_ns")
+            if started_ns is None and isinstance(now_ns, int) and not isinstance(
+                now_ns, bool
+            ):
+                frame["started_ns"] = now_ns
+                started_ns = now_ns
+            timeout_ns = node.get("timeout_ns")
+            if (
+                timeout_ns is not None
+                and isinstance(now_ns, int)
+                and not isinstance(now_ns, bool)
+                and isinstance(started_ns, int)
+                and now_ns - started_ns >= timeout_ns
+            ):
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-wait-timeout"],
+                    "status": "timed-out",
+                    "work": work,
+                }
+            if pause_active_parallel_branch("waiting"):
+                continue
+            return {
+                "cursor": current,
+                "intent": None,
+                "limitations": ["procedure-waiting"],
+                "status": "waiting",
+                "work": work,
+            }
+        if op == "parallel":
+            ensure_parallel_state(frame)
+            active = frame["active_branch"]
+            if active is not None:
+                branch = frame["branch_states"][active]
+                if branch["status"] != "running":
+                    raise FieldProgramError(
+                        "surface parallel active branch state is invalid"
+                    )
+                branch["status"] = "complete"
+                branch["stack"] = []
+                branch["wait_status"] = None
+                frame["active_branch"] = None
+            branch_states = frame["branch_states"]
+            if all(branch["status"] == "complete" for branch in branch_states):
+                current["stack"].pop()
+                continue
+            attempted = attempted_parallel.setdefault(id(frame), set())
+            selected_index = None
+            for offset in range(len(branch_states)):
+                candidate_index = (
+                    frame["next_branch"] + offset
+                ) % len(branch_states)
+                if (
+                    candidate_index not in attempted
+                    and branch_states[candidate_index]["status"]
+                    in {"ready", "waiting"}
+                ):
+                    selected_index = candidate_index
+                    break
+            if selected_index is not None:
+                attempted.add(selected_index)
+                branch = branch_states[selected_index]
+                branch["status"] = "running"
+                branch["wait_status"] = None
+                child_stack = branch["stack"]
+                branch["stack"] = []
+                frame["active_branch"] = selected_index
+                frame["next_branch"] = (selected_index + 1) % len(
+                    branch_states
+                )
+                current["stack"].extend(child_stack)
+                continue
+            wait_statuses = [
+                branch["wait_status"]
+                for branch in branch_states
+                if branch["status"] == "waiting"
+            ]
+            parallel_status = (
+                "awaiting-observation"
+                if "awaiting-observation" in wait_statuses
+                else "waiting"
+                if wait_statuses
+                else "yielded"
+            )
+            if pause_active_parallel_branch(parallel_status):
+                continue
+            return {
+                "cursor": current,
+                "intent": None,
+                "limitations": [
+                    "procedure-parallel-waiting"
+                    if wait_statuses
+                    else "procedure-work-quantum"
+                ],
+                "status": parallel_status,
+                "work": work,
+            }
+        if op == "intent":
+            if current["completed_intentions"] >= int(
+                substituted_contract["max_intentions"]
+            ):
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-intention-bound"],
+                    "status": "resource-exhausted",
+                    "work": work,
+                }
+            available, intent = _semantic_procedure_substitute(
+                node, action_values
+            )
+            if not available or not isinstance(intent, Mapping):
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-role-binding-missing"],
+                    "status": "support-gap",
+                    "work": work,
+                }
+            return {
+                "cursor": current,
+                "intent": dict(intent),
+                "limitations": [],
+                "status": "intent",
+                "work": work,
+            }
+        if op == "checkpoint":
+            current["stack"].pop()
+            pause_active_parallel_branch("checkpoint")
+            return {
+                "cursor": current,
+                "intent": None,
+                "limitations": [],
+                "status": "checkpoint",
+                "work": work,
+            }
+        if op == "stop":
+            conditions = node.get("when")
+            accepted = (
+                True
+                if conditions is None
+                else _surface_conditions(
+                    conditions,
+                    state=state_values,
+                    action=action_values,
+                    context=context_values,
+                )
+            )
+            if accepted is None:
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": ["procedure-stop-condition-unknown"],
+                    "status": "uncertain",
+                    "work": work,
+                }
+            if accepted:
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": [node["reason"]],
+                    "status": "stopped",
+                    "work": work,
+                }
+            current["stack"].pop()
+            continue
+        if op == "cancel":
+            return {
+                "cursor": current,
+                "intent": None,
+                "limitations": ["procedure-cancel-node"],
+                "status": "cancelled",
+                "work": work,
+            }
+        if op == "complete":
+            expected_effect = cast(
+                Mapping[str, Any], substituted_contract["expected_effect"]
+            )
+            observed = _surface_conditions(
+                [
+                    {"op": "eq", "path": path, "value": value}
+                    for path, value in expected_effect.items()
+                ],
+                state=state_values,
+                action=action_values,
+                context=context_values,
+            )
+            if observed is not True:
+                return {
+                    "cursor": current,
+                    "intent": None,
+                    "limitations": [
+                        "expected-effect-not-observed"
+                        if observed is None
+                        else "expected-effect-mismatch"
+                    ],
+                    "status": (
+                        "awaiting-observation" if observed is None else "effect-mismatch"
+                    ),
+                    "work": work,
+                }
+            current["stack"].pop()
+            continue
+        return {
+            "cursor": current,
+            "intent": None,
+            "limitations": ["procedure-control-invalid"],
+            "status": "support-gap",
+            "work": work,
+        }
+    while pause_active_parallel_branch("yielded"):
+        pass
+    return {
+        "cursor": current,
+        "intent": None,
+        "limitations": ["procedure-work-quantum"],
+        "status": "yielded",
+        "work": work,
+    }
+
+
 def _semantic_tokens(text: Any) -> tuple[str, ...]:
     if not isinstance(text, str) or len(text.encode("utf-8")) > 64 * 1024:
         raise FieldProgramError("construction text must be bounded text")
@@ -1922,7 +4099,32 @@ def execute_semantic_program(
 ) -> dict[str, Any]:
     """Execute one bounded, goal-independent mechanism program."""
 
-    program = canonical_semantic_program_payload(payload)
+    return execute_canonical_semantic_program(
+        canonical_semantic_program_payload(payload),
+        state,
+        action=action,
+        context=context,
+        interval=interval,
+    )
+
+
+def execute_canonical_semantic_program(
+    program: Mapping[str, Any],
+    state: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any] | None = None,
+    context: Mapping[str, Any] | None = None,
+    interval: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute a mechanism program already in canonical payload form.
+
+    Canonicalizing a program validates and rebuilds the whole representation,
+    which dominates repeated evaluation of one retained mechanism. A caller
+    that evaluates the same program many times canonicalizes once with
+    ``canonical_semantic_program_payload`` and reuses the result here; the
+    canonical form is read-only for the life of that program revision.
+    """
+
     current = _semantic_program_plain(dict(state), "mechanism state")
     action_values = _semantic_program_plain(
         dict(action or {}), "mechanism action"
@@ -2026,6 +4228,231 @@ def execute_semantic_program(
         kind = nested["program_kind"]
         body = nested["body"]
         successor = dict(values)
+        for name, descriptor in nested["arguments"].items():
+            if descriptor["required"] and name not in action_values:
+                return {
+                    "status": "support-gap",
+                    "values": values,
+                    "alternatives": [],
+                    "limitations": [f"missing-argument:{name}"],
+                    "work": 1,
+                }
+            if name not in action_values:
+                continue
+            supplied_value = action_values[name]
+            expected_type = descriptor["type"]
+            type_matches = (
+                expected_type == "json"
+                or (
+                    expected_type == "boolean"
+                    and isinstance(supplied_value, bool)
+                )
+                or (
+                    expected_type == "integer"
+                    and isinstance(supplied_value, int)
+                    and not isinstance(supplied_value, bool)
+                )
+                or (
+                    expected_type == "number"
+                    and isinstance(supplied_value, (int, float))
+                    and not isinstance(supplied_value, bool)
+                )
+                or (
+                    expected_type == "string"
+                    and isinstance(supplied_value, str)
+                )
+                or (
+                    expected_type == "mapping"
+                    and isinstance(supplied_value, Mapping)
+                )
+                or (
+                    expected_type == "list"
+                    and isinstance(supplied_value, list)
+                )
+            )
+            if not type_matches:
+                return {
+                    "status": "support-gap",
+                    "values": values,
+                    "alternatives": [],
+                    "limitations": [f"argument-type:{name}:{expected_type}"],
+                    "work": 1,
+                }
+        for guard in nested["guards"]:
+            known, accepted = _semantic_guard(
+                guard, values, action_values, context_values
+            )
+            if not known:
+                return {
+                    "status": "support-gap",
+                    "values": values,
+                    "alternatives": [],
+                    "limitations": ["guard-unknown"],
+                    "work": 1,
+                }
+            if not accepted:
+                return {
+                    "status": "support-gap",
+                    "values": values,
+                    "alternatives": [],
+                    "limitations": ["guard-false"],
+                    "work": 1,
+                }
+        if kind == "context-tree":
+            features = body["features"]
+            tree = body["tree"]
+            leaf_count, tree_depth = _context_tree_shape(tree)
+            if leaf_count > nested["bounds"]["max_branches"]:
+                return {
+                    "status": "resource-exhausted",
+                    "values": successor,
+                    "alternatives": [],
+                    "limitations": ["program-branch-bound"],
+                    "required_work": leaf_count,
+                    "available_work": nested["bounds"]["max_branches"],
+                    "work": 1,
+                }
+            feature_values: dict[str, Any] = {}
+            for feature in features:
+                present, actual = _semantic_lookup(
+                    feature["key"], values, action_values, context_values
+                )
+                if not present:
+                    return {
+                        "status": "support-gap",
+                        "values": successor,
+                        "alternatives": [],
+                        "limitations": [
+                            f"missing-context:{feature['key']}"
+                        ],
+                        "work": max(1, len(feature_values) + 1),
+                    }
+                if feature["kind"] == "numeric":
+                    if (
+                        isinstance(actual, bool)
+                        or not isinstance(actual, (int, float))
+                        or not math.isfinite(float(actual))
+                    ):
+                        return {
+                            "status": "support-gap",
+                            "values": successor,
+                            "alternatives": [],
+                            "limitations": [
+                                f"context-type:{feature['key']}:numeric"
+                            ],
+                            "work": max(1, len(feature_values) + 1),
+                        }
+                    numeric = float(actual)
+                    if not (
+                        feature["minimum"]
+                        <= numeric
+                        <= feature["maximum"]
+                    ):
+                        return {
+                            "status": "support-gap",
+                            "values": successor,
+                            "alternatives": [],
+                            "limitations": [
+                                f"outside-context-support:{feature['key']}"
+                            ],
+                            "work": max(1, len(feature_values) + 1),
+                        }
+                    feature_values[feature["key"]] = numeric
+                    continue
+                if _canonical(actual) not in {
+                    _canonical(item) for item in feature["values"]
+                }:
+                    return {
+                        "status": "support-gap",
+                        "values": successor,
+                        "alternatives": [],
+                        "limitations": [
+                            f"unseen-context:{feature['key']}"
+                        ],
+                        "work": max(1, len(feature_values) + 1),
+                    }
+                feature_values[feature["key"]] = actual
+            node = tree
+            traversed = 0
+            while node["kind"] == "split":
+                traversed += 1
+                test = node["test"]
+                actual = feature_values[test["key"]]
+                accepted = (
+                    float(actual) <= float(test["value"])
+                    if test["operator"] == "le"
+                    else _canonical(actual) == _canonical(test["value"])
+                )
+                node = node["match"] if accepted else node["otherwise"]
+            nested_outcome = execute(
+                node["program"], successor, depth + 1
+            )
+            total_work = max(
+                1,
+                len(features)
+                + traversed
+                + int(nested_outcome.get("work", 1)),
+            )
+            if (
+                tree_depth > _CONTEXT_TREE_MAX_DEPTH
+                or total_work > nested["bounds"]["max_work"]
+            ):
+                return {
+                    "status": "resource-exhausted",
+                    "values": successor,
+                    "alternatives": [],
+                    "limitations": ["program-work-bound"],
+                    "required_work": total_work,
+                    "available_work": nested["bounds"]["max_work"],
+                    "work": nested["bounds"]["max_work"],
+                }
+            nested_outcome["work"] = total_work
+            return nested_outcome
+        if kind == "conditional":
+            branches = body["branches"]
+            if len(branches) > nested["bounds"]["max_branches"]:
+                return {
+                    "status": "resource-exhausted",
+                    "values": successor,
+                    "alternatives": [],
+                    "limitations": ["program-branch-bound"],
+                    "required_work": len(branches),
+                    "available_work": nested["bounds"]["max_branches"],
+                    "work": 1,
+                }
+            matches: list[Mapping[str, Any]] = []
+            for branch in branches:
+                accepted = True
+                for item in branch["when"]:
+                    present, actual = _semantic_lookup(
+                        item["key"], values, action_values, context_values
+                    )
+                    if not present or _canonical(actual) != _canonical(
+                        item["value"]
+                    ):
+                        accepted = False
+                        break
+                if accepted:
+                    matches.append(branch)
+            if not matches:
+                return {
+                    "status": "support-gap",
+                    "values": successor,
+                    "alternatives": [],
+                    "limitations": ["uncovered-context"],
+                    "work": max(1, len(branches)),
+                }
+            nested_outcome = execute(
+                matches[0]["program"], successor, depth + 1
+            )
+            nested_outcome["work"] = max(
+                1, len(branches) + int(nested_outcome.get("work", 1))
+            )
+            return nested_outcome
+        if kind == "sequence":
+            sequence_outcome = _execute_sequence_program(nested, action_values)
+            sequence_outcome["values"] = successor
+            return sequence_outcome
         if kind == "identity":
             return {
                 "status": "supported",
@@ -2594,22 +5021,46 @@ def execute_semantic_program(
                         "limitations": ["procedure-role-binding-missing"],
                         "work": max(1, len(substituted_steps)),
                     }
-                substituted_steps.append(substituted)
+                selected_step = _semantic_select_procedure_branch(
+                    substituted,
+                    state=successor,
+                    action=action_values,
+                    context=context_values,
+                    maximum=int(nested["bounds"]["max_branches"]),
+                )
+                if selected_step is None:
+                    return {
+                        "status": "support-gap",
+                        "values": successor,
+                        "alternatives": [],
+                        "limitations": ["procedure-branch-unmatched"],
+                        "work": max(1, len(substituted_steps)),
+                    }
+                substituted_steps.append(selected_step)
             steps = substituted_steps
             for raw_step in steps:
                 if not isinstance(raw_step, Mapping):
                     raise FieldProgramError(
                         "procedure step must be a mapping"
                     )
-                if set(raw_step) == {"set"} and isinstance(
-                    raw_step["set"], Mapping
+                execution_step = (
+                    {
+                        key: value
+                        for key, value in raw_step.items()
+                        if key != "branch_index"
+                    }
+                    if "branch_index" in raw_step
+                    else raw_step
+                )
+                if set(execution_step) == {"set"} and isinstance(
+                    execution_step["set"], Mapping
                 ):
-                    successor.update(dict(raw_step["set"]))
+                    successor.update(dict(execution_step["set"]))
                     nested_work += 1
                     continue
-                if set(raw_step) == {"program"}:
+                if set(execution_step) == {"program"}:
                     nested_program = canonical_semantic_program_payload(
-                        raw_step["program"]
+                        execution_step["program"]
                     )
                     nested_outcome = execute(
                         nested_program, successor, depth + 1
@@ -2641,6 +5092,7 @@ def execute_semantic_program(
             outputs = body.get("outputs")
             if not isinstance(outputs, dict):
                 raise FieldProgramError("affine mechanism outputs are invalid")
+            source_values = dict(successor)
             uncertainty: dict[str, list[float]] = {}
             for target, expression in sorted(outputs.items()):
                 _semantic_program_identifier(target, "affine output")
@@ -2659,7 +5111,7 @@ def execute_semantic_program(
                 )
                 for source, coefficient in expression["terms"].items():
                     present, raw = _semantic_lookup(
-                        source, successor, action_values, context_values
+                        source, source_values, action_values, context_values
                     )
                     if not present:
                         return {
@@ -3788,17 +6240,23 @@ __all__ = [
     "SEMANTIC_PROGRAM_KINDS",
     "SEMANTIC_PROGRAM_SCHEMA",
     "SEMANTIC_REPRESENTATION_SCHEMA",
+    "NULLABLE_TABLE_SCHEMA",
+    "SURFACE_PROCEDURE_SCHEMA",
+    "SEMANTIC_SEQUENCE_SCHEMA",
     "CompiledFieldProgram",
     "CompiledRegionalProgram",
     "FieldProgramError",
     "apply_semantic_representation_edits",
+    "canonical_table",
     "canonical_semantic_representation_edits",
     "compile_regional_program",
     "compile_structured_program",
     "regional_scalar_state",
     "canonical_semantic_program_payload",
     "scalar_regional_kernel",
+    "advance_surface_procedure",
     "execute_semantic_program",
     "scalar_procedure_regional_kernel",
     "semantic_program_payload",
+    "table_from_rows",
 ]

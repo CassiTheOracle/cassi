@@ -15,6 +15,7 @@ import pytest
 import numpy as np
 
 import cassi_field_computer as computer_module
+import cassi_field_regions as regions
 from cassi_field_computer import ComputerProfile, ComputerState, FieldComputer
 from cassi_field_regions import (
     D_BASE,
@@ -694,3 +695,162 @@ def test_regional_native_catalog_rejects_stateful_kernel_closures() -> None:
             ),
             values={"state": None},
         )
+
+
+# -- Section 18: bounded-residency (paged) regional execution -------------
+
+
+def _paged_machine(program_length: int = 4):
+    machine = _regional_machine()
+    program = tuple(
+        {"op": "COPY", "source": "input", "target": "output", "next": index + 1}
+        for index in range(program_length)
+    ) + ({"op": "HALT"},)
+    state = machine.initial(
+        program, values={"input": {"token": 17}, "output": None}
+    )
+    return machine, program, state
+
+
+def test_paged_state_matches_dense_execution_and_round_trips_bounded() -> None:
+    machine, _program, state = _paged_machine(4)
+    paged, record = machine.paged_state(state, resident_limit=4)
+    assert isinstance(paged, computer_module.PagedComputerState)
+    assert record["kind"] == "storage-only"
+    assert paged.status == "running"
+    assert paged.profile_sha256 == machine.profile.fingerprint
+    assert paged.root_sha256 == paged.image.root_sha256
+    assert paged.residency_report()["resident_pages"] <= 4
+
+    dense_final, dense_receipt = machine.run(state, steps=6)
+    paged_final, summary = machine.run_paged(paged, steps=6)
+    assert summary["stop"] == "settled"
+    assert summary["steps"] == dense_receipt["transitions_executed"]
+    assert machine.inspect_paged(paged_final)["status"] == machine.inspect(
+        dense_final
+    )["status"]
+    assert machine.materialise_paged(paged_final).status == "halted"
+    assert np.array_equal(
+        machine.materialise_paged(paged_final)._field, dense_final._field
+    )
+    # The paged state is a storage-only adoption: identity is unchanged.
+    assert machine.state_sha256(
+        machine.materialise_paged(paged_final)
+    ) == machine.state_sha256(dense_final)
+
+    descriptor, objects = machine.paged_chunks(paged_final)
+    assert descriptor["schema"] == regions.PERSISTENCE_CHUNK_SCHEMA
+    # The stored descriptor declares the same logical identity as the dense
+    # twin, whether or not a commit audit digest was recorded.
+    assert descriptor["state_sha256"] == machine.state_sha256(dense_final)
+    reopened = machine.from_paged_chunks(descriptor, objects, resident_limit=3)
+    assert reopened.root_sha256 == paged_final.root_sha256
+    assert reopened.residency_report()["resident_pages"] <= 3
+    assert np.array_equal(
+        machine.materialise_paged(reopened)._field,
+        machine.materialise_paged(paged_final)._field,
+    )
+    # A step past the halt is a no-op that keeps the same committed root.
+    noop_state, noop_receipt = machine.step_paged(reopened)
+    assert noop_receipt["kind"] == "noop"
+    assert noop_state is reopened
+
+    paged_descriptor = machine.descriptor_paged(
+        paged_final, semantic={"family": "regional"}, resource={"stage": "test"}
+    )
+    assert paged_descriptor["schema"] == regions.PAGED_MANIFEST_SCHEMA
+    assert paged_descriptor["root_sha256"] == paged_final.root_sha256
+    assert paged_descriptor["semantic"] == {"family": "regional"}
+    assert paged_descriptor["resource"] == {"stage": "test"}
+    with pytest.raises(computer_module.FieldComputerError):
+        machine.paged_state(
+            computer_module.ComputerState(
+                np.zeros(machine.profile.shape, dtype=np.float64), "0" * 64
+            )
+        )
+
+
+def test_paged_residency_wait_is_a_continuation_that_resumes_exactly() -> None:
+    machine = _regional_machine()
+    program = tuple({"op": "YIELD", "next": index + 1} for index in range(600)) + (
+        {"op": "HALT"},
+    )
+    state = machine.initial(
+        program, values={"input": {"token": 17}, "output": None}
+    )
+    paged, _record = machine.paged_state(state, resident_limit=1)
+    waited, summary = machine.run_paged(paged, steps=4)
+    assert summary["stop"] == "wait"
+    assert summary["wait"]["reason"] == "resource"
+    continuation = regions.read_residency_continuation(summary["continuation"])
+    assert continuation["root_sha256"] == paged.root_sha256
+    assert continuation["page_versions"]
+    assert continuation["segments"]
+    # A wait commits nothing: the caller keeps the predecessor it passed in.
+    assert waited is paged
+
+    resumed = machine.resume_paged(paged, resident_limit=32)
+    assert resumed.root_sha256 == paged.root_sha256
+    assert resumed.residency_report()["resident_limit"] == 32
+    continued, resumed_summary = machine.run_paged(resumed, steps=6)
+    assert resumed_summary["stop"] != "wait"
+    assert resumed_summary["residency"]["resident_pages"] > 1
+    dense_final, _receipt = machine.run(state, steps=resumed_summary["steps"])
+    assert np.array_equal(
+        machine.materialise_paged(continued)._field, dense_final._field
+    )
+
+
+def test_paged_activity_selection_matches_dense_and_needs_a_regional_profile() -> None:
+    machine = _regional_machine()
+    state = machine.initial(
+        (
+            {"op": "HALT"},
+            {"op": "WRITE", "target": "winner", "value": "external", "next": 2},
+            {"op": "HALT"},
+        ),
+        values={"winner": "root"},
+    )
+    queued, _admission = machine.enqueue_event(state, {"pc": 1, "site": 1})
+    baseline, baseline_receipt = machine.step(queued)
+    assert machine.named_value(baseline, "winner") == "root"
+
+    paged, _record = machine.paged_state(queued, resident_limit=6)
+    modulated, paged_receipt = machine.step_paged(
+        paged, activity={2: 1.0}, activity_weight=regions.ACTIVITY_UNIT
+    )
+    assert paged_receipt["event_id"] != baseline_receipt["event_id"]
+    assert machine.materialise_paged(modulated).status == "running"
+    dense_modulated, dense_receipt = machine.step(
+        queued, activity={2: 1.0}, activity_weight=regions.ACTIVITY_UNIT
+    )
+    assert dense_receipt["event_id"] == paged_receipt["event_id"]
+    assert (
+        dense_receipt["activity_modulation"] == paged_receipt["activity_modulation"]
+    )
+    assert np.array_equal(
+        machine.materialise_paged(modulated)._field, dense_modulated._field
+    )
+    assert machine.named_value(
+        machine.materialise_paged(modulated), "winner"
+    ) == "external"
+
+    plain = FieldComputer(ComputerProfile(program_capacity=64, stack_capacity=64))
+    plain_state = plain.initial(((audit.REF_HALT, 0, 0, 0, 0),))
+    with pytest.raises(
+        computer_module.FieldComputerError, match="requires a regional computer"
+    ):
+        plain.step(
+            plain_state,
+            activity={0: 1.0},
+            activity_weight=regions.ACTIVITY_UNIT,
+        )
+    with pytest.raises(
+        computer_module.FieldComputerError, match="requires a regional computer"
+    ):
+        plain.run(plain_state, activity={0: 1.0})
+    with pytest.raises(
+        computer_module.FieldComputerError,
+        match="paged states require a regional computer profile",
+    ):
+        plain.paged_state(state)

@@ -344,6 +344,134 @@ std::vector<layer_capture> capture_layers(
     return captures;
 }
 
+// One attention dump: the per-head probability tensor of every layer that exposes one, the
+// attention output of the same layers, and the head input. Shapes come from the engine, so a
+// silently empty dump shows up as a zero rank instead of an absent field.
+struct attention_dump {
+    std::vector<std::pair<uint32_t, std::string>> probs_files;
+    std::vector<std::pair<uint32_t, std::string>> delta_files;
+    int64_t probs_shape[3] = { 0, 0, 0 };
+    int64_t delta_shape[3] = { 0, 0, 0 };
+    int64_t head_shape[3] = { 0, 0, 0 };
+    std::string head_path;
+};
+
+int64_t attention_elements(const int64_t * shape, int32_t rank) {
+    int64_t count = 1;
+    for (int32_t index = 0; index < rank; ++index) {
+        count *= shape[index];
+    }
+    return count;
+}
+
+void dump_attention(
+        llama_context * context,
+        const std::filesystem::path & dir,
+        uint32_t first_layer,
+        uint32_t last_layer,
+        const std::string & tag,
+        attention_dump & dump) {
+    for (uint32_t layer = first_layer;; ++layer) {
+        int64_t probs_shape[3] = { 0, 0, 0 };
+        const int32_t probs_rank = llama_cassi_capture_shape(
+            context, LLAMA_CASSI_CAPTURE_ATTENTION_PROBS, layer, probs_shape);
+        if (probs_rank > 0) {
+            const size_t count = static_cast<size_t>(attention_elements(probs_shape, probs_rank));
+            std::vector<float> values(count);
+            if (!llama_cassi_capture_copy(
+                    context, LLAMA_CASSI_CAPTURE_ATTENTION_PROBS, layer, values.data(), count)) {
+                throw std::runtime_error(
+                    "failed to copy attention probabilities at layer " + std::to_string(layer));
+            }
+            require_finite(values, "attention probabilities");
+            const std::filesystem::path path = dir /
+                ("layer-" + std::to_string(layer) + "-attn-probs-" + tag + ".f32");
+            write_f32_file(path, values);
+            dump.probs_files.emplace_back(layer, path.string());
+            for (int32_t index = 0; index < probs_rank; ++index) {
+                dump.probs_shape[index] = probs_shape[index];
+            }
+        }
+        int64_t delta_shape[3] = { 0, 0, 0 };
+        const int32_t delta_rank = llama_cassi_capture_shape(
+            context, LLAMA_CASSI_CAPTURE_ATTENTION_OUTPUT, layer, delta_shape);
+        if (delta_rank > 0) {
+            const size_t count = static_cast<size_t>(attention_elements(delta_shape, delta_rank));
+            std::vector<float> values(count);
+            if (!llama_cassi_capture_copy(
+                    context, LLAMA_CASSI_CAPTURE_ATTENTION_OUTPUT, layer, values.data(), count)) {
+                throw std::runtime_error(
+                    "failed to copy attention output at layer " + std::to_string(layer));
+            }
+            require_finite(values, "attention output");
+            const std::filesystem::path path = dir /
+                ("layer-" + std::to_string(layer) + "-attn-delta-" + tag + ".f32");
+            write_f32_file(path, values);
+            dump.delta_files.emplace_back(layer, path.string());
+            for (int32_t index = 0; index < delta_rank; ++index) {
+                dump.delta_shape[index] = delta_shape[index];
+            }
+        }
+        if (layer == last_layer) {
+            break;
+        }
+    }
+    int64_t head_shape[3] = { 0, 0, 0 };
+    const int32_t head_rank = llama_cassi_capture_shape(
+        context, LLAMA_CASSI_CAPTURE_HEAD_INPUT, 0, head_shape);
+    if (head_rank > 0) {
+        const size_t count = static_cast<size_t>(attention_elements(head_shape, head_rank));
+        std::vector<float> values(count);
+        if (!llama_cassi_capture_copy(
+                context, LLAMA_CASSI_CAPTURE_HEAD_INPUT, 0, values.data(), count)) {
+            throw std::runtime_error("failed to copy the head input capture");
+        }
+        require_finite(values, "head input");
+        const std::filesystem::path path = dir / ("head-input-" + tag + ".f32");
+        write_f32_file(path, values);
+        dump.head_path = path.string();
+        for (int32_t index = 0; index < head_rank; ++index) {
+            dump.head_shape[index] = head_shape[index];
+        }
+    }
+}
+
+std::string shape_json(const int64_t * shape, size_t count) {
+    std::string text = "[";
+    for (size_t index = 0; index < count; ++index) {
+        if (index != 0) {
+            text += ',';
+        }
+        text += std::to_string(shape[index]);
+    }
+    return text + "]";
+}
+
+std::string attention_file_json(const std::vector<std::pair<uint32_t, std::string>> & files) {
+    std::string text = "[";
+    for (size_t index = 0; index < files.size(); ++index) {
+        if (index != 0) {
+            text += ',';
+        }
+        text += "{\"layer\":" + std::to_string(files[index].first) + ",\"name\":\"" +
+            json_escape(std::filesystem::path(files[index].second).filename().string()) + "\"}";
+    }
+    return text + "]";
+}
+
+std::string attention_dump_json(const attention_dump & dump) {
+    return "{\"probs_shape\":" + shape_json(dump.probs_shape, 3) +
+        ",\"delta_shape\":" + shape_json(dump.delta_shape, 3) +
+        ",\"head_shape\":" + shape_json(dump.head_shape, 3) +
+        ",\"head_file\":" + (dump.head_path.empty()
+            ? std::string("null")
+            : "\"" + json_escape(std::filesystem::path(dump.head_path).filename().string()) + "\"") +
+        ",\"probs_layers\":" + std::to_string(dump.probs_files.size()) +
+        ",\"delta_layers\":" + std::to_string(dump.delta_files.size()) +
+        ",\"probs_files\":" + attention_file_json(dump.probs_files) +
+        ",\"delta_files\":" + attention_file_json(dump.delta_files) + "}";
+}
+
 llama_token greedy_token(const float * logits, int32_t n_vocab) {
     if (logits == nullptr || n_vocab <= 0) {
         throw std::runtime_error("logits unavailable");
@@ -387,9 +515,9 @@ void print_double(double value) {
 } // namespace
 
 int main(int argc, char ** argv) {
-    if (argc < 9 || argc > 26) {
+    if (argc < 9 || argc > 40) {
         std::cerr << "usage: " << argv[0]
-                  << " MODEL STATE cpu|gpu PROMPT_FILE FIELD_LAYER STEPS ALPHA GENERATE_TOKENS [OUTPUT_DIR] [RESET_EACH_GENERATED_TOKEN] [PHASE_SHUFFLE_AFTER_PROMPT] [--schedule PATH] [--displacement N] [--substitute F] [--intervention N] [--wave-modes N] [--row-width N] [--flux-dump]"
+                  << " MODEL STATE cpu|gpu PROMPT_FILE FIELD_LAYER STEPS ALPHA GENERATE_TOKENS [OUTPUT_DIR] [RESET_EACH_GENERATED_TOKEN] [PHASE_SHUFFLE_AFTER_PROMPT] [--schedule PATH] [--displacement N] [--substitute F] [--modulate] [--modulate-gain F] [--intervention N] [--wave-modes N] [--row-width N] [--flux-dump] [--capture-steps] [--capture-attention]"
                   << '\n';
         return 2;
     }
@@ -409,12 +537,17 @@ int main(int argc, char ** argv) {
         bool phase_shuffle_after_prompt = false;
         int32_t displacement = 0;
         float substitute = 0.0f;
+        bool modulate = false;
+        float modulate_gain = 0.0f;
         int32_t intervention_override = -1;
         bool flux_dump = false;
+        bool capture_steps = false;
+        bool capture_attention = false;
         bool fill_modes = false;
         bool memory_fill = false;
         float energy_floor = 0.0f;
         float read_floor = 0.0f;
+        bool read_absolute = false;
         int32_t intervention_used = 0;
         uint32_t wave_modes = 0;
         uint32_t row_width = 0;
@@ -445,6 +578,18 @@ int main(int argc, char ** argv) {
                     throw std::runtime_error("--substitute requires a value");
                 }
                 substitute = parse_float(argv[index + 1], "SUBSTITUTE");
+                ++index;
+                continue;
+            }
+            if (argument == "--modulate") {
+                modulate = true;
+                continue;
+            }
+            if (argument == "--modulate-gain") {
+                if (index + 1 >= argc) {
+                    throw std::runtime_error("--modulate-gain requires a value");
+                }
+                modulate_gain = parse_float(argv[index + 1], "MODULATE_GAIN");
                 ++index;
                 continue;
             }
@@ -484,12 +629,24 @@ int main(int argc, char ** argv) {
                 index += 1;
                 continue;
             }
+            if (argument == "--read-absolute") {
+                read_absolute = true;
+                continue;
+            }
             if (argument == "--fill-modes") {
                 fill_modes = true;
                 continue;
             }
             if (argument == "--flux-dump") {
                 flux_dump = true;
+                continue;
+            }
+            if (argument == "--capture-steps") {
+                capture_steps = true;
+                continue;
+            }
+            if (argument == "--capture-attention") {
+                capture_attention = true;
                 continue;
             }
             if (argument == "--row-width") {
@@ -528,6 +685,9 @@ int main(int argc, char ** argv) {
         if (output_dir.has_value() && output_dir->empty()) {
             throw std::runtime_error("OUTPUT_DIR must not be empty when supplied");
         }
+        if ((capture_steps || capture_attention) && !output_dir.has_value()) {
+            throw std::runtime_error("--capture-steps and --capture-attention require OUTPUT_DIR");
+        }
         const bool use_gpu = backend_name == "gpu";
         if (!use_gpu && backend_name != "cpu") {
             throw std::runtime_error("backend must be cpu or gpu");
@@ -543,6 +703,13 @@ int main(int argc, char ** argv) {
             // below level 3 nothing is suppressed, so the arm would be a no-op
             throw std::runtime_error("SUBSTITUTE requires DISPLACEMENT of at least 3");
         }
+        if (modulate && (displacement >= 3 || substitute > 0.0f)) {
+            // modulation adds to the write it reads, so nothing may suppress that write
+            throw std::runtime_error("--modulate requires DISPLACEMENT of at most 2 and no SUBSTITUTE");
+        }
+        if (!(modulate_gain >= 0.0f) || modulate_gain > 1.0e6f) {
+            throw std::runtime_error("MODULATE_GAIN must be finite and non-negative");
+        }
         if (steps_arg > std::numeric_limits<uint32_t>::max()) {
             throw std::runtime_error("STEPS is too large");
         }
@@ -554,6 +721,9 @@ int main(int argc, char ** argv) {
         const bool qi_enabled = steps > 0;
         if (substitute > 0.0f && !qi_enabled) {
             throw std::runtime_error("SUBSTITUTE requires a positive STEPS coupling");
+        }
+        if (modulate && !qi_enabled) {
+            throw std::runtime_error("--modulate requires a positive STEPS coupling");
         }
 
         std::vector<std::pair<uint32_t, float>> schedule;
@@ -618,16 +788,24 @@ int main(int argc, char ** argv) {
         context_params.cassi_modal = false;
         context_params.cassi_field_step = false;
         context_params.cassi_qi_field = qi_enabled;
+        if (capture_attention) {
+            // the per-head probabilities are the softmax that flash attention folds into its
+            // kernel, so the capture needs the unfused path
+            context_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
+        }
         if (qi_enabled) {
             context_params.cassi_qi_field_layer = field_layer;
             context_params.cassi_qi_field_scales = 4;
             context_params.cassi_qi_displacement = displacement;
             context_params.cassi_qi_substitute = substitute;
+            context_params.cassi_qi_modulate = modulate;
+            context_params.cassi_qi_modulate_gain = modulate_gain;
             // mid-trunk injection is the rung-2 additive mode and requires displacement 0;
-            // a suppressed state write runs the field at the layer without it
+            // a suppressed state write runs the field at the layer without it, and the
+            // modulation seam reads that same write, so it also runs without the injection
             intervention_used = intervention_override >= 0
                 ? intervention_override
-                : ((displacement >= 3 || substitute > 0.0f) ? 0 : 1);
+                : ((displacement >= 3 || substitute > 0.0f || modulate) ? 0 : 1);
             context_params.cassi_qi_intervention = intervention_used;
             context_params.cassi_qi_field_wave_modes = wave_modes;
             context_params.cassi_qi_field_fill_modes = fill_modes;
@@ -638,6 +816,9 @@ int main(int argc, char ** argv) {
             if (read_floor > 0.0f) {
                 context_params.cassi_qi_read_floor = read_floor;
             }
+            if (read_absolute) {
+                context_params.cassi_qi_read_absolute = true;
+            }
             context_params.cassi_qi_field_row_width = row_width;
             context_params.cassi_qi_field_steps = steps;
             context_params.cassi_qi_injection_scale = alpha;
@@ -646,6 +827,9 @@ int main(int argc, char ** argv) {
         context_ptr context(llama_init_from_model(model.get(), context_params), llama_free);
         if (!context) {
             throw std::runtime_error("failed to create context");
+        }
+        if (capture_attention && !llama_cassi_capture_enable(context.get())) {
+            throw std::runtime_error("failed to enable the Cassi attention capture");
         }
 
         size_t state_count = 0;
@@ -713,6 +897,15 @@ int main(int argc, char ** argv) {
             write_f32_file(logits_path, prompt_logits);
             output_files.emplace_back("logits.f32", logits_path.string());
         }
+
+        // the prompt pass is the only pass with more than one token, so its attention dump
+        // shows the full grid; the decode dump below is the single-token row the seam reads
+        attention_dump prompt_attention;
+        attention_dump decode_attention;
+        if (capture_attention && output_dir.has_value()) {
+            dump_attention(
+                context.get(), *output_dir, field_layer, last_capture_layer, "prompt", prompt_attention);
+        }
         uint64_t prompt_state_before_shuffle_hash = 0;
         uint64_t prompt_state_after_shuffle_hash = 0;
         double phase_shuffle_l2_before = 0.0;
@@ -752,6 +945,7 @@ int main(int argc, char ** argv) {
         uint32_t schedule_steps_max = 0;
         std::vector<layer_capture> early_decode_captures;
         std::vector<std::pair<std::string, std::string>> early_decode_output_files;
+        std::vector<std::pair<std::string, std::string>> step_output_files;
         for (uint32_t i = 0; i < generate_tokens; ++i) {
             const llama_token next = greedy_token(llama_get_logits_ith(context.get(), -1), n_vocab);
             generation_tokens.push_back(next);
@@ -795,6 +989,18 @@ int main(int argc, char ** argv) {
                     output_files.emplace_back(path.filename().string(), path.string());
                 }
             }
+            if (capture_steps && output_dir.has_value()) {
+                // one capture per decode pass, so each state carries the token generated from it
+                std::vector<layer_capture> step_captures = capture_layers(
+                    context.get(), field_layer, last_capture_layer, n_embd, 0);
+                for (layer_capture & capture : step_captures) {
+                    const std::filesystem::path path = *output_dir / ("layer-" +
+                        std::to_string(capture.layer) + "-step-" + std::to_string(i) + ".f32");
+                    write_f32_file(path, capture.values);
+                    capture.path = path.string();
+                    step_output_files.emplace_back(path.filename().string(), capture.path);
+                }
+            }
             if (qi_enabled && flux_dump && output_dir.has_value()) {
                 const int64_t flux_size = llama_cassi_qi_flux_size(context.get());
                 const float * flux_data = llama_cassi_qi_flux_data(context.get());
@@ -827,6 +1033,10 @@ int main(int argc, char ** argv) {
         // the prompt decode is a batch and the substitution seam acts on single-token
         // decodes, so the prompt captures cannot see it; capture the last decode here,
         // before any later graph pass can overwrite the embedding buffers
+        if (capture_attention && output_dir.has_value() && !generation_tokens.empty()) {
+            dump_attention(
+                context.get(), *output_dir, field_layer, last_capture_layer, "decode", decode_attention);
+        }
         std::vector<layer_capture> decode_captures;
         std::vector<std::pair<std::string, std::string>> decode_output_files;
         if (qi_enabled && !generation_tokens.empty()) {
@@ -946,10 +1156,25 @@ int main(int argc, char ** argv) {
                   << "\"state_row_width\":" << state_row_width_after << ','
                   << "\"wave_modes\":" << wave_modes << ','
                   << "\"qi_fill_modes\":" << (fill_modes ? "true" : "false") << ','
+                  << "\"qi_memory_fill\":" << (memory_fill ? "true" : "false") << ','
                   << "\"qi_energy_floor\":" << energy_floor << ','
                   << "\"qi_read_floor\":" << read_floor << ','
+                  << "\"qi_read_absolute\":" << (read_absolute ? "true" : "false") << ','
+                  << "\"qi_modulate\":" << (modulate ? "true" : "false") << ','
+                  << "\"qi_modulate_gain\":";
+        print_double(static_cast<double>(modulate_gain));
+        std::cout << ','
+                  << "\"modulate_budget\":";
+        print_double(static_cast<double>(llama_cassi_qi_seam_budget(context.get())));
+        std::cout << ",\"modulate_scale\":";
+        print_double(static_cast<double>(llama_cassi_qi_seam_scale(context.get())));
+        std::cout << ','
                   << "\"row_width_requested\":" << row_width << ','
-                  << "\"head_input_captured\":false,"
+                  << "\"capture_steps\":" << (capture_steps ? "true" : "false") << ','
+                  << "\"head_input_captured\":" << (decode_attention.head_path.empty() ? "false" : "true") << ','
+                  << "\"head_input_shape\":" << shape_json(decode_attention.head_shape, 3) << ','
+                  << "\"attention_prompt\":" << attention_dump_json(prompt_attention) << ','
+                  << "\"attention_decode\":" << attention_dump_json(decode_attention) << ','
                   << "\"prompt_token_ids\":";
         print_token_array(prompt_tokens);
         std::cout << ",\"generation_token_ids\":";
@@ -1052,6 +1277,14 @@ int main(int argc, char ** argv) {
             }
             std::cout << "{\"name\":\"" << json_escape(decode_output_files[i].first)
                       << "\",\"path\":\"" << json_escape(decode_output_files[i].second) << "\"}";
+        }
+        std::cout << "],\"step_capture_files\":[";
+        for (size_t i = 0; i < step_output_files.size(); ++i) {
+            if (i != 0) {
+                std::cout << ',';
+            }
+            std::cout << "{\"name\":\"" << json_escape(step_output_files[i].first)
+                      << "\",\"path\":\"" << json_escape(step_output_files[i].second) << "\"}";
         }
         std::cout << "],\"capture_output_dir\":";
         if (output_dir.has_value()) {

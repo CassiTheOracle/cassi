@@ -226,10 +226,12 @@ def native_qi_step(
                     damping = _clamp(abs(mode_params[mode]), damping_min, damping_max)
                     diff_re = _f(work[0, 0] - phi * work[0, 2])
                     diff_im = _f(work[0, 1] - phi * work[0, 3])
-                    ay_re = _f(diff_re - damping * work[0, 4])
-                    ay_im = _f(diff_im - damping * work[0, 5])
-                    ai_re = _f(-diff_re / phi - damping * work[0, 6])
-                    ai_im = _f(-diff_im / phi - damping * work[0, 7])
+                    # The differential needs a restoring sign, or every mode grows without bound
+                    # and stops at the state clamp. A bounded mode keeps turning and carries history.
+                    ay_re = _f(-diff_re - damping * work[0, 4])
+                    ay_im = _f(-diff_im - damping * work[0, 5])
+                    ai_re = _f(diff_re / phi - damping * work[0, 6])
+                    ai_im = _f(diff_im / phi - damping * work[0, 7])
                     work[0, 4] = _state_value(_f(work[0, 4] + ay_re * dt_base))
                     work[0, 5] = _state_value(_f(work[0, 5] + ay_im * dt_base))
                     work[0, 6] = _state_value(_f(work[0, 6] + ai_re * dt_base))

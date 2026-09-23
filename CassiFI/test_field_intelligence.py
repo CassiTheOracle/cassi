@@ -650,6 +650,31 @@ class StructureAndDecisionTests(unittest.TestCase):
             event_id=_digest("language:3"),
         )
         self.assertEqual(assessment.normalized_loss, 0)
+        self.assertEqual(assessment.resolution_floor, 0.0)
+        self.assertEqual(assessment.resolution_status, "resolved")
+        unresolved_assessment = replace(
+            assessment,
+            resolution_floor=1.0e-12,
+            resolution_status="unresolved",
+        )
+        unresolved_state = replace(
+            state,
+            constructions=tuple(
+                replace(
+                    construction,
+                    assessments=(unresolved_assessment,),
+                )
+                if construction.construction_id == "relocation-construction"
+                else construction
+                for construction in state.constructions
+            ),
+        )
+        with self.assertRaises(FieldIntelligenceError) as unresolved:
+            cognition.promote_language_construction(
+                unresolved_state,
+                construction_id="relocation-construction",
+            )
+        self.assertEqual(unresolved.exception.code, "PROMOTION_UNSUPPORTED")
         state, _ = cognition.promote_language_construction(
             state, construction_id="relocation-construction"
         )

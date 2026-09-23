@@ -5,6 +5,66 @@ deliberation, action, and learning remain explicit parts of persistent field
 state. The canonical paths do not use a language model or a parallel learned
 sidecar as a fallback.
 
+[The integrated researcher design](../CASSI-ENTITY-DESIGN.md) connects this
+field to a live pretrained llama.cpp brain, complete research programs,
+scientific tools, and a communication API. The explicit `field-brain` service
+connects owner-backed messages, source study, a resident research director, and
+scoped program work. The deeper organism-wide design extends this same entity
+without adding a fallback to the field-only paths.
+
+The development priority is to use Cassi's established learning in autonomous
+research, extending the existing residency, organism, and owner machinery.
+Retained learning experiments document the foundation; repeating them is not
+a prerequisite for building and operating the researcher.
+
+## General-learning and emotional hive upgrade
+
+**Implemented—2026-09-20.** The
+[integrated upgrade](../CASSI-ENTITY-DESIGN.md#19-integrated-general-learning-and-affective-hive-organism)
+connects one continuing entity and independent member fields through local
+inquiry, reciprocal teaching, and improvement of learning methods. Questions
+can produce new instruments, explanations, translations, and executable
+compositions. Members can delegate to a specialist, adopt a method, or study
+its underlying ideas; live collaboration remains distinct from reviewed Hive
+adoption.
+
+[The affect specification](FIELD-INTELLIGENCE-DESIGN.md#375-complete-affective-learning-design)
+makes emotional significance integral to attention, retrieval, inquiry,
+cooperation, consolidation, and continuation. Goal-conditioned appraisals
+distinguish practical progress from information gained; regulation programs
+link an actual cognitive choice to its later consequence. The seven affect
+signals now live in the same versioned semantic state as knowledge and work;
+unknown evidence remains explicitly unknown, replay is idempotent, and changed
+context produces an auditable revision rather than a second experience.
+
+The shared mission is now carried by an attached root owner and genuinely
+independent member owners. Typed requests, assignments, translations, affect
+reports, and syntheses cross the public Hive boundary; executable translated
+methods become canonical Programs and Bindings. Resource reservations, leases,
+fences, exact settlement, pause/resume, and cohort migration preserve unfinished
+work without copying adaptive field state. Public entity and program projections
+show the current question, significance, strategy, grounded affect, actual
+consequence, participants, findings, resources, and waits.
+
+Collective methods use those same field-resident continuations. An incomplete
+synthesis parks the exact caller, arguments, resource reservation, and typed gap
+lineage in the root field. Active members publish bounded Hive capability offers;
+an executable offer is retained as an exact Program in its member's own field.
+The organism turns each open gap into a durable dispatch, matching role,
+representation, reliability, and work bound before reserving member work. The
+offered Program becomes an attributed member obligation, and the member's own
+resident agenda selects it alongside its other live work. On selection, one
+reserved step records the agenda event and carries the exact compatible method
+back as a response. A contribution is retained when it strictly reduces the
+remaining typed gaps, even when further safe components are still needed. Its
+versioned synthesis history is a staged investigation: every stage identifies
+the newly added component and contributing member, stays visibly `assembling`
+while a precise gap remains, and becomes `ready` only with an immutable
+executable Program. The original call wakes automatically at that ready stage.
+If no suitable member is live, the dispatch stays visibly parked; a method that
+cannot compose stays visibly blocked. A different method version is rejected
+rather than substituted.
+
 ## One computer, specialized regions
 
 [The regional-computer design (§32)](FIELD-INTELLIGENCE-DESIGN.md#32-one-universal-regional-field-computer)
@@ -13,10 +73,26 @@ owns the immutable regions, fixed instruction tape, program counter, logical
 clock, work ledger, event ledger, retained continuation, and result slot.
 `LearningComputer` persists that image inside the single owner checkpoint and
 all normal CLI and CassiPi computation requests enter it through `submit`,
-`advance`, `invoke`, `authorized-invoke`, or the bounded `call`/`cancel-call`
-surface. Calls retain caller and callee frontiers, typed arguments,
+`advance`, `invoke`, `invoke-settled`, `authorized-invoke`, or the bounded
+`call`/`cancel-call` surface. `invoke-settled` computes against an immutable
+successor and publishes only after the request has completed; a kernel fault,
+work-bound refusal, or region-capacity refusal leaves the resident field
+unchanged. Inspection reports exact used, capacity, and available words for
+every named region. Calls retain caller and callee frontiers, typed arguments,
 dependencies, return bindings, allocation, and results in a protected field
 region, so an interrupted child reopens without a host-owned continuation.
+
+Mechanism learning can induce one portable hierarchical context program without
+receiving a feature list. It surveys scalar pre-observation leaves under
+`state`, `action`, and `context`, ranks dimensions by training loss reduction,
+and learns numeric boundaries or categorical branches with bounded depth and
+support. Candidate choices, dimensions, and boundaries come only from training
+episodes; the holdout validates the frozen composite, and every leaf retains
+its own support and error measurements. Missing, unseen, or out-of-range
+contexts return a support gap instead of borrowing an unrelated leaf. Callers
+can still declare exact context keys when a domain contract requires identity
+branches. Both forms serve physical dynamics, execution-cost laws, markets, and
+other typed task domains without adding another learner or adaptive store.
 
 The closed catalog contains 20 stateless bounded kernels: scalar execution and
 promoted scalar procedures; atlas, cognition, computation-policy, variational,
@@ -40,10 +116,287 @@ regional image. It provides shared uncertain and correlated belief, predictive
 state acquisition, causal and hybrid mechanisms, prospective parameter and
 representation learning, typed procedure transfer, contingent planning and
 action reconciliation, grounded constructions and attributed perspectives,
-support-tracked migration and consolidation, resident reasoning episodes, and
-bounded meditate, study, practice, investigate, reflect, teach, and consolidate
-self-development programs. The initial development-method selector is a
-disclosed fixed balanced strategy, not a learned policy.
+support-tracked migration and consolidation, resident reasoning episodes,
+bounded meditate, study, practice, investigate, reflect, teach, and
+consolidate programs, and field-owned autonomous learning selection.
+The `autonomous-learn` operation scores a bounded set of accessible learning
+opportunities from resident state, dispatches exactly one selected operation
+through the same learning path, and retains the selection event and result in
+the owner image. Its selector now carries outcome credit across resident
+autonomous-learning events: successful learning families gain value, failed
+or under-supported attempts lose value, and under-sampled families retain a
+bounded exploration bonus. When no opportunity list is supplied, the field
+mines successful open-vocabulary episodes already resident in its `Event`
+region, groups recurring transitions, and synthesizes repeated multi-step
+procedure candidates from declared or conservatively inferred trajectories.
+It can induce and admit either an action schema or a typed procedure without a
+task-side candidate list. `invoke-procedure` executes an admitted procedure
+against typed bindings and returns its proposed action sequence to the field
+owner. `plan-procedure` turns that sequence into the normal goal-directed
+action proposal and lifecycle, using the procedure's grounded postconditions
+to reject plans that cannot satisfy the requested goal.
+
+The [affect and regulation mechanism (§37)](FIELD-INTELLIGENCE-DESIGN.md#37-field-owned-affect-and-regulation)
+carries grounded fast and slow responses at object, project, and global scope.
+Actual learning outcomes, research campaigns, and ordinary brain/effect cycles
+alter bounded preferences for exploration, persistence, verification, or
+consolidation-friendly work; the selected regulation action is persisted and
+its real result resolves a consequence obligation. Appraisals live in the same
+owner image and cannot rewrite facts, support, permissions, or resource
+authority. Replaying an experience does not count it again, frozen member
+evaluations do not train the affect context, and attributed affect reports count
+only as cooperation experience rather than physical observation. Reopen and
+migration retain both the learned context and every pending or resolved
+action-to-consequence link.
+
+Procedure execution is now a real resumable closed loop: each acknowledged
+step is retained with its event and verified observation, the next proposal
+requires a new authorization, and its context carries the previous step's
+feedback. A procedure may expose bounded context guards and choose a
+contingent next step from that feedback; an unmatched branch is a support gap,
+not an invented action. `autonomous-curiosity` now scans assessed resident
+prediction loss and unique observed-event structure, producing bounded goals
+such as `reduce-prediction-error` and `investigate-novel-event`. Each goal
+retains the source reference, objective, priority, and an owner-facing query
+request. `autonomous-perception` now ranks owner-supplied observation channels
+against the selected goal's requested variables and declared reliability,
+novelty, cost, and latency, then emits one deterministic observation request.
+`autonomous-agenda` can place that request ahead of the underlying curiosity
+query, retaining both the channel scores and the selected request as
+replayable `Event` provenance. `FieldIntelligenceOwner.execute_observation_request`
+now closes the owner boundary: it binds the selected request to a durable
+`WorldAdapter` operation, archives the exact acknowledgment bytes as evidence,
+admits successful returned values through the ordinary semantic `observe`
+operation, and optionally runs the next agenda pass. Adapter execution is
+exactly-once across owner restart; an executing-without-acknowledgment journal
+entry fails closed rather than repeating an unknown world effect. The field
+chooses what would be useful to observe, while the owner executes only the
+authorized adapter and turns its acknowledgment into field evidence.
+
+For the live CassiCosmos boundary, `CassiFI/cassi_cosmos_adapter.py`
+implements the same contract over the loopback 7599 line-JSON bridge. It
+allows only the engine's read commands (`ping`, `state`, `project`, `qi_state`,
+and `qi_project`) and converts explicitly requested scalar fields into
+declared observations. It never forwards `deposit`, `step`, `clear`, or
+snapshot commands through the observation surface. The raw response line is
+the evidence source, while the extracted scalar values are the field
+observation. The adapter's durable journal applies the same exactly-once and
+fail-closed semantics as the owner boundary.
+
+The nonzero-world path is intentionally separate:
+`CassiCosmosSeedController` requires an explicit
+`authorize_cassicosmos_seed(reason)` capability and sends only a bounded
+deposit sequence followed by a bounded `step` sequence. It never issues
+`clear`, and it is not accepted as an observation adapter. A fresh,
+owner-authorized seed can therefore create a changing physical state for
+passive observation without giving the field mutation authority during the
+watch itself. Its mutation journal also fails closed if a deposit/step
+sequence becomes ambiguous.
+
+Repeatable fresh-world campaigns use a third, still explicit boundary:
+`CassiCosmosWorldFactoryController`. With the same owner-issued capability it
+may clear the designated test engine, apply an initial bounded deposit set or
+up to 16 scheduled source segments at declared step boundaries, advance to
+exact cumulative horizons, and collect state plus projection readouts as one
+fail-closed journaled operation. The complete schedule is validated before
+mutation, including its exact final clock and global deposit and step bounds.
+This controller is not an observation adapter and cannot be reached through
+an ordinary field observation request.
+
+`cassi_reality_residency.py` turns that boundary into one continuing
+field-owned physics residency. Eight fresh worlds teach the resident field to
+select among competing spatial and two-fluid response laws. Before any
+evaluation world exists, it commits 56 predictions for 14 sealed holdout,
+two-source transfer, null, and exact-repeat worlds. It then asks the learned
+law to choose a field intervention, closes and reopens the resident, and
+checks that a fresh lesion resident cannot execute the acquired mechanisms.
+Run the integrated campaign with
+`python run_cassi_reality_residency.py --run-id <new-id>` while
+`res://scenes/mind_engine_64.tscn` is serving port 7599.
+
+The current live campaign executed 24 fresh worlds and 72 physical-horizon
+observations. The field uniquely selected translation-equivariant
+localization and the coupled Yang/Yin global mode, covered all 50 scored
+prospective predictions, reproduced both exact-repeat worlds byte for byte,
+and selected exact source cancellation. The maximum global-charge vector
+error was \(1.92\times10^{-7}\), the maximum localization error was
+\(5.04\times10^{-2}\) box units, and cancellation suppressed both mean-field
+magnitude and peak \(q\) by more than \(0.99999999\).
+
+`cassi_autonomous_physics_residency.py` continues this into causal dynamics
+rather than a fixed candidate comparison. Its 36 fresh worlds expose
+sequential source composition, simultaneous and delayed collisions,
+co-located nonlinear clamping, and temporal evolution out to 128 physical
+steps. No representation candidates are supplied to the learner. The field
+constructs its own bounded candidates, selects representations from admitted
+evidence, commits prospective predictions, and revises a representation when
+an outcome contradicts it.
+
+The decisive event is a delayed collision: a strong left source evolves for
+120 steps before a slightly weaker fresh right source arrives. The first
+collision representation predicts left from source strength, while the
+physical world resolves right. That Assessment makes delayed collision the
+field's own next experiment choice. From the resulting worlds it replaces raw
+source strength with the physically available resident and incoming peak
+\(q\), then predicts both sealed delayed-collision transfers correctly. Its
+other learned representations capture sequential source-sum composition, the
+nonlinear scale/clamp branch, and long-horizon decay.
+
+The current campaign extends that base to **51 live physical worlds** and makes scientific program formation and mechanism resolution field-resident.
+The owner supplies only a sealed safe alphabet: three source locations, three
+strengths, three step counts, five raw observables, five derived-observable
+operators, and hard charge/work bounds. It supplies no schedule, candidate
+family, distinction, expected answer, construction revision, research
+question, program stage, or mechanism verdict.
+
+The field first creates `physics:experiment-constructor` as a versioned
+`Program`. Constructor v1 originates a restoration experiment and earns an
+executable language from a successful live trial and mirrored transfer.
+Physical Assessments revise the same constructor to v2, which originates the
+distinct rising-strength traversal left → center → right. After that second
+success, constructor v3 accumulates both discoveries and changes its strategy
+toward rising-strength nonmonotone routes rather than merely advancing a
+generation counter.
+
+From that retained history, the field synthesizes
+`physics:autonomous-research-program`. The program records what has been
+distinguished, its semantic coverage, an ordered next stage, and a specific
+uncertainty: peak-position paths cannot determine whether coherence was
+transported through the field or independently rewritten near each source.
+To resolve that question, the field creates an `Obligation` requesting the
+bounded read-only observable `top_phase_current_x` at the top-coherence cell.
+This is the local Noether-like phase current
+\(J_x=E_Y\partial_xE_I-E_I\partial_xE_Y=q\,\partial_x\theta\), computed from
+the existing readback without a new GPU pass or writable state. The fixed owner
+review finds the exact primitive in the sealed grammar, authorizes only that
+existing read, proves the grammar unchanged, and returns the decision as an
+`Assessment`. A forged authority decision and an unsafe experiment mutation
+both fail closed.
+
+The research program first completes its already planned third stage. It binds
+experiment synthesis to a nonmonotone, rising-strength directed route and
+originates left at strength 4 for 64 steps, right at strength 8 for 32, then
+center at strength 12 for 32. The live peak moved
+\(-0.5556 \rightarrow 0.5873 \rightarrow 0.0159\), exactly realizing the new
+left → right → center distinction; the mirror realized
+\(0.5873 \rightarrow -0.5556 \rightarrow 0.0159\), and the repeat reproduced
+all six selected observations exactly. The schedule fingerprint
+`e760807fa5147eddb7d4d6fb86b7cbd3252155deaa4c1876188de1d53f4165e3`
+is distinct from both earlier experiments.
+
+That success revises the constructor to v4 with three discoveries and advances
+the same research program to its authorized mechanism frontier. The field then
+creates `physics:phase-flow-mechanism-experiment` without supplied candidate
+families. It selects the unique mirrored central design available in the
+grammar: an isolated center control at strength 8 for 64 steps, a left
+strength-12 prior for 64 steps followed by that center write, and the mirrored
+right-prior arm. The owner checks only the sealed primitives, matched control,
+mirror symmetry, sensor program, and resource bounds.
+
+The first horizons show real directional phase current at the prior peaks:
+\(+0.3694650941\) on the left and \(-0.3694650941\) on the right. At the final
+center horizon, however, control, trial, and mirror are exactly identical:
+\(J_x=0\), \(q=1.27182183278688\), and
+\(x=0.0158730158730158\). Both current deltas and both \(q\) deltas are zero.
+The field therefore records `local-rewriting-at-peak`, explicitly scoped to
+the top-coherence cell at the final sampled horizon. This resolves what the
+peak trajectory means: successive driven maxima re-form locally rather than
+carrying a detectable memory of the prior source into the next top cell. It
+does not assert that phase transport is absent elsewhere in the lattice.
+
+That scoped answer caused the field to continue rather than stop. It identified exactly what the peak-cell sensor could not decide, requested a bounded distributed view, and originated a second matched mechanism study. The live engine now exposes an opt-in sixteen-slab \(x\)-profile at each chosen horizon: coherence \(q\), signed phase current \(J_x\), and absolute current \(|J_x|\). Ordinary worlds do not pay for this view; only the distributed study requests it.
+
+The field selected control, left-prior, and mirrored right-prior arms across eight sampled horizons. In both directional arms, the later center pulse matched the control at every response horizon in all three distributed observables. The earlier pattern nevertheless remained near its original side: the left residual centroid moved only \(0.00173\) toward center, from \(-0.56243\) to \(-0.56070\), while the mirrored residual stayed at \(0.56250\). Residual off-target coherence was \(77.37\%\) of the matched control in both arms. The field therefore resolved the broader mechanism as **`local-nucleation-with-remote-persistence`**: new peak coherence forms locally where the new source acts, while substantial earlier coherence remains elsewhere; it does not advect across the lattice into the later peak.
+
+This first result separates three phenomena the old top-cell view conflated:
+movement of the winning peak, transport of coherence through space, and
+persistence of a prior field pattern. Its sixteen \(x\)-slabs and eight
+horizons establish the mechanism along the measured axis.
+
+The field then continued into bounded three-dimensional topology. It requested
+an opt-in \(4\times4\times4\) periodic lattice carrying \(q\) and the full
+phase-current vector
+\(\mathbf J=E_Y\nabla E_I-E_I\nabla E_Y=q\nabla\theta\), then originated
+left/right controls and trials at horizons 32, 33, and 96. Each control
+contains the earlier remote source alone; its trial adds the later center
+source. Trial-minus-control therefore isolates the response to that added
+source. The owner granted only the read-only primitive and verified all six
+fixed safety checks before the four worlds ran.
+
+At horizon 96 the added-source response carries material phase current:
+\(\|\Delta\mathbf J\|_1=2.7589547\times10^{-5}\), with curl
+\(\|\nabla\times\Delta\mathbf J\|_1=5.5179206\times10^{-5}\) and normalized
+curl \(2.0000041\) per coarse bin. The added coherence remains near the
+center source: its coherence-weighted mean radius is \(0.035159\) bins and
+the positive coherence difference beyond one bin is
+\(7.67724\times10^{-13}\). Both directional arms have inward radial current
+and no sampled reversal. The earlier remote peak remains in the prior-only
+controls as well as the trials.
+
+The classifier records **`static-remote-persistence`**: no delayed spread or
+mirror-stable circulation passes its coarse criteria. Its mirror error
+\(0.941982\) exceeds the \(0.75\) limit, but that is not a physical exclusion
+of vortices. Bin averaging loses internal structure, and reflecting whole
+bins is not the exact reflection of the native grid around the center
+source. Nonzero curl alone also does not establish phase winding. The
+supported refinement is localized coherence with a measurable phase-current
+response; the detailed vortex structure remains unresolved.
+
+The completed readout also measures signed divergence. Reassessing the same
+recorded worlds gives
+\(\|\nabla\cdot\Delta\mathbf J\|_1=2.7589701\times10^{-5}\), with both
+converging and diverging cells. No new physical worlds were executed. The
+additional assessment is retained in the field across close/reopen; a blank
+field cannot recover it. Its receipt is
+`D:/CassiFI-evidence/canonical/autonomous-field-research-program-v8-divergence-completion/receipt.json`.
+
+The field then ran a fresh continuation with a native \(64^3\) phase-winding
+readout. The owner-authorized topology scope now combines the \(4^3\)
+coherence/current lattice with closed square loops on the native grid in the
+\(xy\), \(xz\), and \(yz\) planes at radii 2, 4, and 8 cells. Each loop
+reports unwrapped phase circulation, winding number, current line integral,
+and minimum sampled \(q\), still as a read-only view of the existing
+\(E_Y,E_I\) arrays.
+
+The continuation again ran the four matched topology worlds. At horizon 96
+the native current-circulation L1 is \(2.4332879\times10^{-2}\) in both
+directional arms, with native mirror relative error
+\(4.5642681\times10^{-12}\). The largest winding magnitude is only
+\(2.4848083\times10^{-18}\), and the sampled loop minimum is \(q_{\min}=0\).
+The field therefore records **`native-circulation-without-winding`**:
+the native current has a symmetric closed-loop signal, but at least one
+sampled loop point has no coherence support, so a topological winding claim
+would not be valid. This is the reflection-correct refinement the coarse
+bin metric could not provide; it narrows the unresolved question to choosing
+loops that remain inside nonzero-\(q\) support.
+
+The continuation is retained at
+`D:/CassiFI-evidence/canonical/autonomous-field-research-program-v8-native-winding-completion/receipt.json`.
+Its body SHA-256 is
+`4a5ade5acb62601327fb08ae32de32caee9b9610593fdfe0c92b0b99d3eee526` and
+its file SHA-256 is
+`bb3f567f121b2f15b4c8dd7d3b7319de86373c439ffd29725e6d4fad6cde424f`.
+The run remains `supported`, with 55 executed worlds, five exact repeat
+pairs, ten correct sealed transfer predictions, exact restart, and a
+field-lesion support-gap control.
+
+All three generated languages pass the fixed safety checks and earn capability
+only from a correct trial. Close/reopen preserves the exact field digest,
+constructor v4, all three executable languages, all three mechanism
+Assessments, and the resolved research program. A blank-field lesion returns
+`support-gap` for the languages, learned representations, and research
+program, locating the complete scientific history, designs, verdicts, and
+resolutions in `QiFieldState.field`.
+
+The canonical receipt is
+`D:/CassiFI-evidence/canonical/autonomous-field-research-program-v8-canonical-final/receipt.json`.
+Its independently reproduced body SHA-256 is
+`d538199c39d3a1368b17e4972d1b44cdac1e57aa61a99baae945b9976a2afd2c`
+and its file SHA-256 is
+`7b3d66033e094df770d041f51ac4f077a8030ad11d1e227eace8d087c69f0fd7`.
+The journal records exactly `55` physical operations with no second execution,
+all five exact-repeat pairs remain exact, and all `10` sealed curriculum
+transfer predictions remain correct.
 
 Its canonical substrate is the six extensible typed record families `Value`,
 `Binding`, `Event`, `Program`, `Assessment`, and `Obligation`. Records carry
@@ -68,9 +421,12 @@ Their values and uncertainty remain transient query output and are never
 written as records or cached state.
 
 The demonstrated scope remains finite, bounded, and explicitly observed. It
-does not establish open-ended general intelligence, raw sensory acquisition,
-live CassiCosmos competence, or interference-free learning at arbitrary scale;
-unidentified causes and exhausted resources remain explicit limitations.
+now includes a replayable field-selected request over owner-supplied
+observation channels and live CassiCosmos prediction and control in the
+declared resettable \(64^3\) world regime. It does not establish unconstrained
+goal formation, learned sensor-interface discovery, open-ended general
+intelligence, raw sensory acquisition, competence over arbitrary CassiCosmos
+configurations, or interference-free learning at arbitrary scale.
 
 The [cumulative training and evaluation program (§34)](FIELD-INTELLIGENCE-DESIGN.md#34-cumulative-training-and-evaluation-program) is now an executed, retained measurement. The full run uses three continuing lifetimes, four training blocks, four external worlds, and 192 field-owned training events; its receipt is [`_diag/general_intelligence_program.json`](_diag/general_intelligence_program.json) with identity `bbffe584e917a9baac31da48834cc9715d2b8bbcde55e319230f768023b2f35f`.
 
@@ -82,6 +438,590 @@ The independent verifier checks the receipt, manifest, splits, formulas, control
 
 The program retains the explicit negative results: all three intervention-after evaluations are `0/16` after revocation, and the shared-belief failures are the pre-correction measurement expectation and exact reopen/reuse. No language-model or teacher fallback is used.
 
+
+## Shared field hive
+
+Every field instance can now join the durable Cassi Hive without adding a
+second adaptive state. `cassi_hive_session.open_field_session` constructs the
+owner and its content-addressed local hive connection; the field remains the
+only mutable intelligence. `scout` sessions export committed owner
+transitions, `member` sessions import only reviewed bundles through the
+verified adoption path, and `isolated` sessions keep exchange disabled by
+default. Isolation remains a technical local-work mode, not an admissible
+source of experimental evidence. `cassi_hive_adapters.py` also exposes explicit
+native and read-only boundaries for nonstandard owners.
+
+The control plane stores capsules, independent reviewer decisions, promoted
+bundles, adoption receipts, common-generation lineage, and revocations in
+SQLite plus immutable JSON objects. `cassi_hive_coordinator.py` groups
+compatible experiences, while `cassi_hive_promotion.py` provides the
+deterministic reviewer and idempotent leader loop. Run the persistent leader
+with `python run_cassi_hive_leader.py`; reviewers remain explicit and no
+bundle is promoted without the configured independent-support threshold.
+
+Field programs use the portable `field-program.v1` transfer surface. Their
+canonical program payload may cross field profiles, but dependencies,
+atlas schema, operation shape, generation, revocation, and real owner
+checkpoint guards are still verified at admission. Nonportable procedures
+remain profile-bound. Qwen work-memory sessions use the same boundary through
+`CassiFieldWorkMemory.open_hive`, so a Qwen field can scout, review, or adopt
+without moving adaptive state into the workbench.
+
+
+## Resident research intelligence
+
+`cassi_research_residency.py` turns the regional field computer into a
+continuing Cassi research resident. Its mission, work catalog, phase cursor,
+selection history, observations, assessments, learning outcomes, and unfinished
+work are semantic records in the same `cognition.field` owner image; the host
+driver stores only immutable source/result evidence and replay markers.
+
+The resident's default mission is **Understand and improve Cassi**. Its bounded
+responsibilities are:
+
+- read-only source self-study with AST/import/call provenance and unchanged-source
+  proof;
+- member-local CassiMindField candidate development in the published
+  lab-example regime, followed by collective Hive challenge with fixed
+  baseline/holdout checks and incumbent preservation;
+- read-only CassiCosmos observation when the 7599 bridge is available;
+- a deterministic closed-bar local market world whose consequences can become
+  field learning input.
+
+Every work item is selected through the resident field agenda, executed with a
+durable operation identity, archived as exact evidence, admitted through the
+normal observation path, assessed, and offered to field-owned learning. A
+support gap remains an explicit resumable result. Live source replacement,
+network access, exchange orders, and external actions are disabled by default.
+
+```text
+python run_cassi_research_residency.py --home .cassi/research init
+python run_cassi_research_residency.py --home .cassi/research run --steps 8
+python run_cassi_research_residency.py --home .cassi/research status
+```
+
+The resident can be reopened after any phase boundary. `--import-skills` and
+`--export-skills` opt into reviewed Hive exchange for non-experimental local
+work. A locally isolated residency cannot support an experimental claim.
+
+The [open-ended research organism (§35)](FIELD-INTELLIGENCE-DESIGN.md#35-open-ended-research-organism-and-cumulative-intelligence)
+is implemented by `cassi_research_organism.py`. One continuing root field keeps a
+typed construction frontier, explicit problem roots and holes, world evidence,
+method history, and the field agenda that selects the executable construction.
+Independent member fields receive content-addressed executable lessons, replay
+them against their own holdouts, learn from their own outcomes, and return
+attributed reports through the root's ordinary provenance path. Accepted
+generations bind the complete local runtime-source closure to an immutable field
+bundle and atomic publication pointer. Rollback moves that pointer without
+erasing the separate external-effect journal.
+
+Every new CassiFI experiment now enters through this organism population.
+The root and members receive disjoint evidence, archive exact results, and use
+their own field agendas to select among the same explicit lessons. Member
+selections become independent Hive reviews. Only a quorum-supported lesson is
+promoted as a real `KnowledgeBundle`, and the root plus every member must adopt
+its exact portable field program at one common generation. A contested result
+retains its capsule and reviews but creates no learned bundle. There is no
+admissible isolated experiment entry point.
+
+The first campaign under this rule is
+[`_diag/temporal-residual-authority-v2.json`](_diag/temporal-residual-authority-v2.json).
+Across 16 disjoint chronological arms, identity-aligned history reduces
+validation RMSE by `76.8971%` on average beyond the complete present snapshot,
+with improvement in all `16/16` arms. Breaking tracer identity changes that
+mean to `-8.9587%`; the identity advantage is `85.8558` percentage points.
+Both independent members selected `trajectory-history-authority`, giving
+`2/2` support. Bundle
+`398964e54e8846f076738997053d0182e72784c4f4a90105fe1742d477b81803`
+advanced the shared Hive to generation `1` and was adopted by the root and both
+members. The preserved V1 reading failed its numerical instrument controls,
+remained contested, and promoted nothing.
+
+The next campaign makes that learned historical authority executable. The
+native `LagrangianRecurrentState.field` contains the complete fitted present
+baseline, trajectory couplings, identity-keyed lag ring, scales, and counters;
+there is no adaptive controller state beside its one float64 field tensor.
+Forecasting reads each tracer's own lag-1/2/4/8 history before admitting the
+current observation, and the raw field checkpoint restarts exactly.
+
+[`_diag/lagrangian-recurrent-memory-v1.json`](_diag/lagrangian-recurrent-memory-v1.json)
+records three independently fitted living actors with disjoint `6/5/5`
+development worlds and disjoint `2/1/1` unseen physical worlds. Across `246784`
+lag-resolved samples, three worlds had a nonzero acceleration target and one
+was correctly retained as `NULL_ZERO_TARGET`. The recurrent field improved
+mean error by `3.0740%`, but only one of three scored worlds improved
+(`-1.6794%`, `+20.0826%`, and `-9.1813%`). Breaking tracer identity reduced the
+mean gain to `1.7642%`, an identity advantage of `1.3098` percentage points.
+The memory is therefore real and identity-sensitive, but its transfer is
+regime-specific rather than universal.
+
+The root selected `native-memory-no-transfer`; one member independently agreed
+and one refuted it after observing the strong positive regime. Support remained
+`1/2`, so the Hive kept the result contested, created no bundle, installed no
+program, and preserved generation `1`. This is the population guard doing its
+job: a favorable aggregate could not erase the cross-regime disagreement.
+`verify_lagrangian_recurrent_memory.py` independently rebuilds all three fields
+from the raw worlds, reproduces all four unseen readings, checks 61 bound source
+files and 20 trajectory files, and confirms the contested no-adoption state:
+
+```text
+python verify_lagrangian_recurrent_memory.py --workspace .. --receipt _diag/lagrangian-recurrent-memory-v1.json
+```
+
+The next memory problem is now sharply localized: make the recurrent
+coordinates regime-covariant so a trajectory law learned at one force scale
+transfers without exporting that world's absolute calibration.
+
+The regime-covariant successor is now measured in
+[`_diag/regime-covariant-recurrent-memory-v2.json`](_diag/regime-covariant-recurrent-memory-v2.json).
+`RegimeCovariantState.field` retains the current-snapshot comparator, exact
+identity tracks, lagged position and velocity, and the learned correction
+statistics in one float64 tensor. For each tracer it forms a causal acceleration
+from velocity change over dimensionless elapsed time, measures acceleration
+change across lags, resolves that change into the midpoint-position radial and
+transverse frame, and learns the normalized correction before mapping it back
+to physical coordinates. The same trained field commutes with rigid rotation
+and positive length/velocity rescaling to `6.66e-16` maximum absolute error in
+the firing control.
+
+The causal identity memory removes the scale failure: mean unseen NRMSE falls
+from `44050355.4340` for the snapshot comparator to `0.00334339`. The learned
+radial/transverse correction lowers it again to `0.00290336`, a mean `5.4912%`
+improvement beyond causal finite differences. The three scored unseen worlds
+read `+15.4728%` (MH3), `+1.6288%` (MH6), and `-0.6280%` (MHC3); MHL3 remains an
+exact zero-target null, with zero causal and covariant error. Exchanging tracer
+histories raises the scored errors to `43.50`, `35.73`, and `249.39`, proving
+that the successful path is carried by identity-bound history rather than a
+population-scale shortcut.
+
+The root and member 000 selected
+`regime-covariant-trajectory-transfer`; member 001 refuted it because its
+learned correction slightly worsened MHC3. Support therefore remained `1/2`.
+The Hive retained the capsule as contested, created no bundle, installed no
+program, and kept generation `1`. The result separates the problem cleanly:
+causal covariant memory now transfers across all scored regimes, while the
+learned anisotropic radial/transverse split transfers across two of three.
+
+`verify_regime_covariant_recurrent_memory.py` independently reconstructs all
+three fields and four unseen readings, verifies 63 bound source files and 20
+raw trajectory files, and confirms the live no-adoption state:
+
+```text
+python verify_regime_covariant_recurrent_memory.py --workspace .. --receipt _diag/regime-covariant-recurrent-memory-v2.json
+```
+
+The remaining operator problem is narrower than cross-regime calibration:
+shrink the radial/transverse coefficients toward one shared isotropic
+trajectory correction, while retaining a measured anisotropic departure only
+when independent worlds support it.
+
+The hierarchical successor is recorded in
+[`_diag/hierarchical-covariant-recurrent-memory-v3.json`](_diag/hierarchical-covariant-recurrent-memory-v3.json).
+It keeps the causal dimensionless identity memory and changes only the learned
+correction basis. One coefficient multiplies the full jerk (the shared
+isotropic law); a second multiplies the radial-minus-transverse departure. The
+departure has ridge `8.0`, compared with `0.1` for the shared coefficient, and
+is released only after at least `2` independent development worlds support it.
+Both coefficients, the support count, and the evidence sum remain inside the
+single float64 `RegimeCovariantState.field`.
+
+The population result selects the simpler law. Mean unseen NRMSE is
+`0.00334339` for causal memory, `0.00273116` for the isotropic reading, and
+`0.00274248` for the hierarchical reading. The shared isotropic correction
+improves on causal kinematics by `8.9334%`; the allowed anisotropic departure
+improves it by `8.7492%`, so shrinkage correctly declines the departure by
+`0.2195%` relative to the isotropic reading. The scored worlds all improve:
+MH3 reads `+20.9686%` isotropic versus `+20.5936%` hierarchical, MH6 reads
+`+2.4387%` for both, and MHC3 reads `+3.3930%` isotropic versus `+3.2152%`
+hierarchical. MHL3 remains the exact zero-target null. The isotropic reading
+therefore wins every scored holdout without requiring a regime-specific split.
+
+The root and both independent members selected
+`isotropic-covariant-trajectory-transfer`, giving `2/2` support. The live Hive
+promoted bundle
+`6ac75f1f9d1acef00ce9eafbd0756f3e23e5225cda053a7c265e3fb843ee1b42` at
+generation `2`; the root and both members adopted the same program bytes.
+This is the first successor to pass the population quorum: the field has
+retained the causal transfer law while refusing the small anisotropic
+overfit.
+
+`verify_hierarchical_covariant_recurrent_memory.py` rebuilt all three fields,
+four unseen readings, 65 bound analysis sources, 20 trajectory files, the
+selection quorum, generation, bundle, and three-member adoption. Its strict
+source guard currently reports one live-workspace mismatch for
+`CassiFI/cassi_research_organism.py`: that shared untracked file changed while
+the receipt was being produced and is now larger than the byte-bound version
+captured in the receipt. The verifier therefore fails closed rather than
+silently rebinding the frozen evidence; the field/world/Hive reproduction
+itself has no reported errors, and the V3 receipt remains untouched.
+
+The next operator question is now about persistence rather than calibration:
+does the promoted isotropic trajectory law remain useful when generation `2`
+members encounter a fresh chronological stream, without allowing a later
+anisotropic split to re-enter from one regime?
+
+Generation two now carries the promoted law into a chronological stream with
+the release decision owned by the field itself. The guarded operator is
+implemented in [`cassi_generation2_isotropic_rollout_field.py`](cassi_generation2_isotropic_rollout_field.py):
+it appends a bounded regime-token registry to the checkpointed float64 field
+tensor. A repeated chunk is admitted to the shared isotropic coefficient, but
+the anisotropic support counter advances only when the field sees a new
+regime identity. The identity is bound to the fresh source root and its
+trajectory manifest.
+
+The integrated run is recorded in
+[`_diag/generation2-isotropic-regime-guarded-rollout-v1.json`](_diag/generation2-isotropic-regime-guarded-rollout-v1.json).
+Root, `member-000`, and `member-001` each fit their disjoint generation-one
+development worlds, then learned two successive chunks from one new
+chronological stream (`DH3`, `DHC3`, and `DH6`). The three 38-frame holdouts
+contain `23,040` resolved samples. Mean causal NRMSE is `0.01564644`; the
+guarded and isotropic readings are exactly identical at `0.01010562`, a
+`24.6804%` reduction, with all three fresh worlds improving and the smallest
+reduction `1.4907%`.
+
+The re-entry control fires on the synthetic anisotropic witness. The unguarded
+field reaches support `2` and a nonzero anisotropic basis coefficient
+(`0.023107`); the guarded field records one regime token, remains at support
+`1`, and its forecast is byte-exactly the isotropic forecast. On the fresh
+streams the maximum guarded support after the second chunk is `0`, because
+none of those chunks crossed the local support threshold; the firing control
+proves that a later second call would be blocked when it does.
+
+The live Hive selected `generation2-isotropic-regime-guard`, with `2/2`
+support, promoted bundle
+`90891aee6063014a69bc7db0cc4dfff29210640c67d9d2fe11cbdcc765c8f5ba`, and
+generation `3`. Root and both members adopted identical program bytes. The
+independent reconstruction is
+[`verify_generation2_isotropic_rollout.py`](verify_generation2_isotropic_rollout.py),
+with output at
+[`_diag/generation2-isotropic-regime-guarded-rollout-verification-v1.json`](_diag/generation2-isotropic-regime-guarded-rollout-verification-v1.json).
+It rebuilds all three fields and checks the content-addressed live bundle.
+
+The complementary release branch is isolated in
+[`run_generation2_distinct_regime_release.py`](run_generation2_distinct_regime_release.py)
+and recorded in
+[`_diag/generation2-distinct-regime-release-v1.json`](_diag/generation2-distinct-regime-release-v1.json).
+Two source-bound synthetic trajectory manifests (`A`, seed `22103`, and `B`,
+seed `22111`) are presented in the order `A`, `A`, `B`, `B`. The first
+repeated identity remains at unique-regime support `1` and stays exactly
+isotropic. The first call from the distinct `B` manifest advances support to
+`2`, produces anisotropic basis coefficient `0.03342441`, and changes the
+forecast by maximum absolute difference `0.00066152`. Repeating `B` leaves
+support at `2` while the released anisotropic forecast remains active
+(`0.00073369` maximum absolute difference from isotropic). The checkpoint
+round-trip is exact.
+
+[`verify_generation2_distinct_regime_release.py`](verify_generation2_distinct_regime_release.py)
+rebuilds both source manifests and the four-stage sequence without importing
+the campaign runner, checks every source digest, and returns `PASS`. All ten
+release controls pass: distinct identities can release the anisotropic branch,
+while repeated chunks within either identity cannot manufacture another
+support.
+
+The release path now reaches a chronological holdout in
+[`run_generation2_two_regime_holdout.py`](run_generation2_two_regime_holdout.py).
+Two independent fields use development seeds `22001` and `22007`; each then
+receives two source-bound chronological regimes in the exact order
+`A-first`, `A-repeat`, `B-first`, `B-repeat`. The root uses regime seeds
+`22103` and `22111`; `member-000` uses `22119` and `22123`. Each regime is
+split into `60%` first training, the next `25%` repeat, and a final `15%`
+causal holdout.
+
+Both actors keep regime `A` at support `1`, with guarded and isotropic holdout
+forecasts exactly equal. The first distinct `B` regime advances support to `2`
+and releases the anisotropic branch; its repeated chunk leaves support at `2`.
+On the two released `B` holdouts, mean NRMSE is `0.01836327` for the guarded
+field versus `0.02043160` for isotropic, a mean delta of `-0.00206833`.
+Every actor improves (`2/2`), with the largest guarded-minus-isotropic delta
+still negative at `-0.00183475`. All checkpoint, adaptive-owner, identity,
+and bounded-repeat controls pass.
+
+The campaign receipt is
+[`_diag/generation2-two-regime-chronological-holdout-v1.json`](_diag/generation2-two-regime-chronological-holdout-v1.json).
+[`verify_generation2_two_regime_holdout.py`](verify_generation2_two_regime_holdout.py)
+rebuilds the streams, fields, four-stage sequence, and holdout metrics without
+importing the campaign runner. Its independent receipt is
+[`_diag/generation2-two-regime-chronological-holdout-verification-v1.json`](_diag/generation2-two-regime-chronological-holdout-verification-v1.json).
+ 
+The same release test now reaches a real receipt-backed CassiCosmos pair in
+[`run_generation2_real_chronological_holdout.py`](run_generation2_real_chronological_holdout.py).
+The independent field uses `attractor_ic10` only for its development snapshot,
+then receives `attractor_ic5` as regime `A` and `attractor_ic6` as regime `B`.
+These are source roots with recorded clocks, positions, velocities, and
+accelerations; no trajectory is synthesized or altered. The sequence remains
+`A-first`, `A-repeat`, `B-first`, `B-repeat`, with the same `60%`/`25%`/`15%`
+chronological partition and the same ridge, support threshold, and non-worse
+decision as the controlled run.
+
+The real `A` stream stays at unique-regime support `1`, and its guarded
+holdout is byte-exactly isotropic (`0.57866044` NRMSE for both). The distinct
+real `B` stream advances support to `2`, with anisotropic basis coefficient
+`-0.01864483` after its first chunk and `-0.01980609` after its repeat. On the
+unseen B holdout, causal NRMSE is `0.67419032`, isotropic NRMSE is `0.66241589`,
+and the released guarded NRMSE is `0.65674622`, a `-0.00566967` delta. The
+release therefore improves rather than merely preserves the real causal
+holdout prediction.
+
+The campaign receipt is
+[`_diag/generation2-real-chronological-holdout-v1.json`](_diag/generation2-real-chronological-holdout-v1.json).
+[`verify_generation2_real_chronological_holdout.py`](verify_generation2_real_chronological_holdout.py)
+reconstructs the source frames, field sequence, controls, slice digest, and
+aggregate without importing the runner. It returns `VERIFIED` and writes
+[`_diag/generation2-real-chronological-holdout-verification-v1.json`](_diag/generation2-real-chronological-holdout-verification-v1.json).
+
+A second disjoint real pair now reproduces the release on
+[`run_generation2_real_chronological_holdout_pair2.py`](run_generation2_real_chronological_holdout_pair2.py).
+Its development snapshot is `energy_gaussian_s20260910_v0p5`; regime `A` is
+`attractor_ic2`, and regime `B` is `attractor_ic7`. The same four-stage
+chronology and unchanged guard are used. Regime `A` again remains exactly
+isotropic at support `1`. Regime `B` reaches support `2`, with anisotropic basis
+coefficient `-0.02826070` after its first chunk and `-0.02919127` after its
+repeat. Its holdout NRMSE is `0.61175077` guarded versus `0.62090776`
+isotropic, a `-0.00915699` delta.
+
+Across the two disjoint real A/B pairs, both A holdouts remain exactly
+isotropic, both B streams reach support `2`, and both released B holdouts
+improve. Mean B NRMSE is `0.63424850` for the released guarded field versus
+`0.64166183` isotropic, with mean delta `-0.00741333`.
+
+The second campaign receipt is
+[`_diag/generation2-real-chronological-holdout-pair2-v1.json`](_diag/generation2-real-chronological-holdout-pair2-v1.json).
+[`verify_generation2_real_chronological_holdout_pair2.py`](verify_generation2_real_chronological_holdout_pair2.py)
+reconstructs the second source partition, field sequence, controls, slice
+digest, and aggregate without importing either campaign runner. It returns
+`VERIFIED` and writes
+[`_diag/generation2-real-chronological-holdout-pair2-verification-v1.json`](_diag/generation2-real-chronological-holdout-pair2-verification-v1.json).
+
+A third disjoint real pair extends the same test to the calibrated scene
+attractors through
+[`run_generation2_real_chronological_holdout_pair3.py`](run_generation2_real_chronological_holdout_pair3.py).
+The development snapshot is `attractor_scene_calibrated/GC2`; regime `A` is
+`G3`, and regime `B` is `G6`. Regime `A` remains exactly isotropic at support
+`1`. Regime `B` reaches support `2`, with anisotropic basis coefficient
+`0.00970905` after its first chunk and `0.00903553` after its repeat. The B
+holdout is `0.00433628` guarded versus `0.00434041` isotropic, a
+`-0.00000414` delta. The effect is smaller on this calibrated pair but remains
+nonzero and in the released direction.
+
+Across all three disjoint real A/B pairs, A is exactly isotropic in `3/3`
+holdouts, B reaches release support `2` in `3/3`, and every released B holdout
+improves over its matched isotropic control. The unweighted mean B NRMSE is
+`0.42427776` guarded versus `0.42922136` isotropic, with mean delta
+`-0.00494360`; the per-pair deltas are `-0.00566967`, `-0.00915699`, and
+`-0.00000414`.
+
+The third campaign receipt is
+[`_diag/generation2-real-chronological-holdout-pair3-v1.json`](_diag/generation2-real-chronological-holdout-pair3-v1.json).
+[`verify_generation2_real_chronological_holdout_pair3.py`](verify_generation2_real_chronological_holdout_pair3.py)
+reconstructs the third source partition, field sequence, controls, slice
+digest, and aggregate without importing any campaign runner. It returns
+`VERIFIED` and writes
+[`_diag/generation2-real-chronological-holdout-pair3-verification-v1.json`](_diag/generation2-real-chronological-holdout-pair3-verification-v1.json).
+
+
+```text
+python run_cassi_research_organism.py --home .cassi/research-organism init
+python run_cassi_research_organism.py --home .cassi/research-organism round
+python run_cassi_research_organism.py --home .cassi/research-organism status
+python verify_cassi_research_organism.py
+```
+
+The host supplies lifecycle boundaries and the deterministic instrument world;
+it does not rank the frontier. The campaign receipt records the exact
+`semantic.autonomous-agenda` decision consumed for execution, raw root and
+member comparisons, lesson/report provenance, and the published generation.
+
+The organism also has four cross-domain evidence laboratories in
+`cassi_research_laboratories.py`. Candidate representations are measured on
+development evidence, written as field obligations with their measured
+priority, selected by `semantic.autonomous-agenda`, and only then exposed to
+chronological or structural holdouts. Both the selection and the revealed
+holdout outcome remain in the canonical root field. The independent verifier
+reconstructs every metric from the hash-bound source evidence and confirms all
+eight retained field records.
+
+```text
+python run_cassi_research_laboratories.py \
+  --home _diag/research-organism-laboratories-ranked \
+  --workspace .. \
+  --out _diag/research-laboratories/receipt.json
+python verify_cassi_research_laboratories.py \
+  _diag/research-laboratories/receipt.json
+```
+
+The measured campaign `af87b99f9183247319aa39ac` produced four distinct
+findings. Repeated normalized-component reuse resolved every development and
+holdout cubic exact-one instance while reducing exact audited work by 33.9% on
+development and 29.3% on holdout relative to the monolithic reducer. On
+chronological BTC-USD evidence, the field selected the single-horizon regime;
+it reached 0.615 balanced accuracy on 28 later 2016–2023 windows and 0.829 on
+12 wholly external 2024 windows. This is a regime-direction result, not a
+profitability result. The two physics laboratories returned the equally useful
+boundary: phase dynamics scored 0/3 on the coherent-amplitude survival
+holdout, while parent circulation scored chance-level 0.5 on the four-case
+child-flow holdout. The source trajectory contains no winding components, so
+reconnection and string survival remain an explicit support gap rather than an
+inferred result. The receipt digest is
+`b7e010cd5f9184fb9213d79d68f1adb4fa432864063d4beec5a1d5b0a9486536`.
+
+The same continuing organism now performs field-owned equation discovery through
+`cassi_equation_discovery.py`. The fixed numerical kernel projects measured
+CassiCosmos trajectories into 153 one- and two-term radial equation candidates;
+their content-addressed identities, validation errors, and complexity costs
+become field obligations. The root field selects while the structural holdouts
+remain unavailable, then retains both the chosen equation and the revealed
+outcome in `cognition.field`. No fitted coefficient or equation ranking lives in
+a learned sidecar.
+
+```text
+python run_cassi_equation_discovery.py \
+  --home _diag/research-organism-laboratories-ranked \
+  --workspace .. \
+  --out _diag/equation-discovery/receipt.json
+python verify_cassi_equation_discovery.py \
+  _diag/equation-discovery/receipt.json
+```
+
+On inward Gaussian worlds, the field selected the effective collective law
+
+```text
+a = -0.576912279265 r |r|^-0.25 + 0.221370501178 r
+```
+
+Its development-validation NRMSE was `0.4870`, compared with `0.6598` for the
+harmonic-core reduction and `0.9970` for the point-mass inverse-square
+reduction. The hidden structural holdout changed the conclusion: across uniform,
+pearl-ring, nested-shell, double-helix, and folded-sheet worlds, the selected
+law scored `0.6243`, the harmonic reduction `0.6071`, and inverse square
+`0.9977`. Its holdout prediction cosine was only `0.8159` with harmonic and
+`0.1355` with inverse square, so this is a genuinely different mathematical
+description, not a renamed human baseline. It did not beat the harmonic
+description across new geometries and is therefore classified
+`DIFFERENT_DESCRIPTION_ONLY`, not an alternative universal law.
+
+The controls recovered harmonic and inverse-square synthetic worlds exactly and
+recovered the measured two-fluid conservation identity
+`semidiscrete_energy_derivative = source_work_rate`. The independent verifier
+reconstructed all 153 candidates from 69 hash-bound sources, checked seven
+canonical field records, and fired all four mutation controls. Receipt digest:
+`c07f60d74622c9c594780fcad251284697ec3ddc7ac6a974cfcbe091c7a7ffd3`.
+The stopped first invocation and its one-time metadata-only repair are preserved
+in the bound preregistration and failure record; the original blind field
+selection was reused rather than repeated.
+
+The operator-invention extension removes the radial-power menu and gives the
+same resident field a typed recursive language over dimensionless radius,
+radial speed, total speed, transverse speed, and radial/flow/transverse/normal
+vector frames. Field-selected seeds alone may mutate, and only their descendants
+enter final synthesis alongside three registered human comparators.
+
+```text
+python run_cassi_field_operator_invention.py \
+  --home _diag/research-organism-laboratories-ranked \
+  --workspace .. \
+  --out _diag/alien-equation-discovery/receipt.json
+python verify_cassi_field_operator_invention.py \
+  _diag/alien-equation-discovery/receipt.json
+```
+
+The field evolved a recursive flow term
+`signed_sqrt(tanh(radial_speed))`, plus constant radial and normal terms and a
+transverse radial-speed term. The best invented final support reached
+development-validation NRMSE `0.5138`; the field instead selected the registered
+prior radial pair at `0.4846`:
+
+```text
+a/A0 = -1.01770392177*r_hat*q^0.75 + 0.72563238034*r_hat*q
+```
+
+The frozen verdict is `HUMAN_EQUIVALENT`. On the four scene-calibrated hidden
+worlds the selected reduction did not transfer across scale: mean NRMSE was
+`7773826.2465`, versus `14001.3935` for inverse square. This is a sharp
+regime-normalization boundary, not an alien law. The independent verifier
+reconstructed ten field decisions and 87 source hashes, confirmed zero model
+calls, and fired all six mutation controls. Receipt digest:
+`5e3d3a9dea75643ffe05970e38be882b1a5a1c13d3868deaa1f8588f5da8299e`.
+The full interpretation is in
+`CassiCosmos/research/equation_discovery/field_operator_invention_report.md`.
+
+The recursive-improvement laboratory now runs as a cumulative three-generation
+campaign rather than three isolated selections. Each promoted workspace becomes
+the next cycle's source; its digest is the following migration source, and the
+field-selected question compiles a new typed module whose path and operation
+sequence are derived from that live parent topology. Every candidate declares a
+causal prediction before isolated execution, and the evaluator records whether
+the named module appeared, its migration was source-bound, and the stated
+behavioral check changed.
+
+The executed construction trajectories also train the resident field's
+`learn-procedure` surface. The retained procedure is invoked on both later
+successor tasks, while an otherwise identical fresh field asked to handle the
+third-generation task returns an exception because it has no learned procedure.
+In the measured campaign the learned template has positive net savings of two
+steps across its two training traces, and both unfamiliar successor applications
+are accepted. Replay, restart, parent-state mutation, source mutation,
+persisted-field mutation, and no-selection controls are checked by
+`verify_cassi_mind_field_redesign.py`.
+
+The procedure now also crosses a construction-world boundary. After generation
+three, the promoted Python architecture is measured into a typed task whose
+target is a CassiFI structured field program. The experienced field transfers
+its `locate-binding → compose-operations → compile-successor` organization,
+materializes the task IR through the fixed field-program compiler, and executes
+the result on `FieldComputer`. The measured program halted with accumulator
+`70`, left stack `[70]`, and an empty right stack, exactly matching its
+pre-execution causal prediction.
+
+For the declared plan-search metric, the transferred procedure examined three
+primitive plan steps. A matched fresh field had no procedure and returned an
+exception; its explicit bounded evaluation control required three candidate
+plans and six primitive plan steps to reach the same valid construction. The
+cross-world saving is therefore three plan steps. The frozen cross-world receipt
+replays byte-identically, while independent source-IR and plan-order mutations
+both fire.
+
+The same acquired method now transfers again into a Boolean transition-system
+world. The promoted architecture deterministically supplies a four-step
+`phase`/`carry` problem with one `drive` input; the task compiler emits the
+canonical CassiFI transition source, and the exact conflict field solves it in
+23 field transitions. The retained witness is
+`phase@0=1`, `carry@0=0`, `drive=[1, 1, 0, 1]`, reaching the predicted final
+state `phase=0`, `carry=1`. Independent exhaustive enumeration finds exactly one
+valid input trace and confirms that witness directly against the original
+transition source.
+
+The experienced field again reaches the valid construction through one
+three-step plan, while the fresh field has no procedure and the explicit
+bounded-search control examines six primitive steps. The constraint-world
+receipt replays byte-identically; independently recomputed source, witness, and
+plan-order mutations all fire.
+
+The cumulative field now learns a computation regime, not only a construction
+procedure. On a source-distinct paired holdout, the SAT arm is a four-step
+phase/carry transition and the field returns a source-checked witness through
+local propagation. The UNSAT arm is a six-variable CNF encoding of both XOR
+parities: exhaustive enumeration finds zero models, local propagation stops
+without claiming a refutation, and the learned algebraic regime returns an
+independently audited hybrid certificate in one field transition. A fresh
+policy selects conflict resolution and needs 95 transitions; the learned
+algebraic arm needs 1, saving 94 field transitions while preserving the UNSAT
+verdict. The paired receipt also compares the learned policy with the fresh
+control, replays the experienced construction procedure, and fires
+source, witness, certificate, policy-selection, and plan mutations.
+
+The independent verifier reconstructs both source families from the promoted
+generation, exhaustively enumerates the SAT witness and UNSAT model space,
+re-audits the hybrid and resolution certificates, checks the causal outcome,
+and verifies the frozen receipt replay. The full redesign verifier includes
+this paired reasoning arm alongside the earlier structured-program and
+transition-constraint arms.
+
+```text
+python ../CassiMindField/redesign_lab.py --data-home ../CassiMindField/_diag/paired-reasoning-smoke --reasoning-world
+python ../CassiMindField/redesign_lab.py --data-home ../CassiMindField/_diag/paired-reasoning-smoke --verify-reasoning-world
+python verify_cassi_mind_field_redesign.py
+python -m pytest test_cassi_cumulative_improvement.py -q
+```
 
 ## General computation that learns through use
 
@@ -320,6 +1260,22 @@ do not own a second adaptive runtime. This repository root contains:
 | [`cassi_field_cognition.py`](cassi_field_cognition.py) | Cognition, learned variable-span language, autonomous bounded representation induction and revision, planning, inquiry, authority-request, assessment, and sustained-episode kernel |
 | [`cassi_field_input.py`](cassi_field_input.py) | Stateless deterministic source codecs, bounded typed paging, exact source linkage, and cognition observation construction |
 | [`cassi_field_owner.py`](cassi_field_owner.py) | Single-owner persistence, immutable checkpoints, journals, authority, capacity, and exactly-once regional operations |
+| [`cassi_field_hive.py`](cassi_field_hive.py) | Experience capsules, portable field-program bundles, adoption receipts, generation lineage, and revocation-safe transfer |
+| [`cassi_hive_store.py`](cassi_hive_store.py) | SQLite/immutable-object hive persistence, session state, reviews, bundles, adoptions, and revocations |
+| [`cassi_hive_policy.py`](cassi_hive_policy.py) | Explicit isolated, scout, member, reviewer, and leader exchange policies |
+| [`cassi_hive_adapters.py`](cassi_hive_adapters.py) | Native owner and read-only adapter boundaries with capability checks |
+| [`cassi_hive_runtime.py`](cassi_hive_runtime.py) | Owner-connected hive session, automatic committed-transition export, sync/adopt, and portable admission |
+| [`cassi_hive_session.py`](cassi_hive_session.py) | Canonical `open_field_session` and `attach_field_session` constructors |
+| [`cassi_hive_coordinator.py`](cassi_hive_coordinator.py) | Capsule grouping, independent review collection, and atomic promotion |
+| [`cassi_hive_promotion.py`](cassi_hive_promotion.py) | Deterministic reviewer and idempotent persistent leader loop |
+| [`run_cassi_hive_leader.py`](run_cassi_hive_leader.py) | Persistent leader process for reviewed bundle promotion |
+| [`cassi_cosmos_adapter.py`](cassi_cosmos_adapter.py) | Read-only CassiCosmos 7599 observations plus explicitly authorized seeded and scheduled fresh-world mutations, exact evidence, and durable replay |
+| [`cassi_reality_residency.py`](cassi_reality_residency.py) | Integrated fresh-world CassiCosmos curriculum, field-owned law selection, sealed prediction, control, restart, lesion, and stable receipt |
+| [`run_cassi_reality_residency.py`](run_cassi_reality_residency.py) | Live 7599 entry point for the Reality Residency campaign |
+| [`test_cassi_reality_residency.py`](test_cassi_reality_residency.py) | Curriculum sealing, disjointness, intervention, and candidate-identifiability regressions |
+| [`cassi_autonomous_physics_residency.py`](cassi_autonomous_physics_residency.py) | Continuing 55-world physics residency with field-originated representations, a self-extending research program, bounded authority requests, axial and three-dimensional phase-current topology, native closed-loop phase-winding readout, three earned experiment-language generations, restart, lesion, and independently checkable replay evidence |
+| [`run_cassi_autonomous_physics_residency.py`](run_cassi_autonomous_physics_residency.py) | Live 7599 entry point for the field-owned autonomous physics research program |
+| [`test_cassi_autonomous_physics_residency.py`](test_cassi_autonomous_physics_residency.py) | Curriculum sealing, representation and constructor revision, research-program synthesis, compositional novelty, authority denial, earning, restart, lesion, replay, and receipt regressions |
 | [`cassi_field_computer.py`](cassi_field_computer.py) | Scalar two-stack state and stateless primitive transition implementation |
 | [`cassi_field_program.py`](cassi_field_program.py) | Strict structured frontend, scalar regional compiler, exact-program specialization, and typed parameterized procedure transfer |
 | [`cassi_computation_policy.py`](cassi_computation_policy.py) | Refined regional method-selection task, related-evidence cost-aware exploration, checked evidence, and continuation state |
@@ -332,7 +1288,7 @@ do not own a second adaptive runtime. This repository root contains:
 | [`test_general_intelligence_program.py`](test_general_intelligence_program.py) | Focused public-owner regressions for program formulas, event roles, source boundaries, and resident-field learning |
 | [`verify_computation_policy_scenario.py`](verify_computation_policy_scenario.py) | Independent v4 context, selection, row, policy, reload, slice, aggregate, and mutation verifier |
 | [`cassi_variational_field.py`](cassi_variational_field.py) | Variational state codec, bounded regional transition, and standalone numerical reference |
-| [`cassi_resonant_field.py`](cassi_resonant_field.py) | Seven-pool state codec, reversible helical packet basis, bounded packet impulses, and regional wave transition |
+| [`cassi_resonant_field.py`](cassi_resonant_field.py) | Seven-pool state codec, reversible helical packet basis, bounded packet impulses, regional wave transition, and frozen L-parent register/application (`write_parent_registers`, `freeze_parent`, `read_frozen_parent`, `apply_frozen_parent_to_child`, `recompute_parent_summary_from_child`) |
 | [`cassi_field_transceiver.py`](cassi_field_transceiver.py) | Temporal-realization state codec, compact/full execution, error bounds, and regional transition |
 | [`cassi_temporal_field.py`](cassi_temporal_field.py) | Predictive-state, skill, evidence-revision, and policy regional transition |
 | [`cassi_temporal_inquiry.py`](cassi_temporal_inquiry.py) | Bounded observation-contingent inquiry regional transition |
@@ -481,8 +1437,30 @@ do not own a second adaptive runtime. This repository root contains:
 | [`run_store_addressing_rank.py`](run_store_addressing_rank.py) | The crowded store's item-to-deposit map read as a map rather than as a ratio, on the store-scale runner's own held store: the finite-difference deposit map's singular spectrum with its declared tolerance and the one-item reference state beside it, the deposit vector's own constancy and first differences published as measured flags, and then the same written page addressed three ways — every item at its own declared placement, every item at one shared placement, and the declared duplicate control — with each arm's rank, its full item and probe separation matrices against the predicted separations, one fresh owner per probe on one page, and the duplicated item, predicted-separation, rank-firing, zero-work, unwritten-page and reuse-floor controls |
 | [`test_store_addressing_rank.py`](test_store_addressing_rank.py) | Fast regression for the store addressing rank receipt: both rank readings with their tolerance terms, the deposit constancy and difference-operator readings, the three placement arms against their predicted separations with the duplicated pair at the floor, the separation predicate's own firing control, the zero-work probe, every probe as an owner episode on one page, the per-arm scale terms over one shared floor, the blank page against the single crowded page, the declared budget and page movement, the canonical receipt's item set, the refusal of non-finite numbers, and receipt-digest reproducibility with the reused strip rule exercised |
 | [`run_store_addressing_capacity.py`](run_store_addressing_capacity.py) | How many items the placement addressing carries, extended along the field's own declared scale tree: the delivered eight-item list read as the head of the port-count family — root scale, root detail, then every node detail of the dyadic tree in its own breadth-first left-before-right order, with every single-port node refused by the field's own rule — verified entry for entry and orthonormal at the measured floor, then the count swept at `N = 8, 16, 24, 28, 32` at the delivered profile and `N = 32` at the doubled resolution, each level held at the block's own measured captures, neutral gain and phase references and probed on its own held page: the deposit map's rank with its margin against the level's own measured finite-difference floor, the ordered-pair separation matrix with its distribution, the duplicate control at `N - 1`, the shared control at rank `1`, the zero-work probe and the blank page, with the count the declared family cannot reach recorded as the field's own refusal and the ceiling read against the structural inventory rather than assumed |
-| [`test_store_addressing_capacity.py`](test_store_addressing_capacity.py) | Fast regression for the store addressing capacity receipt: the declared family rule against the delivered item list entry for entry, the addressable count as the port count at three resolutions with the refused single-port candidates, the extended list reaching the delivered instruments and the delivered list restored, the field's own refusals at a leaf detail and beyond a leaf on the real surface, every declared level accounted for as run, cut or refused, each measured row's booleans equal to its own numbers with all five controls firing, the structural boundary recorded as a refusal rather than a rank failure, the ceiling branch following only the published numbers, and content-digest reproducibility with its clock-mutation control |
-| [`FRACTAL-MEMORY-EXPLORATION.md`](FRACTAL-MEMORY-EXPLORATION.md) | Exploration record for a fractal scaffold and transceiver placement as durable field memory, with the sixteen exploration harnesses' measured figures |
+| [`test_store_addressing_capacity.py`](test_store_addressing_capacity.py) | Fast regression for the store addressing capacity receipt: the declared family rule against the delivered item list entry for entry, the addressable count as the port count at two measured resolutions with the refused single-port candidates, the extended list reaching the delivered instruments and the delivered list restored, the field's own refusals at a leaf detail and beyond a leaf on the real surface, every declared level accounted for as run, cut or refused, each measured row's booleans equal to its own numbers with all five controls firing, the structural boundary recorded as a refusal rather than a rank failure, the ceiling branch following only the published numbers, and content-digest reproducibility with its clock-mutation control |
+| [`run_store_addressing_tree.py`](run_store_addressing_tree.py) | Whether the store's scale tree acts as a tree or is a flat list under a tree-shaped address space, at the surfaces the field exposes: the capacity runner's own declared family reused verbatim, every reading taken through the owner's own `write_packet_impulse` and `read_packet_deposit` on a page held at the level's measured captures, four declared-item-surface readings — containment at the parent from its declared children, the delivered-budget deposit aggregation, the sibling against a non-sibling pair, and descent from the parent to a child — each with its own half-budget finite-difference floor, its own positive control, a zero-work probe, the rank pair's duplicate and shared controls, a shuffled parent, a flat null, and one fresh owner per arm over the level's complete triples up to a declared cap; the parent's own detail write and read executed per parent as the test for the third branch; the same two readings again at the field-exposed-but-undeclared scale surfaces as a companion that does not carry the branch; a supplementary two-level reading at the parent's own surface; the port/scale fallback for the triples whose children are single-port nodes, with the field's own refusal text; and the same placement patterns measured at both resolutions on pages held under each resolution's own profile, with an explicit status wherever a resolution does not measure a pattern |
+| [`test_store_addressing_tree.py`](test_store_addressing_tree.py) | Fast regression for the store addressing tree receipt: the declared cap selecting the head and the tail of a level's own order with the parent surface always an interior node, the field's own refusals at a leaf detail and beyond a leaf on the real surface, the receipt's blocks and levels with the declared caps, every level's complete and measured triple counts, every published reading recomputed from its own responses and floor terms, every per-level aggregate equal to the count of its own rows, the published branch equal to the branch the declared rule returns for those aggregates, the structural and the third branch both reachable by perturbing a real record, the surface census as the third branch's evidence, the scale-surface companion's fractions with the declared floor that hides them named, the supplementary reading with its own floor and its placements, the port fallback against the field's own refusal text, the cross-resolution matched patterns against the surface census, a level control that can fail, and receipt-digest reproducibility |
+| [`run_scale_composition_surface.py`](run_scale_composition_surface.py) | Whether the store's scale surface composes from *which* children were written or answers how much alone, measured as a **declared budget sweep** at the one place the spent tree receipt left a non-zero, uncontrolled reading: the tree runner's own triples re-taken through the owner's `write_packet_impulse`/`read_packet_deposit` with a shuffled-parent control at the scale surfaces, a non-ancestor source for the descendants reading, a different port for the fallback and a matched non-sibling placement null, two scale paths (children's declared detail surfaces and their own scale surfaces) swept at `0.25, 0.5, 1, 2, 4` times the level's write budget with both terms of the spent receipt's own two-term rule published **separately** rather than folded into a `max`, the plateau found and compared with the numerical term `1e-9 * |own|`, and the shape stated as `plateau_above_the_numerical_term` (composition evidence the declared rule admits), `still_climbing_with_the_drive` (a budget artifact, a shape the rule rejects by construction because a reading that moves with the drive has `\|v - v_half\|` comparable to `\|v\|`), `under_the_numerical_term` (silent) or `not_measured` — so no single budget point carries a presence verdict, and the branch rests on the structural separation and the count test where the magnitude does not plateau |
+| [`test_scale_composition_surface.py`](test_scale_composition_surface.py) | Fast regression for the scale composition surface runner: the shuffled control's own refusal of the field's cross-depth fallback, the non-ancestor control never an ancestor/descendant/equal, the placement null never a sibling pair or a parent's own children, a missing control voting nothing, a sweep that plateaus above the numerical term classified as evidence with both floor terms published separately and the point the declared rule starts admitting, a sweep that scales with the drive classified as a budget artifact and rejected at every point by the rule's own arithmetic, a silent sweep named as bounded rather than absent, the composition branch requiring a measured sweep, a separation and the count test, and the merged receipt scanned for the word the declared rule rejects |
+| [`run_fractal_parent_summary_application_exploration.py`](run_fractal_parent_summary_application_exploration.py) | Frozen field-owned L-parent → LL-child application: parent-on/off child-state contrast, frozen-register persistence, zero-work identity, sibling isolation, source-off heartbeat control, and stale/tamper/locked-recompute controls |
+| [`test_fractal_parent_summary_application_exploration.py`](test_fractal_parent_summary_application_exploration.py) | Fast regression for the frozen-parent application receipt, digest/provenance controls, parent-on/off distinction, zero-work identity, and sibling isolation |
+| [`run_fractal_bidirectional_recursive_memory_cell.py`](run_fractal_bidirectional_recursive_memory_cell.py) | Live field-owned LL-detail → L feedback: parent-on/off contrast, zero-work identity, child-detail/source/relation freshness, tampered-relation and frozen-lock controls, and owner checkpoint reload/replay |
+| [`test_fractal_bidirectional_recursive_memory_cell.py`](test_fractal_bidirectional_recursive_memory_cell.py) | Fast regression for the live child-detail-to-parent receipt, digest/provenance controls, parent-on/off distinction, zero-work identity, can-fail freshness/identity/lock controls, and owner replay |
+| [`run_fractal_recursive_memory_cell.py`](run_fractal_recursive_memory_cell.py) | Strict two-cycle field-owned recurrence: matched frozen `LL:detail` downward applications, live `LL:detail` → `L:scale` upward feedback, explicit parent-summary materialization, refreeze, second detail application, source-off and sibling controls, stale-digest controls, and register-preservation receipt |
+| [`test_fractal_recursive_memory_cell.py`](test_fractal_recursive_memory_cell.py) | Fast regression for the strict active-upward recurrence receipt, detail-mode channel matching, release/materialization/refreeze ordering, register-preservation distinction, stale upward digest controls, source-off and sibling controls, and digest/verdict integrity |
+| [`run_fractal_multicycle_recursive_memory_cell.py`](run_fractal_multicycle_recursive_memory_cell.py) | Bounded three-child field-owned recurrence: matched `D1/U1`, `D2/U2`, `D3` terminal then release, feedback-on/off with the parent enabled, per-child downward and sibling controls, source-off heartbeat, stale source/packet/relation, frozen-lock, immutable-state, persistence/selectivity, and continuity controls |
+| [`verify_fractal_multicycle_recursive_memory_cell.py`](verify_fractal_multicycle_recursive_memory_cell.py) | Independent verifier for the bounded multicycle recurrence receipt: schema, digest, verdict, matched-arm measurements, can-fail control outcomes, continuity work, and exact present-state limitation |
+| [`test_fractal_multicycle_recursive_memory_cell.py`](test_fractal_multicycle_recursive_memory_cell.py) | Fast regression for the bounded multicycle recurrence receipt, its feedback-on/off and parent-enabled contrasts, three-child route ordering, source-off heartbeat, can-fail controls, digest, and verdict |
+| [`FRACTAL-MEMORY-EXPLORATION.md`](FRACTAL-MEMORY-EXPLORATION.md) | Exploration record for a fractal scaffold and transceiver placement as durable field memory, with the twenty-three exploration harnesses' measured figures |
+| [`run_cue_conditioned_field_action.py`](run_cue_conditioned_field_action.py) | Field-coordinate cue-conditioned controller over field-owner read/write methods with existing harness capture instrumentation: gated measured-read selection, score-floor+positive-margin abstention, paired owner actions, and held-out, zero-action blank/suppressed, wrong-mapping, unconditional, and action-order controls |
+| [`verify_cue_conditioned_field_action.py`](verify_cue_conditioned_field_action.py) | Independent receipt verifier that rederives gated selection/action rows, abstention and zero-action predicates, firing controls, positive/negative anchors, continuity, and the declared content digest |
+| [`test_cue_conditioned_field_action.py`](test_cue_conditioned_field_action.py) | Fast regression for gated cue-conditioned behavior, explicit abstention/action counts, every can-fail control, verifier agreement, digest mutation, and receipt landing |
+| [`run_temporal_composition_probe.py`](run_temporal_composition_probe.py) | Public temporal ordered-composition boundary probe: two independently admitted singleton primitive sources in one memory, held-out left-then-right task execution, explicit unresolved result when the second primitive is not selected at the first primitive's destination, and a denied-second can-fail control |
+| [`verify_temporal_composition_probe.py`](verify_temporal_composition_probe.py) | Independent standard-library receipt verifier that rebuilds singleton-source provenance and held-out-order absence, checks the exact public task path and unsupported verdict, and fires selection/provenance/verdict mutation anchors |
+| [`test_temporal_composition_probe.py`](test_temporal_composition_probe.py) | Focused runner/verifier smoke, unsupported-capability assertion, mutation-anchor coverage, and clock-free digest reproducibility |
+| [`run_temporal_materialized_composition.py`](run_temporal_materialized_composition.py) | Separate opt-in field-owned state-conditioned composition: read-only derived proposal, explicit externally observed B commit, canonical-plane materialization, digest change, and mismatch can-fail control |
+| [`verify_temporal_materialized_composition.py`](verify_temporal_materialized_composition.py) | Independent verifier for held-out singleton provenance, zero pre-commit support, canonical materialization, state digest change, observed-not-training provenance, and denied mismatch |
+| [`test_temporal_materialized_composition.py`](test_temporal_materialized_composition.py) | Focused success and fail-closed mismatch tests proving canonical state change only on a validated composition commit |
 
 Run the implemented paths from this directory:
 
@@ -511,6 +1489,14 @@ python run_store_addressing_rank.py --output _diag/store-addressing-rank/explora
 python run_store_addressing_capacity.py --block declared-profile
 python run_store_addressing_capacity.py --block higher-resolution
 python run_store_addressing_capacity.py --block merge --output _diag/store-addressing-capacity/exploration.json
+python run_store_addressing_tree.py --block declared-profile
+python run_store_addressing_tree.py --block higher-resolution
+python run_store_addressing_tree.py --block merge --output _diag/store-addressing-tree/exploration.json
+python run_scale_composition_surface.py --block declared-profile
+python run_scale_composition_surface.py --block higher-resolution
+python run_scale_composition_surface.py --block merge --output _diag/scale-composition-surface/exploration.json
+python run_fractal_parent_summary_application_exploration.py --output _diag/fractal-parent-summary-application/exploration.json
+python run_fractal_bidirectional_recursive_memory_cell.py --output _diag/fractal-bidirectional-recursive-memory-cell/exploration.json
 python -m pytest test_fractal_survival_exploration.py -q
 python -m pytest test_fractal_ladder_exploration.py -q
 python -m pytest test_fractal_metric_exploration.py -q
@@ -523,6 +1509,15 @@ python -m pytest test_owner_nested_cycle.py -q
 python -m pytest test_memory_store_scale.py -q
 python -m pytest test_store_addressing_rank.py -q
 python -m pytest test_store_addressing_capacity.py -q
+python -m pytest test_store_addressing_tree.py -q
+python -m pytest test_scale_composition_surface.py -q
+python -m pytest test_fractal_parent_summary_application_exploration.py -q
+python -m pytest test_fractal_bidirectional_recursive_memory_cell.py -q
+python run_fractal_recursive_memory_cell.py --output _diag/fractal-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_recursive_memory_cell.py -q
+python run_fractal_multicycle_recursive_memory_cell.py --output _diag/fractal-multicycle-recursive-memory-cell/exploration.json
+python verify_fractal_multicycle_recursive_memory_cell.py --receipt _diag/fractal-multicycle-recursive-memory-cell/exploration.json
+python -m pytest test_fractal_multicycle_recursive_memory_cell.py -q
 ```
 
 The scenarios are controlled reference environments. They do not establish
@@ -3843,3 +4838,241 @@ experiments outside the active import closure.
 
 Source code is licensed under Apache-2.0. The technical paper and its original
 figure are licensed under CC BY 4.0; see `prototype/LICENSE-PAPER`.
+
+## Cue-conditioned field action (present state)
+
+The cue-conditioned probe is a bounded controller measurement over synthetic
+directions in one canonical field coordinate frame, not a semantic memory
+claim.  It writes declared cues through the field-owner write method, reads all
+four candidate deposits through the field-owner read method, and writes one
+declared owner action per selected cue.  Existing harness capture instrumentation
+supplies the coordinate directions.  The scope is therefore the field-owner
+read/write methods plus that existing instrumentation; it is not a
+strict public-API-only isolation, because the audit found private helper and
+instrumentation imports (`arrangement._profile`, `durability.capture_items`, and
+`consumer.frame`).
+
+Measured-read selection ranks recovered deposits with direction-digest
+tie-breaking and selects exactly two only when the second selected score is at
+least the named `SCORE_FLOOR = 1e-12` and the positive selection margin is
+greater than the separate `SELECTION_MARGIN_FLOOR = 1e-12`.  If either gate is
+not clear, the row explicitly abstains: `selected_cues=[]`,
+`selected_actions=[]`, `action_order=[]`, `acts=[]`, `abstained=true`, and
+`action_count=0`, so no owner action occurs.  Blank-no-memory and
+cue-read-suppressed controls now exercise these zero-action predicates.
+Unconditional, wrong-mapping, and action-order controls intentionally continue
+to act, so the controls remain firing rather than vacuous.
+
+The two training combinations recover exactly (`2/2`); the held-out two-cue
+combination under a new presentation order also recovers exactly, with
+selection margin `0.0027042377351855105`.  The receipt records every score,
+both gates, selected/target row, owner acceptance, action-direction share,
+explicit abstention/action count, and all five controls.
+
+The receipt is
+`_diag/cue-conditioned-field-action/exploration.json`, schema
+`cassifi.cue-conditioned-field-action.v1`, digest
+`373c963975ed58e434ff0d01d953c6756e95a3cf361755f9dbf2ba7aa1669844`.
+The independent verifier imports neither the runner nor the audited field
+implementation and passed `100` checks, rederiving the gated rows, blank and
+suppressed zero-action predicates, intentional firing controls, positive and
+negative anchors, and the digest strip rule.  Reproduce with:
+
+```powershell
+python run_cue_conditioned_field_action.py --output _diag/cue-conditioned-field-action/exploration.json
+python verify_cue_conditioned_field_action.py --receipt _diag/cue-conditioned-field-action/exploration.json
+python -m pytest test_cue_conditioned_field_action.py -q
+```
+
+This does not claim semantic cue interpretation, language understanding, task
+utility, a learned cue-to-action mapping, or generalization beyond the
+declared field-coordinate protocol and measured held-out combination.
+
+## Temporal/evidence action selection (present state)
+
+The temporal/evidence probe measures one learned two-action memory through the
+public owner path: `configure_temporal`, `learn_temporal`,
+`condense_temporal_skill`, `bind_temporal`, read-only
+`select_temporal_action`, and `advance_temporal`.  The supported arm selects
+`left-skill`/`left-step` with margin `0.035448902588912756`, then observes the
+expected goal `left-goal`; reversing skill and operation presentation leaves
+the selected candidate and candidate-set digest unchanged.  The wrong-
+consequence control applies the other action and fails the selected skill's
+expected goal observation.
+
+The frozen receipt is
+`_diag/temporal-evidence-action-selection/exploration.json`, schema
+`cassifi.temporal-evidence-action-selection.v1`, digest
+`94efb7e88ca7c618b039daa7bc62a2df3225a64721e8fb6b67aa4c7d7354b9e1`.
+The independent standard-library verifier passed all declared checks,
+including digest and mutation anchors.  The no-workspace control is a genuine
+lesion: after public setup/learning, an isolated owner is initialized from
+`dataclasses.replace(learned_state, resonant_workspace=None)` and the same
+bind/select path abstains with `resonant-workspace-unavailable`,
+`field_setup.available=false`, and no consequence.  Forbidden-operation,
+insufficient-margin (`threshold=1.0`), and wrong-consequence controls remain
+separate and all fire.  Reproduce with:
+
+```powershell
+python run_temporal_evidence_action_selection.py --output _diag/temporal-evidence-action-selection/exploration.json
+python verify_temporal_evidence_action_selection.py --receipt _diag/temporal-evidence-action-selection/exploration.json
+python -m pytest test_temporal_evidence_action_selection.py -q
+```
+
+This is one deterministic, two-action controlled world and a presentation
+permutation, not open-vocabulary understanding, broad planning, or general
+world utility.  The no-workspace arm isolates the learned AtlasState and
+copies only its retained evidence into a fresh owner home; it does not measure
+workspace recovery or persistence.
+
+## Concurrent temporal/evidence action batch (present state)
+
+The batch benchmark executes 11 independent cases in one bounded
+`ProcessPoolExecutor` invocation with 4 requested and 4 measured worker
+processes.  Rows are canonically sorted by case ID before digesting; completion
+order, worker identity, and per-case elapsed seconds are retained only as
+timing-stripped diagnostics.  The repaired receipt is
+`_diag/temporal-evidence-action-batch/exploration.json`, schema
+`cassifi.temporal-evidence-action-batch.v1`, digest
+`289425f4dc6fb7d79c9915006a6bda76de47e6e24036d780e47603cae5c0c1ac`.
+
+Measured case matrix: `continuity-baseline` and
+`continuity-baseline-reversed` reproduce the baseline continuity margin
+`0.035448902588912756` and cite candidate-set identity
+`74ce5086ef4ae6135f97b46549ffd68839a0d97c0d95e3815963a37345373b5d`;
+`three-candidate` exposes three candidates; `multi-step-consequence`
+completes two `advance_temporal` transitions; and
+`unsupported-held-out-composition` is an explicit unsupported-capability
+row.  Its training uses only a singleton `bridge-step` primitive source,
+while the held-out ordered two-step source digest is absent from the
+training source digests; public temporal learning requires each supported
+transition to occur contiguously in an admitted source, so the API correctly
+leaves this composition unresolved rather than claiming recombination.
+`control-order-permutation` preserves selected action/skill under a changed
+presentation order; and the no-workspace, insufficient-margin,
+forbidden-operation, infeasible-operation, and wrong-consequence controls all
+fire.  Every row records candidate counts, selection/exclusion and pool-signal
+fields, field availability, read-only/state-unchanged flags, raw
+setup/learning/condensation/binding/advance receipts, and expected-versus-
+observed outcomes.
+
+The independent verifier imports neither the runner nor CassiFI implementation
+modules.  It independently decodes the held-out and training source bytes,
+checks that the held-out source digest is absent (and that its ordered episode
+was not replayed), rederives row predicates and summary aggregates, and its
+mutation anchors fire for selected action, expected goal, held-out scope,
+case count, worker concurrency, and a forbidden control.  Reproduce with:
+
+```powershell
+python run_temporal_evidence_action_batch.py --output _diag/temporal-evidence-action-batch/exploration.json --workers 4
+python verify_temporal_evidence_action_batch.py --receipt _diag/temporal-evidence-action-batch/exploration.json
+python -m pytest test_temporal_evidence_action_batch.py -q
+```
+
+This measures bounded field-native categorical action selection over a closed
+action/observation codec, temporal reachability, deterministic consequences,
+and executor concurrency only.  It does not establish open-vocabulary
+semantics, broad planning, general world utility, or an independent
+distribution.  CPU float64 and fixed seed `20260917` are used; the final
+runner took `33.2569181000581` seconds and the focused tests passed in
+`31.87` seconds.
+
+## Temporal ordered composition boundary (present state)
+
+The canonical receipt is `_diag/temporal-composition-probe/receipt.json`,
+schema `cassifi.temporal-composition-probe.v1`, content digest
+`400e75f0135999d52170360bfc55ab72bc98e23195e94a6956bc3884109649f6`.  Two
+singleton sources teach `left-step -> left-goal` and
+`right-step -> right-goal` independently in one temporal memory; neither source
+contains the tested ordered pair.  The public path is exactly
+`configure_temporal`, `learn_temporal`, `condense_temporal_skill`,
+`bind_temporal`, `compose_temporal_task`, `propose_temporal_task`, and
+`acknowledge_temporal_task`.  A is selected and acknowledged, but B is
+unresolved at A's destination; the receipt therefore reports **UNSUPPORTED**,
+not a syntactic composition success.  The denied-second control also abstains.
+
+This is an unsupported-capability measurement, scoped to the closed categorical
+codec and this public owner path.  It does not establish general planning,
+open-vocabulary recombination, or an unseen A→B transition.  A `SUPPORTED`
+verdict would require B to be actually selected after A and the composed task
+to complete; the exact missing boundary is policy synthesis/transfer from a
+skill's post-transition state, which `compose_temporal_task` does not provide.
+Reproduce the canonical receipt, independent verification, and focused tests:
+
+```powershell
+python run_temporal_composition_probe.py --output _diag/temporal-composition-probe/receipt.json
+python verify_temporal_composition_probe.py --receipt _diag/temporal-composition-probe/receipt.json
+python -m pytest test_temporal_composition_probe.py -q
+```
+
+## Opt-in state-conditioned composition boundary (present state)
+
+The separate supported-composition receipt is
+`_diag/temporal-materialized-composition/receipt.json`, schema
+`cassifi.temporal-materialized-composition.v1`, content/receipt digest
+`4584e905dc98565e7c1c218cd3d0b24b716ab6e336f0a3489e25cd7a860c3ac3`.
+It uses the same two singleton primitive sources as the unsupported probe, so
+the admitted training sources contain no `left-step -> left-goal` followed by
+`right-step -> right-goal` edge.  After A is externally observed, the separate
+read-only `synthesize_temporal_transition` call produces a
+`derived-hypothesis` with no canonical support (pre-commit exposure is zero).
+Only the explicit owner `materialize_temporal_transition` commit may accept the
+observed B action/outcome; it writes the state-conditioned A-post -> B support
+into the immutable field planes, changes the published state/memory digests,
+and then consumes B.
+
+The commit is fail-closed for mismatched, ambiguous, unknown, stale, or replayed
+proposals.  The receipt's mismatch control is denied, and its independent
+verifier checks source decoding, absent held-out edge, zero pre-commit support,
+canonical materialization, digest change, and observed-not-training provenance.
+This remains a bounded closed-codec composition capability, not general
+planning, open-vocabulary recombination, or external-world authority.  The
+frozen `Temporal ordered composition boundary` section above and its
+`UNSUPPORTED` receipt are unchanged.
+
+```powershell
+python run_temporal_materialized_composition.py --output _diag/temporal-materialized-composition/receipt.json
+python verify_temporal_materialized_composition.py _diag/temporal-materialized-composition/receipt.json
+python -m pytest test_temporal_materialized_composition.py -q
+```
+
+## Field-owned open-vocabulary relational planning (present state)
+
+The canonical receipt is `_diag/relational-planning/receipt.json`, schema
+`cassifi.relational-planning-receipt.v1`, content digest
+`0b2d9df93f52ee79419c7820f877ee984e62ba44295c9be36732861f7545fb59`.  It
+contains 4 acceptance rows, 15 controls, and 12 cases: 2 completed rows and
+4 explicit refusal rows.  All 4 comparison rows pass.  The receipt records 37
+owner operations, including six bridge operations, and zero model, Qwen,
+fallback, or host-search calls.  The receipt summary records
+`all_required_checks_pass=true`.
+
+The measured capability is a field-owned `FieldIntelligenceSurface`
+open-vocabulary UTF-8 byte-symbol relational bridge over typed `agent` and
+`place` roles.  Its result schema is `cassifi.semantic-cognition-result.v1`,
+and its task schema is `cassifi.open-vocab-plan.v1`.  Alpha-equivalent label
+renaming preserves the relational interpretation and plan.  On the held-out
+fresh layout, the bridge completes a 3-step plan with one external
+observation and the required repair and rebinding.  Exact save/reload/replay
+preserves the committed result, and the semantic graph remains identical
+across the read-only interpretation/planning comparison.
+
+The refusal and control boundary is explicit.  Ambiguous or unsupported
+representations return `representation-insufficient`; stale or revoked
+support returns `support-gap`; an impossible goal remains `unresolved`; a
+bounded resource failure returns `resource-exhausted`; and a conflicting
+replay returns `OPERATION_CONFLICT`.  The `field_schema_lesion` is rejected as
+an `error`/`false` control, not treated as a normal `support-gap` success.
+
+Reproduce from CassiFI/:
+
+```powershell
+python run_cassi_relational_planning.py --receipt _diag/relational-planning/receipt.json --data-home _diag/relational-planning/owner-current
+python verify_cassi_relational_planning.py --receipt _diag/relational-planning/receipt.json --firing-mutations
+python -m pytest -q test_cassi_relational_planning.py test_cassi_field_open_vocab.py test_cassi_field_cognition_capabilities.py test_learning_computer_owner.py
+python -m py_compile run_cassi_relational_planning.py verify_cassi_relational_planning.py cassi_field_cognition.py
+```
+
+This measures the declared field-owned bridge and its bounded controls.  It is
+not general language understanding, open-world planning, arbitrary semantic
+recombination, or world utility.

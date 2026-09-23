@@ -165,7 +165,9 @@ void llm_graph_input_cassi_modal::set_input(const llama_ubatch * ubatch) {
 
     std::fill(host_state.begin(), host_state.end(), 0.0f);
 
-    if (config->mode_param_max > config->mode_param_min) {
+    if (config->mode_bank != nullptr) {
+        std::memcpy(host_mode_params.data(), config->mode_bank, host_mode_params.size() * sizeof(float));
+    } else if (config->mode_param_max > config->mode_param_min) {
         const float denominator = config->mode_count > 1 ? float(config->mode_count - 1) : 1.0f;
         for (uint32_t m = 0; m < config->mode_count; ++m) {
             const float alpha = float(m) / denominator;
@@ -1434,15 +1436,19 @@ void llm_graph_result::reset() {
     t_cassi       = nullptr;
     t_cassi_field = nullptr;
     t_cassi_qi    = nullptr;
+    t_cassi_qi_seam_budget = nullptr;
+    t_cassi_qi_seam_scale  = nullptr;
     t_cassi_service = nullptr;
     t_cassi_capture_embed = nullptr;
     t_cassi_capture_head_input = nullptr;
     t_cassi_capture_attention_input.resize(LLAMA_MAX_LAYERS + 1);
     t_cassi_capture_attention_delta.resize(LLAMA_MAX_LAYERS + 1);
+    t_cassi_capture_attention_probs.resize(LLAMA_MAX_LAYERS + 1);
     t_cassi_capture_ffn_input.resize(LLAMA_MAX_LAYERS + 1);
     t_cassi_capture_ffn_delta.resize(LLAMA_MAX_LAYERS + 1);
     std::fill(t_cassi_capture_attention_input.begin(), t_cassi_capture_attention_input.end(), nullptr);
     std::fill(t_cassi_capture_attention_delta.begin(), t_cassi_capture_attention_delta.end(), nullptr);
+    std::fill(t_cassi_capture_attention_probs.begin(), t_cassi_capture_attention_probs.end(), nullptr);
     std::fill(t_cassi_capture_ffn_input.begin(), t_cassi_capture_ffn_input.end(), nullptr);
     std::fill(t_cassi_capture_ffn_delta.begin(), t_cassi_capture_ffn_delta.end(), nullptr);
     t_layer_inp.resize(LLAMA_MAX_LAYERS + 1);
@@ -1502,6 +1508,13 @@ void llm_graph_result::set_outputs(const llm_graph_params & params) {
     if (t_cassi_service != nullptr) {
         ggml_set_output(t_cassi_service);
     }
+    // The seam scalars are read back after the graph runs, so their buffers may not be recycled.
+    if (t_cassi_qi_seam_budget != nullptr) {
+        ggml_set_output(t_cassi_qi_seam_budget);
+    }
+    if (t_cassi_qi_seam_scale != nullptr) {
+        ggml_set_output(t_cassi_qi_seam_scale);
+    }
     if (params.cparams.cassi_capture) {
         GGML_ASSERT(t_cassi_capture_embed != nullptr);
         GGML_ASSERT(t_cassi_capture_head_input != nullptr);
@@ -1514,6 +1527,11 @@ void llm_graph_result::set_outputs(const llm_graph_params & params) {
             GGML_ASSERT(t_cassi_capture_ffn_delta[il] != nullptr);
             ggml_set_output(t_cassi_capture_attention_input[il]);
             ggml_set_output(t_cassi_capture_attention_delta[il]);
+            // the per-head probabilities are absent on layers that keep flash attention or
+            // run linear attention, so this check is per layer and not an assertion
+            if (t_cassi_capture_attention_probs[il] != nullptr) {
+                ggml_set_output(t_cassi_capture_attention_probs[il]);
+            }
             ggml_set_output(t_cassi_capture_ffn_input[il]);
             ggml_set_output(t_cassi_capture_ffn_delta[il]);
         }
@@ -2795,6 +2813,11 @@ ggml_tensor * llm_graph_context::build_attn_mha(
         ggml_soft_max_add_sinks(kq, sinks);
         cb(kq, "kq_soft_max", il);
 
+        if (cparams.cassi_capture) {
+            // the attention capture dump reads this tensor back as the per-head attention
+            res->t_cassi_capture_attention_probs[il] = kq;
+        }
+
         if (!v_trans) {
             // note: avoid this branch
             v = ggml_cont(ctx0, ggml_transpose(ctx0, v));
@@ -2948,7 +2971,9 @@ ggml_tensor * llm_graph_context::build_attn(
         ggml_tensor * sinks,
         ggml_tensor * v_mla, // TODO: remove
             float     kq_scale,
-            int       il) const {
+            int       il,
+        ggml_tensor * cassi_history_k,
+        ggml_tensor * cassi_history_v) const {
     GGML_ASSERT(v_mla == nullptr);
 
     if (inp->self_k_rot) {
@@ -2984,6 +3009,25 @@ ggml_tensor * llm_graph_context::build_attn(
     ggml_tensor * k = mctx_cur->get_k(ctx0, il);
     ggml_tensor * v = mctx_cur->get_v(ctx0, il);
 
+    if (cassi_history_k != nullptr || cassi_history_v != nullptr) {
+        GGML_ASSERT(cassi_history_k != nullptr && cassi_history_v != nullptr);
+        GGML_ASSERT(kq_mask != nullptr);
+        GGML_ASSERT(cassi_history_k->type == k->type);
+        GGML_ASSERT(cassi_history_v->type == v->type);
+        GGML_ASSERT(cassi_history_k->ne[0] == k->ne[0] &&
+                    cassi_history_k->ne[1] == k->ne[1] &&
+                    cassi_history_k->ne[3] == k->ne[3]);
+        GGML_ASSERT(cassi_history_v->ne[3] == v->ne[3]);
+
+        k = ggml_concat(ctx0, k, cassi_history_k, 2);
+        v = ggml_concat(ctx0, v, cassi_history_v, v->nb[1] > v->nb[2] ? 0 : 2);
+
+        ggml_tensor * history_mask = ggml_new_tensor_4d(ctx0, kq_mask->type,
+                cassi_history_k->ne[2], kq_mask->ne[1], kq_mask->ne[2], kq_mask->ne[3]);
+        history_mask = ggml_fill(ctx0, history_mask, 0.0f);
+        kq_mask = ggml_concat(ctx0, kq_mask, history_mask, 0);
+    }
+
     ggml_tensor * cur = build_attn_mha(q, k, v, kq_b, kq_mask, sinks, v_mla, kq_scale, il);
     cb(cur, "kqv_out", il);
 
@@ -2993,7 +3037,6 @@ ggml_tensor * llm_graph_context::build_attn(
 
     if (wo) {
         if (arch == LLM_ARCH_GLM4 || arch == LLM_ARCH_GLM4_MOE || arch == LLM_ARCH_JAIS2) {
-            // GLM4, GLM4_MOE, and JAIS2 seem to have numerical issues with half-precision accumulators
             cur = build_lora_mm(wo, cur);
             ggml_mul_mat_set_prec(cur, GGML_PREC_F32);
             if (wo_s) {

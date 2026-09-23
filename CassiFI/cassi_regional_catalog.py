@@ -85,6 +85,30 @@ from cassi_field_transceiver import (
     regional_kernel as transceiver_kernel,
 )
 from cassi_field_regions import KernelCatalog
+from programs.model.kernel import (
+    REGIONAL_KERNEL_MAX_WORK as MODEL_MAX_WORK,
+    REGIONAL_KERNEL_NAME as MODEL_NAME,
+    REGIONAL_STATE_SCHEMA as MODEL_STATE_SCHEMA,
+    regional_kernel as model_kernel,
+)
+from programs.python.kernel import (
+    REGIONAL_KERNEL_MAX_WORK as PYTHON_MAX_WORK,
+    REGIONAL_KERNEL_NAME as PYTHON_NAME,
+    REGIONAL_STATE_SCHEMA as PYTHON_STATE_SCHEMA,
+    regional_kernel as python_kernel,
+)
+from programs.runtime.kernel import (
+    REGIONAL_KERNEL_MAX_WORK as PROGRAM_RUNTIME_MAX_WORK,
+    REGIONAL_KERNEL_NAME as PROGRAM_RUNTIME_NAME,
+    REGIONAL_STATE_SCHEMA as PROGRAM_RUNTIME_STATE_SCHEMA,
+    regional_kernel as program_runtime_kernel,
+)
+from programs.workspace.kernel import (
+    REGIONAL_KERNEL_MAX_WORK as WORKSPACE_MAX_WORK,
+    REGIONAL_KERNEL_NAME as WORKSPACE_NAME,
+    REGIONAL_STATE_SCHEMA as WORKSPACE_STATE_SCHEMA,
+    regional_kernel as workspace_kernel,
+)
 from cassi_general_matched_field import (
     REGIONAL_KERNEL_MAX_WORK as MATCHED_MAX_WORK,
     REGIONAL_STATE_SCHEMA as MATCHED_STATE_SCHEMA,
@@ -144,11 +168,15 @@ _KERNELS = {
     INQUIRY_NAME: inquiry_kernel,
     MIXED_NAME: mixed_kernel,
     POLICY_NAME: policy_kernel,
+    MODEL_NAME: model_kernel,
+    PYTHON_NAME: python_kernel,
+    PROGRAM_RUNTIME_NAME: program_runtime_kernel,
     SCALAR_PROCEDURE_KERNEL: scalar_procedure_regional_kernel,
     RESONANT_NAME: resonant_kernel,
     SCALAR_REGIONAL_KERNEL: scalar_regional_kernel,
     TEMPORAL_NAME: temporal_kernel,
     TRANSCEIVER_NAME: transceiver_kernel,
+    WORKSPACE_NAME: workspace_kernel,
     VARIATIONAL_NAME: variational_kernel,
 }
 
@@ -170,12 +198,16 @@ _MAX_WORK = {
     INQUIRY_NAME: min(1, INQUIRY_MAX_WORK),
     MIXED_NAME: min(1, MIXED_MAX_WORK),
     POLICY_NAME: min(1, POLICY_MAX_WORK),
+    MODEL_NAME: min(32, MODEL_MAX_WORK),
+    PYTHON_NAME: min(32, PYTHON_MAX_WORK),
+    PROGRAM_RUNTIME_NAME: min(32, PROGRAM_RUNTIME_MAX_WORK),
     SCALAR_PROCEDURE_KERNEL: min(32, SCALAR_REGIONAL_MAX_WORK),
     RESONANT_NAME: min(1, RESONANT_MAX_WORK),
     SCALAR_REGIONAL_KERNEL: min(32, SCALAR_REGIONAL_MAX_WORK),
     TEMPORAL_NAME: min(1, TEMPORAL_MAX_WORK),
     TRANSCEIVER_NAME: min(1, TRANSCEIVER_MAX_WORK),
     VARIATIONAL_NAME: min(1, VARIATIONAL_MAX_WORK),
+    WORKSPACE_NAME: min(1, WORKSPACE_MAX_WORK),
 }
 
 _STATE_SCHEMAS = {
@@ -197,12 +229,16 @@ _STATE_SCHEMAS = {
     MECHANISM_STEP_KERNEL: (MECHANISM_STATE_SCHEMA,),
     MIXED_NAME: (MIXED_STATE_SCHEMA,),
     POLICY_NAME: (POLICY_STATE_SCHEMA,),
+    MODEL_NAME: (MODEL_STATE_SCHEMA,),
+    PYTHON_NAME: (PYTHON_STATE_SCHEMA,),
+    PROGRAM_RUNTIME_NAME: (PROGRAM_RUNTIME_STATE_SCHEMA,),
     RESONANT_NAME: (RESONANT_STATE_SCHEMA,),
     SCALAR_PROCEDURE_KERNEL: (SCALAR_REGIONAL_STATE_SCHEMA,),
     SCALAR_REGIONAL_KERNEL: (SCALAR_REGIONAL_STATE_SCHEMA,),
     TEMPORAL_NAME: (TEMPORAL_STATE_SCHEMA,),
     TRANSCEIVER_NAME: (TRANSCEIVER_STATE_SCHEMA,),
     VARIATIONAL_NAME: (VARIATIONAL_STATE_SCHEMA,),
+    WORKSPACE_NAME: (WORKSPACE_STATE_SCHEMA,),
 }
 if set(_STATE_SCHEMAS) != set(_KERNELS):
     raise RuntimeError("regional kernel state schemas are incomplete")

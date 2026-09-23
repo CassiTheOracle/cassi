@@ -7,6 +7,8 @@ correction, and reuse of completed subproblems.
 
 from __future__ import annotations
 
+import json
+
 from typing import Any, Mapping
 
 import pytest
@@ -84,6 +86,31 @@ def adapter_item(
         "kind": "model-native",
         "priority": 1,
         "invocation": invocation,
+    }
+
+
+def collective_item(
+    synthesis_id: str = "synthesis-a",
+    *,
+    value: float = 0.75,
+) -> dict[str, Any]:
+    return {
+        "dependencies": [],
+        "item_id": "collective-a",
+        "kind": "collective",
+        "priority": 1,
+        "invocation": {
+            "adapter": "cassi.collective-method",
+            "arguments": {},
+            "expected_return": {
+                "schema": "cassifi.organism.collective-method-result.v1",
+            },
+            "request": {
+                "schema": "cassifi.organism.collective-method-continuation.v1",
+                "bindings": {"candidate": value},
+                "synthesis_id": synthesis_id,
+            },
+        },
     }
 
 
@@ -212,6 +239,53 @@ def test_adapter_dispatch_consumes_one_bounded_return() -> None:
     assert finished["result"]["accepted"] is True
     assert finished["result"]["value"] == 7.0
 
+
+
+def test_collective_method_wait_survives_round_trip_and_resumes_exactly() -> None:
+    state = surfaced(semantic_cognition_state())
+    state, began = begin(state, "episode-collective", [collective_item()])
+    assert began["status"] == "waiting"
+    invocation = began["invocation"]
+    assert invocation["adapter"] == "cassi.collective-method"
+
+    restored = json.loads(json.dumps(state))
+    restored, waiting = step(
+        restored,
+        operation="advance-reasoning",
+        operation_id="advance-collective-waiting",
+        episode_id="episode-collective",
+    )
+    assert waiting["status"] == "waiting"
+    assert waiting["invocation"]["call_id"] == invocation["call_id"]
+    assert waiting["invocation"]["request_sha256"] == invocation["request_sha256"]
+
+    restored, completed = step(
+        restored,
+        operation="advance-reasoning",
+        operation_id="advance-collective-complete",
+        episode_id="episode-collective",
+        expected_return={
+            "call_id": invocation["call_id"],
+            "request_sha256": invocation["request_sha256"],
+            "result": {
+                "accepted": True,
+                "outputs": {"confidence": 0.75},
+                "schema": "cassifi.organism.collective-method-result.v1",
+                "status": "supported",
+            },
+            "status": "halted",
+        },
+    )
+    assert completed["phase"] == "terminal"
+    assert completed["status"] == "supported"
+
+    restored, finished = step(
+        restored,
+        operation="finish-reasoning",
+        operation_id="finish-collective",
+        episode_id="episode-collective",
+    )
+    assert finished["result"]["outputs"] == {"confidence": 0.75}
 
 def test_enforced_allocation_refuses_a_reservation_that_does_not_fit() -> None:
     state = surfaced(semantic_cognition_state())

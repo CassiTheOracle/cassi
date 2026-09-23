@@ -44,7 +44,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field as dataclass_field
 from struct import Struct
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
@@ -92,6 +92,26 @@ _PROPAGATION_RESULTS = {
 EMPTY = 256
 _BLOCK_HOT_THRESHOLD = 8
 _HEAT_LIMIT = 65_535
+_REGIONAL_VALIDATION_TOKENS: dict[
+    tuple[str, int],
+    tuple[field_regions.KernelCatalog, object],
+] = {}
+
+
+# Regional fields are immutable after sealing; sharing the token across
+# controllers for one profile/catalog pair preserves that proof across the
+# LearningComputer wrapper without rescanning the same bytes.
+def _regional_validation_token(
+    profile: field_regions.RegionalProfile,
+    catalog: field_regions.KernelCatalog,
+) -> object:
+    key = (profile.fingerprint, id(catalog))
+    entry = _REGIONAL_VALIDATION_TOKENS.get(key)
+    if entry is None or entry[0] is not catalog:
+        token = object()
+        _REGIONAL_VALIDATION_TOKENS[key] = (catalog, token)
+        return token
+    return entry[1]
 
 # Logical nine-plane layout.  The stored tensor is [1, 9*M, 1], matching the
 # existing Cassi field convention while retaining nine independently named
@@ -596,6 +616,18 @@ class ComputerState:
 
     _field: np.ndarray
     profile_sha256: str
+    _validation_token: object | None = dataclass_field(
+        init=False,
+        repr=False,
+        compare=False,
+        default=None,
+    )
+    _state_sha256: str | None = dataclass_field(
+        init=False,
+        repr=False,
+        compare=False,
+        default=None,
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self._field, np.ndarray) or self._field.dtype != np.float64:
@@ -649,6 +681,66 @@ class ComputerState:
 
 
 @dataclass(frozen=True, slots=True)
+class PagedComputerState:
+    """An immutable regional image bound to one computer profile.
+
+    The image is addressed through a bounded page residency allowance instead
+    of a resident dense tensor.  ``field`` materialises the whole logical image
+    for callers that need the dense view (a declared, audited read); every
+    other access goes through the paged view, so a state larger than the
+    physical allowance remains usable.
+    """
+
+    image: field_regions.PagedFieldImage
+    profile_sha256: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.image, field_regions.PagedFieldImage):
+            raise FieldComputerError("paged state requires a paged field image")
+        digest = self.profile_sha256
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise FieldComputerError("paged state profile fingerprint is invalid")
+        if digest != self.image.profile.fingerprint:
+            raise FieldComputerError("paged state profile fingerprint mismatches its image")
+
+    @property
+    def field(self) -> np.ndarray:
+        """The whole logical image, materialised on demand."""
+
+        return self.image.materialise()
+
+    @property
+    def nbytes(self) -> int:
+        return int(self.image.profile.total_words * np.dtype(np.float64).itemsize)
+
+    @property
+    def status(self) -> str:
+        words = self.image.header_words(field_regions.H_STATUS, 1)
+        return field_regions.STATUS_NAMES.get(int(words[0]), "invalid")
+
+    @property
+    def root_sha256(self) -> str:
+        return self.image.root_sha256
+
+    @property
+    def state_sha256(self) -> str:
+        """Exact persistent identity of the immutable paged state."""
+
+        return self.image.state_identity_sha256()
+
+    @property
+    def page_count(self) -> int:
+        return self.image.page_count
+
+    def residency_report(self) -> dict[str, Any]:
+        return self.image.residency_report()
+
+
+@dataclass(frozen=True, slots=True)
 class CompiledTuringMachine:
     """Canonical instruction stream produced from a finite TM transition table."""
 
@@ -691,6 +783,7 @@ class FieldComputer:
         self.profile: Any = profile
         self._profile_sha256 = profile.fingerprint
         self._regional_catalog = field_regions.EMPTY_KERNEL_CATALOG
+        self._validation_token = object()
 
     @classmethod
     def regional(
@@ -711,6 +804,7 @@ class FieldComputer:
         machine.profile = profile
         machine._profile_sha256 = profile.fingerprint
         machine._regional_catalog = catalog
+        machine._validation_token = _regional_validation_token(profile, catalog)
         return machine
 
     @property
@@ -731,6 +825,441 @@ class FieldComputer:
         if validate:
             self.validate(state)
         return state
+    def _validated_field_state(
+        self,
+        field: np.ndarray,
+    ) -> ComputerState:
+        state = ComputerState(
+            field.reshape(self.profile.shape),
+            self._profile_sha256,
+        )
+        object.__setattr__(
+            state,
+            "_validation_token",
+            self._validation_token,
+        )
+        return state
+
+    # -- bounded-residency (paged) regional surface ----------------------
+    #
+    # The logical image may exceed the pages the executor is allowed to hold.
+    # A paged state addresses the same layout through a page directory: only
+    # the declared control closure is pinned, the working set stays inside the
+    # residency allowance, and a request that cannot be served under it
+    # suspends as a typed continuation instead of allocating past the bound.
+    # The durable form is the established chunked checkpoint schema, so an
+    # owner stores and reopens paged states with the persistence it already
+    # uses for dense ones.
+
+    def _paged_regional(self) -> None:
+        if not self.is_regional:
+            raise FieldComputerError(
+                "paged states require a regional computer profile"
+            )
+
+    def _paged_state(
+        self, image: field_regions.PagedFieldImage
+    ) -> PagedComputerState:
+        state = PagedComputerState(image, self._profile_sha256)
+        return state
+
+    def paged_state(
+        self,
+        state: ComputerState,
+        *,
+        resident_limit: int = field_regions.DEFAULT_RESIDENT_PAGES,
+        resource_limits: Mapping[str, Any] | None = None,
+        objects: Mapping[str, bytes] | None = None,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """Adopt a dense regional state under a bounded residency allowance."""
+
+        self._paged_regional()
+        self.validate(state)
+        try:
+            image, record = field_regions.migrate_flat_to_paged(
+                state._field,
+                profile=self.profile,
+                catalog=self._regional_catalog,
+                resource_limits=resource_limits,
+                objects=objects,
+                resident_limit=resident_limit,
+                validate=False,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        return self._paged_state(image), record
+
+    def paged_initial(
+        self,
+        program: Any,
+        *,
+        left: Any = (),
+        right: Any = (),
+        entry: int = 0,
+        values: Mapping[str, Any] | None = None,
+        value_capacities: Mapping[str, int] | None = None,
+        resident_limit: int = field_regions.DEFAULT_RESIDENT_PAGES,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """Build the initial regional image directly under bounded residency."""
+
+        state = self.initial(
+            program,
+            left=left,
+            right=right,
+            entry=entry,
+            values=values,
+            value_capacities=value_capacities,
+        )
+        return self.paged_state(state, resident_limit=resident_limit)
+
+    def validate_paged(
+        self,
+        state: PagedComputerState,
+        *,
+        full: bool = False,
+    ) -> dict[str, Any]:
+        """Verify one paged state structurally, or through a full audit.
+
+        The structural check is bounded: it reads the control closure, binds
+        the page root, and validates the delta against a paged predecessor.
+        ``full=True`` is the declared audited read: it materialises the whole
+        logical image, re-hashes it, and compares that digest with the
+        recorded identity.
+        """
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        if state.profile_sha256 != self._profile_sha256:
+            raise FieldComputerError("paged state belongs to another profile")
+        if full:
+            try:
+                return field_regions.validate_paged_image(state.image)
+            except field_regions.RegionalFieldError as exc:
+                raise FieldComputerError(str(exc)) from exc
+        predecessor = state.image.predecessor
+        if isinstance(predecessor, field_regions.PagedFieldImage):
+            try:
+                return field_regions.validate_paged_delta(
+                    predecessor,
+                    state.image,
+                    changed_pages=state.image.transition.get("changed_pages")
+                    if isinstance(state.image.transition, Mapping)
+                    else None,
+                )
+            except field_regions.RegionalFieldError as exc:
+                raise FieldComputerError(str(exc)) from exc
+        try:
+            receipt = field_regions.validate_paged_structure(state.image)
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        return receipt
+
+    def step_paged(
+        self,
+        state: PagedComputerState,
+        *,
+        activity: Mapping[Any, Any] | None = None,
+        activity_weight: int = field_regions.DEFAULT_ACTIVITY_WEIGHT,
+        record_audit_digest: bool = False,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """One bounded transition; a resource wait returns the same state."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        if state.profile_sha256 != self._profile_sha256:
+            raise FieldComputerError("paged state belongs to another profile")
+        try:
+            image, receipt = field_regions.step_paged_image(
+                state.image,
+                catalog=self._regional_catalog,
+                record_audit_digest=record_audit_digest,
+                activity=activity,
+                activity_weight=activity_weight,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        if image is state.image:
+            return state, receipt
+        return self._paged_state(image), receipt
+
+    def run_paged(
+        self,
+        state: PagedComputerState,
+        *,
+        steps: int | None = None,
+        activity: Mapping[Any, Any] | None = None,
+        activity_weight: int = field_regions.DEFAULT_ACTIVITY_WEIGHT,
+        record_audit_digest: bool = False,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """Bounded paged run; a wait carries its own resumable continuation."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        if state.profile_sha256 != self._profile_sha256:
+            raise FieldComputerError("paged state belongs to another profile")
+        try:
+            image, summary = field_regions.run_paged_image(
+                state.image,
+                steps=steps,
+                catalog=self._regional_catalog,
+                record_audit_digest=record_audit_digest,
+                activity=activity,
+                activity_weight=activity_weight,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        if image is state.image:
+            return state, summary
+        return self._paged_state(image), summary
+
+    def resume_paged(
+        self,
+        state: PagedComputerState,
+        *,
+        resident_limit: int,
+        resource_limits: Mapping[str, Any] | None = None,
+    ) -> PagedComputerState:
+        """A twin of one state operating under a larger page allowance.
+
+        The root and page identities are unchanged: raising the allowance
+        re-admits storage the transition was already authorised to read, so a
+        suspended continuation resumes without replaying completed work.
+        """
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        try:
+            image = state.image.with_resident_limit(resident_limit)
+            if resource_limits is not None:
+                image = image.with_resource_limits(resource_limits)
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        if image is state.image:
+            return state
+        return self._paged_state(image)
+
+    def place_pages(
+        self,
+        state: PagedComputerState,
+        pages: Sequence[int],
+        tier: str,
+        *,
+        root_sha256: str | None = None,
+        max_pages: int = 16,
+        continuation: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Move bounded logical pages between storage, RAM, and VRAM.
+
+        The report is version-bound and resumable: an interrupted move keeps
+        its continuation and never publishes a partially moved view.
+        """
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        try:
+            return state.image.place_pages(
+                pages,
+                tier,
+                root_sha256=root_sha256,
+                max_pages=max_pages,
+                continuation=continuation,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+
+    def write_named_value_paged(
+        self,
+        state: PagedComputerState,
+        name: str,
+        value: Any,
+        *,
+        record_audit_digest: bool = False,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """Publish one named value over bounded pages."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        try:
+            image, receipt = field_regions.write_named_value_paged(
+                state.image,
+                name,
+                value,
+                record_audit_digest=record_audit_digest,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        return self._paged_state(image), receipt
+
+    def restart_paged(
+        self,
+        state: PagedComputerState,
+        *,
+        entry: int = 0,
+        values: Mapping[str, Any] | None = None,
+        record_audit_digest: bool = False,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """Restart the admitted program over bounded pages."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        try:
+            image, receipt = field_regions.restart_paged(
+                state.image,
+                entry=entry,
+                values=values,
+                record_audit_digest=record_audit_digest,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        return self._paged_state(image), receipt
+
+    def grow_paged(
+        self,
+        state: PagedComputerState,
+        *,
+        mode_count: int,
+        max_steps: int | None = None,
+        resource_limits: Mapping[str, Any] | None = None,
+        relocate_regions: bool = False,
+    ) -> tuple[FieldComputer, PagedComputerState, dict[str, Any]]:
+        """Grow v3 storage or transition capacity through one explicit event."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        profile = self.profile
+        mode_count = _exact_integer(mode_count, "mode_count", minimum=1)
+        if max_steps is None:
+            max_steps = profile.max_steps
+        else:
+            max_steps = _exact_integer(max_steps, "max_steps", minimum=0)
+        if mode_count < profile.mode_count or max_steps < profile.max_steps:
+            raise FieldComputerError("paged growth cannot reduce declared capacity")
+        if mode_count == profile.mode_count and max_steps == profile.max_steps:
+            if not relocate_regions:
+                return self, state, {
+                    "schema": field_regions.PAGED_MANIFEST_SCHEMA,
+                    "kind": "grow",
+                    "changed": False,
+                    "profile_sha256": profile.fingerprint,
+                }
+        grown = field_regions.RegionalProfile.from_dict(
+            {**profile.as_dict(), "mode_count": mode_count, "max_steps": max_steps}
+        )
+        try:
+            image, receipt = field_regions.migrate_paged_layout(
+                state.image,
+                grown,
+                catalog=self._regional_catalog,
+                resource_limits=resource_limits,
+                # Growth must raise the capacity of the regions themselves:
+                # a larger field whose regions keep their old ceilings faults
+                # on the first value that needs the room it was grown for.
+                relocate_regions=True,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        machine = FieldComputer.regional(grown, catalog=self._regional_catalog)
+        return machine, machine._paged_state(image), receipt
+
+    def inspect_paged(self, state: PagedComputerState) -> dict[str, Any]:
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        try:
+            inspection = field_regions.inspect_paged_image(state.image)
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        return {
+            **inspection,
+            "profile_sha256": self._profile_sha256,
+            "field_bytes": state.nbytes,
+            "paged": True,
+        }
+
+    def descriptor_paged(
+        self,
+        state: PagedComputerState,
+        **blocks: Any,
+    ) -> dict[str, Any]:
+        """The durable paged descriptor: page root plus bound identity blocks."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        return state.image.descriptor(**blocks)
+
+    def paged_chunks(
+        self,
+        state: PagedComputerState,
+    ) -> tuple[dict[str, Any], Mapping[str, bytes]]:
+        """The established chunked checkpoint view of a paged state."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        records, objects = state.image.chunks()
+        descriptor_value = {
+            "schema": field_regions.PERSISTENCE_CHUNK_SCHEMA,
+            "layout": field_regions.REGIONAL_LAYOUT,
+            "profile": self.profile.as_dict(),
+            "profile_sha256": self.profile.fingerprint,
+            "catalog_sha256": self._regional_catalog.fingerprint,
+            "page_words": field_regions.PERSISTENCE_PAGE_WORDS,
+            "byte_order": "little",
+            "word_encoding": "u32",
+            "chunks": records,
+            "state_sha256": state.image.state_identity_sha256(),
+        }
+        if (
+            state.image.state_sha256_kind
+            != field_regions.PAGED_STATE_KIND_FLAT
+        ):
+            descriptor_value["state_sha256_kind"] = (
+                state.image.state_sha256_kind
+            )
+            descriptor_value["resident_limit"] = state.image.resident_limit
+            descriptor_value["dirty_limit"] = state.image.dirty_limit
+        return descriptor_value, objects
+
+    def from_paged_chunks(
+        self,
+        value: Mapping[str, Any],
+        objects: Mapping[str, bytes],
+        *,
+        resident_limit: int = field_regions.DEFAULT_RESIDENT_PAGES,
+        dirty_limit: int = field_regions.DEFAULT_DIRTY_PAGES,
+    ) -> PagedComputerState:
+        """Reopen one stored paged state directly under bounded residency."""
+
+        self._paged_regional()
+        try:
+            image = field_regions.PagedFieldImage.from_chunked_descriptor(
+                value,
+                objects,
+                self._regional_catalog,
+                resident_limit=resident_limit,
+                dirty_limit=dirty_limit,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        return self._paged_state(image)
+
+    def materialise_paged(self, state: PagedComputerState) -> ComputerState:
+        """The dense twin of a paged state, through the declared full audit."""
+
+        self._paged_regional()
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        return self._field_state(state.image.materialise())
+
 
     def initial(
         self,
@@ -817,10 +1346,17 @@ class FieldComputer:
             raise FieldComputerError("ComputerState required")
         if state.profile_sha256 != self._profile_sha256:
             raise FieldComputerError("state belongs to a different computer profile")
+        if state._validation_token is self._validation_token:
+            return
         if self.is_regional:
             try:
                 field_regions.validate_field(
                     state._field, self.profile, self._regional_catalog
+                )
+                object.__setattr__(
+                    state,
+                    "_validation_token",
+                    self._validation_token,
                 )
                 return
             except field_regions.RegionalFieldError as exc:
@@ -902,24 +1438,35 @@ class FieldComputer:
         elif status == _FAULTED:
             if reason not in (_REASON_PUSH_ACC_EMPTY, _REASON_INVALID_INSTRUCTION, _REASON_INVALID_STATE):
                 raise FieldComputerError("faulted state has a nonfault reason")
+        object.__setattr__(
+            state,
+            "_validation_token",
+            self._validation_token,
+        )
 
     def status(self, state: ComputerState) -> str:
         return self.inspect(state)["status"]
 
     def _state_digest(self, state: ComputerState) -> str:
+        cached = state._state_sha256
+        if cached is not None:
+            return cached
         if self.is_regional:
-            return field_regions.state_sha256(state._field, self.profile)
-        digest = hashlib.sha256(
-            _canonical(
-                {
-                    "layout": _LAYOUT,
-                    "profile_sha256": self._profile_sha256,
-                    "shape": self.profile.shape,
-                }
+            digest = field_regions.state_sha256(state._field, self.profile)
+        else:
+            digest_builder = hashlib.sha256(
+                _canonical(
+                    {
+                        "layout": _LAYOUT,
+                        "profile_sha256": self._profile_sha256,
+                        "shape": self.profile.shape,
+                    }
+                )
             )
-        )
-        digest.update(state._field.tobytes(order="C"))
-        return digest.hexdigest()
+            digest_builder.update(state._field.tobytes(order="C"))
+            digest = digest_builder.hexdigest()
+        object.__setattr__(state, "_state_sha256", digest)
+        return digest
 
     def _apply_instruction(
         self,
@@ -1088,12 +1635,22 @@ class FieldComputer:
             )
         return attempted
 
-    def step(self, state: ComputerState) -> tuple[ComputerState, dict[str, Any]]:
+    def step(
+        self,
+        state: ComputerState,
+        *,
+        activity: Mapping[Any, Any] | None = None,
+        activity_weight: int = field_regions.DEFAULT_ACTIVITY_WEIGHT,
+    ) -> tuple[ComputerState, dict[str, Any]]:
         if self.is_regional:
             self.validate(state)
             try:
                 field, receipt = field_regions.step_field(
-                    state._field, self.profile, self._regional_catalog
+                    state._field,
+                    self.profile,
+                    self._regional_catalog,
+                    activity=activity,
+                    activity_weight=activity_weight,
                 )
                 successor = (
                     state
@@ -1103,6 +1660,8 @@ class FieldComputer:
                 return successor, receipt
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
+        if activity is not None or activity_weight != field_regions.DEFAULT_ACTIVITY_WEIGHT:
+            raise FieldComputerError("field activity requires a regional computer")
         self.validate(state)
         before_digest = self._state_digest(state)
         parts = self._parts(state, validate=False)
@@ -1146,6 +1705,8 @@ class FieldComputer:
         *,
         steps: int | None = None,
         use_blocks: bool = True,
+        activity: Mapping[Any, Any] | None = None,
+        activity_weight: int = field_regions.DEFAULT_ACTIVITY_WEIGHT,
     ) -> tuple[ComputerState, dict[str, Any]]:
         """Run in one private buffer and seal one immutable successor.
 
@@ -1157,21 +1718,30 @@ class FieldComputer:
         if self.is_regional:
             self.validate(state)
             try:
+                # The input is validated above and every successor is produced
+                # by the same bounded transition loop before immutable sealing.
+                # Avoid a second full directory scan at the run boundary.
                 field, receipt = field_regions.run_field(
                     state._field,
                     self.profile,
                     self._regional_catalog,
                     steps=steps,
+                    activity=activity,
+                    activity_weight=activity_weight,
+                    _input_validated=True,
+                    _skip_final_validation=True,
                 )
                 successor = (
                     state
                     if field is state._field
-                    else ComputerState(field, self._profile_sha256)
+                    else self._validated_field_state(field)
                 )
                 return successor, receipt
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
 
+        if activity is not None or activity_weight != field_regions.DEFAULT_ACTIVITY_WEIGHT:
+            raise FieldComputerError("field activity requires a regional computer")
         self.validate(state)
         if steps is not None:
             steps = _exact_integer(steps, "steps", minimum=0)
@@ -1287,9 +1857,14 @@ class FieldComputer:
 
     def inspect(self, state: ComputerState) -> dict[str, Any]:
         if self.is_regional:
+            self.validate(state)
             try:
                 return field_regions.inspect_field(
-                    state._field, self.profile, self._regional_catalog
+                    state._field,
+                    self.profile,
+                    self._regional_catalog,
+                    _input_validated=True,
+                    _state_sha256=self._state_digest(state),
                 )
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
@@ -1342,6 +1917,7 @@ class FieldComputer:
                 replacements["left"] = left
             if right != ():
                 replacements["right"] = right
+            self.validate(state)
             try:
                 field, receipt = field_regions.restart_field(
                     state._field,
@@ -1349,8 +1925,9 @@ class FieldComputer:
                     self._regional_catalog,
                     entry=entry,
                     values=replacements,
+                    _input_validated=True,
                 )
-                return ComputerState(field, self._profile_sha256), receipt
+                return self._validated_field_state(field), receipt
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
         """Start the retained program again while preserving field-owned heat."""
@@ -1416,9 +1993,14 @@ class FieldComputer:
 
     def descriptor(self, state: ComputerState) -> dict[str, Any]:
         if self.is_regional:
+            self.validate(state)
             try:
                 return field_regions.descriptor(
-                    state._field, self.profile, self._regional_catalog
+                    state._field,
+                    self.profile,
+                    self._regional_catalog,
+                    _input_validated=True,
+                    _state_sha256=self._state_digest(state),
                 )
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
@@ -1502,14 +2084,16 @@ class FieldComputer:
 
         if not self.is_regional:
             raise FieldComputerError("named values require a regional computer")
+        self.validate(state)
         successor, receipt = field_regions.write_named_value(
             state._field,
             self.profile,
             self._regional_catalog,
             name,
             value,
+            _input_validated=True,
         )
-        return ComputerState(successor, self.profile.fingerprint), receipt
+        return self._validated_field_state(successor), receipt
 
     def state_sha256(self, state: ComputerState) -> str:
         self.validate(state)
@@ -1531,12 +2115,14 @@ class FieldComputer:
 
         if not self.is_regional:
             raise FieldComputerError("named_value requires a regional computer")
+        self.validate(state)
         try:
             return field_regions.named_values(
                 state._field,
                 self.profile,
                 self._regional_catalog,
                 (name,),
+                _input_validated=True,
             )[name]
         except field_regions.RegionalFieldError as exc:
             raise FieldComputerError(str(exc)) from exc
@@ -1548,12 +2134,14 @@ class FieldComputer:
 
         if not self.is_regional:
             raise FieldComputerError("named_values require a regional computer")
+        self.validate(state)
         try:
             return field_regions.named_values(
                 state._field,
                 self.profile,
                 self._regional_catalog,
                 names,
+                _input_validated=True,
             )
         except field_regions.RegionalFieldError as exc:
             raise FieldComputerError(str(exc)) from exc
@@ -1874,6 +2462,7 @@ __all__ = [
     "FieldComputerError",
     "ComputerProfile",
     "ComputerState",
+    "PagedComputerState",
     "CompiledTuringMachine",
     "FieldComputer",
     "compile_turing_machine",

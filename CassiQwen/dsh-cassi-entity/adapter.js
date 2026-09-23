@@ -58,6 +58,12 @@ function pendingToolFromReplay(message) {
   return { response, pending };
 }
 
+function toolResultFromMessage(message, callId) {
+  if (message?.role !== "user" && message?.role !== "tool") return undefined;
+  return (Array.isArray(message.content) ? message.content : [])
+    .find((block) => block?.type === "tool-result" && block.toolCallId === callId);
+}
+
 function findToolContinuation(messages) {
   const list = Array.isArray(messages) ? messages : [];
   for (let assistantIndex = list.length - 1; assistantIndex >= 0; assistantIndex -= 1) {
@@ -66,10 +72,14 @@ function findToolContinuation(messages) {
     if (!replay) continue;
     for (let index = assistantIndex + 1; index < list.length; index += 1) {
       const message = list[index];
-      if (message?.role !== "user" && message?.role !== "tool") continue;
-      const result = (Array.isArray(message.content) ? message.content : [])
-        .find((block) => block?.type === "tool-result" && block.toolCallId === replay.pending.call_id);
-      if (result) return { ...replay, result };
+      const result = toolResultFromMessage(message, replay.pending.call_id);
+      if (!result) continue;
+      for (let later = index + 1; later < list.length; later += 1) {
+        if (list[later]?.role !== "user") continue;
+        const blocks = Array.isArray(list[later].content) ? list[later].content : [];
+        if (blocks.some((block) => block?.type !== "tool-result")) return undefined;
+      }
+      return { ...replay, result };
     }
     return undefined;
   }

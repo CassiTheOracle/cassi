@@ -1867,6 +1867,10 @@ struct vk_op_cassi_qi_field_step_push_constants {
     float scale_ratio;
     float energy_floor;
     float read_floor;
+    uint32_t read_absolute;
+    uint32_t memory_write;
+    uint32_t unwritten_latch;
+    float scale_read_taper;
 };
 
 struct vk_op_cassi_field_resonance_push_constants {
@@ -12464,6 +12468,10 @@ static void ggml_vk_cassi_qi_field_step(ggml_backend_vk_context * ctx, vk_contex
         ggml_get_op_params_f32(dst, 8),
         ggml_get_op_params_f32(dst, 9),
         ggml_get_op_params_f32(dst, 10),
+        (uint32_t) ggml_get_op_params_i32(dst, 11),
+        (uint32_t) ggml_get_op_params_i32(dst, 12),
+        (uint32_t) ggml_get_op_params_i32(dst, 13),
+        ggml_get_op_params_f32(dst, 14),
     };
     vk_pipeline pipeline = ggml_vk_op_get_pipeline(ctx, sense, state, mode_params, dst, GGML_OP_CASSI_QI_FIELD_STEP);
     GGML_ASSERT(pipeline != nullptr);
@@ -18740,6 +18748,7 @@ static bool ggml_backend_vk_device_supports_op(ggml_backend_dev_t dev, const ggm
                 const float scale_ratio = ggml_get_op_params_f32(op, 8);
                 const float energy_floor = ggml_get_op_params_f32(op, 9);
                 const float read_floor = ggml_get_op_params_f32(op, 10);
+                const float scale_read_taper = ggml_get_op_params_f32(op, 14);
                 if (state_mode_count <= 0 || wave_mode_count <= 0 ||
                     wave_mode_count > state_mode_count ||
                     token_count <= 0 || sequence_count <= 0 ||
@@ -18757,6 +18766,7 @@ static bool ggml_backend_vk_device_supports_op(ggml_backend_dev_t dev, const ggm
                     !std::isfinite(scale_ratio) || scale_ratio <= 0.0f ||
                     !std::isfinite(energy_floor) || energy_floor < 0.0f ||
                     !std::isfinite(read_floor) || read_floor < 0.0f ||
+                    !std::isfinite(scale_read_taper) ||
                     sense->ne[0] != 2 * wave_mode_count || sense->ne[2] != 1 || sense->ne[3] != 1 ||
                     state->ne[0] != 9 * state_mode_count * scale_count || state->ne[2] != 1 || state->ne[3] != 1 ||
                     mode_params->ne[1] != 1 || mode_params->ne[2] != 1 || mode_params->ne[3] != 1 ||
@@ -19844,6 +19854,10 @@ static void ggml_vk_check_results_0(ggml_backend_vk_context * ctx, ggml_cgraph *
                 ggml_get_op_params_f32(tensor, 8),
                 ggml_get_op_params_f32(tensor, 9),
                 ggml_get_op_params_f32(tensor, 10),
+                ggml_get_op_params_f32(tensor, 14),
+                ggml_get_op_params_i32(tensor, 11) != 0,
+                ggml_get_op_params_i32(tensor, 12) != 0,
+                ggml_get_op_params_i32(tensor, 13) != 0,
                 ggml_get_op_params_i32(tensor, 1));
         } else if (tensor->op == GGML_OP_CASSI_FIELD_RESONANCE) {
             tensor_clone = ggml_cassi_field_resonance(

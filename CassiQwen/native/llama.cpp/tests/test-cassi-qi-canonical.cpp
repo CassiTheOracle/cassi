@@ -92,7 +92,7 @@ result run_backend(
         context.get(), sense, state, modes, ids,
         SCALE_COUNT, PHI, DT, COUPLING,
         DAMPING_MIN, DAMPING_MAX, EPSILON_TAU,
-        SCALE_RATIO, ENERGY_FLOOR, READ_FLOOR, STEPS);
+        SCALE_RATIO, ENERGY_FLOOR, READ_FLOOR, 0.0f, false, false, true, STEPS);
 
     ggml_backend_buffer_ptr buffer(ggml_backend_alloc_ctx_tensors(context.get(), backend));
     if (!buffer) {

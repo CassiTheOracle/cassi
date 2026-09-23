@@ -473,3 +473,99 @@ def test_public_capacity_refusal_keeps_owner_usable(tmp_path) -> None:
         computer = owner.state.computers[0]
         assert computer.profile.mode_count == 65_536
         assert computer.inspect()["status"] != "faulted"
+
+
+def test_settled_owner_invocation_is_atomic_replayable_and_capacity_safe(
+    tmp_path,
+) -> None:
+    root = tmp_path / "settled"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "settled", "settled-configure", "configure")
+        call(
+            owner,
+            "settled",
+            "settled-submit",
+            "submit",
+            kernel="cognition.field",
+            state=semantic_cognition_state(),
+            arguments={"operation": "inspect", "operation_id": "seed"},
+            steps=64,
+        )
+        before_generation = owner.state.generation
+        settled = call(
+            owner,
+            "settled",
+            "settled-inspect",
+            "invoke-settled",
+            arguments={
+                "operation": "inspect",
+                "operation_id": "settled-inspect-semantic",
+            },
+        )
+        receipt = settled["result"]["receipt"]
+        assert receipt["schema"] == (
+            "cassifi.learning-computer-invoke-settled-receipt.v1"
+        )
+        assert receipt["consumed_result"]["status"] == "supported"
+        assert receipt["quanta"] >= 1
+        assert owner.state.generation == before_generation + 1
+        settled_sha256 = owner.state.state_sha256
+        capacity = owner.state.computers[0].inspect()["region_capacity"]
+        assert capacity["task"]["available_words"] == (
+            capacity["task"]["capacity_words"]
+            - capacity["task"]["used_words"]
+        )
+
+        replay = call(
+            owner,
+            "settled",
+            "settled-inspect",
+            "invoke-settled",
+            arguments={
+                "operation": "inspect",
+                "operation_id": "settled-inspect-semantic",
+            },
+        )
+        assert replay["result"]["receipt"] == receipt
+        assert replay["result"]["checkpoint_receipt"]["replayed"] is True
+        assert owner.state.state_sha256 == settled_sha256
+        assert owner.state.generation == before_generation + 1
+
+        with pytest.raises(FieldIntelligenceError) as error:
+            call(
+                owner,
+                "settled",
+                "settled-too-large",
+                "invoke-settled",
+                arguments={
+                    "operation": "inspect",
+                    "operation_id": "settled-too-large-semantic",
+                    "padding": "x" * 1_000_000,
+                },
+            )
+        assert error.value.code == "WORK_CAPACITY"
+        assert "regional capacity" in str(error.value)
+        assert owner.state.state_sha256 == settled_sha256
+        assert owner.state.generation == before_generation + 1
+
+        recovered = call(
+            owner,
+            "settled",
+            "settled-after-refusal",
+            "invoke-settled",
+            arguments={
+                "operation": "inspect",
+                "operation_id": "settled-after-refusal-semantic",
+            },
+        )
+        assert recovered["result"]["receipt"]["consumed_result"]["status"] == (
+            "supported"
+        )
+        final_sha256 = owner.state.state_sha256
+
+    with FieldIntelligenceOwner(root) as reopened:
+        assert reopened.state.state_sha256 == final_sha256
+        assert (
+            reopened.state.computers[0].inspect()["consumed_result"]["status"]
+            == "supported"
+        )

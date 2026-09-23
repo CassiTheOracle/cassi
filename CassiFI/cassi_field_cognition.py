@@ -3,7 +3,9 @@ from __future__ import annotations
 """Cognitive operations whose learned content remains in one field atlas."""
 
 import json
+import itertools
 import math
+import sys
 from dataclasses import dataclass, replace
 from typing import Any, Mapping, Sequence, cast
 
@@ -24,9 +26,12 @@ from cassi_field_program import (
     MECHANISM_STEP_MAX_WORK,
     SEMANTIC_MECHANISM_KINDS,
     SEMANTIC_REPRESENTATION_SCHEMA,
+    SURFACE_PROCEDURE_SCHEMA,
+    advance_surface_procedure,
     apply_semantic_representation_edits,
     canonical_semantic_representation_edits,
     canonical_semantic_program_payload,
+    canonical_table,
     execute_semantic_program,
     semantic_program_payload,
 )
@@ -62,6 +67,45 @@ from cassi_resonant_field import (
     split_helical_packet,
     workspace_from_regional_state,
 )
+from cassi_field_open_vocab import (
+    OpenVocabError,
+    canonical_action_schema,
+    canonical_grounded_episode,
+    canonical_term,
+    candidate_digest,
+    generate_relational_plan,
+    induce_action_schema_candidates,
+    instantiate_template,
+    repair_relational_plan,
+)
+from cassi_math_language import (
+    MATH_LANGUAGE_SCHEMA,
+    MathLanguageError,
+    canonical_math_term,
+    canonical_math_template,
+    instantiate_math_template,
+    match_math_template,
+    parse_english,
+    parse_latex,
+    render_english,
+    render_latex,
+    solve_linear_equation,
+    solve_linear_inequality,
+    validate_math_lessons,
+)
+from cassi_field_affect import (
+    AFFECT_APPRAISAL_SCHEMA,
+    AFFECT_MODES,
+    AFFECT_REGULATION_SCHEMA,
+    AFFECT_SIGNAL_NAMES,
+    affect_adjustment,
+    affect_appraisals,
+    affect_context,
+    affect_evidence,
+    appraisal_signals,
+    known_signal,
+    projection_key,
+)
 MAX_INQUIRY_SURVIVORS = 4_096
 MAX_INQUIRY_OPERATIONS = 256
 MAX_INQUIRY_INTERVALS = 131_072
@@ -96,6 +140,7 @@ PACKET_CUE_SCHEMA = "cassifi.packet-reasoning-cue.v1"
 PACKET_READOUT_SCHEMA = "cassifi.packet-affine-readout.v1"
 PACKET_BOUND_SCHEMA = "cassifi.packet-readout-bound.v1"
 PACKET_SCHEDULER_SCHEMA = "cassifi.packet-reasoning-scheduler.v1"
+PACKET_SCHEDULER_FAIRNESS_BOUND = 4
 _PACKET_MAXIMUM_ABSOLUTE_VALUE = float.fromhex("0x1.fffffffffffffp+1023")
 PACKET_RESOURCE_NAMES = (
     "branch_count",
@@ -119,6 +164,7 @@ PACKET_REASONING_PHASES = frozenset(
 PACKET_WORK_KINDS = frozenset(
     {
         "branch",
+        "collective",
         "model-native",
         "readout",
         "refine",
@@ -137,55 +183,119 @@ PACKET_SELECTION_METHODS = frozenset(
         "static",
     }
 )
-PACKET_SCHEDULER_FAIRNESS_BOUND = 4
 SEMANTIC_OPERATION_NAMES = frozenset(
     {
         "acknowledgment",
+        "affect-state",
+        "appraise-experience",
+        "regulate-affect",
+        "assess-affect-outcome",
+        "authorize-action",
+        "admit-action-schema",
+        "admit-open-vocab-episode",
         "admit-reasoning-input",
         "advance-invalidation",
         "advance-reasoning",
+        "advance-surface-procedure",
         "advance-time",
         "assess-prediction",
-        "authorize-action",
+        "assess-mechanism-experiment",
+        "assess-distributed-phase-flow",
+        "assess-phase-current-topology",
         "cancel-action",
         "begin-reasoning",
+        "autobiography",
         "consolidate",
+        "demote-memory",
+        "expand-memory",
         "correct",
         "dispatch-action",
         "explain",
         "finish-development",
         "finish-reasoning",
         "express",
+        "express-math",
         "idle",
-        "inquire",
+        "maintain-memory",
+        "match-relevance",
+        "memory-awareness",
         "inspect",
-        "run-development",
-        "reuse-development-method",
-        "start-development",
+        "inquire",
         "interpret",
+        "autonomous-curiosity",
+        "autonomous-perception",
+        "autonomous-agenda",
+        "design-mechanism-experiment",
+        "design-distributed-phase-flow",
+        "design-phase-current-topology",
+        "synthesize-experiment-language",
+        "revise-experiment-constructor",
+        "assess-experiment-language",
+        "invoke-experiment-language",
+        "synthesize-research-program",
+        "record-research-authority",
+        "advance-research-program",
+        "query-research-program",
+        "continue-distributed-phase-flow",
+        "continue-phase-current-topology",
+        "autonomous-learn",
         "learn",
         "learn-construction",
+        "learn-math",
         "learn-hybrid",
         "learn-mechanism",
         "learn-parameters",
         "learn-predictive-state",
         "learn-procedure",
+        "invoke-procedure",
+        "discover-procedure",
         "learn-representation",
         "mechanism-step",
         "migrate",
-        "observe",
+        "interpret-open-vocab",
         "plan",
+        "plan-procedure",
+        "plan-open-vocab",
+        "observe",
         "predict",
+        "quiet-synthesis",
+        "recall-cancel",
+        "recall-outcome",
+        "recall-request",
+        "recall-use",
+        "register-relevance",
+        "reinterpret-memory",
+        "propose-action-schema",
         "query",
+        "history-select",
         "register",
+        "update-perspective",
+        "repair-open-vocab-plan",
         "revise",
         "reopen-development",
         "revoke",
+        "run-development",
+        "reuse-development-method",
+        "sequence-frontier",
+        "sequence-route",
+        "start-development",
+        "teacher-control",
         "track-action",
-        "update-perspective",
         "wait",
     }
 )
+SEMANTIC_LEARNING_KINDS = {
+    "construction": "learn-construction",
+    "math": "learn-math",
+    "hybrid": "learn-hybrid",
+    "mechanism": "learn-mechanism",
+    "predictive-state": "learn-predictive-state",
+    "procedure": "learn-procedure",
+    "parameters": "learn-parameters",
+    "representation": "learn-representation",
+    "action-schema": "learn-action-schema",
+}
+
 SEMANTIC_PROGRAM_LIBRARY_ROLES = {
     "affordance": "affordances",
     "development-method": "development_methods",
@@ -200,8 +310,12 @@ SEMANTIC_PROGRAM_ROLES = frozenset(
         *SEMANTIC_PROGRAM_LIBRARY_ROLES,
         "consolidation",
         "migration",
+        "distributed-phase-flow-experiment",
+        "mechanism-experiment",
+        "phase-current-topology-experiment",
         "plan",
         "reasoning",
+        "research-program",
     }
 )
 
@@ -255,6 +369,22 @@ def _finite(value: Any, label: str, *, positive: bool = False) -> float:
             f"{label} must be finite{' and positive' if positive else ''}",
         )
     return result
+
+def _resolution_floor(
+    prediction: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    loss_scale: float,
+) -> float:
+    magnitude = 1.0
+    for value in (*prediction.values(), *outcome.values()):
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)) and math.isfinite(float(value)):
+            magnitude = max(magnitude, abs(float(value)))
+    return min(
+        1.0,
+        128.0 * sys.float_info.epsilon * magnitude / loss_scale,
+    )
 
 
 def _json(value: Any, label: str) -> Any:
@@ -1295,6 +1425,7 @@ def regional_program_state(
     authority_generation: int = 0,
     assessment_sequence: int | None = None,
     loss_scale: float = 1.0,
+    resolution_floor: float | None = None,
     context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Lower one candidate/program assessment to resumable typed task data."""
@@ -1307,6 +1438,14 @@ def regional_program_state(
         authority_generation, "authority generation", maximum=2**53
     )
     scale = _finite(loss_scale, "assessment loss scale", positive=True)
+    declared_floor = None
+    if resolution_floor is not None:
+        declared_floor = _finite(resolution_floor, "resolution floor")
+        if declared_floor < 0:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "resolution floor must be nonnegative",
+            )
     sequence = (
         len(source_program.get("assessments", [])) + 1
         if assessment_sequence is None
@@ -1336,6 +1475,7 @@ def regional_program_state(
             )
         _digest(event_id, "assessment event_id")
     source = {
+        "resolution_floor": declared_floor,
         "program": source_program,
         "bindings": normalized_bindings,
         "outcome": normalized_outcome,
@@ -2200,6 +2340,28 @@ def _regional_program_step(current: dict[str, Any]) -> None:
             positive=True,
         )
         normalized_loss = min(1.0, math.sqrt(squared) / scale)
+        automatic_floor = _resolution_floor(prediction, outcome, scale)
+        declared_floor = source.get("resolution_floor")
+        if declared_floor is None:
+            resolution_floor = automatic_floor
+            resolution_status = (
+                "unresolved"
+                if 0.0 < normalized_loss <= resolution_floor
+                else "resolved"
+            )
+        else:
+            resolution_floor = _finite(declared_floor, "resolution floor")
+            if resolution_floor < 0:
+                raise FieldIntelligenceError(
+                    "INVALID_ASSESSMENT",
+                    "resolution floor must be nonnegative",
+                )
+            resolution_floor = max(automatic_floor, resolution_floor)
+            resolution_status = (
+                "unresolved"
+                if normalized_loss <= resolution_floor
+                else "resolved"
+            )
     except FieldIntelligenceError as exc:
         _regional_finish(
             current,
@@ -2219,6 +2381,8 @@ def _regional_program_step(current: dict[str, Any]) -> None:
             "outcome": outcome,
             "prediction_id": source["prediction_id"],
             "program_id": program["program_id"],
+            "resolution_floor": resolution_floor,
+            "resolution_status": resolution_status,
         }
     )
     _regional_finish(
@@ -2231,6 +2395,8 @@ def _regional_program_step(current: dict[str, Any]) -> None:
             "program_id": program["program_id"],
             "program_version": program["version"],
             "prediction": prediction,
+            "resolution_floor": resolution_floor,
+            "resolution_status": resolution_status,
             "outcome": outcome,
             "normalized_loss": normalized_loss,
             "sequence": source["assessment_sequence"],
@@ -2270,12 +2436,26 @@ def _regional_program_promotion_step(current: dict[str, Any]) -> None:
             for assessment in assessments
             if isinstance(assessment, dict)
         )
+        resolution_statuses = [
+            assessment.get("resolution_status", "resolved")
+            for assessment in assessments
+            if isinstance(assessment, dict)
+        ]
+        resolution_floors = [
+            assessment.get("resolution_floor", 0.0)
+            for assessment in assessments
+            if isinstance(assessment, dict)
+        ]
+        unresolved_assessment_count = sum(
+            status != "resolved" for status in resolution_statuses
+        )
         adequate = (
             row.get("status") == "candidate"
             and len(assessments) >= source["minimum_assessments"]
             and len(set(event_ids)) == len(event_ids)
             and assessments
             and loss / len(assessments) <= source["maximum_average_loss"]
+            and unresolved_assessment_count == 0
             and not row.get("known_exceptions", [])
         )
         continuation["evaluated"].append(
@@ -2284,6 +2464,9 @@ def _regional_program_promotion_step(current: dict[str, Any]) -> None:
                 "assessment_count": len(assessments),
                 "average_loss": 0.0 if not assessments else loss / len(assessments),
                 "eligible": bool(adequate),
+                "resolution_floors": resolution_floors,
+                "resolution_statuses": resolution_statuses,
+                "unresolved_assessment_count": unresolved_assessment_count,
             }
         )
         if adequate:
@@ -2606,6 +2789,8 @@ def _regional_construction_learning_step(current: dict[str, Any]) -> None:
         "guards": source["guards"],
         "variable_spans": True,
         "status": "promoted",
+        "resolution_floor": 0.0,
+        "resolution_status": "resolved",
     }
     variants = continuation.get("pattern_variants", [])
     if len(variants) > 1:
@@ -3992,6 +4177,188 @@ class FieldCognition:
         )
         return successor, tuple(row.program_id for row in additions)
 
+    @staticmethod
+    def _compose_program_candidate(
+        state: AtlasState,
+        *,
+        component_program_ids: Sequence[str],
+        candidate_id: str,
+    ) -> FieldProgram:
+        ids = tuple(component_program_ids)
+        if len(ids) < 2 or len(set(ids)) != len(ids):
+            raise FieldIntelligenceError(
+                "INVALID_COMPOSITION",
+                "composition needs at least two distinct programs",
+            )
+        components = tuple(state.program(program_id) for program_id in ids)
+        if any(program.status != "promoted" for program in components):
+            raise FieldIntelligenceError(
+                "INVALID_COMPOSITION",
+                "only promoted programs can be composed",
+            )
+        roles: list[str] = []
+        outputs: list[str] = []
+        steps: list[PrimitiveStep] = []
+        support_event_ids: list[str] = []
+        guards: list[Guard] = []
+        prefix_code_bits = 0
+        for program in components:
+            for role in program.roles:
+                if role not in roles:
+                    roles.append(role)
+            for output in program.outputs:
+                if output in outputs:
+                    raise FieldIntelligenceError(
+                        "INVALID_COMPOSITION",
+                        "composed programs must have disjoint outputs",
+                        details={"output": output},
+                    )
+                outputs.append(output)
+            steps.extend(program.steps)
+            for event_id in program.support_event_ids:
+                if event_id not in support_event_ids:
+                    support_event_ids.append(event_id)
+            for guard in program.guards:
+                if guard not in guards:
+                    guards.append(guard)
+            prefix_code_bits += program.prefix_code_bits
+        return FieldProgram(
+            program_id=_identifier(candidate_id, "composition candidate_id"),
+            version=1,
+            roles=tuple(roles),
+            steps=tuple(steps),
+            outputs=tuple(outputs),
+            guards=tuple(guards),
+            support_event_ids=tuple(support_event_ids),
+            prefix_code_bits=max(1, prefix_code_bits),
+            status="candidate",
+        )
+
+    def propose_program_composition(
+        self,
+        state: AtlasState,
+        *,
+        problem_id: str,
+        component_program_ids: Sequence[str],
+    ) -> tuple[AtlasState, tuple[str, ...]]:
+        _identifier(problem_id, "composition problem_id")
+        candidate_id = f"{problem_id}:candidate:000:compose"
+        candidate = self._compose_program_candidate(
+            state,
+            component_program_ids=component_program_ids,
+            candidate_id=candidate_id,
+        )
+        if candidate.program_id in {program.program_id for program in state.programs}:
+            return state, (candidate.program_id,)
+        successor = state.with_transition(
+            "program-compositions-proposed",
+            {
+                "candidate_ids": [candidate.program_id],
+                "component_program_ids": list(component_program_ids),
+                "problem_id": problem_id,
+            },
+            programs=(*state.programs, candidate),
+        )
+        return successor, (candidate.program_id,)
+
+    def propose_program_compositions(
+        self,
+        state: AtlasState,
+        *,
+        problem_id: str,
+        program_ids: Sequence[str],
+        minimum_components: int = 2,
+        maximum_components: int = 3,
+        maximum_candidates: int = 32,
+        maximum_steps: int = 16,
+        maximum_prefix_code_bits: int = 256,
+    ) -> tuple[AtlasState, tuple[str, ...]]:
+        _identifier(problem_id, "composition frontier problem_id")
+        ids = tuple(program_ids)
+        if len(ids) < 2 or len(set(ids)) != len(ids):
+            raise FieldIntelligenceError(
+                "INVALID_COMPOSITION",
+                "composition frontier needs distinct programs",
+            )
+        integer_bounds = (
+            ("minimum_components", minimum_components, 2),
+            ("maximum_components", maximum_components, 2),
+            ("maximum_candidates", maximum_candidates, 1),
+            ("maximum_steps", maximum_steps, 1),
+            ("maximum_prefix_code_bits", maximum_prefix_code_bits, 1),
+        )
+        for name, value, lower in integer_bounds:
+            if isinstance(value, bool) or not isinstance(value, int) or value < lower:
+                raise FieldIntelligenceError(
+                    "INVALID_COMPOSITION",
+                    f"{name} must be an integer above its lower bound",
+                )
+        if minimum_components > maximum_components or maximum_components > len(ids):
+            raise FieldIntelligenceError(
+                "INVALID_COMPOSITION",
+                "composition component bounds are inconsistent",
+            )
+        for program_id in ids:
+            program = state.program(program_id)
+            if program.status != "promoted":
+                raise FieldIntelligenceError(
+                    "INVALID_COMPOSITION",
+                    "composition frontier requires promoted programs",
+                )
+        planned_ids: list[str] = []
+        planned_components: list[tuple[str, ...]] = []
+        additions: list[FieldProgram] = []
+        existing_ids = {program.program_id for program in state.programs}
+        for component_count in range(minimum_components, maximum_components + 1):
+            for component_ids in itertools.combinations(ids, component_count):
+                if len(planned_ids) >= maximum_candidates:
+                    break
+                candidate_id = (
+                    f"{problem_id}:candidate:{len(planned_ids):03d}:"
+                    f"compose{component_count}"
+                )
+                try:
+                    candidate = self._compose_program_candidate(
+                        state,
+                        component_program_ids=component_ids,
+                        candidate_id=candidate_id,
+                    )
+                except FieldIntelligenceError as exc:
+                    if exc.code != "INVALID_COMPOSITION":
+                        raise
+                    continue
+                if (
+                    len(candidate.steps) > maximum_steps
+                    or candidate.prefix_code_bits > maximum_prefix_code_bits
+                ):
+                    continue
+                planned_ids.append(candidate.program_id)
+                planned_components.append(component_ids)
+                if candidate.program_id not in existing_ids:
+                    additions.append(candidate)
+            if len(planned_ids) >= maximum_candidates:
+                break
+        if not planned_ids:
+            raise FieldIntelligenceError(
+                "INVALID_COMPOSITION",
+                "composition frontier has no candidate within its bounds",
+            )
+        if not additions:
+            return state, tuple(planned_ids)
+        successor = state.with_transition(
+            "program-composition-frontier-proposed",
+            {
+                "candidate_ids": list(planned_ids),
+                "component_program_ids": [list(item) for item in planned_components],
+                "maximum_candidates": maximum_candidates,
+                "maximum_prefix_code_bits": maximum_prefix_code_bits,
+                "maximum_steps": maximum_steps,
+                "problem_id": problem_id,
+            },
+            programs=(*state.programs, *additions),
+        )
+        return successor, tuple(planned_ids)
+
     def begin_program_assessment(
         self,
         state: AtlasState,
@@ -4049,6 +4416,7 @@ class FieldCognition:
         outcome: Mapping[str, Any],
         event_id: str,
         loss_scale: float,
+        resolution_floor: float | None = None,
     ) -> tuple[AtlasState, AssessmentRecord]:
         program = state.program(program_id)
         try:
@@ -4103,6 +4471,27 @@ class FieldCognition:
                 squared += 0.0 if predicted_value == actual_value else 1.0
         scale = _finite(loss_scale, "assessment loss scale", positive=True)
         loss = min(1.0, math.sqrt(squared) / scale)
+        automatic_floor = _resolution_floor(
+            prediction.predicted,
+            normalized_outcome,
+            scale,
+        )
+        if resolution_floor is None:
+            floor = automatic_floor
+            status = (
+                "unresolved"
+                if 0.0 < loss <= floor
+                else "resolved"
+            )
+        else:
+            declared_floor = _finite(resolution_floor, "resolution floor")
+            if declared_floor < 0:
+                raise FieldIntelligenceError(
+                    "INVALID_ASSESSMENT",
+                    "resolution floor must be nonnegative",
+                )
+            floor = max(automatic_floor, declared_floor)
+            status = "unresolved" if loss <= floor else "resolved"
         record = AssessmentRecord(
             assessment_id=sha256_value(
                 {
@@ -4110,6 +4499,8 @@ class FieldCognition:
                     "outcome": normalized_outcome,
                     "prediction_id": prediction_id,
                     "program_id": program_id,
+                    "resolution_floor": floor,
+                    "resolution_status": status,
                 }
             ),
             prediction=dict(prediction.predicted),
@@ -4117,6 +4508,8 @@ class FieldCognition:
             normalized_loss=loss,
             event_id=normalized_event_id,
             sequence=len(program.assessments) + 1,
+            resolution_floor=floor,
+            resolution_status=status,
         )
         updated_program = program.record_assessment(record)
         updated_prediction = replace(
@@ -4138,6 +4531,8 @@ class FieldCognition:
                 "assessment_id": record.assessment_id,
                 "normalized_loss": record.normalized_loss,
                 "program_id": program_id,
+                "resolution_floor": record.resolution_floor,
+                "resolution_status": record.resolution_status,
             },
             programs=programs,
             predictions=predictions,
@@ -4175,6 +4570,10 @@ class FieldCognition:
             and len({item.event_id for item in row.assessments})
             == len(row.assessments)
             and row.prequential_loss / len(row.assessments) <= threshold
+            and not any(
+                item.resolution_status == "unresolved"
+                for item in row.assessments
+            )
             and not row.known_exceptions
         ]
         if not adequate:
@@ -4319,6 +4718,8 @@ class FieldCognition:
                     "construction_id": construction_id,
                     "event_id": event_id,
                     "expected_roles": dict(expected_roles),
+                    "resolution_floor": 0.0,
+                    "resolution_status": "resolved",
                     "text": text,
                 }
             ),
@@ -4327,6 +4728,8 @@ class FieldCognition:
             normalized_loss=loss,
             event_id=normalized_event_id,
             sequence=len(construction.assessments) + 1,
+            resolution_floor=0.0,
+            resolution_status="resolved",
         )
         updated = construction.record_assessment(record)
         constructions = tuple(
@@ -4370,6 +4773,10 @@ class FieldCognition:
             or len({row.event_id for row in construction.assessments})
             != len(construction.assessments)
             or any(row.normalized_loss != 0 for row in construction.assessments)
+            or any(
+                row.resolution_status != "resolved"
+                for row in construction.assessments
+            )
         ):
             raise FieldIntelligenceError(
                 "PROMOTION_UNSUPPORTED",
@@ -5018,6 +5425,104 @@ def semantic_cognition_state(
         _semantic_reindex_record(state, reference)
     return _canonical_semantic_state(state)
 
+class _CanonicalSemanticState(dict[str, Any]):
+    """Validated semantic state safe for one in-memory regional reuse."""
+
+    _cassi_region_reusable = True
+    _cassi_canonical_json_trusted = True
+
+
+def _canonical_member_replacement(
+    raw: bytes,
+    name: str,
+    before: Any,
+    after: Any,
+) -> tuple[int, int, bytes] | None:
+    prefix = b'"' + name.encode("utf-8") + b'":'
+    old_member = prefix + canonical_json_bytes(before)
+    start = raw.find(old_member)
+    if start < 0 or raw.find(old_member, start + 1) >= 0:
+        return None
+    return (
+        start,
+        start + len(old_member),
+        prefix + canonical_json_bytes(after),
+    )
+
+
+def _attach_semantic_progress_json(
+    previous: _CanonicalSemanticState | None,
+    current: _CanonicalSemanticState,
+) -> None:
+    if previous is None or previous["status"] != current["status"]:
+        return
+    for key in current:
+        if key not in {"continuation", "last_result", "status"} and (
+            current[key] is not previous[key]
+        ):
+            return
+    raw = getattr(previous, "_cassi_canonical_json", None)
+    if not isinstance(raw, bytes):
+        return
+    replacements = [
+        _canonical_member_replacement(
+            raw,
+            name,
+            previous[name],
+            current[name],
+        )
+        for name in ("continuation", "last_result")
+    ]
+    if any(item is None for item in replacements):
+        return
+    ordered = sorted(
+        item for item in replacements if item is not None
+    )
+    if ordered[0][1] > ordered[1][0]:
+        return
+    current._cassi_canonical_json = b"".join(
+        (
+            raw[:ordered[0][0]],
+            ordered[0][2],
+            raw[ordered[0][1]:ordered[1][0]],
+            ordered[1][2],
+            raw[ordered[1][1]:],
+        )
+    )
+
+
+class _CanonicalSemanticRecords(dict[str, list[dict[str, Any]]]):
+    """Marker for histories fully normalized by semantic state validation."""
+
+
+def _resolve_canonical_semantic_record(
+    records: _CanonicalSemanticRecords,
+    reference: SemanticRef,
+    *,
+    require_current: bool = False,
+) -> dict[str, Any]:
+    """Resolve a reference without revalidating an already-closed history."""
+
+    versions = records.get(reference.id)
+    selected = (
+        versions[reference.content_version - 1]
+        if versions is not None
+        and 0 < reference.content_version <= len(versions)
+        else None
+    )
+    if (
+        selected is None
+        or selected["id"] != reference.id
+        or selected["kind"] != reference.kind
+    ):
+        raise RegionalFieldError(
+            "semantic reference version or type is stale"
+        )
+    if require_current and reference.content_version != len(versions):
+        raise RegionalFieldError("semantic reference is not current")
+    return selected
+
+
 
 def _semantic_index_record(
     records: Mapping[str, Sequence[Mapping[str, Any]]],
@@ -5032,10 +5537,18 @@ def _semantic_index_record(
 
     try:
         reference = SemanticRef.from_dict(raw_reference)
-        record = resolve_semantic_record(
-            records,
-            reference,
-            require_current=require_current,
+        record = (
+            _resolve_canonical_semantic_record(
+                records,
+                reference,
+                require_current=require_current,
+            )
+            if isinstance(records, _CanonicalSemanticRecords)
+            else resolve_semantic_record(
+                records,
+                reference,
+                require_current=require_current,
+            )
         )
     except RegionalFieldError as exc:
         raise FieldIntelligenceError(
@@ -5876,7 +6389,10 @@ def _semantic_validate_action_proposal(
         label="semantic proposal affordance",
         require_current=False,
     )
-    if affordance_record["payload"].get("program_role") != "affordance":
+    if affordance_record["payload"].get("program_role") not in {
+        "affordance",
+        "procedure",
+    }:
         raise FieldIntelligenceError(
             "INVALID_SEMANTIC_STATE",
             "semantic proposal affordance has the wrong Program role",
@@ -6075,7 +6591,7 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
             "INVALID_SEMANTIC_STATE", "semantic records must be a mapping"
         )
     total_versions = 0
-    normalized_records: dict[str, list[dict[str, Any]]] = {}
+    normalized_records = _CanonicalSemanticRecords()
     expected_current = _semantic_empty_current()
     for record_id, raw_history in state["records"].items():
         _identifier(record_id, "semantic record identity")
@@ -6120,9 +6636,11 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
             )
         normalized_records[record_id] = history
         latest = history[-1]
-        expected_current[latest["kind"]][record_id] = (
-            semantic_record_ref(latest).as_dict()
-        )
+        expected_current[latest["kind"]][record_id] = SemanticRef(
+            latest["id"],
+            latest["kind"],
+            latest["content_version"],
+        ).as_dict()
         total_versions += len(history)
     if total_versions > state["bounds"]["max_records"]:
         raise FieldIntelligenceError(
@@ -6137,7 +6655,10 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
         for record in history:
             for dependency in record["dependencies"]:
                 try:
-                    resolve_semantic_record(normalized_records, dependency)
+                    _resolve_canonical_semantic_record(
+                        normalized_records,
+                        SemanticRef.from_dict(dependency),
+                    )
                 except RegionalFieldError as exc:
                     raise FieldIntelligenceError(
                         "INVALID_SEMANTIC_REFERENCE",
@@ -6724,7 +7245,7 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
                 "INVALID_SEMANTIC_STATE",
                 "semantic last result is not ledger-backed",
             )
-    return state
+    return _CanonicalSemanticState(state)
 
 
 def _semantic_current_record(
@@ -7442,6 +7963,59 @@ def _mechanism_required_work(program: Mapping[str, Any], depth: int = 0) -> int:
     canonical = _canonical_mechanism_program(program)
     kind = canonical["program_kind"]
     body = canonical["body"]
+    if kind == "context-tree":
+        features = body.get("features", [])
+        tree = body.get("tree")
+        if not isinstance(features, list) or not isinstance(tree, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_PROGRAM", "context tree body is invalid"
+            )
+
+        def tree_work(node: Mapping[str, Any], tree_depth: int) -> int:
+            if tree_depth > 8:
+                raise FieldIntelligenceError(
+                    "INVALID_MECHANISM_PROGRAM",
+                    "context tree nesting is exhausted",
+                )
+            if node.get("kind") == "leaf":
+                nested = node.get("program")
+                if not isinstance(nested, Mapping):
+                    raise FieldIntelligenceError(
+                        "INVALID_MECHANISM_PROGRAM",
+                        "context tree leaf program is invalid",
+                    )
+                return _mechanism_required_work(nested, depth + 1)
+            match = node.get("match")
+            otherwise = node.get("otherwise")
+            if not isinstance(match, Mapping) or not isinstance(
+                otherwise, Mapping
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_MECHANISM_PROGRAM",
+                    "context tree split is invalid",
+                )
+            return 1 + max(
+                tree_work(match, tree_depth + 1),
+                tree_work(otherwise, tree_depth + 1),
+            )
+
+        return max(1, len(features) + tree_work(tree, 0))
+    if kind == "conditional":
+        body_branches = body.get("branches", [])
+        if not isinstance(body_branches, list):
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_PROGRAM", "conditional branches are invalid"
+            )
+        nested_work = max(
+            (
+                _mechanism_required_work(item["program"], depth + 1)
+                for item in body_branches
+                if isinstance(item, Mapping)
+                and isinstance(item.get("program"), Mapping)
+            ),
+            default=1,
+        )
+        return max(1, len(body_branches) + nested_work)
     if kind == "table":
         rows = body.get("rows", [])
         if not isinstance(rows, list):
@@ -8538,8 +9112,8 @@ def _semantic_observe(
             valid_time=obligation_time,
             scope=request.get("scope", state["scope"]),
         )
-
         obligation_refs.append(obligation_ref)
+
     frontier = _semantic_invalidate(
         state, changed_refs, reason="binding-revision"
     )
@@ -9809,6 +10383,899 @@ def _semantic_query(
     raise FieldIntelligenceError(
         "INVALID_QUERY", f"unsupported semantic query kind: {kind}"
     )
+    if kind == "joint":
+        if set(query) != {"joint_id", "kind"}:
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "joint query keys are invalid"
+            )
+        joint_id = _identifier(query["joint_id"], "joint belief identity")
+        raw_ref = state["beliefs"]["joint"].get(joint_id)
+        if raw_ref is None:
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                limitations=["joint-belief-unavailable"],
+            ), 1
+        _, record = _semantic_reference(state, raw_ref, require_current=True)
+        alternatives = record["payload"]["alternatives"]
+        is_active = record["status"] == "active"
+        status = (
+            "support-gap"
+            if not is_active
+            else ("alternatives" if len(alternatives) > 1 else "supported")
+        )
+        return _semantic_result(
+            "query",
+            status,
+            answer=(alternatives[0] if is_active and len(alternatives) == 1 else None),
+            alternatives=alternatives,
+            joint_belief=raw_ref,
+            belief_semantics=record["payload"].get("belief_semantics"),
+            probability_model=record["payload"].get("probability_model"),
+            limitations=[] if is_active else [record["status"]],
+        ), 1
+    if kind == "predictive-state":
+        allowed = {
+            "action",
+            "context",
+            "history",
+            "kind",
+            "question",
+            "representation_id",
+            "signature",
+        }
+        if (
+            set(query) - allowed
+            or not {
+                "history",
+                "kind",
+                "representation_id",
+                "signature",
+            }.issubset(query)
+            or not isinstance(query["history"], list)
+            or not isinstance(query.get("action", {}), Mapping)
+            or not isinstance(query.get("context", {}), Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "predictive-state query is invalid"
+            )
+        representation_id = _identifier(
+            query["representation_id"], "predictive state identity"
+        )
+        raw_ref = state["beliefs"]["predictive_classes"].get(
+            representation_id
+        )
+        if raw_ref is None:
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                representation=None,
+                limitations=["predictive-state-unavailable"],
+            ), 1
+        _, record = _semantic_reference(state, raw_ref, require_current=True)
+        if record["status"] != "active":
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                representation=raw_ref,
+                limitations=[f"predictive-state-{record['status']}"],
+            ), 1
+        program = canonical_semantic_program_payload(
+            record["payload"]["program"]
+        )
+        body = program["body"]
+        window = _regional_integer(
+            body.get("window"),
+            "predictive state window",
+            minimum=1,
+            maximum=256,
+        )
+        classes = body.get("classes")
+        if not isinstance(classes, list):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "predictive state classes are invalid",
+            )
+        query_signature = _semantic_predictive_signature(
+            query["signature"], "predictive query signature"
+        )
+        if query_signature != body.get("signature"):
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                representation=raw_ref,
+                signature=query_signature,
+                limitations=["predictive-signature-mismatch"],
+            ), 1
+        history = _regional_plain(
+            query["history"][-window:], "predictive query history"
+        )
+        condition = {
+            "action": _regional_plain(
+                dict(query.get("action", {})), "predictive query action"
+            ),
+            "context": _regional_plain(
+                dict(query.get("context", {})), "predictive query context"
+            ),
+            "question": _regional_plain(
+                query.get("question"), "predictive query question"
+            ),
+        }
+        selected_class: Mapping[str, Any] | None = None
+        for candidate in classes:
+            if not isinstance(candidate, Mapping) or not isinstance(
+                candidate.get("histories"), list
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_SEMANTIC_STATE",
+                    "predictive state class is invalid",
+                )
+            if history in candidate["histories"]:
+                selected_class = candidate
+                break
+        if selected_class is None:
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                representation=raw_ref,
+                signature=query_signature,
+                limitations=["predictive-history-uncovered"],
+            ), max(1, len(classes))
+        tests = selected_class.get("tests")
+        if not isinstance(tests, list):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "predictive state tests are invalid",
+            )
+        selected_test = next(
+            (
+                test
+                for test in tests
+                if isinstance(test, Mapping)
+                and test.get("condition") == condition
+            ),
+            None,
+        )
+        if selected_test is None or not isinstance(
+            selected_test.get("consequences"), list
+        ):
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                representation=raw_ref,
+                class_id=selected_class.get("class_id"),
+                signature=query_signature,
+                limitations=["predictive-condition-uncovered"],
+            ), max(1, len(tests))
+        prediction_semantics = selected_test.get("prediction_semantics")
+        if prediction_semantics not in {"constraint-set", "probability"}:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "predictive state semantics are invalid",
+            )
+        consequences = selected_test["consequences"]
+        alternatives = []
+        for item in consequences:
+            expected = (
+                {"future", "support_count", "weight"}
+                if prediction_semantics == "probability"
+                else {"future", "support_count"}
+            )
+            if not isinstance(item, Mapping) or set(item) != expected:
+                raise FieldIntelligenceError(
+                    "INVALID_SEMANTIC_STATE",
+                    "predictive state consequence is invalid",
+                )
+            alternative = {
+                "support_count": item["support_count"],
+                "values": item["future"],
+            }
+            if prediction_semantics == "probability":
+                alternative["weight"] = item["weight"]
+            alternatives.append(alternative)
+        if not alternatives:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "predictive state consequence set is empty",
+            )
+        status = "supported" if len(alternatives) == 1 else "alternatives"
+        return _semantic_result(
+            "query",
+            status,
+            answer=(
+                alternatives[0]["values"]
+                if len(alternatives) == 1
+                else None
+            ),
+            alternatives=alternatives,
+            representation=raw_ref,
+            class_id=selected_class.get("class_id"),
+            prediction_semantics=prediction_semantics,
+            probability_model=query_signature["probability_model"],
+            signature=query_signature,
+            split_registry=record["payload"].get("splits", []),
+            limitations=[],
+        ), max(1, len(classes) + len(tests))
+    if kind == "representation":
+        allowed = {
+            "action",
+            "context",
+            "features",
+            "inputs",
+            "kind",
+            "representation_id",
+            "readout",
+        }
+        binding_backed = "inputs" in query
+        feature_backed = "features" in query
+        if (
+            set(query) - allowed
+            or "representation_id" not in query
+            or binding_backed == feature_backed
+            or not isinstance(query.get("action", {}), Mapping)
+            or not isinstance(query.get("context", {}), Mapping)
+            or (feature_backed and not isinstance(query["features"], Mapping))
+            or query.get("readout", "outcome") not in {"encoded", "outcome"}
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "representation query is invalid"
+            )
+        readout = query.get("readout", "outcome")
+        representation_id = _identifier(
+            query["representation_id"], "representation identity"
+        )
+        raw_ref = state["libraries"]["representations"].get(
+            representation_id
+        )
+        if raw_ref is None:
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                limitations=["representation-unavailable"],
+                representation=None,
+            ), 1
+        _, record = _semantic_reference(state, raw_ref, require_current=True)
+        if (
+            record["status"] != "active"
+            or record["payload"].get("program_role")
+            != "representation"
+        ):
+            return _semantic_result(
+                "query",
+                "support-gap",
+                answer=None,
+                alternatives=[],
+                limitations=[
+                    f"representation-{record['status']}"
+                ],
+                representation=raw_ref,
+            ), 1
+        source_refs: list[dict[str, Any]] = []
+        input_metadata: dict[str, Any] = {}
+        input_count = 0
+        if binding_backed:
+            input_count = len(query["inputs"])
+            (
+                features,
+                source_refs,
+                input_metadata,
+                input_limitations,
+            ) = _semantic_representation_binding_inputs(
+                state, query["inputs"]
+            )
+            if input_limitations:
+                return _semantic_result(
+                    "query",
+                    "support-gap",
+                    answer=None,
+                    alternatives=[],
+                    limitations=input_limitations,
+                    representation=raw_ref,
+                    representation_output=None,
+                ), max(1, input_count)
+            execution_state = {
+                "features": features,
+                "input_metadata": input_metadata,
+            }
+        else:
+            execution_state = {
+                "features": _regional_plain(
+                    dict(query["features"]),
+                    "representation query features",
+                )
+            }
+        program = record["payload"]["program"]
+        if (
+            readout == "encoded"
+            and program["program_kind"] == "construction"
+            and program["body"].get("schema")
+            == SEMANTIC_REPRESENTATION_SCHEMA
+        ):
+            body = program["body"]
+            transformed = apply_semantic_representation_edits(
+                cast(Mapping[str, Any], execution_state["features"]),
+                cast(Sequence[Mapping[str, Any]], body["edits"]),
+                action=cast(Any, query.get("action", {})),
+                context=cast(Any, query.get("context", {})),
+            )
+            encoded = {
+                role: transformed["values"][role]
+                for role in body["output_roles"]
+                if role in transformed["values"]
+            }
+            complete = len(encoded) == len(body["output_roles"])
+            execution = {
+                "alternatives": [],
+                "limitations": [
+                    *transformed["limitations"],
+                    *(
+                        []
+                        if complete
+                        else ["representation-output-missing"]
+                    ),
+                ],
+                "output": (
+                    {
+                        "encoded": encoded,
+                        "information_boundary": body[
+                            "information_boundary"
+                        ],
+                        "question": body["question"],
+                        "readout": "encoded",
+                        "transformed": transformed["values"],
+                    }
+                    if transformed["status"] == "supported" and complete
+                    else None
+                ),
+                "status": (
+                    "supported"
+                    if transformed["status"] == "supported" and complete
+                    else "support-gap"
+                ),
+                "values": execution_state,
+                "work": max(
+                    1,
+                    int(transformed["work"]) + len(body["output_roles"]),
+                ),
+            }
+        else:
+            execution = execute_semantic_program(
+                program,
+                execution_state,
+                action=cast(Any, query.get("action", {})),
+                context=cast(Any, query.get("context", {})),
+            )
+        raw_output = execution.get("output")
+        output: dict[str, Any] | None = None
+        limitations = list(execution.get("limitations", []))
+        if execution["status"] == "supported" and isinstance(
+            raw_output, Mapping
+        ):
+            output = dict(raw_output)
+            if binding_backed:
+                output["input_metadata"] = input_metadata
+                output["source_refs"] = source_refs
+        elif (
+            binding_backed
+            and execution["status"] == "supported"
+            and program["program_kind"] == "affine"
+        ):
+            raw_values = execution.get("values")
+            raw_targets = program["body"].get("outputs")
+            raw_uncertainty = execution.get("uncertainty")
+            if (
+                isinstance(raw_values, Mapping)
+                and isinstance(raw_targets, Mapping)
+                and isinstance(raw_uncertainty, Mapping)
+            ):
+                values = {
+                    target: raw_values[target]
+                    for target in sorted(raw_targets)
+                    if target in raw_values
+                }
+                uncertainty: dict[str, list[float]] = {}
+                propagated_radii: dict[str, float] = {}
+                missing_precision: set[str] = set()
+                for target in sorted(raw_targets):
+                    expression = raw_targets[target]
+                    bounds = raw_uncertainty.get(target)
+                    if (
+                        target not in values
+                        or not isinstance(expression, Mapping)
+                        or not isinstance(expression.get("terms"), Mapping)
+                        or not isinstance(bounds, list)
+                        or len(bounds) != 2
+                    ):
+                        continue
+                    center = float(values[target])
+                    radius = max(
+                        abs(center - float(bounds[0])),
+                        abs(float(bounds[1]) - center),
+                    )
+                    for source, coefficient in expression["terms"].items():
+                        source_radius = propagated_radii.get(source, 0.0)
+                        if source.startswith("features."):
+                            role = source.split(".", 2)[1]
+                            metadata = input_metadata.get(role)
+                            if metadata is not None:
+                                precision = metadata["precision"]
+                                if precision is None:
+                                    missing_precision.add(role)
+                                    continue
+                                source_radius = float(precision)
+                        radius += abs(float(coefficient)) * source_radius
+                    lower = center - radius
+                    upper = center + radius
+                    clamps = program["body"].get("clamp")
+                    if isinstance(clamps, Mapping):
+                        clamp = clamps.get(target)
+                        if isinstance(clamp, list) and len(clamp) == 2:
+                            lower = max(lower, float(clamp[0]))
+                            upper = min(upper, float(clamp[1]))
+                    uncertainty[target] = [lower, upper]
+                    propagated_radii[target] = max(
+                        abs(center - lower),
+                        abs(upper - center),
+                    )
+                if missing_precision:
+                    limitations.extend(
+                        f"representation-precision-missing:{role}"
+                        for role in sorted(missing_precision)
+                    )
+                elif (
+                    len(values) == len(raw_targets)
+                    and len(uncertainty) == len(raw_targets)
+                ):
+                    output = {
+                        "input_metadata": input_metadata,
+                        "source_refs": source_refs,
+                        "uncertainty": uncertainty,
+                        "uncertainty_semantics": (
+                            "clamped-program-error-plus-absolute-affine-"
+                            "input-precision"
+                        ),
+                        "values": values,
+                    }
+        if (
+            execution["status"] == "supported"
+            and output is None
+            and not any(
+                item.startswith("representation-precision-missing:")
+                for item in limitations
+            )
+        ):
+            limitations.append(
+                f"representation-output-unavailable:{program['program_kind']}"
+            )
+        supported = execution["status"] == "supported" and output is not None
+        answer: Any = None
+        if output is not None:
+            if readout == "encoded" and isinstance(
+                output.get("encoded"), Mapping
+            ):
+                answer = output["encoded"]
+            elif "outcome" in output:
+                answer = output["outcome"]
+            elif isinstance(output.get("values"), Mapping):
+                values = output["values"]
+                answer = values.get("outcome", values)
+        return _semantic_result(
+            "query",
+            "supported" if supported else "support-gap",
+            answer=answer,
+            alternatives=[],
+            limitations=sorted(set(limitations)),
+            representation=raw_ref,
+            readout=readout,
+            representation_output=output if supported else None,
+        ), max(
+            1,
+            int(execution["work"]) + input_count,
+        )
+    if kind == "timeline":
+        if set(query) - {"end", "kind", "start"}:
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "timeline query keys are invalid"
+            )
+        start = (
+            -1.0e308
+            if "start" not in query
+            else _finite(query["start"], "timeline start")
+        )
+        end = (
+            1.0e308
+            if "end" not in query
+            else _finite(query["end"], "timeline end")
+        )
+        rows = [
+            item
+            for item in state["time"]["timeline"]
+            if float(item["time"]["end"]) >= start
+            and float(item["time"]["start"]) <= end
+        ]
+        return _semantic_result(
+            "query",
+            "supported" if rows else "support-gap",
+            events=rows,
+            limitations=[] if rows else ["interval-unobserved"],
+        ), max(1, len(rows))
+    if kind == "explain":
+        if set(query) != {"kind", "reference"} or not isinstance(
+            query["reference"], Mapping
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "explanation query keys are invalid"
+            )
+        allowed = request.get("allowed_support_roots")
+        if allowed is not None and (
+            not isinstance(allowed, list)
+            or any(not isinstance(item, str) for item in allowed)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "allowed support roots are invalid"
+            )
+        status, explanation = _semantic_explanation(
+            state, query["reference"], cast(Any, allowed)
+        )
+        return _semantic_result(
+            "query", status, explanation=explanation
+        ), max(1, len(explanation["nodes"]))
+    if kind == "library":
+        if set(query) != {"kind", "library"}:
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "library query keys are invalid"
+            )
+        library = query["library"]
+        if library not in state["libraries"]:
+            raise FieldIntelligenceError(
+                "INVALID_QUERY", "semantic library is unknown"
+            )
+        return _semantic_result(
+            "query",
+            "supported",
+            entries=state["libraries"][library],
+            limitations=[],
+        ), max(1, len(state["libraries"][library]))
+    if kind == "causal":
+        return _semantic_causal_query(
+            cast(dict[str, Any], state), request, query
+        )
+    raise FieldIntelligenceError(
+        "INVALID_QUERY", f"unsupported semantic query kind: {kind}"
+    )
+def _semantic_history_select(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Select one candidate from explicitly declared resident assessment history."""
+    _semantic_keys(
+        request,
+        required=("candidates",),
+        optional=("evidence", "operation_id"),
+    )
+    raw_candidates = request["candidates"]
+    if (
+        not isinstance(raw_candidates, list)
+        or not raw_candidates
+        or len(raw_candidates) > state["bounds"]["max_alternatives"]
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_HISTORY_SELECTION",
+            "history selection candidates must be a bounded non-empty list",
+        )
+    evidence_contract = request.get("evidence")
+    if evidence_contract is not None and not isinstance(evidence_contract, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_HISTORY_SELECTION",
+            "history selection evidence contract must be a mapping",
+        )
+    evidence_purpose = "assessment-history"
+    evidence_references: list[Mapping[str, Any]] = []
+    if isinstance(evidence_contract, Mapping):
+        if set(evidence_contract) - {"purpose", "references"}:
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection evidence contract keys are invalid",
+            )
+        if "purpose" in evidence_contract:
+            if evidence_contract["purpose"] != "assessment-history":
+                raise FieldIntelligenceError(
+                    "INVALID_HISTORY_SELECTION",
+                    "history selection evidence purpose must be assessment-history",
+                )
+        raw_evidence = evidence_contract.get("references", [])
+        if raw_evidence is not None and not isinstance(raw_evidence, list):
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection evidence references must be a list",
+            )
+        if not raw_evidence and "purpose" in evidence_contract:
+            assessment_rows = (
+                state.get("current", {}).get("Assessment", {})
+                if isinstance(state.get("current"), Mapping)
+                else {}
+            )
+            raw_evidence = [
+                raw_ref
+                for raw_ref in (
+                    list(assessment_rows.values())
+                    if isinstance(assessment_rows, Mapping)
+                    else []
+                )
+                if (
+                    isinstance(raw_ref, Mapping)
+                    and isinstance(raw_ref.get("id"), str)
+                    and isinstance(state.get("records"), Mapping)
+                    and isinstance(state["records"].get(raw_ref["id"]), list)
+                    and state["records"][raw_ref["id"]]
+                    and isinstance(
+                        state["records"][raw_ref["id"]][-1].get("payload"),
+                        Mapping,
+                    )
+                    and state["records"][raw_ref["id"]][-1]["payload"].get(
+                        "purpose"
+                    )
+                    == "assessment-history"
+                    and state["records"][raw_ref["id"]][-1]["payload"].get(
+                        "state"
+                    )
+                    == "resolved"
+                )
+            ]
+        if not isinstance(raw_evidence, list):
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection evidence references must be a list",
+            )
+        if len(raw_evidence) > state["bounds"]["max_records"]:
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection evidence references exceed the record bound",
+            )
+        if any(not isinstance(item, Mapping) for item in raw_evidence):
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection evidence references must be typed",
+            )
+        evidence_references = cast(list[Mapping[str, Any]], raw_evidence)
+    operation_id = _identifier(
+        request.get(
+            "operation_id",
+            "history-select:"
+            + sha256_value(
+                {"candidates": raw_candidates, "evidence": evidence_contract}
+            ),
+        ),
+        "history selection operation identity",
+    )
+    event_id = f"event:history-select:{sha256_value({'operation_id': operation_id})}"
+    existing = state["current"]["Event"].get(event_id)
+    if existing is not None:
+        payload = state["records"][event_id][-1]["payload"]["history_selection"]
+        return (
+            _semantic_result(
+                "history-select",
+                payload["status"],
+                event=existing,
+                scores=payload["scores"],
+                selected=payload["selected"],
+                candidate_count=len(payload["scores"]),
+                evidence=payload.get("evidence", {}),
+                replayed=True,
+            ),
+            1,
+        )
+    declared_evidence: list[tuple[SemanticRef, dict[str, Any]]] = []
+    evidence_seen: set[tuple[str, str, int]] = set()
+    for raw_reference in evidence_references:
+        reference, record = _semantic_reference(
+            state,
+            raw_reference,
+            expected_kind="Assessment",
+            require_current=True,
+        )
+        payload = record.get("payload", {})
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("purpose") != evidence_purpose
+            or payload.get("state") != "resolved"
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection evidence is not an accepted assessment-history record",
+            )
+        key = (reference.kind, reference.id, reference.content_version)
+        if key not in evidence_seen:
+            declared_evidence.append((reference, record))
+            evidence_seen.add(key)
+
+    def _bounded_count(payload: Mapping[str, Any], name: str) -> int:
+        value = payload.get(name, 0)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                f"assessment-history {name} must be a non-negative integer",
+            )
+        return value
+
+    dependencies: list[dict[str, Any]] = []
+    closure_seen: set[tuple[str, str, int]] = set()
+    scores: list[dict[str, Any]] = []
+
+    def _add_closure(raw_reference: Mapping[str, Any]) -> None:
+        reference, record = _semantic_reference(
+            state, raw_reference, require_current=True
+        )
+        key = (reference.kind, reference.id, reference.content_version)
+        if key in closure_seen:
+            return
+        closure_seen.add(key)
+        dependencies.append(reference.as_dict())
+        for dependency in record.get("dependencies", []):
+            if not isinstance(dependency, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_HISTORY_SELECTION",
+                    "history selection dependency closure contains an invalid reference",
+                )
+            _add_closure(dependency)
+
+    for raw_candidate in raw_candidates:
+        if (
+            not isinstance(raw_candidate, Mapping)
+            or set(raw_candidate) != {"candidate_id", "reference"}
+            or not isinstance(raw_candidate["reference"], Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection candidates require candidate_id and typed reference",
+            )
+        candidate_id = _identifier(
+            raw_candidate["candidate_id"], "history candidate identity"
+        )
+        reference, candidate_record = _semantic_reference(
+            state,
+            raw_candidate["reference"],
+            require_current=True,
+        )
+        candidate_payload = candidate_record.get("payload", {})
+        if not isinstance(candidate_payload, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection candidate payload must be a mapping",
+            )
+        family = candidate_payload.get("compiler_family")
+        question_id = candidate_payload.get("question_id")
+        if not isinstance(family, str) or not family or not isinstance(
+            question_id, str
+        ) or not question_id:
+            raise FieldIntelligenceError(
+                "INVALID_HISTORY_SELECTION",
+                "history selection candidates require family and question identifiers",
+            )
+        evidence: list[dict[str, Any]] = []
+        for evidence_reference, evidence_record in declared_evidence:
+            history = evidence_record.get("payload", {})
+            if history.get("compiler_family") != family:
+                continue
+            attempts = _bounded_count(history, "attempts")
+            passes = _bounded_count(history, "passes")
+            misses = _bounded_count(history, "misses")
+            if passes + misses > attempts:
+                raise FieldIntelligenceError(
+                    "INVALID_HISTORY_SELECTION",
+                    "assessment-history pass and miss counts exceed attempts",
+                )
+            # A bounded rate makes scores comparable while retaining all
+            # accumulated resident outcomes in the evidence payload.
+            score = (passes - misses) / max(1, attempts)
+            evidence.append(
+                {
+                    "reference": evidence_reference.as_dict(),
+                    "compiler_family": history["compiler_family"],
+                    "question_id": history.get("question_id"),
+                    "attempts": attempts,
+                    "passes": passes,
+                    "misses": misses,
+                    "score": score,
+                }
+            )
+        # Candidate refs remain typed provenance in scores/payload/receipt;
+        # the selector Event closure contains only declared evidence and its
+        # recursive dependency closure, so later candidate revisions stay valid.
+        for evidence_reference, _ in declared_evidence:
+            _add_closure(evidence_reference.as_dict())
+        score = (
+            None
+            if not evidence
+            else sum(float(item["score"]) for item in evidence) / len(evidence)
+        )
+        scores.append(
+            {
+                "candidate_id": candidate_id,
+                "reference": reference.as_dict(),
+                "compiler_family": family,
+                "question_id": question_id,
+                "score": score,
+                "evidence": evidence,
+            }
+        )
+    supported = [row for row in scores if row["score"] is not None]
+    supported.sort(key=lambda row: (-float(row["score"]), str(row["candidate_id"])))
+    selected = supported[0] if supported else None
+    status = "supported" if selected is not None else "waiting"
+    evidence_payload = {
+        "purpose": evidence_purpose,
+        "references": [
+            reference.as_dict() for reference, _ in declared_evidence
+        ],
+        "full_dependency_closure": True,
+    }
+    payload = {
+        "status": status,
+        "scores": scores,
+        "selected": (
+            None
+            if selected is None
+            else {
+                "candidate_id": selected["candidate_id"],
+                "reference": selected["reference"],
+                "score": selected["score"],
+            }
+        ),
+        "evidence": evidence_payload,
+    }
+    dependency_map = {
+        (
+            str(dependency["kind"]),
+            str(dependency["id"]),
+            int(dependency["content_version"]),
+        ): dependency
+        for dependency in dependencies
+    }
+    dependencies = [
+        dependency_map[key] for key in sorted(dependency_map)
+    ]
+    event_ref = _semantic_append_record(
+        state,
+        record_id=event_id,
+        kind="Event",
+        payload={"history_selection": payload},
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        support_roots=[],
+        derivation={"operation": "history-select", "operation_id": operation_id},
+        valid_time={
+            "start": float(state["time"]["now"]),
+            "end": float(state["time"]["now"]),
+        },
+    )
+    _semantic_reindex_record(state, event_ref)
+    return (
+        _semantic_result(
+            "history-select",
+            status,
+            event=event_ref,
+            scores=scores,
+            selected=payload["selected"],
+            evidence=evidence_payload,
+            candidate_count=len(scores),
+        ),
+        max(1, len(scores) + len(dependencies)),
+    )
+
 def _semantic_explain(
     state: Mapping[str, Any], request: Mapping[str, Any]
 ) -> tuple[dict[str, Any], int]:
@@ -14565,6 +16032,1318 @@ def _semantic_learn_parameters(
     )
 
 
+def _semantic_conditional_context(
+    episode: Mapping[str, Any], key: str
+) -> tuple[bool, Any]:
+    parts = key.split(".")
+    current: Any = episode.get(parts.pop(0), _ABSENT)
+    for part in parts:
+        if not isinstance(current, Mapping) or part not in current:
+            return False, None
+        current = current[part]
+    if current is _ABSENT or isinstance(current, (Mapping, list)):
+        return False, None
+    if isinstance(current, float) and not math.isfinite(current):
+        return False, None
+    if not isinstance(current, (type(None), bool, int, float, str)):
+        return False, None
+    return True, current
+
+
+def _semantic_mechanism_output_errors(
+    program: Mapping[str, Any],
+    episodes: Sequence[Mapping[str, Any]],
+) -> dict[str, dict[str, float | int]]:
+    """Measure point outputs without dropping unsupported observations."""
+    absolute: dict[str, list[float]] = {}
+    observed: dict[str, int] = {}
+    for episode in episodes:
+        if episode["outcome_status"] != "observed-and-scored":
+            continue
+        expected = {
+            key: float(value)
+            for key, value in episode["next"].items()
+            if isinstance(value, (int, float)) and not isinstance(value, bool)
+        }
+        for key in expected:
+            observed[key] = observed.get(key, 0) + 1
+            absolute.setdefault(key, [])
+        outcome = execute_semantic_program(
+            program,
+            episode["state"],
+            action=episode.get("action", {}),
+            context=episode.get("context", {}),
+            interval=episode.get("interval", {}),
+        )
+        if outcome["status"] == "supported":
+            values = outcome["values"]
+        elif (
+            outcome["status"] == "alternatives"
+            and len(outcome["alternatives"]) == 1
+        ):
+            values = outcome["alternatives"][0]
+        else:
+            continue
+        for key, target in expected.items():
+            actual = values.get(key)
+            if (
+                isinstance(actual, (int, float))
+                and not isinstance(actual, bool)
+                and math.isfinite(float(actual))
+            ):
+                absolute[key].append(abs(float(actual) - target))
+    result: dict[str, dict[str, float | int]] = {}
+    for key in sorted(observed):
+        errors = sorted(absolute[key])
+        result[key] = {
+            "rmse": (
+                math.sqrt(
+                    sum(value * value for value in errors) / len(errors)
+                )
+                if errors
+                else 1.0e12
+            ),
+            "absolute_error_p90": (
+                errors[math.ceil(0.9 * len(errors)) - 1]
+                if errors
+                else 1.0e12
+            ),
+            "observed_count": observed[key],
+            "supported_count": len(errors),
+        }
+    return result
+
+
+def _semantic_context_discovery_config(
+    raw: Any,
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(raw, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_MECHANISM_EVIDENCE",
+            "context_discovery must be a bounded mapping",
+        )
+    allowed = {
+        "coverage_margin",
+        "max_categories",
+        "max_depth",
+        "max_features",
+        "max_leaves",
+        "max_thresholds",
+        "min_leaf",
+        "minimum_gain_fraction",
+    }
+    if set(raw) - allowed:
+        raise FieldIntelligenceError(
+            "INVALID_MECHANISM_EVIDENCE",
+            "context_discovery has unsupported controls",
+        )
+    branch_capacity = min(int(state["bounds"]["max_alternatives"]), 64)
+    result: dict[str, Any] = {
+        "max_categories": _regional_integer(
+            raw.get("max_categories", 16),
+            "context category bound",
+            minimum=2,
+            maximum=64,
+        ),
+        "max_depth": _regional_integer(
+            raw.get("max_depth", 3),
+            "context tree depth",
+            minimum=1,
+            maximum=8,
+        ),
+        "max_features": _regional_integer(
+            raw.get("max_features", 32),
+            "context feature bound",
+            minimum=1,
+            maximum=64,
+        ),
+        "max_leaves": _regional_integer(
+            raw.get("max_leaves", min(8, branch_capacity)),
+            "context leaf bound",
+            minimum=1,
+            maximum=branch_capacity,
+        ),
+        "max_thresholds": _regional_integer(
+            raw.get("max_thresholds", 8),
+            "context threshold bound",
+            minimum=1,
+            maximum=64,
+        ),
+        "min_leaf": _regional_integer(
+            raw.get("min_leaf", 2),
+            "context leaf support",
+            minimum=1,
+            maximum=int(state["bounds"]["max_observations"]),
+        ),
+    }
+    raw_gain = raw.get("minimum_gain_fraction", 0.01)
+    if (
+        isinstance(raw_gain, bool)
+        or not isinstance(raw_gain, (int, float))
+        or not math.isfinite(float(raw_gain))
+        or not 0.0 <= float(raw_gain) <= 1.0
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_MECHANISM_EVIDENCE",
+            "context discovery gain must be a finite fraction",
+        )
+    result["minimum_gain_fraction"] = float(raw_gain)
+    raw_margin = raw.get("coverage_margin", 0.0)
+    if (
+        isinstance(raw_margin, bool)
+        or not isinstance(raw_margin, (int, float))
+        or not math.isfinite(float(raw_margin))
+        or not 0.0 <= float(raw_margin) <= 1.0
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_MECHANISM_EVIDENCE",
+            "context discovery coverage margin must be a finite fraction",
+        )
+    result["coverage_margin"] = float(raw_margin)
+    return result
+
+
+def _semantic_discovery_paths(
+    episode: Mapping[str, Any],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+
+    def visit(prefix: str, value: Any, depth: int) -> None:
+        if isinstance(value, Mapping):
+            if depth >= 8:
+                return
+            for name in sorted(value):
+                if (
+                    not isinstance(name, str)
+                    or not name
+                    or "." in name
+                ):
+                    continue
+                visit(f"{prefix}.{name}", value[name], depth + 1)
+            return
+        if value is None or isinstance(value, (bool, int)):
+            result[prefix] = value
+            return
+        if isinstance(value, float):
+            if math.isfinite(value):
+                result[prefix] = value
+            return
+        if isinstance(value, str) and len(value) <= 256:
+            result[prefix] = value
+
+    for root in ("action", "context", "state"):
+        value = episode.get(root, {})
+        if isinstance(value, Mapping):
+            visit(root, value, 0)
+    return result
+
+
+def _semantic_discovery_thresholds(
+    values: Sequence[float],
+    maximum: int,
+) -> list[float]:
+    unique = sorted(set(float(value) for value in values))
+    thresholds = [
+        (left + right) / 2.0
+        for left, right in zip(unique, unique[1:])
+        if left < right and math.isfinite((left + right) / 2.0)
+    ]
+    if len(thresholds) <= maximum:
+        return thresholds
+    if maximum == 1:
+        return [thresholds[len(thresholds) // 2]]
+    indexes = {
+        round(index * (len(thresholds) - 1) / (maximum - 1))
+        for index in range(maximum)
+    }
+    return [thresholds[index] for index in sorted(indexes)]
+
+
+def _semantic_discovery_features(
+    episodes: Sequence[Mapping[str, Any]],
+    config: Mapping[str, Any],
+) -> tuple[
+    list[dict[str, Any]], list[dict[str, Any]], dict[str, list[float]]
+]:
+    """Numeric features carry their observed range widened by a declared margin.
+
+    The margin lets a discovered mechanism keep speaking marginally beyond the
+    range it observed, which is where a later evaluation slice tends to live;
+    contexts beyond the widened envelope still abstain, and the observed range
+    stays on the record so the two are distinguishable.
+    """
+    paths = [_semantic_discovery_paths(episode) for episode in episodes]
+    common = (
+        set.intersection(*(set(row) for row in paths))
+        if paths
+        else set()
+    )
+    if len(common) > 256:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "context discovery has too many common scalar features",
+        )
+    features: list[dict[str, Any]] = []
+    tests: list[dict[str, Any]] = []
+    observed_bounds: dict[str, list[float]] = {}
+    for key in sorted(common):
+        values = [row[key] for row in paths]
+        if all(
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+            for value in values
+        ):
+            numeric = [float(value) for value in values]
+            thresholds = _semantic_discovery_thresholds(
+                numeric, int(config["max_thresholds"])
+            )
+            if not thresholds:
+                continue
+            observed_low, observed_high = min(numeric), max(numeric)
+            padding = float(config["coverage_margin"]) * (
+                observed_high - observed_low
+            )
+            feature = {
+                "key": key,
+                "kind": "numeric",
+                "maximum": observed_high + padding,
+                "minimum": observed_low - padding,
+            }
+            observed_bounds[key] = [observed_low, observed_high]
+            features.append(feature)
+            tests.extend(
+                {
+                    "key": key,
+                    "operator": "le",
+                    "value": threshold,
+                }
+                for threshold in thresholds
+            )
+            continue
+        if not all(
+            value is None or isinstance(value, (bool, str))
+            for value in values
+        ):
+            continue
+        unique_by_marker = {
+            canonical_json_bytes(value): value for value in values
+        }
+        if not 2 <= len(unique_by_marker) <= int(
+            config["max_categories"]
+        ):
+            continue
+        categories = [
+            unique_by_marker[marker]
+            for marker in sorted(unique_by_marker)
+        ]
+        features.append(
+            {
+                "key": key,
+                "kind": "categorical",
+                "values": categories,
+            }
+        )
+        tests.extend(
+            {
+                "key": key,
+                "operator": "eq",
+                "value": category,
+            }
+            for category in categories[:-1]
+        )
+    return features, tests, observed_bounds
+
+
+def _semantic_context_tree_leaf(
+    body: Mapping[str, Any],
+    episode: Mapping[str, Any],
+) -> str | None:
+    values: dict[str, Any] = {}
+    for feature in body["features"]:
+        present, value = _semantic_conditional_context(
+            episode, feature["key"]
+        )
+        if not present:
+            return None
+        if feature["kind"] == "numeric":
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not (
+                    float(feature["minimum"])
+                    <= float(value)
+                    <= float(feature["maximum"])
+                )
+            ):
+                return None
+            values[feature["key"]] = float(value)
+            continue
+        if canonical_json_bytes(value) not in {
+            canonical_json_bytes(item) for item in feature["values"]
+        }:
+            return None
+        values[feature["key"]] = value
+    node = body["tree"]
+    while node["kind"] == "split":
+        test = node["test"]
+        actual = values[test["key"]]
+        accepted = (
+            float(actual) <= float(test["value"])
+            if test["operator"] == "le"
+            else canonical_json_bytes(actual)
+            == canonical_json_bytes(test["value"])
+        )
+        node = node["match"] if accepted else node["otherwise"]
+    return str(node["leaf_id"])
+
+
+def _semantic_learn_discovered_context_mechanism(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+    *,
+    episodes: Sequence[Mapping[str, Any]],
+    holdout: Sequence[Mapping[str, Any]],
+    candidates: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], int]:
+    config = _semantic_context_discovery_config(
+        request["context_discovery"], state
+    )
+    for candidate in candidates:
+        if (
+            candidate["observation_model"] is not None
+            or candidate["probability_model"] is not None
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_EVIDENCE",
+                "context discovery requires directly executable, "
+                "unweighted base candidates",
+            )
+    for identity in ("episode_id", "pair_id"):
+        train_ids = {
+            row[identity] for row in episodes if row.get(identity) is not None
+        }
+        holdout_ids = {
+            row[identity] for row in holdout if row.get(identity) is not None
+        }
+        if train_ids & holdout_ids:
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_EVIDENCE",
+                f"{identity} may not occur in both training and holdout",
+            )
+    for population in (episodes, holdout):
+        ids = [
+            row["episode_id"]
+            for row in population
+            if row.get("episode_id") is not None
+        ]
+        if len(ids) != len(set(ids)):
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_EVIDENCE",
+                "episode ids must be unique",
+            )
+    training = [
+        row
+        for row in episodes
+        if row["outcome_status"] == "observed-and-scored"
+    ]
+    validation = [
+        row
+        for row in holdout
+        if row["outcome_status"] == "observed-and-scored"
+    ]
+    if not training:
+        return (
+            _semantic_result(
+                str(request["operation"]),
+                "support-gap",
+                context_selection={
+                    "discovery": config,
+                    "limitations": ["no-scored-training-experience"],
+                },
+                limitations=["no-scored-training-experience"],
+            ),
+            1,
+        )
+    declared_work = _regional_integer(
+        request.get("max_work", state["bounds"]["max_work"]),
+        "context discovery work bound",
+        minimum=1,
+        maximum=state["bounds"]["max_work"],
+    )
+    base_evaluation_work = (
+        len(candidates) * (len(training) + 3 * len(validation))
+        + 2 * (len(training) + len(validation))
+    )
+    if base_evaluation_work + len(episodes) + len(holdout) + 8 > declared_work:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "context discovery evaluations exceed the work bound",
+        )
+    training_losses: dict[str, list[float | None]] = {}
+    holdout_losses: dict[str, list[float | None]] = {}
+    for candidate in candidates:
+        candidate_id = str(candidate["candidate_id"])
+        training_losses[candidate_id] = [
+            _semantic_episode_loss(candidate["program"], row)[0]
+            for row in training
+        ]
+        holdout_losses[candidate_id] = [
+            _semantic_episode_loss(candidate["program"], row)[0]
+            for row in validation
+        ]
+
+    def leaf_statistics(indices: Sequence[int]) -> dict[str, Any] | None:
+        rows: list[dict[str, Any]] = []
+        for candidate in candidates:
+            candidate_id = str(candidate["candidate_id"])
+            losses = [training_losses[candidate_id][index] for index in indices]
+            supported = [float(loss) for loss in losses if loss is not None]
+            rows.append(
+                {
+                    "candidate_id": candidate_id,
+                    "loss": (
+                        sum(supported)
+                        if len(supported) == len(indices)
+                        else 1.0e12
+                    ),
+                    "scored_count": len(supported),
+                }
+            )
+        eligible = [
+            row for row in rows if row["scored_count"] == len(indices)
+        ]
+        if not eligible:
+            return None
+        selected = min(
+            eligible,
+            key=lambda row: (
+                float(row["loss"]),
+                str(row["candidate_id"]),
+            ),
+        )
+        return {
+            "candidate_id": selected["candidate_id"],
+            "candidate_losses": rows,
+            "loss": float(selected["loss"]),
+        }
+
+    all_indices = tuple(range(len(training)))
+    root_statistics = leaf_statistics(all_indices)
+    if root_statistics is None:
+        return (
+            _semantic_result(
+                str(request["operation"]),
+                "support-gap",
+                context_selection={
+                    "discovery": config,
+                    "limitations": ["no-supported-base-candidate"],
+                },
+                limitations=["no-supported-base-candidate"],
+            ),
+            max(1, base_evaluation_work),
+        )
+    features, tests, observed_bounds = _semantic_discovery_features(
+        training, config
+    )
+    training_paths = [_semantic_discovery_paths(row) for row in training]
+    tests_by_key: dict[str, list[dict[str, Any]]] = {}
+    for test in tests:
+        tests_by_key.setdefault(str(test["key"]), []).append(test)
+    split_evaluations = 0
+
+    def partition(
+        indices: Sequence[int], test: Mapping[str, Any]
+    ) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        match: list[int] = []
+        otherwise: list[int] = []
+        for index in indices:
+            actual = training_paths[index][str(test["key"])]
+            accepted = (
+                float(actual) <= float(test["value"])
+                if test["operator"] == "le"
+                else canonical_json_bytes(actual)
+                == canonical_json_bytes(test["value"])
+            )
+            (match if accepted else otherwise).append(index)
+        return tuple(match), tuple(otherwise)
+
+    fixed_search_work = (
+        base_evaluation_work + len(episodes) + len(holdout) + 8
+    )
+    if fixed_search_work + len(tests) > declared_work:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "context discovery feature screen exceeds the work bound",
+        )
+
+    def distinct_training_identities(indices: Sequence[int]) -> int:
+        return len(
+            {
+                training[index].get("pair_id")
+                or training[index].get("episode_id")
+                or f"row:{index}"
+                for index in indices
+            }
+        )
+
+    def evaluate_split(
+        indices: Sequence[int],
+        parent_loss: float,
+        test: Mapping[str, Any],
+    ) -> dict[str, Any] | None:
+        nonlocal split_evaluations
+        split_evaluations += 1
+        if (
+            base_evaluation_work
+            + split_evaluations
+            + len(episodes)
+            + len(holdout)
+            + 8
+            > declared_work
+        ):
+            raise FieldIntelligenceError(
+                "WORK_CAPACITY",
+                "context discovery split search exceeds the work bound",
+            )
+        match, otherwise = partition(indices, test)
+        if (
+            distinct_training_identities(match) < int(config["min_leaf"])
+            or distinct_training_identities(otherwise)
+            < int(config["min_leaf"])
+        ):
+            return None
+        match_statistics = leaf_statistics(match)
+        other_statistics = leaf_statistics(otherwise)
+        if match_statistics is None or other_statistics is None:
+            return None
+        loss = float(match_statistics["loss"]) + float(
+            other_statistics["loss"]
+        )
+        return {
+            "gain": parent_loss - loss,
+            "match": match,
+            "match_statistics": match_statistics,
+            "otherwise": otherwise,
+            "otherwise_statistics": other_statistics,
+            "test": dict(test),
+        }
+
+    feature_gain: dict[str, float] = {}
+    for feature in features:
+        best_gain: float | None = None
+        for test in tests_by_key[str(feature["key"])]:
+            reading = evaluate_split(
+                all_indices, float(root_statistics["loss"]), test
+            )
+            if reading is not None and (
+                best_gain is None
+                or float(reading["gain"]) > best_gain
+            ):
+                best_gain = float(reading["gain"])
+        if best_gain is not None:
+            feature_gain[str(feature["key"])] = best_gain
+    ranked_features = sorted(
+        (
+            feature
+            for feature in features
+            if str(feature["key"]) in feature_gain
+        ),
+        key=lambda feature: (
+            -feature_gain[str(feature["key"])],
+            str(feature["key"]),
+        ),
+    )[: int(config["max_features"])]
+    selected_keys = {str(feature["key"]) for feature in ranked_features}
+    selected_tests = [
+        test for test in tests if str(test["key"]) in selected_keys
+    ]
+    root: dict[str, Any] = {
+        "_depth": 0,
+        "_indices": all_indices,
+        "_statistics": root_statistics,
+        "kind": "leaf",
+    }
+    leaves = [root]
+    search_truncated_by_work = False
+    while len(leaves) < int(config["max_leaves"]):
+        eligible_leaf_count = sum(
+            int(leaf["_depth"]) < int(config["max_depth"])
+            for leaf in leaves
+        )
+        if (
+            fixed_search_work
+            + split_evaluations
+            + eligible_leaf_count * len(selected_tests)
+            > declared_work
+        ):
+            search_truncated_by_work = True
+            break
+        best: tuple[tuple[Any, ...], dict[str, Any], dict[str, Any]] | None = (
+            None
+        )
+        for leaf in leaves:
+            if int(leaf["_depth"]) >= int(config["max_depth"]):
+                continue
+            parent_loss = float(leaf["_statistics"]["loss"])
+            minimum_gain = max(
+                1.0e-12,
+                float(config["minimum_gain_fraction"])
+                * max(abs(parent_loss), 1.0e-12),
+            )
+            for test in selected_tests:
+                reading = evaluate_split(
+                    leaf["_indices"], parent_loss, test
+                )
+                if (
+                    reading is None
+                    or float(reading["gain"]) < minimum_gain
+                ):
+                    continue
+                key = (
+                    -float(reading["gain"]),
+                    str(test["key"]),
+                    str(test["operator"]),
+                    canonical_json_bytes(test["value"]),
+                )
+                if best is None or key < best[0]:
+                    best = (key, leaf, reading)
+        if best is None:
+            break
+        _, leaf, reading = best
+        depth = int(leaf["_depth"]) + 1
+        match_node = {
+            "_depth": depth,
+            "_indices": reading["match"],
+            "_statistics": reading["match_statistics"],
+            "kind": "leaf",
+        }
+        otherwise_node = {
+            "_depth": depth,
+            "_indices": reading["otherwise"],
+            "_statistics": reading["otherwise_statistics"],
+            "kind": "leaf",
+        }
+        leaf.clear()
+        leaf.update(
+            {
+                "kind": "split",
+                "match": match_node,
+                "otherwise": otherwise_node,
+                "test": reading["test"],
+            }
+        )
+        leaves.remove(leaf)
+        leaves.extend((match_node, otherwise_node))
+
+    candidate_by_id = {
+        str(candidate["candidate_id"]): candidate for candidate in candidates
+    }
+    leaf_metadata: dict[str, dict[str, Any]] = {}
+    used_keys: set[str] = set()
+    leaf_counter = 0
+
+    def finalize_tree(
+        node: Mapping[str, Any],
+        path: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        nonlocal leaf_counter
+        if node["kind"] == "leaf":
+            leaf_id = f"leaf-{leaf_counter:03d}"
+            leaf_counter += 1
+            statistics = node["_statistics"]
+            candidate_id = str(statistics["candidate_id"])
+            leaf_metadata[leaf_id] = {
+                "candidate_id": candidate_id,
+                "indices": tuple(node["_indices"]),
+                "path": [dict(item) for item in path],
+                "statistics": statistics,
+            }
+            return {
+                "kind": "leaf",
+                "leaf_id": leaf_id,
+                "program": candidate_by_id[candidate_id]["program"],
+            }
+        test = dict(node["test"])
+        used_keys.add(str(test["key"]))
+        return {
+            "kind": "split",
+            "test": test,
+            "match": finalize_tree(
+                node["match"],
+                [*path, {**test, "branch": "match"}],
+            ),
+            "otherwise": finalize_tree(
+                node["otherwise"],
+                [*path, {**test, "branch": "otherwise"}],
+            ),
+        }
+
+    tree = finalize_tree(root, [])
+    program_features = [
+        {
+            key: value
+            for key, value in feature.items()
+        }
+        for feature in ranked_features
+        if str(feature["key"]) in used_keys
+    ]
+    selected_candidates = {
+        str(item["candidate_id"]) for item in leaf_metadata.values()
+    }
+    selected_programs = [
+        candidate_by_id[candidate_id]["program"]
+        for candidate_id in sorted(selected_candidates)
+    ]
+    composite = semantic_program_payload(
+        program_kind="context-tree",
+        body={"features": program_features, "tree": tree},
+        reads=sorted(
+            {
+                name
+                for program in selected_programs
+                for name in program["effects"]["reads"]
+            }
+        ),
+        writes=sorted(
+            {
+                name
+                for program in selected_programs
+                for name in program["effects"]["writes"]
+            }
+        ),
+        max_work=declared_work,
+        max_branches=int(config["max_leaves"]),
+        max_horizon=min(
+            int(program["bounds"]["max_horizon"])
+            for program in selected_programs
+        ),
+    )
+    if _mechanism_required_work(composite) > declared_work:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "discovered context tree exceeds the execution work bound",
+        )
+    canonical_body = composite["body"]
+    holdout_by_leaf: dict[str, list[int]] = {}
+    unsupported_holdout: list[Mapping[str, Any]] = []
+    for index, episode in enumerate(validation):
+        leaf_id = _semantic_context_tree_leaf(canonical_body, episode)
+        if leaf_id is None:
+            unsupported_holdout.append(episode)
+        else:
+            holdout_by_leaf.setdefault(leaf_id, []).append(index)
+
+    def population_identity_count(
+        rows: Sequence[Mapping[str, Any]],
+    ) -> int:
+        return len(
+            {
+                row.get("pair_id") or row.get("episode_id")
+                for row in rows
+                if row.get("pair_id") or row.get("episode_id")
+            }
+        )
+
+    branch_rows: list[dict[str, Any]] = []
+    for leaf_id in sorted(leaf_metadata):
+        metadata = leaf_metadata[leaf_id]
+        training_indices = list(metadata["indices"])
+        holdout_indices = holdout_by_leaf.get(leaf_id, [])
+        training_rows = [training[index] for index in training_indices]
+        holdout_rows = [validation[index] for index in holdout_indices]
+        candidate_losses: list[dict[str, Any]] = []
+        for candidate in candidates:
+            candidate_id = str(candidate["candidate_id"])
+            train_values = [
+                float(cast(float, training_losses[candidate_id][index]))
+                for index in training_indices
+                if training_losses[candidate_id][index] is not None
+            ]
+            holdout_values = [
+                float(cast(float, holdout_losses[candidate_id][index]))
+                for index in holdout_indices
+                if holdout_losses[candidate_id][index] is not None
+            ]
+            candidate_losses.append(
+                {
+                    "candidate_id": candidate_id,
+                    "training_loss": (
+                        sum(train_values) / len(train_values)
+                        if train_values
+                        else 1.0e12
+                    ),
+                    "holdout_loss": (
+                        sum(holdout_values) / len(holdout_values)
+                        if holdout_values
+                        else 1.0e12
+                    ),
+                    "training_scored_count": len(train_values),
+                    "holdout_scored_count": len(holdout_values),
+                }
+            )
+        branch_rows.append(
+            {
+                "candidate_losses": candidate_losses,
+                "holdout_distinct_pair_or_episode_count":
+                population_identity_count(holdout_rows),
+                "holdout_output_errors": {
+                    candidate["candidate_id"]:
+                    _semantic_mechanism_output_errors(
+                        candidate["program"], holdout_rows
+                    )
+                    for candidate in candidates
+                },
+                "holdout_scored_count": len(holdout_rows),
+                "leaf_id": leaf_id,
+                "path": metadata["path"],
+                "selected_candidate": metadata["candidate_id"],
+                "training_distinct_pair_or_episode_count":
+                population_identity_count(training_rows),
+                "training_scored_count": len(training_rows),
+            }
+        )
+
+    def diagnostic_tree(node: Mapping[str, Any]) -> dict[str, Any]:
+        if node["kind"] == "leaf":
+            leaf_id = str(node["leaf_id"])
+            return {
+                "kind": "leaf",
+                "leaf_id": leaf_id,
+                "selected_candidate":
+                leaf_metadata[leaf_id]["candidate_id"],
+            }
+        return {
+            "kind": "split",
+            "test": dict(node["test"]),
+            "match": diagnostic_tree(node["match"]),
+            "otherwise": diagnostic_tree(node["otherwise"]),
+        }
+
+    selection: dict[str, Any] = {
+        "branches": branch_rows,
+        "candidate_feature_count": len(features),
+        "candidate_holdout_output_errors": {
+            candidate["candidate_id"]: _semantic_mechanism_output_errors(
+                candidate["program"], holdout
+            )
+            for candidate in candidates
+        },
+        "context_keys": sorted(used_keys),
+        "discovery": {
+            **config,
+            "candidate_feature_count": len(features),
+            "considered_feature_count": len(ranked_features),
+            "split_evaluations": split_evaluations,
+            "search_truncated_by_work": search_truncated_by_work,
+        },
+        "holdout_context_count": len(holdout_by_leaf),
+        "holdout_unseen_contexts": [
+            row.get("episode_id")
+            for row in unsupported_holdout
+            if row.get("episode_id") is not None
+        ],
+        "mode": "discovered-hierarchy",
+        "observed_bounds": observed_bounds,
+        "selected_composite_holdout_output_errors":
+        _semantic_mechanism_output_errors(composite, holdout),
+        "selected_composite_training_output_errors":
+        _semantic_mechanism_output_errors(composite, episodes),
+        "support_gap_holdout_count": len(unsupported_holdout),
+        "support_gap_training_count": sum(
+            1
+            for row in training
+            if _semantic_context_tree_leaf(canonical_body, row) is None
+        ),
+        "training_context_count": len(leaf_metadata),
+        "tree": diagnostic_tree(canonical_body["tree"]),
+    }
+    evaluation_work = base_evaluation_work + split_evaluations
+    if (
+        evaluation_work + len(episodes) + len(holdout) + 8
+        > declared_work
+    ):
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "context discovery result exceeds the work bound",
+        )
+    delegated = {
+        key: value
+        for key, value in request.items()
+        if key
+        not in {
+            "context_discovery",
+            "max_branches",
+            "max_work",
+        }
+    }
+    delegated["episodes"] = list(episodes)
+    delegated["holdout"] = list(holdout)
+    delegated["candidates"] = [
+        {
+            "candidate_id": "discovered-context-tree",
+            "program": composite,
+            "parameter_domain": {"context_selection": selection},
+            "selection_assumptions": [
+                "training-only-context-and-boundary-discovery"
+            ],
+        }
+    ]
+    result, work = _semantic_learn_mechanism(state, delegated)
+    return {
+        **result,
+        "context_selection": selection,
+    }, evaluation_work + work
+
+
+def _semantic_learn_conditional_mechanism(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+    *,
+    episodes: Sequence[Mapping[str, Any]],
+    holdout: Sequence[Mapping[str, Any]],
+    candidates: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], int]:
+    raw_keys = request["context_keys"]
+    if (
+        not isinstance(raw_keys, list)
+        or not 1 <= len(raw_keys) <= 8
+        or any(
+            not isinstance(key, str)
+            or len(key.split(".")) < 2
+            or key.split(".")[0] not in {"state", "action", "context"}
+            or any(not part for part in key.split("."))
+            for key in raw_keys
+        )
+        or len(set(raw_keys)) != len(raw_keys)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_MECHANISM_EVIDENCE",
+            "context_keys must be unique pre-observation paths",
+        )
+    context_keys = sorted(raw_keys)
+    for candidate in candidates:
+        if (
+            candidate["observation_model"] is not None
+            or candidate["probability_model"] is not None
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_EVIDENCE",
+                "context selection requires directly executable, "
+                "unweighted candidates",
+            )
+    for identity in ("episode_id", "pair_id"):
+        train_ids = {
+            row[identity] for row in episodes if row.get(identity) is not None
+        }
+        holdout_ids = {
+            row[identity] for row in holdout if row.get(identity) is not None
+        }
+        if train_ids & holdout_ids:
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_EVIDENCE",
+                f"{identity} may not occur in both training and holdout",
+            )
+    for population in (episodes, holdout):
+        ids = [
+            row["episode_id"]
+            for row in population
+            if row.get("episode_id") is not None
+        ]
+        if len(ids) != len(set(ids)):
+            raise FieldIntelligenceError(
+                "INVALID_MECHANISM_EVIDENCE",
+                "episode ids must be unique",
+            )
+    branch_capacity = min(int(state["bounds"]["max_alternatives"]), 64)
+    maximum_branches = _regional_integer(
+        request.get("max_branches", branch_capacity),
+        "conditional branch bound",
+        minimum=1,
+        maximum=branch_capacity,
+    )
+    declared_work = _regional_integer(
+        request.get("max_work", state["bounds"]["max_work"]),
+        "conditional work bound",
+        minimum=1,
+        maximum=state["bounds"]["max_work"],
+    )
+    # One work unit is one bounded candidate execution, matching the ordinary
+    # learner. This accounts for selection, branch/global diagnostics,
+    # composite diagnostics, final validation, and record publication.
+    evaluation_work = (
+        len(candidates) * (len(episodes) + 3 * len(holdout))
+        + 2 * (len(episodes) + len(holdout))
+    )
+    required_work = (
+        evaluation_work + len(episodes) + len(holdout) + 8
+    )
+    if required_work > declared_work:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "conditional evaluations exceed the work bound",
+        )
+
+    def grouped(
+        rows: Sequence[Mapping[str, Any]],
+    ) -> tuple[
+        dict[bytes, list[Mapping[str, Any]]],
+        dict[bytes, list[dict[str, Any]]],
+        int,
+    ]:
+        groups: dict[bytes, list[Mapping[str, Any]]] = {}
+        conditions: dict[bytes, list[dict[str, Any]]] = {}
+        missing = 0
+        for episode in rows:
+            if episode["outcome_status"] != "observed-and-scored":
+                continue
+            when: list[dict[str, Any]] = []
+            for key in context_keys:
+                present, value = _semantic_conditional_context(episode, key)
+                if not present:
+                    break
+                when.append({"key": key, "value": value})
+            if len(when) != len(context_keys):
+                missing += 1
+                continue
+            marker = canonical_json_bytes(when)
+            groups.setdefault(marker, []).append(episode)
+            conditions[marker] = when
+        return groups, conditions, missing
+
+    training_groups, conditions, missing_training = grouped(episodes)
+    holdout_groups, holdout_conditions, missing_holdout = grouped(holdout)
+    if len(training_groups) > maximum_branches:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "conditional branch count exceeds its bound",
+        )
+    branch_rows: list[dict[str, Any]] = []
+    selected_programs: list[dict[str, Any]] = []
+    selected_training: list[Mapping[str, Any]] = []
+    selected_holdout: list[Mapping[str, Any]] = []
+    unsupported_contexts: list[dict[str, Any]] = []
+    for marker in sorted(training_groups):
+        training = training_groups[marker]
+        validation = holdout_groups.get(marker, [])
+        losses: list[dict[str, Any]] = []
+        for candidate in candidates:
+            train_losses: list[float] = []
+            validation_losses: list[float] = []
+            for rows, destination in (
+                (training, train_losses),
+                (validation, validation_losses),
+            ):
+                for episode in rows:
+                    loss, status = _semantic_episode_loss(
+                        candidate["program"], episode
+                    )
+                    if (
+                        status in {"supported", "alternatives"}
+                        and loss is not None
+                    ):
+                        destination.append(loss)
+            losses.append(
+                {
+                    "candidate_id": candidate["candidate_id"],
+                    "training_loss": (
+                        sum(train_losses) / len(train_losses)
+                        if train_losses
+                        else 1.0e12
+                    ),
+                    "holdout_loss": (
+                        sum(validation_losses) / len(validation_losses)
+                        if validation_losses
+                        else 1.0e12
+                    ),
+                    "training_scored_count": len(train_losses),
+                    "holdout_scored_count": len(validation_losses),
+                }
+            )
+        eligible = [
+            row
+            for row in losses
+            if row["training_scored_count"] == len(training)
+        ]
+        selected = (
+            min(
+                eligible,
+                key=lambda row: (
+                    float(row["training_loss"]),
+                    str(row["candidate_id"]),
+                ),
+            )
+            if eligible
+            else None
+        )
+        if (
+            selected is None
+            or not validation
+            or selected["holdout_scored_count"] != len(validation)
+        ):
+            unsupported_contexts.append(
+                {
+                    "when": conditions[marker],
+                    "selected_candidate": (
+                        None
+                        if selected is None
+                        else selected["candidate_id"]
+                    ),
+                    "reason": (
+                        "no-training-support"
+                        if selected is None
+                        else "incomplete-independent-holdout-support"
+                    ),
+                    "candidate_losses": losses,
+                }
+            )
+            continue
+        chosen = next(
+            row
+            for row in candidates
+            if row["candidate_id"] == selected["candidate_id"]
+        )
+        selected_programs.append(
+            {"when": conditions[marker], "program": chosen["program"]}
+        )
+        selected_training.extend(training)
+        selected_holdout.extend(validation)
+        branch_rows.append(
+            {
+                "context": {
+                    row["key"]: row["value"]
+                    for row in conditions[marker]
+                },
+                "selected_candidate": selected["candidate_id"],
+                "candidate_losses": losses,
+                "training_scored_count": len(training),
+                "holdout_scored_count": len(validation),
+                "training_distinct_pair_or_episode_count": len(
+                    {
+                        row.get("pair_id") or row.get("episode_id")
+                        for row in training
+                        if row.get("pair_id") or row.get("episode_id")
+                    }
+                ),
+                "holdout_distinct_pair_or_episode_count": len(
+                    {
+                        row.get("pair_id") or row.get("episode_id")
+                        for row in validation
+                        if row.get("pair_id") or row.get("episode_id")
+                    }
+                ),
+                "holdout_output_errors": {
+                    candidate["candidate_id"]:
+                    _semantic_mechanism_output_errors(
+                        candidate["program"], validation
+                    )
+                    for candidate in candidates
+                },
+            }
+        )
+    selection: dict[str, Any] = {
+        "context_keys": context_keys,
+        "branches": branch_rows,
+        "unsupported_training_contexts": unsupported_contexts,
+        "training_context_count": len(training_groups),
+        "holdout_context_count": len(holdout_groups),
+        "holdout_unseen_contexts": [
+            {
+                row["key"]: row["value"]
+                for row in holdout_conditions[marker]
+            }
+            for marker in sorted(holdout_groups)
+            if marker not in training_groups
+        ],
+        "support_gap_training_count": missing_training,
+        "support_gap_holdout_count": missing_holdout,
+    }
+    if not selected_programs:
+        return (
+            _semantic_result(
+                str(request["operation"]),
+                "support-gap",
+                context_selection=selection,
+                limitations=["no-independently-supported-context"],
+            ),
+            max(1, evaluation_work),
+        )
+    composite = semantic_program_payload(
+        program_kind="conditional",
+        body={
+            "context_keys": context_keys,
+            "branches": selected_programs,
+        },
+        reads=sorted(
+            {
+                name
+                for branch in selected_programs
+                for name in branch["program"]["effects"]["reads"]
+            }
+        ),
+        writes=sorted(
+            {
+                name
+                for branch in selected_programs
+                for name in branch["program"]["effects"]["writes"]
+            }
+        ),
+        max_work=declared_work,
+        max_branches=maximum_branches,
+        max_horizon=min(
+            branch["program"]["bounds"]["max_horizon"]
+            for branch in selected_programs
+        ),
+    )
+    if _mechanism_required_work(composite) > declared_work:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "conditional execution exceeds the work bound",
+        )
+    selection.update(
+        {
+            "selected_composite_holdout_output_errors":
+            _semantic_mechanism_output_errors(composite, holdout),
+            "selected_composite_training_output_errors":
+            _semantic_mechanism_output_errors(composite, episodes),
+            "candidate_holdout_output_errors": {
+                candidate["candidate_id"]:
+                _semantic_mechanism_output_errors(
+                    candidate["program"], holdout
+                )
+                for candidate in candidates
+            },
+        }
+    )
+    # Preserve ordinary mechanism identity, evidence coverage, causal class,
+    # versioning, validation, and the prior-model fallback. The independent
+    # holdout sees one fixed composite; it cannot select another winner.
+    delegated = {
+        key: value
+        for key, value in request.items()
+        if key not in {"context_keys", "max_branches", "max_work"}
+    }
+    delegated["episodes"] = selected_training
+    delegated["holdout"] = selected_holdout
+    delegated["candidates"] = [
+        {
+            "candidate_id": "contextual-composite",
+            "program": composite,
+            "parameter_domain": {"context_selection": selection},
+            "selection_assumptions": [
+                "training-only-context-selection"
+            ],
+        }
+    ]
+    result, work = _semantic_learn_mechanism(state, delegated)
+    return {
+        **result,
+        "context_selection": selection,
+    }, evaluation_work + work
+
+
 def _semantic_learn_mechanism(
     state: dict[str, Any], request: Mapping[str, Any]
 ) -> tuple[dict[str, Any], int]:
@@ -14574,10 +17353,14 @@ def _semantic_learn_mechanism(
         required=("episodes", "mechanism_id"),
         optional=(
             "candidates",
-            "identification",
+            "context_keys",
+            "context_discovery",
             "elapsed_key",
             "fired",
             "holdout",
+            "identification",
+            "max_branches",
+            "max_work",
             "output_key",
             "quiet",
             "reset_on",
@@ -14958,6 +17741,30 @@ def _semantic_learn_mechanism(
         if intervention_actions
         else "observational"
     )
+    if (
+        request.get("context_keys") is not None
+        and request.get("context_discovery") is not None
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_MECHANISM_EVIDENCE",
+            "context_keys and context_discovery are mutually exclusive",
+        )
+    if request.get("context_discovery") is not None:
+        return _semantic_learn_discovered_context_mechanism(
+            state,
+            request,
+            episodes=episodes,
+            holdout=holdout,
+            candidates=candidates,
+        )
+    if request.get("context_keys") is not None:
+        return _semantic_learn_conditional_mechanism(
+            state,
+            request,
+            episodes=episodes,
+            holdout=holdout,
+            candidates=candidates,
+        )
     scored: list[dict[str, Any]] = []
     candidate_refs: list[dict[str, Any]] = []
     work = 0
@@ -16606,6 +19413,10 @@ def _semantic_learn_representation(
                     item["holdout"] if holdout else item["training"]
                 )["coverage"]
             ),
+            len(item["training"]["rare_failures"]),
+            int(item["training"]["errors"])
+            + int(item["training"]["abstained"]),
+            -float(item["training"]["coverage"]),
             int(item["statistics"]["complexity_bits"]),
             int(item["measured_cost"]["evaluation_work"]),
             item["candidate_id"],
@@ -16642,7 +19453,7 @@ def _semantic_learn_representation(
         support_roots=cast(Any, request.get("support_roots", [])),
         derivation={
             "criterion": (
-                "prospective-loss-coverage-rare-cases-description-and-work"
+                "prospective-loss-coverage-rare-cases-training-fit-description-and-work"
             ),
             "goal_independent": True,
         },
@@ -16693,7 +19504,14 @@ def _semantic_learn_procedure(
     _semantic_keys(
         request,
         required=("procedure_id", "traces"),
-        optional=("holdout", "max_length", "support_roots"),
+        optional=(
+            "holdout",
+            "max_length",
+            "min_length",
+            "support_event_refs",
+            "support_roots",
+            "surface_contract",
+        ),
     )
     procedure_id = _identifier(
         request["procedure_id"], "procedure identity"
@@ -16703,6 +19521,12 @@ def _semantic_learn_procedure(
         "procedure maximum length",
         minimum=2,
         maximum=64,
+    )
+    minimum = _regional_integer(
+        request.get("min_length", 2),
+        "procedure minimum length",
+        minimum=2,
+        maximum=maximum,
     )
     raw_traces = request["traces"]
     raw_holdout = request.get("holdout", [])
@@ -16723,6 +19547,7 @@ def _semantic_learn_procedure(
                 "steps": raw,
                 "success": True,
                 "trace_id": f"{partition}:{index}",
+                "trajectory_source": "declared",
             }
         elif isinstance(raw, Mapping):
             allowed = {
@@ -16733,7 +19558,9 @@ def _semantic_learn_procedure(
                 "rare_case",
                 "steps",
                 "success",
+                "support_event_refs",
                 "trace_id",
+                "trajectory_source",
                 "work",
             }
             if set(raw) - allowed or "steps" not in raw:
@@ -16747,8 +19574,21 @@ def _semantic_learn_procedure(
                 "INVALID_PROCEDURE_EVIDENCE",
                 "procedure trace must be a step list or mapping",
             )
+        support_event_refs = value.get("support_event_refs", [])
+        if (
+            not isinstance(support_event_refs, list)
+            or any(
+                not isinstance(ref, str) or not ref
+                for ref in support_event_refs
+            )
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_EVIDENCE",
+                "procedure trace support references are invalid",
+            )
         steps = value["steps"]
         success = value.get("success", value.get("failure") is None)
+        trajectory_source = value.get("trajectory_source", "declared")
         if (
             not isinstance(steps, list)
             or not steps
@@ -16758,6 +19598,7 @@ def _semantic_learn_procedure(
             or not isinstance(value.get("context", {}), Mapping)
             or not isinstance(value.get("effects", {}), Mapping)
             or not isinstance(value.get("rare_case", False), bool)
+            or trajectory_source not in {"declared", "inferred"}
         ):
             raise FieldIntelligenceError(
                 "INVALID_PROCEDURE_EVIDENCE",
@@ -16785,6 +19626,7 @@ def _semantic_learn_procedure(
                 value.get("outcome"), "procedure trace outcome"
             ),
             "rare_case": value.get("rare_case", False),
+            "trajectory_source": trajectory_source,
             "steps": [
                 _regional_plain(
                     dict(cast(Mapping[str, Any], step)),
@@ -16793,6 +19635,7 @@ def _semantic_learn_procedure(
                 for step in steps
             ],
             "success": success,
+            "support_event_refs": sorted(set(support_event_refs)),
             "trace_id": _identifier(
                 value.get("trace_id", f"{partition}:{index}"),
                 "procedure trace identity",
@@ -16814,6 +19657,241 @@ def _semantic_learn_procedure(
             "INVALID_PROCEDURE_EVIDENCE",
             "procedure trace identities must be unique",
         )
+    raw_support_refs = request.get("support_event_refs", [])
+    if not isinstance(raw_support_refs, list):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_EVIDENCE",
+            "procedure support references must be a list",
+        )
+    if any(
+        not isinstance(ref, Mapping)
+        or not {"id", "kind", "content_version"} <= set(ref)
+        for ref in raw_support_refs
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_EVIDENCE",
+            "procedure support references must be semantic references",
+        )
+    declared_support_ids = {str(ref["id"]) for ref in raw_support_refs}
+    trace_support_ids = {
+        event_id
+        for trace in [*traces, *holdout]
+        for event_id in trace["support_event_refs"]
+    }
+    if trace_support_ids != declared_support_ids:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "procedure trace support closure does not match admission",
+        )
+    support_dependencies: list[dict[str, Any]] = []
+    procedure_support_roots = {
+        str(root)
+        for root in request.get("support_roots", [])
+        if isinstance(root, str)
+    }
+    for raw_ref in raw_support_refs:
+        support_ref, support_record = _semantic_reference(
+            state,
+            raw_ref,
+            expected_kind="Event",
+            require_current=True,
+        )
+        if support_record["status"] != "active":
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP",
+                "procedure support event is not active",
+            )
+        support_dependencies.append(support_ref.as_dict())
+        procedure_support_roots.update(
+            str(root)
+            for root in support_record.get("support_roots", [])
+            if isinstance(root, str)
+        )
+    raw_surface_contract = request.get("surface_contract")
+    surface_contract: dict[str, Any] | None = None
+    if raw_surface_contract is not None:
+        if not isinstance(raw_surface_contract, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_EVIDENCE",
+                "surface procedure contract must be a mapping",
+            )
+        surface_contract = cast(
+            dict[str, Any],
+            _regional_plain(dict(raw_surface_contract), "surface procedure contract"),
+        )
+        experience = surface_contract.get("experience")
+        if not isinstance(experience, list) or not experience:
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP",
+                "surface procedure requires event-backed guidance experience",
+            )
+        support_records = {
+            item["id"]: _semantic_reference(
+                state,
+                item,
+                expected_kind="Event",
+                require_current=True,
+            )[1]
+            for item in support_dependencies
+        }
+
+        def guidance_mappings(value: Any, depth: int = 0) -> list[Mapping[str, Any]]:
+            if depth > 10:
+                return []
+            if isinstance(value, str) and len(value.encode("utf-8")) <= 64 * 1024:
+                try:
+                    decoded = json.loads(value)
+                except (TypeError, ValueError):
+                    return []
+                return guidance_mappings(decoded, depth + 1)
+            if isinstance(value, Mapping):
+                rows: list[Mapping[str, Any]] = []
+                direct = value.get("surface_guidance")
+                if isinstance(direct, Mapping):
+                    rows.append(direct)
+                if value.get("schema") == "cassi.surface.guidance.v1":
+                    rows.append(value)
+                for child in value.values():
+                    rows.extend(guidance_mappings(child, depth + 1))
+                return rows
+            if isinstance(value, list):
+                rows = []
+                for child in value[:256]:
+                    rows.extend(guidance_mappings(child, depth + 1))
+                return rows
+            return []
+
+        normalized_experience: list[dict[str, Any]] = []
+        experience_event_ids: set[str] = set()
+        identity_fields = (
+            "binding_id",
+            "source_instance",
+            "environment_incarnation",
+            "source_generation",
+            "source_epoch",
+            "geometry_revision",
+        )
+        for raw_experience in experience:
+            if (
+                not isinstance(raw_experience, Mapping)
+                or "authenticated" in raw_experience
+                or not set(identity_fields + ("event_ref",))
+                <= set(raw_experience)
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_PROCEDURE_EVIDENCE",
+                    "surface guidance experience has invalid provenance",
+                )
+            event_ref_value = raw_experience["event_ref"]
+            if (
+                not isinstance(event_ref_value, Mapping)
+                or event_ref_value.get("kind") != "Event"
+                or not {"id", "kind", "content_version"} <= set(event_ref_value)
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_PROCEDURE_EVIDENCE",
+                    "surface guidance experience needs a semantic Event ref",
+                )
+            event_id = str(event_ref_value["id"])
+            if event_id not in declared_support_ids:
+                raise FieldIntelligenceError(
+                    "SUPPORT_GAP",
+                    "surface guidance Event is outside the procedure support closure",
+                )
+            guidance_record = support_records[event_id]
+            if (
+                guidance_record["status"] != "active"
+                or guidance_record["epistemic_kind"] != "observed"
+            ):
+                raise FieldIntelligenceError(
+                    "SUPPORT_GAP",
+                    "surface guidance Event is not an active observation",
+                )
+            source_generation = raw_experience["source_generation"]
+            source_epoch = raw_experience["source_epoch"]
+            geometry_revision = raw_experience["geometry_revision"]
+            if (
+                isinstance(source_generation, bool)
+                or not isinstance(source_generation, int)
+                or source_generation < 0
+                or not isinstance(raw_experience["binding_id"], str)
+                or not raw_experience["binding_id"]
+                or not isinstance(raw_experience["source_instance"], str)
+                or not raw_experience["source_instance"]
+                or not isinstance(
+                    raw_experience["environment_incarnation"], str
+                )
+                or not raw_experience["environment_incarnation"]
+                or not isinstance(source_epoch, (int, str))
+                or isinstance(source_epoch, bool)
+                or source_epoch == ""
+                or not isinstance(geometry_revision, (int, str))
+                or isinstance(geometry_revision, bool)
+                or geometry_revision == ""
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_PROCEDURE_EVIDENCE",
+                    "surface guidance experience identity is invalid",
+                )
+            expected_identity = {
+                key: raw_experience[key] for key in identity_fields
+            }
+            guidance_payloads = guidance_mappings(
+                guidance_record.get("payload", {})
+            )
+            matching_guidance = [
+                candidate
+                for candidate in guidance_payloads
+                if candidate.get("schema") == "cassi.surface.guidance.v1"
+                and all(
+                    canonical_json_bytes(candidate.get(key))
+                    == canonical_json_bytes(expected)
+                    for key, expected in expected_identity.items()
+                )
+            ]
+            source_refs = [
+                candidate.get("source_event_ref")
+                for candidate in matching_guidance
+                if isinstance(candidate.get("source_event_ref"), Mapping)
+            ]
+            if not source_refs or any(
+                not isinstance(source_ref.get("event_id"), str)
+                or not source_ref["event_id"]
+                or source_ref.get("kind") != "program-guidance"
+                or not isinstance(source_ref.get("digest"), str)
+                or not source_ref["digest"]
+                for source_ref in source_refs
+            ):
+                raise FieldIntelligenceError(
+                    "SUPPORT_GAP",
+                    "surface guidance Event does not retain its source Event identity",
+                )
+            source_ref_bytes = {
+                canonical_json_bytes(dict(source_ref))
+                for source_ref in source_refs
+            }
+            if len(source_ref_bytes) != 1:
+                raise FieldIntelligenceError(
+                    "SUPPORT_GAP",
+                    "surface guidance Event has ambiguous source Event identities",
+                )
+            normalized_row = dict(raw_experience)
+            normalized_row["source_event_ref"] = dict(source_refs[0])
+            normalized_experience.append(
+                cast(
+                    dict[str, Any],
+                    _regional_plain(
+                        normalized_row, "surface guidance experience"
+                    ),
+                )
+            )
+            experience_event_ids.add(event_id)
+        if not experience_event_ids:
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP",
+                "surface procedure has no verified guidance Event",
+            )
+        surface_contract["experience"] = normalized_experience
 
     structural_fields = {
         "action",
@@ -16847,14 +19925,13 @@ def _semantic_learn_procedure(
         if field in structural_fields:
             return {"$constant": value}
         return {"$type": value_type(value)}
-
     groups: dict[bytes, list[dict[str, Any]]] = {}
     work = 0
     for trace_index, trace in enumerate(traces):
         if not trace["success"]:
             continue
         steps = trace["steps"]
-        for length in range(2, min(maximum, len(steps)) + 1):
+        for length in range(minimum, min(maximum, len(steps)) + 1):
             for start in range(len(steps) - length + 1):
                 window = steps[start : start + length]
                 key = canonical_json_bytes(skeleton(window))
@@ -17160,6 +20237,7 @@ def _semantic_learn_procedure(
                     "guards": guards,
                     "roles": roles,
                     "steps": template,
+                    "surface_contract": surface_contract,
                 }
             )
         )
@@ -17197,20 +20275,43 @@ def _semantic_learn_procedure(
                 "preconditions": guards,
                 "roles": program_roles,
                 "steps": template,
+                **(
+                    {"surface_contract": surface_contract}
+                    if surface_contract is not None
+                    else {}
+                ),
             },
             writes=(
                 sorted(inferred_effects)
                 if isinstance(inferred_effects, Mapping)
                 else ()
             ),
-            emits=("proposed-actions",),
-            max_horizon=max(1, len(template)),
-            max_work=max(1, len(template)),
+            emits=(
+                ("surface-intention",)
+                if surface_contract is not None
+                else ("proposed-actions",)
+            ),
+            max_horizon=(
+                state["bounds"]["max_work"]
+                if surface_contract is not None
+                else max(1, len(template))
+            ),
+            max_work=(
+                state["bounds"]["max_work"]
+                if surface_contract is not None
+                else max(1, len(template))
+            ),
+            max_branches=state["bounds"]["max_alternatives"],
             applicability={
                 "induction": "typed-trace-anti-unification",
                 "training_trace_ids": [
                     trace["trace_id"] for trace in support_traces
                 ],
+                **(
+                    {"surface_purpose": surface_contract["purpose"]}
+                    if surface_contract is not None
+                    else {}
+                ),
             },
         )
         assessed.append(
@@ -17221,6 +20322,7 @@ def _semantic_learn_procedure(
                         "guards": guards,
                         "roles": roles,
                         "steps": template,
+                        "surface_contract": surface_contract,
                     }
                 ),
                 "failure_behavior": failure_behavior,
@@ -17287,12 +20389,14 @@ def _semantic_learn_procedure(
             },
             status="candidate",
             epistemic_kind="induced",
-            support_roots=cast(Any, request.get("support_roots", [])),
+            dependencies=tuple(support_dependencies),
+            support_roots=sorted(procedure_support_roots),
             derivation={
                 "criterion": (
                     "heldout-transfer-safety-description-and-saved-work"
                 ),
                 "goal_independent": True,
+                "support_event_refs": sorted(declared_support_ids),
             },
         )
         candidate_refs.append(candidate_ref)
@@ -17326,11 +20430,12 @@ def _semantic_learn_procedure(
         },
         status="active" if adequate else "candidate",
         epistemic_kind="induced",
-        dependencies=tuple(candidate_refs),
-        support_roots=cast(Any, request.get("support_roots", [])),
+        dependencies=(*candidate_refs, *support_dependencies),
+        support_roots=sorted(procedure_support_roots),
         derivation={
             "criterion": "parameterized-heldout-transfer-with-net-savings",
             "goal_independent": True,
+            "support_event_refs": sorted(declared_support_ids),
         },
     )
     frontier = (
@@ -17362,8 +20467,8 @@ def _semantic_learn_procedure(
                 "statistics": statistics,
             },
             epistemic_kind="derived",
-            dependencies=(reference,),
-            support_roots=cast(Any, request.get("support_roots", [])),
+            dependencies=(reference, *support_dependencies),
+            support_roots=sorted(procedure_support_roots),
         )
         _semantic_reindex_record(state, obligation_ref)
     return _semantic_result(
@@ -17382,7 +20487,1938 @@ def _semantic_learn_procedure(
         obligation=obligation_ref,
         procedure=reference,
         selected_candidate=winner["candidate_id"],
+        support_event_refs=sorted(declared_support_ids),
     ), max(1, work + len(frontier))
+
+
+def _semantic_advance_surface_procedure(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=(
+            "binding_id",
+            "context",
+            "grant_id",
+            "mission_id",
+            "now_ns",
+            "procedure_ref",
+            "run_id",
+        ),
+        optional=(
+            "bindings",
+            "cancel_requested",
+            "checkpoint_ref",
+            "deadline_ns",
+            "effect_outcome",
+            "goal_revision",
+            "maximum_work",
+            "observation_ref",
+            "support_roots",
+        ),
+    )
+    if not isinstance(request["procedure_ref"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface procedure ref must be a semantic reference",
+        )
+    if not isinstance(request["context"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface procedure context must be a mapping",
+        )
+    run_id = _identifier(request["run_id"], "surface procedure run")
+    mission_id = _identifier(request["mission_id"], "surface mission")
+    binding_id = _identifier(request["binding_id"], "surface binding")
+    grant_id = _identifier(request["grant_id"], "surface grant")
+    now_ns = _regional_integer(
+        request["now_ns"],
+        "surface procedure clock",
+        minimum=0,
+        maximum=9_007_199_254_740_991,
+    )
+    if "cancel_requested" in request and not isinstance(
+        request["cancel_requested"], bool
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface cancellation request must be boolean",
+        )
+    raw_bindings = request.get("bindings", {})
+    if not isinstance(raw_bindings, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface procedure bindings must be a mapping",
+        )
+    bindings = cast(
+        dict[str, Any],
+        _regional_plain(dict(raw_bindings), "surface procedure bindings"),
+    )
+    context = cast(
+        dict[str, Any],
+        _regional_plain(dict(request["context"]), "surface procedure context"),
+    )
+    surface = context.get("surface")
+    if not isinstance(surface, Mapping):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            limitation="surface-context-unavailable",
+            intention=None,
+        ), 1
+    binding = surface.get("binding")
+    capture = surface.get("capture")
+    authority = surface.get("authority")
+    observation = surface.get("observation")
+    if not all(
+        isinstance(item, Mapping)
+        for item in (binding, capture, authority, observation)
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            limitation="binding-capture-authority-or-observation-unavailable",
+            intention=None,
+        ), 1
+    binding = cast(Mapping[str, Any], binding)
+    capture = cast(Mapping[str, Any], capture)
+    authority = cast(Mapping[str, Any], authority)
+    observation = cast(Mapping[str, Any], observation)
+    if "pixels" in capture or "pixels" in surface:
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface pixels must remain outside control-plane procedure context",
+        )
+
+    procedure_ref, procedure_record = _semantic_reference(
+        state,
+        request["procedure_ref"],
+        expected_kind="Program",
+        require_current=True,
+    )
+    program_record = procedure_record.get("payload", {})
+    if (
+        procedure_record.get("status") != "active"
+        or not isinstance(program_record, Mapping)
+        or program_record.get("program_role") != "procedure"
+        or not isinstance(program_record.get("program"), Mapping)
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            limitation="procedure-support-inactive-or-invalid",
+            procedure=procedure_ref.as_dict(),
+            intention=None,
+        ), 1
+    try:
+        program = canonical_semantic_program_payload(
+            cast(Mapping[str, Any], program_record["program"])
+        )
+    except ValueError as exc:
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            f"surface procedure program is invalid: {exc}",
+        ) from exc
+    if (
+        program["program_kind"] != "procedure"
+        or not isinstance(program["body"].get("surface_contract"), Mapping)
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            limitation="procedure-has-no-surface-contract",
+            procedure=procedure_ref.as_dict(),
+            intention=None,
+        ), 1
+    contract = cast(
+        Mapping[str, Any], program["body"]["surface_contract"]
+    )
+
+    def version(value: Any, label: str) -> str | int:
+        if isinstance(value, bool) or not isinstance(value, (int, str)) or value == "":
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION", f"{label} is invalid"
+            )
+        return value
+
+    def supported_operations(value: Any) -> set[str]:
+        result: set[str] = set()
+        if isinstance(value, list):
+            for row in value:
+                if isinstance(row, str) and row:
+                    result.add(row)
+                elif isinstance(row, Mapping):
+                    name = row.get("operation", row.get("name"))
+                    status = row.get("status")
+                    if (
+                        isinstance(name, str)
+                        and name
+                        and (
+                            row.get("supported") is True
+                            or (
+                                isinstance(status, str)
+                                and status
+                                in {"supported", "available", "ready"}
+                            )
+                        )
+                    ):
+                        result.add(name)
+        elif isinstance(value, Mapping):
+            for name, row in value.items():
+                if not isinstance(name, str) or not name:
+                    continue
+                if row is True or (
+                    isinstance(row, str)
+                    and row in {"supported", "available", "ready"}
+                ):
+                    result.add(name)
+                elif isinstance(row, Mapping) and (
+                    row.get("supported") is True
+                    or (
+                        isinstance(row.get("status"), str)
+                        and row.get("status")
+                        in {"supported", "available", "ready"}
+                    )
+                ):
+                    result.add(name)
+        return result
+
+    def state_ready(value: Any) -> bool:
+        if isinstance(value, str):
+            return value in {"available", "live", "ready", "supported"}
+        if isinstance(value, Mapping):
+            current = value.get("state", value.get("status"))
+            return isinstance(current, str) and current in {
+                "available",
+                "live",
+                "ready",
+                "supported",
+            }
+        return False
+
+    binding_source_id = binding.get("source_id")
+    binding_source = binding.get("source_instance")
+    binding_environment = binding.get("environment_incarnation")
+    binding_epoch = version(binding.get("source_epoch"), "bound source epoch")
+    binding_geometry = version(
+        binding.get("geometry_revision"), "bound geometry revision"
+    )
+    if (
+        binding.get("binding_id") != binding_id
+        or not isinstance(binding_source_id, str)
+        or not binding_source_id
+        or not isinstance(binding_source, str)
+        or not binding_source
+        or not isinstance(binding_environment, str)
+        or not binding_environment
+        or not state_ready(binding.get("capture_state"))
+        or not state_ready(binding.get("input_state"))
+        or capture.get("binding_id") != binding_id
+        or capture.get("source_id") != binding_source_id
+        or capture.get("source_instance") != binding_source
+        or capture.get("environment_incarnation") != binding_environment
+        or version(capture.get("source_epoch"), "capture source epoch")
+        != binding_epoch
+        or version(capture.get("geometry_revision"), "capture geometry revision")
+        != binding_geometry
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            limitation="binding-or-capture-version-mismatch",
+            intention=None,
+        ), 1
+    primary_sample_time_ns = capture.get("sample_time_ns")
+    primary_receipt_time_ns = capture.get("receipt_time_ns")
+    capture_audio = capture.get("audio")
+    observation_features = observation.get("features", {})
+    observation_audio_container = (
+        observation_features.get("audio")
+        if isinstance(observation_features, Mapping)
+        else None
+    )
+    observation_audio = (
+        observation_audio_container.get("descriptor")
+        if isinstance(observation_audio_container, Mapping)
+        else None
+    )
+    observation_audio_page = (
+        observation_audio_container.get("page")
+        if isinstance(observation_audio_container, Mapping)
+        else None
+    )
+    raw_sample_time_ns = primary_sample_time_ns
+    raw_receipt_time_ns = primary_receipt_time_ns
+    if raw_sample_time_ns is None:
+        if (
+            not isinstance(capture_audio, Mapping)
+            or not isinstance(observation_audio, Mapping)
+            or capture_audio.get("sample_time_ns") is None
+        ):
+            return _semantic_result(
+                "advance-surface-procedure",
+                "pending-observation",
+                limitation="surface-sample-time-unavailable",
+                intention=None,
+            ), 1
+        raw_sample_time_ns = capture_audio.get("sample_time_ns")
+        raw_receipt_time_ns = capture_audio.get("receipt_time_ns")
+        if raw_receipt_time_ns is None:
+            return _semantic_result(
+                "advance-surface-procedure",
+                "pending-observation",
+                limitation="surface-receipt-time-unavailable",
+                intention=None,
+            ), 1
+    if raw_receipt_time_ns is None:
+        return _semantic_result(
+            "advance-surface-procedure",
+            "pending-observation",
+            limitation="surface-receipt-time-unavailable",
+            intention=None,
+        ), 1
+    sequence = _regional_integer(
+        capture.get("sequence"),
+        "surface capture sequence",
+        minimum=0,
+        maximum=9_007_199_254_740_991,
+    )
+    sample_time_ns = _regional_integer(
+        raw_sample_time_ns,
+        "surface capture sample time",
+        minimum=0,
+        maximum=9_007_199_254_740_991,
+    )
+    receipt_time_ns = _regional_integer(
+        raw_receipt_time_ns,
+        "surface capture receipt time",
+        minimum=0,
+        maximum=9_007_199_254_740_991,
+    )
+    top_receipt_time_ns = _regional_integer(
+        primary_receipt_time_ns,
+        "surface publication receipt time",
+        minimum=0,
+        maximum=9_007_199_254_740_991,
+    )
+    capture_generation = _regional_integer(
+        capture.get("generation"),
+        "surface capture generation",
+        minimum=1,
+        maximum=9_007_199_254_740_991,
+    )
+    observed_generation = _regional_integer(
+        observation.get("generation"),
+        "observed surface generation",
+        minimum=1,
+        maximum=9_007_199_254_740_991,
+    )
+    raw_current_generation = observation.get("current_generation")
+    if raw_current_generation is None:
+        return _semantic_result(
+            "advance-surface-procedure",
+            "pending-observation",
+            limitation="surface-observation-not-current",
+            intention=None,
+        ), 1
+    current_generation = _regional_integer(
+        raw_current_generation,
+        "current surface generation",
+        minimum=1,
+        maximum=9_007_199_254_740_991,
+    )
+    raw_width = capture.get("width")
+    raw_height = capture.get("height")
+    pixel_format = capture.get("pixel_format")
+    structure = capture.get("structure")
+    structure_only = (
+        raw_width == 0
+        and raw_height == 0
+        and pixel_format == "none"
+        and isinstance(structure, Mapping)
+    )
+    if structure_only:
+        width = height = 0
+    elif raw_width is None and raw_height is None and pixel_format is None:
+        if not any(
+            capture.get(name) is not None
+            for name in ("accessibility", "audio", "structure")
+        ):
+            return _semantic_result(
+                "advance-surface-procedure",
+                "pending-observation",
+                limitation="surface-modality-unavailable",
+                intention=None,
+            ), 1
+        width = height = None
+    elif raw_width is None or raw_height is None or not isinstance(pixel_format, str) or not pixel_format:
+        return _semantic_result(
+            "advance-surface-procedure",
+            "pending-observation",
+            limitation="surface-modality-metadata-incomplete",
+            intention=None,
+        ), 1
+    else:
+        width = _regional_integer(
+            raw_width, "surface capture width", minimum=1, maximum=1_000_000
+        )
+        height = _regional_integer(
+            raw_height, "surface capture height", minimum=1, maximum=1_000_000
+        )
+    observation_structure = observation.get("structure")
+    structure_matches = True
+    if isinstance(structure, Mapping):
+        structure_matches = isinstance(observation_structure, Mapping) and all(
+            key in structure
+            and observation_structure.get(key) == structure.get(key)
+            for key in ("byte_length", "codec", "sha256")
+        )
+    elif observation_structure is not None:
+        structure_matches = False
+    audio_matches = True
+    if isinstance(capture_audio, Mapping):
+        audio_page_keys = (
+            "coverage",
+            "receipt_clock_domain",
+            "receipt_time_ns",
+            "sample_clock_domain",
+            "sample_time_ns",
+            "sample_time_uncertainty_ns",
+            "sequence",
+        )
+        audio_descriptor_matches = (
+            isinstance(observation_audio, Mapping)
+            and all(
+                observation_audio.get(key) == capture_audio.get(key)
+                for key in (
+                    "audio_format",
+                    "byte_length",
+                    "channel_count",
+                    "coverage",
+                    "receipt_clock_domain",
+                    "receipt_time_ns",
+                    "sample_clock_domain",
+                    "sample_count",
+                    "sample_rate_hz",
+                    "sample_time_ns",
+                    "sample_time_uncertainty_ns",
+                    "sequence",
+                )
+                if key in capture_audio
+            )
+        )
+        audio_page_matches = (
+            isinstance(observation_audio_page, Mapping)
+            and isinstance(observation_audio, Mapping)
+            and all(
+                observation_audio_page.get(key) == observation_audio.get(key)
+                for key in audio_page_keys
+                if key in observation_audio
+            )
+        )
+        audio_matches = audio_descriptor_matches and audio_page_matches
+    elif observation_audio_container is not None:
+        audio_matches = False
+    coverage = capture.get("coverage")
+    # A complete current sample may coexist with skipped earlier frames.
+    # Keep those intervals in the observation; they cannot prove no change
+    # between samples, but do not make the current image unusable for control.
+    if (
+        sample_time_ns > receipt_time_ns
+        or receipt_time_ns > now_ns
+        or not isinstance(coverage, Mapping)
+        or coverage.get("complete") is not True
+        or coverage.get("coverage_reported") is not True
+        or any(
+            bool(coverage.get(key))
+            for key in (
+                "gaps",
+                "missing_regions",
+                "redacted_regions",
+                "unknown_regions",
+            )
+        )
+        or observation.get("binding_id") != binding_id
+        or observation.get("source_id") != binding_source_id
+        or observation.get("source_instance") != binding_source
+        or observation.get("environment_incarnation") != binding_environment
+        or version(observation.get("source_epoch"), "observed source epoch")
+        != binding_epoch
+        or version(
+            observation.get("geometry_revision"),
+            "observed geometry revision",
+        )
+        != binding_geometry
+        or observation.get("sequence") != sequence
+        or observed_generation != capture_generation
+        or current_generation != capture_generation
+        or observation.get("stale") is not False
+        or observation.get("sample_time_ns") != primary_sample_time_ns
+        or observation.get("receipt_time_ns") != top_receipt_time_ns
+        or observation.get("width") != width
+        or observation.get("height") != height
+        or observation.get("pixel_format") != pixel_format
+        or not structure_matches
+        or not audio_matches
+        or not isinstance(observation.get("coverage"), Mapping)
+        or canonical_json_bytes(observation.get("coverage"))
+        != canonical_json_bytes(coverage)
+        or any(
+            key in capture and observation.get(key) != capture.get(key)
+            for key in (
+                "sample_clock_domain",
+                "sample_time_uncertainty_ns",
+                "receipt_clock_domain",
+            )
+        )
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "pending-observation",
+            limitation="fresh-current-complete-surface-observation-required",
+            intention=None,
+        ), 1
+    maximum_age = int(contract["maximum_observation_age_ns"])
+    audio_dependency = any(
+        isinstance(dependency, Mapping)
+        and isinstance(dependency.get("path"), str)
+        and "audio" in dependency["path"].split(".")
+        for dependency in contract["dependencies"]
+    )
+    if audio_dependency:
+        audio_coverage = (
+            capture_audio.get("coverage")
+            if isinstance(capture_audio, Mapping)
+            else None
+        )
+        if (
+            not isinstance(capture_audio, Mapping)
+            or not isinstance(observation_audio, Mapping)
+            or capture_audio.get("sample_time_ns") is None
+            or capture_audio.get("receipt_time_ns") is None
+            or not isinstance(audio_coverage, Mapping)
+            or audio_coverage.get("complete") is not True
+            or audio_coverage.get("coverage_reported") is not True
+            or any(
+                bool(audio_coverage.get(key))
+                for key in (
+                    "gaps",
+                    "missing_regions",
+                    "redacted_regions",
+                    "unknown_regions",
+                )
+            )
+        ):
+            return _semantic_result(
+                "advance-surface-procedure",
+                "pending-observation",
+                limitation="audio-observation-incomplete",
+                intention=None,
+            ), 1
+        audio_sample_time_ns = _regional_integer(
+            capture_audio["sample_time_ns"],
+            "surface audio sample time",
+            minimum=0,
+            maximum=9_007_199_254_740_991,
+        )
+        audio_receipt_time_ns = _regional_integer(
+            capture_audio["receipt_time_ns"],
+            "surface audio receipt time",
+            minimum=0,
+            maximum=9_007_199_254_740_991,
+        )
+        if (
+            audio_sample_time_ns > audio_receipt_time_ns
+            or audio_receipt_time_ns > now_ns
+            or now_ns - audio_sample_time_ns > maximum_age
+            or canonical_json_bytes(observation_audio.get("coverage"))
+            != canonical_json_bytes(audio_coverage)
+        ):
+            return _semantic_result(
+                "advance-surface-procedure",
+                "pending-observation",
+                limitation="audio-observation-stale-or-mismatched",
+                intention=None,
+            ), 1
+    if now_ns - sample_time_ns > maximum_age:
+        return _semantic_result(
+            "advance-surface-procedure",
+            "pending-observation",
+            limitation="surface-observation-stale",
+            intention=None,
+        ), 1
+
+    authority_operations = supported_operations(
+        authority.get("operations", authority.get("scope", {}).get("operations")
+        if isinstance(authority.get("scope"), Mapping)
+        else None)
+    )
+    binding_operations = supported_operations(binding.get("operations"))
+    capabilities = set(contract["capability_requirements"])
+    expiry = _regional_integer(
+        authority.get("expires_ns"),
+        "surface grant expiry",
+        minimum=0,
+        maximum=9_007_199_254_740_991,
+    )
+    if (
+        authority.get("state") != "granted"
+        or authority.get("grant_id") != grant_id
+        or authority.get("mission_id") != mission_id
+        or authority.get("binding_id") != binding_id
+        or expiry <= now_ns
+        or not capabilities <= authority_operations
+        or not capabilities <= binding_operations
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "authority-denied",
+            limitation="grant-missing-expired-or-out-of-scope",
+            intention=None,
+        ), 1
+    if not capabilities:
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            limitation="procedure-capability-set-empty",
+            intention=None,
+        ), 1
+    max_work = _regional_integer(
+        request.get(
+            "maximum_work",
+            min(MECHANISM_STEP_MAX_WORK, int(program["bounds"]["max_work"])),
+        ),
+        "surface procedure work quantum",
+        minimum=1,
+        maximum=min(
+            MECHANISM_STEP_MAX_WORK,
+            int(program["bounds"]["max_work"]),
+        ),
+    )
+    goal_revision = request.get("goal_revision")
+    if goal_revision is not None and (
+        isinstance(goal_revision, bool)
+        or not isinstance(goal_revision, (str, int))
+        or goal_revision == ""
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface goal revision is invalid",
+        )
+    goal_revision = (
+        None
+        if goal_revision is None
+        else _regional_plain(goal_revision, "surface goal revision")
+    )
+    bindings_digest = sha256_value(bindings)
+    run_record_id = f"surface-run:{sha256_value({'run_id': run_id})}"
+    previous_reference: dict[str, Any] | None = None
+    checkpoint: dict[str, Any] | None = None
+    if request.get("checkpoint_ref") is not None:
+        if not isinstance(request["checkpoint_ref"], Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "surface checkpoint ref must be a semantic reference",
+            )
+        previous_ref, checkpoint_record = _semantic_reference(
+            state,
+            request["checkpoint_ref"],
+            expected_kind="Value",
+            require_current=True,
+        )
+        previous_reference = previous_ref.as_dict()
+        candidate = checkpoint_record.get("payload")
+        if (
+            checkpoint_record.get("status") != "active"
+            or not isinstance(candidate, Mapping)
+            or candidate.get("schema") != "cassifi.surface-procedure-checkpoint.v1"
+            or candidate.get("run_id") != run_id
+            or candidate.get("record_id") != run_record_id
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "surface checkpoint does not belong to this run",
+            )
+        checkpoint = dict(candidate)
+        if (
+            canonical_json_bytes(checkpoint.get("procedure_ref"))
+            != canonical_json_bytes(procedure_ref.as_dict())
+            or checkpoint.get("mission_id") != mission_id
+            or checkpoint.get("binding_id") != binding_id
+            or checkpoint.get("source_instance") != binding_source
+            or checkpoint.get("environment_incarnation") != binding_environment
+            or version(checkpoint.get("source_epoch"), "checkpoint source epoch")
+            != binding_epoch
+            or version(
+                checkpoint.get("geometry_revision"),
+                "checkpoint geometry revision",
+            )
+            != binding_geometry
+            or checkpoint.get("bindings_digest") != bindings_digest
+            or checkpoint.get("goal_revision") != goal_revision
+        ):
+            return _semantic_result(
+                "advance-surface-procedure",
+                "support-gap",
+                checkpoint=previous_reference,
+                limitation="surface-checkpoint-identity-or-binding-changed",
+                intention=None,
+            ), 1
+        if checkpoint.get("run_status") in {
+            "completed",
+            "cancelled",
+            "effect-mismatch",
+            "not-started",
+            "resource-exhausted",
+            "stopped",
+            "timed-out",
+        }:
+            return _semantic_result(
+                "advance-surface-procedure",
+                "supported"
+                if checkpoint.get("run_status") == "completed"
+                else "unresolved",
+                checkpoint=previous_reference,
+                limitation=checkpoint.get("limitation"),
+                intention=None,
+            ), 1
+    elif state["current"]["Value"].get(run_record_id) is not None:
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "existing surface run must resume from its current checkpoint",
+        )
+
+    context["now_ns"] = now_ns
+    context["surface"] = dict(surface)
+    context["effect_outcome"] = request.get("effect_outcome")
+    context["effect_observation"] = dict(observation)
+
+    def lookup(path: str) -> tuple[bool, Any]:
+        if not isinstance(path, str) or not path:
+            return False, None
+        parts = path.split(".")
+        if parts[0] == "context":
+            current: Any = context
+            parts = parts[1:]
+        elif parts[0] == "action":
+            current = bindings
+            parts = parts[1:]
+        elif parts[0] == "state":
+            current = {}
+            parts = parts[1:]
+        else:
+            current = context
+        for part in parts:
+            if isinstance(current, Mapping) and part in current:
+                current = current[part]
+            else:
+                return False, None
+        return True, current
+
+    def conditions_match(conditions: Sequence[Mapping[str, Any]]) -> bool | None:
+        unknown = False
+        for condition in conditions:
+            available, actual = lookup(condition["path"])
+            operation = condition["op"]
+            if operation == "exists":
+                accepted = available
+            elif operation == "missing":
+                accepted = not available
+            elif not available:
+                accepted = None
+            else:
+                expected = condition["value"]
+                if operation == "eq":
+                    accepted = (
+                        canonical_json_bytes(actual)
+                        == canonical_json_bytes(expected)
+                    )
+                elif operation == "ne":
+                    accepted = (
+                        canonical_json_bytes(actual)
+                        != canonical_json_bytes(expected)
+                    )
+                elif operation in {"in", "not-in"}:
+                    matched = canonical_json_bytes(actual) in {
+                        canonical_json_bytes(item) for item in expected
+                    }
+                    accepted = matched if operation == "in" else not matched
+                elif (
+                    isinstance(actual, bool)
+                    or isinstance(expected, bool)
+                    or not isinstance(actual, (int, float))
+                    or not isinstance(expected, (int, float))
+                ):
+                    accepted = None
+                elif operation == "lt":
+                    accepted = actual < expected
+                elif operation == "le":
+                    accepted = actual <= expected
+                elif operation == "gt":
+                    accepted = actual > expected
+                elif operation == "ge":
+                    accepted = actual >= expected
+                else:
+                    accepted = None
+            if accepted is False:
+                return False
+            if accepted is None:
+                unknown = True
+        return None if unknown else True
+
+    def unique_recovery_choice(
+        choices: Sequence[Mapping[str, Any]],
+    ) -> Mapping[str, Any] | None:
+        selected: Mapping[str, Any] | None = None
+        unresolved = False
+        for choice in choices:
+            accepted = conditions_match(choice["when"])
+            if accepted is None:
+                unresolved = True
+            elif accepted:
+                if selected is not None:
+                    return None
+                selected = choice
+        return None if unresolved else selected
+
+
+    def persist(
+        run_status: str,
+        *,
+        cursor: Mapping[str, Any] | None,
+        pending_intent: Mapping[str, Any] | None,
+        deadline: int,
+        limitations: Sequence[str] = (),
+    ) -> dict[str, Any]:
+        sequence_number = (
+            0
+            if previous_reference is None
+            else int(checkpoint.get("checkpoint_sequence", 0)) + 1
+        )
+        record_payload = {
+            "binding_id": binding_id,
+            "bindings_digest": bindings_digest,
+            "checkpoint_sequence": sequence_number,
+            "cursor": None if cursor is None else dict(cursor),
+            "deadline_ns": deadline,
+            "environment_incarnation": binding_environment,
+            "focus_epoch": lease_focus,
+            "geometry_revision": binding_geometry,
+            "goal_revision": goal_revision,
+            "input_domain_epoch": lease_input,
+            "last_capture_sequence": sequence,
+            "last_sample_time_ns": sample_time_ns,
+            "limitation": list(limitations)[0] if limitations else None,
+            "mission_id": mission_id,
+            "pending_intent": (
+                None if pending_intent is None else dict(pending_intent)
+            ),
+            "procedure_ref": procedure_ref.as_dict(),
+            "record_id": run_record_id,
+            "run_id": run_id,
+            "run_status": run_status,
+            "schema": "cassifi.surface-procedure-checkpoint.v1",
+            "source_epoch": binding_epoch,
+            "source_instance": binding_source,
+        }
+        deps: list[Mapping[str, Any]] = [procedure_ref.as_dict()]
+        deps.extend(
+            item["event_ref"]
+            for item in contract["experience"]
+            if isinstance(item, Mapping)
+            and isinstance(item.get("event_ref"), Mapping)
+        )
+        if previous_reference is not None:
+            deps.append(previous_reference)
+        observation_ref_value = request.get("observation_ref")
+        if observation_ref_value is not None:
+            if not isinstance(observation_ref_value, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_PROCEDURE_INVOCATION",
+                    "surface observation ref must be semantic",
+                )
+            observation_ref, observation_record = _semantic_reference(
+                state,
+                observation_ref_value,
+                expected_kind="Event",
+                require_current=True,
+            )
+            if (
+                observation_record["status"] != "active"
+                or observation_record["epistemic_kind"] != "observed"
+            ):
+                raise FieldIntelligenceError(
+                    "SUPPORT_GAP",
+                    "surface observation Event is not an active observation",
+                )
+            deps.append(observation_ref.as_dict())
+        roots = {
+            str(item)
+            for item in procedure_record.get("support_roots", [])
+            if isinstance(item, str)
+        }
+        roots.update(
+            str(item)
+            for item in request.get("support_roots", [])
+            if isinstance(item, str)
+        )
+        reference = _semantic_append_record(
+            state,
+            record_id=run_record_id,
+            kind="Value",
+            payload=record_payload,
+            epistemic_kind="derived",
+            dependencies=deps,
+            support_roots=sorted(roots),
+            derivation={
+                "operation": "advance-surface-procedure",
+                "run_id": run_id,
+            },
+        )
+        _semantic_reindex_record(state, reference)
+        return reference
+
+    def output(
+        answer_status: str,
+        *,
+        run_status: str,
+        cursor: Mapping[str, Any] | None,
+        pending_intent: Mapping[str, Any] | None,
+        deadline: int,
+        limitations: Sequence[str] = (),
+        intention: Mapping[str, Any] | None = None,
+        work: int = 1,
+    ) -> tuple[dict[str, Any], int]:
+        checkpoint_ref = persist(
+            run_status,
+            cursor=cursor,
+            pending_intent=pending_intent,
+            deadline=deadline,
+            limitations=limitations,
+        )
+        return (
+            _semantic_result(
+                "advance-surface-procedure",
+                answer_status,
+                checkpoint=checkpoint_ref,
+                intention=None if intention is None else dict(intention),
+                limitation=list(limitations)[0] if limitations else None,
+                run_status=run_status,
+                work=max(1, work),
+            ),
+            max(1, work),
+        )
+
+    grant_max_duration = authority.get("max_duration_ns")
+    duration = int(contract["max_duration_ns"])
+    if isinstance(grant_max_duration, int) and not isinstance(
+        grant_max_duration, bool
+    ):
+        duration = min(duration, max(1, grant_max_duration))
+    proposed_deadline = now_ns + duration
+    if proposed_deadline > 9_007_199_254_740_991:
+        proposed_deadline = 9_007_199_254_740_991
+    if "deadline_ns" in request:
+        proposed_deadline = min(
+            proposed_deadline,
+            _regional_integer(
+                request["deadline_ns"],
+                "surface run deadline",
+                minimum=now_ns + 1,
+                maximum=9_007_199_254_740_991,
+            ),
+        )
+    proposed_deadline = min(proposed_deadline, expiry)
+    if checkpoint is not None:
+        proposed_deadline = min(
+            proposed_deadline,
+            _regional_integer(
+                checkpoint.get("deadline_ns"),
+                "surface checkpoint deadline",
+                minimum=0,
+                maximum=9_007_199_254_740_991,
+            ),
+        )
+    if proposed_deadline <= now_ns:
+        return _semantic_result(
+            "advance-surface-procedure",
+            "resource-exhausted",
+            limitation="surface-procedure-deadline-expired",
+            checkpoint=previous_reference,
+            intention=None,
+        ), 1
+
+    lease_focus = authority.get("focus_epoch", binding.get("focus_epoch"))
+    lease_input = authority.get(
+        "input_domain_epoch", binding.get("input_domain_epoch")
+    )
+    binding_focus = binding.get("focus_epoch")
+    binding_input = binding.get("input_domain_epoch")
+    if (
+        binding_focus is not None
+        and lease_focus is not None
+        and canonical_json_bytes(binding_focus)
+        != canonical_json_bytes(lease_focus)
+    ) or (
+        binding_input is not None
+        and lease_input is not None
+        and canonical_json_bytes(binding_input)
+        != canonical_json_bytes(lease_input)
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "authority-denied",
+            limitation="surface-input-lease-does-not-match-binding",
+            intention=None,
+        ), 1
+    if checkpoint is not None and (
+        canonical_json_bytes(checkpoint.get("focus_epoch"))
+        != canonical_json_bytes(lease_focus)
+        or canonical_json_bytes(checkpoint.get("input_domain_epoch"))
+        != canonical_json_bytes(lease_input)
+    ):
+        return _semantic_result(
+            "advance-surface-procedure",
+            "support-gap",
+            checkpoint=previous_reference,
+            limitation="surface-input-lease-changed",
+            intention=None,
+        ), 1
+
+    context["surface"] = {
+        **dict(surface),
+        "binding": dict(binding),
+        "capture": dict(capture),
+        "authority": dict(authority),
+        "observation": dict(observation),
+    }
+    context["now_ns"] = now_ns
+    raw_effect_outcome = request.get("effect_outcome")
+    if raw_effect_outcome is not None:
+        if not isinstance(raw_effect_outcome, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "surface effect outcome must be a mapping",
+            )
+        effect_outcome = cast(
+            dict[str, Any],
+            _regional_plain(dict(raw_effect_outcome), "surface effect outcome"),
+        )
+        request = {**dict(request), "effect_outcome": effect_outcome}
+    else:
+        effect_outcome = None
+    context["effect_outcome"] = effect_outcome
+    context["effect_observation"] = dict(observation)
+    action_values = bindings
+
+    def substitute(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            if set(value) == {"$role"}:
+                role = value["$role"]
+                return bindings.get(str(role), _ABSENT)
+            return {str(key): substitute(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [substitute(item) for item in value]
+        return value
+
+    def contains_missing(value: Any) -> bool:
+        if value is _ABSENT:
+            return True
+        if isinstance(value, Mapping):
+            return any(contains_missing(item) for item in value.values())
+        if isinstance(value, list):
+            return any(contains_missing(item) for item in value)
+        return False
+
+    resolved_contract = substitute(contract)
+    if (
+        not isinstance(resolved_contract, Mapping)
+        or contains_missing(resolved_contract)
+    ):
+        return output(
+            "support-gap",
+            run_status="support-gap",
+            cursor=None if checkpoint is None else checkpoint.get("cursor"),
+            pending_intent=None
+            if checkpoint is None
+            else checkpoint.get("pending_intent"),
+            deadline=proposed_deadline,
+            limitations=["procedure-role-binding-missing"],
+        )
+    dependency_versions: dict[str, Any] = {}
+    target_dependency_values: list[Any] = []
+    observed_version_values: list[Any] = []
+    for dependency in resolved_contract["dependencies"]:
+        if not isinstance(dependency, Mapping):
+            continue
+        available, dependency_value = lookup(str(dependency["path"]))
+        if not available:
+            return output(
+                "pending-observation",
+                run_status="awaiting-observation",
+                cursor=None if checkpoint is None else checkpoint.get("cursor"),
+                pending_intent=None
+                if checkpoint is None
+                else checkpoint.get("pending_intent"),
+                deadline=proposed_deadline,
+                limitations=[f"dependency-unobserved:{dependency['path']}"],
+            )
+        value_type = dependency["type"]
+        matches_type = (
+            value_type == "json"
+            or (value_type == "boolean" and isinstance(dependency_value, bool))
+            or (
+                value_type == "integer"
+                and isinstance(dependency_value, int)
+                and not isinstance(dependency_value, bool)
+            )
+            or (
+                value_type == "number"
+                and isinstance(dependency_value, (int, float))
+                and not isinstance(dependency_value, bool)
+            )
+            or (value_type == "string" and isinstance(dependency_value, str))
+            or (value_type == "mapping" and isinstance(dependency_value, Mapping))
+            or (value_type == "list" and isinstance(dependency_value, list))
+        )
+        if not matches_type:
+            return output(
+                "support-gap",
+                run_status="support-gap",
+                cursor=None if checkpoint is None else checkpoint.get("cursor"),
+                pending_intent=None
+                if checkpoint is None
+                else checkpoint.get("pending_intent"),
+                deadline=proposed_deadline,
+                limitations=[f"dependency-type-mismatch:{dependency['path']}"],
+            )
+        dependency_versions[str(dependency["path"])] = dependency_value
+        if dependency["role"] in {"observed-version", "source"}:
+            observed_version_values.append(dependency_value)
+        if dependency["role"] == "target":
+            target_dependency_values.append(dependency_value)
+    observed_versions = {
+        canonical_json_bytes(value) for value in observed_version_values
+    }
+    publication_version = dependency_versions.get(
+        "publication_generation", capture_generation
+    )
+    if (
+        canonical_json_bytes(publication_version)
+        != canonical_json_bytes(capture_generation)
+    ):
+        return output(
+            "support-gap",
+            run_status="support-gap",
+            cursor=None if checkpoint is None else checkpoint.get("cursor"),
+            pending_intent=None
+            if checkpoint is None
+            else checkpoint.get("pending_intent"),
+            deadline=proposed_deadline,
+            limitations=["publication-generation-dependency-mismatch"],
+        )
+    dependency_versions["publication_generation"] = capture_generation
+    if (
+        not target_dependency_values
+        or canonical_json_bytes(resolved_contract["target"]["identity"])
+        not in {
+            canonical_json_bytes(value) for value in target_dependency_values
+        }
+        or canonical_json_bytes(binding_epoch) not in observed_versions
+        or canonical_json_bytes(binding_geometry) not in observed_versions
+        or canonical_json_bytes(capture_generation) not in observed_versions
+    ):
+        return output(
+            "support-gap",
+            run_status="support-gap",
+            cursor=None if checkpoint is None else checkpoint.get("cursor"),
+            pending_intent=None
+            if checkpoint is None
+            else checkpoint.get("pending_intent"),
+            deadline=proposed_deadline,
+            limitations=["target-or-observed-version-dependency-mismatch"],
+        )
+    pending_intent = (
+        None if checkpoint is None else checkpoint.get("pending_intent")
+    )
+    cursor = None if checkpoint is None else checkpoint.get("cursor")
+    if pending_intent is None:
+        stop_conditions = resolved_contract["stop_conditions"]
+        stop_status = (
+            False if not stop_conditions else conditions_match(stop_conditions)
+        )
+        if stop_status is True:
+            return output(
+                "unresolved",
+                run_status="stopped",
+                cursor=cursor,
+                pending_intent=None,
+                deadline=proposed_deadline,
+                limitations=["procedure-stop-condition"],
+            )
+        if stop_status is None:
+            return output(
+                "pending-observation",
+                run_status="awaiting-observation",
+                cursor=cursor,
+                pending_intent=None,
+                deadline=proposed_deadline,
+                limitations=["procedure-stop-condition-unknown"],
+            )
+        for exception in resolved_contract["known_exceptions"]:
+            matched = conditions_match(exception["when"])
+            if matched is None:
+                return output(
+                    "pending-observation",
+                    run_status="awaiting-observation",
+                    cursor=cursor,
+                    pending_intent=None,
+                    deadline=proposed_deadline,
+                    limitations=[
+                        f"exception-condition-unknown:{exception['name']}"
+                    ],
+                )
+            if matched:
+                return output(
+                    "unresolved",
+                    run_status="stopped",
+                    cursor=cursor,
+                    pending_intent=None,
+                    deadline=proposed_deadline,
+                    limitations=[f"known-exception:{exception['name']}"],
+                )
+    maximum_age = int(resolved_contract["maximum_observation_age_ns"])
+    if request.get("cancel_requested") is True and pending_intent is None:
+        return output(
+            "unresolved",
+            run_status="cancelled",
+            cursor=cursor,
+            pending_intent=None,
+            deadline=proposed_deadline,
+            limitations=["procedure-cancelled"],
+        )
+    if request.get("cancel_requested") is True and pending_intent is not None:
+        return (
+            _semantic_result(
+                "advance-surface-procedure",
+                "waiting",
+                checkpoint=previous_reference,
+                intention=None,
+                pending_operation_id=pending_intent["intention"][
+                    "operation_id"
+                ],
+                run_status="intent-pending",
+                limitation="pending-operation-requires-broker-neutralization",
+            ),
+            1,
+        )
+    if pending_intent is not None:
+        if (
+            not isinstance(pending_intent, Mapping)
+            or not isinstance(pending_intent.get("intention"), Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "surface checkpoint pending intention is invalid",
+            )
+        outcome = request.get("effect_outcome")
+        if not isinstance(outcome, Mapping):
+            return (
+                _semantic_result(
+                    "advance-surface-procedure",
+                    "waiting",
+                    checkpoint=previous_reference,
+                    intention=None,
+                    pending_operation_id=pending_intent["intention"][
+                        "operation_id"
+                    ],
+                    run_status="intent-pending",
+                    limitation="broker-outcome-required",
+                ),
+                1,
+            )
+        if outcome.get("operation_id") != pending_intent["intention"].get(
+            "operation_id"
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "surface outcome does not match the pending operation",
+            )
+        disposition = outcome.get("disposition")
+        if disposition not in {
+            "delivered",
+            "not-started",
+            "partially-delivered",
+            "rejected",
+            "unknown",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "surface broker disposition is invalid",
+            )
+        if disposition == "unknown":
+            return (
+                _semantic_result(
+                    "advance-surface-procedure",
+                    "waiting",
+                    checkpoint=previous_reference,
+                    intention=None,
+                    pending_operation_id=pending_intent["intention"][
+                        "operation_id"
+                    ],
+                    run_status="awaiting-reconciliation",
+                    limitation="unknown-effect-requires-broker-reconciliation",
+                ),
+                1,
+            )
+        pending_cursor = pending_intent.get("cursor")
+        if not isinstance(pending_cursor, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PROCEDURE_INVOCATION",
+                "pending surface cursor is invalid",
+            )
+        if disposition in {"delivered", "partially-delivered"}:
+            pending_sequence = int(pending_intent["capture_sequence"])
+            pending_created = int(pending_intent["intention"]["created_ns"])
+            if (
+                sequence <= pending_sequence
+                or sample_time_ns <= pending_created
+                or now_ns - sample_time_ns > maximum_age
+            ):
+                return output(
+                    "pending-observation",
+                    run_status="awaiting-observation",
+                    cursor=pending_cursor,
+                    pending_intent=pending_intent,
+                    deadline=proposed_deadline,
+                    limitations=["post-intention-observation-required"],
+                )
+            expected_effect = pending_intent["intention"]["expected_effect"]
+            effect_conditions = [
+                {"op": "eq", "path": path, "value": value}
+                for path, value in expected_effect.items()
+            ]
+            observed_effect = conditions_match(effect_conditions)
+            if observed_effect is None:
+                return output(
+                    "pending-observation",
+                    run_status="awaiting-observation",
+                    cursor=pending_cursor,
+                    pending_intent=pending_intent,
+                    deadline=proposed_deadline,
+                    limitations=["expected-effect-unobserved"],
+                )
+            if observed_effect is False:
+                if disposition != "delivered":
+                    return output(
+                        "unresolved",
+                        run_status="effect-mismatch",
+                        cursor=pending_cursor,
+                        pending_intent=None,
+                        deadline=proposed_deadline,
+                        limitations=["partial-delivery-effect-mismatch"],
+                    )
+                context["effect_outcome"] = dict(outcome)
+                context["effect_observation"] = dict(observation)
+                recovery = unique_recovery_choice(
+                    resolved_contract["recovery_choices"]
+                )
+                if recovery is None:
+                    return output(
+                        "unresolved",
+                        run_status="effect-mismatch",
+                        cursor=pending_cursor,
+                        pending_intent=None,
+                        deadline=proposed_deadline,
+                        limitations=[
+                            "no-unique-observation-matched-recovery"
+                        ],
+                    )
+                stack = list(pending_cursor["stack"])
+                if not stack or stack[-1]["node"].get("op") != "intent":
+                    raise FieldIntelligenceError(
+                        "INVALID_PROCEDURE_INVOCATION",
+                        "pending surface intent cursor is not current",
+                    )
+                stack.pop()
+                completed = int(pending_cursor["completed_intentions"]) + 1
+                cursor = {
+                    "completed_intentions": completed,
+                    "stack": [
+                        *stack,
+                        {
+                            "index": 0,
+                            "iteration": 0,
+                            "node": recovery["control"],
+                        },
+                    ],
+                }
+            else:
+                try:
+                    advanced = advance_surface_procedure(
+                        program,
+                        state={},
+                        bindings=action_values,
+                        context=context,
+                        cursor=pending_cursor,
+                        maximum_work=max_work,
+                        complete_pending=True,
+                    )
+                except ValueError as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_PROCEDURE_INVOCATION", str(exc)
+                    ) from exc
+                cursor = advanced.get("cursor")
+        else:
+            context["effect_outcome"] = dict(outcome)
+            context["effect_observation"] = dict(observation)
+            recovery = unique_recovery_choice(
+                resolved_contract["recovery_choices"]
+            )
+            if recovery is None:
+                return output(
+                    "unresolved",
+                    run_status="not-started",
+                    cursor=pending_cursor,
+                    pending_intent=None,
+                    deadline=proposed_deadline,
+                    limitations=["no-unique-known-failure-recovery"],
+                )
+            stack = list(pending_cursor["stack"])
+            if not stack or stack[-1]["node"].get("op") != "intent":
+                raise FieldIntelligenceError(
+                    "INVALID_PROCEDURE_INVOCATION",
+                    "pending surface intent cursor is not current",
+                )
+            stack.pop()
+            cursor = {
+                "completed_intentions": int(
+                    pending_cursor["completed_intentions"]
+                ),
+                "stack": [
+                    *stack,
+                    {
+                        "index": 0,
+                        "iteration": 0,
+                        "node": recovery["control"],
+                    },
+                ],
+            }
+        pending_intent = None
+
+    if now_ns >= proposed_deadline:
+        return output(
+            "resource-exhausted",
+            run_status="timed-out",
+            cursor=cursor,
+            pending_intent=pending_intent,
+            deadline=proposed_deadline,
+            limitations=["surface-procedure-deadline"],
+        )
+
+    if cursor is None and request.get("checkpoint_ref") is not None:
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "surface checkpoint has no executable cursor",
+        )
+    try:
+        advanced = advance_surface_procedure(
+            program,
+            state={},
+            bindings=action_values,
+            context=context,
+            cursor=cursor,
+            maximum_work=max_work,
+        )
+    except ValueError as exc:
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION", str(exc)
+        ) from exc
+    run_status = str(advanced.get("status", "support-gap"))
+    limitations = cast(Sequence[str], advanced.get("limitations", []))
+    next_cursor = advanced.get("cursor")
+    intent_description = advanced.get("intent")
+    if run_status == "intent" and isinstance(intent_description, Mapping):
+        operation = intent_description.get("operation")
+        payload = intent_description.get("payload")
+        expected_effect = intent_description.get("expected_effect")
+        if (
+            not isinstance(operation, str)
+            or operation not in capabilities
+            or operation not in authority_operations
+            or operation not in binding_operations
+            or not isinstance(payload, Mapping)
+            or not isinstance(expected_effect, Mapping)
+        ):
+            return output(
+                "authority-denied",
+                run_status="stopped",
+                cursor=next_cursor,
+                pending_intent=None,
+                deadline=proposed_deadline,
+                limitations=["intent-operation-not-supported-or-granted"],
+                work=int(advanced.get("work", 1)),
+            )
+        operation_id = (
+            "surface-op-"
+            + sha256_value(
+                {
+                    "bindings_digest": bindings_digest,
+                    "capture_sequence": sequence,
+                    "cursor": next_cursor,
+                    "dependency_versions": dependency_versions,
+                    "geometry_revision": binding_geometry,
+                    "mission_id": mission_id,
+                    "operation": operation,
+                    "procedure": procedure_ref.as_dict(),
+                    "run_id": run_id,
+                    "source_epoch": binding_epoch,
+                }
+            )
+        )
+        intention: dict[str, Any] = {
+            "operation_id": operation_id,
+            "mission_id": mission_id,
+            "binding_id": binding_id,
+            "grant_id": grant_id,
+            "operation": operation,
+            "payload": dict(payload),
+            "expected_source_epoch": binding_epoch,
+            "expected_geometry_revision": binding_geometry,
+            "semantic_target": dict(resolved_contract["target"]),
+            "dependency_versions": dependency_versions,
+            "expected_effect": dict(expected_effect),
+            "max_duration_ns": min(
+                int(resolved_contract["max_duration_ns"]),
+                max(1, proposed_deadline - now_ns),
+            ),
+            "stop_conditions": list(resolved_contract["stop_conditions"]),
+            "created_ns": now_ns,
+            "deadline_ns": proposed_deadline,
+            "sequence": sequence,
+        }
+        if "resource_reservation" in resolved_contract:
+            intention["resource_reservation"] = dict(
+                resolved_contract["resource_reservation"]
+            )
+        if goal_revision is not None:
+            intention["goal_revision"] = goal_revision
+        if lease_focus is not None:
+            intention["expected_focus_epoch"] = lease_focus
+        if lease_input is not None:
+            intention["expected_input_domain_epoch"] = lease_input
+        pending = {
+            "capture_sequence": sequence,
+            "cursor": next_cursor,
+            "intention": intention,
+        }
+        reference = persist(
+            "intent-pending",
+            cursor=next_cursor,
+            pending_intent=pending,
+            deadline=proposed_deadline,
+            limitations=limitations,
+        )
+        return (
+            _semantic_result(
+                "advance-surface-procedure",
+                "supported",
+                checkpoint=reference,
+                intention=intention,
+                limitation=None,
+                run_status="intent-pending",
+                work=max(1, int(advanced.get("work", 1))),
+            ),
+            max(1, int(advanced.get("work", 1))),
+        )
+    if run_status == "complete":
+        return output(
+            "supported",
+            run_status="completed",
+            cursor=next_cursor,
+            pending_intent=None,
+            deadline=proposed_deadline,
+            limitations=[],
+            work=int(advanced.get("work", 1)),
+        )
+    if run_status in {"effect-mismatch", "stopped", "uncertain", "cancelled"}:
+        status = "unresolved"
+        stored_status = "effect-mismatch" if run_status == "effect-mismatch" else "stopped"
+    elif run_status in {"timed-out", "resource-exhausted"}:
+        status = "resource-exhausted"
+        stored_status = "resource-exhausted"
+    elif run_status in {"support-gap"}:
+        status = "support-gap"
+        stored_status = "support-gap"
+    elif run_status in {"waiting", "awaiting-observation"}:
+        status = "waiting" if run_status == "waiting" else "pending-observation"
+        stored_status = run_status
+    else:
+        status = "waiting"
+        stored_status = run_status
+    return output(
+        status,
+        run_status=stored_status,
+        cursor=next_cursor,
+        pending_intent=None,
+        deadline=proposed_deadline,
+        limitations=limitations,
+        work=int(advanced.get("work", 1)),
+    )
+
+
+def _semantic_invoke_procedure(
+    state: Mapping[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Execute one admitted procedure program against caller-supplied bindings."""
+
+    _semantic_keys(
+        request,
+        required=("procedure_ref", "bindings"),
+        optional=("context",),
+    )
+    if not isinstance(request["procedure_ref"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "procedure_ref must be a semantic reference",
+        )
+    if not isinstance(request["bindings"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "procedure bindings must be a mapping",
+        )
+    context = request.get("context", {})
+    if not isinstance(context, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_INVOCATION",
+            "procedure context must be a mapping",
+        )
+    reference, record = _semantic_reference(
+        state,
+        request["procedure_ref"],
+        expected_kind="Program",
+        require_current=True,
+    )
+    payload = record.get("payload", {})
+    if (
+        record.get("status") != "active"
+        or not isinstance(payload, Mapping)
+        or payload.get("program_role") != "procedure"
+        or not isinstance(payload.get("program"), Mapping)
+    ):
+        return (
+            _semantic_result(
+                "invoke-procedure",
+                "support-gap",
+                limitations=["procedure-support-inactive-or-invalid"],
+                procedure=reference.as_dict(),
+            ),
+            1,
+        )
+    try:
+        outcome = execute_semantic_program(
+            cast(Mapping[str, Any], payload["program"]),
+            {},
+            action=cast(Mapping[str, Any], request["bindings"]),
+            context=cast(Mapping[str, Any], context),
+        )
+    except (RegionalFieldError, TypeError, ValueError) as exc:
+        return (
+            _semantic_result(
+                "invoke-procedure",
+                "support-gap",
+                limitations=[f"procedure-execution-invalid:{type(exc).__name__}"],
+                procedure=reference.as_dict(),
+            ),
+            1,
+        )
+    return (
+        _semantic_result(
+            "invoke-procedure",
+            outcome.get("status", "support-gap"),
+            outcome=outcome,
+            procedure=reference.as_dict(),
+            proposed_actions=outcome.get("proposed_actions", []),
+        ),
+        max(1, int(outcome.get("work", 1))),
+    )
+def _semantic_plan_procedure(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Turn a callable resident procedure into a goal-directed action proposal."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "bindings",
+            "goal",
+            "plan_id",
+            "procedure_ref",
+            "scope",
+            "target",
+        ),
+        optional=("context", "support_roots"),
+    )
+    pending = state["continuation"].get("proposal")
+    if (
+        isinstance(pending, Mapping)
+        and pending.get("status")
+        in {
+            "authorized",
+            "cancel-requested",
+            "dispatch-uncertain",
+            "dispatched",
+            "proposed",
+            "tracking",
+        }
+    ):
+        return _semantic_result(
+            "plan-procedure",
+            "support-gap",
+            plan=pending.get("plan"),
+            proposal=dict(pending),
+            limitations=["external-effect-already-pending"],
+        ), 1
+    if not isinstance(request["procedure_ref"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_PLAN",
+            "procedure_ref must be a semantic reference",
+        )
+    if not isinstance(request["bindings"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_PLAN",
+            "procedure bindings must be a mapping",
+        )
+    if not isinstance(request["goal"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_PLAN",
+            "procedure goal must be a mapping",
+        )
+    context = request.get("context", {})
+    if not isinstance(context, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PROCEDURE_PLAN",
+            "procedure context must be a mapping",
+        )
+    plan_id = _identifier(request["plan_id"], "procedure plan identity")
+    scope = _identifier(request["scope"], "procedure plan scope")
+    target = _identifier(request["target"], "procedure plan target")
+    bindings = _regional_plain(dict(request["bindings"]), "procedure bindings")
+    goal = _regional_plain(dict(request["goal"]), "procedure goal")
+    normalized_context = _regional_plain(dict(context), "procedure context")
+    reference, record = _semantic_reference(
+        state,
+        request["procedure_ref"],
+        expected_kind="Program",
+        require_current=True,
+    )
+    payload = record.get("payload", {})
+    if (
+        record.get("status") != "active"
+        or not isinstance(payload, Mapping)
+        or payload.get("program_role") != "procedure"
+        or not isinstance(payload.get("program"), Mapping)
+    ):
+        return (
+            _semantic_result(
+                "plan-procedure",
+                "support-gap",
+                procedure=reference.as_dict(),
+                limitations=["procedure-support-inactive-or-invalid"],
+            ),
+            1,
+        )
+    try:
+        outcome = execute_semantic_program(
+            cast(Mapping[str, Any], payload["program"]),
+            {},
+            action=cast(Mapping[str, Any], bindings),
+            context=cast(Mapping[str, Any], normalized_context),
+        )
+    except (RegionalFieldError, TypeError, ValueError) as exc:
+        return (
+            _semantic_result(
+                "plan-procedure",
+                "support-gap",
+                procedure=reference.as_dict(),
+                limitations=[f"procedure-execution-invalid:{type(exc).__name__}"],
+            ),
+            1,
+        )
+    if outcome.get("status") != "supported":
+        return (
+            _semantic_result(
+                "plan-procedure",
+                outcome.get("status", "support-gap"),
+                procedure=reference.as_dict(),
+                outcome=outcome,
+                limitations=outcome.get(
+                    "limitations", ["procedure-execution-unsupported"]
+                ),
+            ),
+            max(1, int(outcome.get("work", 1))),
+        )
+    postconditions = outcome.get("procedure_postconditions")
+    proposed_actions = outcome.get("proposed_actions")
+    if not isinstance(postconditions, Mapping) or not isinstance(
+        proposed_actions, list
+    ):
+        return (
+            _semantic_result(
+                "plan-procedure",
+                "support-gap",
+                procedure=reference.as_dict(),
+                outcome=outcome,
+                limitations=["procedure-goal-effects-unavailable"],
+            ),
+            max(1, int(outcome.get("work", 1))),
+        )
+    if not _semantic_goal_satisfied(postconditions, goal):
+        return (
+            _semantic_result(
+                "plan-procedure",
+                "support-gap",
+                procedure=reference.as_dict(),
+                outcome=outcome,
+                limitations=["procedure-postconditions-do-not-satisfy-goal"],
+            ),
+            max(1, int(outcome.get("work", 1))),
+        )
+    normalized_actions = _regional_plain(
+        proposed_actions, "procedure proposed actions"
+    )
+    if not isinstance(normalized_actions, list) or not normalized_actions or any(
+        not isinstance(action, Mapping) for action in normalized_actions
+    ):
+        return (
+            _semantic_result(
+                "plan-procedure",
+                "support-gap",
+                procedure=reference.as_dict(),
+                outcome=outcome,
+                limitations=["procedure-actions-unavailable"],
+            ),
+            max(1, int(outcome.get("work", 1))),
+        )
+    prior = state["current"]["Program"].get(plan_id)
+    plan_ref = _semantic_append_record(
+        state,
+        record_id=plan_id,
+        kind="Program",
+        payload={
+            "bindings": bindings,
+            "goal": goal,
+            "postconditions": _regional_plain(
+                dict(postconditions), "procedure postconditions"
+            ),
+            "procedure": reference.as_dict(),
+            "procedure_actions": normalized_actions,
+            "program": payload["program"],
+            "program_role": "plan",
+            "status": "proposed",
+        },
+        epistemic_kind="derived",
+        dependencies=(reference,),
+        support_roots=cast(Any, request.get("support_roots", [])),
+        derivation={"operation": "plan-procedure"},
+        scope=scope,
+    )
+    frontier = (
+        []
+        if prior is None
+        else _semantic_invalidate(state, (prior,), reason="plan-replanned")
+    )
+    _semantic_reindex_record(state, plan_ref)
+    proposal_id = sha256_value(
+        {
+            "bindings": bindings,
+            "goal": goal,
+            "procedure": reference.as_dict(),
+            "scope": scope,
+            "target": target,
+        }
+    )
+    procedure_run_id = f"procedure-run:{proposal_id}"
+    procedure_run_ref = _semantic_append_record(
+        state,
+        record_id=procedure_run_id,
+        kind="Value",
+        payload={
+            "bindings": bindings,
+            "completed_steps": [],
+            "context": normalized_context,
+            "cursor": 0,
+            "goal": goal,
+            "plan": plan_ref,
+            "procedure": reference.as_dict(),
+            "status": "active",
+            "steps": normalized_actions,
+            "target": target,
+        },
+        epistemic_kind="derived",
+        dependencies=(plan_ref, reference),
+        support_roots=cast(Any, request.get("support_roots", [])),
+        derivation={"operation": "plan-procedure"},
+        scope=scope,
+    )
+    _semantic_reindex_record(state, procedure_run_ref)
+    proposal = _semantic_new_action_proposal(
+        state,
+        request,
+        action={
+            "bindings": bindings,
+            "context": normalized_context,
+            "operation": "invoke-procedure",
+            "procedure": reference.as_dict(),
+            "procedure_run": procedure_run_ref,
+            "step": normalized_actions[0],
+            "step_count": len(normalized_actions),
+            "step_index": 0,
+        },
+        affordance=reference.as_dict(),
+        model=reference.as_dict(),
+        plan=plan_ref,
+        proposal_id=proposal_id,
+        target=target,
+        scope=scope,
+    )
+    obligation_ref = _semantic_append_record(
+        state,
+        record_id=f"obligation:{proposal_id}:outcome",
+        kind="Obligation",
+        payload={
+            "operation_id": proposal["operation_id"],
+            "plan": plan_ref,
+            "procedure": reference.as_dict(),
+            "proposal_id": proposal_id,
+            "state": "pending",
+        },
+        epistemic_kind="derived",
+        dependencies=(plan_ref, reference),
+        support_roots=cast(Any, request.get("support_roots", [])),
+        scope=scope,
+    )
+    _semantic_reindex_record(state, obligation_ref)
+    proposal["obligation"] = obligation_ref
+    state["continuation"]["proposal"] = proposal
+    return (
+        _semantic_result(
+            "plan-procedure",
+            "supported",
+            goal=goal,
+            invalidation_frontier=frontier,
+            obligation=obligation_ref,
+            outcome=outcome,
+            plan=plan_ref,
+            procedure=reference.as_dict(),
+            procedure_run=procedure_run_ref,
+            proposed_actions=normalized_actions,
+            proposal=proposal,
+        ),
+        max(1, int(outcome.get("work", 1)) + 3 + len(frontier)),
+    )
+
+
 
 
 def _semantic_ground_language(
@@ -17637,6 +22673,466 @@ def _semantic_learn_construction(
         status,
         **result_payload,
     ), max(1, len(examples) + len(holdout) + len(frontier))
+
+
+def _semantic_math_error(exc: MathLanguageError) -> FieldIntelligenceError:
+    return FieldIntelligenceError("INVALID_LANGUAGE", f"math language: {exc}")
+
+
+def _semantic_math_lessons(request: Mapping[str, Any]) -> dict[str, Any]:
+    try:
+        return validate_math_lessons(
+            template=cast(Mapping[str, Any], request["term_template"]),
+            examples=cast(Sequence[Mapping[str, Any]], request["examples"]),
+            holdout=cast(
+                Sequence[Mapping[str, Any]], request.get("holdout", [])
+            ),
+        )
+    except MathLanguageError as exc:
+        raise _semantic_math_error(exc) from exc
+
+
+def _semantic_learn_math(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=("construction_id", "examples", "term_template"),
+        optional=(
+            "components",
+            "discourse_effects",
+            "guards",
+            "holdout",
+            "source_policy",
+            "speech_act",
+            "support_roots",
+        ),
+    )
+    lesson = _semantic_math_lessons(request)
+    meaning = {
+        "schema": MATH_LANGUAGE_SCHEMA,
+        "surface": "english",
+        "term_template": lesson["term_template"],
+    }
+    generic_request: dict[str, Any] = {
+        "operation": "learn-construction",
+        "construction_id": request["construction_id"],
+        "examples": [
+            {
+                "bindings": dict(example["bindings"]),
+                "text": example["english"],
+            }
+            for example in lesson["examples"]
+        ],
+        "holdout": [
+            {
+                "bindings": dict(example["bindings"]),
+                "text": example["english"],
+            }
+            for example in lesson["holdout"]
+        ],
+        "meaning": meaning,
+    }
+    for name in (
+        "components",
+        "discourse_effects",
+        "guards",
+        "source_policy",
+        "speech_act",
+        "support_roots",
+    ):
+        if name in request:
+            generic_request[name] = request[name]
+    result, work = _semantic_learn_construction(state, generic_request)
+    payload = {
+        key: value
+        for key, value in result.items()
+        if key not in {"family", "operation", "schema", "status"}
+    }
+    payload.update(
+        {
+            "lesson": lesson,
+            "math_schema": MATH_LANGUAGE_SCHEMA,
+            "term_template": lesson["term_template"],
+        }
+    )
+    return _semantic_result("learn-math", result["status"], **payload), work
+
+
+def _semantic_math_construction_rows(
+    state: Mapping[str, Any],
+) -> list[tuple[str, Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]]:
+    rows: list[
+        tuple[str, Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]
+    ] = []
+    for construction_id, raw_ref in sorted(
+        state["libraries"]["constructions"].items()
+    ):
+        _, record = _semantic_reference(
+            cast(dict[str, Any], state),
+            raw_ref,
+            require_current=True,
+        )
+        if record["status"] != "active":
+            continue
+        program = canonical_semantic_program_payload(
+            record["payload"]["program"]
+        )
+        body = program["body"]
+        meaning = body.get("meaning")
+        if (
+            not isinstance(meaning, Mapping)
+            or meaning.get("schema") != MATH_LANGUAGE_SCHEMA
+            or not isinstance(meaning.get("term_template"), Mapping)
+        ):
+            continue
+        rows.append((construction_id, raw_ref, body, meaning))
+    return rows
+
+
+def _semantic_math_nested_term(
+    text: str,
+    construction_rows: Sequence[
+        tuple[str, Any, Mapping[str, Any], Mapping[str, Any]]
+    ],
+    permitted_context: Mapping[str, Any],
+    *,
+    depth: int = 0,
+) -> dict[str, Any] | None:
+    if depth >= 8:
+        return None
+    tokens = _regional_tokens(text)
+    if not tokens:
+        return None
+    candidates: dict[bytes, dict[str, Any]] = {}
+    for construction_id, _raw_ref, body, meaning in construction_rows:
+        guards = body.get("guards", {})
+        if not isinstance(guards, Mapping) or any(
+            permitted_context.get(name, _ABSENT) != value
+            for name, value in guards.items()
+        ):
+            continue
+        try:
+            template = canonical_math_template(
+                cast(Mapping[str, Any], meaning["term_template"])
+            )
+        except MathLanguageError:
+            continue
+        for pattern in _regional_pattern_variants(
+            {
+                "pattern": body["pattern"],
+                "pattern_variants": body.get("pattern_variants"),
+            }
+        ):
+            for bindings in _regional_variable_matches(
+                {"pattern": pattern}, tokens, {}
+            ):
+                resolved: dict[str, Any] = {}
+                for role, value in bindings.items():
+                    nested = _semantic_math_nested_term(
+                        value,
+                        construction_rows,
+                        permitted_context,
+                        depth=depth + 1,
+                    )
+                    resolved[role] = nested if nested is not None else value
+                try:
+                    term = instantiate_math_template(template, resolved)
+                except MathLanguageError:
+                    continue
+                candidates[canonical_json_bytes(term)] = term
+    if len(candidates) != 1:
+        return None
+    return next(iter(candidates.values()))
+
+
+def _semantic_math_pattern_text(
+    pattern: Sequence[str], bindings: Mapping[str, str]
+) -> str:
+    rendered: list[str] = []
+    for token in pattern:
+        if token.startswith("{") and token.endswith("}"):
+            rendered.append(bindings.get(token[1:-1], token))
+        else:
+            rendered.append(token)
+    return " ".join(rendered)
+
+
+def _solve_math_term(
+    term: Mapping[str, Any], variable: Any = None
+) -> dict[str, Any]:
+    if (
+        isinstance(term, Mapping)
+        and term.get("kind") == "constructor"
+        and term.get("name") in {"lt", "le", "gt", "ge"}
+    ):
+        return solve_linear_inequality(term, variable)
+    return solve_linear_equation(term, variable)
+
+
+def _semantic_interpret_math(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=("text",),
+        optional=("context", "solve", "surface", "support_roots", "variable"),
+    )
+    text = _regional_text(request["text"], "math utterance")
+    surface = request.get("surface", "english")
+    if surface not in {"english", "latex"}:
+        raise FieldIntelligenceError(
+            "INVALID_LANGUAGE", "math surface must be english or latex"
+        )
+    solve_requested = request.get("solve", False)
+    if not isinstance(solve_requested, bool):
+        raise FieldIntelligenceError(
+            "INVALID_LANGUAGE", "math solve flag must be boolean"
+        )
+    permitted_context = _regional_plain(
+        request.get("context", {}), "math context"
+    )
+    if not isinstance(permitted_context, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_LANGUAGE", "math context must be a mapping"
+        )
+    alternatives: list[dict[str, Any]] = []
+    work = 0
+    if surface == "latex":
+        try:
+            term = parse_latex(text)
+        except MathLanguageError as exc:
+            raise _semantic_math_error(exc) from exc
+        alternatives.append(
+            {
+                "bindings": {},
+                "construction": None,
+                "construction_id": None,
+                "english": render_english(term),
+                "latex": render_latex(term),
+                "surface": text,
+                "term": term,
+            }
+        )
+        if solve_requested:
+            try:
+                alternatives[-1]["solution"] = _solve_math_term(
+                    term, request.get("variable")
+                )
+            except MathLanguageError as exc:
+                alternatives[-1]["solution"] = {
+                    "status": "support-gap",
+                    "reason": exc.code,
+                }
+        work = 1
+    else:
+        tokens = _regional_tokens(text)
+        construction_rows = _semantic_math_construction_rows(state)
+        for construction_id, raw_ref, body, meaning in construction_rows:
+            guards = body.get("guards", {})
+            if not isinstance(guards, Mapping) or any(
+                permitted_context.get(name, _ABSENT) != value
+                for name, value in guards.items()
+            ):
+                continue
+            try:
+                template = canonical_math_template(
+                    cast(Mapping[str, Any], meaning["term_template"])
+                )
+            except MathLanguageError as exc:
+                raise _semantic_math_error(exc) from exc
+            matches: list[dict[str, str]] = []
+            for pattern in _regional_pattern_variants(
+                {
+                    "pattern": body["pattern"],
+                    "pattern_variants": body.get("pattern_variants"),
+                }
+            ):
+                matches.extend(
+                    _regional_variable_matches(
+                        {"pattern": pattern}, tokens, {}
+                    )
+                )
+            for bindings in matches:
+                try:
+                    term = instantiate_math_template(template, bindings)
+                except MathLanguageError:
+                    resolved_bindings: dict[str, Any] = {}
+                    for role, value in bindings.items():
+                        nested = _semantic_math_nested_term(
+                            value,
+                            construction_rows,
+                            permitted_context,
+                        )
+                        resolved_bindings[role] = (
+                            value if nested is None else nested
+                        )
+                    try:
+                        term = instantiate_math_template(
+                            template, resolved_bindings
+                        )
+                    except MathLanguageError:
+                        continue
+                alternative = {
+                    "bindings": dict(bindings),
+                    "construction": raw_ref,
+                    "construction_id": construction_id,
+                    "english": render_english(term),
+                    "latex": render_latex(term),
+                    "surface": text,
+                    "term": term,
+                }
+                if solve_requested:
+                    try:
+                        alternative["solution"] = _solve_math_term(
+                            term, request.get("variable")
+                        )
+                    except MathLanguageError as exc:
+                        alternative["solution"] = {
+                            "status": "support-gap",
+                            "reason": exc.code,
+                        }
+                alternatives.append(alternative)
+            work += max(1, len(body["pattern"]))
+            if len(alternatives) > state["bounds"]["max_alternatives"]:
+                return _semantic_result(
+                    "interpret-math",
+                    "resource-exhausted",
+                    alternatives=[],
+                    limitations=["interpretation-branch-bound"],
+                ), min(work, state["bounds"]["max_work"])
+    unique = {
+        canonical_json_bytes(alternative): alternative
+        for alternative in alternatives
+    }
+    alternatives = [unique[key] for key in sorted(unique)]
+    status = (
+        "support-gap"
+        if not alternatives
+        else ("alternatives" if len(alternatives) > 1 else "supported")
+    )
+    limitations = [] if alternatives else ["no-supported-math-construction"]
+    payload: dict[str, Any] = {
+        "alternatives": alternatives,
+        "interpretation": alternatives[0] if len(alternatives) == 1 else None,
+        "limitations": limitations,
+        "math_schema": MATH_LANGUAGE_SCHEMA,
+        "surface": surface,
+        "support_roots": request.get("support_roots", []),
+        "utterance_utf8_hex": text.encode("utf-8").hex(),
+    }
+    if len(alternatives) > 1:
+        payload["separating_question"] = {
+            "construction_options": sorted(
+                {
+                    alternative["construction_id"]
+                    for alternative in alternatives
+                    if alternative["construction_id"] is not None
+                }
+            ),
+            "speech_act": "question",
+            "target": "intended-math-construction",
+        }
+    if len(alternatives) == 1 and "solution" in alternatives[0]:
+        payload["solution"] = alternatives[0]["solution"]
+    return _semantic_result("interpret-math", status, **payload), max(1, work)
+
+
+def _semantic_express_math(
+    state: Mapping[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=("term",),
+        optional=("construction_id", "surface", "support_roots"),
+    )
+    surface = request.get("surface", "english")
+    if surface not in {"english", "latex"}:
+        raise FieldIntelligenceError(
+            "INVALID_LANGUAGE", "math surface must be english or latex"
+        )
+    try:
+        term = parse_latex(request["term"]) if isinstance(
+            request["term"], str
+        ) else canonical_math_term(request["term"])
+    except MathLanguageError as exc:
+        raise _semantic_math_error(exc) from exc
+    if surface == "latex":
+        expression = {
+            "construction": None,
+            "construction_id": None,
+            "bindings": {},
+            "latex": render_latex(term),
+            "surface": render_latex(term),
+            "term": term,
+        }
+        return _semantic_result(
+            "express-math",
+            "supported",
+            expression=expression,
+            alternatives=[expression],
+            math_schema=MATH_LANGUAGE_SCHEMA,
+            support_roots=request.get("support_roots", []),
+        ), 1
+    requested_id = request.get("construction_id")
+    if requested_id is not None:
+        requested_id = _identifier(
+            requested_id, "math construction identity"
+        )
+    alternatives: list[dict[str, Any]] = []
+    work = 0
+    for construction_id, raw_ref, body, meaning in _semantic_math_construction_rows(
+        state
+    ):
+        if requested_id is not None and construction_id != requested_id:
+            continue
+        try:
+            template = canonical_math_template(
+                cast(Mapping[str, Any], meaning["term_template"])
+            )
+            bindings = match_math_template(template, term)
+        except MathLanguageError as exc:
+            raise _semantic_math_error(exc) from exc
+        if bindings is None:
+            continue
+        for pattern in _regional_pattern_variants(
+            {
+                "pattern": body["pattern"],
+                "pattern_variants": body.get("pattern_variants"),
+            }
+        ):
+            text = _semantic_math_pattern_text(pattern, bindings)
+            alternatives.append(
+                {
+                    "bindings": dict(bindings),
+                    "construction": raw_ref,
+                    "construction_id": construction_id,
+                    "english": render_english(term),
+                    "latex": render_latex(term),
+                    "surface": text,
+                    "term": term,
+                }
+            )
+        work += max(1, len(body["pattern"]))
+    unique = {
+        canonical_json_bytes(alternative): alternative
+        for alternative in alternatives
+    }
+    alternatives = [unique[key] for key in sorted(unique)]
+    status = (
+        "support-gap"
+        if not alternatives
+        else ("alternatives" if len(alternatives) > 1 else "supported")
+    )
+    return _semantic_result(
+        "express-math",
+        status,
+        alternatives=alternatives,
+        expression=alternatives[0] if len(alternatives) == 1 else None,
+        limitations=[] if alternatives else ["no-supported-math-construction"],
+        math_schema=MATH_LANGUAGE_SCHEMA,
+        support_roots=request.get("support_roots", []),
+    ), max(1, work)
 
 
 def _semantic_language_perspectives(
@@ -18935,6 +24431,490 @@ def _semantic_plan(
     ), max(1, work + 2 + len(frontier))
 
 
+def _semantic_sequence_frontier(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Evaluate a bounded sequence family and route its partition to inquire."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "affordance_id",
+            "candidates",
+            "frontier_id",
+            "input_table",
+            "scope",
+            "target",
+        ),
+        optional=("context", "question_choice", "query_ast", "support_roots"),
+    )
+    frontier_id = _identifier(
+        request["frontier_id"], "sequence frontier identity"
+    )
+    if frontier_id in state["current"]["Value"]:
+        raise FieldIntelligenceError(
+            "OPERATION_CONFLICT",
+            "sequence frontier identity is already in use",
+        )
+    context = request.get("context", {})
+    if not isinstance(context, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_SEQUENCE_FRONTIER", "sequence frontier context is invalid"
+        )
+    question_choice_mode = request.get("question_choice")
+    if question_choice_mode not in {None, "field-directed-v1"}:
+        raise FieldIntelligenceError(
+            "INVALID_SEQUENCE_FRONTIER",
+            "sequence frontier question choice mode is invalid",
+        )
+    if "query_ast" in request and not isinstance(request["query_ast"], Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_SEQUENCE_FRONTIER", "sequence frontier query AST is invalid"
+        )
+    try:
+        input_table = canonical_table(request["input_table"])
+    except (RegionalFieldError, ValueError, TypeError) as exc:
+        raise FieldIntelligenceError(
+            "INVALID_SEQUENCE_FRONTIER", "sequence frontier input table is invalid"
+        ) from exc
+    candidates = request["candidates"]
+    if (
+        not isinstance(candidates, list)
+        or len(candidates) < 2
+        or len(candidates) > state["bounds"]["max_alternatives"]
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEQUENCE_FRONTIER",
+            "sequence frontier candidates exceed their bound",
+        )
+    candidate_ids: set[str] = set()
+    candidate_rows: list[dict[str, Any]] = []
+    alternatives: list[dict[str, Any]] = []
+    output_groups: dict[bytes, dict[str, Any]] = {}
+    work = 0
+    for raw in candidates:
+        if (
+            not isinstance(raw, Mapping)
+            or set(raw) != {"candidate_id", "program", "structural_cost"}
+            or not isinstance(raw["program"], Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEQUENCE_FRONTIER",
+                "sequence candidate keys or program are invalid",
+            )
+        candidate_id = _identifier(
+            raw["candidate_id"], "sequence candidate identity"
+        )
+        if candidate_id in candidate_ids:
+            raise FieldIntelligenceError(
+                "INVALID_SEQUENCE_FRONTIER",
+                "sequence candidate identities must be unique",
+            )
+        candidate_ids.add(candidate_id)
+        structural_cost = _regional_integer(
+            raw["structural_cost"],
+            "sequence candidate structural cost",
+            minimum=0,
+            maximum=1_000_000,
+        )
+        try:
+            program = canonical_semantic_program_payload(
+                dict(raw["program"])
+            )
+        except (RegionalFieldError, ValueError, TypeError) as exc:
+            status = "support-gap"
+            limitations = ["candidate-program-invalid"]
+            output = None
+        else:
+            if program["program_kind"] != "sequence":
+                status = "support-gap"
+                limitations = ["candidate-program-kind-is-not-sequence"]
+                output = None
+            else:
+                action = {"table": input_table}
+                if "query_ast" in request:
+                    action["query_ast"] = request["query_ast"]
+                try:
+                    outcome = execute_semantic_program(
+                        program,
+                        {},
+                        action=action,
+                        context=cast(Mapping[str, Any], context),
+                    )
+                except (RegionalFieldError, ValueError, TypeError) as exc:
+                    status = "support-gap"
+                    limitations = [
+                        f"candidate-execution-invalid:{type(exc).__name__}"
+                    ]
+                    output = None
+                else:
+                    status = str(outcome.get("status", "support-gap"))
+                    limitations = list(outcome.get("limitations", []))
+                    raw_output = outcome.get("output")
+                    if status == "supported" and isinstance(
+                        raw_output, Mapping
+                    ):
+                        try:
+                            output = canonical_table(raw_output)
+                        except (RegionalFieldError, ValueError, TypeError):
+                            status = "support-gap"
+                            limitations = ["candidate-output-invalid"]
+                            output = None
+                    else:
+                        output = None
+                    work += max(1, int(outcome.get("work", 1)))
+        row = {
+            "candidate_id": candidate_id,
+            "limitations": sorted(
+                {
+                    str(item)
+                    for item in limitations
+                    if isinstance(item, str) and item
+                }
+            ),
+            "prediction": output,
+            "prediction_status": status,
+            "structural_cost": structural_cost,
+            "support_status": (
+                "unresolved"
+                if status == "supported"
+                else "unknown"
+            ),
+        }
+        candidate_rows.append(row)
+        if status == "supported" and output is not None:
+            alternative = {
+                "candidate_id": candidate_id,
+                "prediction": output,
+                "prediction_status": "supported",
+                "structural_cost": structural_cost,
+            }
+            alternatives.append(alternative)
+            output_key = canonical_json_bytes(output)
+            group = output_groups.setdefault(
+                output_key, {"candidate_ids": [], "output": output}
+            )
+            group["candidate_ids"].append(candidate_id)
+    for group in output_groups.values():
+        group["candidate_ids"].sort()
+    partitions = [
+        {
+            "candidate_ids": list(group["candidate_ids"]),
+            "output": group["output"],
+            "output_id": f"output:{sha256_value(group['output'])}",
+        }
+        for _key, group in sorted(output_groups.items(), key=lambda item: item[0])
+    ]
+    frontier_payload = {
+        "candidates": candidate_rows,
+        "continuation": {
+            "proposal_id": None,
+            "stage": "awaiting-inquiry",
+        },
+        "frontier_id": frontier_id,
+        "input_table": input_table,
+        "partitions": partitions,
+        "schema": "cassifi.sequence-frontier.v1",
+        "selected_question_id": None,
+        "question_choice": {
+            "candidate_question_ids": [],
+            "mode": (
+                "single" if question_choice_mode is None else question_choice_mode
+            ),
+            "selected_question_id": None,
+        },
+    }
+    frontier_ref = _semantic_append_record(
+        state,
+        record_id=frontier_id,
+        kind="Value",
+        payload=frontier_payload,
+        status="active",
+        epistemic_kind="derived",
+        support_roots=cast(Any, request.get("support_roots", [])),
+        scope=request["scope"],
+    )
+    _semantic_reindex_record(state, frontier_ref)
+    question_candidates: list[dict[str, Any]] = []
+    if len(alternatives) < 2 or len(output_groups) < 2:
+        inquiry = _semantic_result(
+            "inquire",
+            "support-gap",
+            limitations=["no-separating-sequence-question"],
+            proposal=None,
+        )
+    else:
+        alternatives.sort(key=lambda item: item["candidate_id"])
+        outcomes: dict[str, list[dict[str, Any]]] = {}
+        for group in partitions:
+            output_id = group["output_id"]
+            outcomes[output_id] = [
+                item
+                for item in alternatives
+                if item["candidate_id"] in group["candidate_ids"]
+            ]
+        question = {
+            "cost": float(
+                1 + sum(int(item["structural_cost"]) for item in alternatives)
+            ),
+            "outcomes": outcomes,
+            "question": {
+                "frontier_id": frontier_id,
+                "input_table": input_table,
+                "kind": "sequence-table",
+                "question_role": "separating",
+                **(
+                    {"query_ast": request["query_ast"]}
+                    if "query_ast" in request
+                    else {}
+                ),
+            },
+            "question_id": sha256_value(
+                {
+                    "frontier_id": frontier_id,
+                    "partitions": partitions,
+                }
+            ),
+            "risk": 0.0,
+        }
+        question_candidates = [question]
+        if question_choice_mode == "field-directed-v1":
+            coarse_question = dict(question)
+            coarse_question["cost"] = float(question["cost"]) + 1.0
+            coarse_question["outcomes"] = {
+                "all": list(alternatives),
+            }
+            coarse_question["question"] = {
+                **cast(Mapping[str, Any], question["question"]),
+                "question_role": "coarse",
+            }
+            coarse_question["question_id"] = sha256_value(
+                {
+                    "frontier_id": frontier_id,
+                    "question_role": "coarse",
+                    "partitions": partitions,
+                }
+            )
+            coarse_question["risk"] = 1.0
+            question_candidates.append(coarse_question)
+        frontier_payload["question_choice"]["candidate_question_ids"] = [
+            item["question_id"] for item in question_candidates
+        ]
+        inquiry_request = {
+            "affordance_id": request["affordance_id"],
+            "alternatives": alternatives,
+            "context": dict(context),
+            "operation": "inquire",
+            "operation_id": sha256_value(
+                {"frontier_id": frontier_id, "questions": question_candidates}
+            ),
+            "questions": question_candidates,
+            "scope": request["scope"],
+            "support_roots": list(request.get("support_roots", [])),
+            "target": request["target"],
+        }
+        inquiry, inquiry_work = _semantic_inquire(state, inquiry_request)
+        work += inquiry_work
+    proposal = inquiry.get("proposal")
+    selected_question_id = (
+        None
+        if not isinstance(proposal, Mapping)
+        else cast(Mapping[str, Any], proposal["action"]).get("question_id")
+    )
+    frontier_payload["selected_question_id"] = selected_question_id
+    frontier_payload["question_choice"]["selected_question_id"] = (
+        selected_question_id
+    )
+    frontier_payload["continuation"] = {
+        "proposal_id": (
+            None
+            if not isinstance(proposal, Mapping)
+            else proposal.get("proposal_id")
+        ),
+        "stage": (
+            "awaiting-observation"
+            if isinstance(proposal, Mapping)
+            else "awaiting-inquiry"
+        ),
+    }
+    frontier_ref = _semantic_append_record(
+        state,
+        record_id=frontier_id,
+        kind="Value",
+        payload=frontier_payload,
+        status="active",
+        epistemic_kind="derived",
+        dependencies=(
+            ()
+            if not isinstance(proposal, Mapping)
+            else tuple(
+                reference
+                for reference in (proposal.get("obligation"),)
+                if isinstance(reference, Mapping)
+            )
+        ),
+        support_roots=cast(Any, request.get("support_roots", [])),
+        scope=request["scope"],
+    )
+    _semantic_reindex_record(state, frontier_ref)
+    return _semantic_result(
+        "sequence-frontier",
+        inquiry["status"],
+        candidates=candidate_rows,
+        frontier=frontier_ref,
+        inquiry=inquiry,
+        partitions=partitions,
+        question_candidates=[
+            item["question_id"] for item in question_candidates
+        ],
+        question_choice=frontier_payload["question_choice"],
+        selected_question_id=selected_question_id,
+        continuation=frontier_payload["continuation"],
+    ), max(1, work + len(candidate_rows) + 2)
+def _semantic_sequence_route(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Aggregate observed sequence-frontier support and select one candidate."""
+
+    _semantic_keys(
+        request,
+        required=("frontier_refs", "route_id", "scope", "target"),
+        optional=("support_roots",),
+    )
+    route_id = _identifier(request["route_id"], "sequence route identity")
+    if route_id in state["current"]["Value"]:
+        raise FieldIntelligenceError(
+            "OPERATION_CONFLICT",
+            "sequence route identity is already in use",
+        )
+    raw_frontier_refs = request["frontier_refs"]
+    if (
+        not isinstance(raw_frontier_refs, list)
+        or not raw_frontier_refs
+        or len(raw_frontier_refs) > state["bounds"]["max_alternatives"]
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEQUENCE_ROUTE",
+            "sequence route frontier references exceed their bound",
+        )
+    frontier_refs: list[dict[str, Any]] = []
+    support_counts: dict[str, int] = {}
+    support_statuses: dict[str, set[str]] = {}
+    work = 0
+    for raw_reference in raw_frontier_refs:
+        if not isinstance(raw_reference, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SEQUENCE_ROUTE",
+                "sequence route frontier reference is invalid",
+            )
+        reference, frontier = _semantic_reference(
+            state,
+            raw_reference,
+            expected_kind="Value",
+            require_current=True,
+        )
+        payload = frontier.get("payload")
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("schema") != "cassifi.sequence-frontier.v1"
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEQUENCE_ROUTE",
+                "sequence route reference is not a sequence frontier",
+            )
+        candidates = payload.get("candidates")
+        if not isinstance(candidates, list):
+            raise FieldIntelligenceError(
+                "INVALID_SEQUENCE_ROUTE",
+                "sequence frontier candidates are unavailable",
+            )
+        frontier_refs.append(reference.as_dict())
+        seen_ids: set[str] = set()
+        for raw_candidate in candidates:
+            if not isinstance(raw_candidate, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_SEQUENCE_ROUTE",
+                    "sequence frontier candidate is invalid",
+                )
+            candidate_id = _identifier(
+                raw_candidate.get("candidate_id"),
+                "sequence route candidate identity",
+            )
+            if candidate_id in seen_ids:
+                raise FieldIntelligenceError(
+                    "INVALID_SEQUENCE_ROUTE",
+                    "sequence frontier candidate identities are not unique",
+                )
+            seen_ids.add(candidate_id)
+            support_status = raw_candidate.get("support_status")
+            if support_status not in {
+                "invalidated",
+                "supported",
+                "unknown",
+                "unresolved",
+            }:
+                raise FieldIntelligenceError(
+                    "INVALID_SEQUENCE_ROUTE",
+                    "sequence frontier support status is invalid",
+                )
+            support_counts.setdefault(candidate_id, 0)
+            support_statuses.setdefault(candidate_id, set()).add(
+                str(support_status)
+            )
+            if support_status == "supported":
+                support_counts[candidate_id] += 1
+            work += 1
+    selected_candidate = (
+        min(
+            (
+                candidate_id
+                for candidate_id, count in support_counts.items()
+                if count > 0
+            ),
+            key=lambda candidate_id: (-support_counts[candidate_id], candidate_id),
+            default=None,
+        )
+    )
+    status = "supported" if selected_candidate is not None else "support-gap"
+    route_payload = {
+        "candidate_ids": sorted(support_counts),
+        "frontier_refs": frontier_refs,
+        "schema": "cassifi.sequence-route.v1",
+        "selected_candidate": selected_candidate,
+        "selection_policy": "max-supported-frontiers-then-lexical-id",
+        "support_counts": dict(sorted(support_counts.items())),
+        "support_statuses": {
+            candidate_id: sorted(support_statuses[candidate_id])
+            for candidate_id in sorted(support_statuses)
+        },
+    }
+    route_ref = _semantic_append_record(
+        state,
+        record_id=route_id,
+        kind="Value",
+        payload=route_payload,
+        status="active",
+        epistemic_kind="derived",
+        dependencies=tuple(frontier_refs),
+        support_roots=cast(Any, request.get("support_roots", [])),
+        scope=request["scope"],
+    )
+    _semantic_reindex_record(state, route_ref)
+    return _semantic_result(
+        "sequence-route",
+        status,
+        candidate_ids=sorted(support_counts),
+        frontier_refs=frontier_refs,
+        route=route_ref,
+        selected_candidate=selected_candidate,
+        selection_policy=route_payload["selection_policy"],
+        support_counts=route_payload["support_counts"],
+        support_statuses=route_payload["support_statuses"],
+    ), max(1, work + len(frontier_refs) + 1)
+
+
+
+
 def _semantic_inquire(
     state: dict[str, Any], request: Mapping[str, Any]
 ) -> tuple[dict[str, Any], int]:
@@ -19550,6 +25530,335 @@ def _semantic_cancel_action(
     ), 1
 
 
+def _semantic_sequence_frontier_observation(
+    state: dict[str, Any],
+    proposal: Mapping[str, Any],
+    observation: Mapping[str, Any],
+    event_ref: Mapping[str, Any],
+    support_roots: Sequence[str],
+) -> dict[str, Any] | None:
+    action = proposal.get("action")
+    question = action.get("question") if isinstance(action, Mapping) else None
+    if (
+        not isinstance(question, Mapping)
+        or question.get("kind") != "sequence-table"
+        or question.get("frontier_id") is None
+    ):
+        return None
+    frontier_id = question["frontier_id"]
+    if frontier_id is None:
+        return None
+    frontier_id = _identifier(
+        frontier_id, "sequence frontier observation identity"
+    )
+    if not isinstance(observation, Mapping) or set(observation) != {"table"}:
+        raise FieldIntelligenceError(
+            "ASSESSMENT_CONFLICT",
+            "sequence frontier observation requires exactly table",
+        )
+    try:
+        observed_table = canonical_table(observation["table"])
+    except (RegionalFieldError, ValueError, TypeError) as exc:
+        raise FieldIntelligenceError(
+            "ASSESSMENT_CONFLICT",
+            "sequence frontier observed table is invalid",
+        ) from exc
+    frontier = _semantic_current_record(state, "Value", frontier_id)
+    payload = _regional_plain(dict(frontier["payload"]), "sequence frontier")
+    candidates = payload.get("candidates")
+    if not isinstance(candidates, list):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE",
+            "sequence frontier candidates are unavailable",
+        )
+    observed_key = canonical_json_bytes(observed_table)
+    updated: list[dict[str, Any]] = []
+    for raw in candidates:
+        if not isinstance(raw, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "sequence frontier candidate row is invalid",
+            )
+        row = dict(raw)
+        if row.get("prediction_status") == "supported" and isinstance(
+            row.get("prediction"), Mapping
+        ):
+            predicted_key = canonical_json_bytes(row["prediction"])
+            row["support_status"] = (
+                "supported" if predicted_key == observed_key else "invalidated"
+            )
+        else:
+            row["support_status"] = "unknown"
+        updated.append(row)
+    payload["candidates"] = updated
+    payload["continuation"] = {
+        "event_id": dict(event_ref),
+        "proposal_id": proposal["proposal_id"],
+        "stage": "observed",
+    }
+    reference = _semantic_append_record(
+        state,
+        record_id=frontier_id,
+        kind="Value",
+        payload=payload,
+        status="active",
+        epistemic_kind="observed",
+        dependencies=(event_ref,),
+        support_roots=support_roots,
+        scope=frontier["scope"],
+    )
+    _semantic_reindex_record(state, reference)
+    return reference
+
+
+def _semantic_advance_procedure_after_ack(
+    state: dict[str, Any],
+    proposal: Mapping[str, Any],
+    *,
+    status: str,
+    event_ref: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Persist one procedure step and, on success, open the next proposal."""
+
+    action = proposal.get("action")
+    if not isinstance(action, Mapping):
+        return None
+    raw_run_ref = action.get("procedure_run")
+    if not isinstance(raw_run_ref, Mapping):
+        return None
+    run_ref, run_record = _semantic_reference(
+        state,
+        raw_run_ref,
+        expected_kind="Value",
+        require_current=True,
+    )
+    payload = run_record.get("payload")
+    if (
+        not isinstance(payload, Mapping)
+        or payload.get("status") != "active"
+        or not isinstance(payload.get("steps"), list)
+        or not isinstance(payload.get("completed_steps"), list)
+    ):
+        raise FieldIntelligenceError(
+            "ACTION_LIFECYCLE_CONFLICT",
+            "procedure run is not active or is malformed",
+        )
+    raw_index = action.get("step_index")
+    if (
+        isinstance(raw_index, bool)
+        or not isinstance(raw_index, int)
+        or raw_index != payload.get("cursor")
+    ):
+        raise FieldIntelligenceError(
+            "ACTION_LIFECYCLE_CONFLICT",
+            "procedure step cursor does not match the active run",
+        )
+    if status == "unknown":
+        return {
+            "procedure_run": run_ref.as_dict(),
+            "status": "awaiting-reconciliation",
+        }
+    step = action.get("step")
+    if not isinstance(step, Mapping):
+        raise FieldIntelligenceError(
+            "ACTION_LIFECYCLE_CONFLICT",
+            "procedure action step is missing",
+        )
+    completed_steps = [
+        _regional_plain(item, "procedure completed step")
+        for item in payload["completed_steps"]
+    ]
+    step_observation = _regional_plain(
+        request.get("observation"), "procedure step observation"
+    )
+    step_observation_verified = bool(request.get("observation_verified", False))
+    completed_steps.append(
+        {
+            "event": _regional_plain(dict(event_ref), "procedure step event"),
+            "index": raw_index,
+            "status": status,
+            "step": _regional_plain(dict(step), "procedure completed step"),
+            "observation": step_observation,
+            "observation_verified": step_observation_verified,
+        }
+    )
+    steps = cast(list[Any], payload["steps"])
+    next_index = raw_index + 1
+    if status == "failed":
+        run_status = "failed"
+    elif next_index >= len(steps):
+        run_status = "completed"
+    else:
+        run_status = "active"
+    run_payload = {
+        **dict(payload),
+        "completed_steps": completed_steps,
+        "cursor": next_index,
+        "status": run_status,
+    }
+    next_proposal: dict[str, Any] | None = None
+    next_run_proposal_id: str | None = None
+    if run_status == "active":
+        next_proposal_id = sha256_value(
+            {
+                "event": dict(event_ref),
+                "index": next_index,
+                "run": run_ref.as_dict(),
+            }
+        )
+        next_run_proposal_id = next_proposal_id
+        run_payload["current_proposal_id"] = next_proposal_id
+    elif "current_proposal_id" in run_payload:
+        run_payload.pop("current_proposal_id")
+    next_run_ref = _semantic_append_record(
+        state,
+        record_id=run_ref.id,
+        kind="Value",
+        payload=run_payload,
+        status="active",
+        epistemic_kind="asserted",
+        dependencies=(run_ref, event_ref),
+        support_roots=cast(Any, run_record.get("support_roots", [])),
+        derivation={"operation": "procedure-step-acknowledgment"},
+        scope=run_record.get("scope"),
+    )
+    _semantic_reindex_record(state, next_run_ref)
+    if run_status == "active":
+        next_step = steps[next_index]
+        if not isinstance(next_step, Mapping):
+            raise FieldIntelligenceError(
+                "ACTION_LIFECYCLE_CONFLICT",
+                "procedure run contains a malformed next step",
+            )
+        next_procedure = payload.get("procedure")
+        next_bindings = payload.get("bindings")
+        next_context = payload.get("context")
+        if not (
+            isinstance(next_procedure, Mapping)
+            and isinstance(next_bindings, Mapping)
+            and isinstance(next_context, Mapping)
+            and next_proposal_id is not None
+        ):
+            raise FieldIntelligenceError(
+                "ACTION_LIFECYCLE_CONFLICT",
+                "procedure run lost its invocation context",
+            )
+        next_context_with_feedback = {
+            **dict(next_context),
+            "procedure_feedback": {
+                "event": _regional_plain(
+                    dict(event_ref), "procedure feedback event"
+                ),
+                "index": raw_index,
+                "observation": step_observation,
+                "observation_verified": step_observation_verified,
+                "status": status,
+            },
+        }
+        raw_procedure_payload = next_procedure.get("payload")
+        if isinstance(raw_procedure_payload, Mapping):
+            raw_program = raw_procedure_payload.get("program")
+            raw_body = (
+                raw_program.get("body")
+                if isinstance(raw_program, Mapping)
+                else None
+            )
+            raw_steps = (
+                raw_body.get("steps")
+                if isinstance(raw_body, Mapping)
+                else None
+            )
+            has_feedback_branch = isinstance(raw_steps, list) and any(
+                isinstance(candidate, Mapping)
+                and "branches" in candidate
+                for candidate in raw_steps
+            )
+            if has_feedback_branch and isinstance(raw_program, Mapping):
+                try:
+                    dynamic_outcome = execute_semantic_program(
+                        raw_program,
+                        {},
+                        action=cast(Mapping[str, Any], next_bindings),
+                        context=next_context_with_feedback,
+                    )
+                except (RegionalFieldError, TypeError, ValueError) as exc:
+                    raise FieldIntelligenceError(
+                        "ACTION_LIFECYCLE_CONFLICT",
+                        "procedure feedback branch execution failed",
+                    ) from exc
+                dynamic_actions = dynamic_outcome.get("proposed_actions")
+                if (
+                    dynamic_outcome.get("status") != "supported"
+                    or not isinstance(dynamic_actions, list)
+                    or next_index >= len(dynamic_actions)
+                    or not isinstance(dynamic_actions[next_index], Mapping)
+                ):
+                    raise FieldIntelligenceError(
+                        "ACTION_LIFECYCLE_CONFLICT",
+                        "procedure feedback did not select a next action",
+                    )
+                next_step = cast(Mapping[str, Any], dynamic_actions[next_index])
+        next_proposal = _semantic_new_action_proposal(
+            state,
+            request,
+            action={
+                "bindings": _regional_plain(
+                    dict(next_bindings), "procedure bindings"
+                ),
+                "context": _regional_plain(
+                    next_context_with_feedback, "procedure context"
+                ),
+                "operation": "invoke-procedure",
+                "procedure": _regional_plain(
+                    dict(next_procedure), "procedure reference"
+                ),
+                "procedure_run": next_run_ref,
+                "step": _regional_plain(dict(next_step), "procedure step"),
+                "step_count": len(steps),
+                "step_index": next_index,
+            },
+            affordance=_regional_plain(
+                dict(next_procedure), "procedure affordance"
+            ),
+            model=_regional_plain(dict(next_procedure), "procedure model"),
+            plan=proposal.get("plan"),
+            proposal_id=next_proposal_id,
+            target=str(payload["target"]),
+            scope=str(proposal["scope"]),
+        )
+        dependency_refs = [
+            SemanticRef.from_dict(next_run_ref),
+            SemanticRef.from_dict(next_procedure),
+        ]
+        if isinstance(proposal.get("plan"), Mapping):
+            dependency_refs.append(SemanticRef.from_dict(proposal["plan"]))
+        next_obligation = _semantic_append_record(
+            state,
+            record_id=f"obligation:{next_proposal_id}:outcome",
+            kind="Obligation",
+            payload={
+                "operation_id": next_proposal["operation_id"],
+                "plan": proposal.get("plan"),
+                "procedure": next_procedure,
+                "proposal_id": next_proposal_id,
+                "state": "pending",
+            },
+            epistemic_kind="derived",
+            dependencies=tuple(dependency_refs),
+            support_roots=cast(Any, run_record.get("support_roots", [])),
+            scope=str(proposal["scope"]),
+        )
+        _semantic_reindex_record(state, next_obligation)
+        next_proposal["obligation"] = next_obligation
+        state["continuation"]["proposal"] = next_proposal
+    return {
+        "next_proposal": next_proposal,
+        "procedure_run": next_run_ref,
+        "status": run_status,
+    }
+
+
 def _semantic_acknowledge(
     state: dict[str, Any], request: Mapping[str, Any]
 ) -> tuple[dict[str, Any], int]:
@@ -19628,6 +25937,18 @@ def _semantic_acknowledge(
         },
     )
     _semantic_reindex_record(state, event_ref)
+    sequence_frontier = (
+        _semantic_sequence_frontier_observation(
+            state,
+            proposal,
+            cast(Mapping[str, Any], observation),
+            event_ref,
+            cast(Sequence[str], request.get("support_roots", [])),
+        )
+        if observation_verified
+        and isinstance(observation, Mapping)
+        else None
+    )
     proposal["acknowledgment"] = event_ref
     effect_count = (
         {"lower": 1, "upper": 1}
@@ -19678,6 +25999,13 @@ def _semantic_acknowledge(
         epistemic_kind="observed" if observation_verified else "asserted",
         dependency=event_ref,
     )
+    procedure_transition = _semantic_advance_procedure_after_ack(
+        state,
+        proposal,
+        status=status,
+        event_ref=event_ref,
+        request=request,
+    )
     return _semantic_result(
         "acknowledgment",
         "supported" if status != "unknown" else "waiting",
@@ -19687,8 +26015,18 @@ def _semantic_acknowledge(
         event=event_ref,
         obligation=obligation,
         phase=phase,
-        proposal=proposal,
         transport_is_world_observation=observation_verified,
+        proposal=proposal,
+        procedure_run=(
+            None
+            if procedure_transition is None
+            else procedure_transition.get("procedure_run")
+        ),
+        next_proposal=(
+            None
+            if procedure_transition is None
+            else procedure_transition.get("next_proposal")
+        ),
     ), 1
 
 
@@ -21064,6 +27402,7 @@ def _packet_normalize_work_item(
     )
     invocation = value.get("invocation")
     requires_invocation = kind in {
+        "collective",
         "model-native",
         "regional",
         "semantic",
@@ -25246,6 +31585,7 @@ def _semantic_inspect(
         for kind in SEMANTIC_RECORD_KINDS
     }
     return _semantic_result(
+
         "inspect",
         "supported",
         active_counts=active_counts,
@@ -25256,26 +31596,9933 @@ def _semantic_inspect(
         timeline_length=len(state["time"]["timeline"]),
         work=state["ledger"]["work"],
     ), 1
+def _open_vocab_event_episode(state: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, Any]:
+    _, record = _semantic_reference(state, reference, expected_kind="Event", require_current=True)
+    episode = record["payload"].get("open_vocab_episode")
+    if not isinstance(episode, Mapping):
+        raise FieldIntelligenceError("SUPPORT_GAP", "event is not an open-vocabulary episode")
+    return dict(episode)
+
+
+def _semantic_open_vocab_roots(record: Mapping[str, Any]) -> set[str]:
+    roots = record.get("support_roots", [])
+    if not isinstance(roots, list):
+        return set()
+    return {str(root) for root in roots}
+
+
+def _semantic_open_vocab_template(record: Mapping[str, Any]) -> tuple[Mapping[str, Any], tuple[str, ...]]:
+    payload = record.get("payload", {})
+    if not isinstance(payload, Mapping):
+        raise FieldIntelligenceError(
+            "REPRESENTATION_INSUFFICIENT", "template record payload is invalid"
+        )
+    candidate = payload.get("template") or payload.get("open_vocab_template")
+    if candidate is None:
+        program = payload.get("program")
+        if isinstance(program, Mapping):
+            body = program.get("body")
+            if isinstance(body, Mapping):
+                candidate = body.get("template") or body.get("open_vocab_template")
+    if not isinstance(candidate, Mapping):
+        raise FieldIntelligenceError(
+            "REPRESENTATION_INSUFFICIENT", "active template record has no declarative term"
+        )
+    constructors = candidate.get("constructors", payload.get("constructors", ()))
+    if not isinstance(constructors, (list, tuple)):
+        raise FieldIntelligenceError(
+            "REPRESENTATION_INSUFFICIENT", "template constructors are invalid"
+        )
+    return candidate, tuple(str(name) for name in constructors)
+
+
+def _semantic_interpret_open_vocab(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=("utterance", "construction_ref", "template_ref", "support_refs"),
+        optional=("context", "max_tokens", "source_revision_ids"),
+    )
+    utterance = _regional_text(request["utterance"], "open-vocabulary utterance")
+    support_refs = request["support_refs"]
+    if not isinstance(support_refs, list):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION", "open-vocabulary support_refs must be a list"
+        )
+    all_refs: list[Mapping[str, Any]] = []
+    for label, raw in (
+        ("construction_ref", request["construction_ref"]),
+        ("template_ref", request["template_ref"]),
+        *[(f"support_refs[{index}]", item) for index, item in enumerate(support_refs)],
+    ):
+        if not isinstance(raw, Mapping):
+            return (
+                _semantic_result(
+                    "interpret-open-vocab",
+                    "support-gap",
+                    interpretation_status="support-gap",
+                    reason=f"{label}-missing",
+                ),
+                1,
+            )
+        all_refs.append(raw)
+    resolved: list[tuple[SemanticRef, dict[str, Any]]] = []
+    seen: set[tuple[str, str, int]] = set()
+    try:
+        for raw in all_refs:
+            reference, record = _semantic_reference(
+                state, raw, require_current=True
+            )
+            key = (reference.kind, reference.id, reference.content_version)
+            if key not in seen:
+                seen.add(key)
+                resolved.append((reference, record))
+    except FieldIntelligenceError:
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "support-gap",
+                interpretation_status="support-gap",
+                reason="missing-or-revoked-support",
+            ),
+            1,
+        )
+    if any(record.get("status") != "active" for _, record in resolved):
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "support-gap",
+                interpretation_status="support-gap",
+                reason="inactive-support",
+            ),
+            1,
+        )
+    construction_ref, construction_record = next(
+        (item for item in resolved if item[0].as_dict() == dict(request["construction_ref"])),
+        (None, None),
+    )
+    template_ref, template_record = next(
+        (item for item in resolved if item[0].as_dict() == dict(request["template_ref"])),
+        (None, None),
+    )
+    if construction_ref is None or template_ref is None:
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "support-gap",
+                interpretation_status="support-gap",
+                reason="construction-or-template-support-missing",
+            ),
+            1,
+        )
+    if (
+        construction_ref.kind != "Program"
+        or construction_record.get("payload", {}).get("program_role") != "construction"
+    ):
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "support-gap",
+                interpretation_status="support-gap",
+                reason="construction-support-inactive",
+            ),
+            1,
+        )
+    try:
+        construction_program = canonical_semantic_program_payload(
+            construction_record["payload"]["program"]
+        )
+        body = construction_program["body"]
+        pattern = body["pattern"]
+        roles = body["roles"]
+        if not isinstance(pattern, list) or not isinstance(roles, list):
+            raise FieldIntelligenceError(
+                "REPRESENTATION_INSUFFICIENT", "construction family is not regional"
+            )
+        roots = set(request.get("source_revision_ids", []))
+        for _, record in resolved:
+            roots.update(_semantic_open_vocab_roots(record))
+        roots = {_digest(root, "open-vocabulary source root") for root in roots}
+        regional_construction = {
+            "construction_id": construction_ref.id,
+            "version": construction_ref.content_version,
+            "pattern": list(pattern),
+            "roles": list(roles),
+            "semantic_program_id": construction_ref.id,
+            "support_event_ids": sorted(roots),
+            "status": "promoted",
+        }
+        regional = regional_language_state(
+            (regional_construction,),
+            mode="interpret",
+            text=utterance,
+            context=request.get("context", {}),
+            max_tokens=request.get("max_tokens", 128),
+        )
+        while regional["phase"] == "running":
+            regional = regional_kernel(
+                regional, {}, REGIONAL_KERNEL_MAX_WORK
+            ).state
+        interpretation = regional.get("result") or {}
+        regional_status = interpretation.get("status")
+        roots_list = sorted(roots)
+        provenance = {
+            "construction_ref": construction_ref.as_dict(),
+            "template_ref": template_ref.as_dict(),
+            "support_refs": [reference.as_dict() for reference, _ in resolved],
+            "source_roots": roots_list,
+        }
+        if regional_status != "understood" or len(interpretation.get("branches", [])) != 1:
+            status = (
+                "alternatives"
+                if regional_status == "ambiguous"
+                else "representation-insufficient"
+            )
+            return (
+                _semantic_result(
+                    "interpret-open-vocab",
+                    status,
+                    interpretation_status=regional_status or "representation-insufficient",
+                    reason="no-representation",
+                    **provenance,
+                ),
+                1 + len(pattern),
+            )
+        branch = interpretation["branches"][0]
+        template, constructors = _semantic_open_vocab_template(template_record)
+        term = instantiate_template(
+            template,
+            branch.get("bindings", {}),
+            constructors=constructors,
+        )
+        def binding_term(value: Any) -> dict[str, Any]:
+            if isinstance(value, Mapping):
+                return canonical_term(value)
+            if isinstance(value, bool):
+                return {"kind": "atom", "type": "boolean", "value": value}
+            if isinstance(value, int):
+                return {"kind": "atom", "type": "integer", "value": value}
+            if isinstance(value, float) and math.isfinite(value):
+                return {"kind": "atom", "type": "number", "value": float(value)}
+            if isinstance(value, str):
+                return {"kind": "atom", "type": "lexeme", "value": value}
+            raise OpenVocabError(
+                "representation-insufficient", "regional role binding is not typed"
+            )
+
+        binding_rows = [
+            {
+                "role": name,
+                "surface": value,
+                "term": binding_term(value),
+            }
+            for name, value in sorted(branch.get("bindings", {}).items())
+        ]
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "supported",
+                interpretation_status="understood",
+                branch_id=sha256_value(branch),
+                branch={
+                    "construction_id": branch.get("construction_id"),
+                    "construction_version": branch.get("construction_version"),
+                    "semantic_program_id": branch.get("semantic_program_id"),
+                },
+                term=term,
+                bindings=dict(branch.get("bindings", {})),
+                binding_rows=binding_rows,
+                **provenance,
+            ),
+            1 + len(pattern),
+        )
+    except OpenVocabError as exc:
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "representation-insufficient",
+                interpretation_status="representation-insufficient",
+                reason=exc.code,
+                details=exc.details,
+            ),
+            1,
+        )
+    except (KeyError, TypeError, ValueError, FieldIntelligenceError) as exc:
+        return (
+            _semantic_result(
+                "interpret-open-vocab",
+                "representation-insufficient",
+                interpretation_status="representation-insufficient",
+                reason="invalid-regional-template",
+                details={"message": str(exc)},
+            ),
+            1,
+        )
+
+def _semantic_open_vocab(state: dict[str, Any], request: Mapping[str, Any]) -> tuple[dict[str, Any], int]:
+    operation = str(request.get("operation"))
+    if operation == "interpret-open-vocab":
+        return _semantic_interpret_open_vocab(state, request)
+    if operation == "admit-open-vocab-episode":
+        _semantic_keys(request, required=("event_id", "episode", "source_revision_id"))
+        event_id = _identifier(request["event_id"], "open-vocabulary event identity")
+        episode = canonical_grounded_episode(request["episode"])
+        if request["source_revision_id"] not in episode["source_revision_ids"]:
+            raise FieldIntelligenceError("SUPPORT_GAP", "episode source revision does not match admission")
+        if event_id != episode["event_id"]:
+            raise FieldIntelligenceError("OPERATION_CONFLICT", "event identity differs from grounded episode")
+        prior = state["current"]["Event"].get(event_id)
+        if prior is not None:
+            current = _semantic_current_record(state, "Event", event_id)
+            if current["payload"].get("open_vocab_episode") != episode:
+                raise FieldIntelligenceError("OPERATION_CONFLICT", "event identity was already used by different evidence")
+            return _semantic_result(operation, "supported", event=prior, replayed=True), 1
+        roots = episode["source_revision_ids"]
+        event_ref = _semantic_append_record(
+            state, record_id=event_id, kind="Event",
+            payload={"open_vocab_episode": episode, "episode_id": event_id, "source_revision_ids": roots, "codec": episode["codec"], "layout_schema": episode["layout_schema"]},
+            epistemic_kind="observed", support_roots=roots,
+            valid_time={"start": float(state["time"]["now"]), "end": float(state["time"]["now"])},
+        )
+        binding_refs = []
+        raw_bindings = episode.get("bindings", {})
+        rows = raw_bindings.items() if raw_bindings else [("episode", {})]
+        for name, value in rows:
+            binding_id = f"{event_id}:binding:{name}"
+            binding_ref = _semantic_append_record(
+                state, record_id=binding_id, kind="Binding",
+                payload={"open_vocab_binding": value, "episode_id": event_id, "role": str(name), "event_ref": event_ref},
+                epistemic_kind="observed", dependencies=(event_ref,), support_roots=roots,
+                valid_time={"start": float(state["time"]["now"]), "end": float(state["time"]["now"])},
+            )
+            _semantic_reindex_record(state, binding_ref)
+            binding_refs.append(binding_ref)
+        _semantic_reindex_record(state, event_ref)
+        return _semantic_result(operation, "supported", event=event_ref, bindings=binding_refs, replayed=False), 1 + len(binding_refs)
+    if operation == "propose-action-schema":
+        _semantic_keys(request, required=("training_event_refs", "holdout_event_refs"), optional=("bounds",))
+        training = request["training_event_refs"]
+        holdout = request["holdout_event_refs"]
+        if not isinstance(training, list) or not isinstance(holdout, list):
+            raise FieldIntelligenceError("INVALID_SEMANTIC_OPERATION", "event references must be lists")
+        train = [_open_vocab_event_episode(state, ref) for ref in training]
+        held = [_open_vocab_event_episode(state, ref) for ref in holdout]
+        bounds = request.get("bounds", {})
+        result = induce_action_schema_candidates(train, held, max_candidates=int(bounds.get("max_candidates", 8)), max_work=int(bounds.get("max_work", state["bounds"]["max_work"])))
+        binding_ids = sorted(
+            binding_id
+            for ref in training
+            if isinstance(ref, Mapping) and ref.get("id")
+            for binding_id in state["current"]["Binding"]
+            if binding_id.startswith(f"{ref['id']}:binding:")
+        )
+        for candidate in result.get("candidates", []):
+            candidate["support_binding_refs"] = binding_ids
+            candidate["schema_digest"] = candidate_digest(candidate)
+        payload = {key: value for key, value in result.items() if key != "status"}
+        return _semantic_result(operation, result.get("status", "supported"), **payload), max(1, int(result.get("work", 1)))
+    if operation == "admit-action-schema":
+        _semantic_keys(request, required=("candidate", "source_revision_ids", "support_event_refs"), optional=("support_binding_refs",))
+        raw_candidate = request["candidate"]
+        if not isinstance(raw_candidate, Mapping):
+            raise FieldIntelligenceError("INVALID_SEMANTIC_OPERATION", "schema candidate must be a mapping")
+        candidate = canonical_action_schema(raw_candidate)
+        if raw_candidate.get("schema_digest") != candidate["schema_digest"]:
+            raise FieldIntelligenceError("OPERATION_CONFLICT", "schema candidate digest does not verify")
+        refs = request["support_event_refs"]
+        declared_support = set(candidate.get("support_event_refs", []))
+        supplied_support = {str(ref.get("id")) for ref in refs if isinstance(ref, Mapping)}
+        if declared_support != supplied_support:
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema support closure does not match candidate digest")
+        if sorted(set(candidate.get("source_roots", []))) != sorted(set(request["source_revision_ids"])):
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema source closure does not match admission")
+        binding_refs = request.get("support_binding_refs", [])
+        if not isinstance(binding_refs, list):
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema binding support must be a list")
+        declared_bindings = set(candidate.get("support_binding_refs", []))
+        supplied_bindings = {str(ref.get("id")) for ref in binding_refs if isinstance(ref, Mapping)}
+        if declared_bindings != supplied_bindings:
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema binding closure does not match admission")
+        if not isinstance(refs, list) or not refs:
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema admission requires closed event support")
+        records = [_semantic_reference(state, ref, expected_kind="Event", require_current=True)[1] for ref in refs]
+        binding_records = [_semantic_reference(state, ref, expected_kind="Binding", require_current=True)[1] for ref in binding_refs]
+        if any(record["status"] != "active" for record in [*records, *binding_records]):
+            return _semantic_result(operation, "support-gap", reason="inactive-schema-support"), 1
+        training_episodes = [record["payload"]["open_vocab_episode"] for record in records]
+        holdout = candidate.get("holdout", {})
+        if holdout.get("count", 0) or holdout.get("identities"):
+            raise FieldIntelligenceError("SUPPORT_GAP", "holdout claims require independently admitted support")
+        rebuilt = induce_action_schema_candidates(training_episodes, max_candidates=1, max_work=4096)
+        if rebuilt.get("status") != "supported" or not rebuilt.get("candidates"):
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema cannot be reconstructed from support")
+        expected_candidate = dict(rebuilt["candidates"][0])
+        expected_candidate["support_binding_refs"] = sorted(ref["id"] for ref in binding_refs)
+        expected_candidate["schema_digest"] = candidate_digest(expected_candidate)
+        if canonical_json_bytes(candidate) != canonical_json_bytes(expected_candidate):
+            raise FieldIntelligenceError("OPERATION_CONFLICT", "schema bytes are not reproduced by cited support")
+        roots = sorted(set(request["source_revision_ids"]))
+        rebuilt_roots = sorted({root for episode in training_episodes for root in episode["source_revision_ids"]})
+        if rebuilt_roots != roots or sorted(candidate["source_roots"]) != roots:
+            raise FieldIntelligenceError("SUPPORT_GAP", "schema source closure is not reproduced by support")
+        schema_id = f"open-vocab-schema:{candidate['schema_digest']}"
+        prior = state["current"]["Program"].get(schema_id)
+        if prior is not None:
+            return _semantic_result(operation, "supported", schema_ref=prior, replayed=True), 1
+        deps = [SemanticRef.from_dict(ref) for ref in [*refs, *binding_refs]]
+        executable = {
+            "schema": "cassifi.semantic-program-payload.v1",
+            "program_kind": "procedure",
+            "arguments": {},
+            "body": {"open_vocab_schema_digest": candidate["schema_digest"]},
+            "applicability": {},
+            "bounds": {"max_branches": 64, "max_horizon": candidate["bounds"]["max_horizon"], "max_work": candidate["bounds"]["max_work"]},
+            "effects": {"emits": [], "reads": [], "writes": []},
+            "guards": [],
+        }
+        program_ref = _semantic_append_record(
+            state, record_id=schema_id, kind="Program",
+            payload={"program": executable, "open_vocab_schema": candidate, "program_role": "procedure", "schema_digest": candidate["schema_digest"], "source_revision_ids": roots},
+            status="active", epistemic_kind="induced", dependencies=deps, support_roots=roots,
+            derivation={"operation": operation, "support_event_refs": refs, "support_binding_refs": binding_refs},
+        )
+        _semantic_reindex_record(state, program_ref)
+        return _semantic_result(operation, "supported", schema_ref=program_ref, candidate=candidate, replayed=False), 1
+    if operation == "plan-open-vocab":
+        _semantic_keys(request, required=("goal_term", "initial_term", "schema_refs"), optional=("limits", "basis_field_sha256"))
+        schemas = []
+        deps = []
+        for ref in request["schema_refs"]:
+            schema_ref, record = _semantic_reference(state, ref, expected_kind="Program", require_current=True)
+            if record["status"] != "active":
+                return _semantic_result(operation, "support-gap", reason="schema-support-inactive"), 1
+            schemas.append(record["payload"].get("open_vocab_schema", record["payload"]["program"]))
+            deps.append(schema_ref.as_dict())
+        result = generate_relational_plan(request["initial_term"], request["goal_term"], schemas, limits=request.get("limits"), basis_field_sha256=request.get("basis_field_sha256", sha256_value(state)))
+        result["schema_refs"] = deps
+        payload = {"plan": result, "dependencies": deps}
+        return _semantic_result(operation, result.get("status", "unresolved"), **payload), max(1, int(result.get("work", 1)))
+    if operation == "repair-open-vocab-plan":
+        _semantic_keys(request, required=("plan", "observation_event_ref"), optional=("limits",))
+        plan = request["plan"]
+        if not isinstance(plan, Mapping):
+            raise FieldIntelligenceError("INVALID_SEMANTIC_OPERATION", "plan must be an object")
+        schemas = []
+        expected_digests = set(plan.get("remaining_dependencies", []))
+        schema_refs = plan.get("schema_refs", [])
+        for ref in schema_refs:
+            _, record = _semantic_reference(state, ref, expected_kind="Program", require_current=True)
+            schema = record.get("payload", {}).get("open_vocab_schema") if isinstance(record, Mapping) else None
+            if isinstance(schema, Mapping):
+                schemas.append(schema)
+        if not expected_digests:
+            expected_digests = {str(segment.get("schema_digest")) for segment in plan.get("segments", [])}
+        if not schemas:
+            for record in state["current"]["Program"].values():
+                schema = record.get("payload", {}).get("open_vocab_schema") if isinstance(record, Mapping) else None
+                if isinstance(schema, Mapping) and schema.get("schema_digest") in expected_digests:
+                    schemas.append(schema)
+        if {canonical_action_schema(s)["schema_digest"] for s in schemas} != expected_digests:
+            return _semantic_result(operation, "support-gap", reason=f"plan-schema-closure:expected={sorted(expected_digests)}:found={sorted(canonical_action_schema(s)['schema_digest'] for s in schemas)}"), 1
+        roots = sorted({root for schema in schemas for root in canonical_action_schema(schema)["source_roots"]})
+        if roots != sorted(plan.get("source_roots", [])):
+            return _semantic_result(operation, "support-gap", reason="plan-source-closure"), 1
+        episode = _open_vocab_event_episode(state, request["observation_event_ref"])
+        result = repair_relational_plan(plan, episode, schemas, limits=request.get("limits"))
+        payload = {key: value for key, value in result.items() if key not in {"schema", "status"}}
+        return _semantic_result(operation, result.get("status", "unresolved"), **payload), max(1, int(result.get("work", 1)))
+    raise FieldIntelligenceError("INVALID_SEMANTIC_OPERATION", "unsupported open-vocabulary operation")
+
+def _semantic_term_shape(value: Any) -> Any:
+    """Return a value-independent structural signature for one open-vocabulary term."""
+
+    if not isinstance(value, Mapping):
+        return type(value).__name__
+    kind = value.get("kind")
+    if kind == "atom":
+        return {
+            "kind": "atom",
+            "type": value.get("type"),
+        }
+    if kind == "variable":
+        return {
+            "kind": "variable",
+            "scope": value.get("scope"),
+            "type": value.get("type"),
+        }
+    if kind == "constructor":
+        args = value.get("args", [])
+        return {
+            "kind": "constructor",
+            "name": value.get("name"),
+            "args": [_semantic_term_shape(item) for item in args]
+            if isinstance(args, list)
+            else [],
+        }
+    if kind == "record":
+        fields = value.get("fields", {})
+        return {
+            "kind": "record",
+            "fields": {
+                str(name): _semantic_term_shape(term)
+                for name, term in fields.items()
+            }
+            if isinstance(fields, Mapping)
+            else {},
+        }
+    if kind == "sequence":
+        items = value.get("items", [])
+        return {
+            "kind": "sequence",
+            "items": [_semantic_term_shape(item) for item in items]
+            if isinstance(items, list)
+            else [],
+        }
+    return {
+        "kind": kind,
+        "keys": sorted(str(key) for key in value),
+    }
+
+
+def _semantic_segment_untagged_episodes(
+    rows: Sequence[tuple[int, str, dict[str, Any]]],
+) -> list[list[tuple[int, str, dict[str, Any]]]]:
+    """Recover conservative trajectory segments from admission-ordered events.
+
+    Explicit trajectory metadata remains authoritative.  For events without it,
+    exact state continuity or stable bindings keeps a segment together.  A
+    repeated first action starts a fresh segment, which handles repeated runs
+    by the same bound entity without inventing a hidden world model.
+    """
+    ordered = sorted(rows, key=lambda row: (row[0], row[1]))
+    segments: list[list[tuple[int, str, dict[str, Any]]]] = []
+    current: list[tuple[int, str, dict[str, Any]]] = []
+    first_action_shape: Any = None
+
+    def binding_identities(
+        episode: Mapping[str, Any],
+    ) -> frozenset[bytes] | None:
+        bindings = episode.get("bindings")
+        if not isinstance(bindings, Mapping) or not bindings:
+            return None
+        identities: set[bytes] = set()
+
+        def collect(term: Any) -> None:
+            if isinstance(term, Mapping):
+                kind = term.get("kind")
+                if kind == "atom":
+                    identities.add(canonical_json_bytes(term))
+                elif kind == "constructor":
+                    for argument in term.get("args", []):
+                        collect(argument)
+                elif kind == "record":
+                    for field in term.get("fields", {}).values():
+                        collect(field)
+                elif kind == "sequence":
+                    for item in term.get("items", []):
+                        collect(item)
+                else:
+                    identities.add(canonical_json_bytes(term))
+            else:
+                identities.add(canonical_json_bytes(term))
+
+        for term in bindings.values():
+            collect(term)
+        return frozenset(identities) or None
+
+    for row in ordered:
+        _, _, episode = row
+        if current:
+            previous = current[-1][2]
+            state_continuity = (
+                previous.get("post_state") == episode.get("pre_state")
+            )
+            previous_bindings = binding_identities(previous)
+            current_bindings = binding_identities(episode)
+            binding_continuity = (
+                previous_bindings is not None
+                and current_bindings is not None
+                and bool(previous_bindings & current_bindings)
+            )
+            repeated_start = (
+                first_action_shape is not None
+                and len(current) >= 2
+                and _semantic_term_shape(episode["action"]) == first_action_shape
+            )
+            identity_break = (
+                not state_continuity
+                and not binding_continuity
+                and (previous_bindings is not None or current_bindings is not None)
+            )
+            if repeated_start or identity_break:
+                if len(current) >= 2:
+                    segments.append(current)
+                current = []
+                first_action_shape = None
+        current.append(row)
+        if first_action_shape is None:
+            first_action_shape = _semantic_term_shape(episode["action"])
+    if len(current) >= 2:
+        segments.append(current)
+    return segments
+
+
+def _semantic_discover_procedure_opportunities(
+    state: Mapping[str, Any], *, maximum: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Discover repeated multi-step trajectories already resident in Event state."""
+
+    current_events = state.get("current", {}).get("Event", {})
+    records = state.get("records", {})
+    if not isinstance(current_events, Mapping) or not isinstance(records, Mapping):
+        return [], 0
+    trajectories: dict[str, list[tuple[int, str, dict[str, Any]]]] = {}
+    untagged_rows: list[tuple[int, str, dict[str, Any]]] = []
+    inspected = 0
+    for raw_event_id in sorted(current_events):
+        event_id = str(raw_event_id)
+        history = records.get(raw_event_id, records.get(event_id, []))
+        if not isinstance(history, list) or not history:
+            continue
+        payload = history[-1].get("payload", {})
+        episode = (
+            payload.get("open_vocab_episode")
+            if isinstance(payload, Mapping)
+            else None
+        )
+        if not isinstance(episode, Mapping):
+            continue
+        inspected += 1
+        try:
+            normalized = canonical_grounded_episode(episode)
+        except (OpenVocabError, TypeError, ValueError, KeyError):
+            continue
+        trajectory_id = normalized.get("trajectory_id")
+        trajectory_index = normalized.get("trajectory_index")
+        if trajectory_id is None and trajectory_index is None:
+            untagged_rows.append(
+                (int(history[-1].get("created_at", 0)), event_id, normalized)
+            )
+            continue
+        if (
+            not isinstance(trajectory_id, str)
+            or not trajectory_id
+            or isinstance(trajectory_index, bool)
+            or not isinstance(trajectory_index, int)
+            or trajectory_index < 0
+        ):
+            continue
+        trajectories.setdefault(trajectory_id, []).append(
+            (trajectory_index, event_id, normalized)
+        )
+    for segment in _semantic_segment_untagged_episodes(untagged_rows):
+        event_ids = [event_id for _, event_id, _ in segment]
+        inferred_id = (
+            "inferred-trajectory:"
+            f"{sha256_value({'events': event_ids})[:16]}"
+        )
+        trajectories[inferred_id] = [
+            (index, event_id, normalized)
+            for index, (_, event_id, normalized) in enumerate(segment)
+        ]
+
+    traces: dict[str, dict[str, Any]] = {}
+    for trajectory_id, rows in trajectories.items():
+        rows.sort(key=lambda row: (row[0], row[1]))
+        indexes = [row[0] for row in rows]
+        if len(rows) < 2 or indexes != list(range(len(rows))):
+            continue
+        steps = [
+            {
+                "action": normalized["action"],
+                "transition": {
+                    "post_state_shape": _semantic_term_shape(
+                        normalized["post_state"]
+                    ),
+                    "pre_state_shape": _semantic_term_shape(
+                        normalized["pre_state"]
+                    ),
+                },
+            }
+            for _, _, normalized in rows
+        ]
+        successful = all(
+            bool(normalized["observation"].get("success", False))
+            for _, _, normalized in rows
+        )
+        failure_observation = next(
+            (
+                normalized["observation"]
+                for _, _, normalized in rows
+                if not normalized["observation"].get("success", False)
+            ),
+            {},
+        )
+        failure = (
+            failure_observation.get("failure")
+            or failure_observation.get("error")
+            or {"reason": "observed-failure"}
+        )
+        traces[trajectory_id] = {
+            "trajectory_source": (
+                "inferred"
+                if trajectory_id.startswith("inferred-trajectory:")
+                else "declared"
+            ),
+            "context": {},
+            "effects": {"final_post_state": rows[-1][2]["post_state"]},
+            "failure": None if successful else failure,
+            "outcome": rows[-1][2]["post_state"],
+            "rare_case": False,
+            "steps": steps,
+            "success": successful,
+            "support_event_refs": [event_id for _, event_id, _ in rows],
+            "trace_id": f"trajectory:{trajectory_id}",
+            "work": len(steps),
+        }
+
+    training_trace_count = sum(
+        1 for trace in traces.values() if trace["success"]
+    )
+    if training_trace_count < 2:
+        return [], inspected
+    groups: dict[
+        bytes, list[tuple[str, int, int]]
+    ] = {}
+    work = 0
+    work_bound = int(state.get("bounds", {}).get("max_work", 4096))
+    maximum_length = min(
+        8,
+        max(2, int(state.get("bounds", {}).get("max_observations", 64))),
+    )
+    exhausted = False
+    for trajectory_id in sorted(traces):
+        if not traces[trajectory_id]["success"]:
+            continue
+        steps = traces[trajectory_id]["steps"]
+        for length in range(2, min(maximum_length, len(steps)) + 1):
+            for start in range(len(steps) - length + 1):
+                signature = canonical_json_bytes(
+                    [
+                        _semantic_term_shape(step)
+                        for step in steps[start : start + length]
+                    ]
+                )
+                groups.setdefault(signature, []).append(
+                    (trajectory_id, length, start)
+                )
+                work += 1
+                if work >= work_bound:
+                    exhausted = True
+                    break
+            if exhausted:
+                break
+        if exhausted:
+            break
+    def trace_matches_signature(
+        trace: Mapping[str, Any], length: int, signature: bytes
+    ) -> bool:
+        steps = trace["steps"]
+        return any(
+            canonical_json_bytes(
+                [
+                    _semantic_term_shape(step)
+                    for step in steps[start : start + length]
+                ]
+            )
+            == signature
+            for start in range(len(steps) - length + 1)
+        )
+
+    opportunities: list[dict[str, Any]] = []
+    maximum_traces = max(2, min(maximum, 8))
+    for signature, occurrences in sorted(groups.items(), key=lambda item: item[0]):
+        by_trajectory: dict[str, tuple[str, int, int]] = {}
+        for occurrence in occurrences:
+            by_trajectory.setdefault(occurrence[0], occurrence)
+        trajectory_ids = sorted(by_trajectory)
+        if len(trajectory_ids) < 2:
+            continue
+        selected_trajectory_ids = trajectory_ids[:maximum_traces]
+        selected_traces = [
+            traces[trajectory_id] for trajectory_id in selected_trajectory_ids
+        ]
+        length = by_trajectory[selected_trajectory_ids[0]][1]
+        holdout_trajectory_ids = [
+            trajectory_id
+            for trajectory_id in sorted(traces)
+            if not traces[trajectory_id]["success"]
+            and trace_matches_signature(
+                traces[trajectory_id], length, signature
+            )
+        ][:maximum_traces]
+        selected_holdout_traces = [
+            traces[trajectory_id] for trajectory_id in holdout_trajectory_ids
+        ]
+        selected_event_ids = [
+            event_id
+            for trace in [*selected_traces, *selected_holdout_traces]
+            for event_id in trace["support_event_refs"]
+        ]
+        support_refs = [
+            current_events[event_id]
+            for event_id in selected_event_ids
+            if isinstance(current_events.get(event_id), Mapping)
+        ]
+        if len(support_refs) != len(selected_event_ids):
+            continue
+        support_roots = sorted(
+            {
+                root
+                for event_id in selected_event_ids
+                for root in _semantic_open_vocab_roots(
+                    records.get(event_id, [{}])[-1]
+                    if isinstance(records.get(event_id), list)
+                    and records.get(event_id)
+                    else {}
+                )
+            }
+        )
+        procedure_id = (
+            "resident-procedure:"
+            f"{sha256_value({'events': selected_event_ids, 'signature': signature.hex()})[:16]}"
+        )
+        opportunities.append(
+            {
+                "candidate_id": procedure_id,
+                "learning_kind": "procedure",
+                "expected_gain": float(
+                    max(0, (length - 1) * len(selected_traces))
+                ),
+                "urgency": 0.75,
+                "novelty": 1.5,
+                "priority": 1.0,
+                "cost": float(length),
+                "risk": 0.0,
+                "request": {
+                    "procedure_id": procedure_id,
+                    "max_length": length,
+                    "min_length": length,
+                    "support_event_refs": support_refs,
+                    "support_roots": support_roots,
+                    "traces": selected_traces,
+                    "holdout": selected_holdout_traces,
+                },
+            }
+        )
+    opportunities.sort(
+        key=lambda item: (
+            -float(item["expected_gain"]),
+            float(item["cost"]),
+            str(item["candidate_id"]),
+        )
+    )
+    return opportunities[:maximum], inspected
+
+
+def _semantic_discover_action_schema_opportunities(
+    state: Mapping[str, Any], *, maximum: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Discover action-schema acquisitions from resident successful episodes."""
+
+    grouped: dict[bytes, list[tuple[str, dict[str, Any]]]] = {}
+    inspected = 0
+    current_events = state.get("current", {}).get("Event", {})
+    records = state.get("records", {})
+    if not isinstance(current_events, Mapping) or not isinstance(records, Mapping):
+        return [], 0
+    for event_id in sorted(current_events):
+        history = records.get(event_id, [])
+        if not isinstance(history, list) or not history:
+            continue
+        payload = history[-1].get("payload", {})
+        episode = payload.get("open_vocab_episode") if isinstance(payload, Mapping) else None
+        if not isinstance(episode, Mapping):
+            continue
+        inspected += 1
+        try:
+            normalized = canonical_grounded_episode(episode)
+        except (OpenVocabError, TypeError, ValueError, KeyError):
+            continue
+        if not normalized["observation"].get("success", False):
+            continue
+        signature = canonical_json_bytes(
+            {
+                "action": _semantic_term_shape(normalized["action"]),
+                "pre_state": _semantic_term_shape(normalized["pre_state"]),
+                "post_state": _semantic_term_shape(normalized["post_state"]),
+            }
+        )
+        grouped.setdefault(signature, []).append((str(event_id), normalized))
+
+    opportunities: list[dict[str, Any]] = []
+    work_bound = int(state.get("bounds", {}).get("max_work", 4096))
+    for signature, rows in sorted(grouped.items(), key=lambda item: item[0]):
+        if len(rows) < 2:
+            continue
+        rows.sort(key=lambda item: item[0])
+        selected_rows = rows[-min(len(rows), max(2, maximum)) :]
+        event_ids = [event_id for event_id, _ in selected_rows]
+        support_refs = [
+            current_events[event_id]
+            for event_id in event_ids
+            if isinstance(current_events.get(event_id), Mapping)
+        ]
+        if len(support_refs) != len(event_ids):
+            continue
+        candidate_id = (
+            "resident-action-schema:"
+            f"{sha256_value({'events': event_ids, 'signature': signature.hex()})[:16]}"
+        )
+        opportunities.append(
+            {
+                "candidate_id": candidate_id,
+                "learning_kind": "action-schema",
+                "expected_gain": float(len(event_ids) - 1),
+                "urgency": 0.5,
+                "novelty": 1.0,
+                "priority": 1.0,
+                "cost": float(len(event_ids)),
+                "risk": 0.0,
+                "request": {
+                    "training_event_refs": support_refs,
+                    "holdout_event_refs": [],
+                    "bounds": {
+                        "max_candidates": 1,
+                        "max_work": max(1, min(work_bound, 4096)),
+                    },
+                },
+            }
+        )
+        if len(opportunities) >= maximum:
+            break
+    return opportunities, inspected
+
+
+def _semantic_learn_action_schema(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Induce and admit one executable action schema from resident episodes."""
+
+    _semantic_keys(
+        request,
+        required=("training_event_refs",),
+        optional=("holdout_event_refs", "bounds"),
+    )
+    training_refs = request["training_event_refs"]
+    holdout_refs = request.get("holdout_event_refs", [])
+    if (
+        not isinstance(training_refs, list)
+        or not training_refs
+        or not isinstance(holdout_refs, list)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "action-schema learning requires event reference lists",
+        )
+    bounds = request.get("bounds", {})
+    if not isinstance(bounds, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "action-schema learning bounds must be a mapping",
+        )
+    proposal, proposal_work = _semantic_open_vocab(
+        state,
+        {
+            "operation": "propose-action-schema",
+            "training_event_refs": training_refs,
+            "holdout_event_refs": holdout_refs,
+            "bounds": dict(bounds),
+        },
+    )
+    if proposal["status"] != "supported" or not proposal.get("candidates"):
+        proposal_status = (
+            proposal["status"] if proposal["status"] != "supported" else "support-gap"
+        )
+        return (
+            _semantic_result(
+                "learn-action-schema",
+                proposal_status,
+                proposal=proposal,
+            ),
+            max(1, proposal_work),
+        )
+    candidate = cast(Mapping[str, Any], proposal["candidates"][0])
+    current_bindings = state["current"].get("Binding", {})
+    binding_refs = [
+        current_bindings[binding_id]
+        for ref in training_refs
+        if isinstance(ref, Mapping) and ref.get("id")
+        for binding_id in sorted(current_bindings)
+        if binding_id.startswith(f"{ref['id']}:binding:")
+    ]
+    admission, admission_work = _semantic_open_vocab(
+        state,
+        {
+            "operation": "admit-action-schema",
+            "candidate": dict(candidate),
+            "source_revision_ids": list(candidate.get("source_roots", [])),
+            "support_event_refs": training_refs,
+            "support_binding_refs": binding_refs,
+        },
+    )
+    return (
+        _semantic_result(
+            "learn-action-schema",
+            admission["status"],
+            admission=admission,
+            candidate=dict(candidate),
+            proposal=proposal,
+        ),
+        max(1, proposal_work + admission_work),
+    )
+
+
+def _semantic_autonomous_curiosity(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Generate bounded field-native goals from error and novelty."""
+
+    _semantic_keys(
+        request,
+        required=(),
+        optional=("goal", "max_goals", "min_error", "operation_id"),
+    )
+    max_goals = _regional_integer(
+        request.get("max_goals", state["bounds"]["max_alternatives"]),
+        "autonomous curiosity maximum",
+        minimum=1,
+        maximum=state["bounds"]["max_alternatives"],
+    )
+    min_error = _finite(
+        request.get("min_error", 0.1), "autonomous curiosity error threshold"
+    )
+    if min_error < 0.0:
+        raise FieldIntelligenceError(
+            "INVALID_CURIOSITY", "autonomous curiosity error threshold is negative"
+        )
+    goal_hint = _regional_plain(request.get("goal"), "autonomous curiosity goal")
+    current = state.get("current", {})
+    if not isinstance(current, Mapping):
+        current = {}
+    assessment_ids = sorted(
+        str(record_id)
+        for record_id in (
+            current.get("Assessment", {})
+            if isinstance(current.get("Assessment", {}), Mapping)
+            else {}
+        )
+    )
+    event_ids = sorted(
+        str(record_id)
+        for record_id in (
+            current.get("Event", {})
+            if isinstance(current.get("Event", {}), Mapping)
+            else {}
+        )
+    )
+    operation_id = _identifier(
+        request.get(
+            "operation_id",
+            "curiosity-cycle:"
+            + sha256_value(
+                {
+                    "assessments": assessment_ids,
+                    "events": event_ids,
+                    "goal": goal_hint,
+                    "min_error": min_error,
+                }
+            ),
+        ),
+        "autonomous curiosity operation identity",
+    )
+    curiosity_event_id = (
+        "event:autonomous-curiosity:"
+        + sha256_value({"operation_id": operation_id})
+    )
+    existing = state["current"]["Event"].get(curiosity_event_id)
+    if existing is not None:
+        record = state["records"][curiosity_event_id][-1]
+        payload = record["payload"]["autonomous_curiosity"]
+        return (
+            _semantic_result(
+                "autonomous-curiosity",
+                payload["status"],
+                event=existing,
+                goals=payload["goals"],
+                sources_scanned=payload["sources_scanned"],
+                replayed=True,
+            ),
+            1,
+        )
+
+    goals: list[dict[str, Any]] = []
+    dependencies: list[dict[str, Any]] = []
+    support_roots: set[str] = set()
+    for assessment_id in assessment_ids:
+        try:
+            assessment = _semantic_current_record(
+                state, "Assessment", assessment_id
+            )
+        except FieldIntelligenceError:
+            continue
+        if assessment.get("status") != "assessed":
+            continue
+        payload = assessment.get("payload")
+        if not isinstance(payload, Mapping) or payload.get("purpose") != "prediction":
+            continue
+        raw_loss = payload.get("loss")
+        if raw_loss is None and isinstance(
+            payload.get("assessment_metrics"), Mapping
+        ):
+            raw_loss = payload["assessment_metrics"].get("loss")
+        if isinstance(raw_loss, bool) or not isinstance(raw_loss, (int, float)):
+            continue
+        loss = _finite(raw_loss, "prediction assessment loss")
+        if loss <= min_error:
+            continue
+        reference = semantic_record_ref(assessment).as_dict()
+        dependencies.append(reference)
+        support_roots.update(str(item) for item in assessment.get("support_roots", []))
+        goal_id = "goal:curiosity:" + sha256_value(
+            {"kind": "prediction-error", "source": reference}
+        )
+        goals.append(
+            {
+                "goal_id": goal_id,
+                "kind": "reduce-prediction-error",
+                "priority": min(3.0, 1.0 + min(2.0, loss)),
+                "reason": f"resident prediction loss {loss:.6g} exceeds threshold",
+                "objective": {
+                    "kind": "reduce-prediction-error",
+                    "loss": loss,
+                    "prediction": reference,
+                    "goal_hint": goal_hint,
+                },
+                "source": reference,
+                "request": {
+                    "operation": "query",
+                    "query": {"kind": "explain", "reference": reference},
+                },
+            }
+        )
+
+    observed_events: list[tuple[Mapping[str, Any], Mapping[str, Any], bytes]] = []
+    signature_counts: dict[bytes, int] = {}
+    for event_id in event_ids:
+        if event_id.startswith("event:autonomous-"):
+            continue
+        try:
+            event = _semantic_current_record(state, "Event", event_id)
+        except FieldIntelligenceError:
+            continue
+        if event.get("epistemic_kind") != "observed":
+            continue
+        payload = event.get("payload")
+        derivation = event.get("derivation")
+        if not isinstance(payload, Mapping):
+            continue
+        operation = (
+            derivation.get("operation")
+            if isinstance(derivation, Mapping)
+            else None
+        )
+        if not (
+            "observation" in payload
+            or "observation_count" in payload
+            or "open_vocab_episode" in payload
+            or operation in {"observe", "admit-open-vocab-episode"}
+        ):
+            continue
+        signature = canonical_json_bytes(
+            {
+                "operation": operation,
+                "payload_keys": sorted(
+                    str(key)
+                    for key in payload
+                    if key not in {"event_id", "source_revision_ids"}
+                ),
+            }
+        )
+        signature_counts[signature] = signature_counts.get(signature, 0) + 1
+        observed_events.append((event, payload, signature))
+
+    for event, payload, signature in observed_events:
+        if signature_counts[signature] != 1:
+            continue
+        reference = semantic_record_ref(event).as_dict()
+        dependencies.append(reference)
+        support_roots.update(str(item) for item in event.get("support_roots", []))
+        goal_id = "goal:curiosity:" + sha256_value(
+            {"kind": "novel-event", "source": reference}
+        )
+        goals.append(
+            {
+                "goal_id": goal_id,
+                "kind": "investigate-novel-event",
+                "priority": 0.75,
+                "reason": "resident observation has a unique structural signature",
+                "objective": {
+                    "kind": "investigate-novel-event",
+                    "event": reference,
+                    "payload_keys": sorted(str(key) for key in payload),
+                    "goal_hint": goal_hint,
+                },
+                "source": reference,
+                "request": {
+                    "operation": "query",
+                    "query": {"kind": "explain", "reference": reference},
+                },
+            }
+        )
+
+    goals.sort(
+        key=lambda item: (-float(item["priority"]), str(item["goal_id"]))
+    )
+    goals = goals[:max_goals]
+    status = "supported" if goals else "waiting"
+    curiosity_payload = {
+        "goals": goals,
+        "goal_hint": goal_hint,
+        "min_error": min_error,
+        "sources_scanned": {
+            "assessments": len(assessment_ids),
+            "events": len(event_ids),
+        },
+        "status": status,
+    }
+    event_ref = _semantic_append_record(
+        state,
+        record_id=curiosity_event_id,
+        kind="Event",
+        payload={"autonomous_curiosity": curiosity_payload},
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        support_roots=sorted(support_roots),
+        derivation={
+            "operation": "autonomous-curiosity",
+            "operation_id": operation_id,
+        },
+        valid_time={
+            "start": float(state["time"]["now"]),
+            "end": float(state["time"]["now"]),
+        },
+    )
+    _semantic_reindex_record(state, event_ref)
+    return (
+        _semantic_result(
+            "autonomous-curiosity",
+            status,
+            event=event_ref,
+            goals=goals,
+            sources_scanned=curiosity_payload["sources_scanned"],
+        ),
+        max(
+            1,
+            len(assessment_ids) + len(event_ids) + len(goals) + 1,
+        ),
+    )
+
+
+def _semantic_autonomous_perception(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Select one owner-supplied observation channel for a field goal."""
+
+    _semantic_keys(
+        request,
+        required=("channels",),
+        optional=("goal", "operation_id"),
+    )
+    raw_channels = request["channels"]
+    if not isinstance(raw_channels, list) or not raw_channels:
+        raise FieldIntelligenceError(
+            "INVALID_PERCEPTION",
+            "active perception requires at least one channel",
+        )
+    goal = request.get("goal")
+    if goal is not None and not isinstance(goal, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_PERCEPTION", "active perception goal must be a mapping"
+        )
+    normalized_goal = (
+        None
+        if goal is None
+        else _regional_plain(dict(goal), "active perception goal")
+    )
+    normalized_channels: list[dict[str, Any]] = []
+    for raw in raw_channels:
+        if not isinstance(raw, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION", "observation channels must be mappings"
+            )
+        allowed = {
+            "channel_id",
+            "cost",
+            "latency",
+            "novelty",
+            "provides",
+            "reliability",
+            "request",
+        }
+        if set(raw) - allowed or "channel_id" not in raw or "provides" not in raw:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION", "observation channel fields are invalid"
+            )
+        channel_id = _identifier(raw["channel_id"], "observation channel identity")
+        provides = raw["provides"]
+        if (
+            not isinstance(provides, list)
+            or not provides
+            or any(not isinstance(item, str) or not item for item in provides)
+            or len(set(provides)) != len(provides)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation channel provides must be unique names",
+            )
+        if any(channel["channel_id"] == channel_id for channel in normalized_channels):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION", "observation channel identities must be unique"
+            )
+        request_payload = raw.get("request", {})
+        if not isinstance(request_payload, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION", "observation channel request must be a mapping"
+            )
+        if set(request_payload) & {
+            "actual",
+            "observations",
+            "outcome",
+            "result",
+            "values",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation channel request cannot contain observed data",
+            )
+        cost = _finite(raw.get("cost", 0.0), "observation channel cost")
+        latency = _finite(raw.get("latency", 0.0), "observation channel latency")
+        reliability = _finite(
+            raw.get("reliability", 1.0), "observation channel reliability"
+        )
+        novelty = _finite(
+            raw.get("novelty", 0.0), "observation channel novelty"
+        )
+        if cost < 0.0 or latency < 0.0 or not 0.0 <= reliability <= 1.0 or not 0.0 <= novelty <= 1.0:
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "observation channel quality values are out of range",
+            )
+        normalized_channels.append(
+            {
+                "channel_id": channel_id,
+                "cost": cost,
+                "latency": latency,
+                "novelty": novelty,
+                "provides": list(provides),
+                "reliability": reliability,
+                "request": _regional_plain(
+                    dict(request_payload), "observation channel request"
+                ),
+            }
+        )
+
+    operation_id = _identifier(
+        request.get(
+            "operation_id",
+            "perception-cycle:"
+            + sha256_value(
+                {
+                    "channels": normalized_channels,
+                    "goal": normalized_goal,
+                }
+            ),
+        ),
+        "active perception operation identity",
+    )
+    perception_event_id = (
+        "event:autonomous-perception:"
+        + sha256_value({"operation_id": operation_id})
+    )
+    existing = state["current"]["Event"].get(perception_event_id)
+    if existing is not None:
+        record = state["records"][perception_event_id][-1]
+        payload = record["payload"]["autonomous_perception"]
+        return (
+            _semantic_result(
+                "autonomous-perception",
+                payload["status"],
+                event=existing,
+                goal=payload.get("goal"),
+                target_variables=payload["target_variables"],
+                channel_scores=payload["channel_scores"],
+                selected_channel=payload.get("selected_channel"),
+                observation_request=payload.get("observation_request"),
+                replayed=True,
+            ),
+            1,
+        )
+
+    target_variables: list[str] = []
+    goal_source: Mapping[str, Any] | None = None
+    if isinstance(normalized_goal, Mapping):
+        objective = normalized_goal.get("objective", {})
+        if isinstance(objective, Mapping):
+            for key in ("requested", "target_variables", "variables"):
+                raw_targets = objective.get(key)
+                if isinstance(raw_targets, list):
+                    target_variables = [
+                        str(item)
+                        for item in raw_targets
+                        if isinstance(item, str) and item
+                    ]
+                    if target_variables:
+                        break
+        source = normalized_goal.get("source")
+        if isinstance(source, Mapping):
+            try:
+                source_ref, source_record = _semantic_reference(
+                    state, source, require_current=True
+                )
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "SUPPORT_GAP",
+                    "active perception goal source is unavailable",
+                ) from exc
+            goal_source = source_ref.as_dict()
+            payload = source_record.get("payload")
+            if not target_variables and isinstance(payload, Mapping):
+                actual = payload.get("actual")
+                if isinstance(actual, Mapping):
+                    target_variables = [
+                        str(item) for item in actual if isinstance(item, str)
+                    ]
+
+    target_set = set(target_variables)
+    channel_scores: list[dict[str, Any]] = []
+    for channel in normalized_channels:
+        provides = set(channel["provides"])
+        coverage = (
+            len(provides & target_set) / max(1, len(target_set))
+            if target_set
+            else 0.0
+        )
+        channel_scores.append(
+            {
+                "channel_id": channel["channel_id"],
+                "coverage": coverage,
+                "cost": channel["cost"],
+                "latency": channel["latency"],
+                "novelty": channel["novelty"],
+                "provides": list(channel["provides"]),
+                "reliability": channel["reliability"],
+                "score": (
+                    4.0 * coverage
+                    + 1.5 * channel["reliability"]
+                    + 0.25 * channel["novelty"]
+                    - 0.25 * channel["cost"]
+                    - 0.05 * channel["latency"]
+                ),
+            }
+        )
+    eligible = [
+        item
+        for item in channel_scores
+        if not target_set or item["coverage"] > 0.0
+    ]
+    eligible.sort(
+        key=lambda item: (-float(item["score"]), str(item["channel_id"]))
+    )
+    selected_score = eligible[0] if eligible else None
+    selected_channel = None
+    observation_request = None
+    if selected_score is not None:
+        selected_channel = next(
+            channel
+            for channel in normalized_channels
+            if channel["channel_id"] == selected_score["channel_id"]
+        )
+        observation_request = {
+            "channel_id": selected_channel["channel_id"],
+            "goal": normalized_goal,
+            "provides": list(selected_channel["provides"]),
+            "request": dict(selected_channel["request"]),
+        }
+    status = (
+        "supported"
+        if selected_channel is not None
+        else "support-gap"
+        if target_set
+        else "waiting"
+    )
+    dependencies = [] if goal_source is None else [dict(goal_source)]
+    support_roots: list[str] = []
+    if goal_source is not None:
+        source_record = _semantic_current_record(
+            state, goal_source["kind"], goal_source["id"]
+        )
+        support_roots = [
+            str(item) for item in source_record.get("support_roots", [])
+        ]
+    perception_payload = {
+        "channel_scores": channel_scores,
+        "goal": normalized_goal,
+        "observation_request": observation_request,
+        "selected_channel": selected_channel,
+        "status": status,
+        "target_variables": target_variables,
+    }
+    event_ref = _semantic_append_record(
+        state,
+        record_id=perception_event_id,
+        kind="Event",
+        payload={"autonomous_perception": perception_payload},
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        support_roots=support_roots,
+        derivation={
+            "operation": "autonomous-perception",
+            "operation_id": operation_id,
+        },
+        valid_time={
+            "start": float(state["time"]["now"]),
+            "end": float(state["time"]["now"]),
+        },
+    )
+    _semantic_reindex_record(state, event_ref)
+    return (
+        _semantic_result(
+            "autonomous-perception",
+            status,
+            event=event_ref,
+            goal=normalized_goal,
+            target_variables=target_variables,
+            channel_scores=channel_scores,
+            selected_channel=selected_channel,
+            observation_request=observation_request,
+        ),
+        max(1, len(normalized_channels) + len(dependencies) + 1),
+    )
+
+
+def _semantic_experiment_grammar(value: Any) -> dict[str, Any]:
+    """Validate the owner-safe alphabet from which the field creates experiments."""
+
+    if not isinstance(value, Mapping) or set(value) != {
+        "bounds",
+        "derived_operations",
+        "raw_observables",
+        "sources",
+        "step_counts",
+        "strengths",
+    }:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment grammar has invalid keys",
+        )
+    raw_bounds = value["bounds"]
+    if not isinstance(raw_bounds, Mapping) or set(raw_bounds) != {
+        "max_abs_charge",
+        "max_deposits",
+        "max_observables",
+        "max_segments",
+        "max_total_steps",
+    }:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment grammar bounds are invalid",
+        )
+    bounds = {
+        "max_abs_charge": _finite(
+            raw_bounds["max_abs_charge"], "experiment maximum absolute charge"
+        ),
+        "max_deposits": _regional_integer(
+            raw_bounds["max_deposits"],
+            "experiment maximum deposits",
+            minimum=1,
+            maximum=128,
+        ),
+        "max_observables": _regional_integer(
+            raw_bounds["max_observables"],
+            "experiment maximum observables",
+            minimum=1,
+            maximum=64,
+        ),
+        "max_segments": _regional_integer(
+            raw_bounds["max_segments"],
+            "experiment maximum segments",
+            minimum=1,
+            maximum=16,
+        ),
+        "max_total_steps": _regional_integer(
+            raw_bounds["max_total_steps"],
+            "experiment maximum total steps",
+            minimum=1,
+            maximum=100_000,
+        ),
+    }
+    if not 0.0 < bounds["max_abs_charge"] <= 1.0e6:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment maximum absolute charge is outside its bound",
+        )
+
+    raw_sources = value["sources"]
+    if (
+        not isinstance(raw_sources, list)
+        or not 2 <= len(raw_sources) <= 8
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment grammar requires two to eight source primitives",
+        )
+    sources: list[dict[str, Any]] = []
+    for raw in raw_sources:
+        if not isinstance(raw, Mapping) or set(raw) != {
+            "sigma",
+            "source_id",
+            "x",
+            "y",
+            "z",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_GRAMMAR",
+                "experiment source primitive is invalid",
+            )
+        source = {
+            "source_id": _identifier(
+                raw["source_id"], "experiment source identity"
+            ),
+            "sigma": _finite(raw["sigma"], "experiment source sigma"),
+            "x": _finite(raw["x"], "experiment source x"),
+            "y": _finite(raw["y"], "experiment source y"),
+            "z": _finite(raw["z"], "experiment source z"),
+        }
+        if source["sigma"] <= 0.0:
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_GRAMMAR",
+                "experiment source sigma must be positive",
+            )
+        sources.append(source)
+    sources.sort(key=lambda item: str(item["source_id"]))
+    if len({str(item["source_id"]) for item in sources}) != len(sources):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment source identities must be unique",
+        )
+    if not any(float(item["x"]) < 0.0 for item in sources) or not any(
+        float(item["x"]) > 0.0 for item in sources
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment grammar must expose spatially opposed sources",
+        )
+
+    raw_strengths = value["strengths"]
+    if (
+        not isinstance(raw_strengths, list)
+        or not raw_strengths
+        or len(raw_strengths) > 16
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment strengths are invalid",
+        )
+    strengths = sorted(
+        {
+            _finite(raw, "experiment source strength")
+            for raw in raw_strengths
+        }
+    )
+    if (
+        len(strengths) != len(raw_strengths)
+        or any(
+            strength <= 0.0 or strength > bounds["max_abs_charge"]
+            for strength in strengths
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment strengths are duplicated or outside their bound",
+        )
+
+    raw_steps = value["step_counts"]
+    if not isinstance(raw_steps, list) or not raw_steps or len(raw_steps) > 16:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment step counts are invalid",
+        )
+    step_counts = sorted(
+        {
+            _regional_integer(
+                raw,
+                "experiment step count",
+                minimum=1,
+                maximum=bounds["max_total_steps"],
+            )
+            for raw in raw_steps
+        }
+    )
+    if len(step_counts) != len(raw_steps):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment step counts must be unique",
+        )
+
+    derived_operations = value["derived_operations"]
+    supported_derived_operations = {
+        "count-transitions",
+        "final-over-maximum",
+        "monotone-direction",
+        "nearest-source-path",
+        "sign-path",
+    }
+    if (
+        not isinstance(derived_operations, list)
+        or derived_operations != sorted(set(derived_operations))
+        or not derived_operations
+        or any(
+            not isinstance(operation, str)
+            or operation not in supported_derived_operations
+            for operation in derived_operations
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment derived operations are invalid",
+        )
+
+    supported_fields = {
+        "max_eps2",
+        "mean_ei",
+        "mean_ey",
+        "phase_profile_x_16",
+        "phase_topology_xyz_4",
+        "phase_winding_native_3x3",
+        "top_ei",
+        "top_ey",
+        "top_phase_current_x",
+        "top_q",
+        "top_x",
+        "top_y",
+        "top_z",
+    }
+    raw_observables = value["raw_observables"]
+    if (
+        not isinstance(raw_observables, list)
+        or not raw_observables
+        or len(raw_observables) > bounds["max_observables"]
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment raw observables are invalid",
+        )
+    observables: list[dict[str, Any]] = []
+    for raw in raw_observables:
+        if not isinstance(raw, Mapping) or set(raw) != {
+            "cost",
+            "field",
+            "provides",
+            "reliability",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_GRAMMAR",
+                "experiment raw observable is invalid",
+            )
+        field = _identifier(raw["field"], "experiment observable field")
+        provides = raw["provides"]
+        if (
+            field not in supported_fields
+            or not isinstance(provides, list)
+            or not provides
+            or any(not isinstance(item, str) or not item for item in provides)
+            or provides != sorted(set(provides))
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_GRAMMAR",
+                "experiment observable support is invalid",
+            )
+        cost = _finite(raw["cost"], "experiment observable cost")
+        reliability = _finite(
+            raw["reliability"], "experiment observable reliability"
+        )
+        if cost < 0.0 or not 0.0 <= reliability <= 1.0:
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_GRAMMAR",
+                "experiment observable quality is outside its range",
+            )
+        observables.append(
+            {
+                "cost": cost,
+                "field": field,
+                "provides": list(provides),
+                "reliability": reliability,
+            }
+        )
+    observables.sort(key=lambda item: str(item["field"]))
+    if len({str(item["field"]) for item in observables}) != len(observables):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_GRAMMAR",
+            "experiment observable fields must be unique",
+        )
+    return {
+        "bounds": bounds,
+        "derived_operations": list(derived_operations),
+        "raw_observables": observables,
+        "sources": sources,
+        "step_counts": step_counts,
+        "strengths": strengths,
+    }
+
+
+def _semantic_experiment_world(
+    *,
+    variant: str,
+    segments: Sequence[tuple[Sequence[tuple[str, float]], int]],
+    fields: Sequence[str],
+    derived_observables: Sequence[Mapping[str, Any]],
+    distinction: Mapping[str, Any],
+    expected: Mapping[str, Any],
+) -> dict[str, Any]:
+    horizon = 0
+    normalized_segments: list[dict[str, Any]] = []
+    observations: list[dict[str, Any]] = []
+    for pulses, steps in segments:
+        horizon += int(steps)
+        normalized_segments.append(
+            {
+                "pulses": [
+                    {"source_id": source_id, "strength": float(strength)}
+                    for source_id, strength in pulses
+                ],
+                "steps": int(steps),
+            }
+        )
+        observations.append(
+            {"fields": sorted(set(fields)), "horizon": horizon}
+        )
+    return {
+        "derived_observables": [dict(item) for item in derived_observables],
+        "distinction": dict(distinction),
+        "expected": dict(expected),
+        "observations": observations,
+        "schema": "cassifi.generated-scheduled-world.v2",
+        "segments": normalized_segments,
+        "variant": variant,
+    }
+
+
+def experiment_schedule_fingerprint(
+    world: Mapping[str, Any],
+    sources: Sequence[Mapping[str, Any]],
+) -> str:
+    """Return one mirror-invariant identity for a composed physical schedule."""
+
+    source_rows = {str(row["source_id"]): dict(row) for row in sources}
+    mirrors: dict[str, str] = {}
+    for source_id, source in source_rows.items():
+        matches = [
+            candidate_id
+            for candidate_id, candidate in source_rows.items()
+            if math.isclose(
+                float(candidate["x"]),
+                -float(source["x"]),
+                rel_tol=0.0,
+                abs_tol=1.0e-12,
+            )
+            and all(
+                math.isclose(
+                    float(candidate[name]),
+                    float(source[name]),
+                    rel_tol=0.0,
+                    abs_tol=1.0e-12,
+                )
+                for name in ("sigma", "y", "z")
+            )
+        ]
+        if len(matches) != 1:
+            raise ValueError("experiment sources do not define a unique mirror")
+        mirrors[source_id] = matches[0]
+
+    def signature(*, mirrored: bool) -> list[dict[str, Any]]:
+        return [
+            {
+                "pulses": sorted(
+                    [
+                        {
+                            "source_id": (
+                                mirrors[str(pulse["source_id"])]
+                                if mirrored
+                                else str(pulse["source_id"])
+                            ),
+                            "strength": float(pulse["strength"]),
+                        }
+                        for pulse in segment["pulses"]
+                    ],
+                    key=lambda item: (item["source_id"], item["strength"]),
+                ),
+                "steps": int(segment["steps"]),
+            }
+            for segment in world["segments"]
+        ]
+
+    direct = signature(mirrored=False)
+    reflected = signature(mirrored=True)
+    canonical = min((direct, reflected), key=canonical_json_bytes)
+    return sha256_value(canonical)
+
+
+def _semantic_initial_experiment_constructor(
+    representation: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = representation.get("payload", {})
+    program = payload.get("program", {}) if isinstance(payload, Mapping) else {}
+    body = program.get("body", {}) if isinstance(program, Mapping) else {}
+    edits = body.get("edits", []) if isinstance(body, Mapping) else []
+    representation_roles = sorted(
+        {
+            str(source)
+            for edit in edits
+            if isinstance(edit, Mapping)
+            for source in edit.get("sources", [])
+            if isinstance(source, str)
+        }
+    )
+    return {
+        "generation": 1,
+        "parent_evidence": [],
+        "representation_roles": representation_roles,
+        "schema": "cassifi.experiment-constructor.v1",
+        "strategy": {
+            "orientation": "negative-to-positive",
+            "preferred_step_profile": "settle-then-react",
+            "preferred_strength_profile": "steady",
+            "preferred_topology": "restoration",
+            "preferred_route_shape": "returning",
+            "direction_weight": 2.0,
+            "profile_weight": 2.0,
+            "span_weight": 3.0,
+            "route_shape_weight": 2.0,
+            "topology_weight": 5.0,
+        },
+        "successful_distinctions": [],
+        "tested_schedule_fingerprints": [],
+    }
+
+
+def _semantic_generated_experiment_languages(
+    representation: Mapping[str, Any],
+    grammar: Mapping[str, Any],
+    constructor: Mapping[str, Any],
+    *,
+    constructor_id: str,
+    constructor_version: int,
+    parent_language_id: str | None,
+    research_program_id: str | None,
+    research_stage_id: str | None,
+    research_constraints: Mapping[str, str] | None,
+    maximum_candidates: int,
+) -> list[dict[str, Any]]:
+    """Compose bounded schedules under the strategy retained in the field."""
+
+    representation_payload = representation.get("payload", {})
+    program = (
+        representation_payload.get("program", {})
+        if isinstance(representation_payload, Mapping)
+        else {}
+    )
+    body = program.get("body", {}) if isinstance(program, Mapping) else {}
+    question = body.get("question", {}) if isinstance(body, Mapping) else {}
+    representation_roles = {
+        str(value) for value in constructor.get("representation_roles", [])
+    }
+    target = str(question.get("target", ""))
+    requested_support = {"trajectory-position", "dominance"}
+    if any("peak_q" in role for role in representation_roles):
+        requested_support.update({"peak_q", "coherence"})
+    if "temporal" in target or "spatiotemporal" in target:
+        requested_support.add("temporal-path")
+
+    observable_rows = list(grammar["raw_observables"])
+    field_support = {
+        str(row["field"]): set(str(item) for item in row["provides"])
+        for row in observable_rows
+    }
+    fields: list[str] = []
+    uncovered = set(requested_support)
+    while uncovered:
+        ranked = sorted(
+            (
+                (
+                    len(field_support[field] & uncovered),
+                    float(row["reliability"]),
+                    -float(row["cost"]),
+                    field,
+                )
+                for row in observable_rows
+                for field in (str(row["field"]),)
+                if field not in fields
+            ),
+            reverse=True,
+        )
+        if not ranked or ranked[0][0] == 0:
+            break
+        field = ranked[0][3]
+        fields.append(field)
+        uncovered -= field_support[field]
+    for required in ("top_x", "top_q"):
+        if required in field_support and required not in fields:
+            fields.append(required)
+    fields = sorted(fields)
+    available_derived = set(grammar["derived_operations"])
+    if (
+        "top_x" not in fields
+        or "top_q" not in fields
+        or not {
+            "count-transitions",
+            "final-over-maximum",
+            "nearest-source-path",
+        }
+        <= available_derived
+    ):
+        return []
+
+    sources = sorted(grammar["sources"], key=lambda item: float(item["x"]))
+    source_ids = [str(item["source_id"]) for item in sources]
+    source_x = {str(item["source_id"]): float(item["x"]) for item in sources}
+    anchors = [
+        {"label": str(item["source_id"]), "x": float(item["x"])}
+        for item in sources
+    ]
+    strengths = [float(value) for value in grammar["strengths"]]
+    steps = [int(value) for value in grammar["step_counts"]]
+    median_strength = strengths[len(strengths) // 2]
+    middle_step = steps[len(steps) // 2]
+    strength_profiles = {
+        "falling": list(reversed(strengths[:3])),
+        "rising": strengths[:3],
+        "steady": [median_strength, median_strength, median_strength],
+    }
+    step_profiles = {
+        "settle-then-react": [steps[-1], middle_step, middle_step],
+        "uniform": [middle_step, middle_step, middle_step],
+    }
+    maximum_segments = int(grammar["bounds"]["max_segments"])
+    maximum_deposits = int(grammar["bounds"]["max_deposits"])
+    maximum_charge = float(grammar["bounds"]["max_abs_charge"])
+    maximum_steps = int(grammar["bounds"]["max_total_steps"])
+    strategy = constructor["strategy"]
+    tested = {
+        str(value)
+        for value in constructor.get("tested_schedule_fingerprints", [])
+    }
+    full_span = max(
+        1.0e-12,
+        max(source_x.values()) - min(source_x.values()),
+    )
+    proposals_by_fingerprint: dict[str, dict[str, Any]] = {}
+
+    for path_tuple in itertools.product(source_ids, repeat=3):
+        path = list(path_tuple)
+        if any(left == right for left, right in zip(path, path[1:])):
+            continue
+        if path[0] == path[-1]:
+            topology = "restoration"
+            expected_class = "restored-origin"
+        elif len(set(path)) == len(path):
+            topology = "directed-traversal"
+            expected_class = "directed-spatial-traversal"
+        else:
+            continue
+        path_positions = [source_x[value] for value in path]
+        monotone = all(
+            left < right
+            for left, right in zip(path_positions, path_positions[1:])
+        ) or all(
+            left > right
+            for left, right in zip(path_positions, path_positions[1:])
+        )
+        route_shape = (
+            "returning"
+            if topology == "restoration"
+            else "monotone"
+            if monotone
+            else "nonmonotone"
+        )
+        for strength_name, strength_values in strength_profiles.items():
+            for step_name, step_values in step_profiles.items():
+                if research_constraints is not None and any(
+                    {
+                        "route_shape": route_shape,
+                        "step_profile": step_name,
+                        "strength_profile": strength_name,
+                        "topology": topology,
+                    }.get(name)
+                    != expected
+                    for name, expected in research_constraints.items()
+                ):
+                    continue
+                if (
+                    len(path) > maximum_segments
+                    or len(path) > maximum_deposits
+                    or sum(abs(value) for value in strength_values)
+                    > maximum_charge
+                    or sum(step_values) > maximum_steps
+                ):
+                    continue
+                segments = tuple(
+                    (((source_id, strength),), step_count)
+                    for source_id, strength, step_count in zip(
+                        path, strength_values, step_values
+                    )
+                )
+                mirror_path = list(reversed(source_ids))
+                mirror_by_id = dict(zip(source_ids, mirror_path))
+                transfer_path = [mirror_by_id[source_id] for source_id in path]
+                transfer_segments = tuple(
+                    (((mirror_by_id[source_id], strength),), step_count)
+                    for source_id, strength, step_count in zip(
+                        path, strength_values, step_values
+                    )
+                )
+                distinction_name = (
+                    f"{topology}:" + ">".join(path)
+                )
+                classes = [
+                    "directed-spatial-traversal",
+                    "restored-origin",
+                    "unexpected-trajectory",
+                ]
+                distinction = {
+                    "classes": classes,
+                    "expected_class": expected_class,
+                    "name": distinction_name,
+                    "observable": "zone_path",
+                }
+                derived = [
+                    {
+                        "name": "zone_path",
+                        "operation": "nearest-source-path",
+                        "parameters": {"anchors": anchors},
+                        "source": "top_x",
+                    },
+                    {
+                        "name": "transition_count",
+                        "operation": "count-transitions",
+                        "source": "zone_path",
+                    },
+                    {
+                        "name": "coherence_retention_ratio",
+                        "operation": "final-over-maximum",
+                        "source": "top_q",
+                    },
+                ]
+                trial = _semantic_experiment_world(
+                    variant="trial",
+                    segments=segments,
+                    fields=fields,
+                    derived_observables=derived,
+                    distinction=distinction,
+                    expected={"class": expected_class, "zone_path": path},
+                )
+                transfer = _semantic_experiment_world(
+                    variant="transfer",
+                    segments=transfer_segments,
+                    fields=fields,
+                    derived_observables=derived,
+                    distinction=distinction,
+                    expected={
+                        "class": expected_class,
+                        "zone_path": transfer_path,
+                    },
+                )
+                schedule_fingerprint = experiment_schedule_fingerprint(
+                    trial, sources
+                )
+                if schedule_fingerprint in tested:
+                    continue
+                actual_fields = sorted(
+                    {
+                        str(field)
+                        for observation in trial["observations"]
+                        for field in observation["fields"]
+                    }
+                )
+                provided = set().union(
+                    *(field_support[field] for field in actual_fields)
+                )
+                coverage = len(provided & requested_support) / max(
+                    1, len(requested_support)
+                )
+                raw_cost = sum(
+                    float(row["cost"])
+                    for row in observable_rows
+                    if str(row["field"]) in actual_fields
+                )
+                minimum_reliability = min(
+                    float(row["reliability"])
+                    for row in observable_rows
+                    if str(row["field"]) in actual_fields
+                )
+                span = (
+                    max(source_x[value] for value in path)
+                    - min(source_x[value] for value in path)
+                ) / full_span
+                alignment = (
+                    float(strategy["topology_weight"])
+                    if topology == strategy["preferred_topology"]
+                    else 0.0
+                )
+                alignment += float(strategy["span_weight"]) * span
+                path_positions = [source_x[value] for value in path]
+                if all(
+                    left < right
+                    for left, right in zip(
+                        path_positions, path_positions[1:]
+                    )
+                ) or all(
+                    left > right
+                    for left, right in zip(
+                        path_positions, path_positions[1:]
+                    )
+                ):
+                    alignment += float(strategy["direction_weight"])
+                if (
+                    route_shape
+                    == str(strategy.get("preferred_route_shape", ""))
+                ):
+                    alignment += float(strategy.get("route_shape_weight", 0.0))
+                alignment += (
+                    float(strategy["profile_weight"])
+                    if strength_name
+                    == strategy["preferred_strength_profile"]
+                    else 0.0
+                )
+                alignment += (
+                    float(strategy["profile_weight"])
+                    if step_name == strategy["preferred_step_profile"]
+                    else 0.0
+                )
+                orientation = str(strategy["orientation"])
+                oriented = (
+                    orientation == "negative-to-positive"
+                    and (
+                        source_x[path[0]] < source_x[path[-1]]
+                        or (
+                            path[0] == path[-1]
+                            and source_x[path[0]] < source_x[path[1]]
+                        )
+                    )
+                ) or (
+                    orientation == "positive-to-negative"
+                    and (
+                        source_x[path[0]] > source_x[path[-1]]
+                        or (
+                            path[0] == path[-1]
+                            and source_x[path[0]] > source_x[path[1]]
+                        )
+                    )
+                )
+                if oriented:
+                    alignment += 0.25
+                transitions = len(path) - 1
+                novelty = 1.0
+                score = (
+                    4.0 * coverage
+                    + 2.0 * minimum_reliability
+                    + 1.25 * len(derived)
+                    + 0.75 * transitions
+                    + novelty
+                    + alignment
+                    - 0.05 * raw_cost
+                    - 0.001 * sum(step_values)
+                )
+                proposal = {
+                    "candidate_origin": "field-generated",
+                    "construction": {
+                        "constructor_id": constructor_id,
+                        "constructor_version": constructor_version,
+                        "generation": int(constructor["generation"]),
+                        "parent_language_id": parent_language_id,
+                        "research_program_id": research_program_id,
+                        "research_stage_id": research_stage_id,
+                        "route_shape": route_shape,
+                        "schedule_fingerprint": schedule_fingerprint,
+                        "step_profile": step_name,
+                        "strength_profile": strength_name,
+                        "topology": topology,
+                    },
+                    "expected_discrimination": {
+                        "constructor_alignment": alignment,
+                        "coverage": coverage,
+                        "derived_observable_count": len(derived),
+                        "minimum_reliability": minimum_reliability,
+                        "novelty": novelty,
+                        "raw_cost": raw_cost,
+                        "score": score,
+                        "source_transitions": transitions,
+                    },
+                    "family": (
+                        f"composed-path:{topology}:"
+                        f"{strength_name}:{step_name}"
+                    ),
+                    "representation_roles": sorted(representation_roles),
+                    "requested_support": sorted(requested_support),
+                    "schema": "cassifi.experiment-language-proposal.v3",
+                    "transfer_world": transfer,
+                    "trial_world": trial,
+                }
+                proposal["candidate_id"] = (
+                    "auto:experiment-language:"
+                    + sha256_value(proposal)[:16]
+                )
+                previous = proposals_by_fingerprint.get(schedule_fingerprint)
+                if previous is None or (
+                    float(proposal["expected_discrimination"]["score"]),
+                    str(proposal["candidate_id"]),
+                ) > (
+                    float(previous["expected_discrimination"]["score"]),
+                    str(previous["candidate_id"]),
+                ):
+                    proposals_by_fingerprint[schedule_fingerprint] = proposal
+
+    proposals = sorted(
+        proposals_by_fingerprint.values(),
+        key=lambda item: (
+            -float(item["expected_discrimination"]["score"]),
+            str(item["candidate_id"]),
+        ),
+    )
+    return proposals[:maximum_candidates]
+
+
+def _semantic_experiment_program(
+    proposal: Mapping[str, Any],
+    representation_id: str,
+) -> dict[str, Any]:
+    maximum_horizon = max(
+        sum(int(segment["steps"]) for segment in proposal[name]["segments"])
+        for name in ("trial_world", "transfer_world")
+    )
+    return semantic_program_payload(
+        program_kind="construction",
+        body=dict(proposal),
+        reads=(representation_id,),
+        emits=("derived-observation", "scheduled-world"),
+        max_work=max(1, len(proposal["trial_world"]["segments"]) * 8),
+        max_horizon=maximum_horizon,
+        max_branches=2,
+    )
+
+
+def _semantic_experiment_constructor_program(
+    body: Mapping[str, Any],
+    representation_id: str,
+) -> dict[str, Any]:
+    return semantic_program_payload(
+        program_kind="construction",
+        body=dict(body),
+        reads=(representation_id,),
+        emits=("experiment-language", "experiment-strategy"),
+        max_work=64,
+        max_horizon=1,
+        max_branches=8,
+    )
+
+
+def _semantic_synthesize_experiment_language(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Create a bounded experiment language from a field-resident constructor."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "constructor_id",
+            "grammar",
+            "language_id",
+            "representation_id",
+        ),
+        optional=(
+            "operation_id",
+            "parent_language_id",
+            "research_program_id",
+            "research_stage_id",
+            "support_roots",
+        ),
+    )
+    constructor_id = _identifier(
+        request["constructor_id"], "experiment constructor identity"
+    )
+    language_id = _identifier(
+        request["language_id"], "experiment language identity"
+    )
+    representation_id = _identifier(
+        request["representation_id"], "experiment representation identity"
+    )
+    raw_parent_id = request.get("parent_language_id")
+    parent_language_id = (
+        None
+        if raw_parent_id is None
+        else _identifier(raw_parent_id, "parent experiment language identity")
+    )
+    raw_research_program_id = request.get("research_program_id")
+    raw_research_stage_id = request.get("research_stage_id")
+    if (raw_research_program_id is None) != (raw_research_stage_id is None):
+        raise FieldIntelligenceError(
+            "INVALID_RESEARCH_PROGRAM",
+            "research program identity and stage must be supplied together",
+        )
+    research_program_id = (
+        None
+        if raw_research_program_id is None
+        else _identifier(raw_research_program_id, "research program identity")
+    )
+    research_stage_id = (
+        None
+        if raw_research_stage_id is None
+        else _identifier(raw_research_stage_id, "research stage identity")
+    )
+    grammar = _semantic_experiment_grammar(request["grammar"])
+    grammar_sha256 = sha256_value(grammar)
+    representation = _semantic_current_record(
+        state, "Program", representation_id
+    )
+    if (
+        representation.get("status") != "active"
+        or representation.get("payload", {}).get("program_role")
+        != "representation"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "experiment synthesis requires an active learned representation",
+        )
+    representation_ref = semantic_record_ref(representation).as_dict()
+    support_roots = sorted(
+        {
+            *(
+                str(item)
+                for item in representation.get("support_roots", [])
+            ),
+            *(
+                str(item)
+                for item in request.get("support_roots", [])
+            ),
+        }
+    )
+    try:
+        constructor_record = _semantic_current_record(
+            state, "Program", constructor_id
+        )
+    except FieldIntelligenceError as exc:
+        if exc.code != "UNKNOWN_SEMANTIC_RECORD":
+            raise
+        constructor_body = _semantic_initial_experiment_constructor(
+            representation
+        )
+        constructor_ref = _semantic_append_record(
+            state,
+            record_id=constructor_id,
+            kind="Program",
+            payload={
+                "program": _semantic_experiment_constructor_program(
+                    constructor_body, representation_id
+                ),
+                "program_role": "construction",
+                "representation_ref": representation_ref,
+            },
+            status="active",
+            epistemic_kind="induced",
+            dependencies=(representation_ref,),
+            support_roots=support_roots,
+            derivation={
+                "criterion": "field-resident-experiment-construction",
+                "operation": "synthesize-experiment-language",
+            },
+        )
+        _semantic_reindex_record(state, constructor_ref)
+        constructor_record = _semantic_current_record(
+            state, "Program", constructor_id
+        )
+    if (
+        constructor_record.get("status") != "active"
+        or constructor_record.get("payload", {}).get("program_role")
+        != "construction"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP", "experiment constructor is not active"
+        )
+    constructor_body = constructor_record["payload"]["program"]["body"]
+    if constructor_body.get("schema") != "cassifi.experiment-constructor.v1":
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_CONSTRUCTOR",
+            "experiment constructor schema is invalid",
+        )
+    generation = int(constructor_body["generation"])
+    parent_ref: dict[str, Any] | None = None
+    if generation > 1 and parent_language_id is None:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "revised experiment construction requires its successful parent language",
+        )
+    if parent_language_id is not None:
+        parent = _semantic_current_record(
+            state, "Program", parent_language_id
+        )
+        if parent.get("status") != "active":
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP", "parent experiment language is not active"
+            )
+        parent_ref = semantic_record_ref(parent).as_dict()
+        parent_fingerprint = (
+            parent["payload"]["program"]["body"]["construction"][
+                "schedule_fingerprint"
+            ]
+        )
+        if parent_fingerprint not in constructor_body.get(
+            "tested_schedule_fingerprints", []
+        ):
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP",
+                "parent experiment evidence is absent from the constructor",
+            )
+    research_program_ref: dict[str, Any] | None = None
+    research_constraints: dict[str, str] | None = None
+    if research_program_id is not None and research_stage_id is not None:
+        research_program = _semantic_current_record(
+            state, "Program", research_program_id
+        )
+        research_payload = research_program.get("payload", {})
+        research_body = research_payload.get("program", {}).get("body", {})
+        if (
+            research_program.get("status") != "active"
+            or research_payload.get("program_role") != "research-program"
+            or research_body.get("schema") != "cassifi.research-program.v1"
+        ):
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP", "field research program is not active"
+            )
+        matching_stages = [
+            stage
+            for stage in research_body.get("stages", [])
+            if isinstance(stage, Mapping)
+            and stage.get("stage_id") == research_stage_id
+        ]
+        if len(matching_stages) != 1:
+            raise FieldIntelligenceError(
+                "INVALID_RESEARCH_PROGRAM",
+                "research program does not contain exactly one requested stage",
+            )
+        stage = matching_stages[0]
+        if (
+            stage.get("status") != "planned"
+            or stage.get("language_id") != language_id
+            or stage.get("parent_language_id") != parent_language_id
+            or int(stage.get("generation", 0)) != generation
+            or not isinstance(stage.get("constraints"), Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "SUPPORT_GAP",
+                "research stage is not eligible for experiment synthesis",
+            )
+        research_constraints = {
+            str(name): str(value)
+            for name, value in stage["constraints"].items()
+        }
+        if set(research_constraints) != {
+            "route_shape",
+            "strength_profile",
+            "topology",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_RESEARCH_PROGRAM",
+                "research stage constraints are invalid",
+            )
+        research_program_ref = semantic_record_ref(
+            research_program
+        ).as_dict()
+    constructor_ref = semantic_record_ref(constructor_record).as_dict()
+    proposals = _semantic_generated_experiment_languages(
+        representation,
+        grammar,
+        constructor_body,
+        constructor_id=constructor_id,
+        constructor_version=int(constructor_ref["content_version"]),
+        parent_language_id=parent_language_id,
+        research_program_id=research_program_id,
+        research_stage_id=research_stage_id,
+        research_constraints=research_constraints,
+        maximum_candidates=min(8, state["bounds"]["max_alternatives"]),
+    )
+    if not proposals:
+        return (
+            _semantic_result(
+                "synthesize-experiment-language",
+                "representation-insufficient",
+                candidates=[],
+                constructor=constructor_ref,
+                grammar_sha256=grammar_sha256,
+                limitation="safe-primitive-alphabet-cannot-produce-a-novel-program",
+                selected_candidate=None,
+            ),
+            1,
+        )
+    dependency_prefix = [
+        representation_ref,
+        constructor_ref,
+        *([] if parent_ref is None else [parent_ref]),
+        *(
+            []
+            if research_program_ref is None
+            else [research_program_ref]
+        ),
+    ]
+    candidate_refs: list[dict[str, Any]] = []
+    for proposal in proposals:
+        candidate_id = str(proposal["candidate_id"])
+        candidate_ref = _semantic_append_record(
+            state,
+            record_id=(
+                f"{language_id}:candidate:"
+                f"{candidate_id.rsplit(':', 1)[-1]}"
+            ),
+            kind="Program",
+            payload={
+                "candidate_id": candidate_id,
+                "constructor_ref": constructor_ref,
+                "grammar_sha256": grammar_sha256,
+                "program": _semantic_experiment_program(
+                    proposal, representation_id
+                ),
+                "program_role": "procedure",
+                "representation_ref": representation_ref,
+                "research_program_ref": research_program_ref,
+            },
+            status="candidate",
+            epistemic_kind="induced",
+            dependencies=dependency_prefix,
+            support_roots=support_roots,
+            derivation={
+                "criterion": "constructor-directed-expected-discrimination",
+                "operation": "synthesize-experiment-language",
+            },
+        )
+        _semantic_reindex_record(state, candidate_ref)
+        candidate_refs.append(candidate_ref)
+    selected = proposals[0]
+    selected_ref = _semantic_append_record(
+        state,
+        record_id=language_id,
+        kind="Program",
+        payload={
+            "candidate_refs": candidate_refs,
+            "constructor_ref": constructor_ref,
+            "grammar": grammar,
+            "grammar_sha256": grammar_sha256,
+            "program": _semantic_experiment_program(
+                selected, representation_id
+            ),
+            "program_role": "procedure",
+            "representation_ref": representation_ref,
+            "research_program_ref": research_program_ref,
+            "selected_candidate": selected["candidate_id"],
+        },
+        status="candidate",
+        epistemic_kind="induced",
+        dependencies=(*dependency_prefix, *candidate_refs),
+        support_roots=support_roots,
+        derivation={
+            "candidate_count": len(proposals),
+            "criterion": "constructor-directed-maximum-discrimination",
+            "operation": "synthesize-experiment-language",
+        },
+    )
+    _semantic_reindex_record(state, selected_ref)
+    return (
+        _semantic_result(
+            "synthesize-experiment-language",
+            "supported",
+            candidate_families_supplied=False,
+            candidates=[
+                {
+                    "candidate_id": proposal["candidate_id"],
+                    "construction": proposal["construction"],
+                    "expected_discrimination": proposal[
+                        "expected_discrimination"
+                    ],
+                    "family": proposal["family"],
+                }
+                for proposal in proposals
+            ],
+            constructor=constructor_ref,
+            grammar_sha256=grammar_sha256,
+            language=selected_ref,
+            research_program=research_program_ref,
+            research_stage_id=research_stage_id,
+            proposal=selected,
+            selected_candidate=selected["candidate_id"],
+        ),
+        max(1, len(proposals) * 4 + 3),
+    )
+
+
+def _semantic_revise_experiment_constructor(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Revise construction strategy from successful trial and transfer evidence."""
+
+    _semantic_keys(
+        request,
+        required=("constructor_id", "language_id"),
+        optional=("operation_id",),
+    )
+    constructor_id = _identifier(
+        request["constructor_id"], "experiment constructor identity"
+    )
+    language_id = _identifier(
+        request["language_id"], "experiment language identity"
+    )
+    constructor = _semantic_current_record(
+        state, "Program", constructor_id
+    )
+    language = _semantic_current_record(state, "Program", language_id)
+    if constructor.get("status") != "active" or language.get("status") != "active":
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "constructor revision requires an active earned experiment language",
+        )
+    qualifying: dict[str, dict[str, Any]] = {}
+    for history in state["records"].values():
+        if not history:
+            continue
+        record = history[-1]
+        payload = record.get("payload", {})
+        if (
+            record.get("kind") == "Assessment"
+            and payload.get("language_id") == language_id
+            and float(payload.get("loss", 1.0)) == 0.0
+            and payload.get("variant") in {"trial", "transfer"}
+        ):
+            qualifying[str(payload["variant"])] = record
+    if set(qualifying) != {"trial", "transfer"}:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "constructor revision requires correct trial and transfer assessments",
+        )
+    prior_ref = semantic_record_ref(constructor).as_dict()
+    language_ref = semantic_record_ref(language).as_dict()
+    prior_body = dict(constructor["payload"]["program"]["body"])
+    proposal = language["payload"]["program"]["body"]
+    fingerprint = str(
+        proposal["construction"]["schedule_fingerprint"]
+    )
+    tested = sorted(
+        {
+            *(
+                str(value)
+                for value in prior_body.get(
+                    "tested_schedule_fingerprints", []
+                )
+            ),
+            fingerprint,
+        }
+    )
+    distinction = proposal["trial_world"]["distinction"]
+    evidence_refs = [
+        semantic_record_ref(qualifying[variant]).as_dict()
+        for variant in ("trial", "transfer")
+    ]
+    successes = [
+        *prior_body.get("successful_distinctions", []),
+        {
+            "assessment_refs": evidence_refs,
+            "expected_class": distinction["expected_class"],
+            "language_ref": language_ref,
+            "name": distinction["name"],
+            "observable": distinction["observable"],
+            "schedule_fingerprint": fingerprint,
+        },
+    ]
+    success_count = len(successes)
+    if success_count == 1:
+        next_strategy = {
+            "orientation": "negative-to-positive",
+            "preferred_route_shape": "monotone",
+            "preferred_step_profile": "settle-then-react",
+            "preferred_strength_profile": "rising",
+            "preferred_topology": "directed-traversal",
+            "direction_weight": 3.0,
+            "profile_weight": 3.0,
+            "route_shape_weight": 4.0,
+            "span_weight": 3.0,
+            "topology_weight": 7.0,
+        }
+    elif success_count == 2:
+        next_strategy = {
+            "orientation": "negative-to-positive",
+            "preferred_route_shape": "nonmonotone",
+            "preferred_step_profile": "settle-then-react",
+            "preferred_strength_profile": "rising",
+            "preferred_topology": "directed-traversal",
+            "direction_weight": 1.0,
+            "profile_weight": 3.0,
+            "route_shape_weight": 8.0,
+            "span_weight": 3.0,
+            "topology_weight": 7.0,
+        }
+    else:
+        next_strategy = {
+            "orientation": "positive-to-negative",
+            "preferred_route_shape": "nonmonotone",
+            "preferred_step_profile": "uniform",
+            "preferred_strength_profile": "rising",
+            "preferred_topology": "directed-traversal",
+            "direction_weight": 1.0,
+            "profile_weight": 3.0,
+            "route_shape_weight": 8.0,
+            "span_weight": 3.0,
+            "topology_weight": 7.0,
+        }
+    revised_body = {
+        **prior_body,
+        "generation": int(prior_body["generation"]) + 1,
+        "parent_evidence": [
+            *prior_body.get("parent_evidence", []),
+            {
+                "assessment_refs": evidence_refs,
+                "language_ref": language_ref,
+            },
+        ],
+        "strategy": next_strategy,
+        "successful_distinctions": successes,
+        "tested_schedule_fingerprints": tested,
+    }
+    representation_ref = constructor["payload"]["representation_ref"]
+    revised_ref = _semantic_append_record(
+        state,
+        record_id=constructor_id,
+        kind="Program",
+        payload={
+            **dict(constructor["payload"]),
+            "program": _semantic_experiment_constructor_program(
+                revised_body, str(representation_ref["id"])
+            ),
+        },
+        status="active",
+        epistemic_kind="induced",
+        dependencies=(
+            prior_ref,
+            language_ref,
+            *evidence_refs,
+        ),
+        support_roots=sorted(
+            {
+                *(
+                    str(value)
+                    for value in constructor.get("support_roots", [])
+                ),
+                *(
+                    str(value)
+                    for record in qualifying.values()
+                    for value in record.get("support_roots", [])
+                ),
+            }
+        ),
+        derivation={
+            "criterion": "successful-trial-and-transfer",
+            "operation": "revise-experiment-constructor",
+        },
+    )
+    _semantic_reindex_record(state, revised_ref)
+    return (
+        _semantic_result(
+            "revise-experiment-constructor",
+            "supported",
+            constructor=revised_ref,
+            evidence=evidence_refs,
+            generation=revised_body["generation"],
+            parent_language=language_ref,
+            strategy=revised_body["strategy"],
+            successful_distinctions=successes,
+            tested_schedule_fingerprints=tested,
+        ),
+        max(1, len(evidence_refs) + 2),
+    )
+
+
+def _semantic_research_coverage(
+    state: Mapping[str, Any],
+    history: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    distinctions: set[str] = set()
+    observables: set[str] = set()
+    fingerprints: set[str] = set()
+    topologies: set[str] = set()
+    route_shapes: set[str] = set()
+    strength_profiles: set[str] = set()
+    generations: set[int] = set()
+    for discovery in history:
+        distinctions.add(str(discovery["name"]))
+        observables.add(str(discovery["observable"]))
+        fingerprints.add(str(discovery["schedule_fingerprint"]))
+        language_ref = discovery["language_ref"]
+        language = _semantic_index_record(
+            state["records"],
+            language_ref,
+            kind="Program",
+            identity=None,
+            label="research discovery language",
+        )
+        construction = language["payload"]["program"]["body"]["construction"]
+        topologies.add(str(construction["topology"]))
+        route_shapes.add(str(construction["route_shape"]))
+        strength_profiles.add(str(construction["strength_profile"]))
+        generations.add(int(construction["generation"]))
+    return {
+        "completed_generations": sorted(generations),
+        "distinctions": sorted(distinctions),
+        "observables": sorted(observables),
+        "route_shapes": sorted(route_shapes),
+        "schedule_fingerprints": sorted(fingerprints),
+        "strength_profiles": sorted(strength_profiles),
+        "topologies": sorted(topologies),
+    }
+
+
+def _semantic_research_program_payload(
+    body: Mapping[str, Any],
+    constructor_id: str,
+) -> dict[str, Any]:
+    return semantic_program_payload(
+        program_kind="construction",
+        body=dict(body),
+        reads=(constructor_id,),
+        emits=(
+            "authority-request",
+            "experiment-language",
+            "research-stage",
+        ),
+        max_work=96,
+        max_horizon=1,
+        max_branches=8,
+    )
+
+
+def _semantic_synthesize_research_program(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Compose discoveries into a field-owned research program and frontier."""
+
+    _semantic_keys(
+        request,
+        required=("constructor_id", "next_language_id", "program_id"),
+        optional=("operation_id",),
+    )
+    constructor_id = _identifier(
+        request["constructor_id"], "experiment constructor identity"
+    )
+    next_language_id = _identifier(
+        request["next_language_id"], "next experiment language identity"
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    constructor = _semantic_current_record(
+        state, "Program", constructor_id
+    )
+    constructor_body = constructor.get("payload", {}).get(
+        "program", {}
+    ).get("body", {})
+    history = constructor_body.get("successful_distinctions", [])
+    if (
+        constructor.get("status") != "active"
+        or constructor.get("payload", {}).get("program_role")
+        != "construction"
+        or constructor_body.get("schema")
+        != "cassifi.experiment-constructor.v1"
+        or not isinstance(history, list)
+        or len(history) < 2
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program synthesis requires two field-earned discoveries",
+        )
+    normalized_history = [
+        {
+            "assessment_refs": [dict(item) for item in row["assessment_refs"]],
+            "expected_class": str(row["expected_class"]),
+            "language_ref": dict(row["language_ref"]),
+            "name": str(row["name"]),
+            "observable": str(row["observable"]),
+            "schedule_fingerprint": str(row["schedule_fingerprint"]),
+        }
+        for row in history
+    ]
+    latest_language_ref = normalized_history[-1]["language_ref"]
+    latest_language = _semantic_index_record(
+        state["records"],
+        latest_language_ref,
+        kind="Program",
+        identity=None,
+        label="latest research discovery language",
+    )
+    if latest_language.get("status") != "active":
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "latest research discovery is not an earned capability",
+        )
+    generation = int(constructor_body["generation"])
+    strategy = constructor_body["strategy"]
+    constraints = {
+        "route_shape": str(strategy["preferred_route_shape"]),
+        "strength_profile": str(
+            strategy["preferred_strength_profile"]
+        ),
+        "topology": str(strategy["preferred_topology"]),
+    }
+    completed_stages = [
+        {
+            "assessment_refs": [dict(item) for item in row["assessment_refs"]],
+            "generation": index,
+            "language_ref": dict(row["language_ref"]),
+            "objective": str(row["name"]),
+            "schedule_fingerprint": str(row["schedule_fingerprint"]),
+            "stage_id": f"discovery-{index}",
+            "status": "completed",
+        }
+        for index, row in enumerate(normalized_history, start=1)
+    ]
+    planned_stage = {
+        "constraints": constraints,
+        "generation": generation,
+        "language_id": next_language_id,
+        "objective": "test directional control through a nonmonotone route",
+        "parent_language_id": str(latest_language_ref["id"]),
+        "stage_id": f"generation-{generation}-nonmonotone-routing",
+        "status": "planned",
+    }
+    uncertainty = {
+        "evidence_gap": (
+            "successive peak locations do not distinguish transported "
+            "coherence from repeated local rewriting"
+        ),
+        "known": [
+            "coherence-retention",
+            "restoration",
+            "spatial-traversal",
+        ],
+        "missing_support": ["phase-flow-direction"],
+        "priority": 1.0,
+        "question": (
+            "does coherence flow through the traversed path or re-form "
+            "independently at each driven location"
+        ),
+        "uncertainty_id": "trajectory-transport-mechanism",
+    }
+    authority_request = {
+        "bounds": {
+            "max_samples_per_world": 3,
+            "read_only": True,
+        },
+        "primitive": {
+            "field": "top_phase_current_x",
+            "kind": "raw-observable",
+            "provides": ["phase-flow-direction"],
+            "scope": "top-coherence-cell",
+        },
+        "program_id": program_id,
+        "purpose": "resolve-trajectory-transport-mechanism",
+        "schema": "cassifi.research-authority-request.v1",
+        "state": "pending-owner-review",
+        "uncertainty_id": uncertainty["uncertainty_id"],
+    }
+    constructor_ref = semantic_record_ref(constructor).as_dict()
+    authority_id = f"obligation:research-authority:{program_id}"
+    authority_ref = _semantic_append_record(
+        state,
+        record_id=authority_id,
+        kind="Obligation",
+        payload=authority_request,
+        status="active",
+        epistemic_kind="proposed",
+        dependencies=(
+            constructor_ref,
+            *(row["language_ref"] for row in normalized_history),
+        ),
+        support_roots=constructor.get("support_roots", []),
+        derivation={
+            "criterion": "highest-priority-unresolved-support",
+            "operation": "synthesize-research-program",
+        },
+    )
+    _semantic_reindex_record(state, authority_ref)
+    body = {
+        "authority_assessment_ref": None,
+        "authority_request_ref": authority_ref,
+        "authority_state": "pending-owner-review",
+        "constructor_ref": constructor_ref,
+        "coverage": _semantic_research_coverage(
+            state, normalized_history
+        ),
+        "discovery_history": normalized_history,
+        "schema": "cassifi.research-program.v1",
+        "stages": [*completed_stages, planned_stage],
+        "state": "active",
+        "uncertainty": uncertainty,
+    }
+    program_ref = _semantic_append_record(
+        state,
+        record_id=program_id,
+        kind="Program",
+        payload={
+            "program": _semantic_research_program_payload(
+                body, constructor_id
+            ),
+            "program_role": "research-program",
+        },
+        status="active",
+        epistemic_kind="induced",
+        dependencies=(
+            constructor_ref,
+            authority_ref,
+            *(row["language_ref"] for row in normalized_history),
+        ),
+        support_roots=constructor.get("support_roots", []),
+        derivation={
+            "criterion": "discovery-history-and-uncertainty-frontier",
+            "operation": "synthesize-research-program",
+        },
+    )
+    _semantic_reindex_record(state, program_ref)
+    return (
+        _semantic_result(
+            "synthesize-research-program",
+            "supported",
+            authority_request=authority_request,
+            authority_request_ref=authority_ref,
+            coverage=body["coverage"],
+            discovery_history=normalized_history,
+            next_stage=planned_stage,
+            program=program_ref,
+            uncertainty=uncertainty,
+        ),
+        max(1, len(normalized_history) * 3 + 4),
+    )
+
+
+def _semantic_record_research_authority(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Record an owner authority decision without manufacturing a grant."""
+
+    _semantic_keys(
+        request,
+        required=("authority_receipt", "program_id"),
+        optional=("operation_id",),
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    program_payload = program.get("payload", {})
+    body = program_payload.get("program", {}).get("body", {})
+    if (
+        program.get("status") != "active"
+        or program_payload.get("program_role") != "research-program"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or body.get("authority_state") != "pending-owner-review"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP", "research program has no pending authority request"
+        )
+    authority_ref = body["authority_request_ref"]
+    authority = _semantic_index_record(
+        state["records"],
+        authority_ref,
+        kind="Obligation",
+        identity=None,
+        label="research authority request",
+    )
+    receipt = request["authority_receipt"]
+    required_receipt_keys = {
+        "authorized",
+        "checks",
+        "decision",
+        "grammar_sha256_after",
+        "grammar_sha256_before",
+        "grant",
+        "request_ref",
+        "request_sha256",
+        "schema",
+    }
+    if (
+        not isinstance(receipt, Mapping)
+        or set(receipt) != required_receipt_keys
+        or receipt.get("schema")
+        != "cassifi.research-authority-receipt.v1"
+        or receipt.get("request_ref") != authority_ref
+        or receipt.get("request_sha256")
+        != sha256_value(authority["payload"])
+        or receipt.get("grammar_sha256_before")
+        != receipt.get("grammar_sha256_after")
+        or not isinstance(receipt.get("authorized"), bool)
+        or not isinstance(receipt.get("checks"), Mapping)
+        or set(receipt["checks"])
+        != {
+            "available_primitive",
+            "bounded_scope",
+            "grammar_unchanged",
+            "no_implicit_grant",
+            "request_shape",
+        }
+        or any(
+            not isinstance(value, bool)
+            for value in receipt["checks"].values()
+        )
+        or receipt["checks"]["grammar_unchanged"] is not True
+        or receipt["checks"]["no_implicit_grant"] is not True
+        or receipt["checks"]["request_shape"] is not True
+        or receipt["checks"]["bounded_scope"] is not True
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_RESEARCH_AUTHORITY",
+            "research authority receipt is invalid",
+        )
+    available = bool(receipt["checks"]["available_primitive"])
+    authorized = bool(receipt["authorized"])
+    if (
+        authorized != available
+        or (
+            authorized
+            and (
+                receipt.get("decision") != "authorized-existing-primitive"
+                or not isinstance(receipt.get("grant"), Mapping)
+            )
+        )
+        or (
+            not authorized
+            and (
+                receipt.get("decision") != "deferred-unavailable"
+                or receipt.get("grant") is not None
+            )
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_RESEARCH_AUTHORITY",
+            "research authority decision does not match its fixed checks",
+        )
+    prior_program_ref = semantic_record_ref(program).as_dict()
+    prior_authority_ref = semantic_record_ref(authority).as_dict()
+    assessment_ref = _semantic_append_record(
+        state,
+        record_id=(
+            f"assessment:research-authority:{program_id}:"
+            f"{sha256_value(receipt)[:16]}"
+        ),
+        kind="Assessment",
+        payload={
+            "authorized": authorized,
+            "decision": str(receipt["decision"]),
+            "program_ref": prior_program_ref,
+            "receipt": dict(receipt),
+            "request_ref": prior_authority_ref,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(prior_program_ref, prior_authority_ref),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "fixed-owner-authority-boundary",
+            "operation": "record-research-authority",
+        },
+    )
+    _semantic_reindex_record(state, assessment_ref)
+    authority_state = "authorized" if authorized else "deferred-unavailable"
+    resolved_authority_ref = _semantic_append_record(
+        state,
+        record_id=str(authority["id"]),
+        kind="Obligation",
+        payload={
+            **dict(authority["payload"]),
+            "assessment_ref": assessment_ref,
+            "decision": str(receipt["decision"]),
+            "state": authority_state,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(prior_authority_ref, assessment_ref),
+        support_roots=authority.get("support_roots", []),
+        derivation={
+            "criterion": "owner-authority-decision",
+            "operation": "record-research-authority",
+        },
+    )
+    _semantic_reindex_record(state, resolved_authority_ref)
+    revised_body = {
+        **dict(body),
+        "authority_assessment_ref": assessment_ref,
+        "authority_request_ref": resolved_authority_ref,
+        "authority_state": authority_state,
+    }
+    revised_program_ref = _semantic_append_record(
+        state,
+        record_id=program_id,
+        kind="Program",
+        payload={
+            **dict(program_payload),
+            "program": _semantic_research_program_payload(
+                revised_body,
+                str(body["constructor_ref"]["id"]),
+            ),
+        },
+        status="active",
+        epistemic_kind="induced",
+        dependencies=(
+            prior_program_ref,
+            assessment_ref,
+            resolved_authority_ref,
+        ),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "authority-decision-integrated",
+            "operation": "record-research-authority",
+        },
+    )
+    _semantic_reindex_record(state, revised_program_ref)
+    return (
+        _semantic_result(
+            "record-research-authority",
+            "supported" if authorized else "authority-denied",
+            assessment=assessment_ref,
+            authority_request=resolved_authority_ref,
+            authority_state=authority_state,
+            decision=str(receipt["decision"]),
+            program=revised_program_ref,
+        ),
+        5,
+    )
+
+
+def _semantic_advance_research_program(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Advance a field-owned program after its planned experiment succeeds."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "constructor_id",
+            "language_id",
+            "program_id",
+            "stage_id",
+        ),
+        optional=("operation_id",),
+    )
+    constructor_id = _identifier(
+        request["constructor_id"], "experiment constructor identity"
+    )
+    language_id = _identifier(
+        request["language_id"], "experiment language identity"
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    stage_id = _identifier(
+        request["stage_id"], "research stage identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    language = _semantic_current_record(state, "Program", language_id)
+    constructor = _semantic_current_record(
+        state, "Program", constructor_id
+    )
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    stages = body.get("stages", [])
+    matching = [
+        stage
+        for stage in stages
+        if isinstance(stage, Mapping)
+        and stage.get("stage_id") == stage_id
+    ]
+    proposal = language.get("payload", {}).get("program", {}).get("body", {})
+    if (
+        program.get("status") != "active"
+        or program.get("payload", {}).get("program_role")
+        != "research-program"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or language.get("status") != "active"
+        or len(matching) != 1
+        or matching[0].get("status") != "planned"
+        or matching[0].get("language_id") != language_id
+        or proposal.get("construction", {}).get("research_program_id")
+        != program_id
+        or proposal.get("construction", {}).get("research_stage_id")
+        != stage_id
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program stage has not earned completion",
+        )
+    qualifying: dict[str, dict[str, Any]] = {}
+    for history_rows in state["records"].values():
+        if not history_rows:
+            continue
+        record = history_rows[-1]
+        payload = record.get("payload", {})
+        if (
+            record.get("kind") == "Assessment"
+            and payload.get("language_id") == language_id
+            and float(payload.get("loss", 1.0)) == 0.0
+            and payload.get("variant") in {"trial", "transfer"}
+        ):
+            qualifying[str(payload["variant"])] = record
+    if set(qualifying) != {"trial", "transfer"}:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program advancement requires correct trial and transfer",
+        )
+    fingerprint = str(
+        proposal["construction"]["schedule_fingerprint"]
+    )
+    constructor_body = constructor["payload"]["program"]["body"]
+    constructor_history = constructor_body.get(
+        "successful_distinctions", []
+    )
+    matches = [
+        row
+        for row in constructor_history
+        if row.get("schedule_fingerprint") == fingerprint
+    ]
+    if len(matches) != 1:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "revised constructor does not retain the completed discovery",
+        )
+    language_ref = semantic_record_ref(language).as_dict()
+    assessment_refs = [
+        semantic_record_ref(qualifying[variant]).as_dict()
+        for variant in ("trial", "transfer")
+    ]
+    completed_stage = {
+        **dict(matching[0]),
+        "assessment_refs": assessment_refs,
+        "language_ref": language_ref,
+        "schedule_fingerprint": fingerprint,
+        "status": "completed",
+    }
+    revised_stages = [
+        completed_stage if stage.get("stage_id") == stage_id else dict(stage)
+        for stage in stages
+    ]
+    frontier_stage = {
+        "authority_request_ref": body["authority_request_ref"],
+        "objective": str(body["uncertainty"]["question"]),
+        "stage_id": "phase-flow-mechanism-measurement",
+        "status": (
+            "planned-authority"
+            if body.get("authority_state") == "authorized"
+            else "blocked-authority"
+        ),
+    }
+    if not any(
+        stage.get("stage_id") == frontier_stage["stage_id"]
+        for stage in revised_stages
+    ):
+        revised_stages.append(frontier_stage)
+    normalized_history = [
+        {
+            "assessment_refs": [dict(item) for item in row["assessment_refs"]],
+            "expected_class": str(row["expected_class"]),
+            "language_ref": dict(row["language_ref"]),
+            "name": str(row["name"]),
+            "observable": str(row["observable"]),
+            "schedule_fingerprint": str(row["schedule_fingerprint"]),
+        }
+        for row in constructor_history
+    ]
+    constructor_ref = semantic_record_ref(constructor).as_dict()
+    prior_program_ref = semantic_record_ref(program).as_dict()
+    revised_body = {
+        **dict(body),
+        "constructor_ref": constructor_ref,
+        "coverage": _semantic_research_coverage(
+            state, normalized_history
+        ),
+        "discovery_history": normalized_history,
+        "stages": revised_stages,
+        "state": (
+            "awaiting-authority"
+            if frontier_stage["status"] == "blocked-authority"
+            else "active"
+        ),
+    }
+    revised_program_ref = _semantic_append_record(
+        state,
+        record_id=program_id,
+        kind="Program",
+        payload={
+            **dict(program["payload"]),
+            "program": _semantic_research_program_payload(
+                revised_body, constructor_id
+            ),
+        },
+        status="active",
+        epistemic_kind="induced",
+        dependencies=(
+            prior_program_ref,
+            constructor_ref,
+            language_ref,
+            *assessment_refs,
+        ),
+        support_roots=sorted(
+            {
+                *(
+                    str(value)
+                    for value in program.get("support_roots", [])
+                ),
+                *(
+                    str(value)
+                    for record in qualifying.values()
+                    for value in record.get("support_roots", [])
+                ),
+            }
+        ),
+        derivation={
+            "criterion": "successful-planned-stage",
+            "operation": "advance-research-program",
+        },
+    )
+    _semantic_reindex_record(state, revised_program_ref)
+    return (
+        _semantic_result(
+            "advance-research-program",
+            "supported",
+            authority_state=revised_body["authority_state"],
+            completed_stage=completed_stage,
+            coverage=revised_body["coverage"],
+            discovery_history=normalized_history,
+            frontier_stage=frontier_stage,
+            program=revised_program_ref,
+            program_state=revised_body["state"],
+        ),
+        max(1, len(assessment_refs) + len(normalized_history) + 3),
+    )
+
+
+def _semantic_query_research_program(
+    state: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Read the current field-owned research program."""
+
+    _semantic_keys(
+        request,
+        required=("program_id",),
+        optional=("operation_id",),
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    try:
+        program = _semantic_current_record(
+            state, "Program", program_id
+        )
+    except FieldIntelligenceError as exc:
+        if exc.code != "UNKNOWN_SEMANTIC_RECORD":
+            raise
+        return (
+            _semantic_result(
+                "query-research-program",
+                "support-gap",
+                limitation="research-program-unavailable",
+                program=None,
+                research=None,
+            ),
+            1,
+        )
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    if (
+        program.get("status") != "active"
+        or program.get("payload", {}).get("program_role")
+        != "research-program"
+        or body.get("schema") != "cassifi.research-program.v1"
+    ):
+        return (
+            _semantic_result(
+                "query-research-program",
+                "support-gap",
+                limitation="research-program-inactive",
+                program=semantic_record_ref(program).as_dict(),
+                research=None,
+            ),
+            1,
+        )
+    return (
+        _semantic_result(
+            "query-research-program",
+            "supported",
+            program=semantic_record_ref(program).as_dict(),
+            research=dict(body),
+        ),
+        1,
+    )
+
+
+def _semantic_mechanism_world(
+    *,
+    variant: str,
+    segments: Sequence[tuple[str, float, int]],
+    observation_horizons: Sequence[int],
+) -> dict[str, Any]:
+    fields = ["top_phase_current_x", "top_q", "top_x"]
+    return {
+        "observations": [
+            {"fields": fields, "horizon": int(horizon)}
+            for horizon in observation_horizons
+        ],
+        "segments": [
+            {
+                "pulses": [
+                    {
+                        "channel": "cy",
+                        "source_id": source_id,
+                        "strength": float(strength),
+                    }
+                ],
+                "steps": int(steps),
+            }
+            for source_id, strength, steps in segments
+        ],
+        "variant": variant,
+    }
+
+
+def _semantic_design_mechanism_experiment(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Design a matched-control experiment for the program's open mechanism."""
+
+    _semantic_keys(
+        request,
+        required=("experiment_id", "grammar", "program_id"),
+        optional=("operation_id",),
+    )
+    experiment_id = _identifier(
+        request["experiment_id"], "mechanism experiment identity"
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    frontier = [
+        stage
+        for stage in body.get("stages", [])
+        if stage.get("stage_id") == "phase-flow-mechanism-measurement"
+    ]
+    if (
+        program.get("status") != "active"
+        or program.get("payload", {}).get("program_role")
+        != "research-program"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or body.get("state") != "active"
+        or body.get("authority_state") != "authorized"
+        or len(frontier) != 1
+        or frontier[0].get("status") != "planned-authority"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program is not authorized for mechanism measurement",
+        )
+    authority_ref = body.get("authority_assessment_ref")
+    authority = _semantic_index_record(
+        state["records"],
+        authority_ref,
+        kind="Assessment",
+        identity=None,
+        label="research authority assessment",
+    )
+    if authority.get("payload", {}).get("authorized") is not True:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "mechanism measurement lacks an affirmative authority assessment",
+        )
+
+    grammar = _semantic_experiment_grammar(request["grammar"])
+    observable = {
+        str(row["field"]): row for row in grammar["raw_observables"]
+    }.get("top_phase_current_x")
+    if (
+        observable is None
+        or "phase-flow-direction" not in observable["provides"]
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "mechanism measurement requires the authorized phase-current sensor",
+        )
+    sources = sorted(grammar["sources"], key=lambda row: float(row["x"]))
+    candidates: list[dict[str, Any]] = []
+    for target in sources:
+        left = [
+            source
+            for source in sources
+            if float(source["x"]) < float(target["x"])
+        ]
+        right = [
+            source
+            for source in sources
+            if float(source["x"]) > float(target["x"])
+        ]
+        for left_source in left:
+            for right_source in right:
+                mirror_error = abs(
+                    (
+                        float(left_source["x"])
+                        + float(right_source["x"])
+                    )
+                    - 2.0 * float(target["x"])
+                )
+                span = float(right_source["x"]) - float(left_source["x"])
+                rank = [
+                    mirror_error,
+                    abs(float(target["x"])),
+                    -span,
+                    str(left_source["source_id"]),
+                    str(target["source_id"]),
+                    str(right_source["source_id"]),
+                ]
+                candidates.append(
+                    {
+                        "left_source": dict(left_source),
+                        "rank": rank,
+                        "right_source": dict(right_source),
+                        "target_source": dict(target),
+                    }
+                )
+    if not candidates:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "mechanism measurement requires a target bracketed by sources",
+        )
+    selected = min(candidates, key=lambda row: tuple(row["rank"]))
+    left_source = selected["left_source"]
+    target_source = selected["target_source"]
+    right_source = selected["right_source"]
+    strengths = list(grammar["strengths"])
+    prior_strength = float(strengths[-1])
+    target_strength = float(strengths[len(strengths) // 2])
+    delay_steps = int(grammar["step_counts"][-1])
+    response_steps = int(grammar["step_counts"][-1])
+    total_steps = delay_steps + response_steps
+    if (
+        total_steps > int(grammar["bounds"]["max_total_steps"])
+        or int(grammar["bounds"]["max_segments"]) < 2
+        or int(grammar["bounds"]["max_deposits"]) < 2
+        or int(grammar["bounds"]["max_observables"]) < 3
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "experiment grammar cannot express the matched mechanism design",
+        )
+    choice = {
+        "delay_steps": delay_steps,
+        "left_source_id": str(left_source["source_id"]),
+        "prior_strength": prior_strength,
+        "response_steps": response_steps,
+        "right_source_id": str(right_source["source_id"]),
+        "target_source_id": str(target_source["source_id"]),
+        "target_strength": target_strength,
+    }
+    candidate_id = (
+        "auto:mechanism-experiment:" + sha256_value(choice)[:20]
+    )
+    proposal = {
+        "candidate_id": candidate_id,
+        "control_world": _semantic_mechanism_world(
+            variant="control",
+            segments=(
+                (
+                    str(target_source["source_id"]),
+                    target_strength,
+                    response_steps,
+                ),
+            ),
+            observation_horizons=(response_steps,),
+        ),
+        "decision_rule": {
+            "current_absolute_tolerance": 1.0e-9,
+            "current_relative_tolerance": 1.0e-6,
+            "local_verdict": "local-rewriting-at-peak",
+            "position_absolute_tolerance": 5.0e-2,
+            "q_absolute_tolerance": 1.0e-7,
+            "q_relative_tolerance": 1.0e-6,
+            "scope": "top-coherence-cell-at-final-sampled-horizon",
+            "transport_verdict": "transport-coupled-at-peak",
+        },
+        "family": "matched-phase-current",
+        "mirror_trial_world": _semantic_mechanism_world(
+            variant="mirror_trial",
+            segments=(
+                (
+                    str(right_source["source_id"]),
+                    prior_strength,
+                    delay_steps,
+                ),
+                (
+                    str(target_source["source_id"]),
+                    target_strength,
+                    response_steps,
+                ),
+            ),
+            observation_horizons=(delay_steps, total_steps),
+        ),
+        "question": str(body["uncertainty"]["question"]),
+        "research_program_ref": semantic_record_ref(program).as_dict(),
+        "schema": "cassifi.mechanism-experiment.v1",
+        "selection": {
+            **choice,
+            "candidate_count": len(candidates),
+            "criterion": (
+                "closest mirrored priors around the most central target, "
+                "then widest symmetric span"
+            ),
+            "left_source_x": float(left_source["x"]),
+            "right_source_x": float(right_source["x"]),
+            "target_source_x": float(target_source["x"]),
+        },
+        "trial_world": _semantic_mechanism_world(
+            variant="trial",
+            segments=(
+                (
+                    str(left_source["source_id"]),
+                    prior_strength,
+                    delay_steps,
+                ),
+                (
+                    str(target_source["source_id"]),
+                    target_strength,
+                    response_steps,
+                ),
+            ),
+            observation_horizons=(delay_steps, total_steps),
+        ),
+    }
+    program_ref = semantic_record_ref(program).as_dict()
+    experiment_ref = _semantic_append_record(
+        state,
+        record_id=experiment_id,
+        kind="Program",
+        payload={
+            "candidate_families_supplied": False,
+            "grammar_sha256": sha256_value(grammar),
+            "program": semantic_program_payload(
+                program_kind="construction",
+                body=proposal,
+                reads=(program_id,),
+                emits=("mechanism-assessment", "scheduled-world"),
+                max_work=max(1, len(candidates) + 3),
+                max_horizon=total_steps,
+                max_branches=3,
+            ),
+            "program_role": "mechanism-experiment",
+        },
+        status="candidate",
+        epistemic_kind="induced",
+        dependencies=(program_ref, authority_ref),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "field-ranked-matched-control-design",
+            "operation": "design-mechanism-experiment",
+        },
+    )
+    _semantic_reindex_record(state, experiment_ref)
+    return (
+        _semantic_result(
+            "design-mechanism-experiment",
+            "supported",
+            candidate_count=len(candidates),
+            candidate_families_supplied=False,
+            experiment=experiment_ref,
+            proposal=proposal,
+            selected_candidate=candidate_id,
+        ),
+        max(1, len(candidates) + 4),
+    )
+
+
+def _semantic_mechanism_observations(
+    world: Mapping[str, Any],
+    value: Any,
+) -> dict[str, float]:
+    if not isinstance(value, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "mechanism observations must be a mapping",
+        )
+    expected = {
+        f"h{int(row['horizon'])}_{field}"
+        for row in world["observations"]
+        for field in row["fields"]
+    }
+    if set(value) != expected:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "mechanism observations do not match the selected sensor program",
+        )
+    return {
+        str(key): _finite(raw, f"mechanism observation {key}")
+        for key, raw in value.items()
+    }
+
+
+def _semantic_assess_mechanism_experiment(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Resolve the program's mechanism question from matched phase-current arms."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "evidence_sources",
+            "experiment_id",
+            "observations",
+            "safety_receipt",
+        ),
+        optional=("operation_id",),
+    )
+    experiment_id = _identifier(
+        request["experiment_id"], "mechanism experiment identity"
+    )
+    experiment = _semantic_current_record(
+        state, "Program", experiment_id
+    )
+    payload = experiment.get("payload", {})
+    proposal = payload.get("program", {}).get("body", {})
+    if (
+        experiment.get("status") != "candidate"
+        or payload.get("program_role") != "mechanism-experiment"
+        or proposal.get("schema") != "cassifi.mechanism-experiment.v1"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP", "mechanism experiment is not awaiting evidence"
+        )
+    safety = request["safety_receipt"]
+    required_checks = {
+        "grammar_bound",
+        "matched_control",
+        "mirrored_prior",
+        "phase_current_available",
+        "resource_bounds",
+    }
+    if (
+        not isinstance(safety, Mapping)
+        or set(safety)
+        != {
+            "authorized",
+            "checks",
+            "grammar_sha256",
+            "proposal_sha256",
+            "schema",
+        }
+        or safety.get("schema")
+        != "cassifi.mechanism-experiment-authority.v1"
+        or safety.get("authorized") is not True
+        or safety.get("grammar_sha256") != payload.get("grammar_sha256")
+        or safety.get("proposal_sha256") != sha256_value(proposal)
+        or not isinstance(safety.get("checks"), Mapping)
+        or set(safety["checks"]) != required_checks
+        or any(value is not True for value in safety["checks"].values())
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_AUTHORITY",
+            "mechanism experiment did not pass the fixed safety boundary",
+        )
+    raw_observations = request["observations"]
+    raw_sources = request["evidence_sources"]
+    variants = {"control", "mirror_trial", "trial"}
+    if (
+        not isinstance(raw_observations, Mapping)
+        or set(raw_observations) != variants
+        or not isinstance(raw_sources, Mapping)
+        or set(raw_sources) != variants
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "mechanism evidence must contain all matched arms",
+        )
+    observations = {
+        variant: _semantic_mechanism_observations(
+            proposal[f"{variant}_world"],
+            raw_observations[variant],
+        )
+        for variant in sorted(variants)
+    }
+    source_revision_ids = {
+        variant: _identifier(
+            raw_sources[variant],
+            f"{variant} mechanism source revision",
+        )
+        for variant in sorted(variants)
+    }
+    control_horizon = sum(
+        int(row["steps"]) for row in proposal["control_world"]["segments"]
+    )
+    trial_horizon = sum(
+        int(row["steps"]) for row in proposal["trial_world"]["segments"]
+    )
+    current_key_control = f"h{control_horizon}_top_phase_current_x"
+    current_key_trial = f"h{trial_horizon}_top_phase_current_x"
+    q_key_control = f"h{control_horizon}_top_q"
+    q_key_trial = f"h{trial_horizon}_top_q"
+    x_key_control = f"h{control_horizon}_top_x"
+    x_key_trial = f"h{trial_horizon}_top_x"
+    control_current = observations["control"][current_key_control]
+    trial_current = observations["trial"][current_key_trial]
+    mirror_current = observations["mirror_trial"][current_key_trial]
+    control_q = observations["control"][q_key_control]
+    trial_q = observations["trial"][q_key_trial]
+    mirror_q = observations["mirror_trial"][q_key_trial]
+    target_x = float(proposal["selection"]["target_source_x"])
+    rule = proposal["decision_rule"]
+    current_scale = max(
+        abs(control_current),
+        abs(trial_current),
+        abs(mirror_current),
+        1.0e-12,
+    )
+    current_tolerance = float(
+        rule["current_absolute_tolerance"]
+    ) + float(rule["current_relative_tolerance"]) * current_scale
+    q_scale = max(abs(control_q), abs(trial_q), abs(mirror_q), 1.0e-12)
+    q_tolerance = float(rule["q_absolute_tolerance"]) + float(
+        rule["q_relative_tolerance"]
+    ) * q_scale
+    trial_current_delta = trial_current - control_current
+    mirror_current_delta = mirror_current - control_current
+    trial_q_delta = trial_q - control_q
+    mirror_q_delta = mirror_q - control_q
+    positions = (
+        observations["control"][x_key_control],
+        observations["trial"][x_key_trial],
+        observations["mirror_trial"][x_key_trial],
+    )
+    target_retained = all(
+        abs(value - target_x)
+        <= float(rule["position_absolute_tolerance"])
+        for value in positions
+    )
+    transport_coupled = (
+        target_retained
+        and trial_current_delta > current_tolerance
+        and mirror_current_delta < -current_tolerance
+    )
+    local_rewriting = (
+        target_retained
+        and abs(trial_current_delta) <= current_tolerance
+        and abs(mirror_current_delta) <= current_tolerance
+        and abs(trial_q_delta) <= q_tolerance
+        and abs(mirror_q_delta) <= q_tolerance
+    )
+    verdict = (
+        str(rule["transport_verdict"])
+        if transport_coupled
+        else str(rule["local_verdict"])
+        if local_rewriting
+        else "inconclusive"
+    )
+    metrics = {
+        "control_current": control_current,
+        "control_q": control_q,
+        "current_tolerance": current_tolerance,
+        "mirror_current_delta": mirror_current_delta,
+        "mirror_q_delta": mirror_q_delta,
+        "q_tolerance": q_tolerance,
+        "target_retained": target_retained,
+        "trial_current_delta": trial_current_delta,
+        "trial_q_delta": trial_q_delta,
+    }
+    experiment_ref = semantic_record_ref(experiment).as_dict()
+    assessment_ref = _semantic_append_record(
+        state,
+        record_id=(
+            f"assessment:mechanism-experiment:{experiment_id}:"
+            f"{sha256_value({'observations': observations, 'sources': source_revision_ids})[:16]}"
+        ),
+        kind="Assessment",
+        payload={
+            "experiment_ref": experiment_ref,
+            "metrics": metrics,
+            "purpose": "mechanism-resolution",
+            "safety_receipt_sha256": sha256_value(safety),
+            "scope": str(rule["scope"]),
+            "verdict": verdict,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(experiment_ref,),
+        support_roots=tuple(source_revision_ids.values()),
+        derivation={
+            "criterion": "matched-control-phase-current",
+            "operation": "assess-mechanism-experiment",
+        },
+    )
+    _semantic_reindex_record(state, assessment_ref)
+    completed_experiment_ref = _semantic_append_record(
+        state,
+        record_id=experiment_id,
+        kind="Program",
+        payload={
+            **dict(payload),
+            "assessment_ref": assessment_ref,
+            "verdict": verdict,
+        },
+        status="active",
+        epistemic_kind="assessed",
+        dependencies=(experiment_ref, assessment_ref),
+        support_roots=sorted(source_revision_ids.values()),
+        derivation={
+            "criterion": "matched-mechanism-evidence-assessed",
+            "operation": "assess-mechanism-experiment",
+        },
+    )
+    _semantic_reindex_record(state, completed_experiment_ref)
+
+    research_ref = proposal["research_program_ref"]
+    research = _semantic_index_record(
+        state["records"],
+        research_ref,
+        kind="Program",
+        identity=None,
+        label="mechanism experiment research program",
+    )
+    current_research = _semantic_current_record(
+        state, "Program", str(research_ref["id"])
+    )
+    if semantic_record_ref(current_research).as_dict() != research_ref:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program changed after mechanism design",
+        )
+    research_body = research["payload"]["program"]["body"]
+    resolved_stage = {
+        **next(
+            stage
+            for stage in research_body["stages"]
+            if stage.get("stage_id") == "phase-flow-mechanism-measurement"
+        ),
+        "assessment_ref": assessment_ref,
+        "experiment_ref": completed_experiment_ref,
+        "scope": str(rule["scope"]),
+        "status": "completed",
+        "verdict": verdict,
+    }
+    revised_stages = [
+        resolved_stage
+        if stage.get("stage_id") == "phase-flow-mechanism-measurement"
+        else dict(stage)
+        for stage in research_body["stages"]
+    ]
+    revised_uncertainty = {
+        **dict(research_body["uncertainty"]),
+        "resolution": {
+            "assessment_ref": assessment_ref,
+            "scope": str(rule["scope"]),
+            "verdict": verdict,
+        },
+    }
+    revised_body = {
+        **dict(research_body),
+        "stages": revised_stages,
+        "state": "resolved",
+        "uncertainty": revised_uncertainty,
+    }
+    research_program_ref = _semantic_append_record(
+        state,
+        record_id=str(research["id"]),
+        kind="Program",
+        payload={
+            **dict(research["payload"]),
+            "program": _semantic_research_program_payload(
+                revised_body,
+                str(research_body["constructor_ref"]["id"]),
+            ),
+        },
+        status="active",
+        epistemic_kind="assessed",
+        dependencies=(
+            research_ref,
+            completed_experiment_ref,
+            assessment_ref,
+        ),
+        support_roots=sorted(
+            {
+                *(str(value) for value in research.get("support_roots", [])),
+                *source_revision_ids.values(),
+            }
+        ),
+        derivation={
+            "criterion": "phase-flow-mechanism-resolved",
+            "operation": "assess-mechanism-experiment",
+        },
+    )
+    _semantic_reindex_record(state, research_program_ref)
+    return (
+        _semantic_result(
+            "assess-mechanism-experiment",
+            "supported",
+            assessment=assessment_ref,
+            experiment=completed_experiment_ref,
+            metrics=metrics,
+            program=research_program_ref,
+            program_state="resolved",
+            scope=str(rule["scope"]),
+            verdict=verdict,
+        ),
+        max(1, sum(len(row) for row in observations.values()) + 8),
+    )
+_DISTRIBUTED_PHASE_BIN_COUNT = 16
+_DISTRIBUTED_PHASE_PREFIXES = (
+    "phase_abs_jx",
+    "phase_jx",
+    "phase_q",
+)
+
+
+def _distributed_phase_fields() -> list[str]:
+    return [
+        f"{prefix}_x{bin_index:02d}"
+        for prefix in _DISTRIBUTED_PHASE_PREFIXES
+        for bin_index in range(_DISTRIBUTED_PHASE_BIN_COUNT)
+    ]
+
+_PHASE_TOPOLOGY_BIN_COUNT = 4
+_PHASE_TOPOLOGY_CELL_COUNT = _PHASE_TOPOLOGY_BIN_COUNT**3
+_PHASE_TOPOLOGY_PREFIXES = (
+    "phase_topology_jx",
+    "phase_topology_jy",
+    "phase_topology_jz",
+    "phase_topology_q",
+)
+
+
+def _phase_topology_fields() -> list[str]:
+    return [
+        f"{prefix}_b{bin_index:02d}"
+        for prefix in _PHASE_TOPOLOGY_PREFIXES
+        for bin_index in range(_PHASE_TOPOLOGY_CELL_COUNT)
+    ]
+_PHASE_WINDING_PLANES = ("xy", "xz", "yz")
+_PHASE_WINDING_RADII = (2, 4, 8)
+_PHASE_WINDING_PREFIXES = (
+    "phase_winding",
+    "phase_winding_circ",
+    "phase_winding_current",
+    "phase_winding_qmin",
+)
+
+
+def _phase_winding_fields() -> list[str]:
+    return [
+        f"{prefix}_{plane}_r{radius:02d}"
+        for prefix in _PHASE_WINDING_PREFIXES
+        for plane in _PHASE_WINDING_PLANES
+        for radius in _PHASE_WINDING_RADII
+    ]
+
+
+
+def _semantic_continue_distributed_phase_flow(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Continue a resolved top-cell question into a distributed flow question."""
+
+    _semantic_keys(
+        request,
+        required=("program_id",),
+        optional=("operation_id",),
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    resolution = body.get("uncertainty", {}).get("resolution", {})
+    if (
+        program.get("status") != "active"
+        or program.get("payload", {}).get("program_role")
+        != "research-program"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or body.get("state") != "resolved"
+        or resolution.get("verdict")
+        not in {
+            "local-rewriting-at-peak",
+            "transport-coupled-at-peak",
+        }
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "distributed flow continuation requires a resolved top-cell result",
+        )
+    uncertainty = {
+        "evidence_gap": (
+            "the top cell cannot show whether earlier coherence persists, "
+            "travels, or conditions later nucleation elsewhere"
+        ),
+        "known": [
+            str(resolution["verdict"]),
+            "phase-flow-direction",
+        ],
+        "missing_support": ["distributed-phase-flow"],
+        "priority": 1.0,
+        "question": (
+            "does coherence nucleate locally, advect between sources, or "
+            "remotely condition later formation across the field"
+        ),
+        "uncertainty_id": "distributed-phase-flow-mechanism",
+    }
+    authority_request = {
+        "bounds": {
+            "axis": "x",
+            "bin_count": _DISTRIBUTED_PHASE_BIN_COUNT,
+            "max_samples_per_world": 8,
+            "read_only": True,
+        },
+        "primitive": {
+            "field": "phase_profile_x_16",
+            "kind": "raw-observable-family",
+            "provides": ["distributed-phase-flow"],
+            "scope": "sixteen-x-slabs-full-yz",
+        },
+        "program_id": program_id,
+        "purpose": "resolve-distributed-phase-flow-mechanism",
+        "schema": "cassifi.research-authority-request.v1",
+        "state": "pending-owner-review",
+        "uncertainty_id": uncertainty["uncertainty_id"],
+    }
+    program_ref = semantic_record_ref(program).as_dict()
+    authority_ref = _semantic_append_record(
+        state,
+        record_id=f"obligation:distributed-phase-flow:{program_id}",
+        kind="Obligation",
+        payload=authority_request,
+        status="active",
+        epistemic_kind="proposed",
+        dependencies=(program_ref,),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "resolved-local-scope-leaves-distributed-uncertainty",
+            "operation": "continue-distributed-phase-flow",
+        },
+    )
+    _semantic_reindex_record(state, authority_ref)
+    stage = {
+        "authority_request_ref": authority_ref,
+        "objective": uncertainty["question"],
+        "stage_id": "distributed-phase-flow-mechanism",
+        "status": "planned-authority",
+    }
+    prior_resolutions = [
+        *body.get("prior_resolutions", []),
+        {
+            "resolution": dict(resolution),
+            "uncertainty_id": str(body["uncertainty"]["uncertainty_id"]),
+        },
+    ]
+    revised_body = {
+        **dict(body),
+        "authority_assessment_ref": None,
+        "authority_request_ref": authority_ref,
+        "authority_state": "pending-owner-review",
+        "prior_resolutions": prior_resolutions,
+        "stages": [*body.get("stages", []), stage],
+        "state": "active",
+        "uncertainty": uncertainty,
+    }
+    revised_program_ref = _semantic_append_record(
+        state,
+        record_id=program_id,
+        kind="Program",
+        payload={
+            **dict(program["payload"]),
+            "program": _semantic_research_program_payload(
+                revised_body,
+                str(body["constructor_ref"]["id"]),
+            ),
+        },
+        status="active",
+        epistemic_kind="induced",
+        dependencies=(program_ref, authority_ref),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "distributed-mechanism-frontier",
+            "operation": "continue-distributed-phase-flow",
+        },
+    )
+    _semantic_reindex_record(state, revised_program_ref)
+    return (
+        _semantic_result(
+            "continue-distributed-phase-flow",
+            "supported",
+            authority_request=authority_request,
+            authority_request_ref=authority_ref,
+            prior_resolution=resolution,
+            program=revised_program_ref,
+            uncertainty=uncertainty,
+        ),
+        5,
+    )
+
+
+def _semantic_distributed_phase_world(
+    *,
+    variant: str,
+    first_source: tuple[str, float] | None,
+    second_source: tuple[str, float] | None,
+    sample_steps: int,
+) -> dict[str, Any]:
+    segments: list[dict[str, Any]] = []
+    horizons: list[int] = []
+    elapsed = 0
+    for source in (first_source, second_source):
+        if source is None:
+            continue
+        for sample_index in range(4):
+            pulses = []
+            if sample_index == 0:
+                pulses.append(
+                    {
+                        "channel": "cy",
+                        "source_id": source[0],
+                        "strength": float(source[1]),
+                    }
+                )
+            segments.append({"pulses": pulses, "steps": sample_steps})
+            elapsed += sample_steps
+            horizons.append(elapsed)
+    fields = ["top_q", "top_x", *_distributed_phase_fields()]
+    return {
+        "observations": [
+            {"fields": fields, "horizon": horizon}
+            for horizon in horizons
+        ],
+        "segments": segments,
+        "variant": variant,
+    }
+
+
+def _semantic_design_distributed_phase_flow(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Design a mirrored, time-resolved distributed-flow comparison."""
+
+    _semantic_keys(
+        request,
+        required=("experiment_id", "grammar", "program_id"),
+        optional=("operation_id",),
+    )
+    experiment_id = _identifier(
+        request["experiment_id"], "distributed experiment identity"
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    if (
+        program.get("status") != "active"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or body.get("state") != "active"
+        or body.get("authority_state") != "authorized"
+        or body.get("uncertainty", {}).get("uncertainty_id")
+        != "distributed-phase-flow-mechanism"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "distributed phase-flow research is not authorized",
+        )
+    grammar = _semantic_experiment_grammar(request["grammar"])
+    observable = {
+        str(row["field"]): row for row in grammar["raw_observables"]
+    }.get("phase_profile_x_16")
+    if (
+        observable is None
+        or "distributed-phase-flow" not in observable["provides"]
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "distributed phase-flow profile is unavailable",
+        )
+    sources = sorted(grammar["sources"], key=lambda row: float(row["x"]))
+    if len(sources) < 3:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "distributed comparison requires three ordered sources",
+        )
+    target = min(sources, key=lambda row: abs(float(row["x"])))
+    left = min(
+        (row for row in sources if float(row["x"]) < float(target["x"])),
+        key=lambda row: abs(
+            float(target["x"]) - float(row["x"])
+        ),
+    )
+    right = min(
+        (row for row in sources if float(row["x"]) > float(target["x"])),
+        key=lambda row: abs(
+            float(row["x"]) - float(target["x"])
+        ),
+    )
+    strengths = list(grammar["strengths"])
+    prior_strength = float(strengths[-1])
+    target_strength = float(strengths[len(strengths) // 2])
+    sample_steps = int(grammar["step_counts"][0])
+    if (
+        sample_steps * 8 > int(grammar["bounds"]["max_total_steps"])
+        or int(grammar["bounds"]["max_segments"]) < 8
+        or int(grammar["bounds"]["max_observables"]) < 6
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "grammar cannot express the distributed time-resolved comparison",
+        )
+    selection = {
+        "bin_count": _DISTRIBUTED_PHASE_BIN_COUNT,
+        "left_source_id": str(left["source_id"]),
+        "left_source_x": float(left["x"]),
+        "prior_strength": prior_strength,
+        "right_source_id": str(right["source_id"]),
+        "right_source_x": float(right["x"]),
+        "sample_steps": sample_steps,
+        "target_source_id": str(target["source_id"]),
+        "target_source_x": float(target["x"]),
+        "target_strength": target_strength,
+    }
+    candidate_id = (
+        "auto:distributed-phase-flow:" + sha256_value(selection)[:20]
+    )
+    proposal = {
+        "candidate_id": candidate_id,
+        "control_world": _semantic_distributed_phase_world(
+            variant="control",
+            first_source=(selection["target_source_id"], target_strength),
+            second_source=None,
+            sample_steps=sample_steps,
+        ),
+        "decision_rule": {
+            "advection_minimum_displacement": 0.125,
+            "profile_relative_tolerance": 1.0e-6,
+            "remote_residual_minimum_ratio": 1.0e-6,
+            "source_capture_radius": 0.125,
+        },
+        "family": "distributed-phase-flow-worldlines",
+        "mirror_trial_world": _semantic_distributed_phase_world(
+            variant="mirror_trial",
+            first_source=(selection["right_source_id"], prior_strength),
+            second_source=(selection["target_source_id"], target_strength),
+            sample_steps=sample_steps,
+        ),
+        "question": str(body["uncertainty"]["question"]),
+        "research_program_ref": semantic_record_ref(program).as_dict(),
+        "schema": "cassifi.distributed-phase-flow-experiment.v1",
+        "selection": selection,
+        "trial_world": _semantic_distributed_phase_world(
+            variant="trial",
+            first_source=(selection["left_source_id"], prior_strength),
+            second_source=(selection["target_source_id"], target_strength),
+            sample_steps=sample_steps,
+        ),
+    }
+    program_ref = semantic_record_ref(program).as_dict()
+    authority_ref = body["authority_assessment_ref"]
+    experiment_ref = _semantic_append_record(
+        state,
+        record_id=experiment_id,
+        kind="Program",
+        payload={
+            "candidate_families_supplied": False,
+            "grammar_sha256": sha256_value(grammar),
+            "program": semantic_program_payload(
+                program_kind="construction",
+                body=proposal,
+                reads=(program_id,),
+                emits=("distributed-flow-assessment", "scheduled-world"),
+                max_work=32,
+                max_horizon=sample_steps * 8,
+                max_branches=3,
+            ),
+            "program_role": "distributed-phase-flow-experiment",
+        },
+        status="candidate",
+        epistemic_kind="induced",
+        dependencies=(program_ref, authority_ref),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "field-ranked-distributed-worldline-design",
+            "operation": "design-distributed-phase-flow",
+        },
+    )
+    _semantic_reindex_record(state, experiment_ref)
+    return (
+        _semantic_result(
+            "design-distributed-phase-flow",
+            "supported",
+            candidate_families_supplied=False,
+            experiment=experiment_ref,
+            proposal=proposal,
+            selected_candidate=candidate_id,
+        ),
+        8,
+    )
+
+
+def _distributed_profile(
+    observations: Mapping[str, float],
+    horizon: int,
+    prefix: str,
+) -> list[float]:
+    return [
+        observations[f"h{horizon}_{prefix}_x{bin_index:02d}"]
+        for bin_index in range(_DISTRIBUTED_PHASE_BIN_COUNT)
+    ]
+
+
+def _profile_centroid(values: Sequence[float]) -> float:
+    positive = [max(0.0, float(value)) for value in values]
+    total = sum(positive)
+    if total <= 0.0:
+        return 0.0
+    return sum(
+        (-0.9375 + 0.125 * index) * value
+        for index, value in enumerate(positive)
+    ) / total
+
+
+
+
+def _semantic_assess_distributed_phase_flow(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Classify local nucleation, advection, or remote conditioning."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "evidence_sources",
+            "experiment_id",
+            "observations",
+            "safety_receipt",
+        ),
+        optional=("operation_id",),
+    )
+    experiment_id = _identifier(
+        request["experiment_id"], "distributed experiment identity"
+    )
+    experiment = _semantic_current_record(state, "Program", experiment_id)
+    payload = experiment.get("payload", {})
+    proposal = payload.get("program", {}).get("body", {})
+    if (
+        experiment.get("status") != "candidate"
+        or payload.get("program_role")
+        != "distributed-phase-flow-experiment"
+        or proposal.get("schema")
+        != "cassifi.distributed-phase-flow-experiment.v1"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "distributed phase-flow experiment is not awaiting evidence",
+        )
+    safety = request["safety_receipt"]
+    required_checks = {
+        "distributed_profile_available",
+        "grammar_bound",
+        "mirrored_prior",
+        "read_only",
+        "resource_bounds",
+        "time_resolved",
+    }
+    if (
+        not isinstance(safety, Mapping)
+        or safety.get("schema")
+        != "cassifi.distributed-phase-flow-authority.v1"
+        or safety.get("authorized") is not True
+        or safety.get("grammar_sha256") != payload.get("grammar_sha256")
+        or safety.get("proposal_sha256") != sha256_value(proposal)
+        or not isinstance(safety.get("checks"), Mapping)
+        or set(safety["checks"]) != required_checks
+        or any(value is not True for value in safety["checks"].values())
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_AUTHORITY",
+            "distributed experiment crossed its fixed safety boundary",
+        )
+    raw_observations = request["observations"]
+    raw_sources = request["evidence_sources"]
+    variants = {"control", "mirror_trial", "trial"}
+    if (
+        not isinstance(raw_observations, Mapping)
+        or set(raw_observations) != variants
+        or not isinstance(raw_sources, Mapping)
+        or set(raw_sources) != variants
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "distributed evidence must contain all matched arms",
+        )
+    observations: dict[str, dict[str, float]] = {}
+    source_revision_ids: dict[str, str] = {}
+    for variant in sorted(variants):
+        source_revision_ids[variant] = _identifier(
+            raw_sources[variant],
+            f"{variant} distributed source revision",
+        )
+        observations[variant] = _semantic_mechanism_observations(
+            proposal[f"{variant}_world"],
+            raw_observations[variant],
+        )
+    sample_steps = int(proposal["selection"]["sample_steps"])
+    control_horizons = [sample_steps * index for index in range(1, 5)]
+    response_horizons = [sample_steps * index for index in range(5, 9)]
+    target_x = float(proposal["selection"]["target_source_x"])
+    target_bins = [
+        index
+        for index in range(_DISTRIBUTED_PHASE_BIN_COUNT)
+        if abs((-0.9375 + 0.125 * index) - target_x) <= 0.125
+    ]
+    remote_bins = [
+        index
+        for index in range(_DISTRIBUTED_PHASE_BIN_COUNT)
+        if index not in target_bins
+    ]
+    tolerance = float(
+        proposal["decision_rule"]["profile_relative_tolerance"]
+    )
+    arm_metrics: dict[str, Any] = {}
+    target_matched = True
+    advected = True
+    remote_persistent = True
+    for variant, source_key in (
+        ("trial", "left_source_x"),
+        ("mirror_trial", "right_source_x"),
+    ):
+        target_delta = 0.0
+        target_scale = 0.0
+        target_path: list[dict[str, float]] = []
+        for control_horizon, response_horizon in zip(
+            control_horizons, response_horizons
+        ):
+            row: dict[str, float] = {
+                "control_horizon": float(control_horizon),
+                "response_horizon": float(response_horizon),
+            }
+            for prefix in _DISTRIBUTED_PHASE_PREFIXES:
+                control_profile = _distributed_profile(
+                    observations["control"], control_horizon, prefix
+                )
+                trial_profile = _distributed_profile(
+                    observations[variant], response_horizon, prefix
+                )
+                delta = sum(
+                    abs(trial_profile[index] - control_profile[index])
+                    for index in target_bins
+                )
+                scale = sum(
+                    abs(control_profile[index]) for index in target_bins
+                )
+                row[f"{prefix}_delta"] = delta
+                target_delta += delta
+                target_scale += scale
+            target_path.append(row)
+        final_control_q = _distributed_profile(
+            observations["control"], control_horizons[-1], "phase_q"
+        )
+        final_trial_q = _distributed_profile(
+            observations[variant], response_horizons[-1], "phase_q"
+        )
+        residual_q = [
+            max(0.0, trial - control)
+            for trial, control in zip(final_trial_q, final_control_q)
+        ]
+        remote_q = sum(residual_q[index] for index in remote_bins)
+        control_q = max(sum(final_control_q), 1.0e-12)
+        residual_centroid = _profile_centroid(residual_q)
+        prior_q = _distributed_profile(
+            observations[variant], control_horizons[-1], "phase_q"
+        )
+        prior_centroid = _profile_centroid(prior_q)
+        source_x = float(proposal["selection"][source_key])
+        displacement_toward_target = (
+            abs(prior_centroid - target_x)
+            - abs(residual_centroid - target_x)
+        )
+        matched = target_delta <= tolerance * max(target_scale, 1.0e-12)
+        material_residual = (
+            remote_q / control_q
+            >= float(
+                proposal["decision_rule"][
+                    "remote_residual_minimum_ratio"
+                ]
+            )
+        )
+        persistent = (
+            material_residual
+            and abs(residual_centroid - source_x)
+            <= float(
+                proposal["decision_rule"]["source_capture_radius"]
+            )
+        )
+        transported = (
+            material_residual
+            and displacement_toward_target
+            >= float(
+                proposal["decision_rule"][
+                    "advection_minimum_displacement"
+                ]
+            )
+        )
+        target_matched = target_matched and matched
+        remote_persistent = remote_persistent and persistent
+        advected = advected and transported
+        arm_metrics[variant] = {
+            "displacement_toward_target": displacement_toward_target,
+            "prior_centroid": prior_centroid,
+            "remote_q": remote_q,
+            "material_residual": material_residual,
+            "remote_q_over_control": remote_q / control_q,
+            "residual_centroid": residual_centroid,
+            "source_x": source_x,
+            "target_matched_control": matched,
+            "target_path": target_path,
+        }
+    if advected:
+        mechanism = "advective-transport"
+        verdict = "advective-transport"
+    elif not target_matched:
+        mechanism = "remote-conditioning"
+        verdict = "remote-conditioning"
+    elif remote_persistent:
+        mechanism = "local-nucleation"
+        verdict = "local-nucleation-with-remote-persistence"
+    else:
+        mechanism = "local-nucleation"
+        verdict = "local-nucleation"
+    metrics = {
+        "arms": arm_metrics,
+        "bin_count": _DISTRIBUTED_PHASE_BIN_COUNT,
+        "primary_mechanism": mechanism,
+        "remote_persistent": remote_persistent,
+        "target_matched_control": target_matched,
+    }
+    experiment_ref = semantic_record_ref(experiment).as_dict()
+    assessment_ref = _semantic_append_record(
+        state,
+        record_id=(
+            f"assessment:distributed-phase-flow:{experiment_id}:"
+            f"{sha256_value(observations)[:16]}"
+        ),
+        kind="Assessment",
+        payload={
+            "experiment_ref": experiment_ref,
+            "metrics": metrics,
+            "purpose": "mechanism-resolution",
+            "safety_sha256": sha256_value(safety),
+            "scope": "sixteen-x-slabs-across-eight-sampled-horizons",
+            "source_revision_ids": source_revision_ids,
+            "verdict": verdict,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(experiment_ref,),
+        support_roots=tuple(source_revision_ids.values()),
+        derivation={
+            "criterion": "distributed-phase-flow-worldlines",
+            "operation": "assess-distributed-phase-flow",
+        },
+    )
+    _semantic_reindex_record(state, assessment_ref)
+    completed_experiment_ref = _semantic_append_record(
+        state,
+        record_id=experiment_id,
+        kind="Program",
+        payload={
+            **dict(payload),
+            "assessment_ref": assessment_ref,
+            "program": {
+                **dict(payload["program"]),
+                "body": {**dict(proposal), "verdict": verdict},
+            },
+        },
+        status="active",
+        epistemic_kind="assessed",
+        dependencies=(experiment_ref, assessment_ref),
+        support_roots=tuple(source_revision_ids.values()),
+        derivation={
+            "criterion": "distributed-flow-evidence-assessed",
+            "operation": "assess-distributed-phase-flow",
+        },
+    )
+    _semantic_reindex_record(state, completed_experiment_ref)
+    research_ref = proposal["research_program_ref"]
+    research = _semantic_index_record(
+        state["records"],
+        research_ref,
+        kind="Program",
+        identity=None,
+        label="distributed phase-flow research program",
+    )
+    current_research = _semantic_current_record(
+        state, "Program", str(research_ref["id"])
+    )
+    if semantic_record_ref(current_research).as_dict() != research_ref:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program changed after distributed experiment design",
+        )
+    research_body = research["payload"]["program"]["body"]
+    resolved_stage = {
+        **next(
+            dict(stage)
+            for stage in research_body["stages"]
+            if stage.get("stage_id") == "distributed-phase-flow-mechanism"
+        ),
+        "assessment_ref": assessment_ref,
+        "experiment_ref": completed_experiment_ref,
+        "status": "completed",
+        "verdict": verdict,
+    }
+    revised_body = {
+        **dict(research_body),
+        "stages": [
+            resolved_stage
+            if stage.get("stage_id") == "distributed-phase-flow-mechanism"
+            else dict(stage)
+            for stage in research_body["stages"]
+        ],
+        "state": "resolved",
+        "uncertainty": {
+            **dict(research_body["uncertainty"]),
+            "resolution": {
+                "assessment_ref": assessment_ref,
+                "experiment_ref": completed_experiment_ref,
+                "mechanism": mechanism,
+                "scope": "sixteen-x-slabs-across-eight-sampled-horizons",
+                "verdict": verdict,
+            },
+            "state": "resolved",
+        },
+    }
+    research_program_ref = _semantic_append_record(
+        state,
+        record_id=str(research["id"]),
+        kind="Program",
+        payload={
+            **dict(research["payload"]),
+            "program": _semantic_research_program_payload(
+                revised_body,
+                str(research_body["constructor_ref"]["id"]),
+            ),
+        },
+        status="active",
+        epistemic_kind="assessed",
+        dependencies=(
+            research_ref,
+            completed_experiment_ref,
+            assessment_ref,
+        ),
+        support_roots=sorted(
+            {
+                *(str(value) for value in research.get("support_roots", [])),
+                *source_revision_ids.values(),
+            }
+        ),
+        derivation={
+            "criterion": "distributed-phase-flow-mechanism-resolved",
+            "operation": "assess-distributed-phase-flow",
+        },
+    )
+    _semantic_reindex_record(state, research_program_ref)
+    return (
+        _semantic_result(
+            "assess-distributed-phase-flow",
+            "supported",
+            assessment=assessment_ref,
+            experiment=completed_experiment_ref,
+            metrics=metrics,
+            program=research_program_ref,
+            program_state="resolved",
+            scope="sixteen-x-slabs-across-eight-sampled-horizons",
+            verdict=verdict,
+        ),
+        max(1, sum(len(row) for row in observations.values()) + 16),
+    )
+
+
+
+
+def _semantic_continue_phase_current_topology(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Continue a resolved slab reading into a three-dimensional current question."""
+
+    _semantic_keys(
+        request,
+        required=("program_id",),
+        optional=("operation_id",),
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    resolution = body.get("uncertainty", {}).get("resolution", {})
+    if (
+        program.get("status") != "active"
+        or program.get("payload", {}).get("program_role")
+        != "research-program"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or body.get("state") != "resolved"
+        or resolution.get("scope")
+        != "sixteen-x-slabs-across-eight-sampled-horizons"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "phase-current topology requires a resolved distributed reading",
+        )
+    uncertainty = {
+        "evidence_gap": (
+            "x slabs collapse transverse current and cannot distinguish "
+            "static persistence from circulation, return flow, or delayed "
+            "three-dimensional transport"
+        ),
+        "known": [
+            str(resolution["verdict"]),
+            str(resolution["mechanism"]),
+            "distributed-phase-flow",
+        ],
+        "missing_support": ["phase-current-topology"],
+        "priority": 1.0,
+        "question": (
+            "does the persistent coherence carry vortical circulation, "
+            "recirculating return flow, delayed transport, or a static "
+            "three-dimensional residue"
+        ),
+        "uncertainty_id": "phase-current-topology",
+    }
+    authority_request = {
+        "bounds": {
+            "bin_count_per_axis": _PHASE_TOPOLOGY_BIN_COUNT,
+            "max_samples_per_world": 3,
+            "native_winding_grid_n": 64,
+            "native_winding_planes": ["xy", "xz", "yz"],
+            "native_winding_radii_cells": [2, 4, 8],
+            "read_only": True,
+            "vector_components": 3,
+        },
+        "primitive": {
+            "field": "phase_winding_native_3x3",
+            "kind": "raw-observable-family",
+            "provides": ["native-phase-winding", "phase-current-topology"],
+            "scope": (
+                "four-cubed-periodic-phase-current-lattice-plus-"
+                "native-closed-loops"
+            ),
+        },
+        "program_id": program_id,
+        "purpose": "resolve-phase-current-topology",
+        "schema": "cassifi.research-authority-request.v1",
+        "state": "pending-owner-review",
+        "uncertainty_id": uncertainty["uncertainty_id"],
+    }
+    program_ref = semantic_record_ref(program).as_dict()
+    authority_ref = _semantic_append_record(
+        state,
+        record_id=f"obligation:phase-current-topology:{program_id}",
+        kind="Obligation",
+        payload=authority_request,
+        status="active",
+        epistemic_kind="proposed",
+        dependencies=(program_ref,),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "distributed-scope-leaves-topology-uncertainty",
+            "operation": "continue-phase-current-topology",
+        },
+    )
+    _semantic_reindex_record(state, authority_ref)
+    stage = {
+        "authority_request_ref": authority_ref,
+        "objective": uncertainty["question"],
+        "stage_id": "phase-current-topology",
+        "status": "planned-authority",
+    }
+    revised_body = {
+        **dict(body),
+        "authority_assessment_ref": None,
+        "authority_request_ref": authority_ref,
+        "authority_state": "pending-owner-review",
+        "prior_resolutions": [
+            *body.get("prior_resolutions", []),
+            {
+                "resolution": dict(resolution),
+                "uncertainty_id": str(body["uncertainty"]["uncertainty_id"]),
+            },
+        ],
+        "stages": [*body.get("stages", []), stage],
+        "state": "active",
+        "uncertainty": uncertainty,
+    }
+    revised_program_ref = _semantic_append_record(
+        state,
+        record_id=program_id,
+        kind="Program",
+        payload={
+            **dict(program["payload"]),
+            "program": _semantic_research_program_payload(
+                revised_body,
+                str(body["constructor_ref"]["id"]),
+            ),
+        },
+        status="active",
+        epistemic_kind="induced",
+        dependencies=(program_ref, authority_ref),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "three-dimensional-current-frontier",
+            "operation": "continue-phase-current-topology",
+        },
+    )
+    _semantic_reindex_record(state, revised_program_ref)
+    return (
+        _semantic_result(
+            "continue-phase-current-topology",
+            "supported",
+            authority_request=authority_request,
+            authority_request_ref=authority_ref,
+            prior_resolution=resolution,
+            program=revised_program_ref,
+            uncertainty=uncertainty,
+        ),
+        5,
+    )
+
+
+def _semantic_phase_topology_world(
+    *,
+    variant: str,
+    prior_source: tuple[str, float],
+    target_source: tuple[str, float] | None,
+) -> dict[str, Any]:
+    increments = (32, 1, 63)
+    segments: list[dict[str, Any]] = []
+    horizons: list[int] = []
+    elapsed = 0
+    for index, steps in enumerate(increments):
+        pulses: list[dict[str, Any]] = []
+        if index == 0:
+            pulses.append(
+                {
+                    "channel": "cy",
+                    "source_id": prior_source[0],
+                    "strength": float(prior_source[1]),
+                }
+            )
+        elif index == 1 and target_source is not None:
+            pulses.append(
+                {
+                    "channel": "cy",
+                    "source_id": target_source[0],
+                    "strength": float(target_source[1]),
+                }
+            )
+        segments.append({"pulses": pulses, "steps": steps})
+        elapsed += steps
+        horizons.append(elapsed)
+    fields = [
+        "top_q",
+        "top_x",
+        "phase_topology_xyz_4",
+        "phase_winding_native_3x3",
+    ]
+    return {
+        "observations": [
+            {"fields": fields, "horizon": horizon}
+            for horizon in horizons
+        ],
+        "segments": segments,
+        "variant": variant,
+    }
+
+
+def _semantic_design_phase_current_topology(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Design paired and mirrored 3D current-lattice comparisons."""
+
+    _semantic_keys(
+        request,
+        required=("experiment_id", "grammar", "program_id"),
+        optional=("operation_id",),
+    )
+    experiment_id = _identifier(
+        request["experiment_id"], "topology experiment identity"
+    )
+    program_id = _identifier(
+        request["program_id"], "research program identity"
+    )
+    program = _semantic_current_record(state, "Program", program_id)
+    body = program.get("payload", {}).get("program", {}).get("body", {})
+    if (
+        program.get("status") != "active"
+        or body.get("schema") != "cassifi.research-program.v1"
+        or body.get("state") != "active"
+        or body.get("authority_state") != "authorized"
+        or body.get("uncertainty", {}).get("uncertainty_id")
+        != "phase-current-topology"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "phase-current topology research is not authorized",
+        )
+    grammar = _semantic_experiment_grammar(request["grammar"])
+    observable = {
+        str(row["field"]): row for row in grammar["raw_observables"]
+    }.get("phase_topology_xyz_4")
+    native_observable = {
+        str(row["field"]): row for row in grammar["raw_observables"]
+    }.get("phase_winding_native_3x3")
+    if (
+        observable is None
+        or "phase-current-topology" not in observable["provides"]
+        or native_observable is None
+        or not {
+            "native-phase-winding",
+            "phase-current-topology",
+        }.issubset(native_observable["provides"])
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "three-dimensional native phase-winding readout is unavailable",
+        )
+    sources = sorted(grammar["sources"], key=lambda row: float(row["x"]))
+    target = min(sources, key=lambda row: abs(float(row["x"])))
+    left = min(
+        (row for row in sources if float(row["x"]) < float(target["x"])),
+        key=lambda row: abs(float(target["x"]) - float(row["x"])),
+    )
+    right = min(
+        (row for row in sources if float(row["x"]) > float(target["x"])),
+        key=lambda row: abs(float(row["x"]) - float(target["x"])),
+    )
+    strengths = list(grammar["strengths"])
+    prior_strength = float(strengths[-1])
+    target_strength = float(strengths[len(strengths) // 2])
+    total_steps = sum((32, 1, 63))
+    if (
+        total_steps > int(grammar["bounds"]["max_total_steps"])
+        or int(grammar["bounds"]["max_segments"]) < 3
+        or int(grammar["bounds"]["max_observables"]) < 3
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "grammar cannot express the bounded topology comparison",
+        )
+    selection = {
+        "bin_count_per_axis": _PHASE_TOPOLOGY_BIN_COUNT,
+        "left_source_id": str(left["source_id"]),
+        "left_source_x": float(left["x"]),
+        "native_winding_grid_n": 64,
+        "native_winding_planes": ["xy", "xz", "yz"],
+        "native_winding_radii_cells": [2, 4, 8],
+        "prior_strength": prior_strength,
+        "right_source_id": str(right["source_id"]),
+        "right_source_x": float(right["x"]),
+        "sample_horizons": [32, 33, 96],
+        "target_source_id": str(target["source_id"]),
+        "target_source_x": float(target["x"]),
+        "target_strength": target_strength,
+    }
+    candidate_id = (
+        "auto:phase-current-topology:" + sha256_value(selection)[:20]
+    )
+    proposal = {
+        "candidate_id": candidate_id,
+        "decision_rule": {
+            "circulation_minimum_normalized_curl": 0.25,
+            "delayed_centroid_displacement_bins": 1.0,
+            "material_relative_tolerance": 1.0e-9,
+            "mirror_maximum_relative_error": 0.75,
+        },
+        "family": "three-dimensional-phase-current-topology",
+        "left_control_world": _semantic_phase_topology_world(
+            variant="left_control",
+            prior_source=(selection["left_source_id"], prior_strength),
+            target_source=None,
+        ),
+        "left_trial_world": _semantic_phase_topology_world(
+            variant="left_trial",
+            prior_source=(selection["left_source_id"], prior_strength),
+            target_source=(selection["target_source_id"], target_strength),
+        ),
+        "question": str(body["uncertainty"]["question"]),
+        "research_program_ref": semantic_record_ref(program).as_dict(),
+        "right_control_world": _semantic_phase_topology_world(
+            variant="right_control",
+            prior_source=(selection["right_source_id"], prior_strength),
+            target_source=None,
+        ),
+        "right_trial_world": _semantic_phase_topology_world(
+            variant="right_trial",
+            prior_source=(selection["right_source_id"], prior_strength),
+            target_source=(selection["target_source_id"], target_strength),
+        ),
+        "schema": "cassifi.phase-current-topology-experiment.v1",
+        "selection": selection,
+    }
+    program_ref = semantic_record_ref(program).as_dict()
+    experiment_ref = _semantic_append_record(
+        state,
+        record_id=experiment_id,
+        kind="Program",
+        payload={
+            "candidate_families_supplied": False,
+            "grammar_sha256": sha256_value(grammar),
+            "program": semantic_program_payload(
+                program_kind="construction",
+                body=proposal,
+                reads=(program_id,),
+                emits=("phase-current-topology-assessment", "scheduled-world"),
+                max_work=48,
+                max_horizon=total_steps,
+                max_branches=4,
+            ),
+            "program_role": "phase-current-topology-experiment",
+        },
+        status="candidate",
+        epistemic_kind="induced",
+        dependencies=(program_ref, body["authority_assessment_ref"]),
+        support_roots=program.get("support_roots", []),
+        derivation={
+            "criterion": "field-ranked-three-dimensional-topology-design",
+            "operation": "design-phase-current-topology",
+        },
+    )
+    _semantic_reindex_record(state, experiment_ref)
+    return (
+        _semantic_result(
+            "design-phase-current-topology",
+            "supported",
+            candidate_families_supplied=False,
+            experiment=experiment_ref,
+            proposal=proposal,
+            selected_candidate=candidate_id,
+        ),
+        10,
+    )
+
+def _semantic_phase_topology_observations(
+    world: Mapping[str, Any],
+    value: Any,
+) -> dict[str, float]:
+    if not isinstance(value, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "topology observations must be a mapping",
+        )
+    expanded_fields = [
+        "top_q",
+        "top_x",
+        *_phase_topology_fields(),
+        *_phase_winding_fields(),
+    ]
+    expected = {
+        f"h{int(row['horizon'])}_{field}"
+        for row in world["observations"]
+        for field in expanded_fields
+    }
+
+    if set(value) != expected:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "topology observations do not match the selected sensor family",
+        )
+    return {
+        str(key): _finite(raw, f"topology observation {key}")
+        for key, raw in value.items()
+    }
+def _phase_winding_value(
+    observations: Mapping[str, float],
+    horizon: int,
+    prefix: str,
+    plane: str,
+    radius: int,
+) -> float:
+    return observations[
+        f"h{horizon}_{prefix}_{plane}_r{radius:02d}"
+    ]
+
+
+def _phase_winding_pair_metrics(
+    trial: Mapping[str, float],
+    control: Mapping[str, float],
+    horizons: Sequence[int],
+) -> dict[str, Any]:
+    required = [
+        f"h{horizon}_{field}"
+        for horizon in horizons
+        for field in _phase_winding_fields()
+    ]
+    if any(key not in trial or key not in control for key in required):
+        return {"samples": []}
+    samples: list[dict[str, Any]] = []
+    for horizon in horizons:
+        winding: dict[str, list[float]] = {}
+        current: dict[str, list[float]] = {}
+        support: list[float] = []
+        for plane in _PHASE_WINDING_PLANES:
+            winding[plane] = []
+            current[plane] = []
+            for radius in _PHASE_WINDING_RADII:
+                winding[plane].append(
+                    _phase_winding_value(
+                        trial, horizon, "phase_winding", plane, radius
+                    )
+                    - _phase_winding_value(
+                        control, horizon, "phase_winding", plane, radius
+                    )
+                )
+                current[plane].append(
+                    _phase_winding_value(
+                        trial, horizon, "phase_winding_current", plane, radius
+                    )
+                    - _phase_winding_value(
+                        control, horizon, "phase_winding_current", plane, radius
+                    )
+                )
+                support.extend(
+                    (
+                        _phase_winding_value(
+                            trial, horizon, "phase_winding_qmin", plane, radius
+                        ),
+                        _phase_winding_value(
+                            control, horizon, "phase_winding_qmin", plane, radius
+                        ),
+                    )
+                )
+        samples.append(
+            {
+                "horizon": float(horizon),
+                "native_current_circulation_l1": sum(
+                    abs(value)
+                    for values in current.values()
+                    for value in values
+                ),
+                "native_q_min": min(support),
+                "native_winding": winding,
+                "native_winding_max_abs": max(
+                    abs(value)
+                    for values in winding.values()
+                    for value in values
+                ),
+            }
+        )
+    return {"samples": samples}
+
+
+
+def _phase_topology_grid(
+    observations: Mapping[str, float],
+    horizon: int,
+    prefix: str,
+) -> list[float]:
+    return [
+        observations[f"h{horizon}_{prefix}_b{index:02d}"]
+        for index in range(_PHASE_TOPOLOGY_CELL_COUNT)
+    ]
+
+
+def _phase_topology_index(bin_x: int, bin_y: int, bin_z: int) -> int:
+    size = _PHASE_TOPOLOGY_BIN_COUNT
+    return ((bin_x % size) * size + (bin_y % size)) * size + (bin_z % size)
+
+
+def _phase_topology_curl(
+    jx: Sequence[float],
+    jy: Sequence[float],
+    jz: Sequence[float],
+) -> tuple[list[float], list[float], list[float]]:
+    size = _PHASE_TOPOLOGY_BIN_COUNT
+    curl_x: list[float] = []
+    curl_y: list[float] = []
+    curl_z: list[float] = []
+    for bin_x in range(size):
+        for bin_y in range(size):
+            for bin_z in range(size):
+                dy_jz = 0.5 * (
+                    jz[_phase_topology_index(bin_x, bin_y + 1, bin_z)]
+                    - jz[_phase_topology_index(bin_x, bin_y - 1, bin_z)]
+                )
+                dz_jy = 0.5 * (
+                    jy[_phase_topology_index(bin_x, bin_y, bin_z + 1)]
+                    - jy[_phase_topology_index(bin_x, bin_y, bin_z - 1)]
+                )
+                dz_jx = 0.5 * (
+                    jx[_phase_topology_index(bin_x, bin_y, bin_z + 1)]
+                    - jx[_phase_topology_index(bin_x, bin_y, bin_z - 1)]
+                )
+                dx_jz = 0.5 * (
+                    jz[_phase_topology_index(bin_x + 1, bin_y, bin_z)]
+                    - jz[_phase_topology_index(bin_x - 1, bin_y, bin_z)]
+                )
+                dx_jy = 0.5 * (
+                    jy[_phase_topology_index(bin_x + 1, bin_y, bin_z)]
+                    - jy[_phase_topology_index(bin_x - 1, bin_y, bin_z)]
+                )
+                dy_jx = 0.5 * (
+                    jx[_phase_topology_index(bin_x, bin_y + 1, bin_z)]
+                    - jx[_phase_topology_index(bin_x, bin_y - 1, bin_z)]
+                )
+                curl_x.append(dy_jz - dz_jy)
+                curl_y.append(dz_jx - dx_jz)
+                curl_z.append(dx_jy - dy_jx)
+    return curl_x, curl_y, curl_z
+
+
+def _phase_topology_divergence(
+    jx: Sequence[float],
+    jy: Sequence[float],
+    jz: Sequence[float],
+) -> list[float]:
+    """Periodic central divergence, with derivatives per coarse bin."""
+    size = _PHASE_TOPOLOGY_BIN_COUNT
+    divergence: list[float] = []
+    for bin_x in range(size):
+        for bin_y in range(size):
+            for bin_z in range(size):
+                divergence.append(
+                    0.5
+                    * (
+                        jx[_phase_topology_index(bin_x + 1, bin_y, bin_z)]
+                        - jx[_phase_topology_index(bin_x - 1, bin_y, bin_z)]
+                        + jy[_phase_topology_index(bin_x, bin_y + 1, bin_z)]
+                        - jy[_phase_topology_index(bin_x, bin_y - 1, bin_z)]
+                        + jz[_phase_topology_index(bin_x, bin_y, bin_z + 1)]
+                        - jz[_phase_topology_index(bin_x, bin_y, bin_z - 1)]
+                    )
+                )
+    return divergence
+
+
+def _phase_topology_pair_metrics(
+    trial: Mapping[str, float],
+    control: Mapping[str, float],
+    horizons: Sequence[int],
+    target_source_x: float,
+) -> dict[str, Any]:
+    size = _PHASE_TOPOLOGY_BIN_COUNT
+    target_bin_x = min(
+        size - 1,
+        max(0, int(math.floor((target_source_x + 1.0) * 0.5 * size))),
+    )
+    target_bin_y = 2
+    target_bin_z = 1
+    samples: list[dict[str, float]] = []
+    for horizon in horizons:
+        q_trial = _phase_topology_grid(
+            trial, horizon, "phase_topology_q"
+        )
+        q_control = _phase_topology_grid(
+            control, horizon, "phase_topology_q"
+        )
+        current_delta = {
+            prefix: [
+                trial_value - control_value
+                for trial_value, control_value in zip(
+                    _phase_topology_grid(trial, horizon, prefix),
+                    _phase_topology_grid(control, horizon, prefix),
+                    strict=True,
+                )
+            ]
+            for prefix in (
+                "phase_topology_jx",
+                "phase_topology_jy",
+                "phase_topology_jz",
+            )
+        }
+        jx = current_delta["phase_topology_jx"]
+        jy = current_delta["phase_topology_jy"]
+        jz = current_delta["phase_topology_jz"]
+        curl_x, curl_y, curl_z = _phase_topology_curl(jx, jy, jz)
+        divergence = _phase_topology_divergence(jx, jy, jz)
+        q_delta = [
+            trial_value - control_value
+            for trial_value, control_value in zip(
+                q_trial, q_control, strict=True
+            )
+        ]
+        positive_q = [max(0.0, value) for value in q_delta]
+        q_total = sum(positive_q)
+        weighted_radius = 0.0
+        off_source_q = 0.0
+        radial_flux = 0.0
+        for bin_x in range(size):
+            raw_dx = bin_x - target_bin_x
+            dx = (
+                raw_dx - size
+                if raw_dx > size / 2
+                else raw_dx + size
+                if raw_dx < -size / 2
+                else raw_dx
+            )
+            for bin_y in range(size):
+                raw_dy = bin_y - target_bin_y
+                dy = (
+                    raw_dy - size
+                    if raw_dy > size / 2
+                    else raw_dy + size
+                    if raw_dy < -size / 2
+                    else raw_dy
+                )
+                for bin_z in range(size):
+                    raw_dz = bin_z - target_bin_z
+                    dz = (
+                        raw_dz - size
+                        if raw_dz > size / 2
+                        else raw_dz + size
+                        if raw_dz < -size / 2
+                        else raw_dz
+                    )
+                    index = _phase_topology_index(bin_x, bin_y, bin_z)
+                    radius = math.sqrt(dx * dx + dy * dy + dz * dz)
+                    weighted_radius += radius * positive_q[index]
+                    if radius > 1.0:
+                        off_source_q += positive_q[index]
+                    if radius > 0.0:
+                        radial_flux += (
+                            jx[index] * dx
+                            + jy[index] * dy
+                            + jz[index] * dz
+                        ) / radius
+        current_l1 = sum(
+            math.sqrt(x * x + y * y + z * z)
+            for x, y, z in zip(jx, jy, jz, strict=True)
+        )
+        curl_l1 = sum(
+            math.sqrt(x * x + y * y + z * z)
+            for x, y, z in zip(
+                curl_x, curl_y, curl_z, strict=True
+            )
+        )
+        helicity = sum(
+            x * cx + y * cy + z * cz
+            for x, y, z, cx, cy, cz in zip(
+                jx,
+                jy,
+                jz,
+                curl_x,
+                curl_y,
+                curl_z,
+                strict=True,
+            )
+        )
+        samples.append(
+            {
+                "centroid_radius_bins": (
+                    weighted_radius / q_total if q_total > 0.0 else 0.0
+                ),
+                "current_l1": current_l1,
+                "curl_l1": curl_l1,
+                "divergence_l1": sum(abs(value) for value in divergence),
+                "divergence_sum": sum(divergence),
+                "divergence_min": min(divergence),
+                "divergence_max": max(divergence),
+                "helicity": helicity,
+                "horizon": float(horizon),
+                "off_source_q": off_source_q,
+                "positive_q": q_total,
+                "radial_flux": radial_flux,
+            }
+        )
+    native = _phase_winding_pair_metrics(trial, control, horizons)
+    if native["samples"]:
+        for sample, native_sample in zip(
+            samples, native["samples"], strict=True
+        ):
+            sample.update(native_sample)
+    return {"samples": samples, "native": native}
+
+
+def _phase_winding_mirror_error(
+    left_trial: Mapping[str, float],
+    left_control: Mapping[str, float],
+    right_trial: Mapping[str, float],
+    right_control: Mapping[str, float],
+    horizons: Sequence[int],
+) -> float:
+    fields = [
+        f"h{horizon}_{prefix}_{plane}_r{radius:02d}"
+        for horizon in horizons
+        for prefix in (
+            "phase_winding",
+            "phase_winding_circ",
+            "phase_winding_current",
+        )
+        for plane in _PHASE_WINDING_PLANES
+        for radius in _PHASE_WINDING_RADII
+    ]
+    arms = (left_trial, left_control, right_trial, right_control)
+    if any(key not in arm for arm in arms for key in fields):
+        return 0.0
+    error = 0.0
+    scale = 0.0
+    for horizon in horizons:
+        for prefix in (
+            "phase_winding",
+            "phase_winding_circ",
+            "phase_winding_current",
+        ):
+            for plane in _PHASE_WINDING_PLANES:
+                parity = -1.0 if plane in {"xy", "xz"} else 1.0
+                for radius in _PHASE_WINDING_RADII:
+                    left_delta = _phase_winding_value(
+                        left_trial, horizon, prefix, plane, radius
+                    ) - _phase_winding_value(
+                        left_control, horizon, prefix, plane, radius
+                    )
+                    right_delta = _phase_winding_value(
+                        right_trial, horizon, prefix, plane, radius
+                    ) - _phase_winding_value(
+                        right_control, horizon, prefix, plane, radius
+                    )
+                    expected = parity * right_delta
+                    error += abs(left_delta - expected)
+                    scale += abs(left_delta) + abs(expected)
+    return error / max(scale, 1.0e-30)
+
+
+def _phase_topology_mirror_error(
+    left_trial: Mapping[str, float],
+    left_control: Mapping[str, float],
+    right_trial: Mapping[str, float],
+    right_control: Mapping[str, float],
+    horizons: Sequence[int],
+) -> float:
+    size = _PHASE_TOPOLOGY_BIN_COUNT
+    error = 0.0
+    scale = 0.0
+    for horizon in horizons:
+        for prefix in _PHASE_TOPOLOGY_PREFIXES:
+            left = [
+                trial - control
+                for trial, control in zip(
+                    _phase_topology_grid(left_trial, horizon, prefix),
+                    _phase_topology_grid(left_control, horizon, prefix),
+                    strict=True,
+                )
+            ]
+            right = [
+                trial - control
+                for trial, control in zip(
+                    _phase_topology_grid(right_trial, horizon, prefix),
+                    _phase_topology_grid(right_control, horizon, prefix),
+                    strict=True,
+                )
+            ]
+            for bin_x in range(size):
+                for bin_y in range(size):
+                    for bin_z in range(size):
+                        left_index = _phase_topology_index(
+                            bin_x, bin_y, bin_z
+                        )
+                        right_index = _phase_topology_index(
+                            size - 1 - bin_x, bin_y, bin_z
+                        )
+                        expected = (
+                            -right[right_index]
+                            if prefix == "phase_topology_jx"
+                            else right[right_index]
+                        )
+                        error += abs(left[left_index] - expected)
+                        scale += abs(left[left_index]) + abs(expected)
+
+
+    return error / max(scale, 1.0e-30)
+def _semantic_assess_phase_current_topology(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Resolve circulation, return flow, delayed transport, or static residue."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "evidence_sources",
+            "experiment_id",
+            "observations",
+            "safety_receipt",
+        ),
+        optional=("operation_id",),
+    )
+    experiment_id = _identifier(
+        request["experiment_id"], "topology experiment identity"
+    )
+    experiment = _semantic_current_record(state, "Program", experiment_id)
+    payload = experiment.get("payload", {})
+    proposal = payload.get("program", {}).get("body", {})
+    if (
+        experiment.get("status") != "candidate"
+        or payload.get("program_role")
+        != "phase-current-topology-experiment"
+        or proposal.get("schema")
+        != "cassifi.phase-current-topology-experiment.v1"
+    ):
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "phase-current topology experiment is not awaiting evidence",
+        )
+    safety = request["safety_receipt"]
+    required_checks = {
+        "four_cubed_lattice",
+        "grammar_bound",
+        "matched_controls",
+        "mirrored_prior",
+        "read_only",
+        "resource_bounds",
+    }
+    if (
+        not isinstance(safety, Mapping)
+        or safety.get("schema")
+        != "cassifi.phase-current-topology-authority.v1"
+        or safety.get("authorized") is not True
+        or safety.get("grammar_sha256") != payload.get("grammar_sha256")
+        or safety.get("proposal_sha256") != sha256_value(proposal)
+        or not isinstance(safety.get("checks"), Mapping)
+        or set(safety["checks"]) != required_checks
+        or any(value is not True for value in safety["checks"].values())
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_AUTHORITY",
+            "topology experiment crossed its fixed safety boundary",
+        )
+    variants = {
+        "left_control",
+        "left_trial",
+        "right_control",
+        "right_trial",
+    }
+    raw_observations = request["observations"]
+    raw_sources = request["evidence_sources"]
+    if (
+        not isinstance(raw_observations, Mapping)
+        or set(raw_observations) != variants
+        or not isinstance(raw_sources, Mapping)
+        or set(raw_sources) != variants
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "topology evidence must contain paired mirrored arms",
+        )
+    observations: dict[str, dict[str, float]] = {}
+    source_revision_ids: dict[str, str] = {}
+    for variant in sorted(variants):
+        source_revision_ids[variant] = _identifier(
+            raw_sources[variant], f"{variant} topology source revision"
+        )
+        observations[variant] = _semantic_phase_topology_observations(
+            proposal[f"{variant}_world"],
+            raw_observations[variant],
+        )
+    horizons = [
+        int(value) for value in proposal["selection"]["sample_horizons"]
+    ]
+    target_x = float(proposal["selection"]["target_source_x"])
+    left_metrics = _phase_topology_pair_metrics(
+        observations["left_trial"],
+        observations["left_control"],
+        horizons,
+        target_x,
+    )
+    right_metrics = _phase_topology_pair_metrics(
+        observations["right_trial"],
+        observations["right_control"],
+        horizons,
+        target_x,
+    )
+    samples = [
+        *left_metrics["samples"],
+        *right_metrics["samples"],
+    ]
+    response_samples = [
+        row for row in samples if int(row["horizon"]) > horizons[0]
+    ]
+    max_q = max((float(row["positive_q"]) for row in response_samples), default=0.0)
+    max_current = max(
+        (float(row["current_l1"]) for row in response_samples), default=0.0
+    )
+    max_curl = max(
+        (float(row["curl_l1"]) for row in response_samples), default=0.0
+    )
+    max_divergence = max(
+        (float(row["divergence_l1"]) for row in response_samples),
+        default=0.0,
+    )
+    normalized_curl = max_curl / max(max_current, 1.0e-30)
+    mirror_error = _phase_topology_mirror_error(
+        observations["left_trial"],
+        observations["left_control"],
+        observations["right_trial"],
+        observations["right_control"],
+        horizons,
+    )
+    relative_tolerance = float(
+        proposal["decision_rule"]["material_relative_tolerance"]
+    )
+    native_response_samples = [
+        row
+        for row in response_samples
+        if "native_winding_max_abs" in row
+    ]
+    native_readout_available = bool(native_response_samples)
+    max_native_winding = max(
+        (
+            float(row["native_winding_max_abs"])
+            for row in native_response_samples
+        ),
+        default=0.0,
+    )
+    max_native_current = max(
+        (
+            float(row["native_current_circulation_l1"])
+            for row in native_response_samples
+        ),
+        default=0.0,
+    )
+    min_native_q = min(
+        (float(row["native_q_min"]) for row in native_response_samples),
+        default=0.0,
+    )
+    native_mirror_error = _phase_winding_mirror_error(
+        observations["left_trial"],
+        observations["left_control"],
+        observations["right_trial"],
+        observations["right_control"],
+        horizons,
+    )
+    native_winding_detected = (
+        max_native_winding >= 0.25 and min_native_q > 1.0e-18
+    )
+    native_flow_detected = max_native_current > 1.0e-15
+    native_verdict = (
+        "native-winding-detected"
+        if native_winding_detected
+        else "native-circulation-without-winding"
+        if native_flow_detected
+        else "no-native-winding-at-probed-loops"
+    )
+    material_current = max_current > max(1.0e-15, max_q * relative_tolerance)
+    fluxes = [
+        float(row["radial_flux"])
+        for row in response_samples
+        if abs(float(row["radial_flux"]))
+        > max(1.0e-15, max_current * relative_tolerance)
+    ]
+    flux_reversal = any(value > 0.0 for value in fluxes) and any(
+        value < 0.0 for value in fluxes
+    )
+    response_by_pair = (
+        left_metrics["samples"],
+        right_metrics["samples"],
+    )
+    delayed_transport = any(
+        max(float(row["centroid_radius_bins"]) for row in pair[1:])
+        >= float(
+            proposal["decision_rule"]["delayed_centroid_displacement_bins"]
+        )
+        and max(float(row["off_source_q"]) for row in pair[2:])
+        > float(pair[0]["off_source_q"])
+        + max(1.0e-15, max_q * relative_tolerance)
+        for pair in response_by_pair
+    )
+    circulation = (
+        material_current
+        and normalized_curl
+        >= float(
+            proposal["decision_rule"]["circulation_minimum_normalized_curl"]
+        )
+        and mirror_error
+        <= float(
+            proposal["decision_rule"]["mirror_maximum_relative_error"]
+        )
+    )
+    if circulation:
+        verdict = "vortical-circulation"
+    elif material_current and flux_reversal:
+        verdict = "recirculating-return-flow"
+    elif delayed_transport:
+        verdict = "delayed-three-dimensional-transport"
+    else:
+        verdict = "static-remote-persistence"
+    metrics = {
+        "native_flow_detected": native_flow_detected,
+        "native_mirror_relative_error": native_mirror_error,
+        "native_q_min": min_native_q,
+        "native_readout_available": native_readout_available,
+        "native_verdict": native_verdict,
+        "native_winding_detected": native_winding_detected,
+        "max_native_current_circulation_l1": max_native_current,
+        "max_native_winding_abs": max_native_winding,
+        "circulation": circulation,
+        "comparison": "target-plus-prior-minus-prior-only",
+        "derivative_spacing": "coarse-bin-plus-native-cell-loop",
+        "delayed_transport": delayed_transport,
+        "flux_reversal": flux_reversal,
+        "left": left_metrics,
+        "material_current": material_current,
+        "max_current_l1": max_current,
+        "max_curl_l1": max_curl,
+        "max_divergence_l1": max_divergence,
+        "max_positive_q": max_q,
+        "mirror_relative_error": mirror_error,
+        "normalized_curl": normalized_curl,
+        "normalized_divergence": max_divergence / max(max_current, 1.0e-30),
+        "right": right_metrics,
+    }
+    experiment_ref = semantic_record_ref(experiment).as_dict()
+    assessment_ref = _semantic_append_record(
+        state,
+        record_id=(
+            f"assessment:phase-current-topology:{experiment_id}:"
+            f"{sha256_value(observations)[:16]}"
+        ),
+        kind="Assessment",
+        payload={
+            "experiment_ref": experiment_ref,
+            "metrics": metrics,
+            "scope": "four-cubed-lattice-across-three-sampled-horizons",
+            "source_revision_ids": source_revision_ids,
+            "verdict": verdict,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(experiment_ref,),
+        support_roots=sorted(source_revision_ids.values()),
+        derivation={
+            "criterion": "phase-current-topology",
+            "operation": "assess-phase-current-topology",
+        },
+    )
+    _semantic_reindex_record(state, assessment_ref)
+    completed_experiment_ref = _semantic_append_record(
+        state,
+        record_id=experiment_id,
+        kind="Program",
+        payload={
+            **dict(payload),
+            "assessment_ref": assessment_ref,
+            "verdict": verdict,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(experiment_ref, assessment_ref),
+        support_roots=sorted(source_revision_ids.values()),
+        derivation={
+            "criterion": "topology-evidence-assessed",
+            "operation": "assess-phase-current-topology",
+        },
+    )
+    _semantic_reindex_record(state, completed_experiment_ref)
+    research_ref = proposal["research_program_ref"]
+    research = _semantic_index_record(
+        state["records"],
+        research_ref,
+        kind="Program",
+        identity=None,
+        label="phase-current topology research program",
+    )
+    current_research = _semantic_current_record(
+        state, "Program", str(research_ref["id"])
+    )
+    if semantic_record_ref(current_research).as_dict() != research_ref:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP",
+            "research program changed after topology experiment design",
+        )
+    research_body = research["payload"]["program"]["body"]
+    resolved_stage = {
+        **next(
+            dict(stage)
+            for stage in research_body["stages"]
+            if stage.get("stage_id") == "phase-current-topology"
+        ),
+        "assessment_ref": assessment_ref,
+        "experiment_ref": completed_experiment_ref,
+        "status": "completed",
+        "verdict": verdict,
+    }
+    revised_body = {
+        **dict(research_body),
+        "stages": [
+            resolved_stage
+            if stage.get("stage_id") == "phase-current-topology"
+            else dict(stage)
+            for stage in research_body["stages"]
+        ],
+        "state": "resolved",
+        "uncertainty": {
+            **dict(research_body["uncertainty"]),
+            "resolution": {
+                "assessment_ref": assessment_ref,
+                "experiment_ref": completed_experiment_ref,
+                "scope": "four-cubed-lattice-across-three-sampled-horizons",
+                "verdict": verdict,
+            },
+            "state": "resolved",
+        },
+    }
+    research_program_ref = _semantic_append_record(
+        state,
+        record_id=str(research["id"]),
+        kind="Program",
+        payload={
+            **dict(research["payload"]),
+            "program": _semantic_research_program_payload(
+                revised_body,
+                str(research_body["constructor_ref"]["id"]),
+            ),
+        },
+        status="active",
+        epistemic_kind="assessed",
+        dependencies=(
+            research_ref,
+            completed_experiment_ref,
+            assessment_ref,
+        ),
+        support_roots=sorted(
+            {
+                *(str(value) for value in research.get("support_roots", [])),
+                *source_revision_ids.values(),
+            }
+        ),
+        derivation={
+            "criterion": "phase-current-topology-resolved",
+            "operation": "assess-phase-current-topology",
+        },
+    )
+    _semantic_reindex_record(state, research_program_ref)
+    return (
+        _semantic_result(
+            "assess-phase-current-topology",
+            "supported",
+            assessment=assessment_ref,
+            experiment=completed_experiment_ref,
+            metrics=metrics,
+            program=research_program_ref,
+            program_state="resolved",
+            scope="four-cubed-lattice-across-three-sampled-horizons",
+            verdict=verdict,
+        ),
+        max(1, sum(len(row) for row in observations.values()) + 24),
+    )
+
+
+def _semantic_experiment_observation(
+    world: Mapping[str, Any],
+    observations: Any,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if not isinstance(observations, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "experiment observations must be a mapping",
+        )
+    expected_keys = {
+        f"h{int(row['horizon'])}_{field}"
+        for row in world["observations"]
+        for field in row["fields"]
+    }
+    if set(observations) != expected_keys:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "experiment observations do not match the field-originated sensor program",
+        )
+    values = {
+        str(key): _finite(value, f"experiment observation {key}")
+        for key, value in observations.items()
+    }
+    horizons = [int(row["horizon"]) for row in world["observations"]]
+    series: dict[str, Any] = {
+        str(field): [
+            values[f"h{horizon}_{field}"]
+            for horizon in horizons
+            if f"h{horizon}_{field}" in values
+        ]
+        for row in world["observations"]
+        for field in row["fields"]
+    }
+    derived: dict[str, Any] = {}
+    for row in world["derived_observables"]:
+        name = str(row["name"])
+        operation = str(row["operation"])
+        source_name = str(row["source"])
+        source = derived.get(source_name, series.get(source_name))
+        if not isinstance(source, list):
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_OBSERVATION",
+                "derived experiment source is unavailable",
+            )
+        if operation == "nearest-source-path":
+            parameters = row.get("parameters", {})
+            anchors = (
+                parameters.get("anchors", [])
+                if isinstance(parameters, Mapping)
+                else []
+            )
+            if not isinstance(anchors, list) or not anchors:
+                raise FieldIntelligenceError(
+                    "INVALID_EXPERIMENT_OBSERVATION",
+                    "nearest-source path has no anchors",
+                )
+            derived[name] = [
+                min(
+                    anchors,
+                    key=lambda anchor: (
+                        abs(float(value) - float(anchor["x"])),
+                        str(anchor["label"]),
+                    ),
+                )["label"]
+                for value in source
+            ]
+        elif operation == "sign-path":
+            derived[name] = [
+                "left" if float(value) < 0.0 else "right"
+                for value in source
+            ]
+        elif operation == "count-transitions":
+            derived[name] = sum(
+                left != right
+                for left, right in zip(source, source[1:])
+            )
+        elif operation == "final-over-maximum":
+            numeric = [float(value) for value in source]
+            derived[name] = (
+                None
+                if not numeric or max(numeric) <= 0.0
+                else numeric[-1] / max(numeric)
+            )
+        elif operation == "monotone-direction":
+            numeric = [float(value) for value in source]
+            tolerance = 1.0e-12 * max(
+                [1.0, *[abs(value) for value in numeric]]
+            )
+            decreasing = all(
+                right < left - tolerance
+                for left, right in zip(numeric, numeric[1:])
+            )
+            increasing = all(
+                right > left + tolerance
+                for left, right in zip(numeric, numeric[1:])
+            )
+            derived[name] = (
+                "relaxing"
+                if decreasing
+                else "amplifying"
+                if increasing
+                else "persistent"
+            )
+        else:
+            raise FieldIntelligenceError(
+                "INVALID_EXPERIMENT_OBSERVATION",
+                "derived experiment operation is unsupported",
+            )
+    distinction = world["distinction"]
+    expected = world["expected"]
+    observable = str(distinction["observable"])
+    actual_value = derived.get(observable)
+    if actual_value == expected.get(observable):
+        actual_class = str(expected["class"])
+    elif isinstance(actual_value, str) and actual_value in distinction["classes"]:
+        actual_class = actual_value
+    else:
+        actual_class = "unexpected-trajectory"
+    return values, {"class": actual_class, **derived}
+
+
+def _semantic_assess_experiment_language(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Assess one field-originated program and earn it after a safe firing trial."""
+
+    _semantic_keys(
+        request,
+        required=(
+            "language_id",
+            "observations",
+            "safety_receipt",
+            "source_revision_id",
+            "variant",
+        ),
+        optional=("operation_id",),
+    )
+    language_id = _identifier(
+        request["language_id"], "experiment language identity"
+    )
+    variant = _identifier(
+        request["variant"], "experiment language variant"
+    )
+    if variant not in {"trial", "transfer"}:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_OBSERVATION",
+            "experiment language variant is unsupported",
+        )
+    language = _semantic_current_record(state, "Program", language_id)
+    if language.get("status") not in {"active", "candidate"}:
+        raise FieldIntelligenceError(
+            "SUPPORT_GAP", "experiment language is not available"
+        )
+    payload = language["payload"]
+    proposal = payload["program"]["body"]
+    world = proposal[f"{variant}_world"]
+    observations, actual = _semantic_experiment_observation(
+        world, request["observations"]
+    )
+    safety = request["safety_receipt"]
+    if not isinstance(safety, Mapping) or set(safety) != {
+        "authorized",
+        "checks",
+        "grammar_sha256",
+        "proposal_sha256",
+    }:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_AUTHORITY",
+            "experiment safety receipt is invalid",
+        )
+    checks = safety["checks"]
+    if (
+        safety["authorized"] is not True
+        or safety["grammar_sha256"] != payload["grammar_sha256"]
+        or safety["proposal_sha256"] != sha256_value(proposal)
+        or not isinstance(checks, Mapping)
+        or not checks
+        or any(value is not True for value in checks.values())
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_AUTHORITY",
+            "experiment program did not pass the owner safety boundary",
+        )
+    predicted = dict(world["expected"])
+    correct = actual["class"] == predicted["class"]
+    source_revision_id = _identifier(
+        request["source_revision_id"],
+        "experiment observation source revision",
+    )
+    language_ref = semantic_record_ref(language).as_dict()
+    assessment_ref = _semantic_append_record(
+        state,
+        record_id=(
+            f"assessment:experiment-language:{language_id}:{variant}:"
+            + sha256_value(
+                {
+                    "observations": observations,
+                    "source_revision_id": source_revision_id,
+                }
+            )[:16]
+        ),
+        kind="Assessment",
+        payload={
+            "actual": actual,
+            "language_id": language_id,
+            "loss": 0.0 if correct else 1.0,
+            "predicted": predicted,
+            "purpose": "prediction",
+            "safety_receipt_sha256": sha256_value(safety),
+            "variant": variant,
+        },
+        status="assessed",
+        epistemic_kind="assessed",
+        dependencies=(language_ref,),
+        support_roots=(source_revision_id,),
+        derivation={
+            "operation": "assess-experiment-language",
+            "variant": variant,
+        },
+    )
+    _semantic_reindex_record(state, assessment_ref)
+    capability_ref = language_ref
+    earned = language.get("status") == "active"
+    if variant == "trial" and correct:
+        capability_ref = _semantic_append_record(
+            state,
+            record_id=language_id,
+            kind="Program",
+            payload={
+                **dict(payload),
+                "earned_capability": {
+                    "assessment_ref": assessment_ref,
+                    "safety_receipt_sha256": sha256_value(safety),
+                    "source_revision_id": source_revision_id,
+                },
+            },
+            status="active",
+            epistemic_kind="induced",
+            dependencies=(language_ref, assessment_ref),
+            support_roots=sorted(
+                {
+                    *(
+                        str(item)
+                        for item in language.get("support_roots", [])
+                    ),
+                    source_revision_id,
+                }
+            ),
+            derivation={
+                "criterion": "safe-prospective-discriminator-fired",
+                "operation": "assess-experiment-language",
+            },
+        )
+        _semantic_reindex_record(state, capability_ref)
+        earned = True
+    status = "supported" if correct else "representation-insufficient"
+    return (
+        _semantic_result(
+            "assess-experiment-language",
+            status,
+            actual=actual,
+            assessment=assessment_ref,
+            capability=capability_ref if earned else None,
+            correct=correct,
+            earned=earned,
+            predicted=predicted,
+            variant=variant,
+        ),
+        max(1, len(observations) + 3),
+    )
+
+
+def _semantic_invoke_experiment_language(
+    state: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Read one generated schedule from an earned field Program."""
+
+    _semantic_keys(
+        request,
+        required=("language_id", "variant"),
+        optional=("operation_id",),
+    )
+    language_id = _identifier(
+        request["language_id"], "experiment language identity"
+    )
+    variant = _identifier(
+        request["variant"], "experiment language variant"
+    )
+    if variant not in {"trial", "transfer"}:
+        raise FieldIntelligenceError(
+            "INVALID_EXPERIMENT_LANGUAGE",
+            "experiment language variant is unsupported",
+        )
+    try:
+        language = _semantic_current_record(state, "Program", language_id)
+    except FieldIntelligenceError as exc:
+        if exc.code == "UNKNOWN_SEMANTIC_RECORD":
+            return (
+                _semantic_result(
+                    "invoke-experiment-language",
+                    "support-gap",
+                    limitation="experiment-language-unavailable",
+                    variant=variant,
+                    world=None,
+                ),
+                1,
+            )
+        raise
+    if language.get("status") != "active":
+        return (
+            _semantic_result(
+                "invoke-experiment-language",
+                "support-gap",
+                limitation="experiment-language-not-earned",
+                variant=variant,
+                world=None,
+            ),
+            1,
+        )
+    proposal = language["payload"]["program"]["body"]
+    return (
+        _semantic_result(
+            "invoke-experiment-language",
+            "supported",
+            candidate_id=language["payload"]["selected_candidate"],
+            constructor=language["payload"]["constructor_ref"],
+            language=semantic_record_ref(language).as_dict(),
+            proposal_sha256=sha256_value(proposal),
+            variant=variant,
+            world=proposal[f"{variant}_world"],
+        ),
+        1,
+    )
+
+
+def _semantic_affect_scope(request: Mapping[str, Any]) -> tuple[str, str | None]:
+    project = _identifier(request.get("project_id", "global"), "affect project")
+    raw_object = request.get("object_id")
+    return project, None if raw_object is None else _identifier(raw_object, "affect object")
+
+
+def _semantic_affect_optional_ref(
+    state: dict[str, Any],
+    value: Any,
+    *,
+    label: str,
+    expected_kind: str | None = None,
+) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    reference, _record = _semantic_reference(
+        state, value, expected_kind=expected_kind, require_current=True,
+    )
+    return reference.as_dict()
+
+
+def _semantic_affect_refs(
+    state: dict[str, Any], value: Any, *, label: str,
+) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise FieldIntelligenceError("INVALID_AFFECT", f"{label} must be a list")
+    result = [
+        _semantic_affect_optional_ref(state, item, label=label)
+        for item in value
+    ]
+    return [item for item in result if item is not None]
+
+
+def _semantic_affect_object_refs(
+    state: dict[str, Any], request: Mapping[str, Any], object_id: str | None,
+) -> list[dict[str, Any]]:
+    supplied = _semantic_affect_refs(
+        state, request.get("object_refs"), label="affect object_refs",
+    )
+    if supplied:
+        return supplied
+    if object_id is None:
+        return []
+    binding_id = f"binding:affect-object:{sha256_value(object_id)}"
+    current = state["current"]["Binding"].get(binding_id)
+    if current is not None:
+        return [semantic_record_ref(state["records"][binding_id][-1]).as_dict()]
+    reference = _semantic_append_record(
+        state,
+        record_id=binding_id,
+        kind="Binding",
+        payload={
+            "binding_kind": "affect-object",
+            "external_identity": object_id,
+            "schema": "cassifi.affect-object-binding.v1",
+        },
+        epistemic_kind="asserted",
+        derivation={"operation": "materialize-affect-object"},
+    )
+    _semantic_reindex_record(state, reference)
+    return [reference]
+
+
+def _semantic_affect_program(
+    state: dict[str, Any], *, mode: str | None = None,
+) -> dict[str, Any]:
+    role = "appraisal" if mode is None else "regulation"
+    suffix = role if mode is None else f"{role}:{mode}"
+    program_id = f"program:affect:{suffix}"
+    if state["current"]["Program"].get(program_id) is not None:
+        return semantic_record_ref(state["records"][program_id][-1]).as_dict()
+    if mode is None:
+        arguments = {
+            "evidence_ref": {"type": "json"},
+            "signals": {"type": "json"},
+            "context_ref": {"type": "json"},
+        }
+        roles = [
+            {"name": "evidence_ref", "type": "json"},
+            {"name": "signals", "type": "json"},
+            {"name": "context_ref", "type": "json"},
+        ]
+        step = {
+            "operation": "record-grounded-affect-appraisal",
+            "evidence_ref": {"$role": "evidence_ref"},
+            "signals": {"$role": "signals"},
+            "context_ref": {"$role": "context_ref"},
+        }
+    else:
+        arguments = {
+            "appraisal_ref": {"type": "json"},
+            "context_ref": {"type": "json"},
+        }
+        roles = [
+            {"name": "appraisal_ref", "type": "json"},
+            {"name": "context_ref", "type": "json"},
+        ]
+        operations = {
+            "explore": "expand-alternatives",
+            "persist": "continue-selected-course",
+            "verify": "seek-distinguishing-observation",
+            "consolidate": "integrate-and-rehearse",
+        }
+        step = {
+            "operation": operations[cast(str, mode)],
+            "appraisal_ref": {"$role": "appraisal_ref"},
+            "context_ref": {"$role": "context_ref"},
+        }
+    program = semantic_program_payload(
+        program_kind="procedure",
+        arguments=arguments,
+        body={
+            "roles": roles,
+            "steps": [step],
+            "effects": {"produces": role},
+            "postconditions": {"outcome_observed": False},
+            "failure_behavior": ["retain-unresolved-obligation"],
+        },
+        reads=("semantic-records",),
+        emits=("proposed-actions",),
+        max_work=4,
+        applicability={
+            "affect_schema": AFFECT_APPRAISAL_SCHEMA,
+            **({} if mode is None else {"modes": [mode]}),
+        },
+    )
+    reference = _semantic_append_record(
+        state,
+        record_id=program_id,
+        kind="Program",
+        payload={
+            "program": program,
+            "program_role": "procedure",
+            "affect_program": {
+                "schema": "cassifi.affect-program.v2",
+                "role": role,
+                "modes": [] if mode is None else [mode],
+                "priority": 0,
+                "origin": "bootstrap",
+            },
+        },
+        status="active",
+        epistemic_kind="asserted",
+        derivation={"operation": "bootstrap-affect-program"},
+    )
+    _semantic_reindex_record(state, reference)
+    return reference
+
+
+def _semantic_select_affect_program(
+    state: dict[str, Any], mode: str,
+) -> dict[str, Any]:
+    candidates: list[tuple[int, str, dict[str, Any]]] = []
+    bootstrap = _semantic_affect_program(state, mode=mode)
+    for program_id in state["current"]["Program"]:
+        record = state["records"][program_id][-1]
+        descriptor = record["payload"].get("affect_program")
+        if (
+            record["status"] == "active"
+            and record["payload"].get("program_role") == "procedure"
+            and isinstance(descriptor, Mapping)
+            and descriptor.get("schema") == "cassifi.affect-program.v2"
+            and descriptor.get("role") == "regulation"
+            and mode in descriptor.get("modes", [])
+        ):
+            priority = descriptor.get("priority", 0)
+            if isinstance(priority, int) and not isinstance(priority, bool):
+                candidates.append(
+                    (priority, program_id, semantic_record_ref(record).as_dict())
+                )
+    return max(candidates, key=lambda item: (item[0], item[1]))[2] if candidates else bootstrap
+
+
+def _semantic_affect_context_record(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+    *,
+    project: str,
+    object_id: str | None,
+    object_refs: list[dict[str, Any]],
+    evidence_ref: dict[str, Any] | None,
+    relevant_refs: list[dict[str, Any]],
+    operation_id: str,
+) -> dict[str, Any]:
+    supplied = _semantic_affect_optional_ref(
+        state, request.get("context_ref"), label="affect context_ref",
+    )
+    if supplied is not None:
+        return supplied
+    dependencies = [
+        ref for ref in [evidence_ref, *object_refs, *relevant_refs] if ref is not None
+    ]
+    context_id = f"value:affect-context:{sha256_value(operation_id)}"
+    current = state["current"]["Value"].get(context_id)
+    if current is not None:
+        return semantic_record_ref(state["records"][context_id][-1]).as_dict()
+    reference = _semantic_append_record(
+        state,
+        record_id=context_id,
+        kind="Value",
+        payload={
+            "schema": "cassifi.affect-pre-response-context.v2",
+            "project_id": project,
+            "object_id": object_id,
+            "object_refs": object_refs,
+            "evidence_ref": evidence_ref,
+            "relevant_refs": relevant_refs,
+            "affect_context": affect_context(state, project, object_id),
+            "captured_at": state["time"]["now"],
+        },
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        derivation={"operation": "capture-affect-context", "operation_id": operation_id},
+        valid_time={"start": state["time"]["now"], "end": state["time"]["now"]},
+    )
+    _semantic_reindex_record(state, reference)
+    return reference
+
+
+def _semantic_affect_regulation(
+    state: dict[str, Any],
+    project: str,
+    object_id: str | None,
+    operation_id: str,
+    *,
+    appraisal_ref: dict[str, Any] | None = None,
+    context_ref: dict[str, Any] | None = None,
+    goal_ref: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], int]:
+    context = affect_context(state, project, object_id)
+    mode = str(context["regulation"]["mode"])
+    program_ref = _semantic_select_affect_program(state, mode)
+    if context_ref is None:
+        context_ref = _semantic_affect_context_record(
+            state, {}, project=project, object_id=object_id, object_refs=[],
+            evidence_ref=appraisal_ref, relevant_refs=[], operation_id=operation_id,
+        )
+    invocation, invocation_work = _semantic_invoke_procedure(
+        state,
+        {
+            "operation": "invoke-procedure",
+            "procedure_ref": program_ref,
+            "bindings": {
+                "appraisal_ref": appraisal_ref,
+                "context_ref": context_ref,
+            },
+            "context": {
+                "affect": context,
+                "goal_ref": goal_ref,
+            },
+        },
+    )
+    if invocation["status"] != "supported":
+        raise FieldIntelligenceError(
+            "AFFECT_REGULATION_UNAVAILABLE",
+            "the selected affect regulation procedure could not execute",
+        )
+    choice_id = f"event:affect-regulation:{sha256_value(operation_id)}"
+    obligation_id = f"obligation:affect-outcome:{sha256_value(operation_id)}"
+    episode_id = f"affect-episode:{sha256_value({'choice_id': choice_id})}"
+    assessment_program_ref = _semantic_affect_program(state)
+    start_cursor = int(state["ledger"]["transitions"])
+    obligation_ref = {"id": obligation_id, "kind": "Obligation", "content_version": 1}
+    dependencies = [context_ref, program_ref]
+    if appraisal_ref is not None:
+        dependencies.append(appraisal_ref)
+    if goal_ref is not None:
+        dependencies.append(goal_ref)
+    action_proposals = [
+        {
+            **dict(action),
+            "action_id": f"affect-action:{sha256_value({'choice': choice_id, 'index': index, 'action': action})}",
+        }
+        for index, action in enumerate(invocation.get("proposed_actions", []))
+    ]
+    choice_ref = _semantic_append_record(
+        state,
+        record_id=choice_id,
+        kind="Event",
+        payload={
+            "affect_regulation": {
+                "schema": AFFECT_REGULATION_SCHEMA,
+                "origin": "live",
+                "episode_id": episode_id,
+                "project_id": project,
+                "object_id": object_id,
+                "appraisal_ref": appraisal_ref,
+                "appraisal_refs": [] if appraisal_ref is None else [appraisal_ref],
+                "context_ref": context_ref,
+                "goal_ref": goal_ref,
+                "selected_program_ref": program_ref,
+                "procedure_ref": program_ref,
+                "bindings": {
+                    "appraisal_ref": appraisal_ref,
+                    "context_ref": context_ref,
+                    "goal_ref": goal_ref,
+                },
+                "candidate_refs": [program_ref],
+                "mode": mode,
+                "strength": context["regulation"]["strength"],
+                "scores": context["regulation"]["scores"],
+                "proposed_actions": action_proposals,
+                "expected_consequence": {
+                    "kind": "useful-cognitive-change",
+                    "direction": "improve-progress-or-information",
+                    "assessment_program_ref": assessment_program_ref,
+                },
+                "outcome_obligation_ref": obligation_ref,
+            }
+        },
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        derivation={"operation": "regulate-affect", "operation_id": operation_id},
+        valid_time={"start": state["time"]["now"], "end": state["time"]["now"]},
+    )
+    _semantic_reindex_record(state, choice_ref)
+    obligation_ref = _semantic_append_record(
+        state,
+        record_id=obligation_id,
+        kind="Obligation",
+        payload={
+            "schema": "cassifi.affect-outcome-obligation.v1",
+            "state": "pending",
+            "episode_id": episode_id,
+            "choice_ref": choice_ref,
+            "goal_ref": goal_ref,
+            "action_ids": [action["action_id"] for action in action_proposals],
+            "required_outcome_kinds": [
+                "actual-action", "actual-result", "assessed-consequence",
+            ],
+            "assessment_program_ref": assessment_program_ref,
+            "start_cursor": start_cursor,
+            "horizon": {
+                "basis": "owner-event-cursor",
+                "deadline": start_cursor + 32,
+            },
+            "required_links": [
+                "actual_action_refs", "actual_result_refs",
+                "consequence_assessment_ref",
+            ],
+            "purpose": "observe-affect-regulation-consequence",
+        },
+        epistemic_kind="derived",
+        dependencies=[choice_ref, assessment_program_ref, *dependencies],
+        derivation={"operation": "await-affect-outcome", "operation_id": operation_id},
+    )
+    _semantic_reindex_record(state, obligation_ref)
+    context = {
+        **context,
+        "selected_program_ref": program_ref,
+        "proposed_actions": action_proposals,
+        "outcome_obligation_ref": obligation_ref,
+    }
+    return choice_ref, obligation_ref, context, invocation_work + 2
+
+
+def _semantic_assess_affect_outcome(
+    state: dict[str, Any], request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    """Join one committed regulation choice to its actual bounded consequence."""
+    _semantic_keys(
+        request,
+        required=(
+            "outcome_obligation_ref", "actual_action_refs",
+            "actual_result_refs", "consequence", "attribution",
+        ),
+        optional=("other_contributor_refs",),
+    )
+    obligation_reference, obligation = _semantic_reference(
+        state, request["outcome_obligation_ref"], require_current=True,
+    )
+    if obligation_reference.kind != "Obligation":
+        raise FieldIntelligenceError(
+            "INVALID_AFFECT_OUTCOME",
+            "affect outcome must resolve an Obligation",
+        )
+    obligation_payload = obligation["payload"]
+    if (
+        obligation_payload.get("schema")
+        != "cassifi.affect-outcome-obligation.v1"
+        or obligation_payload.get("state") != "pending"
+    ):
+        raise FieldIntelligenceError(
+            "OPERATION_CONFLICT",
+            "affect outcome obligation is not pending",
+        )
+    action_refs = _semantic_affect_refs(
+        state, request["actual_action_refs"], label="affect actual_action_refs",
+    )
+    result_refs = _semantic_affect_refs(
+        state, request["actual_result_refs"], label="affect actual_result_refs",
+    )
+    contributor_refs = _semantic_affect_refs(
+        state, request.get("other_contributor_refs", []),
+        label="affect other_contributor_refs",
+    )
+    raw_consequence = request["consequence"]
+    if not isinstance(raw_consequence, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_AFFECT_OUTCOME", "affect consequence must be an object",
+        )
+    _semantic_keys(
+        raw_consequence,
+        required=("status",),
+        optional=(
+            "progress", "information_gain", "capability_change",
+            "cost", "limitations",
+        ),
+    )
+    consequence = _regional_plain(dict(raw_consequence), "affect consequence")
+    outcome_status = str(consequence["status"])
+    if outcome_status not in {"observed", "censored", "invalidated"}:
+        raise FieldIntelligenceError(
+            "INVALID_AFFECT_OUTCOME",
+            "affect consequence status is unsupported",
+        )
+    if outcome_status == "observed" and (not action_refs or not result_refs):
+        raise FieldIntelligenceError(
+            "INVALID_AFFECT_OUTCOME",
+            "an observed affect consequence requires actual action and result references",
+        )
+    progress = consequence.get("progress")
+    if progress is not None and (
+        isinstance(progress, bool)
+        or not isinstance(progress, (int, float))
+        or not math.isfinite(float(progress))
+        or not -1.0 <= float(progress) <= 1.0
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_AFFECT_OUTCOME", "affect consequence progress is invalid",
+        )
+    for name in ("information_gain", "capability_change"):
+        value = consequence.get(name)
+        if value is not None and (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or not -1.0 <= float(value) <= 1.0
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_AFFECT_OUTCOME",
+                f"affect consequence {name} is invalid",
+            )
+    attribution = str(request["attribution"])
+    if attribution not in {"association", "comparative-support", "unresolved"}:
+        raise FieldIntelligenceError(
+            "INVALID_AFFECT_OUTCOME", "affect outcome attribution is invalid",
+        )
+    covered_action_ids: list[str] = []
+    permitted_action_ids = set(obligation_payload.get("action_ids", []))
+    for reference in action_refs:
+        record = state["records"][reference["id"]][-1]
+        action = record["payload"].get("affect_action")
+        action_id = action.get("action_id") if isinstance(action, Mapping) else None
+        if (
+            not isinstance(action_id, str)
+            or action_id not in permitted_action_ids
+            or action.get("episode_id") != obligation_payload.get("episode_id")
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_AFFECT_OUTCOME",
+                "actual action is not a committed child of the regulation choice",
+            )
+        covered_action_ids.append(action_id)
+    assessment_program_ref = obligation_payload["assessment_program_ref"]
+    assessment_id = (
+        "assessment:affect-outcome:"
+        + sha256_value(obligation_reference.as_dict())
+    )
+    assessment_ref = _semantic_append_record(
+        state,
+        record_id=assessment_id,
+        kind="Assessment",
+        payload={
+            "schema": "cassifi.affect-outcome-assessment.v1",
+            "episode_id": obligation_payload["episode_id"],
+            "choice_ref": obligation_payload["choice_ref"],
+            "goal_ref": obligation_payload.get("goal_ref"),
+            "outcome_obligation_ref": obligation_reference.as_dict(),
+            "covered_action_ids": covered_action_ids,
+            "actual_action_refs": action_refs,
+            "actual_result_refs": result_refs,
+            "consequence": consequence,
+            "attribution": attribution,
+            "other_contributor_refs": contributor_refs,
+            "assessment_program_ref": assessment_program_ref,
+        },
+        epistemic_kind="assessed",
+        dependencies=[
+            obligation_payload["choice_ref"],
+            obligation_reference.as_dict(),
+            assessment_program_ref,
+            *action_refs,
+            *result_refs,
+            *contributor_refs,
+        ],
+        support_roots=sorted({
+            root
+            for reference in [*action_refs, *result_refs, *contributor_refs]
+            for root in state["records"][reference["id"]][-1]["support_roots"]
+        }),
+        derivation={"operation": "assess-affect-outcome"},
+    )
+    _semantic_reindex_record(state, assessment_ref)
+    resolved_ref = _semantic_append_record(
+        state,
+        record_id=obligation_reference.id,
+        kind="Obligation",
+        payload={
+            **obligation_payload,
+            "state": (
+                "resolved" if outcome_status == "observed" else outcome_status
+            ),
+            "actual_action_refs": action_refs,
+            "actual_result_refs": result_refs,
+            "consequence_assessment_ref": assessment_ref,
+        },
+        epistemic_kind="assessed",
+        dependencies=obligation["dependencies"],
+        support_roots=obligation["support_roots"],
+        derivation={"operation": "resolve-affect-outcome"},
+    )
+    _semantic_reindex_record(state, resolved_ref)
+    return _semantic_result(
+        "assess-affect-outcome",
+        "supported",
+        assessment=assessment_ref,
+        outcome_obligation=resolved_ref,
+    ), 2 + len(action_refs) + len(result_refs) + len(contributor_refs)
+
+
+def _semantic_migrate_affect_v1(state: dict[str, Any]) -> int:
+    """Idempotently project legacy affect rows into the explicit v2 ontology."""
+    marker_id = "event:affect-migration:v1-to-v2"
+    if state["current"]["Event"].get(marker_id) is not None:
+        return 0
+    legacy_appraisals: list[Mapping[str, Any]] = []
+    legacy_choices: list[Mapping[str, Any]] = []
+    for event_id in list(state["current"]["Event"]):
+        record = state["records"][event_id][-1]
+        appraisal = record["payload"].get("affect_appraisal")
+        regulation = record["payload"].get("affect_regulation")
+        if isinstance(appraisal, Mapping) and appraisal.get("schema") != AFFECT_APPRAISAL_SCHEMA:
+            legacy_appraisals.append(record)
+        if isinstance(regulation, Mapping) and regulation.get("schema") != AFFECT_REGULATION_SCHEMA:
+            legacy_choices.append(record)
+    if not legacy_appraisals and not legacy_choices:
+        return 0
+    work = 0
+    migrated_choices: dict[str, dict[str, Any]] = {}
+    for legacy in sorted(legacy_choices, key=lambda row: (row["created_at"], row["id"])):
+        value = legacy["payload"]["affect_regulation"]
+        project = str(value.get("project_id", "global"))
+        object_id = value.get("object_id")
+        mode = str(value.get("mode", "verify"))
+        if mode not in AFFECT_MODES:
+            mode = "verify"
+        legacy_ref = semantic_record_ref(legacy).as_dict()
+        migration_key = sha256_value({
+            "legacy_ref": legacy_ref,
+            "schema": AFFECT_REGULATION_SCHEMA,
+        })
+        context_ref = _semantic_affect_context_record(
+            state, {}, project=project, object_id=(
+                None if object_id is None else str(object_id)
+            ), object_refs=[], evidence_ref=None, relevant_refs=[],
+            operation_id=f"migrate:{migration_key}:context",
+        )
+        program_ref = _semantic_select_affect_program(state, mode)
+        choice_ref = _semantic_append_record(
+            state,
+            record_id=legacy["id"],
+            kind="Event",
+            payload={"affect_regulation": {
+                "schema": AFFECT_REGULATION_SCHEMA,
+                "origin": "migrated",
+                "episode_id": f"affect-episode:migrated:{migration_key}",
+                "project_id": project,
+                "object_id": object_id,
+                "appraisal_ref": None,
+                "appraisal_refs": [],
+                "context_ref": context_ref,
+                "goal_ref": None,
+                "selected_program_ref": program_ref,
+                "procedure_ref": program_ref,
+                "bindings": {
+                    "appraisal_ref": None,
+                    "context_ref": context_ref,
+                    "goal_ref": None,
+                },
+                "candidate_refs": [program_ref],
+                "mode": mode,
+                "strength": float(value.get("strength", 0.0)),
+                "scores": dict(value.get("scores", {})),
+                "proposed_actions": [],
+                "expected_consequence": None,
+                "outcome_obligation_ref": None,
+                "migration": {
+                    "source_schema": "cassifi.affect-regulation.v1",
+                    "legacy_ref": legacy_ref,
+                    "unknown_fields": [
+                        "goal_ref", "actual_action_refs", "actual_result_refs",
+                        "consequence_assessment_ref",
+                    ],
+                },
+            }},
+            epistemic_kind="derived",
+            dependencies=[context_ref, program_ref],
+            derivation={"operation": "migrate-affect-v1-to-v2"},
+            valid_time=(
+                legacy["valid_time"]
+                or {"start": state["time"]["now"], "end": state["time"]["now"]}
+            ),
+        )
+        _semantic_reindex_record(state, choice_ref)
+        migrated_choices[legacy["id"]] = choice_ref
+        work += 1
+    for legacy in sorted(legacy_appraisals, key=lambda row: (row["created_at"], row["id"])):
+        value = legacy["payload"]["affect_appraisal"]
+        raw_evidence = value.get("evidence")
+        if not isinstance(raw_evidence, Mapping):
+            continue
+        try:
+            evidence_reference, evidence_record = _semantic_reference(
+                state, raw_evidence, require_current=True,
+            )
+            evidence = affect_evidence(evidence_record)
+        except FieldIntelligenceError:
+            continue
+        evidence_ref = evidence_reference.as_dict()
+        project = str(value.get("project_id", "global"))
+        object_id = value.get("object_id")
+        object_refs = _semantic_affect_object_refs(
+            state, {"object_refs": None}, None if object_id is None else str(object_id),
+        )
+        legacy_ref = semantic_record_ref(legacy).as_dict()
+        context_ref = _semantic_affect_context_record(
+            state, {}, project=project, object_id=(
+                None if object_id is None else str(object_id)
+            ), object_refs=object_refs, evidence_ref=evidence_ref,
+            relevant_refs=[],
+            operation_id=f"migrate:{legacy['id']}:{legacy['content_version']}",
+        )
+        raw_signals = value.get("signals", {})
+        signals = {
+            name: known_signal(
+                name,
+                raw_signals.get(name, 0.0 if name != "capacity" else 1.0),
+                [evidence_ref],
+            )
+            for name in AFFECT_SIGNAL_NAMES
+        }
+        key = projection_key(
+            owner_lineage=str(state.get("scope", "owner")),
+            experience_key=evidence["experience_key"],
+            project_id=project,
+            question_ref=None,
+            object_refs=object_refs,
+            goal_ref=None,
+        )
+        program_ref = _semantic_affect_program(state)
+        preceding = value.get("preceding_regulation")
+        preceding_ref = (
+            migrated_choices.get(str(preceding.get("id")))
+            if isinstance(preceding, Mapping) else None
+        )
+        following = value.get("following_regulation")
+        following_ref = (
+            migrated_choices.get(str(following.get("id")))
+            if isinstance(following, Mapping) else None
+        )
+        appraisal_ref = _semantic_append_record(
+            state,
+            record_id=legacy["id"],
+            kind="Event",
+            payload={"affect_appraisal": {
+                "schema": AFFECT_APPRAISAL_SCHEMA,
+                "origin": "migrated",
+                "revises_ref": legacy_ref,
+                "projection_key": key,
+                "owner_lineage": str(state.get("scope", "owner")),
+                "experience_key": evidence["experience_key"],
+                "experience_kind": evidence["kind"],
+                "experience_ref": evidence_ref,
+                "question_ref": None,
+                "object_refs": object_refs,
+                "goal_ref": None,
+                "expectation_refs": [],
+                "context_ref": context_ref,
+                "appraisal_program_ref": program_ref,
+                "learning_assessment_ref": None,
+                "relationship_assessment_refs": [],
+                "prior_choice_ref": preceding_ref,
+                "project_id": project,
+                "measurement": evidence.get("measurement"),
+                "signals": signals,
+                "preceding_mode": value.get("regulation_mode"),
+                "following_choice_ref": following_ref,
+                "migration": {
+                    "source_schema": "cassifi.affect-appraisal.v1",
+                    "legacy_ref": legacy_ref,
+                    "unknown_fields": [
+                        "question_ref", "goal_ref", "expectation_refs",
+                        "learning_assessment_ref", "relationship_assessment_refs",
+                    ],
+                },
+            }},
+            epistemic_kind="derived",
+            dependencies=[evidence_ref, context_ref, program_ref, *object_refs],
+            support_roots=evidence_record["support_roots"],
+            derivation={"operation": "migrate-affect-v1-to-v2"},
+            valid_time={"start": state["time"]["now"], "end": state["time"]["now"]},
+        )
+        _semantic_reindex_record(state, appraisal_ref)
+        work += 1
+    marker_ref = _semantic_append_record(
+        state,
+        record_id=marker_id,
+        kind="Event",
+        payload={
+            "schema": "cassifi.affect-migration.v1-to-v2",
+            "legacy_appraisal_count": len(legacy_appraisals),
+            "legacy_choice_count": len(legacy_choices),
+            "migrated_appraisal_count": sum(
+                1 for record_id in state["current"]["Event"]
+                if record_id.startswith("event:affect-appraisal:")
+                and state["records"][record_id][-1]["payload"]
+                .get("affect_appraisal", {}).get("schema") == AFFECT_APPRAISAL_SCHEMA
+            ),
+            "migrated_choice_count": len(migrated_choices),
+        },
+        epistemic_kind="derived",
+        dependencies=[],
+        derivation={"operation": "migrate-affect-v1-to-v2"},
+        valid_time={"start": state["time"]["now"], "end": state["time"]["now"]},
+    )
+    _semantic_reindex_record(state, marker_ref)
+    return work + 1
+
+
+def _semantic_affect(
+    state: dict[str, Any], request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    operation = request["operation"]
+    if operation == "assess-affect-outcome":
+        return _semantic_assess_affect_outcome(state, request)
+    appraisal_optional = (
+        "project_id", "object_id", "question_ref", "object_refs", "goal_ref",
+        "expectation_refs", "context_ref", "appraisal_program_ref",
+        "learning_assessment_ref", "relationship_assessment_refs",
+        "prior_choice_ref", "owner_lineage",
+    )
+    _semantic_keys(
+        request,
+        required=("evidence",) if operation == "appraise-experience" else (),
+        optional=appraisal_optional if operation == "appraise-experience" else (
+            "project_id", "object_id", "context_ref", "goal_ref",
+        ),
+    )
+    migration_work = _semantic_migrate_affect_v1(state)
+    project, object_id = _semantic_affect_scope(request)
+    work = 1 + len(state["current"]["Event"]) + migration_work
+    if operation == "affect-state":
+        return _semantic_result(
+            operation, "supported", context=affect_context(state, project, object_id),
+        ), work
+    operation_id = _semantic_operation_identity(request)
+    goal_ref = _semantic_affect_optional_ref(
+        state, request.get("goal_ref"), label="affect goal_ref",
+    )
+    if operation == "regulate-affect":
+        context_ref = _semantic_affect_context_record(
+            state, request, project=project, object_id=object_id, object_refs=[],
+            evidence_ref=None,
+            relevant_refs=[ref for ref in [goal_ref] if ref is not None],
+            operation_id=operation_id,
+        )
+        choice, obligation, context, regulation_work = _semantic_affect_regulation(
+            state, project, object_id, operation_id,
+            context_ref=context_ref, goal_ref=goal_ref,
+        )
+        return _semantic_result(
+            operation, "supported", regulation=choice,
+            outcome_obligation=obligation, context=context,
+        ), work + regulation_work
+    evidence_reference, evidence_record = _semantic_reference(
+        state, request["evidence"], require_current=True,
+    )
+    evidence_ref = evidence_reference.as_dict()
+    evidence = affect_evidence(evidence_record)
+    question_ref = _semantic_affect_optional_ref(
+        state, request.get("question_ref"), label="affect question_ref",
+    )
+    object_refs = _semantic_affect_object_refs(state, request, object_id)
+    expectation_refs = _semantic_affect_refs(
+        state, request.get("expectation_refs"), label="affect expectation_refs",
+    )
+    learning_ref = _semantic_affect_optional_ref(
+        state, request.get("learning_assessment_ref"),
+        label="affect learning_assessment_ref", expected_kind="Assessment",
+    )
+    relationship_refs = _semantic_affect_refs(
+        state, request.get("relationship_assessment_refs"),
+        label="affect relationship_assessment_refs",
+    )
+    prior_choice_ref = _semantic_affect_optional_ref(
+        state, request.get("prior_choice_ref"), label="affect prior_choice_ref",
+        expected_kind="Event",
+    )
+    relevant_refs = [
+        ref for ref in [
+            question_ref, goal_ref, learning_ref, prior_choice_ref,
+            *expectation_refs, *relationship_refs,
+        ] if ref is not None
+    ]
+    context_ref = _semantic_affect_context_record(
+        state, request, project=project, object_id=object_id,
+        object_refs=object_refs, evidence_ref=evidence_ref,
+        relevant_refs=relevant_refs, operation_id=operation_id,
+    )
+    owner_lineage = str(request.get("owner_lineage", state.get("scope", "owner")))
+    key = projection_key(
+        owner_lineage=owner_lineage,
+        experience_key=evidence["experience_key"],
+        project_id=project,
+        question_ref=question_ref,
+        object_refs=object_refs,
+        goal_ref=goal_ref,
+    )
+    rows = affect_appraisals(state)
+    prior_projection: Mapping[str, Any] | None = None
+    for row in rows:
+        value = row["payload"]["affect_appraisal"]
+        if value["projection_key"] != key:
+            continue
+        prior_projection = row
+        explicit_context_changed = (
+            request.get("context_ref") is not None
+            and value["context_ref"] != context_ref
+        )
+        if value["experience_ref"] == evidence_ref and not explicit_context_changed:
+            return _semantic_result(
+                operation, "supported", appraisal=semantic_record_ref(row).as_dict(),
+                regulation=value.get("following_choice_ref"),
+                context=affect_context(state, project, object_id), duplicate=True,
+            ), work
+        break
+    local = [
+        row for row in rows
+        if row["payload"]["affect_appraisal"]["projection_key"] != key
+        and row["payload"]["affect_appraisal"]["project_id"] == project
+        and any(
+            ref in object_refs
+            for ref in row["payload"]["affect_appraisal"]["object_refs"]
+        )
+    ]
+    if prior_choice_ref is None:
+        prior_choices = []
+        for event_id in state["current"]["Event"]:
+            record = state["records"][event_id][-1]
+            value = record["payload"].get("affect_regulation")
+            if (
+                isinstance(value, Mapping)
+                and value.get("schema") == AFFECT_REGULATION_SCHEMA
+                and value.get("project_id") == project
+                and value.get("object_id") in (None, object_id)
+                and record["created_at"] <= evidence_record["created_at"]
+            ):
+                prior_choices.append(record)
+        previous = max(
+            prior_choices, key=lambda row: (row["created_at"], row["id"]), default=None,
+        )
+        prior_choice_ref = (
+            None if previous is None else semantic_record_ref(previous).as_dict()
+        )
+    signals = appraisal_signals(evidence, local, evidence_ref=evidence_ref)
+    appraisal_program_ref = _semantic_affect_optional_ref(
+        state, request.get("appraisal_program_ref"),
+        label="affect appraisal_program_ref", expected_kind="Program",
+    ) or _semantic_affect_program(state)
+    appraisal_invocation, appraisal_work = _semantic_invoke_procedure(
+        state,
+        {
+            "operation": "invoke-procedure",
+            "procedure_ref": appraisal_program_ref,
+            "bindings": {
+                "evidence_ref": evidence_ref,
+                "signals": signals,
+                "context_ref": context_ref,
+            },
+            "context": {"project_id": project, "object_refs": object_refs},
+        },
+    )
+    if appraisal_invocation["status"] != "supported":
+        raise FieldIntelligenceError(
+            "AFFECT_APPRAISAL_UNAVAILABLE",
+            "the selected affect appraisal program could not execute",
+        )
+    choice_operation_id = f"{operation_id}:regulation"
+    future_choice_ref = {
+        "id": f"event:affect-regulation:{sha256_value(choice_operation_id)}",
+        "kind": "Event",
+        "content_version": 1,
+    }
+    dependencies = [
+        evidence_ref, context_ref, appraisal_program_ref, *object_refs, *relevant_refs,
+        *([semantic_record_ref(local[-1]).as_dict()] if local else []),
+    ]
+    appraisal_ref = _semantic_append_record(
+        state,
+        record_id=f"event:affect-appraisal:{key}",
+        kind="Event",
+        payload={
+            "affect_appraisal": {
+                "schema": AFFECT_APPRAISAL_SCHEMA,
+                "origin": "live",
+                "revises_ref": (
+                    None if prior_projection is None
+                    else semantic_record_ref(prior_projection).as_dict()
+                ),
+                "projection_key": key,
+                "owner_lineage": owner_lineage,
+                "experience_key": evidence["experience_key"],
+                "experience_kind": evidence["kind"],
+                "experience_ref": evidence_ref,
+                "question_ref": question_ref,
+                "object_refs": object_refs,
+                "goal_ref": goal_ref,
+                "expectation_refs": expectation_refs,
+                "context_ref": context_ref,
+                "appraisal_program_ref": appraisal_program_ref,
+                "learning_assessment_ref": learning_ref,
+                "relationship_assessment_refs": relationship_refs,
+                "prior_choice_ref": prior_choice_ref,
+                "project_id": project,
+                "measurement": evidence.get("measurement"),
+                "signals": signals,
+                "preceding_mode": (
+                    None if prior_choice_ref is None
+                    else state["records"][prior_choice_ref["id"]][-1]["payload"]
+                    .get("affect_regulation", {}).get("mode")
+                ),
+                "following_choice_ref": future_choice_ref,
+            }
+        },
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        support_roots=evidence_record["support_roots"],
+        derivation={
+            "operation": operation,
+            "operation_id": operation_id,
+            "program_ref": appraisal_program_ref,
+        },
+        valid_time={"start": state["time"]["now"], "end": state["time"]["now"]},
+    )
+    _semantic_reindex_record(state, appraisal_ref)
+    choice, obligation, context, regulation_work = _semantic_affect_regulation(
+        state, project, object_id, choice_operation_id,
+        appraisal_ref=appraisal_ref, context_ref=context_ref, goal_ref=goal_ref,
+    )
+    return _semantic_result(
+        operation, "supported", appraisal=appraisal_ref, regulation=choice,
+        outcome_obligation=obligation, context=context,
+    ), work + appraisal_work + regulation_work + 1
+
+
+CIRCULATION_MODULATION_KEYS = frozenset({
+    "schema",
+    "authority",
+    "scale",
+    "values",
+    "coverage",
+    "signed_current",
+    "handedness",
+    "degenerate",
+    "dependencies",
+})
+
+
+def _agenda_circulation_modulation(value: Any) -> dict[str, Any]:
+    """Validate one declared eligible-work modulation of a resident flow.
+
+    The block is a bounded priority hint over already eligible work: the agenda
+    applies ``values[sequence]`` to the item at that position of its own
+    declared construction order and records what it applied.  Eligibility,
+    authority, validity, and the existing fairness rule are unchanged, so a
+    strong flow cannot make ineligible work executable or starve a
+    low-activity obligation.
+    """
+
+    from cassi_circulation import (
+        CIRCULATION_ACTIVITY_SCHEMA,
+        CIRCULATION_MODULATION_AUTHORITY,
+    )
+
+    if not isinstance(value, Mapping) or set(value) != CIRCULATION_MODULATION_KEYS:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation keys are invalid",
+        )
+    if value["schema"] != CIRCULATION_ACTIVITY_SCHEMA:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation schema is invalid",
+        )
+    if value["authority"] != CIRCULATION_MODULATION_AUTHORITY:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation authority is invalid",
+        )
+    scale = _finite(value["scale"], "circulation modulation scale")
+    if not 0.0 < scale <= 1.0:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation scale must lie in (0, 1]",
+        )
+    raw_values = value["values"]
+    if not isinstance(raw_values, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation values must be a mapping",
+        )
+    values: dict[str, float] = {}
+    for key, raw in raw_values.items():
+        if isinstance(key, bool) or not isinstance(key, str) or not key.isdigit():
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                "circulation modulation sequences must be nonnegative integers",
+            )
+        adjustment = _finite(raw, "circulation modulation value")
+        if not -1.0 <= adjustment <= 1.0:
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                "circulation modulation values must lie in [-1, 1]",
+            )
+        values[key] = adjustment
+    coverage = _finite(value["coverage"], "circulation modulation coverage")
+    if not 0.0 <= coverage <= 1.0:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation coverage must lie in [0, 1]",
+        )
+    degenerate = value["degenerate"]
+    if not isinstance(degenerate, bool):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation degeneracy must be a boolean",
+        )
+    dependencies = _regional_plain(
+        value["dependencies"], "circulation modulation dependencies"
+    )
+    if not isinstance(dependencies, Mapping) or not dependencies:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "circulation modulation dependencies are missing",
+        )
+    return {
+        "authority": CIRCULATION_MODULATION_AUTHORITY,
+        "coverage": coverage,
+        "degenerate": degenerate,
+        "dependencies": dict(dependencies),
+        "handedness": _regional_integer(
+            value["handedness"],
+            "circulation modulation handedness",
+            minimum=-1,
+            maximum=1,
+        ),
+        "scale": scale,
+        "signed_current": _finite(
+            value["signed_current"], "circulation modulation signed current"
+        ),
+        "values": values,
+    }
+
+
+def _semantic_autonomous_agenda(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Build a resident agenda from unresolved field obligations."""
+
+    _semantic_keys(
+        request,
+        required=(),
+        optional=(
+            "circulation",
+            "goal",
+            "max_items",
+            "observation_channels",
+            "operation_id",
+            "obligation_prefix",
+            "project_id",
+        ),
+    )
+    max_items = _regional_integer(
+        request.get("max_items", state["bounds"]["max_alternatives"]),
+        "autonomous agenda maximum",
+        minimum=1,
+        maximum=state["bounds"]["max_alternatives"],
+    )
+    goal = _regional_plain(request.get("goal"), "autonomous agenda goal")
+    observation_channels = request.get("observation_channels")
+    if observation_channels is not None:
+        if not isinstance(observation_channels, list):
+            raise FieldIntelligenceError(
+                "INVALID_PERCEPTION",
+                "autonomous agenda observation channels must be a list",
+            )
+        observation_channels = _regional_plain(
+            observation_channels, "autonomous agenda observation channels"
+        )
+    current = state.get("current", {})
+    obligations = current.get("Obligation", {}) if isinstance(current, Mapping) else {}
+    if not isinstance(obligations, Mapping):
+        obligations = {}
+    obligation_prefix = request.get("obligation_prefix")
+    if obligation_prefix is not None and (
+        not isinstance(obligation_prefix, str) or not obligation_prefix
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "autonomous agenda obligation prefix must be a non-empty string",
+        )
+    obligation_ids = sorted(
+        str(record_id)
+        for record_id in obligations
+        if obligation_prefix is None
+        or str(record_id).startswith(obligation_prefix)
+    )
+    operation_id = _identifier(
+        request.get(
+            "operation_id",
+            "agenda-cycle:"
+            + sha256_value(
+                {
+                    "channels": observation_channels,
+                    "obligations": obligation_ids,
+                    "obligation_prefix": obligation_prefix,
+                    "project_id": request.get("project_id"),
+                }
+            ),
+        ),
+        "autonomous agenda operation identity",
+    )
+    agenda_event_id = (
+        f"event:autonomous-agenda:{sha256_value({'operation_id': operation_id})}"
+    )
+    existing = state["current"]["Event"].get(agenda_event_id)
+    if existing is not None:
+        record = state["records"][agenda_event_id][-1]
+        payload = record["payload"]["autonomous_agenda"]
+        return (
+            _semantic_result(
+                "autonomous-agenda",
+                payload["status"],
+                event=existing,
+                agenda=payload["agenda"],
+                affect=payload.get("affect"),
+                curiosity_event=payload.get("curiosity_event"),
+                curiosity_goal_count=payload.get("curiosity_goal_count", 0),
+                perception_event=payload.get("perception_event"),
+                selected=payload.get("selected"),
+                replayed=True,
+            ),
+            1,
+        )
+
+    agenda: list[dict[str, Any]] = []
+    dependencies: list[dict[str, Any]] = []
+    curiosity_result, curiosity_work = _semantic_autonomous_curiosity(
+        state,
+        {
+            "operation_id": f"{operation_id}:curiosity",
+            "goal": goal,
+            "max_goals": max_items,
+        },
+    )
+    curiosity_event = curiosity_result.get("event")
+    if isinstance(curiosity_event, Mapping):
+        dependencies.append(dict(curiosity_event))
+    curiosity_goals = curiosity_result.get("goals", [])
+    if isinstance(curiosity_goals, list):
+        for curiosity_goal in curiosity_goals:
+            if not isinstance(curiosity_goal, Mapping):
+                continue
+            source = curiosity_goal.get("source")
+            if isinstance(source, Mapping):
+                dependencies.append(dict(source))
+            agenda.append(
+                {
+                    "agenda_id": curiosity_goal["goal_id"],
+                    "kind": "curiosity-goal",
+                    "goal": dict(curiosity_goal),
+                    "priority": curiosity_goal["priority"],
+                    "reason": curiosity_goal["reason"],
+                    "request": dict(curiosity_goal["request"]),
+                }
+            )
+    perception_event = None
+    perception_work = 0
+    if isinstance(observation_channels, list) and isinstance(curiosity_goals, list):
+        perception_goal = next(
+            (
+                candidate
+                for candidate in curiosity_goals
+                if isinstance(candidate, Mapping)
+            ),
+            None,
+        )
+        if perception_goal is not None:
+            perception_result, perception_work = _semantic_autonomous_perception(
+                state,
+                {
+                    "channels": observation_channels,
+                    "goal": dict(perception_goal),
+                    "operation_id": (
+                        f"{operation_id}:perception:"
+                        f"{perception_goal['goal_id']}"
+                    ),
+                },
+            )
+            perception_event = perception_result.get("event")
+            if isinstance(perception_event, Mapping):
+                dependencies.append(dict(perception_event))
+            observation_request = perception_result.get("observation_request")
+            selected_channel = perception_result.get("selected_channel")
+            if (
+                isinstance(observation_request, Mapping)
+                and isinstance(selected_channel, Mapping)
+            ):
+                agenda.append(
+                    {
+                        "agenda_id": (
+                            f"{perception_goal['goal_id']}:active-perception"
+                        ),
+                        "channel": dict(selected_channel),
+                        "channel_scores": perception_result.get(
+                            "channel_scores", []
+                        ),
+                        "goal": dict(perception_goal),
+                        "kind": "active-perception",
+                        "priority": float(perception_goal["priority"]) + 0.1,
+                        "reason": (
+                            "request the owner observation that best reduces "
+                            "the current curiosity gap"
+                        ),
+                        "request": dict(observation_request),
+                    }
+                )
+    records = state.get("records", {})
+    if (
+        isinstance(state.get("invalidation"), Mapping)
+        and state["invalidation"].get("active")
+    ):
+        agenda.append(
+            {
+                "agenda_id": f"{agenda_event_id}:invalidation",
+                "kind": "repair-invalidation",
+                "priority": 3.0,
+                "reason": "dependency invalidation is active",
+                "request": {
+                    "operation": "advance-invalidation",
+                    "quanta": min(64, int(state["bounds"]["max_work"])),
+                },
+            }
+        )
+    for record_id in obligation_ids:
+        history = records.get(record_id) if isinstance(records, Mapping) else None
+        if not isinstance(history, list) or not history:
+            continue
+        record = history[-1]
+        if not isinstance(record, Mapping):
+            continue
+        if record.get("status") not in {"active", "pending", "candidate"}:
+            continue
+        payload = record.get("payload")
+        if not isinstance(payload, Mapping):
+            continue
+        if payload.get("state") in {"resolved", "fulfilled", "failed", "cancelled"}:
+            continue
+        purpose = str(payload.get("purpose", "pending-obligation"))
+        base_priority = (
+            2.0
+            if "prediction" in purpose
+            else 1.5
+            if "procedure" in purpose
+            else 1.0
+        )
+        declared_priority = payload.get("priority", 0.0)
+        priority = base_priority + _finite(
+            declared_priority,
+            "autonomous agenda obligation priority",
+        )
+        reference = semantic_record_ref(record).as_dict()
+        dependencies.append(reference)
+        agenda.append(
+            {
+                "agenda_id": (
+                    f"{agenda_event_id}:obligation:"
+                    f"{sha256_value(record_id)[:16]}"
+                ),
+                "kind": "resolve-obligation",
+                "obligation": reference,
+                "priority": priority,
+                "reason": purpose,
+                "request": {
+                    "operation": "inspect",
+                    "record_ref": reference,
+                },
+            }
+        )
+    if not agenda:
+        event_ids = current.get("Event", {}) if isinstance(current, Mapping) else {}
+        if isinstance(event_ids, Mapping) and event_ids:
+            agenda.append(
+                {
+                    "agenda_id": f"{agenda_event_id}:resident-learning",
+                    "kind": "resident-learning-scan",
+                    "priority": 0.5,
+                    "reason": "scan resident evidence for the next acquisition",
+                    "request": {
+                        "operation": "autonomous-learn",
+                        "goal": goal or "improve resident competence",
+                    },
+                }
+            )
+    affect_project = request.get("project_id")
+    affect = None
+    if affect_project is not None:
+        affect_project = _identifier(affect_project, "agenda affect project")
+        affect = affect_context(state, affect_project)
+        for item in agenda:
+            reference = item.get("obligation")
+            if not isinstance(reference, Mapping):
+                continue
+            record = state["records"][reference["id"]][-1]
+            features = record["payload"].get("affect")
+            if not isinstance(features, Mapping) or features.get("project_id") != affect_project:
+                continue
+            context = affect_context(state, affect_project, features.get("object_id"))
+            adjustment = affect_adjustment(context, features)
+            item["base_priority"] = item["priority"]
+            item["affect_adjustment"] = adjustment
+            item["affect_mode"] = context["regulation"]["mode"]
+            item["priority"] += adjustment
+    circulation = request.get("circulation")
+    modulation = (
+        None if circulation is None else _agenda_circulation_modulation(circulation)
+    )
+    if modulation is not None:
+        for sequence, item in enumerate(agenda):
+            adjustment = modulation["values"].get(str(sequence), 0.0)
+            if adjustment == 0.0:
+                continue
+            item.setdefault("base_priority", item["priority"])
+            item["circulation_sequence"] = sequence
+            item["circulation_adjustment"] = adjustment
+            item["priority"] += adjustment
+    agenda.sort(
+        key=lambda item: (
+            -float(item["priority"]),
+            str(item["agenda_id"]),
+        )
+    )
+    agenda = agenda[:max_items]
+    selected = agenda[0] if agenda else None
+    if selected is not None and affect is not None and "affect_mode" in selected:
+        features = state["records"][selected["obligation"]["id"]][-1]["payload"]["affect"]
+        decision_ref, outcome_obligation, _context, _regulation_work = (
+            _semantic_affect_regulation(
+                state,
+                cast(str, affect_project),
+                features.get("object_id"),
+                f"{operation_id}:decision",
+            )
+        )
+        selected["affect_regulation"] = decision_ref
+        selected["affect_outcome_obligation"] = outcome_obligation
+        selected["affect_strategy"] = {
+            "mode": _context["regulation"]["mode"],
+            "strength": _context["regulation"]["strength"],
+            "scores": _context["regulation"]["scores"],
+            "selected_program_ref": _context["selected_program_ref"],
+            "proposed_actions": _context["proposed_actions"],
+            "context_ref": state["records"][decision_ref["id"]][-1]["payload"][
+                "affect_regulation"
+            ]["context_ref"],
+        }
+    status = "supported" if selected is not None else "waiting"
+    agenda_payload = {
+        "agenda": agenda,
+        "affect": affect,
+        "circulation": modulation,
+        "curiosity_event": curiosity_event,
+        "curiosity_goal_count": (
+            len(curiosity_goals) if isinstance(curiosity_goals, list) else 0
+        ),
+        "goal": goal,
+        "perception_event": perception_event,
+        "selected": selected,
+        "status": status,
+    }
+    event_ref = _semantic_append_record(
+        state,
+        record_id=agenda_event_id,
+        kind="Event",
+        payload={"autonomous_agenda": agenda_payload},
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        support_roots=[],
+        derivation={
+            "operation": "autonomous-agenda",
+            "operation_id": operation_id,
+        },
+        valid_time={
+            "start": float(state["time"]["now"]),
+            "end": float(state["time"]["now"]),
+        },
+    )
+    _semantic_reindex_record(state, event_ref)
+    return (
+        _semantic_result(
+            "autonomous-agenda",
+            status,
+            event=event_ref,
+            agenda=agenda,
+            affect=affect,
+            circulation=modulation,
+            curiosity_event=curiosity_event,
+            curiosity_goal_count=agenda_payload["curiosity_goal_count"],
+            perception_event=perception_event,
+            selected=selected,
+        ),
+        max(
+            1,
+            curiosity_work
+            + perception_work
+            + len(agenda)
+            + len(dependencies)
+            + (len(modulation["values"]) + 1 if modulation is not None else 0)
+            + (len(state["current"]["Event"]) if affect is not None else 0)
+            + 1,
+        ),
+    )
+
+
+def _semantic_autonomous_learning_experience(
+    state: Mapping[str, Any],
+) -> tuple[dict[str, dict[str, float]], dict[str, dict[str, float]], int]:
+    """Summarize resident outcomes for field-owned learning selection.
+
+    The selector should improve from what it actually tried, not only avoid
+    repeating an identifier.  Experience is intentionally derived from the
+    durable autonomous-learning events, so it survives checkpoint/reopen
+    without introducing a second adaptive state.
+    """
+
+    by_candidate: dict[str, dict[str, float]] = {}
+    by_kind: dict[str, dict[str, float]] = {}
+    total_attempts = 0
+    reward_by_status = {
+        "supported": 1.0,
+        "active": 1.0,
+        "completed": 1.0,
+        "candidate": 0.25,
+        "resource-exhausted": -0.5,
+        "representation-insufficient": -1.0,
+        "support-gap": -1.0,
+    }
+    current_events = state.get("current", {}).get("Event", {})
+    records = state.get("records", {})
+    if not isinstance(current_events, Mapping) or not isinstance(records, Mapping):
+        return by_candidate, by_kind, total_attempts
+    for event_id in sorted(current_events):
+        history = records.get(event_id)
+        if not isinstance(history, list) or not history:
+            continue
+        payload = history[-1].get("payload", {})
+        if not isinstance(payload, Mapping):
+            continue
+        marker = payload.get("autonomous_learning")
+        if not isinstance(marker, Mapping):
+            continue
+        candidate_id = marker.get("selected_candidate_id")
+        learning_kind = marker.get("selected_learning_kind")
+        learning = marker.get("learning")
+        if (
+            not isinstance(candidate_id, str)
+            or not candidate_id
+            or not isinstance(learning_kind, str)
+            or not learning_kind
+            or not isinstance(learning, Mapping)
+        ):
+            continue
+        status = learning.get("status")
+        if not isinstance(status, str):
+            continue
+        reward = reward_by_status.get(status, 0.0)
+        for bucket, key in (
+            (by_candidate, candidate_id),
+            (by_kind, learning_kind),
+        ):
+            row = bucket.setdefault(key, {"attempts": 0.0, "reward": 0.0})
+            row["attempts"] += 1.0
+            row["reward"] += reward
+        total_attempts += 1
+    return by_candidate, by_kind, total_attempts
+
+
+def _semantic_autonomous_learn(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    """Select and execute one learning opportunity using resident field state."""
+
+    _semantic_keys(
+        request,
+        required=(),
+        optional=("goal", "min_score", "opportunities", "project_id", "object_id"),
+    )
+    discovery: dict[str, Any] | None = None
+    if "opportunities" in request:
+        raw_opportunities = request["opportunities"]
+        if not isinstance(raw_opportunities, list) or not raw_opportunities:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "autonomous learning requires at least one opportunity",
+            )
+    else:
+        action_opportunities, action_inspected = (
+            _semantic_discover_action_schema_opportunities(
+                state,
+                maximum=max(1, int(state["bounds"]["max_alternatives"])),
+            )
+        )
+        procedure_opportunities, procedure_inspected = (
+            _semantic_discover_procedure_opportunities(
+                state,
+                maximum=max(1, int(state["bounds"]["max_alternatives"])),
+            )
+        )
+        raw_opportunities = sorted(
+            [*action_opportunities, *procedure_opportunities],
+            key=lambda item: (
+                -float(item.get("expected_gain", 0.0)),
+                float(item.get("cost", 0.0)),
+                str(item.get("candidate_id", "")),
+            ),
+        )[: int(state["bounds"]["max_alternatives"])]
+        discovery = {
+            "mode": "resident-open-vocabulary",
+            "inspected_event_count": max(action_inspected, procedure_inspected),
+            "opportunity_count": len(raw_opportunities),
+        }
+    if len(raw_opportunities) > state["bounds"]["max_alternatives"]:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY",
+            "autonomous learning opportunity capacity is exhausted",
+        )
+    minimum_score = (
+        _finite(request["min_score"], "autonomous learning minimum score")
+        if "min_score" in request
+        else float("-inf")
+    )
+
+    if "operation_id" in request:
+        raw_operation_id = request["operation_id"]
+    else:
+        raw_operation_id = (
+            "autonomous-cycle:"
+            f"{sha256_value({'request': dict(request), 'resident_event_ids': sorted(state['current']['Event'])})}"
+        )
+    operation_id = _identifier(
+        raw_operation_id,
+        "autonomous learning operation identity",
+    )
+    selection_digest = sha256_value(
+        {"operation_id": operation_id, "operation": "autonomous-learn"}
+    )
+    selection_id = f"event:autonomous-learning:{selection_digest}"
+    existing = state["current"]["Event"].get(selection_id)
+    if existing is not None:
+        record = state["records"][selection_id][-1]
+        payload = record["payload"]["autonomous_learning"]
+        return (
+            _semantic_result(
+                "autonomous-learn",
+                payload["status"],
+                event=existing,
+                selection=payload,
+                learning=payload.get("learning"),
+                replayed=True,
+            ),
+            1,
+        )
+
+    previously_selected: set[str] = set()
+    for event_id in state["current"]["Event"]:
+        history = state["records"].get(event_id, [])
+        if not history:
+            continue
+        payload = history[-1].get("payload", {})
+        marker = payload.get("autonomous_learning")
+        if isinstance(marker, Mapping):
+            candidate_id = marker.get("selected_candidate_id")
+            if isinstance(candidate_id, str):
+                previously_selected.add(candidate_id)
+    candidate_experience, kind_experience, experience_attempts = (
+        _semantic_autonomous_learning_experience(state)
+    )
+    affect = None
+    if "project_id" in request:
+        affect_project, affect_object = _semantic_affect_scope(request)
+        affect = affect_context(state, affect_project, affect_object)
+
+    scored: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for raw in raw_opportunities:
+        if not isinstance(raw, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "autonomous learning opportunities must be mappings",
+            )
+        candidate = _regional_plain(
+            dict(raw), "autonomous learning opportunity"
+        )
+        required = {"candidate_id", "learning_kind", "request"}
+        optional = {
+            "expected_gain",
+            "urgency",
+            "novelty",
+            "priority",
+            "cost",
+            "risk",
+        }
+        unknown = set(candidate) - required - optional
+        if set(candidate) & {"operation", "operation_id"} or unknown:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "autonomous learning opportunity keys are invalid",
+            )
+        missing = required - set(candidate)
+        if missing:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                f"autonomous learning opportunity is missing {sorted(missing)}",
+            )
+        candidate_id = _identifier(
+            candidate["candidate_id"], "autonomous learning candidate identity"
+        )
+        if candidate_id in seen_ids:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "autonomous learning candidate identities must be unique",
+            )
+        seen_ids.add(candidate_id)
+        learning_kind = _identifier(
+            candidate["learning_kind"], "semantic learning kind"
+        )
+        if learning_kind not in SEMANTIC_LEARNING_KINDS:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "autonomous learning kind is unsupported",
+            )
+        raw_request = candidate["request"]
+        if not isinstance(raw_request, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "autonomous learning candidate request must be a mapping",
+            )
+        learning_request = _regional_plain(
+            dict(raw_request), "autonomous learning candidate request"
+        )
+        if set(learning_request) & {
+            "operation",
+            "operation_id",
+            "learning_kind",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "candidate requests cannot choose their dispatch identity",
+            )
+
+        values: dict[str, float] = {}
+        for name, default in (
+            ("expected_gain", 0.0),
+            ("urgency", 0.0),
+            ("novelty", 0.0),
+            ("priority", 0.0),
+            ("cost", 0.0),
+            ("risk", 0.0),
+        ):
+            values[name] = _finite(
+                candidate.get(name, default),
+                f"autonomous learning {name}",
+            )
+            if name in {"cost", "risk"} and values[name] < 0.0:
+                raise FieldIntelligenceError(
+                    "INVALID_SEMANTIC_OPERATION",
+                    f"autonomous learning {name} cannot be negative",
+                )
+        candidate_history = candidate_experience.get(candidate_id, {})
+        kind_history = kind_experience.get(learning_kind, {})
+        candidate_attempts = float(candidate_history.get("attempts", 0.0))
+        kind_attempts = float(kind_history.get("attempts", 0.0))
+        candidate_mean = (
+            float(candidate_history.get("reward", 0.0))
+            / candidate_attempts
+            if candidate_attempts
+            else 0.0
+        )
+        kind_mean = (
+            float(kind_history.get("reward", 0.0)) / kind_attempts
+            if kind_attempts
+            else 0.0
+        )
+        exploration_bonus = math.sqrt(
+            math.log1p(float(experience_attempts) + 1.0)
+            / (kind_attempts + 1.0)
+        )
+        experience_adjustment = (
+            0.5 * candidate_mean
+            + 0.25 * kind_mean
+            + 0.25 * exploration_bonus
+        )
+        repeat_penalty = 0.5 if candidate_id in previously_selected else 0.0
+        invalidation_pressure = (
+            0.5
+            if isinstance(state.get("invalidation"), Mapping)
+            and state["invalidation"].get("active")
+            else 0.0
+        )
+        score = (
+            values["expected_gain"]
+            + values["urgency"]
+            + 0.5 * values["novelty"]
+            + 0.25 * values["priority"]
+            + invalidation_pressure
+            + experience_adjustment
+            - values["cost"]
+            - values["risk"]
+            - repeat_penalty
+        )
+        affect_delta = 0.0 if affect is None else affect_adjustment(affect, {
+            name: max(0.0, values[name])
+            for name in ("expected_gain", "novelty", "cost", "risk")
+        })
+        score += affect_delta
+        scored.append(
+            {
+                "candidate_id": candidate_id,
+                "learning_kind": learning_kind,
+                "request": learning_request,
+                **values,
+                "candidate_attempts": candidate_attempts,
+                "candidate_mean_reward": candidate_mean,
+                "experience_adjustment": experience_adjustment,
+                "invalidation_pressure": invalidation_pressure,
+                "kind_attempts": kind_attempts,
+                "kind_mean_reward": kind_mean,
+                "repeat_penalty": repeat_penalty,
+                "affect_adjustment": affect_delta,
+                "score": score,
+            }
+        )
+
+    scored.sort(
+        key=lambda item: (
+            -float(item["score"]),
+            -float(item["expected_gain"]),
+            float(item["cost"]),
+            str(item["candidate_id"]),
+        )
+    )
+    selected = scored[0] if scored and scored[0]["score"] >= minimum_score else None
+    nested_result: dict[str, Any] | None = None
+    nested_work = 0
+    dependencies: list[dict[str, Any]] = []
+    roots: list[str] = []
+    if selected is not None:
+        if affect is not None:
+            _semantic_affect_regulation(
+                state, affect_project, affect_object or selected["candidate_id"],
+                f"{operation_id}:decision",
+            )
+        for key in ("source_revision_ids", "source_roots"):
+            values = selected["request"].get(key, [])
+            if isinstance(values, list):
+                roots.extend(str(value) for value in values if isinstance(value, str))
+        for key, value in selected["request"].items():
+            candidates = value if key.endswith("_refs") else [value]
+            if not isinstance(candidates, list):
+                continue
+            for ref in candidates:
+                if (
+                    isinstance(ref, Mapping)
+                    and {"id", "kind", "content_version"} <= set(ref)
+                ):
+                    dependencies.append(
+                        {
+                            "id": str(ref["id"]),
+                            "kind": str(ref["kind"]),
+                            "content_version": int(ref["content_version"]),
+                        }
+                    )
+        nested_id = _identifier(
+            f"{operation_id}:learning:{sha256_value(selected['candidate_id'])[:16]}",
+            "autonomous learning dispatch identity",
+        )
+        nested_request = {
+            **selected["request"],
+            "operation": "learn",
+            "operation_id": nested_id,
+            "learning_kind": selected["learning_kind"],
+        }
+        nested_result, nested_work = _semantic_dispatch(state, nested_request)
+
+    status = "waiting" if selected is None else str(nested_result["status"])
+    selection_payload = {
+        "goal": request.get("goal"),
+        "status": status,
+        "affect": affect,
+        "candidate_scores": scored,
+        "learning_experience": {
+            "attempts": experience_attempts,
+            "candidate_count": len(candidate_experience),
+            "kind_count": len(kind_experience),
+        },
+        "selected_candidate_id": (
+            None if selected is None else selected["candidate_id"]
+        ),
+        "selected_learning_kind": (
+            None if selected is None else selected["learning_kind"]
+        ),
+        "learning": nested_result,
+        "discovery": discovery,
+    }
+    event_ref = _semantic_append_record(
+        state,
+        record_id=selection_id,
+        kind="Event",
+        payload={"autonomous_learning": selection_payload},
+        epistemic_kind="derived",
+        dependencies=dependencies,
+        support_roots=sorted(set(roots)),
+        derivation={
+            "operation": "autonomous-learn",
+            "operation_id": operation_id,
+        },
+        valid_time={
+            "start": float(state["time"]["now"]),
+            "end": float(state["time"]["now"]),
+        },
+    )
+    _semantic_reindex_record(state, event_ref)
+    affect_work = 0
+    if affect is not None and selected is not None and status in {
+        "supported", "active", "completed", "candidate", "resource-exhausted",
+        "representation-insufficient", "support-gap",
+    }:
+        _, affect_work = _semantic_affect(state, {
+            "operation": "appraise-experience",
+            "operation_id": f"{operation_id}:affect",
+            "evidence": event_ref, "project_id": affect_project,
+            "object_id": affect_object or selected["candidate_id"],
+        })
+    return (
+        _semantic_result(
+            "autonomous-learn",
+            status,
+            event=event_ref,
+            affect=affect,
+            selected=(
+                None
+                if selected is None
+                else {
+                    "candidate_id": selected["candidate_id"],
+                    "learning_kind": selected["learning_kind"],
+                    "score": selected["score"],
+                    "experience_adjustment": selected[
+                        "experience_adjustment"
+                    ],
+                }
+            ),
+            candidate_scores=scored,
+            learning_experience=selection_payload["learning_experience"],
+            learning=nested_result,
+            discovery=discovery,
+        ),
+        1 + nested_work + len(scored) + affect_work,
+    )
+
+
+
+def _semantic_teacher_control(
+    state: dict[str, Any], request: Mapping[str, Any]
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=("candidate_descriptors", "predecessor_field_sha256"),
+        optional=("thinking_capability", "thinking_max_tokens"),
+    )
+    predecessor = _digest(
+        request["predecessor_field_sha256"], "teacher predecessor field state"
+    )
+    raw_descriptors = request["candidate_descriptors"]
+    if not isinstance(raw_descriptors, list) or len(raw_descriptors) > 4:
+        raise FieldIntelligenceError(
+            "INVALID_TEACHER_CONTROL",
+            "teacher candidate descriptors must contain at most four rows",
+        )
+    descriptors: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for raw in raw_descriptors:
+        if not isinstance(raw, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL", "teacher candidate descriptor is not an object"
+            )
+        allowed = {
+            "candidate_id",
+            "candidate_origin",
+            "candidate_sha256",
+            "candidate_steps",
+            "improved",
+            "status",
+            "task_id",
+        }
+        if set(raw) - allowed or not {"candidate_id", "candidate_sha256", "candidate_steps", "improved", "status", "task_id"} <= set(raw):
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL",
+                "teacher candidate descriptor keys are invalid",
+            )
+        candidate_id = _identifier(raw["candidate_id"], "teacher candidate identity")
+        if candidate_id in seen_ids:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT", "teacher candidate identity is duplicated"
+            )
+        seen_ids.add(candidate_id)
+        status = _identifier(raw["status"], "teacher candidate status")
+        origin = raw.get("candidate_origin", "verified_pool")
+        origin = _identifier(origin, "teacher candidate origin")
+        if origin not in {"verified_pool", "model_novel"}:
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL", "teacher candidate origin is unsupported"
+            )
+        if not isinstance(raw["improved"], bool):
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL", "teacher candidate improved flag is invalid"
+            )
+        descriptors.append(
+            {
+                "candidate_id": candidate_id,
+                "candidate_origin": origin,
+                "candidate_sha256": _digest(
+                    raw["candidate_sha256"], "teacher candidate source"
+                ),
+                "candidate_steps": _regional_integer(
+                    raw["candidate_steps"],
+                    "teacher candidate steps",
+                    minimum=1,
+                    maximum=1_000_000,
+                ),
+                "improved": raw["improved"],
+                "status": status,
+                "task_id": _identifier(raw["task_id"], "teacher candidate task"),
+            }
+        )
+    transition_count = _regional_integer(
+        state["ledger"]["transitions"],
+        "teacher semantic transition count",
+        maximum=state["bounds"]["max_operations"],
+    )
+    field_signal = (
+        transition_count
+        + len(state["records"])
+        + len(state["current"]["Event"])
+        + len(state["current"]["Binding"])
+    )
+    promotable = [
+        row
+        for row in descriptors
+        if row["status"] == "PASS" and row["improved"] is True
+    ]
+    maximum_tokens = _regional_integer(
+        request.get("thinking_max_tokens", 256),
+        "teacher thinking token bound",
+        minimum=1,
+        maximum=512,
+    )
+    raw_capability = request.get("thinking_capability")
+    if raw_capability is None:
+        thinking_capability = {
+            "answer_channel_viable": True,
+            "flag_effective": True,
+            "probe_max_tokens": 0,
+        }
+    else:
+        if not isinstance(raw_capability, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL",
+                "teacher thinking capability must be an object",
+            )
+        capability_allowed = {
+            "answer_channel_viable",
+            "flag_effective",
+            "probe_max_tokens",
+        }
+        if set(raw_capability) != capability_allowed:
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL",
+                "teacher thinking capability keys are invalid",
+            )
+        if not isinstance(raw_capability["answer_channel_viable"], bool) or not isinstance(
+            raw_capability["flag_effective"], bool
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_TEACHER_CONTROL",
+                "teacher thinking capability booleans are invalid",
+            )
+        thinking_capability = {
+            "answer_channel_viable": raw_capability["answer_channel_viable"],
+            "flag_effective": raw_capability["flag_effective"],
+            "probe_max_tokens": _regional_integer(
+                raw_capability["probe_max_tokens"],
+                "teacher capability probe budget",
+                minimum=0,
+                maximum=512,
+            ),
+        }
+    if not promotable:
+        return (
+            _semantic_result(
+                "teacher-control",
+                "supported",
+                action=None,
+                abstain_reason="no-promotable-candidate",
+                candidate_descriptors_sha256=sha256_value(descriptors),
+                field_signal=field_signal,
+                predecessor_field_sha256=predecessor,
+                thinking_capability=thinking_capability,
+            ),
+            1,
+        )
+    minimum_steps = min(int(row["candidate_steps"]) for row in promotable)
+    tied = sorted(
+        (row for row in promotable if int(row["candidate_steps"]) == minimum_steps),
+        key=lambda row: str(row["candidate_id"]),
+    )
+    selected = tied[field_signal % len(tied)]
+    thinking_enabled = bool(field_signal % 2) and bool(
+        thinking_capability["flag_effective"]
+        and thinking_capability["answer_channel_viable"]
+    )
+    effort_code = (
+        "capability-floor-off"
+        if not (
+            thinking_capability["flag_effective"]
+            and thinking_capability["answer_channel_viable"]
+        )
+        else f"field-phase-{field_signal % 3}"
+    )
+    action_core = {
+        "candidate_id": selected["candidate_id"],
+        "candidate_sha256": selected["candidate_sha256"],
+        "edit_id": selected["candidate_id"],
+        "task_id": selected["task_id"],
+        "proposal_budget": len(promotable),
+        "thinking": {
+            "enabled": thinking_enabled,
+            "effort_code": effort_code,
+            "max_tokens": maximum_tokens if thinking_enabled else 0,
+        },
+        "predecessor_field_sha256": predecessor,
+    }
+    action = {
+        "action_id": sha256_value(action_core),
+        "schema": "cassi.teacher.field-action.v1",
+        **action_core,
+    }
+    return (
+        _semantic_result(
+            "teacher-control",
+            "supported",
+            action=action,
+            abstain_reason=None,
+            candidate_descriptors_sha256=sha256_value(descriptors),
+            field_signal=field_signal,
+            predecessor_field_sha256=predecessor,
+            thinking_capability=thinking_capability,
+        ),
+        1,
+    )
+
+
+_LIVING_MEMORY_OPERATIONS = frozenset(
+    {
+        "autobiography",
+        "demote-memory",
+        "expand-memory",
+        "maintain-memory",
+        "match-relevance",
+        "memory-awareness",
+        "quiet-synthesis",
+        "recall-cancel",
+        "recall-outcome",
+        "recall-request",
+        "recall-use",
+        "register-relevance",
+        "reinterpret-memory",
+    }
+)
+
+
+def _living_ref(
+    state: Mapping[str, Any],
+    raw: Any,
+    *,
+    kind: str | None = None,
+    role: str | None = None,
+) -> tuple[SemanticRef, dict[str, Any]]:
+    if not isinstance(raw, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_REFERENCE",
+            "living-memory reference must be typed",
+        )
+    reference, record = _semantic_reference(
+        state,
+        raw,
+        expected_kind=kind,
+        require_current=True,
+    )
+    if role is not None and record["payload"].get("memory_role") != role:
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_REFERENCE",
+            f"living-memory reference is not a {role}",
+        )
+    return reference, record
+
+
+def _living_refs(
+    state: Mapping[str, Any],
+    rows: Any,
+    *,
+    label: str,
+) -> list[dict[str, Any]]:
+    if not isinstance(rows, list):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_REFERENCE", f"{label} must be a list"
+        )
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, int]] = set()
+    for raw in rows:
+        reference, _ = _living_ref(state, raw)
+        key = (reference.kind, reference.id, reference.content_version)
+        if key not in seen:
+            seen.add(key)
+            result.append(reference.as_dict())
+    return result
+
+
+# The two fields a relevance condition moves on every match.  They are
+# operational -- a cooldown clock and a bounded list of handled events -- not
+# evidence: the wakeup Events are the evidence, and each is a record of its
+# own.  A revision that only moves these is written over the newest version
+# instead of appending, so a condition can be matched as long as it lives
+# rather than only as many times as a record may be revised.
+LIVING_BOOKKEEPING_KEYS = ("handled_event_ids", "last_match_transition")
+
+
+def _living_bookkeeping_only(
+    before: Mapping[str, Any], after: Mapping[str, Any]
+) -> bool:
+    if not isinstance(before, Mapping) or set(before) != set(after):
+        return False
+    changed = {key for key in before if before[key] != after[key]}
+    return bool(changed) and changed <= set(LIVING_BOOKKEEPING_KEYS)
+
+
+def _living_replace_latest(
+    state: dict[str, Any],
+    record: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Write a bookkeeping-only revision over the record's newest version."""
+
+    history = state["records"][record["id"]]
+    latest = history[-1]
+    replacement = make_semantic_record(
+        record_id=latest["id"],
+        kind=latest["kind"],
+        content_version=latest["content_version"],
+        created_at=latest["created_at"],
+        payload=payload,
+        scope=latest["scope"],
+        epistemic_kind=latest["epistemic_kind"],
+        status=latest["status"],
+        supersedes=latest["supersedes"],
+        valid_time=latest["valid_time"],
+        frame=latest["frame"],
+        units=latest["units"],
+        dependencies=latest["dependencies"],
+        support_roots=latest["support_roots"],
+        derivation=latest["derivation"],
+        applicability=latest["applicability"],
+    )
+    history[-1] = replacement
+    return semantic_record_ref(replacement).as_dict()
+
+
+def _living_revise(
+    state: dict[str, Any],
+    record: Mapping[str, Any],
+    *,
+    payload: Mapping[str, Any],
+    status: str | None = None,
+    epistemic_kind: str = "derived",
+    dependencies: Sequence[Mapping[str, Any]] = (),
+    support_roots: Sequence[str] = (),
+    derivation: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    history = state["records"].get(record["id"])
+    if (
+        history
+        and status is None
+        and not support_roots
+        and _living_bookkeeping_only(history[-1]["payload"], payload)
+    ):
+        # A wakeup reference names an Event that already records the condition
+        # it came from, so the link survives in the direction that carries the
+        # evidence; the condition keeps its own targets and support roots.
+        return _living_replace_latest(state, record, payload=payload)
+    merged_dependencies: list[dict[str, Any]] = []
+    seen_dependencies: set[tuple[str, str, int]] = set()
+    for raw in (*record["dependencies"], *dependencies):
+        reference = SemanticRef.from_dict(raw)
+        key = (
+            reference.kind,
+            reference.id,
+            reference.content_version,
+        )
+        if key not in seen_dependencies:
+            seen_dependencies.add(key)
+            merged_dependencies.append(reference.as_dict())
+    reference = _semantic_append_record(
+        state,
+        record_id=record["id"],
+        kind=record["kind"],
+        payload=payload,
+        status=record["status"] if status is None else status,
+        epistemic_kind=epistemic_kind,
+        dependencies=merged_dependencies,
+        support_roots=sorted(
+            set(record["support_roots"]).union(support_roots)
+        ),
+        derivation=derivation,
+        applicability=record["applicability"],
+        valid_time=record["valid_time"],
+        frame=record["frame"],
+        units=record["units"],
+        scope=record["scope"],
+    )
+    _semantic_reindex_record(state, reference)
+    return reference
+
+
+def _living_condition_match(
+    condition: Mapping[str, Any],
+    context: Mapping[str, Any],
+) -> tuple[bool | None, list[str]]:
+    clauses = condition.get("clauses")
+    if not isinstance(clauses, list) or not clauses:
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "relevance condition requires bounded clauses",
+        )
+    if len(clauses) > 64:
+        raise FieldIntelligenceError(
+            "WORK_CAPACITY", "relevance condition exceeds its clause bound"
+        )
+    unknown: list[str] = []
+    matched = True
+    for clause in clauses:
+        if (
+            not isinstance(clause, Mapping)
+            or set(clause) != {"field", "operator", "value"}
+            or not isinstance(clause["field"], str)
+            or not clause["field"]
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "relevance condition clause is invalid",
+            )
+        field_name = clause["field"]
+        operator = clause["operator"]
+        if operator not in {"equals", "in", "not-equals"}:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "relevance condition operator is unsupported",
+            )
+        if operator == "in" and not isinstance(clause["value"], list):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "relevance membership value must be a list",
+            )
+        if field_name not in context:
+            unknown.append(field_name)
+            continue
+        actual = context[field_name]
+        expected = clause["value"]
+        if operator == "equals":
+            matched = matched and actual == expected
+        elif operator == "in":
+            matched = matched and actual in expected
+        else:
+            matched = matched and actual != expected
+    return (None if unknown else matched), sorted(set(unknown))
+
+
+def _semantic_living_memory(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    operation = request["operation"]
+    if operation == "recall-request":
+        _semantic_keys(
+            request,
+            required=(
+                "episode_id",
+                "question",
+                "context",
+                "intended_use",
+                "fidelity",
+                "allowance",
+                "selected_refs",
+                "search",
+            ),
+            optional=("cue_refs", "gaps", "limitations"),
+        )
+        episode_id = _identifier(request["episode_id"], "recall episode identity")
+        record_id = f"memory:recall:{episode_id}"
+        existing = state["current"]["Event"].get(record_id)
+        if existing is not None:
+            record = resolve_semantic_record(
+                state["records"], existing, require_current=True
+            )
+            return _semantic_result(
+                operation,
+                "supported" if record["status"] == "active" else "unresolved",
+                episode=existing,
+                lifecycle=record["payload"]["lifecycle"],
+            ), 1
+        question = _regional_plain(request["question"], "recall question")
+        context = _regional_plain(request["context"], "recall context")
+        intended_use = _regional_plain(
+            request["intended_use"], "recall intended use"
+        )
+        fidelity = _regional_plain(request["fidelity"], "recall fidelity")
+        allowance = _regional_plain(request["allowance"], "recall allowance")
+        search = _regional_plain(request["search"], "recall search")
+        selected = _living_refs(
+            state, request["selected_refs"], label="selected_refs"
+        )
+        cues = _living_refs(
+            state, request.get("cue_refs", []), label="cue_refs"
+        )
+        gaps = _regional_plain(request.get("gaps", []), "recall gaps")
+        limitations = _regional_plain(
+            request.get("limitations", []), "recall limitations"
+        )
+        available = bool(selected)
+        phase = "available" if available and not gaps else "limited"
+        payload = {
+            "memory_role": "recall-episode",
+            "episode_id": episode_id,
+            "question": question,
+            "context": context,
+            "intended_use": intended_use,
+            "requested_fidelity": fidelity,
+            "allowance": allowance,
+            "selected_refs": selected,
+            "cue_refs": cues,
+            "search": search,
+            "gaps": gaps,
+            "limitations": limitations,
+            "lifecycle": {
+                "phase": phase,
+                "requested": True,
+                "located": bool(cues or selected),
+                "expanded": bool(selected),
+                "used": False,
+                "awaiting_outcome": False,
+                "assessed": False,
+                "settled": False,
+            },
+            "use_ref": None,
+            "outcome_ref": None,
+            "assessment_ref": None,
+            "renewal": None,
+        }
+        episode_ref = _semantic_append_record(
+            state,
+            record_id=record_id,
+            kind="Event",
+            payload=payload,
+            epistemic_kind="derived",
+            dependencies=(*cues, *selected),
+            support_roots=sorted(
+                {
+                    root
+                    for raw in (*cues, *selected)
+                    for root in resolve_semantic_record(
+                        state["records"], raw
+                    )["support_roots"]
+                }
+            ),
+            derivation={"operation": operation},
+            valid_time={
+                "start": state["time"]["now"],
+                "end": state["time"]["now"],
+            },
+        )
+        obligation_ref = _semantic_append_record(
+            state,
+            record_id=f"memory:outcome:{episode_id}",
+            kind="Obligation",
+            payload={
+                "memory_role": "recall-outcome",
+                "episode_ref": episode_ref,
+                "state": "pending-use",
+                "intended_use": intended_use,
+            },
+            epistemic_kind="proposed",
+            dependencies=(episode_ref,),
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, episode_ref)
+        _semantic_reindex_record(state, obligation_ref)
+        return _semantic_result(
+            operation,
+            "supported" if available else "support-gap",
+            episode=episode_ref,
+            lifecycle=payload["lifecycle"],
+            obligation=obligation_ref,
+            delivered_fidelity=fidelity if available else None,
+            remaining_gaps=gaps,
+            search=search,
+        ), max(1, 1 + len(selected) + len(cues))
+
+    if operation == "recall-use":
+        _semantic_keys(
+            request,
+            required=("episode_ref", "use_id", "consumer"),
+            optional=("selected_refs",),
+        )
+        episode_ref, episode = _living_ref(
+            state, request["episode_ref"], kind="Event", role="recall-episode"
+        )
+        lifecycle = dict(episode["payload"]["lifecycle"])
+        if lifecycle["settled"]:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT", "settled recall cannot acquire another use"
+            )
+        use_id = _identifier(request["use_id"], "recall use identity")
+        use_record_id = f"memory:use:{use_id}"
+        selected = _living_refs(
+            state,
+            request.get("selected_refs", episode["payload"]["selected_refs"]),
+            label="selected_refs",
+        )
+        use_ref = _semantic_append_record(
+            state,
+            record_id=use_record_id,
+            kind="Event",
+            payload={
+                "memory_role": "recall-use",
+                "episode_ref": episode_ref.as_dict(),
+                "consumer": _regional_plain(
+                    request["consumer"], "recall consumer"
+                ),
+                "selected_refs": selected,
+            },
+            epistemic_kind="derived",
+            dependencies=(episode_ref.as_dict(), *selected),
+            derivation={"operation": operation},
+            valid_time={
+                "start": state["time"]["now"],
+                "end": state["time"]["now"],
+            },
+        )
+        lifecycle.update(
+            {
+                "phase": "awaiting-outcome",
+                "used": True,
+                "awaiting_outcome": True,
+            }
+        )
+        payload = {
+            **episode["payload"],
+            "lifecycle": lifecycle,
+            "use_ref": use_ref,
+        }
+        revised = _living_revise(
+            state,
+            episode,
+            payload=payload,
+            dependencies=(use_ref,),
+            derivation={"operation": operation, "use": use_ref},
+        )
+        obligation_id = f"memory:outcome:{episode['payload']['episode_id']}"
+        obligation = _semantic_current_record(state, "Obligation", obligation_id)
+        obligation_ref = _living_revise(
+            state,
+            obligation,
+            payload={
+                **obligation["payload"],
+                "state": "awaiting-outcome",
+                "use_ref": use_ref,
+            },
+            dependencies=(use_ref,),
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, use_ref)
+        return _semantic_result(
+            operation,
+            "waiting",
+            episode=revised,
+            use=use_ref,
+            obligation=obligation_ref,
+            lifecycle=lifecycle,
+        ), max(1, len(selected) + 1)
+
+    if operation == "recall-outcome":
+        _semantic_keys(
+            request,
+            required=(
+                "episode_ref",
+                "outcome_id",
+                "consequence",
+                "usefulness",
+            ),
+            optional=("renewal",),
+        )
+        episode_ref, episode = _living_ref(
+            state, request["episode_ref"], kind="Event", role="recall-episode"
+        )
+        lifecycle = dict(episode["payload"]["lifecycle"])
+        if not lifecycle["awaiting_outcome"] or not lifecycle["used"]:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "recall outcome requires exactly one pending actual use",
+            )
+        usefulness = _finite(request["usefulness"], "recall usefulness")
+        if not -1.0 <= usefulness <= 1.0:
+            raise FieldIntelligenceError(
+                "INVALID_NUMERIC_VALUE",
+                "recall usefulness must lie in [-1, 1]",
+            )
+        outcome_id = _identifier(
+            request["outcome_id"], "recall outcome identity"
+        )
+        use_ref = episode["payload"]["use_ref"]
+        consequence = _regional_plain(
+            request["consequence"], "recall consequence"
+        )
+        outcome_ref = _semantic_append_record(
+            state,
+            record_id=f"memory:consequence:{outcome_id}",
+            kind="Event",
+            payload={
+                "memory_role": "recall-consequence",
+                "episode_ref": episode_ref.as_dict(),
+                "use_ref": use_ref,
+                "consequence": consequence,
+            },
+            epistemic_kind="observed",
+            dependencies=(episode_ref.as_dict(), use_ref),
+            derivation={"operation": operation},
+            valid_time={
+                "start": state["time"]["now"],
+                "end": state["time"]["now"],
+            },
+        )
+        assessment_ref = _semantic_append_record(
+            state,
+            record_id=f"memory:assessment:{outcome_id}",
+            kind="Assessment",
+            payload={
+                "memory_role": "recall-assessment",
+                "episode_ref": episode_ref.as_dict(),
+                "use_ref": use_ref,
+                "outcome_ref": outcome_ref,
+                "usefulness": usefulness,
+                "causal_claim": "not-established",
+                "premise_truth_changed": False,
+            },
+            epistemic_kind="assessed",
+            dependencies=(episode_ref.as_dict(), use_ref, outcome_ref),
+            derivation={"operation": operation},
+        )
+        renewal = _regional_plain(
+            request.get("renewal", {}), "recall renewal"
+        )
+        renewed_cues: list[dict[str, Any]] = []
+        for raw in episode["payload"].get("cue_refs", []):
+            _, cue = _living_ref(state, raw)
+            cue_payload = dict(cue["payload"])
+            cue_history = list(cue_payload.get("assessment_history", []))
+            cue_history.append(assessment_ref)
+            cue_payload["assessment_history"] = cue_history[-32:]
+            cue_payload["last_contextual_usefulness"] = usefulness
+            renewed_cues.append(
+                _living_revise(
+                    state,
+                    cue,
+                    payload=cue_payload,
+                    dependencies=(assessment_ref,),
+                    derivation={
+                        "operation": operation,
+                        "outcome": outcome_ref,
+                    },
+                )
+            )
+        lifecycle.update(
+            {
+                "phase": "settled",
+                "awaiting_outcome": False,
+                "assessed": True,
+                "settled": True,
+            }
+        )
+        revised = _living_revise(
+            state,
+            episode,
+            payload={
+                **episode["payload"],
+                "lifecycle": lifecycle,
+                "outcome_ref": outcome_ref,
+                "assessment_ref": assessment_ref,
+                "renewal": renewal,
+            },
+            dependencies=(outcome_ref, assessment_ref, *renewed_cues),
+            derivation={"operation": operation, "outcome": outcome_ref},
+        )
+        obligation = _semantic_current_record(
+            state,
+            "Obligation",
+            f"memory:outcome:{episode['payload']['episode_id']}",
+        )
+        obligation_ref = _living_revise(
+            state,
+            obligation,
+            payload={
+                **obligation["payload"],
+                "state": "resolved",
+                "outcome_ref": outcome_ref,
+                "assessment_ref": assessment_ref,
+            },
+            status="resolved",
+            dependencies=(outcome_ref, assessment_ref),
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, outcome_ref)
+        _semantic_reindex_record(state, assessment_ref)
+        return _semantic_result(
+            operation,
+            "supported",
+            episode=revised,
+            outcome=outcome_ref,
+            assessment=assessment_ref,
+            obligation=obligation_ref,
+            renewed_cues=renewed_cues,
+            lifecycle=lifecycle,
+        ), max(1, 3 + len(renewed_cues))
+
+    if operation == "recall-cancel":
+        _semantic_keys(
+            request,
+            required=("episode_ref", "reason"),
+        )
+        _, episode = _living_ref(
+            state, request["episode_ref"], kind="Event", role="recall-episode"
+        )
+        lifecycle = dict(episode["payload"]["lifecycle"])
+        if lifecycle["assessed"]:
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT", "assessed recall cannot be cancelled"
+            )
+        lifecycle.update(
+            {
+                "phase": "settled",
+                "awaiting_outcome": False,
+                "settled": True,
+            }
+        )
+        revised = _living_revise(
+            state,
+            episode,
+            payload={
+                **episode["payload"],
+                "lifecycle": lifecycle,
+                "cancellation_reason": _regional_plain(
+                    request["reason"], "recall cancellation reason"
+                ),
+            },
+            status="cancelled",
+            derivation={"operation": operation},
+        )
+        obligation = _semantic_current_record(
+            state,
+            "Obligation",
+            f"memory:outcome:{episode['payload']['episode_id']}",
+        )
+        _living_revise(
+            state,
+            obligation,
+            payload={**obligation["payload"], "state": "cancelled"},
+            status="cancelled",
+            derivation={"operation": operation},
+        )
+        return _semantic_result(
+            operation,
+            "supported",
+            episode=revised,
+            lifecycle=lifecycle,
+            usefulness_assessed=False,
+        ), 2
+
+    if operation == "memory-awareness":
+        _semantic_keys(request, optional=("episode_ref", "scope"))
+        if request.get("episode_ref") is None:
+            episodes = [
+                resolve_semantic_record(state["records"], raw)
+                for raw in state["current"]["Event"].values()
+                if resolve_semantic_record(
+                    state["records"], raw
+                )["payload"].get("memory_role") == "recall-episode"
+            ]
+            episode = (
+                max(
+                    episodes,
+                    key=lambda row: (
+                        int(row["created_at"]),
+                        str(row["id"]),
+                        int(row["content_version"]),
+                    ),
+                )
+                if episodes
+                else None
+            )
+        else:
+            _, episode = _living_ref(
+                state,
+                request["episode_ref"],
+                kind="Event",
+                role="recall-episode",
+            )
+        if episode is None:
+            awareness = "no-support-located-within-searched-scope"
+            detail = {"searched_scope": request.get("scope")}
+        else:
+            payload = episode["payload"]
+            lifecycle = payload["lifecycle"]
+            if payload.get("limitations"):
+                awareness = "required-material-inaccessible"
+            elif payload.get("gaps"):
+                awareness = "understanding-retained-detail-requires-expansion"
+            elif payload.get("selected_refs"):
+                awareness = "exact-detail-recoverable-and-available"
+            elif lifecycle.get("located"):
+                awareness = "relevant-cue-recognised-target-not-located"
+            else:
+                awareness = "no-support-located-within-searched-scope"
+            detail = {
+                "episode": semantic_record_ref(episode).as_dict(),
+                "lifecycle": lifecycle,
+                "search": payload.get("search"),
+                "gaps": payload.get("gaps"),
+                "limitations": payload.get("limitations"),
+            }
+        return _semantic_result(
+            operation, "supported", awareness=awareness, detail=detail
+        ), 1
+
+    if operation == "autobiography":
+        _semantic_keys(
+            request,
+            optional=("limit", "include_unsettled"),
+        )
+        limit = _regional_integer(
+            request.get("limit", 32),
+            "autobiography limit",
+            minimum=1,
+            maximum=256,
+        )
+        include_unsettled = request.get("include_unsettled", True)
+        if not isinstance(include_unsettled, bool):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "autobiography include_unsettled must be boolean",
+            )
+        def autobiographical_record(
+            raw: Mapping[str, Any] | None,
+        ) -> Mapping[str, Any] | None:
+            if raw is None:
+                return None
+            resolved = resolve_semantic_record(state["records"], raw)
+            return {
+                "ref": semantic_record_ref(resolved).as_dict(),
+                "epistemic_kind": resolved["epistemic_kind"],
+                "status": resolved["status"],
+                "payload": resolved["payload"],
+            }
+
+        rows = []
+        for raw in state["current"]["Event"].values():
+            record = resolve_semantic_record(state["records"], raw)
+            if record["payload"].get("memory_role") != "recall-episode":
+                continue
+            lifecycle = record["payload"]["lifecycle"]
+            if not include_unsettled and not lifecycle["settled"]:
+                continue
+            rows.append(
+                {
+                    "episode": semantic_record_ref(record).as_dict(),
+                    "created_at": int(record["created_at"]),
+                    "question": record["payload"]["question"],
+                    "intended_use": record["payload"]["intended_use"],
+                    "lifecycle": lifecycle,
+                    "selected_refs": record["payload"]["selected_refs"],
+                    "use_ref": record["payload"]["use_ref"],
+                    "outcome_ref": record["payload"]["outcome_ref"],
+                    "assessment_ref": record["payload"]["assessment_ref"],
+                    "renewal": record["payload"]["renewal"],
+                    "use": autobiographical_record(
+                        record["payload"]["use_ref"]
+                    ),
+                    "outcome": autobiographical_record(
+                        record["payload"]["outcome_ref"]
+                    ),
+                    "assessment": autobiographical_record(
+                        record["payload"]["assessment_ref"]
+                    ),
+                }
+            )
+        rows.sort(
+            key=lambda row: (
+                row["created_at"],
+                row["episode"]["id"],
+                row["episode"]["content_version"],
+            )
+        )
+        selected_rows = rows[-limit:]
+        return _semantic_result(
+            operation,
+            "supported",
+            episodes=selected_rows,
+            total_episodes=len(rows),
+            unresolved=sum(
+                1 for row in rows if not row["lifecycle"]["settled"]
+            ),
+        ), max(1, len(selected_rows))
+
+    if operation == "register-relevance":
+        _semantic_keys(
+            request,
+            required=(
+                "condition_id",
+                "condition",
+                "target_refs",
+                "reason",
+            ),
+            optional=("priority", "cooldown_events"),
+        )
+        condition_id = _identifier(
+            request["condition_id"], "relevance condition identity"
+        )
+        condition = _regional_plain(
+            request["condition"], "relevance condition"
+        )
+        _living_condition_match(condition, {})
+        targets = _living_refs(
+            state, request["target_refs"], label="target_refs"
+        )
+        priority = _finite(
+            request.get("priority", 0.5), "relevance priority"
+        )
+        if not 0.0 <= priority <= 1.0:
+            raise FieldIntelligenceError(
+                "INVALID_NUMERIC_VALUE",
+                "relevance priority must lie in [0, 1]",
+            )
+        cooldown = _regional_integer(
+            request.get("cooldown_events", 0),
+            "relevance cooldown",
+            minimum=0,
+            maximum=1_000_000,
+        )
+        handled_event_ids: list[str] = []
+        last_match_transition: int | None = None
+        existing_ref = state["current"]["Program"].get(
+            f"memory:relevance:{condition_id}"
+        )
+        if existing_ref is not None:
+            existing = resolve_semantic_record(
+                state["records"], existing_ref, require_current=True
+            )
+            existing_payload = existing.get("payload", {})
+            if existing_payload.get("memory_role") == "relevance-condition":
+                prior_handled = existing_payload.get("handled_event_ids", [])
+                if isinstance(prior_handled, list) and all(
+                    isinstance(value, str) for value in prior_handled
+                ):
+                    handled_event_ids = list(prior_handled[-256:])
+                prior_transition = existing_payload.get(
+                    "last_match_transition"
+                )
+                if (
+                    not isinstance(prior_transition, bool)
+                    and isinstance(prior_transition, int)
+                    and prior_transition >= 0
+                ):
+                    last_match_transition = prior_transition
+        program_ref = _semantic_append_record(
+            state,
+            record_id=f"memory:relevance:{condition_id}",
+            kind="Program",
+            payload={
+                "memory_role": "relevance-condition",
+                "condition_id": condition_id,
+                "condition": condition,
+                "target_refs": targets,
+                "reason": _regional_plain(
+                    request["reason"], "relevance reason"
+                ),
+                "priority": priority,
+                "cooldown_events": cooldown,
+                "handled_event_ids": handled_event_ids,
+                "last_match_transition": last_match_transition,
+                "program_role": "reasoning",
+                "program": semantic_program_payload(
+                    program_kind="procedure",
+                    body={"condition": condition},
+                    reads=tuple(
+                        sorted(
+                            {
+                                str(clause["field"])
+                                for clause in condition["clauses"]
+                            }
+                        )
+                    ),
+                    emits=("memory-relevance",),
+                    max_work=64,
+                ),
+            },
+            epistemic_kind="proposed",
+            dependencies=targets,
+            derivation={"operation": operation},
+        )
+        obligation_ref = _semantic_append_record(
+            state,
+            record_id=f"memory:relevance-obligation:{condition_id}",
+            kind="Obligation",
+            payload={
+                "memory_role": "prospective-relevance",
+                "condition_ref": program_ref,
+                "state": "watching",
+            },
+            epistemic_kind="proposed",
+            dependencies=(program_ref,),
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, program_ref)
+        _semantic_reindex_record(state, obligation_ref)
+        return _semantic_result(
+            operation,
+            "supported",
+            condition=program_ref,
+            obligation=obligation_ref,
+        ), max(1, len(targets))
+
+    if operation == "match-relevance":
+        _semantic_keys(
+            request,
+            required=("event_id", "context"),
+            optional=("maximum", "cursor"),
+        )
+        event_id = _identifier(
+            request["event_id"], "relevance event identity"
+        )
+        context = _regional_plain(
+            request["context"], "relevance event context"
+        )
+        maximum = _regional_integer(
+            request.get("maximum", 32),
+            "relevance match maximum",
+            minimum=1,
+            maximum=512,
+        )
+        cursor = _regional_integer(
+            request.get("cursor", 0),
+            "relevance match cursor",
+            minimum=0,
+            maximum=1_000_000_000,
+        )
+        candidates = []
+        for raw in state["current"]["Program"].values():
+            record = resolve_semantic_record(state["records"], raw)
+            if (
+                record["status"] == "active"
+                and record["payload"].get("memory_role")
+                == "relevance-condition"
+            ):
+                candidates.append(record)
+        candidates.sort(
+            key=lambda record: (
+                -float(record["payload"]["priority"]),
+                record["id"],
+            )
+        )
+        if cursor > len(candidates):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "relevance match cursor exceeds candidate count",
+            )
+        selected_candidates = candidates[cursor:cursor + maximum]
+        wakeups: list[dict[str, Any]] = []
+        unknown: list[Mapping[str, Any]] = []
+        suppressed: list[Mapping[str, Any]] = []
+        transition = int(state["ledger"]["transitions"]) + 1
+        for record in selected_candidates:
+            payload = record["payload"]
+            handled = list(payload["handled_event_ids"])
+            if event_id in handled:
+                continue
+            matched, missing = _living_condition_match(
+                payload["condition"], context
+            )
+            if matched is None:
+                unknown.append(
+                    {"condition_id": payload["condition_id"], "missing": missing}
+                )
+                continue
+            revised_payload = {
+                **payload,
+                "handled_event_ids": (handled + [event_id])[-256:],
+            }
+            wake_ref: dict[str, Any] | None = None
+            if matched:
+                wake_id = f"memory:wakeup:{payload['condition_id']}:{event_id}"
+                existing_wake = state["current"]["Event"].get(wake_id)
+                last_match = payload.get("last_match_transition")
+                cooldown = int(payload["cooldown_events"])
+                cooling = (
+                    isinstance(last_match, int)
+                    and not isinstance(last_match, bool)
+                    and transition - last_match <= cooldown
+                )
+                if existing_wake is not None:
+                    wake_ref = dict(existing_wake)
+                elif cooling:
+                    suppressed.append(
+                        {
+                            "condition_id": payload["condition_id"],
+                            "reason": "cooldown",
+                            "last_match_transition": last_match,
+                            "eligible_after_transition": last_match + cooldown + 1,
+                        }
+                    )
+                else:
+                    wake_ref = _semantic_append_record(
+                        state,
+                        record_id=wake_id,
+                        kind="Event",
+                        payload={
+                            "memory_role": "relevance-wakeup",
+                            "condition_ref": semantic_record_ref(record).as_dict(),
+                            "event_id": event_id,
+                            "reason": payload["reason"],
+                            "target_refs": payload["target_refs"],
+                            "permission_granted": False,
+                        },
+                        epistemic_kind="derived",
+                        dependencies=(
+                            semantic_record_ref(record).as_dict(),
+                            *payload["target_refs"],
+                        ),
+                        derivation={"operation": operation},
+                        valid_time={
+                            "start": state["time"]["now"],
+                            "end": state["time"]["now"],
+                        },
+                    )
+                    revised_payload["last_match_transition"] = transition
+                    _semantic_reindex_record(state, wake_ref)
+                if wake_ref is not None:
+                    wakeups.append(wake_ref)
+            _living_revise(
+                state,
+                record,
+                payload=revised_payload,
+                dependencies=(() if wake_ref is None else (wake_ref,)),
+                derivation={"operation": operation, "event_id": event_id},
+            )
+        next_cursor = cursor + len(selected_candidates)
+        limitation = (
+            None
+            if next_cursor >= len(candidates)
+            else {
+                "kind": "bounded-relevance-discovery",
+                "searched": len(selected_candidates),
+                "remaining": len(candidates) - next_cursor,
+                "next_cursor": next_cursor,
+            }
+        )
+        return _semantic_result(
+            operation,
+            "supported" if wakeups else "unresolved",
+            wakeups=wakeups,
+            unknown=unknown,
+            suppressed=suppressed,
+            cursor=cursor,
+            next_cursor=None if limitation is None else next_cursor,
+            searched=len(selected_candidates),
+            candidate_count=len(candidates),
+            limitation=limitation,
+        ), max(1, len(selected_candidates))
+
+    if operation == "demote-memory":
+        _semantic_keys(
+            request,
+            required=("memory_ref", "backing", "summary"),
+            optional=("fidelity", "reason"),
+        )
+        _, memory = _living_ref(state, request["memory_ref"])
+        backing = _regional_plain(
+            request["backing"], "memory backing descriptor"
+        )
+        required_backing = {
+            "codec",
+            "content_sha256",
+            "object_sha256",
+            "recoverable",
+            "source_revision_id",
+        }
+        if (
+            not isinstance(backing, dict)
+            or not required_backing.issubset(backing)
+            or backing["recoverable"] is not True
+            or any(
+                not isinstance(backing[name], str) or not backing[name]
+                for name in (
+                    "codec",
+                    "content_sha256",
+                    "object_sha256",
+                    "source_revision_id",
+                )
+            )
+            or len(backing["content_sha256"]) != 64
+            or len(backing["object_sha256"]) != 64
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "memory backing is not independently recoverable",
+            )
+        original_payload = _regional_plain(
+            memory["payload"], "memory payload for demotion"
+        )
+        payload_sha256 = sha256_value(original_payload)
+        if backing["content_sha256"] != payload_sha256:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "memory backing does not identify the exact resident payload",
+            )
+        summary = _regional_plain(request["summary"], "memory summary")
+        demoted_payload = {
+            "memory_role": original_payload.get("memory_role", "demoted-detail"),
+            "memory_residency": "deep-backing",
+            "memory_backing": {
+                **backing,
+                "record_status": memory["status"],
+            },
+            "memory_fidelity": _regional_plain(
+                request.get("fidelity", "exact"), "memory fidelity"
+            ),
+            "memory_residency_reason": _regional_plain(
+                request.get("reason", operation), "memory residency reason"
+            ),
+            "memory_summary": summary,
+            "original_payload_sha256": payload_sha256,
+        }
+        revised = _living_revise(
+            state,
+            memory,
+            payload=demoted_payload,
+            status="dormant",
+            support_roots=(str(backing["source_revision_id"]),),
+            derivation={"operation": operation, "backing": backing},
+        )
+        return _semantic_result(
+            operation,
+            "supported",
+            memory=revised,
+            residency="deep-backing",
+            backing=demoted_payload["memory_backing"],
+            released_payload_bytes=len(canonical_json_bytes(original_payload)),
+        ), 1
+
+    if operation == "expand-memory":
+        _semantic_keys(
+            request,
+            required=("memory_ref", "restored_payload"),
+            optional=("reason",),
+        )
+        _, memory = _living_ref(state, request["memory_ref"])
+        payload = memory["payload"]
+        backing = payload.get("memory_backing")
+        if (
+            memory["status"] != "dormant"
+            or payload.get("memory_residency") != "deep-backing"
+            or not isinstance(backing, Mapping)
+            or backing.get("recoverable") is not True
+        ):
+            raise FieldIntelligenceError(
+                "OPERATION_CONFLICT",
+                "memory is not a safely demoted resident record",
+            )
+        restored = _regional_plain(
+            request["restored_payload"], "restored memory payload"
+        )
+        restored_sha256 = sha256_value(restored)
+        if restored_sha256 != backing["content_sha256"]:
+            raise FieldIntelligenceError(
+                "DIGEST_MISMATCH",
+                "expanded memory payload does not match its exact backing",
+            )
+        revised = _living_revise(
+            state,
+            memory,
+            payload=restored,
+            status=str(backing["record_status"]),
+            derivation={
+                "operation": operation,
+                "backing": dict(backing),
+                "reason": request.get("reason", operation),
+            },
+        )
+        return _semantic_result(
+            operation,
+            "supported",
+            memory=revised,
+            residency="active",
+            restored_payload_sha256=restored_sha256,
+        ), 1
+
+    if operation == "reinterpret-memory":
+        _semantic_keys(
+            request,
+            required=(
+                "interpretation_id",
+                "source_refs",
+                "interpretation",
+                "applicability",
+            ),
+            optional=("epistemic_kind", "support_roots"),
+        )
+        sources = _living_refs(
+            state, request["source_refs"], label="source_refs"
+        )
+        interpretation_ref = _semantic_append_record(
+            state,
+            record_id=_identifier(
+                request["interpretation_id"], "interpretation identity"
+            ),
+            kind="Value",
+            payload={
+                "memory_role": "reinterpretation",
+                "interpretation": _regional_plain(
+                    request["interpretation"], "memory reinterpretation"
+                ),
+                "source_refs": sources,
+                "original_evidence_changed": False,
+            },
+            epistemic_kind=str(request.get("epistemic_kind", "derived")),
+            dependencies=sources,
+            support_roots=cast(
+                Sequence[str], request.get("support_roots", [])
+            ),
+            applicability=cast(Mapping[str, Any], request["applicability"]),
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, interpretation_ref)
+        return _semantic_result(
+            operation,
+            "supported",
+            interpretation=interpretation_ref,
+            source_refs=sources,
+        ), max(1, len(sources))
+
+    if operation == "quiet-synthesis":
+        _semantic_keys(
+            request,
+            required=(
+                "synthesis_id",
+                "concern_ref",
+                "source_refs",
+                "candidate",
+                "resources",
+            ),
+        )
+        concern_ref, _ = _living_ref(state, request["concern_ref"])
+        sources = _living_refs(
+            state, request["source_refs"], label="source_refs"
+        )
+        candidate_ref = _semantic_append_record(
+            state,
+            record_id=_identifier(
+                request["synthesis_id"], "quiet synthesis identity"
+            ),
+            kind="Value",
+            payload={
+                "memory_role": "quiet-synthesis",
+                "candidate": _regional_plain(
+                    request["candidate"], "quiet synthesis candidate"
+                ),
+                "concern_ref": concern_ref.as_dict(),
+                "source_refs": sources,
+                "resources": _regional_plain(
+                    request["resources"], "quiet synthesis resources"
+                ),
+                "world_observation": False,
+            },
+            epistemic_kind="hypothetical",
+            dependencies=(concern_ref.as_dict(), *sources),
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, candidate_ref)
+        return _semantic_result(
+            operation,
+            "supported",
+            candidate=candidate_ref,
+            epistemic_kind="hypothetical",
+        ), max(1, 1 + len(sources))
+
+    if operation == "maintain-memory":
+        _semantic_keys(
+            request,
+            required=("purpose", "allowance"),
+            optional=("target_refs",),
+        )
+        targets = _living_refs(
+            state, request.get("target_refs", []), label="target_refs"
+        )
+        pending_recall = 0
+        dormant = 0
+        relevance = 0
+        for kind in SEMANTIC_RECORD_KINDS:
+            for raw in state["current"][kind].values():
+                record = resolve_semantic_record(state["records"], raw)
+                role = record["payload"].get("memory_role")
+                if role == "recall-episode" and not record["payload"][
+                    "lifecycle"
+                ]["settled"]:
+                    pending_recall += 1
+                if record["status"] == "dormant":
+                    dormant += 1
+                if role == "relevance-condition":
+                    relevance += 1
+        assessment_ref = _semantic_append_record(
+            state,
+            record_id=(
+                "memory:maintenance:"
+                + sha256_value(
+                    {
+                        "purpose": request["purpose"],
+                        "targets": targets,
+                        "transition": state["ledger"]["transitions"],
+                    }
+                )
+            ),
+            kind="Assessment",
+            payload={
+                "memory_role": "maintenance-assessment",
+                "purpose": _regional_plain(
+                    request["purpose"], "memory maintenance purpose"
+                ),
+                "allowance": _regional_plain(
+                    request["allowance"], "memory maintenance allowance"
+                ),
+                "target_refs": targets,
+                "pending_recall": pending_recall,
+                "dormant_memories": dormant,
+                "relevance_conditions": relevance,
+                "settlement": (
+                    "useful"
+                    if targets or pending_recall or dormant
+                    else "unnecessary"
+                ),
+            },
+            epistemic_kind="assessed",
+            dependencies=targets,
+            derivation={"operation": operation},
+        )
+        _semantic_reindex_record(state, assessment_ref)
+        return _semantic_result(
+            operation,
+            "supported",
+            assessment=assessment_ref,
+            pending_recall=pending_recall,
+            dormant_memories=dormant,
+            relevance_conditions=relevance,
+        ), max(1, len(targets))
+
+    raise FieldIntelligenceError(
+        "INVALID_SEMANTIC_OPERATION",
+        f"unsupported living-memory operation: {operation}",
+    )
+
 
 def _semantic_dispatch(
     state: dict[str, Any],
     request: Mapping[str, Any],
 ) -> tuple[dict[str, Any], int]:
     operation = request["operation"]
+    if operation in _LIVING_MEMORY_OPERATIONS:
+        return _semantic_living_memory(state, request)
+    if operation in {
+        "affect-state", "appraise-experience", "regulate-affect",
+        "assess-affect-outcome",
+    }:
+        return _semantic_affect(state, request)
+    if operation == "teacher-control":
+        return _semantic_teacher_control(state, request)
+    if operation == "autonomous-learn":
+        return _semantic_autonomous_learn(state, request)
+    if operation in {
+        "admit-open-vocab-episode",
+        "propose-action-schema",
+        "admit-action-schema",
+        "interpret-open-vocab",
+        "plan-open-vocab",
+        "repair-open-vocab-plan",
+    }:
+        return _semantic_open_vocab(state, request)
+    if operation == "learn-action-schema":
+        return _semantic_learn_action_schema(state, request)
     if operation == "learn":
         learning_kind = _identifier(
             request.get("learning_kind"), "semantic learning kind"
         )
-        delegated_operations = {
-            "construction": "learn-construction",
-            "hybrid": "learn-hybrid",
-            "mechanism": "learn-mechanism",
-            "predictive-state": "learn-predictive-state",
-            "procedure": "learn-procedure",
-            "parameters": "learn-parameters",
-            "representation": "learn-representation",
-        }
-        delegated_operation = delegated_operations.get(learning_kind)
+        delegated_operation = SEMANTIC_LEARNING_KINDS.get(learning_kind)
         if delegated_operation is None:
             raise FieldIntelligenceError(
                 "INVALID_SEMANTIC_OPERATION",
@@ -25348,6 +41595,8 @@ def _semantic_dispatch(
         return _semantic_correct(state, request)
     if operation == "query":
         return _semantic_query(state, request)
+    if operation == "history-select":
+        return _semantic_history_select(state, request)
     if operation == "predict":
         return _semantic_predict(state, request)
     if operation == "assess-prediction":
@@ -25364,16 +41613,95 @@ def _semantic_dispatch(
         return _semantic_explain(state, request)
     if operation == "learn-procedure":
         return _semantic_learn_procedure(state, request)
+    if operation == "advance-surface-procedure":
+        return _semantic_advance_surface_procedure(state, request)
+    if operation == "invoke-procedure":
+        return _semantic_invoke_procedure(state, request)
+    if operation == "discover-procedure":
+        _semantic_keys(request, optional=("max_candidates",))
+        maximum = _regional_integer(
+            request.get("max_candidates", state["bounds"]["max_alternatives"]),
+            "procedure discovery maximum",
+            minimum=1,
+            maximum=state["bounds"]["max_alternatives"],
+        )
+        opportunities, inspected = _semantic_discover_procedure_opportunities(
+            state, maximum=maximum
+        )
+        return (
+            _semantic_result(
+                "discover-procedure",
+                "supported" if opportunities else "representation-insufficient",
+                opportunities=opportunities,
+                inspected_event_count=inspected,
+                limitation=(
+                    None
+                    if opportunities
+                    else "no-repeated-trajectories-with-sequence-metadata"
+                ),
+            ),
+            max(1, inspected),
+        )
+    if operation == "autonomous-curiosity":
+        return _semantic_autonomous_curiosity(state, request)
+    if operation == "autonomous-perception":
+        return _semantic_autonomous_perception(state, request)
+    if operation == "autonomous-agenda":
+        return _semantic_autonomous_agenda(state, request)
+    if operation == "synthesize-experiment-language":
+        return _semantic_synthesize_experiment_language(state, request)
+    if operation == "revise-experiment-constructor":
+        return _semantic_revise_experiment_constructor(state, request)
+    if operation == "assess-experiment-language":
+        return _semantic_assess_experiment_language(state, request)
+    if operation == "invoke-experiment-language":
+        return _semantic_invoke_experiment_language(state, request)
+    if operation == "design-mechanism-experiment":
+        return _semantic_design_mechanism_experiment(state, request)
+    if operation == "assess-mechanism-experiment":
+        return _semantic_assess_mechanism_experiment(state, request)
+    if operation == "design-distributed-phase-flow":
+        return _semantic_design_distributed_phase_flow(state, request)
+    if operation == "assess-distributed-phase-flow":
+        return _semantic_assess_distributed_phase_flow(state, request)
+    if operation == "design-phase-current-topology":
+        return _semantic_design_phase_current_topology(state, request)
+    if operation == "assess-phase-current-topology":
+        return _semantic_assess_phase_current_topology(state, request)
+    if operation == "synthesize-research-program":
+        return _semantic_synthesize_research_program(state, request)
+    if operation == "record-research-authority":
+        return _semantic_record_research_authority(state, request)
+    if operation == "advance-research-program":
+        return _semantic_advance_research_program(state, request)
+    if operation == "query-research-program":
+        return _semantic_query_research_program(state, request)
+    if operation == "continue-distributed-phase-flow":
+        return _semantic_continue_distributed_phase_flow(state, request)
+    if operation == "continue-phase-current-topology":
+        return _semantic_continue_phase_current_topology(state, request)
     if operation == "learn-construction":
         return _semantic_learn_construction(state, request)
+    if operation == "learn-math":
+        return _semantic_learn_math(state, request)
     if operation == "interpret":
         return _semantic_interpret(state, request)
+    if operation == "interpret-math":
+        return _semantic_interpret_math(state, request)
     if operation == "express":
         return _semantic_express(state, request)
+    if operation == "express-math":
+        return _semantic_express_math(state, request)
     if operation == "update-perspective":
         return _semantic_update_perspective(state, request)
     if operation == "plan":
         return _semantic_plan(state, request)
+    if operation == "plan-procedure":
+        return _semantic_plan_procedure(state, request)
+    if operation == "sequence-frontier":
+        return _semantic_sequence_frontier(state, request)
+    if operation == "sequence-route":
+        return _semantic_sequence_route(state, request)
     if operation == "inquire":
         return _semantic_inquire(state, request)
     if operation == "authorize-action":
@@ -25424,7 +41752,15 @@ def semantic_cognition_kernel(
         minimum=1,
         maximum=REGIONAL_KERNEL_MAX_WORK,
     )
-    current = _canonical_semantic_state(cast(Mapping[str, Any], state))
+    if isinstance(state, _CanonicalSemanticState):
+        previous_state: _CanonicalSemanticState | None = state
+        current = _CanonicalSemanticState(state)
+        current["continuation"] = dict(state["continuation"])
+    else:
+        previous_state = None
+        current = _canonical_semantic_state(
+            cast(Mapping[str, Any], state)
+        )
     continuation = current["continuation"]
     supplied = _regional_plain(
         dict(arguments), "semantic operation arguments"
@@ -25500,8 +41836,9 @@ def semantic_cognition_kernel(
             required_work=required,
         )
         current["last_result"] = progress
+        _attach_semantic_progress_json(previous_state, current)
         return KernelResult(
-            state=_canonical_semantic_state(current),
+            state=current,
             status="yield",
             work=bound,
             output=progress,
@@ -25528,8 +41865,9 @@ def semantic_cognition_kernel(
             required_work=work,
         )
         current["last_result"] = progress
+        _attach_semantic_progress_json(previous_state, current)
         return KernelResult(
-            state=_canonical_semantic_state(current),
+            state=current,
             status="yield",
             work=bound,
             output=progress,

@@ -12,3 +12,7 @@
         allowedTools: []
         networkHosts: []
         maxEvidenceBytes: 16384
+        sourceRoots: []
+        workOrderTools: [cassi_read_source]
+        workOrderLedgerFile: !!js process.env.CASSI_WORK_ORDER_LEDGER ?? 'CassiQwen/_diag/field-brain-entity/work-orders.jsonl'
+        preAuthorizedEffects: [read-only, observation]

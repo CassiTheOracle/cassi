@@ -142,13 +142,17 @@ struct llama_context {
                 int32_t   il_end);
 
     size_t cassi_qi_state_size() const;
+    size_t cassi_qi_mode_count() const;
     int64_t cassi_qi_flux_size() const;
     const float * cassi_qi_flux_data() const;
     int64_t cassi_qi_state_field_width() const;
     int64_t cassi_qi_state_row_width() const;
+    float cassi_qi_seam_budget() const;
+    float cassi_qi_seam_scale() const;
     int32_t cassi_qi_graph_node_count() const;
     bool set_cassi_qi_coupling(uint32_t steps, float injection_scale);
     bool set_cassi_qi_state(llama_seq_id seq_id, const float * data, size_t count);
+    bool set_cassi_qi_mode_bank(const float * data, size_t count);
     bool get_cassi_qi_state(llama_seq_id seq_id, float * data, size_t count);
     float score_cassi_qi_token(llama_seq_id seq_id, llama_token token);
     int32_t cassi_begin_token(llama_token token, llama_pos pos);
@@ -166,6 +170,11 @@ struct llama_context {
             bool embedding_row = false) const;
     void enable_cassi_capture();
     bool cassi_capture_get(llama_cassi_capture & capture);
+    // Capture dump path for the public API: shape and copy read the last decoded graph,
+    // and the tensor selector resolves one tensor per kind and layer.
+    ggml_tensor * cassi_capture_tensor(int32_t kind, uint32_t layer) const;
+    int32_t cassi_capture_shape(int32_t kind, uint32_t layer, int64_t * shape) const;
+    bool cassi_capture_copy(int32_t kind, uint32_t layer, float * data, size_t count);
 
 
     // process a single ubatch with a specific graph type
@@ -331,7 +340,11 @@ private:
 
     llm_cassi_qi_field_config cassi_qi;
     std::vector<float> cassi_qi_state;
+    std::vector<float> cassi_qi_mode_bank;
     std::vector<float> cassi_qi_flux_last;
+    // Last modulated write the host read back. Both stay 0 when no seam pass ran.
+    float cassi_qi_seam_budget_last = 0.0f;
+    float cassi_qi_seam_scale_last  = 0.0f;
     int64_t cassi_qi_seam_field_width = 0;
     int64_t cassi_qi_seam_row_width = 0;
     int32_t cassi_qi_graph_nodes_tg = -1;
@@ -361,6 +374,9 @@ private:
         std::vector<llama_seq_id> seq_ids;
         std::vector<float> state;
         std::vector<float> flux;
+        bool seam_valid = false;
+        float seam_budget = 0.0f;
+        float seam_scale = 0.0f;
     } cassi_qi_pending;
 
     llama_adapter_cvec_ptr  cvec;

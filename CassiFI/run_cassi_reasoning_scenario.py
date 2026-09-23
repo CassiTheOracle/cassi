@@ -32,11 +32,13 @@ from cassi_field_atlas import (  # noqa: E402
 )
 from cassi_field_cognition import semantic_cognition_state  # noqa: E402
 from cassi_field_owner import (  # noqa: E402
+    FieldIntelligenceError,
     FieldIntelligenceOwner,
     FieldIntelligenceSurface,
     RPC_SCHEMA,
     SourceInput,
 )
+from cassi_hive_session import open_field_session  # noqa: E402
 from cassi_resonant_field import (  # noqa: E402
     HELICAL_PACKET_CHANNELS,
     ResonantNumericalError,
@@ -271,7 +273,12 @@ def stage_two(owner: FieldIntelligenceOwner, scene: Mapping[str, Any]) -> None:
         operation="begin-reasoning",
         operation_id="scenario-begin-operation",
         episode_id="workshop-episode",
-        question={"kind": "workshop-report"},
+        question={
+            "kind": "workshop-report",
+            "task_id": "universal-interpreter-workshop",
+            "prompt": "Determine the corrected workshop load and emit its correction.",
+            "requested_output": "next-token-correction",
+        },
         allocation=dict(ALLOCATION),
         dependencies=[
             {
@@ -335,6 +342,12 @@ def stage_two(owner: FieldIntelligenceOwner, scene: Mapping[str, Any]) -> None:
         "interrupted_after_return": True,
         "outstanding_returns": returned,
         "phase": episode["payload"]["phase"],
+        "question": {
+            "kind": "workshop-report",
+            "task_id": "universal-interpreter-workshop",
+            "prompt": "Determine the corrected workshop load and emit its correction.",
+            "requested_output": "next-token-correction",
+        },
         "reserved": dict(episode["payload"]["resources"]["reserved"]),
         "work_items": [
             {
@@ -450,6 +463,15 @@ def stage_three(owner: FieldIntelligenceOwner, scene: Mapping[str, Any]) -> None
         "conclusion": finished["status"],
         "consumed_returns": len(episode["payload"]["consumed_returns"]),
         "phase": episode["payload"]["phase"],
+        "premise_after": record(
+            owner, "Binding", "binding:workshop-premise"
+        )["payload"]["value"],
+        "question": {
+            "kind": "workshop-report",
+            "task_id": "universal-interpreter-workshop",
+            "prompt": "Determine the corrected workshop load and emit its correction.",
+            "requested_output": "next-token-correction",
+        },
         "quanta_to_repair": quanta,
         "releases": episode["payload"].get("releases", []),
         "scope": (
@@ -533,10 +555,9 @@ class selection_world:
     """Give one selection arm its own continuing world and packet state."""
 
     def __init__(self, template: FieldIntelligenceOwner, method: str) -> None:
-        base = Path(template.root) if hasattr(template, "root") else None
-        self.root = Path("_diag") / "selection-arms" / method
+        base = Path(template.root) if hasattr(template, "root") else Path("_diag")
+        self.root = base / "selection-arms" / method
         self.owner: FieldIntelligenceOwner | None = None
-        del base
 
     def __enter__(self) -> FieldIntelligenceOwner:
         if self.root.exists():
@@ -1108,7 +1129,13 @@ def main() -> int:
         shutil.rmtree(root_path)
     root_path.mkdir(parents=True)
     scene = world()
-    with FieldIntelligenceOwner(root_path) as owner:
+    with open_field_session(
+        root_path,
+        role="worker",
+        mode="scout",
+        metadata={"program": "run_cassi_reasoning_scenario"},
+    ) as field:
+        owner = field.owner
         stage_one(owner, scene)
         stage_two(owner, scene)
         stage_three(owner, scene)

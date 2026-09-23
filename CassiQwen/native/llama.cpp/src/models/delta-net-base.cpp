@@ -510,7 +510,11 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
             return conv_input;
         }
 
-        ggml_build_forward_expand(gf, ggml_cpy(ctx0, conv_state_last, conv_state_update));
+        // The modulation seam keeps this write and adds the field's bounded term to it, so
+        // the row written is the model's own row unless the seam is on.
+        ggml_tensor * modulated = build_cassi_qi_state_modulated(conv_state_last, il);
+        ggml_build_forward_expand(gf, ggml_cpy(ctx0,
+                modulated != nullptr ? modulated : conv_state_last, conv_state_update));
     } else {
         // [TAG_RECURRENT_ROLLBACK_SPLITS]
         // this logic assumes that the last (n_rs_seq + 1) tokens of a sequence in a batch are inside
@@ -541,36 +545,61 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
     return conv_input;
 }
 
-// The field's share of the suppressed recurrent-state write.  Null when the seam is
-// off, the readout is absent, the step is a prefill, or the layer is not the qi layer.
+static ggml_tensor * build_cassi_qi_state_field_rows(
+        ggml_context * ctx0,
+        ggml_tensor *  flux,
+        int64_t        field_width,
+        int64_t        n_seqs,
+        int64_t        n_seq_tokens,
+        int64_t        n_tokens) {
+    if (flux == nullptr || field_width < 1 || n_seqs < 1 || n_seq_tokens < 1 ||
+            n_tokens != n_seq_tokens * n_seqs || flux->ne[0] < field_width ||
+            flux->ne[1] < n_tokens) {
+        return nullptr;
+    }
+
+    const size_t token_stride = flux->nb[1];
+    const size_t offset = (size_t) (n_seq_tokens - 1) * token_stride;
+    ggml_tensor * rows = ggml_view_2d(ctx0, flux, field_width, n_seqs,
+            token_stride * (size_t) n_seq_tokens, offset);
+    rows = ggml_cont(ctx0, rows);
+    rows = ggml_reshape_3d(ctx0, rows, field_width, 1, n_seqs);
+    return ggml_view_3d(ctx0, rows, 1, field_width, n_seqs,
+            rows->nb[0], rows->nb[1], 0);
+}
+
+// The field's share of the suppressed recurrent-state write. Null when the seam is off,
+// the readout is absent, or the sequence layout is unsupported.
 ggml_tensor * llm_build_delta_net_base::build_cassi_qi_state_source(ggml_tensor * conv_state_last, int il) {
     const float field_share = cparams.cassi_qi_substitute;
     if (!(field_share > 0.0f) || res == nullptr) {
         return nullptr;
     }
-    // The qi readout exists only for the qi layer.  A deeper displacement suppresses
+    // The qi readout exists only for the qi layer. A deeper displacement suppresses
     // many layers at once, and only that one layer may take the field's write.
     if ((uint32_t) il != cparams.cassi_qi_field_layer) {
         return nullptr;
     }
     ggml_tensor * flux = res->get_cassi_qi_flux();
-    if (flux == nullptr || ubatch.n_seq_tokens != 1) {
+    if (flux == nullptr) {
         return nullptr;
     }
     const int64_t rows     = conv_state_last->ne[0];
     const int64_t channels = conv_state_last->ne[1];
     const int64_t n_seqs   = conv_state_last->ne[2];
-    if (rows < 1 || flux->ne[0] < 1 || flux->ne[1] != n_seqs) {
+    const int64_t n_seq_tokens = ubatch.n_seq_tokens > 0 ? (int64_t) ubatch.n_seq_tokens : 1;
+    if (rows < 1 || flux->ne[0] < 1 || channels < 1 || n_seqs < 1 ||
+            (int64_t) ubatch.n_tokens != n_seq_tokens * n_seqs) {
         return nullptr;
     }
     // The field addresses what its readout holds, and never more channels than the row has.
     const int64_t field_width = std::min<int64_t>(flux->ne[0], channels);
+    ggml_tensor * field_row = build_cassi_qi_state_field_rows(
+            ctx0, flux, field_width, n_seqs, n_seq_tokens, ubatch.n_tokens);
+    if (field_row == nullptr) {
+        return nullptr;
+    }
     res->set_cassi_qi_state_ownership(field_width, channels);
-
-    ggml_tensor * field_row = ggml_cont(ctx0, flux);  // [field_width, n_seqs]
-    field_row = ggml_reshape_3d(ctx0, field_row, field_width, 1, n_seqs);
-    field_row = ggml_view_3d(ctx0, field_row, 1, field_width, n_seqs,
-            field_row->nb[0], field_row->nb[1], 0);
     cb(field_row, "cassi_qi_state_field", il);
 
     ggml_tensor * newest = ggml_cont(ctx0, ggml_view_3d(ctx0, conv_state_last,
@@ -579,7 +608,7 @@ ggml_tensor * llm_build_delta_net_base::build_cassi_qi_state_source(ggml_tensor 
             (rows - 1) * conv_state_last->nb[0]));
     cb(newest, "cassi_qi_state_window_newest", il);
 
-    // The field row addresses field_width channels.  The remaining channels keep the
+    // The field row addresses field_width channels. The remaining channels keep the
     // write the model would have made, so the seam owns only what the field can read.
     ggml_tensor * blended = ggml_add(ctx0,
             ggml_scale(ctx0, ggml_cont(ctx0, ggml_view_3d(ctx0, newest,
@@ -588,6 +617,99 @@ ggml_tensor * llm_build_delta_net_base::build_cassi_qi_state_source(ggml_tensor 
     cb(blended, "cassi_qi_state_row_head_blended", il);
 
     ggml_tensor * row = blended;
+    if (channels > field_width) {
+        ggml_tensor * tail_keep = ggml_cont(ctx0, ggml_view_3d(ctx0, newest,
+                1, channels - field_width, n_seqs, newest->nb[1], newest->nb[2],
+                field_width * newest->nb[0]));
+        row = ggml_concat(ctx0, row, tail_keep, 1);
+        cb(row, "cassi_qi_state_row_joined", il);
+    }
+
+    if (rows == 1) {
+        return row;
+    }
+
+    ggml_tensor * window_head = ggml_view_3d(ctx0, conv_state_last,
+            rows - 1, channels, n_seqs,
+            conv_state_last->nb[1], conv_state_last->nb[2], 0);
+    cb(window_head, "cassi_qi_state_window_head", il);
+
+    return ggml_concat(ctx0, window_head, row, 0);
+}
+
+// The added term never exceeds this multiple of the model write's own RMS.
+static constexpr float k_cassi_qi_modulate_cap = 1.0f;
+
+// The field's additive share of the intact recurrent-state write. The model's own row stays
+// in the sum, and the added term is capped against that row's own RMS. Null when the seam is
+// off, the readout is absent, or the sequence layout is unsupported.
+ggml_tensor * llm_build_delta_net_base::build_cassi_qi_state_modulated(ggml_tensor * conv_state_last, int il) {
+    const float gain = cparams.cassi_qi_modulate_gain;
+    // A zero gain is the identity control: the graph then matches the plain write exactly.
+    if (!cparams.cassi_qi_modulate || !(gain > 0.0f) || res == nullptr) {
+        return nullptr;
+    }
+    // The qi readout exists only for the qi layer.
+    if ((uint32_t) il != cparams.cassi_qi_field_layer) {
+        return nullptr;
+    }
+    ggml_tensor * flux = res->get_cassi_qi_flux();
+    if (flux == nullptr) {
+        return nullptr;
+    }
+    const int64_t rows     = conv_state_last->ne[0];
+    const int64_t channels = conv_state_last->ne[1];
+    const int64_t n_seqs   = conv_state_last->ne[2];
+    const int64_t n_seq_tokens = ubatch.n_seq_tokens > 0 ? (int64_t) ubatch.n_seq_tokens : 1;
+    if (rows < 1 || flux->ne[0] < 1 || channels < 1 || n_seqs < 1 ||
+            (int64_t) ubatch.n_tokens != n_seq_tokens * n_seqs) {
+        return nullptr;
+    }
+    // The field addresses what its readout holds, and never more channels than the row has.
+    const int64_t field_width = std::min<int64_t>(flux->ne[0], channels);
+    ggml_tensor * field_row = build_cassi_qi_state_field_rows(
+            ctx0, flux, field_width, n_seqs, n_seq_tokens, ubatch.n_tokens);
+    if (field_row == nullptr) {
+        return nullptr;
+    }
+    res->set_cassi_qi_state_ownership(field_width, channels);
+    cb(field_row, "cassi_qi_state_field", il);
+
+    // The newest row is the write this step makes. It is read, never scaled or dropped.
+    ggml_tensor * newest = ggml_cont(ctx0, ggml_view_3d(ctx0, conv_state_last,
+            1, channels, n_seqs,
+            conv_state_last->nb[1], conv_state_last->nb[2],
+            (rows - 1) * conv_state_last->nb[0]));
+    cb(newest, "cassi_qi_state_window_newest", il);
+
+    ggml_tensor * head = ggml_cont(ctx0, ggml_view_3d(ctx0, newest,
+            1, field_width, n_seqs, newest->nb[1], newest->nb[2], 0));
+
+    // Both means are per element, over the elements each row itself holds.
+    ggml_tensor * model_mean = ggml_scale(ctx0,
+            ggml_sum(ctx0, ggml_sqr(ctx0, newest)),
+            1.0f / (float) (channels * n_seqs));
+    // The floor keeps the budget finite when the field readout is empty.
+    ggml_tensor * field_mean = ggml_scale_bias(ctx0,
+            ggml_sum(ctx0, ggml_sqr(ctx0, field_row)),
+            1.0f / (float) (field_width * n_seqs),
+            1.0e-16f);
+    // The budget is the largest scale that keeps the added RMS at cap times the row RMS.
+    ggml_tensor * budget = ggml_sqrt(ctx0, ggml_scale(ctx0,
+            ggml_div(ctx0, model_mean, field_mean),
+            k_cassi_qi_modulate_cap * k_cassi_qi_modulate_cap));
+    // scale = min(gain, budget). The field is never normalized.
+    ggml_tensor * scale = ggml_clamp(ctx0, ggml_cont(ctx0, budget), 0.0f, gain);
+    ggml_tensor * added = ggml_mul(ctx0, field_row, scale);
+    cb(added, "cassi_qi_state_modulation", il);
+    // Both are scalars, so the host can read the cap back instead of inferring it.
+    res->t_cassi_qi_seam_budget = budget;
+    res->t_cassi_qi_seam_scale  = scale;
+
+    ggml_tensor * row = ggml_add(ctx0, head, added);
+    cb(row, "cassi_qi_state_row_head_modulated", il);
+
+    // The remaining channels keep the write the model would have made.
     if (channels > field_width) {
         ggml_tensor * tail_keep = ggml_cont(ctx0, ggml_view_3d(ctx0, newest,
                 1, channels - field_width, n_seqs, newest->nb[1], newest->nb[2],

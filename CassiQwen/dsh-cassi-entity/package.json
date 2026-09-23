@@ -9,7 +9,8 @@
     ".": "./index.js",
     "./client": "./client.js",
     "./entity-client": "./entity-client.js",
-    "./adapter": "./adapter.js"
+    "./adapter": "./adapter.js",
+    "./source-reader": "./source-reader.js"
   },
   "dsh": {
     "bundle": {

@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import time
-from dataclasses import dataclass, replace
-from typing import Any, Mapping, Sequence
+from dataclasses import dataclass, field as dataclass_field, replace
+from typing import Any, Callable, Mapping, Sequence
+import base64
+import numpy as np
+
+import cassi_field_regions as _field_regions
 
 from cassi_computation_policy import (
     METHODS,
@@ -26,6 +31,8 @@ from cassi_field_computer import (
     ComputerProfile,
     ComputerState,
     FieldComputer,
+    FieldComputerError,
+    PagedComputerState,
     _canonical_instruction,
 )
 from cassi_field_program import (
@@ -36,9 +43,13 @@ from cassi_field_program import (
     regional_scalar_state,
 )
 from cassi_field_regions import RegionalProfile
+import cassi_field_regions as _regions
+from cassi_field_residency import ResidencyManager, ResourceWait
 from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
 
 SCHEMA = "cassifi.learning-computer.v3"
+RESIDENCY_REPORT_SCHEMA = "cassifi.learning-computer-residency.v1"
+RESIDENCY_WAIT_SCHEMA = "cassifi.learning-computer-residency-wait.v1"
 PREVIOUS_SCHEMA = "cassifi.learning-computer.v2"
 LEGACY_SCHEMA = "cassifi.learning-computer.v1"
 _TASK_WORDS = 98_304
@@ -67,6 +78,55 @@ ROOT_RESOURCE_NAMES = (
 class LearningComputerError(ValueError):
     """Invalid computer image or operation outside its declared bounds."""
 
+
+class LearningComputerCapacityError(LearningComputerError):
+    """A settled operation cannot fit its named regional allocation."""
+
+
+class LearningComputerResidencyWait(LearningComputerError):
+    """Bounded residency could not serve a request; the state is unchanged.
+
+    This is a typed continuation, not a fault: the requesting stage, the exact
+    page identities and versions, the declared segments under authority, the
+    completed work, and the remaining allowance travel with it.  Raising the
+    allowance resumes the same transition.
+    """
+
+    def __init__(
+        self,
+        computer_id: str,
+        *,
+        wait: Mapping[str, Any],
+        continuation: Mapping[str, Any],
+        resident_limit: int,
+    ) -> None:
+        self.computer_id = str(computer_id)
+        self.wait = dict(wait)
+        self.continuation = dict(continuation)
+        self.resident_limit = int(resident_limit)
+        self.pages = tuple(int(index) for index in self.continuation.get("pages", ()))
+        super().__init__(
+            f"computer {self.computer_id} suspended for pages "
+            f"{list(self.pages)} under an allowance of {self.resident_limit}"
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Canonical record of one suspended transition, for any caller.
+
+        A caller that only needs to report or checkpoint the deferral gets the
+        same shape a regional residency wait reports, so every class the field
+        asks for room in can be recorded without special cases.
+        """
+
+        return {
+            "schema": RESIDENCY_WAIT_SCHEMA,
+            "kind": "learning-computer-residency-wait",
+            "computer_id": self.computer_id,
+            "pages": list(self.pages),
+            "resident_limit": self.resident_limit,
+            "wait": dict(self.wait),
+            "continuation": dict(self.continuation),
+        }
 
 def _canonical(value: Any) -> bytes:
     try:
@@ -314,14 +374,549 @@ def _regional_capacities(
     return capacities
 
 
+class NeuralMembraneEpoch:
+    """One private field-plane epoch across ordered activation exchanges."""
+
+    _DECAY = np.float32(15.0 / 16.0)
+    _INJECTION = np.float32(1.0 / 16.0)
+
+    def __init__(
+        self,
+        predecessor: "LearningComputer",
+        computer: "LearningComputer",
+        *,
+        mode_count: int,
+        epoch: Mapping[str, Any],
+        migration: Mapping[str, Any] | None,
+    ) -> None:
+        if not isinstance(epoch, Mapping):
+            raise LearningComputerError("neural membrane epoch must be an object")
+        self.predecessor = predecessor
+        self.computer = computer
+        self.profile = computer.profile
+        if not self.profile.neural_membrane:
+            raise LearningComputerError("neural membrane epoch requires reserved planes")
+        if (
+            isinstance(mode_count, bool)
+            or not isinstance(mode_count, int)
+            or mode_count < 1
+            or mode_count > self.profile.mode_count
+        ):
+            raise LearningComputerError(
+                "neural membrane active mode count is outside its reserved field"
+            )
+        self._mode_count = mode_count
+        self.epoch = json.loads(_canonical(dict(epoch)).decode("utf-8"))
+        self.epoch_sha256 = hashlib.sha256(_canonical(self.epoch)).hexdigest()
+        self.migration = None if migration is None else dict(migration)
+        start = self.profile.neural_membrane_offset
+        if computer.is_paged:
+            view = computer.field.image.view()
+            words = np.stack(
+                [
+                    np.asarray(
+                        view[
+                            start + plane * self.profile.mode_count:
+                            start + plane * self.profile.mode_count + mode_count
+                        ],
+                        dtype=np.float64,
+                    )
+                    for plane in range(
+                        _regions.NEURAL_MEMBRANE_PLANE_COUNT
+                    )
+                ]
+            )
+        else:
+            field = computer.field._field.reshape(
+                9,
+                self.profile.mode_count,
+            )
+            words = field[
+                _regions.NEURAL_MEMBRANE_FIRST_PLANE:,
+                :mode_count,
+            ]
+        encoded = np.asarray(words, dtype="<u4")
+        self._initial_words = encoded.astype(np.float64)
+        self._planes = encoded.view("<f4").copy()
+        if not np.isfinite(self._planes).all():
+            raise LearningComputerError("neural membrane contains nonfinite activity")
+        self._sites: list[dict[str, Any]] = []
+        self._site_count = 0
+        self._stage_records: list[dict[str, Any]] = []
+        self._recorded_site_count = 0
+        self._device_session = None
+        self._finished = False
+
+    @property
+    def mode_count(self) -> int:
+        return self._mode_count
+
+    def bind_device(self, bank: Any) -> Any:
+        """Keep one candidate field resident beside Vulkan weights for this token."""
+        if self._finished:
+            raise LearningComputerError("neural membrane epoch is already finished")
+        if self._device_session is None:
+            if self._site_count:
+                raise LearningComputerError("cannot move a started neural epoch to a device")
+            self._device_session = bank.device_epoch(
+                self._planes,
+                gain_ppm=self.profile.neural_membrane_gain_ppm,
+            )
+        return self._device_session
+
+    def device_exchange(self, site: str, activation: Any) -> Any:
+        """Exchange an opaque Vulkan activation without host materialization."""
+        if self._finished or self._device_session is None:
+            raise LearningComputerError("neural membrane device epoch is unavailable")
+        if (
+            not isinstance(site, str)
+            or not site
+            or len(site.encode("utf-8")) > 512
+            or any(ord(character) < 32 for character in site)
+        ):
+            raise LearningComputerError("neural membrane site must be bounded text")
+        output = self._device_session.exchange(site, activation)
+        self._site_count += 1
+        return output
+
+    def _record_device_sites(self) -> None:
+        if self._device_session is None:
+            return
+        for row in self._device_session.drain_sites():
+            site = row["site"]
+            source = row["input"]
+            output = row["output"]
+            delta = row["delta"]
+            chunk_count = (source.size + self.mode_count - 1) // self.mode_count
+            offsets = [
+                int(hashlib.sha256(f"{site}\0{index}".encode("utf-8")).hexdigest()[:16], 16)
+                % self.mode_count
+                for index in range(chunk_count)
+            ]
+            self._sites.append({
+                "site": site,
+                "site_sha256": hashlib.sha256(site.encode("utf-8")).hexdigest(),
+                "width": int(source.size),
+                "chunk_count": chunk_count,
+                "mode_offset": offsets[0],
+                "mode_offsets": offsets,
+                "input_sha256": self._array_sha256(source),
+                "output_sha256": self._array_sha256(output),
+                "input_rms": float(np.sqrt(np.mean(np.square(source, dtype=np.float64)))),
+                "device_scale_f32": row["scale"],
+                "maximum_absolute_delta": float(np.max(np.abs(delta), initial=np.float32(0))),
+                "nonzero_delta": int(np.count_nonzero(delta)),
+            })
+        if len(self._sites) != self._site_count:
+            raise LearningComputerError("Vulkan site captures do not cover ordered exchanges")
+
+    @staticmethod
+    def _array_sha256(value: np.ndarray) -> str:
+        return hashlib.sha256(
+            np.asarray(value, dtype="<f4").tobytes(order="C")
+        ).hexdigest()
+
+    def _exchange_segment(
+        self,
+        source: np.ndarray,
+        destination: slice,
+        *,
+        scale: np.float32,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        drive = np.tanh(source / scale).astype(np.float32, copy=False)
+        yang = self._planes[1, destination]
+        yin = self._planes[2, destination]
+        next_yang = (
+            self._DECAY * yang
+            + self._INJECTION * np.maximum(drive, np.float32(0.0))
+        ).astype(np.float32, copy=False)
+        next_yin = (
+            self._DECAY * yin
+            + self._INJECTION * np.maximum(-drive, np.float32(0.0))
+        ).astype(np.float32, copy=False)
+        gain = np.float32(self.profile.neural_membrane_gain_ppm / 1_000_000.0)
+        delta = (gain * scale * (next_yang - next_yin)).astype(
+            np.float32,
+            copy=False,
+        )
+        self._planes[0, destination] = drive
+        self._planes[1, destination] = next_yang
+        self._planes[2, destination] = next_yin
+        self._planes[3, destination] = delta
+        if self.profile.neural_membrane_gain_ppm == 0:
+            return source, delta
+        return (source + delta).astype(np.float32, copy=False), delta
+
+    def exchange(self, site: str, activation: np.ndarray) -> np.ndarray:
+        """Let one complete activation vector write and read the field."""
+
+        if self._finished:
+            raise LearningComputerError("neural membrane epoch is already finished")
+        if (
+            not isinstance(site, str)
+            or not site
+            or len(site.encode("utf-8")) > 512
+            or any(ord(character) < 32 for character in site)
+        ):
+            raise LearningComputerError("neural membrane site must be bounded text")
+        original_shape = np.asarray(activation).shape
+        source = np.asarray(activation, dtype=np.float32).reshape(-1)
+        if source.size < 1:
+            raise LearningComputerError("neural activation must not be empty")
+        if not np.isfinite(source).all():
+            raise LearningComputerError("neural activation contains nonfinite values")
+        source = source.astype(np.float32, copy=False)
+        if self._device_session is not None:
+            activation_on_device = self._device_session.upload(source)
+            output_on_device = self.device_exchange(site, activation_on_device)
+            return self._device_session.download(output_on_device).reshape(original_shape)
+        rms = float(
+            np.sqrt(np.mean(np.square(source, dtype=np.float64)))
+        )
+        scale = np.float32(max(rms, 1.0e-6))
+        site_sha256 = hashlib.sha256(site.encode("utf-8")).hexdigest()
+        output = np.empty_like(source)
+        offsets: list[int] = []
+        maximum_absolute_delta = 0.0
+        nonzero_delta = 0
+        chunk_count = (
+            source.size + self.mode_count - 1
+        ) // self.mode_count
+        for chunk_index in range(chunk_count):
+            start = chunk_index * self.mode_count
+            stop = min(source.size, start + self.mode_count)
+            chunk = source[start:stop]
+            chunk_sha256 = hashlib.sha256(
+                f"{site}\0{chunk_index}".encode("utf-8")
+            ).hexdigest()
+            offset = int(chunk_sha256[:16], 16) % self.mode_count
+            offsets.append(offset)
+            first = min(chunk.size, self.mode_count - offset)
+            output[start:start + first], delta_first = (
+                self._exchange_segment(
+                    chunk[:first],
+                    slice(offset, offset + first),
+                    scale=scale,
+                )
+            )
+            maximum_absolute_delta = max(
+                maximum_absolute_delta,
+                float(
+                    np.max(
+                        np.abs(delta_first),
+                        initial=np.float32(0.0),
+                    )
+                ),
+            )
+            nonzero_delta += int(np.count_nonzero(delta_first))
+            if first < chunk.size:
+                output[start + first:stop], delta_second = (
+                    self._exchange_segment(
+                        chunk[first:],
+                        slice(0, chunk.size - first),
+                        scale=scale,
+                    )
+                )
+                maximum_absolute_delta = max(
+                    maximum_absolute_delta,
+                    float(
+                        np.max(
+                            np.abs(delta_second),
+                            initial=np.float32(0.0),
+                        )
+                    ),
+                )
+                nonzero_delta += int(np.count_nonzero(delta_second))
+        self._sites.append(
+            {
+                "site": site,
+                "site_sha256": site_sha256,
+                "width": int(source.size),
+                "chunk_count": chunk_count,
+                "mode_offset": offsets[0],
+                "mode_offsets": offsets,
+                "input_sha256": self._array_sha256(source),
+                "output_sha256": self._array_sha256(output),
+                "input_rms": rms,
+                "maximum_absolute_delta": maximum_absolute_delta,
+                "nonzero_delta": nonzero_delta,
+            }
+        )
+        self._site_count += 1
+        return output.reshape(original_shape)
+
+    def record_stage(
+        self,
+        *,
+        epoch: Mapping[str, Any],
+        stage_result_sha256: str,
+    ) -> None:
+        """Bind one task stage to the ordered site range in this open epoch."""
+
+        if self._finished:
+            raise LearningComputerError("neural membrane epoch is already finished")
+        if not isinstance(epoch, Mapping):
+            raise LearningComputerError("neural membrane stage epoch must be an object")
+        if (
+            not isinstance(stage_result_sha256, str)
+            or len(stage_result_sha256) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in stage_result_sha256
+            )
+        ):
+            raise LearningComputerError("stage result digest is invalid")
+        self._record_device_sites()
+        if self._device_session is not None:
+            self._device_session.discard_stage_tensors()
+        normalized_epoch = json.loads(
+            _canonical(dict(epoch)).decode("utf-8")
+        )
+        self._stage_records.append(
+            {
+                "epoch": normalized_epoch,
+                "epoch_sha256": hashlib.sha256(
+                    _canonical(normalized_epoch)
+                ).hexdigest(),
+                "stage_result_sha256": stage_result_sha256,
+                "site_start": self._recorded_site_count,
+                "site_stop": self._site_count,
+            }
+        )
+        self.epoch = normalized_epoch
+        self.epoch_sha256 = self._stage_records[-1]["epoch_sha256"]
+        self._recorded_site_count = self._site_count
+
+    def stage_receipts(
+        self,
+        final_receipt: Mapping[str, Any],
+    ) -> list[dict[str, Any]]:
+        """Materialize per-stage exchange bindings from the final ordered trace."""
+
+        if not self._finished or not self._stage_records:
+            raise LearningComputerError(
+                "neural membrane stage receipts require a finished token epoch"
+            )
+        sites = final_receipt.get("sites")
+        if (
+            not isinstance(sites, list)
+            or len(sites) != self._site_count
+            or final_receipt.get("site_count") != self._site_count
+        ):
+            raise LearningComputerError(
+                "neural membrane final site trace does not match its stage ranges"
+            )
+        result: list[dict[str, Any]] = []
+        stage_count = len(self._stage_records)
+        for stage_index, record in enumerate(self._stage_records):
+            start = int(record["site_start"])
+            stop = int(record["site_stop"])
+            stage_sites = [
+                dict(site) for site in sites[start:stop]
+            ]
+            stage_receipt = {
+                "schema": "cassifi.neural-membrane-stage-exchange.v1",
+                "kind": "neural-membrane-stage-exchange",
+                "computer_id": final_receipt["computer_id"],
+                "epoch": dict(record["epoch"]),
+                "epoch_sha256": record["epoch_sha256"],
+                "model_source_sha256": record["epoch"].get(
+                    "model_source_sha256"
+                ),
+                "stage_result_sha256": record["stage_result_sha256"],
+                "profile_sha256": final_receipt["profile_sha256"],
+                "mode_count": final_receipt["mode_count"],
+                "gain_ppm": final_receipt["gain_ppm"],
+                "stage_index": stage_index,
+                "stage_count": stage_count,
+                "site_range": {"start": start, "stop": stop},
+                "site_count": len(stage_sites),
+                "site_trace_sha256": hashlib.sha256(
+                    _canonical(stage_sites)
+                ).hexdigest(),
+                "sites": stage_sites,
+            }
+            if stage_index == stage_count - 1:
+                stage_receipt = dict(final_receipt)
+                stage_receipt.update(
+                    {
+                        "stage_index": stage_index,
+                        "stage_count": stage_count,
+                        "stage_site_range": {
+                            "start": start,
+                            "stop": stop,
+                        },
+                    }
+                )
+
+            result.append(stage_receipt)
+        return result
+
+    def _close_device_session(self) -> None:
+        session = self._device_session
+        if session is None:
+            return
+        close = getattr(session, "close", None)
+        if not callable(close):
+            raise LearningComputerError(
+                "neural membrane device session cannot be closed"
+            )
+        close()
+        self._device_session = None
+
+    def abort(self) -> None:
+        """Discard an uncommitted membrane candidate and its device session."""
+
+        try:
+            self._close_device_session()
+        finally:
+            if not self._finished:
+                self._finished = True
+                self._planes = np.empty((0, 0), dtype=np.float32)
+                self._sites.clear()
+                self._stage_records.clear()
+                self._site_count = 0
+                self._recorded_site_count = 0
+
+
+    def _finish_paged(
+        self,
+        encoded: np.ndarray,
+        computer: "LearningComputer",
+    ) -> tuple[PagedComputerState, Mapping[str, Any]]:
+        image = computer.field.image
+        staging = image.stage(stage="neural-membrane")
+        base = self.profile.neural_membrane_offset
+        page_words = _regions.PERSISTENCE_PAGE_WORDS
+        for plane in range(_regions.NEURAL_MEMBRANE_PLANE_COUNT):
+            source = encoded[plane]
+            start = base + plane * self.profile.mode_count
+            stop = start + self.mode_count
+            changed = np.flatnonzero(
+                source != self._initial_words[plane]
+            )
+            page_indices = np.unique((start + changed) // page_words)
+            for page_index in page_indices:
+                page_index = int(page_index)
+                page_start = page_index * page_words
+                write_start = max(start, page_start)
+                write_stop = min(stop, page_start + page_words)
+                page = staging.stage_page(page_index)
+                page[
+                    write_start - page_start:write_stop - page_start
+                ] = source[write_start - start:write_stop - start]
+        successor, storage = staging.commit(
+            blocks={
+                "schema": _regions.NEURAL_MEMBRANE_SCHEMA,
+                "epoch_sha256": self.epoch_sha256,
+            }
+        )
+        return (
+            PagedComputerState(successor, self.profile.fingerprint),
+            storage,
+        )
+
+    def finish(
+        self,
+        *,
+        stage_result_sha256: str,
+        computer: "LearningComputer | None" = None,
+    ) -> tuple["LearningComputer", Mapping[str, Any]]:
+        """Freeze candidate planes into the latest private computer successor."""
+
+        if self._finished:
+            raise LearningComputerError("neural membrane epoch is already finished")
+        if (
+            not isinstance(stage_result_sha256, str)
+            or len(stage_result_sha256) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in stage_result_sha256
+            )
+        ):
+            raise LearningComputerError("stage result digest is invalid")
+        self._record_device_sites()
+        if self._stage_records and (
+            self._recorded_site_count != self._site_count
+            or self._stage_records[-1]["stage_result_sha256"]
+            != stage_result_sha256
+        ):
+            raise LearningComputerError(
+                "neural membrane token stage trace is incomplete"
+            )
+        target_computer = self.computer if computer is None else computer
+        if (
+            not isinstance(target_computer, LearningComputer)
+            or target_computer.computer_id != self.computer.computer_id
+            or target_computer.profile.fingerprint != self.profile.fingerprint
+            or target_computer.is_paged != self.computer.is_paged
+        ):
+            raise LearningComputerError(
+                "neural membrane successor does not match its epoch computer"
+            )
+        if self._device_session is not None:
+            self._planes = self._device_session.finish()
+        self._finished = True
+        encoded = self._planes.astype("<f4", copy=False).view("<u4").astype(
+            np.float64
+        )
+        changed_words = int(np.count_nonzero(encoded != self._initial_words))
+        storage: Mapping[str, Any] | None = None
+        if target_computer.is_paged:
+            state, storage = self._finish_paged(encoded, target_computer)
+        else:
+            field = np.array(target_computer.field._field, copy=True)
+            field.reshape(9, self.profile.mode_count)[
+                _regions.NEURAL_MEMBRANE_FIRST_PLANE:,
+                :self.mode_count,
+            ] = encoded
+            state = ComputerState(field, self.profile.fingerprint)
+        successor = replace(target_computer, field=state)
+        site_trace_sha256 = hashlib.sha256(_canonical(self._sites)).hexdigest()
+        receipt = {
+            "schema": _regions.NEURAL_MEMBRANE_SCHEMA,
+            "kind": "neural-membrane-epoch",
+            "computer_id": target_computer.computer_id,
+            "epoch": dict(self.epoch),
+            "epoch_sha256": self.epoch_sha256,
+            "model_source_sha256": self.epoch.get("model_source_sha256"),
+            "stage_result_sha256": stage_result_sha256,
+            "predecessor_state_sha256": self.predecessor.state_sha256,
+            "state_sha256": successor.state_sha256,
+            "predecessor_profile_sha256": self.predecessor.profile.fingerprint,
+            "profile_sha256": self.profile.fingerprint,
+            "mode_count": self.mode_count,
+            "gain_ppm": self.profile.neural_membrane_gain_ppm,
+            "site_count": self._site_count,
+            "site_trace_sha256": site_trace_sha256,
+            "sites": [dict(row) for row in self._sites],
+            "changed_words": changed_words,
+            "migration": self.migration,
+            "storage": None if storage is None else dict(storage),
+        }
+        self._close_device_session()
+        return successor, receipt
+
+
+
 @dataclass(frozen=True, slots=True)
 class LearningComputer:
     """Task-oriented view of one authoritative regional field image."""
 
     computer_id: str
     profile: RegionalProfile
-    field: ComputerState
-
+    field: ComputerState | PagedComputerState
+    _legacy_field_descriptor: Mapping[str, Any] | None = dataclass_field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
+    _machine: FieldComputer = dataclass_field(
+        init=False,
+        repr=False,
+        compare=False,
+    )
     def __post_init__(self) -> None:
         if (
             not isinstance(self.computer_id, str)
@@ -333,15 +928,483 @@ class LearningComputer:
             )
         if not isinstance(self.profile, RegionalProfile):
             raise LearningComputerError("regional profile required")
+        machine = FieldComputer.regional(
+            self.profile, catalog=STANDARD_KERNEL_CATALOG
+        )
+        object.__setattr__(self, "_machine", machine)
         try:
-            self._controller().validate(self.field)
+            self.validate()
+        except _regions.ResidencyWait as wait:
+            image = self.field.image
+            raise LearningComputerResidencyWait(
+                self.computer_id,
+                wait=wait.as_dict(),
+                continuation=_regions.residency_continuation(
+                    wait, root_sha256=image.root_sha256
+                ),
+                resident_limit=image.resident_limit,
+            ) from wait
+        except ResourceWait:
+            # Physical room, not a corrupt image: validating the successor state
+            # reads its pages, and a read that cannot reserve reports a wait.
+            # The callers above are wait-aware, so it must reach them instead of
+            # being read as an invalid image (ResourceWait is a ValueError, so
+            # the shape conversion below would otherwise swallow it).
+            raise
         except (TypeError, ValueError) as exc:
             raise LearningComputerError("invalid regional computer image") from exc
 
     def _controller(self) -> FieldComputer:
-        return FieldComputer.regional(
-            self.profile, catalog=STANDARD_KERNEL_CATALOG
+        return self._machine
+
+    def validate(self) -> None:
+        """Validate the retained state against the running kernel catalog."""
+
+        if isinstance(self.field, PagedComputerState):
+            self._machine.validate_paged(self.field)
+        else:
+            self._machine.validate(self.field)
+
+    # -- bounded residency -------------------------------------------------
+    #
+    # A computer may hold its regional image under a page residency allowance
+    # instead of a resident dense tensor.  The log, the program, the values,
+    # and every transition are identical; only the storage placement changes,
+    # so the dense and paged forms of the same task produce the same image.
+    # A request that cannot be served inside the allowance suspends as
+    # :class:`LearningComputerResidencyWait` with the state unchanged.
+
+    @property
+    def is_paged(self) -> bool:
+        return isinstance(self.field, PagedComputerState)
+
+    @property
+    def resident_limit(self) -> int | None:
+        if not self.is_paged:
+            return None
+        return self.field.image.resident_limit
+
+    def residency(self) -> dict[str, Any]:
+        """Bounded read-only residency identity of this computer."""
+
+        if not self.is_paged:
+            return {
+                "schema": RESIDENCY_REPORT_SCHEMA,
+                "paged": False,
+                "computer_id": self.computer_id,
+                "logical_bytes": self.nbytes,
+                "resident_limit": None,
+                "root_sha256": None,
+                "page_count": None,
+                "residency": None,
+            }
+        image = self.field.image
+        return {
+            "schema": RESIDENCY_REPORT_SCHEMA,
+            "paged": True,
+            "computer_id": self.computer_id,
+            "logical_bytes": self.nbytes,
+            "resident_limit": image.resident_limit,
+            "root_sha256": image.root_sha256,
+            "page_count": image.page_count,
+            "residency": image.residency_report(),
+        }
+
+    def adopt_paged(
+        self, *, resident_limit: int = _regions.DEFAULT_RESIDENT_PAGES,
+        resource_limits: Mapping[str, Any] | None = None,
+        objects: Mapping[str, bytes] | None = None,
+    ) -> LearningComputer:
+        """Adopt this exact image under a bounded page residency allowance."""
+
+        if self.is_paged:
+            return self
+        state, _record = self._controller().paged_state(
+            self.field, resident_limit=resident_limit,
+            resource_limits=resource_limits, objects=objects,
         )
+        return replace(self, field=state)
+
+    def with_object_store(
+        self, store: Mapping[str, bytes]
+    ) -> LearningComputer:
+        """A twin of this paged image backed by the given object store."""
+
+        if not self.is_paged:
+            raise LearningComputerError("computer does not use bounded residency")
+        image = self.field.image.with_backing(store)
+        if image is self.field.image:
+            return self
+        return replace(self, field=self._controller()._paged_state(image))
+
+    def with_resident_limit(
+        self, resident_limit: int, *,
+        resource_limits: Mapping[str, Any] | None = None,
+    ) -> LearningComputer:
+        """A twin operating under a different page allowance, same root."""
+
+        if not self.is_paged:
+            raise LearningComputerError("computer does not use bounded residency")
+        state = self._controller().resume_paged(
+            self.field, resident_limit=resident_limit,
+            resource_limits=resource_limits,
+        )
+        if state is self.field:
+            return self
+        return replace(self, field=state)
+    def with_resource_manager(
+        self,
+        manager: ResidencyManager,
+        *,
+        program_id: str | None = None,
+    ) -> "LearningComputer":
+        if not self.is_paged:
+            return self
+        image = self.field.image.with_resource_manager(
+            manager, program_id=program_id
+        )
+        return replace(self, field=self._controller()._paged_state(image))
+
+    def place_pages(
+        self,
+        pages: Sequence[int],
+        tier: str,
+        *,
+        root_sha256: str | None = None,
+        max_pages: int = 16,
+        continuation: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Move bounded logical pages between storage, RAM, and VRAM.
+
+        Placement changes where the same committed pages live, never the
+        logical image.  The bounded report carries the version binding and a
+        resumable continuation for an interrupted move.
+        """
+
+        if not self.is_paged:
+            raise LearningComputerError("computer does not use bounded residency")
+        return self._controller().place_pages(
+            self.field,
+            pages,
+            tier,
+            root_sha256=root_sha256,
+            max_pages=max_pages,
+            continuation=continuation,
+        )
+
+    def resources(self) -> Mapping[str, Any] | None:
+        """Measured physical reservations of this computer's paged backing."""
+
+        if not self.is_paged:
+            return None
+        manager = getattr(self.field.image, "resource_manager", None)
+        return None if manager is None else manager.report()
+
+    def _residency_wait(
+        self, wait: "_regions.ResidencyWait"
+    ) -> LearningComputerResidencyWait:
+        """The typed wait for one raw resource suspension of this computer."""
+
+        image = self.field.image
+        return LearningComputerResidencyWait(
+            self.computer_id,
+            wait=wait.as_dict(),
+            continuation=_regions.residency_continuation(
+                wait, root_sha256=image.root_sha256
+            ),
+            resident_limit=image.resident_limit,
+        )
+
+    def _bounded(self, operation: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        """Run one bounded paged host call, translating a resource wait."""
+
+        try:
+            return operation(*args, **kwargs)
+        except _regions.ResidencyWait as wait:
+            raise self._residency_wait(wait) from wait
+
+    def _suspend(
+        self, receipt: Mapping[str, Any], *, resident_limit: int | None = None
+    ) -> None:
+        """Raise the typed wait a paged phase reports, or return silently."""
+
+        if receipt.get("kind") != "residency-wait":
+            return
+        raise LearningComputerResidencyWait(
+            self.computer_id,
+            wait=receipt["wait"],
+            continuation=receipt["continuation"],
+            resident_limit=(
+                resident_limit
+                if resident_limit is not None
+                else int(receipt["wait"].get("allowance") or 0)
+            ),
+        )
+
+    def _flat(self) -> Any:
+        if self.is_paged:
+            return self.field.image.view()
+        return self.field._field.reshape(-1)
+
+    def _state_sha256(self) -> str:
+        if self.is_paged:
+            return self._bounded(self.field.image.state_identity_sha256)
+        return self._controller().state_sha256(self.field)
+
+    def _descriptor(self) -> dict[str, Any]:
+        if self.is_paged:
+            return self._bounded(
+                self._controller().descriptor_paged, self.field
+            )
+        return self._controller().descriptor(self.field)
+
+    def _inspect(self) -> dict[str, Any]:
+        if self.is_paged:
+            return self._bounded(self._controller().inspect_paged, self.field)
+        return self._controller().inspect(self.field)
+
+    def _named_values(self, names: Any) -> Mapping[str, Any]:
+        names = tuple(names)
+        if self.is_paged:
+            return self._bounded(_regions.named_values_paged, self.field.image, names)
+        return self._controller().named_values(self.field, names)
+
+    def _named_value(self, name: str) -> Any:
+        return self._named_values((name,))[name]
+
+    def _write_named_value(
+        self, name: str, value: Any
+    ) -> tuple[ComputerState | PagedComputerState, dict[str, Any]]:
+        if self.is_paged:
+            state, receipt = self._bounded(
+                self._controller().write_named_value_paged, self.field, name, value
+            )
+            self._suspend(receipt, resident_limit=self.field.image.resident_limit)
+            return state, receipt
+        return self._controller().write_named_value(self.field, name, value)
+
+    def _restart(
+        self,
+        *,
+        entry: int = 0,
+        values: Mapping[str, Any] | None = None,
+    ) -> tuple[ComputerState | PagedComputerState, dict[str, Any]]:
+        if self.is_paged:
+            state, receipt = self._bounded(
+                self._controller().restart_paged,
+                self.field,
+                entry=entry,
+                values=values,
+            )
+            self._suspend(receipt, resident_limit=self.field.image.resident_limit)
+            return state, receipt
+        return self._controller().restart(self.field, entry=entry, values=values)
+
+    def _grow(
+        self, *, mode_count: int, max_steps: int | None = None,
+        resource_limits: Mapping[str, Any] | None = None,
+        relocate_regions: bool = False,
+    ) -> tuple[FieldComputer, ComputerState | PagedComputerState, dict[str, Any]]:
+        if self.is_paged:
+            return self._bounded(
+                self._controller().grow_paged,
+                self.field,
+                mode_count=mode_count,
+                max_steps=max_steps,
+                resource_limits=resource_limits,
+                relocate_regions=relocate_regions,
+            )
+        return self._controller().grow(
+            self.field, mode_count=mode_count, max_steps=max_steps
+        )
+
+    def begin_neural_membrane_epoch(
+        self,
+        *,
+        minimum_modes: int,
+        epoch: Mapping[str, Any],
+        gain_ppm: int = _regions.NEURAL_MEMBRANE_DEFAULT_GAIN_PPM,
+        max_field_bytes: int | None = None,
+        resource_manager: ResidencyManager | None = None,
+    ) -> NeuralMembraneEpoch:
+        """Create a private membrane candidate; no owner state is published."""
+
+        if (
+            isinstance(minimum_modes, bool)
+            or not isinstance(minimum_modes, int)
+            or minimum_modes < 1
+        ):
+            raise LearningComputerError("minimum membrane modes must be positive")
+        if max_field_bytes is not None and (
+            isinstance(max_field_bytes, bool)
+            or not isinstance(max_field_bytes, int)
+            or max_field_bytes < 1
+        ):
+            raise LearningComputerError("max_field_bytes must be positive")
+        current_workspace = self.profile.workspace_words
+        target_modes = max(
+            minimum_modes,
+            self.profile.mode_count if self.profile.neural_membrane else 0,
+            (
+                current_workspace
+                + _regions.NEURAL_MEMBRANE_FIRST_PLANE
+                - 1
+            )
+            // _regions.NEURAL_MEMBRANE_FIRST_PLANE,
+        )
+        target_modes = (
+            (
+                target_modes
+                + _regions.NEURAL_MEMBRANE_MODE_QUANTUM
+                - 1
+            )
+            // _regions.NEURAL_MEMBRANE_MODE_QUANTUM
+            * _regions.NEURAL_MEMBRANE_MODE_QUANTUM
+        )
+        if (
+            max_field_bytes is not None
+            and target_modes * 9 * np.dtype(np.float64).itemsize
+            > max_field_bytes
+        ):
+            raise LearningComputerCapacityError(
+                "neural membrane exceeds the computer workspace limit"
+            )
+        migration: Mapping[str, Any] | None = None
+        computer = self
+        if (
+            not self.profile.neural_membrane
+            or self.profile.mode_count < target_modes
+            or self.profile.neural_membrane_gain_ppm != gain_ppm
+        ):
+            try:
+                source = (
+                    self.field.image.materialise()
+                    if self.is_paged
+                    else self.field._field
+                )
+                profile, successor, migration_row = (
+                    _regions.enable_neural_membrane(
+                        source,
+                        self.profile,
+                        STANDARD_KERNEL_CATALOG,
+                        minimum_modes=minimum_modes,
+                        gain_ppm=gain_ppm,
+                    )
+                )
+                page_words = _regions.PERSISTENCE_PAGE_WORDS
+                first_membrane_page = (
+                    profile.neural_membrane_offset // page_words
+                )
+                last_membrane_page = (
+                    profile.neural_membrane_offset
+                    + profile.neural_membrane_words
+                    - 1
+                ) // page_words
+                resident_limit = max(
+                    _regions.DEFAULT_RESIDENT_PAGES,
+                    last_membrane_page - first_membrane_page + 1,
+                )
+                image, storage = _regions.migrate_flat_to_paged(
+                    successor,
+                    profile=profile,
+                    catalog=STANDARD_KERNEL_CATALOG,
+                    transition={
+                        "kind": "numerical-law",
+                        "operation": "enable-neural-membrane",
+                        "epoch_sha256": hashlib.sha256(
+                            _canonical(dict(epoch))
+                        ).hexdigest(),
+                    },
+                    resident_limit=resident_limit,
+                )
+                # The epoch stages under the declared share of the computer
+                # that opened it: an image left to make its own manager
+                # reserves under the placeholder defaults while the
+                # declaration sits unused on the predecessor.
+                manager = (
+                    resource_manager
+                    if resource_manager is not None
+                    else (
+                        self.field.image.resource_manager
+                        if self.is_paged
+                        else None
+                    )
+                )
+                if manager is not None:
+                    image = image.with_resource_manager(
+                        manager,
+                        program_id=(
+                            self.field.image.program_id if self.is_paged else None
+                        ),
+                    )
+                state: ComputerState | PagedComputerState = (
+                    PagedComputerState(image, profile.fingerprint)
+                )
+                migration = {
+                    **dict(migration_row),
+                    "storage": dict(storage),
+                }
+                computer = replace(self, profile=profile, field=state)
+                if self.is_paged:
+                    # Materialising the source filled this image's cache, and
+                    # the successor computer owns the field from here: the
+                    # replaced image gives its pages back to the manager.
+                    self.field.image.release_resident()
+            except _regions.RegionalFieldError as exc:
+                raise LearningComputerError(
+                    f"neural membrane migration failed: {exc}"
+                ) from exc
+        return NeuralMembraneEpoch(
+            self,
+            computer,
+            mode_count=minimum_modes,
+            epoch=epoch,
+            migration=migration,
+        )
+
+    def _run(
+        self, *, steps: int | None = None
+    ) -> tuple[ComputerState | PagedComputerState, dict[str, Any]]:
+        """Run bounded transitions, reporting the dense transition summary.
+
+        The paged path reports the same fields as the dense path plus its page
+        root and residency.  A resource suspension raises the typed wait and
+        leaves this computer exactly as it was.
+        """
+
+        machine = self._controller()
+        if not self.is_paged:
+            return machine.run(self.field, steps=steps)
+        successor, summary = machine.run_paged(self.field, steps=steps)
+        if summary.get("stop") == "wait":
+            self._suspend(
+                {
+                    "kind": "residency-wait",
+                    "wait": summary["wait"],
+                    "continuation": summary["continuation"],
+                },
+                resident_limit=self.field.image.resident_limit,
+            )
+        # A transition that changed nothing returns the identical state object.
+        if isinstance(successor, PagedComputerState):
+            image = successor.image
+        else:
+            image = successor
+            successor = machine._paged_state(image)
+        inspection = machine.inspect_paged(successor)
+        return successor, {
+            "schema": _regions.REGIONAL_SCHEMA,
+            "paged": True,
+            "initial_state_sha256": self.field.image.state_identity_sha256(),
+            "state_sha256": successor.image.state_identity_sha256(),
+            "status": inspection["status"],
+            "reason": inspection["reason"],
+            "paused": summary["stop"] == "step-budget",
+            "transitions_executed": summary["steps"],
+            "transition_receipts": [dict(row) for row in summary["transitions"]],
+            "root_sha256": image.root_sha256,
+            "residency": summary["residency"],
+        }
 
     @classmethod
     def initial(
@@ -405,14 +1468,162 @@ class LearningComputer:
 
     @property
     def state_sha256(self) -> str:
-        return self._controller().state_sha256(self.field)
+        return self._state_sha256()
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "schema": SCHEMA,
             "computer_id": self.computer_id,
-            "field": self._controller().descriptor(self.field),
+            "field": self._descriptor(),
         }
+    def persistence_dict(self) -> tuple[dict[str, Any], Mapping[str, bytes]]:
+        """Return a logical descriptor plus independently shared pages."""
+        if self._legacy_field_descriptor is not None:
+            return {
+                "schema": SCHEMA,
+                "computer_id": self.computer_id,
+                "field": dict(self._legacy_field_descriptor),
+            }, {}
+        controller = self._controller()
+        if self.is_paged:
+            descriptor, objects = controller.paged_chunks(self.field)
+        else:
+            descriptor, objects = _field_regions.chunked_descriptor(
+                self.field._field,
+                self.profile,
+                STANDARD_KERNEL_CATALOG,
+                _input_validated=True,
+                _state_sha256=controller.state_sha256(self.field),
+            )
+        return {
+            "schema": SCHEMA,
+            "computer_id": self.computer_id,
+            "placement": (
+                _field_regions.PAGED_STATE_KIND_ROOT
+                if self.is_paged
+                else _field_regions.PAGED_STATE_KIND_FLAT
+            ),
+            "field": descriptor,
+        }, objects
+
+    @classmethod
+    def from_persistence_dict(
+        cls,
+        value: Mapping[str, Any],
+        objects: Mapping[str, bytes],
+        *,
+        accept_recorded_catalog: bool = False,
+    ) -> LearningComputer:
+        """Hydrate one verified computer from its independently addressed pages.
+
+        ``accept_recorded_catalog`` re-identifies a retained dense field whose
+        recorded catalog fingerprint moved while its kernel names stayed the
+        same.  Paged fields keep their recorded identity: re-identifying them
+        needs the paged staging protocol, so this path refuses them by name
+        instead of half-adopting one.
+        """
+
+        if (
+            not isinstance(value, Mapping)
+            or set(value) not in (
+                {"schema", "computer_id", "field"},
+                {"schema", "computer_id", "field", "placement"},
+            )
+            or value.get("schema") != SCHEMA
+        ):
+            raise LearningComputerError("invalid persistent learning computer record")
+        placement = value.get("placement")
+        if placement is not None and placement not in {
+            _field_regions.PAGED_STATE_KIND_ROOT,
+            _field_regions.PAGED_STATE_KIND_FLAT,
+        }:
+            raise LearningComputerError("invalid persistent learning computer placement")
+        try:
+            field_descriptor = value["field"]
+            if (
+                isinstance(field_descriptor, Mapping)
+                and not isinstance(field_descriptor.get("chunks"), list)
+            ):
+                profile_payload = dict(field_descriptor["profile"])
+                profile_payload["kernel_names"] = list(STANDARD_KERNEL_CATALOG.names)
+                decoded_profile = RegionalProfile.from_dict(profile_payload)
+                flat = np.zeros(decoded_profile.total_words, dtype=np.float64)
+                previous = -1
+                for page in field_descriptor["field_pages"]:
+                    if not isinstance(page, Mapping) or set(page) != {
+                        "index", "words", "data_b64"
+                    }:
+                        raise LearningComputerError("invalid legacy field page")
+                    index = int(page["index"])
+                    words = int(page["words"])
+                    if index <= previous or words < 1:
+                        raise LearningComputerError("invalid legacy field page geometry")
+                    raw = base64.b64decode(page["data_b64"], validate=True)
+                    if len(raw) != words * 8:
+                        raise LearningComputerError("invalid legacy field page bytes")
+                    start = index * int(field_descriptor["page_words"])
+                    flat[start:start + words] = np.frombuffer(raw, dtype="<f8")
+                    previous = index
+                flat[_field_regions.H_PROFILE_SHA:_field_regions.H_PROFILE_SHA + 8] = (
+                    _field_regions._sha_words(decoded_profile.fingerprint)
+                )
+                flat[_field_regions.H_CATALOG_SHA:_field_regions.H_CATALOG_SHA + 8] = (
+                    _field_regions._sha_words(STANDARD_KERNEL_CATALOG.fingerprint)
+                )
+                field = flat.reshape(decoded_profile.shape)
+                _field_regions.validate_field(
+                    field, decoded_profile, STANDARD_KERNEL_CATALOG
+                )
+                machine = FieldComputer.regional(
+                    decoded_profile, catalog=STANDARD_KERNEL_CATALOG
+                )
+                state = ComputerState(field, decoded_profile.fingerprint)
+                result = cls(str(value["computer_id"]), decoded_profile, state)
+                object.__setattr__(
+                    result, "_legacy_field_descriptor", dict(field_descriptor)
+                )
+                return result
+            profile = RegionalProfile.from_dict(field_descriptor["profile"])
+            machine = FieldComputer.regional(
+                profile, catalog=STANDARD_KERNEL_CATALOG
+            )
+            paged = (
+                profile.neural_membrane
+                if placement is None
+                else placement == _field_regions.PAGED_STATE_KIND_ROOT
+            )
+            if paged:
+                if (
+                    accept_recorded_catalog
+                    and field_descriptor.get("catalog_sha256")
+                    != STANDARD_KERNEL_CATALOG.fingerprint
+                ):
+                    raise LearningComputerError(
+                        "recorded catalog re-identification is unavailable for a paged computer field"
+                    )
+                image = _field_regions.PagedFieldImage.from_chunked_descriptor(
+                    field_descriptor,
+                    objects,
+                    STANDARD_KERNEL_CATALOG,
+                )
+                state = machine._paged_state(image)
+                machine.validate_paged(state)
+            else:
+                _, field = _field_regions.from_chunked_descriptor(
+                    field_descriptor,
+                    objects,
+                    STANDARD_KERNEL_CATALOG,
+                    accept_recorded_catalog=accept_recorded_catalog,
+                )
+                state = ComputerState(field, profile.fingerprint)
+                machine.validate(state)
+            return cls(str(value["computer_id"]), profile, state)
+        except LearningComputerError:
+            raise
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError(
+                "invalid persistent learning computer field"
+            ) from exc
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> LearningComputer:
@@ -456,9 +1667,8 @@ class LearningComputer:
             profile_value = dict(value["profile"])
             policy = PolicyState.from_dict(value["policy"])
             successor = cls.initial(str(value["computer_id"]), profile_value)
-            controller = successor._controller()
-            field, _receipt = controller.write_named_value(
-                successor.field, "policy", encode_regional_policy(policy)
+            field, _receipt = successor._write_named_value(
+                "policy", encode_regional_policy(policy)
             )
             successor = replace(successor, field=field)
             descriptor = value.get("machine")
@@ -536,15 +1746,127 @@ class LearningComputer:
             return replace(successor, field=state)
         except (KeyError, TypeError, ValueError) as exc:
             raise LearningComputerError("legacy migration failed") from exc
+    def _region_capacity(self) -> dict[str, dict[str, int]]:
+        """Return named-value allocation data from the live controller image."""
+        machine = self._inspect()
+        by_slot = {
+            int(row["slot"]): row
+            for row in machine.get("regions", ())
+            if isinstance(row, Mapping) and "slot" in row
+        }
+        named = machine.get("named_values", {})
+        if not isinstance(named, Mapping):
+            raise LearningComputerError("regional named-value metadata is invalid")
+        flat = self._flat()
+        capacities: dict[str, dict[str, int]] = {}
+        for name, object_id in named.items():
+            if not isinstance(name, str):
+                raise LearningComputerError("regional named-value name is invalid")
+            try:
+                reference = _field_regions._resolve_object(
+                    flat,
+                    self.profile,
+                    int(object_id),
+                )
+            except (TypeError, ValueError, _field_regions.RegionalFieldError) as exc:
+                raise LearningComputerError(
+                    "regional named-value reference is invalid"
+                ) from exc
+            row = by_slot.get(int(reference.slot))
+            if row is None:
+                raise LearningComputerError(
+                    "regional named-value region is missing from inspection"
+                )
+            used = int(row["used_words"])
+            capacity = int(row["capacity_words"])
+            capacities[name] = {
+                "used_words": used,
+                "capacity_words": capacity,
+                "available_words": max(0, capacity - used),
+            }
+        return capacities
+
+    @staticmethod
+    def _settled_no_progress(receipt: Mapping[str, Any]) -> bool:
+        run = receipt.get("run", receipt)
+        if not isinstance(run, Mapping):
+            return False
+        transitions = run.get("transition_receipts")
+        return (
+            isinstance(transitions, Sequence)
+            and bool(transitions)
+            and isinstance(transitions[-1], Mapping)
+            and transitions[-1].get("kind") == "no-ready-event"
+        )
+
+    @staticmethod
+    def _settled_transitions(receipt: Mapping[str, Any]) -> int:
+        run = receipt.get("run", receipt)
+        if not isinstance(run, Mapping):
+            return 0
+        value = run.get("transitions_executed", 0)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise LearningComputerError("settled run transition accounting is invalid")
+        return value
+
+    def _settled_request_complete(self) -> bool:
+        task = self._value("task")
+        continuation = (
+            task.get("continuation") if isinstance(task, Mapping) else None
+        )
+        return (
+            isinstance(continuation, Mapping)
+            and continuation.get("request") is None
+            and not bool(continuation.get("partial"))
+            and self._value("result") is not None
+        )
+
+    def _check_settled_capacity(
+        self,
+        before: Mapping[str, Mapping[str, int]],
+        after: Mapping[str, Mapping[str, int]],
+        reserve_fraction: float,
+    ) -> None:
+        for name, current in after.items():
+            prior = before.get(name)
+            if prior is None:
+                continue
+            capacity = int(current["capacity_words"])
+            available = int(current["available_words"])
+            reserve_words = int(math.ceil(capacity * reserve_fraction))
+            participated = (
+                int(current["used_words"]) != int(prior["used_words"])
+                or int(current["capacity_words"]) != int(prior["capacity_words"])
+            )
+            if not participated:
+                continue
+            if available <= 0 and int(prior["available_words"]) > 0:
+                raise LearningComputerCapacityError(
+                    f"regional value {name!r} reached capacity"
+                )
+            if available < reserve_words:
+                raise LearningComputerCapacityError(
+                    f"regional value {name!r} entered its reserved capacity"
+                )
+
 
     def _value(self, name: str) -> Any:
-        return self._controller().named_value(self.field, name)
+        return self._named_value(name)
+
+    def named_value(self, name: str) -> Any:
+        """Read one named computer value without rendering the whole computer.
+
+        ``inspect`` renders the task, session, and policy records and digests
+        each of them; a caller that only needs the current task should not pay
+        for that.  The returned value is the same one ``inspect`` reports.
+        """
+
+        return self._named_value(name)
+
     def inspect(self) -> dict[str, Any]:
-        controller = self._controller()
-        machine = controller.inspect(self.field)
-        values = controller.named_values(
-            self.field,
-            ("frames", "task", "session", "policy", "outcome", "result"),
+        machine = self._inspect()
+        values = self._named_values(
+            ("frames", "task", "session", "policy", "outcome", "result")
         )
         task = values["task"]
         session = values["session"]
@@ -580,6 +1902,7 @@ class LearningComputer:
                 }
             ),
             "resource_ledger": machine["resource_ledger"],
+            "region_capacity": self._region_capacity(),
         }
 
     def explain(
@@ -898,10 +2221,8 @@ class LearningComputer:
             )
         if isinstance(steps, bool) or not isinstance(steps, int) or steps < 1:
             raise LearningComputerError("child steps must be a positive integer")
-        controller = self._controller()
-        resident = controller.named_values(
-            self.field,
-            ("arguments", "frames", "outcome", "result", "session", "task"),
+        resident = self._named_values(
+            ("arguments", "frames", "outcome", "result", "session", "task")
         )
         parent_session = resident["session"]
         parent_task = resident["task"]
@@ -1029,9 +2350,7 @@ class LearningComputer:
             "task": dict(parent_task),
         }
         frames["stack"].append(frame)
-        field, frame_receipt = controller.write_named_value(
-            self.field, "frames", frames
-        )
+        field, frame_receipt = self._write_named_value("frames", frames)
         staged = replace(self, field=field)
         session_kind = kernel if kind is None else kind
         if (
@@ -1091,9 +2410,8 @@ class LearningComputer:
         ):
             raise LearningComputerError("active child return status is invalid")
         frame = frames["stack"][-1]
-        resident = self._controller().named_values(
-            self.field,
-            ("arguments", "outcome", "result", "session", "task"),
+        resident = self._named_values(
+            ("arguments", "outcome", "result", "session", "task")
         )
         task = resident["task"]
         continuation = self.as_dict()
@@ -1286,8 +2604,7 @@ class LearningComputer:
             )
         bound_returns[frame["return_binding"]] = compact_return
         parent_task["invocation_returns"] = bound_returns
-        state, receipt = self._controller().restart(
-            self.field,
+        state, receipt = self._restart(
             entry=_ENTRIES[frame["kernel"]],
             values={
                 "arguments": frame["arguments"],
@@ -1325,8 +2642,7 @@ class LearningComputer:
     ) -> tuple[LearningComputer, dict[str, Any]]:
         if kernel not in _ENTRIES:
             raise LearningComputerError("kernel is not in the fixed catalog")
-        state, receipt = self._controller().restart(
-            self.field,
+        state, receipt = self._restart(
             entry=_ENTRIES[kernel],
             values={
                 "arguments": dict(arguments or {}),
@@ -1486,6 +2802,160 @@ class LearningComputer:
             )
         return self._invoke_resident(arguments=arguments, steps=steps)
 
+    def invoke_settled(
+        self,
+        *,
+        arguments: Mapping[str, Any],
+        steps: int = 4096,
+        reserve_fraction: float = 0.20,
+    ) -> tuple[LearningComputer, Mapping[str, Any]]:
+        """Run one request to a terminal regional state on an immutable successor."""
+        if not isinstance(arguments, Mapping):
+            raise LearningComputerError("regional task arguments must be a mapping")
+        if (
+            arguments.get("operation")
+            in {"authorize-action", "dispatch-action"}
+            or "authority" in arguments
+        ):
+            raise LearningComputerError(
+                "action authorization and dispatch require the owner boundary"
+            )
+        if isinstance(steps, bool) or not isinstance(steps, int) or steps < 1:
+            raise LearningComputerError(
+                "settled invocation steps must be a positive integer"
+            )
+        if (
+            isinstance(reserve_fraction, bool)
+            or not isinstance(reserve_fraction, (int, float))
+            or not math.isfinite(float(reserve_fraction))
+            or not 0.0 <= float(reserve_fraction) < 1.0
+        ):
+            raise LearningComputerError(
+                "settled reserve_fraction must be finite in [0, 1)"
+            )
+        reserve_fraction = float(reserve_fraction)
+        original = self
+        before_capacity = original._region_capacity()
+        argument_capacity = before_capacity.get("arguments")
+        if argument_capacity is not None:
+            required_words = len(_field_regions._json_words(dict(arguments)))
+            if required_words > int(argument_capacity["capacity_words"]):
+                raise LearningComputerCapacityError(
+                    "settled invocation arguments exceed regional capacity"
+                )
+        task_before = self._value("task")
+        continuation = (
+            task_before.get("continuation")
+            if isinstance(task_before, Mapping)
+            else None
+        )
+        continuation_partial = (
+            isinstance(continuation, Mapping)
+            and (
+                continuation.get("request") is not None
+                or bool(continuation.get("partial"))
+            )
+        )
+        status_partial = (
+            isinstance(task_before, Mapping)
+            and not isinstance(continuation, Mapping)
+            and task_before.get("status") in {"running", "yield", "faulted"}
+        )
+        if continuation_partial or status_partial:
+            raise LearningComputerError(
+                "settled invocation refuses an already-partial task"
+            )
+        remaining = steps
+        try:
+            local, receipt = self._invoke_resident(
+                arguments=arguments,
+                steps=1,
+            )
+        except FieldComputerError as exc:
+            raise self._settled_capacity_error(exc) from exc
+        except LearningComputerError as exc:
+            cause = exc.__cause__
+            if isinstance(cause, FieldComputerError):
+                raise self._settled_capacity_error(cause) from exc
+            raise
+        consumed = self._settled_transitions(receipt)
+        remaining -= consumed
+        first_status = str(
+            receipt.get("status", receipt.get("run", {}).get("status"))
+        )
+        if first_status == "faulted" or receipt.get("run", {}).get("status") == "faulted":
+            raise LearningComputerError(
+                "settled invocation encountered a kernel fault"
+            )
+        if (
+            consumed < 1
+            or local.state_sha256 == original.state_sha256
+            or self._settled_no_progress(receipt)
+        ):
+            raise LearningComputerError(
+                "settled invocation made no regional progress"
+            )
+        receipts = [dict(receipt)]
+        while True:
+            if local._settled_request_complete():
+                break
+            status = str(receipt.get("status", receipt.get("run", {}).get("status")))
+            if status in {
+                "halted",
+                "exhausted",
+                "counter-exhausted",
+                "returned",
+            }:
+                break
+            if status == "faulted" or receipt.get("run", {}).get("status") == "faulted":
+                raise LearningComputerError(
+                    "settled invocation encountered a kernel fault"
+                )
+            if remaining <= 0:
+                raise LearningComputerError(
+                    "settled invocation transition budget exhausted"
+                )
+            before_capacity = local._region_capacity()
+            previous_hash = local.state_sha256
+            try:
+                local, receipt = local.advance(steps=remaining)
+            except LearningComputerError as exc:
+                cause = exc.__cause__
+                if isinstance(cause, FieldComputerError):
+                    raise self._settled_capacity_error(cause) from exc
+                raise
+            consumed = self._settled_transitions(receipt)
+            if (
+                consumed < 1
+                or local.state_sha256 == previous_hash
+                or self._settled_no_progress(receipt)
+            ):
+                raise LearningComputerError(
+                    "settled invocation made no regional progress"
+                )
+            self._check_settled_capacity(
+                before_capacity,
+                local._region_capacity(),
+                reserve_fraction,
+            )
+            remaining -= consumed
+            receipts.append(dict(receipt))
+        self._check_settled_capacity(
+            original._region_capacity(),
+            local._region_capacity(),
+            reserve_fraction,
+        )
+        return local, {
+            "schema": "cassifi.learning-computer-invoke-settled-receipt.v1",
+            "status": str(receipt.get("status")),
+            "run": dict(receipt.get("run", {})),
+            "quanta": len(receipts),
+            "transitions_executed": int(steps) - remaining,
+            "receipts": receipts,
+            "consumed_result": local._value("result"),
+            "state_sha256": local.state_sha256,
+        }
+
     def _authorized_invoke(
         self,
         *,
@@ -1562,11 +3032,10 @@ class LearningComputer:
         ):
             raise LearningComputerError("no task is loaded")
         try:
-            state, receipt = self._controller().run(self.field, steps=steps)
+            state, receipt = self._run(steps=steps)
             successor = replace(self, field=state)
-            resident = successor._controller().named_values(
-                successor.field,
-                ("frames", "outcome", "result", "task", "session"),
+            resident = successor._named_values(
+                ("frames", "outcome", "result", "task", "session")
             )
             task = resident["task"]
             session = resident["session"]
@@ -1603,9 +3072,7 @@ class LearningComputer:
                         "state_sha256": successor.state_sha256,
                         "status": "returned",
                     }
-                state, _ = successor._controller().write_named_value(
-                    successor.field, "frames", frames
-                )
+                state, _ = successor._write_named_value("frames", frames)
                 successor = replace(successor, field=state)
             if isinstance(session, Mapping) and isinstance(task, Mapping):
                 scalar_session = session.get("kind") == "scalar"
@@ -1625,10 +3092,8 @@ class LearningComputer:
                         **dict(session),
                         "status": task_status,
                     }
-                    state, _ = (
-                        successor._controller().write_named_value(
-                            successor.field, "session", updated_session
-                        )
+                    state, _ = successor._write_named_value(
+                        "session", updated_session
                     )
                     successor = replace(successor, field=state)
             outcome = dict(receipt)
@@ -1650,8 +3115,24 @@ class LearningComputer:
                     if isinstance(specialization, Mapping):
                         outcome["specialization"] = dict(specialization)
             return successor, outcome
+        except LearningComputerResidencyWait:
+            raise
+        except (ResourceWait, _field_regions.ResidencyWait):
+            # A wait for physical room is a request to free or widen, never a
+            # fault in the advance: it keeps its continuation for the caller.
+            raise
         except (TypeError, ValueError) as exc:
-            raise LearningComputerError("computer advance failed") from exc
+            raise LearningComputerError(f"computer advance failed: {exc}") from exc
+    @staticmethod
+    def _settled_capacity_error(exc: FieldComputerError) -> LearningComputerError:
+        detail = str(exc)
+        if (
+            "capacity" in detail.lower()
+            or "arena" in detail.lower()
+            or "queue is exhausted" in detail.lower()
+        ):
+            return LearningComputerCapacityError(detail)
+        return LearningComputerError(detail)
 
     def restart(
         self,
@@ -1661,6 +3142,20 @@ class LearningComputer:
         entry: int = 0,
     ) -> tuple[LearningComputer, Mapping[str, Any]]:
         task = self._value("task")
+        if (
+            isinstance(task, Mapping)
+            and task.get("schema") != SCALAR_REGIONAL_STATE_SCHEMA
+        ):
+            try:
+                state, receipt = self._restart(
+                    entry=int(entry),
+                    values=None,
+                )
+            except LearningComputerResidencyWait:
+                raise
+            except (TypeError, ValueError) as exc:
+                raise LearningComputerError("regional computer restart failed") from exc
+            return replace(self, field=state), receipt
         if (
             not isinstance(task, Mapping)
             or task.get("schema") != SCALAR_REGIONAL_STATE_SCHEMA
@@ -1708,6 +3203,8 @@ class LearningComputer:
         *,
         stack_capacity: int,
         max_steps: int | None = None,
+        relocate_regions: bool = False,
+        resource_limits: Mapping[str, Any] | None = None,
     ) -> tuple[LearningComputer, Mapping[str, Any]]:
         scalar = self._scalar_profile()
         try:
@@ -1722,11 +3219,13 @@ class LearningComputer:
             if (
                 (max_steps is not None and max_steps > self.profile.max_steps)
                 or stack_capacity > self.profile.mode_count
+                or (relocate_regions and self.is_paged)
             ):
-                controller, state, field_growth = controller.grow(
-                    self.field,
+                controller, state, field_growth = self._grow(
                     mode_count=max(self.profile.mode_count, stack_capacity),
                     max_steps=max_steps,
+                    resource_limits=resource_limits,
+                    relocate_regions=relocate_regions,
                 )
                 current = replace(
                     self, profile=controller.profile, field=state
@@ -1735,9 +3234,7 @@ class LearningComputer:
                 "schema": "cassifi.learning-computer-config.v1",
                 "scalar_profile": scalar.as_dict(),
             }
-            state, config_receipt = current._controller().write_named_value(
-                current.field, "config", config
-            )
+            state, config_receipt = current._write_named_value("config", config)
             current = replace(current, field=state)
             task = current._value("task")
             resumed: Mapping[str, Any] | None = None
@@ -1764,10 +3261,8 @@ class LearningComputer:
                         {**dict(session), "status": "running"},
                     )
                 else:
-                    state, resumed = (
-                        current._controller().write_named_value(
-                            current.field, "task", updated_task
-                        )
+                    state, resumed = current._write_named_value(
+                        "task", updated_task
                     )
                     current = replace(current, field=state)
             return current, {
@@ -1783,6 +3278,8 @@ class LearningComputer:
                     None if resumed is None else dict(resumed)
                 ),
             }
+        except LearningComputerResidencyWait:
+            raise
         except (TypeError, ValueError) as exc:
             raise LearningComputerError("computer growth failed") from exc
 
@@ -1811,7 +3308,7 @@ class LearningComputer:
                 "source_sha256": compiled.sha256,
             },
         )
-        state, _ = current._controller().run(current.field)
+        state, _ = current._run()
         current = replace(current, field=state)
         outcome = current._value("outcome")
         if not isinstance(outcome, Mapping) or outcome.get("status") != "selected":
@@ -1872,12 +3369,11 @@ class LearningComputer:
                     "feedback_id": feedback_id,
                 },
             )
-            field, _ = current._controller().run(current.field)
+            field, _ = current._run()
             current = replace(current, field=field)
             completed_policy = current._value("task")
             observation = completed_policy["result"]["observation"]
-            field, _ = current._controller().write_named_value(
-                current.field,
+            field, _ = current._write_named_value(
                 "policy",
                 completed_policy["continuation"]["policy"],
             )
@@ -1888,13 +3384,9 @@ class LearningComputer:
             "result_status": result["status"],
             "learning_applied": observation is not None,
         }
-        field, _ = current._controller().write_named_value(
-            current.field, "session", terminal_session
-        )
+        field, _ = current._write_named_value("session", terminal_session)
         current = replace(current, field=field)
-        field, _ = current._controller().write_named_value(
-            current.field, "outcome", result
-        )
+        field, _ = current._write_named_value("outcome", result)
         current = replace(current, field=field)
         return current, {
             "schema": "cassifi.learning-computer-solve-receipt.v3",
@@ -1920,9 +3412,7 @@ class LearningComputer:
         if not isinstance(session, Mapping) or session.get("kind") != "solve":
             raise LearningComputerError("no regional solver task is active")
         started = time.perf_counter_ns()
-        field, run_receipt = self._controller().run(
-            self.field, steps=budget
-        )
+        field, run_receipt = self._run(steps=budget)
         elapsed = max(1, time.perf_counter_ns() - started)
         current = replace(self, field=field)
         task = current._value("task")
@@ -1930,9 +3420,7 @@ class LearningComputer:
             raise LearningComputerError("regional solver task is invalid")
         spent = int(task["ledger"]["primitive_work"])
         updated_session = {**dict(session), "spent_work": spent}
-        field, _ = current._controller().write_named_value(
-            current.field, "session", updated_session
-        )
+        field, _ = current._write_named_value("session", updated_session)
         current = replace(current, field=field)
         if task.get("result") is None:
             return current, {

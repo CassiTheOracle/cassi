@@ -42,6 +42,8 @@ struct cassi_field_config {
     std::string device = "Vulkan0";
     // Nonzero only in the private reference-fixture test object.
     uint32_t fixture_entries = 0;
+    // Exact native-pipeline contexts retain only vector handoff scratch, never adaptive field state.
+    bool scratch_only = false;
 };
 
 struct cassi_query {

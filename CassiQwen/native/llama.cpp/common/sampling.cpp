@@ -110,6 +110,7 @@ struct ring_buffer {
 
 struct common_sampler {
     common_params_sampling params;
+    llama_seq_id seq_id = -1;
 
     struct llama_sampler * grmr;
     struct llama_sampler * rbudget;
@@ -118,6 +119,8 @@ struct common_sampler {
     ring_buffer<llama_token> prev;
 
     std::vector<llama_token_data> cur;
+    std::vector<llama_token> cassi_tokens;
+    std::vector<float> cassi_scores;
 
     llama_token_data_array cur_p;
 
@@ -161,6 +164,35 @@ struct common_sampler {
         cur_p = { cur.data(), cur.size(), -1, false };
     }
 
+    void apply_cassi_qi_stream(struct llama_context * ctx) {
+        if (!params.cassi_qi_stream ||
+                (params.cassi_qi_stream_gain == 0.0f && params.cassi_qi_stream_eog_gain == 0.0f) ||
+                seq_id < 0 || cur_p.size == 0 || llama_cassi_qi_state_size(ctx) == 0) {
+            return;
+        }
+
+        const llama_vocab * vocab = llama_model_get_vocab(llama_get_model(ctx));
+        cassi_tokens.resize(cur_p.size);
+        cassi_scores.resize(cur_p.size);
+        for (size_t i = 0; i < cur_p.size; ++i) {
+            cassi_tokens[i] = cur_p.data[i].id;
+        }
+        if (!llama_cassi_qi_score_tokens(
+                ctx, seq_id, cassi_tokens.data(), cassi_scores.data(), cur_p.size)) {
+            return;
+        }
+        for (size_t i = 0; i < cur_p.size; ++i) {
+            if (!std::isfinite(cassi_scores[i]) || !std::isfinite(cur_p.data[i].logit)) {
+                continue;
+            }
+            cur_p.data[i].logit += params.cassi_qi_stream_gain * cassi_scores[i];
+            if (params.cassi_qi_stream_eog_gain != 0.0f &&
+                    llama_vocab_is_eog(vocab, cur_p.data[i].id)) {
+                cur_p.data[i].logit += params.cassi_qi_stream_eog_gain * cassi_scores[i];
+            }
+        }
+    }
+
     common_time_meas tm() {
         return common_time_meas(t_total_us, params.no_perf);
     }
@@ -175,18 +207,21 @@ std::string common_params_sampling::print() const {
             "\trepeat_last_n = %d, repeat_penalty = %.3f, frequency_penalty = %.3f, presence_penalty = %.3f\n"
             "\tdry_multiplier = %.3f, dry_base = %.3f, dry_allowed_length = %d, dry_penalty_last_n = %d\n"
             "\ttop_k = %d, top_p = %.3f, min_p = %.3f, xtc_probability = %.3f, xtc_threshold = %.3f, typical_p = %.3f, top_n_sigma = %.3f, temp = %.3f\n"
-            "\tmirostat = %d, mirostat_lr = %.3f, mirostat_ent = %.3f, adaptive_target = %.3f, adaptive_decay = %.3f",
+            "\tmirostat = %d, mirostat_lr = %.3f, mirostat_ent = %.3f, adaptive_target = %.3f, adaptive_decay = %.3f\n"
+            "\tcassi_qi_stream = %d, cassi_qi_stream_gain = %.3f, cassi_qi_stream_eog_gain = %.3f",
             penalty_last_n, penalty_repeat, penalty_freq, penalty_present,
             dry_multiplier, dry_base, dry_allowed_length, dry_penalty_last_n,
             top_k, top_p, min_p, xtc_probability, xtc_threshold, typ_p, top_n_sigma, temp,
-            mirostat, mirostat_eta, mirostat_tau, adaptive_target, adaptive_decay);
+            mirostat, mirostat_eta, mirostat_tau, adaptive_target, adaptive_decay,
+            cassi_qi_stream, cassi_qi_stream_gain, cassi_qi_stream_eog_gain);
 
     return std::string(result);
 }
 
 struct common_sampler * common_sampler_init(
         const struct llama_model * model,
-        struct common_params_sampling & params) {
+        struct common_params_sampling & params,
+        llama_seq_id seq_id) {
     if (!std::isfinite(params.penalty_repeat) ||
         params.penalty_repeat <= 0.0f ||
         !std::isfinite(1.0f/params.penalty_repeat)) {
@@ -197,6 +232,10 @@ struct common_sampler * common_sampler_init(
     }
     if (!std::isfinite(params.penalty_present)) {
         throw std::invalid_argument("penalty_present must be finite");
+    }
+    if (!std::isfinite(params.cassi_qi_stream_gain) ||
+            !std::isfinite(params.cassi_qi_stream_eog_gain)) {
+        throw std::invalid_argument("Cassi Qi stream gains must be finite");
     }
     const llama_vocab * vocab = llama_model_get_vocab(model);
     llama_sampler_chain_params lparams = llama_sampler_chain_default_params();
@@ -414,23 +453,29 @@ struct common_sampler * common_sampler_init(
 
     if (grmr && params.backend_sampling) {
         LOG_WRN("%s: backend sampling is not compatible with grammar, disabling\n", __func__);
-
         params.backend_sampling = false;
     }
 
     if (rbudget && params.backend_sampling) {
         LOG_WRN("%s: backend sampling is not compatible with reasoning budget, disabling\n", __func__);
+        params.backend_sampling = false;
+    }
 
+    if (params.cassi_qi_stream && params.backend_sampling) {
+        LOG_WRN("%s: direct Qi token stream coupling requires CPU sampling, disabling backend sampling\n", __func__);
         params.backend_sampling = false;
     }
 
     auto * result = new common_sampler {
         /* .params  = */ params,
+        /* .seq_id  = */ seq_id,
         /* .grmr    = */ grmr,
         /* .rbudget = */ rbudget,
         /* .chain   = */ chain,
         /* .prev    = */ ring_buffer<llama_token>(std::max(32, params.n_prev)),
         /* .cur     = */ {},
+        /* .cassi_tokens = */ {},
+        /* .cassi_scores = */ {},
         /* .cur_p   = */ {},
     };
 
@@ -509,11 +554,14 @@ void common_sampler_reset(struct common_sampler * gsmpl) {
 struct common_sampler * common_sampler_clone(common_sampler * gsmpl) {
     return new common_sampler {
         /* .params  = */ gsmpl->params,
+        /* .seq_id  = */ gsmpl->seq_id,
         /* .grmr    = */ llama_sampler_clone(gsmpl->grmr),
         /* .rbudget = */ llama_sampler_clone(gsmpl->rbudget),
         /* .chain   = */ llama_sampler_clone(gsmpl->chain),
         /* .prev    = */ gsmpl->prev,
         /* .cur     = */ gsmpl->cur,
+        /* .cassi_tokens = */ gsmpl->cassi_tokens,
+        /* .cassi_scores = */ gsmpl->cassi_scores,
         /* .cur_p   = */ gsmpl->cur_p,
     };
 }
@@ -531,8 +579,11 @@ void common_sampler_copy(const common_sampler * src, common_sampler * dst) {
     llama_sampler_copy(src->chain,   dst->chain);
 
     dst->params     = src->params;
+    dst->seq_id     = src->seq_id;
     dst->prev       = src->prev;
     dst->cur        = src->cur;
+    dst->cassi_tokens = src->cassi_tokens;
+    dst->cassi_scores = src->cassi_scores;
     dst->cur_p      = src->cur_p;
     dst->cur_p.data = src->cur_p.data ? dst->cur.data() : nullptr; // re-point to dst's buffer
     dst->t_total_us = src->t_total_us;
@@ -605,7 +656,7 @@ llama_token common_sampler_sample(struct common_sampler * gsmpl, struct llama_co
     auto & cur_p = gsmpl->cur_p; // initialized by set_logits
 
     gsmpl->set_logits(ctx, idx);
-
+    gsmpl->apply_cassi_qi_stream(ctx);
     // Check if a backend sampler has already sampled a token in which case we
     // return that token id directly.
     {
@@ -659,6 +710,7 @@ llama_token common_sampler_sample(struct common_sampler * gsmpl, struct llama_co
     // resampling:
     // if the token is not valid, sample again, but first apply the grammar sampler and then the sampling chain
     gsmpl->set_logits(ctx, idx);
+    gsmpl->apply_cassi_qi_stream(ctx);
 
     llama_sampler_apply(rbudget,  &cur_p);
 

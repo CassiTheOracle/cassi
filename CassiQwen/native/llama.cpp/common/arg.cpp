@@ -2588,6 +2588,159 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_env("LLAMA_ARG_CASSI_QI_FIELD").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
     add_opt(common_arg(
+        {"--cassi-qi-maximal"},
+        "enable the combined live Qi profile: full sense and memory fill, field attention history, recurrent-state substitution, and final output correction",
+        [](common_params & params) {
+            params.cassi_modal = false;
+            params.cassi_field_step = false;
+            params.cassi_qi_field = true;
+            params.cassi_qi_field_fill_modes = true;
+            params.cassi_qi_field_memory_fill = true;
+            params.cassi_qi_field_wave_modes = 3584;
+            params.cassi_qi_field_row_width = 7168;
+            params.cassi_qi_intervention = 0;
+            params.cassi_qi_displacement = 3;
+            params.cassi_qi_field_steps = 4;
+            params.cassi_qi_injection_scale = 1.0f;
+            params.cassi_qi_substitute = 1.0f;
+            params.cassi_qi_energy_floor = 0.0f;
+            params.cassi_qi_read_floor = 0.0f;
+            params.cassi_qi_read_absolute = true;
+            params.cassi_qi_modulate = false;
+            params.cassi_qi_modulate_gain = 0.0f;
+            params.cassi_qi_attention_history = true;
+            params.sampling.cassi_qi_stream = true;
+            params.sampling.cassi_qi_stream_gain = 1.0f;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_MAXIMAL").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-stream"},
+        {"--no-cassi-qi-stream"},
+        string_format("apply the persistent Qi phase directly to each sampled token score (default: %s)", params.sampling.cassi_qi_stream ? "enabled" : "disabled"),
+        [](common_params & params, bool value) {
+            params.sampling.cassi_qi_stream = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_STREAM").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-stream-gain"}, "F",
+        string_format("signed Qi score added to each token before sampling (default: %.3f)", params.sampling.cassi_qi_stream_gain),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-stream-gain requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed)) {
+                throw std::invalid_argument("error: --cassi-qi-stream-gain must be finite\n");
+            }
+            params.sampling.cassi_qi_stream = true;
+            params.sampling.cassi_qi_stream_gain = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_STREAM_GAIN").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-stream-eog-gain"}, "F",
+        string_format("extra signed Qi score on end-of-generation tokens; positive tends to end sooner (default: %.3f)", params.sampling.cassi_qi_stream_eog_gain),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-stream-eog-gain requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed)) {
+                throw std::invalid_argument("error: --cassi-qi-stream-eog-gain must be finite\n");
+            }
+            params.sampling.cassi_qi_stream = true;
+            params.sampling.cassi_qi_stream_eog_gain = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_STREAM_EOG_GAIN").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-field-fill-modes"},
+        {"--no-cassi-qi-field-fill-modes"},
+        string_format("fill Qi sense channels above n_embd with structured input content (default: %s)", params.cassi_qi_field_fill_modes ? "enabled" : "disabled"),
+        [](common_params & params, bool value) {
+            params.cassi_qi_field_fill_modes = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_FILL_MODES").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-field-memory-fill"},
+        {"--no-cassi-qi-field-memory-fill"},
+        string_format("mix the field's persistent memory modes into the Qi sense (default: %s)", params.cassi_qi_field_memory_fill ? "enabled" : "disabled"),
+        [](common_params & params, bool value) {
+            params.cassi_qi_field_memory_fill = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_MEMORY_FILL").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-energy-floor"}, "F",
+        string_format("minimum Qi mode energy used by the read gate (default: %.6g)", params.cassi_qi_energy_floor),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-energy-floor requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed) || parsed < 0.0f) {
+                throw std::invalid_argument("error: --cassi-qi-energy-floor must be finite and >= 0\n");
+            }
+            params.cassi_qi_energy_floor = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_ENERGY_FLOOR").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-read-floor"}, "F",
+        string_format("minimum Qi coherence gate used to emit field flux (default: %.6g)", params.cassi_qi_read_floor),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-read-floor requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed) || parsed < 0.0f) {
+                throw std::invalid_argument("error: --cassi-qi-read-floor must be finite and >= 0\n");
+            }
+            params.cassi_qi_read_floor = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_READ_FLOOR").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-scale-read-taper"}, "N",
+        string_format("weight each scale's Qi readout by exp(-N * scale * damping * dt), so a mode is read at the scales that resolve its own rate (default: %g)", params.cassi_qi_scale_read_taper),
+        [](common_params & params, const std::string & value) {
+            float parsed = 0.0f;
+            size_t consumed = 0;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-scale-read-taper requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed)) {
+                throw std::invalid_argument("error: --cassi-qi-scale-read-taper must be finite\n");
+            }
+            params.cassi_qi_scale_read_taper = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_SCALE_READ_TAPER").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-read-absolute"},
+        {"--no-cassi-qi-read-absolute"},
+        string_format("read Qi flux at the field's native amplitude instead of unit amplitude (default: %s)", params.cassi_qi_read_absolute ? "enabled" : "disabled"),
+        [](common_params & params, bool value) {
+            params.cassi_qi_read_absolute = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_READ_ABSOLUTE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-attention-history"},
+        {"--no-cassi-qi-attention-history"},
+        string_format("append field-owned KV history to every dense Qwen35 attention layer (default: %s)", params.cassi_qi_attention_history ? "enabled" : "disabled"),
+        [](common_params & params, bool value) {
+            params.cassi_qi_attention_history = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_ATTENTION_HISTORY").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
         {"--cassi-qi-field-layer"}, "N",
         string_format("Qwen35 Qi captured layer input (default: %d)", params.cassi_qi_field_layer),
         [](common_params & params, int value) {
@@ -2712,6 +2865,31 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_env("LLAMA_ARG_CASSI_QI_SUBSTITUTE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
     add_opt(common_arg(
+        {"--cassi-qi-modulate"},
+        {"--no-cassi-qi-modulate"},
+        "add a bounded field term to the intact recurrent-state write; requires displacement 2 or less",
+        [](common_params & params, bool value) {
+            params.cassi_qi_modulate = value;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_MODULATE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-modulate-gain"}, "F",
+        string_format("steering coefficient of the additive field term; 0 is the identity control (default: %.3f)", params.cassi_qi_modulate_gain),
+        [](common_params & params, const std::string & value) {
+            size_t consumed = 0;
+            float parsed = 0.0f;
+            try {
+                parsed = std::stof(value, &consumed);
+            } catch (const std::exception &) {
+                throw std::invalid_argument("error: --cassi-qi-modulate-gain requires a number\n");
+            }
+            if (consumed != value.size() || !std::isfinite(parsed) || parsed < 0.0f) {
+                throw std::invalid_argument("error: --cassi-qi-modulate-gain must be finite and >= 0\n");
+            }
+            params.cassi_qi_modulate_gain = parsed;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_MODULATE_GAIN").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
         {"--cassi-qi-field-state"}, "FILE",
         "load an exact raw F32 [scale, mode, plane] Cassi Qi bridge state for sequence 0",
         [](common_params & params, const std::string & value) {
@@ -2724,6 +2902,26 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.cassi_field_step = false;
         }
     ).set_env("LLAMA_ARG_CASSI_QI_FIELD_STATE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-mode-bank"}, "FILE",
+        "load an exact raw F32 per-mode profile (one symbol per wave mode) as the Cassi Qi damping bank",
+        [](common_params & params, const std::string & value) {
+            if (value.empty()) {
+                throw std::invalid_argument("error: --cassi-qi-mode-bank requires a file\n");
+            }
+            params.cassi_qi_mode_bank = value;
+            params.cassi_qi_field = true;
+            params.cassi_modal = false;
+            params.cassi_field_step = false;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_MODE_BANK").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-unwritten-latch"},
+        "hold the full-gain write latch to a mode that has never been written, so a decayed trace fades",
+        [](common_params & params) {
+            params.cassi_qi_unwritten_latch = true;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_UNWRITTEN_LATCH").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
     add_opt(common_arg(
         {"--cassi-apprentice"},
         "enable the persistent Cassi field apprenticeship runtime",

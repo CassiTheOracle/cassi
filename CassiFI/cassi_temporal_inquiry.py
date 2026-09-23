@@ -251,13 +251,6 @@ def _prediction(memory: TemporalField, state: int, action: str) -> _Transition |
     if readout.gap:
         return None
     return _Transition(readout.outcomes)
-
-
-def _ordered_outcomes(memory: TemporalField, outcomes: set[str]) -> tuple[str, ...]:
-    order = {name: index for index, name in enumerate(memory.observation_ids)}
-    return tuple(sorted(outcomes, key=lambda name: order[name]))
-
-
 def _decision_signature(
     memory: TemporalField,
     hypotheses: tuple[_Hypothesis, ...],
@@ -332,7 +325,7 @@ def _decision_signature(
         return rows[0] if all(row == rows[0] for row in rows[1:]) else None
 
     # Without a requested goal, only differences in empirical support and
-    # successor states count.  Frequencies/probability fields are deliberately
+    # successor states count. Frequencies/probabilities are deliberately
     # ignored: surprise is not a decision criterion.
     rows = []
     for hypothesis in hypotheses:
@@ -352,6 +345,31 @@ def _decision_signature(
             return None
         rows.append(tuple(transitions))
     return rows[0] if all(row == rows[0] for row in rows[1:]) else None
+
+
+def _ordered_outcomes(memory: TemporalField, outcomes: set[str]) -> tuple[str, ...]:
+    order = {name: index for index, name in enumerate(memory.observation_ids)}
+    return tuple(sorted(outcomes, key=lambda name: order[name]))
+
+
+def _global_successors(memory: TemporalField, action: str) -> Mapping[str, tuple[int, ...]]:
+    """Read the field's observed outcome envelope for one action."""
+    action_code = memory.action_ids.index(action)
+    width = len(memory.observation_ids)
+    start = action_code * width
+    destinations: dict[str, set[int]] = {}
+    for state in range(memory.state_count):
+        exposures = memory._field[0, state, start:start + width]  # noqa: SLF001
+        for observation_code, observation in enumerate(memory.observation_ids):
+            if exposures[observation_code] > 0:
+                destination = int(
+                    memory._field[0, memory.max_states + state, start + observation_code]  # noqa: SLF001
+                )
+                destinations.setdefault(observation, set()).add(destination)
+    return {
+        observation: tuple(sorted(states))
+        for observation, states in destinations.items()
+    }
 
 
 def _transition(memory: TemporalField, hypotheses: tuple[_Hypothesis, ...], operation: Mapping[str, Any], forbidden: frozenset[str]) -> tuple[dict[str, tuple[_Hypothesis, ...]], str | None]:
@@ -460,6 +478,96 @@ def _select_acquisition(
         return None
     _, operation, gap = min(candidates, key=lambda item: item[0])
     return operation, gap
+def _select_optimistic_goal_action(
+    memory: TemporalField,
+    states: tuple[int, ...],
+    operations: tuple[Mapping[str, Any], ...],
+    forbidden: frozenset[str],
+    *,
+    skill_id: str | None,
+    goal_policy: tuple[Sequence[str], Sequence[str], Any, Any] | None,
+    recent_actions: Sequence[str] = (),
+) -> tuple[Mapping[str, Any], Mapping[str, Any]] | None:
+    """Choose a safe acquisition that can re-enter a learned goal path."""
+    if not states or len(states) > 8 or (skill_id is None and goal_policy is None):
+        return None
+    goal_names = (
+        set(goal_policy[0])
+        if goal_policy is not None
+        else set(memory._skills[skill_id]["goal"]) if skill_id is not None else set()  # noqa: SLF001
+    )
+
+    def rank(state: int) -> int | None:
+        if goal_policy is not None:
+            ranks = goal_policy[2]
+            value = int(ranks[state])
+            return value if value > 0 else None
+        assert skill_id is not None
+        readout = memory.at_state(state).skill_action(skill_id)
+        if readout.get("status") == "complete":
+            return 0
+        value = readout.get("remaining_steps")
+        return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+    candidates: list[tuple[tuple[Any, ...], Mapping[str, Any], Mapping[str, Any]]] = []
+    for operation in operations:
+        if not (
+            operation["authorized"]
+            and operation["feasible"]
+            and operation["acquisition_allowed"]
+        ):
+            continue
+        gap, refusal = _acquisition_gap(memory, states, operation, forbidden)
+        if refusal is not None or gap is None or not gap["missing_states"]:
+            continue
+        global_outcomes = _global_successors(memory, operation["action"])
+        if not global_outcomes or forbidden.intersection(global_outcomes):
+            continue
+        destination_records: list[tuple[int, str | None]] = []
+        for destinations in global_outcomes.values():
+            for destination in destinations:
+                value = rank(destination)
+                if value is None:
+                    continue
+                if goal_policy is not None:
+                    action_code = int(goal_policy[3][destination])
+                    action = (
+                        memory.action_ids[action_code]
+                        if action_code >= 0
+                        else None
+                    )
+                else:
+                    action = memory.at_state(destination).skill_action(skill_id).get("action")
+                destination_records.append((value, action))
+        if not destination_records:
+            continue
+        total_destinations = sum(len(destinations) for destinations in global_outcomes.values())
+        destination_actions = {
+            action for _, action in destination_records if isinstance(action, str)
+        }
+        uniform_goal = int(
+            len(destination_records) == total_destinations
+            and len(destination_actions) == 1
+        )
+        goal_coverage = len(destination_records) / max(1, total_destinations)
+        repeated = sum(action == operation["action"] for action in recent_actions)
+        direct_goal = int(not (goal_names.intersection(global_outcomes) and "clear" in recent_actions))
+        candidates.append(((
+            repeated,
+            -uniform_goal,
+            -goal_coverage,
+            direct_goal,
+            -len(goal_names.intersection(global_outcomes)),
+            max(value for value, _ in destination_records),
+            float(operation["cost"]),
+            float(operation["risk"]),
+            operation["action"],
+        ), operation, gap))
+    if not candidates:
+        return None
+    _, operation, gap = min(candidates, key=lambda item: item[0])
+    return operation, gap
+
 
 
 def choose_temporal_inquiry(
@@ -521,6 +629,7 @@ def choose_temporal_inquiry(
         raise TemporalInquiryError("field prediction unknown_successor is invalid")
     base_result = {
         "status": "unresolved",
+
         "action": None,
         "policy": None,
         "candidate_states": list(candidates),
@@ -537,6 +646,50 @@ def choose_temporal_inquiry(
             "unknown_successor": False,
         },
     }
+    def optimistic_result() -> dict[str, Any] | None:
+        selected = _select_optimistic_goal_action(
+            memory,
+            candidates,
+            ops,
+            forbidden,
+            skill_id=skill_id,
+            goal_policy=goal_policy,
+            recent_actions=recent_actions,
+        )
+        if selected is None:
+            return None
+        operation, gap = selected
+        result = dict(base_result)
+        result.update({
+            "status": "acquiring",
+            "action": operation["action"],
+            "acquisition_allowed": True,
+            "decision_resolved": False,
+            "policy": {
+                "action": operation["action"],
+                "kind": "goal-recovery",
+                "branches": {},
+                "candidate_states": list(candidates),
+                "missing_states": gap["missing_states"],
+            },
+            "costs": {
+                "cost": float(operation["cost"]),
+                "risk": float(operation["risk"]),
+                "worst_case_cost": float(operation["cost"]),
+                "worst_case_risk": float(operation["risk"]),
+            },
+            "reason": "optimistic-goal-recovery",
+            "acquisition": {
+                "host_permitted": True,
+                "acquisition_allowed": True,
+                "decision_resolved": False,
+                "missing_states": gap["missing_states"],
+                "unknown_successor": True,
+                "actual_exposure": gap["actual_exposure"],
+                "strategy": "global-observed-goal-envelope",
+            },
+        })
+        return result
     try:
         available_skill_ids = set(memory.skill_ids) if skill_id is not None else set()
     except Exception as exc:
@@ -651,7 +804,9 @@ def choose_temporal_inquiry(
         ) is not None
     )
     if len(candidates) == 1 and not carried_unknown and singleton_decision:
-        acquired = acquisition_result()
+        acquired = optimistic_result()
+        if acquired is None:
+            acquired = acquisition_result()
         if acquired is not None:
             return acquired
         base_result["status"] = "not-needed"
@@ -773,6 +928,10 @@ def choose_temporal_inquiry(
 
     selected = search(hypotheses, 0, False)
     if selected.policy is None:
+        optimistic = optimistic_result()
+        if optimistic is not None:
+            optimistic["work"] = {"nodes": nodes, "max_nodes": max_nodes, "depth": 0}
+            return optimistic
         acquired = acquisition_result()
         if acquired is not None:
             acquired["work"] = {"nodes": nodes, "max_nodes": max_nodes, "depth": 0}
@@ -795,6 +954,10 @@ def choose_temporal_inquiry(
         base_result["work"] = {"nodes": nodes, "max_nodes": max_nodes, "depth": 0}
         return base_result
     if carried_unknown:
+        optimistic = optimistic_result()
+        if optimistic is not None:
+            optimistic["work"] = {"nodes": nodes, "max_nodes": max_nodes, "depth": 0}
+            return optimistic
         policy = dict(selected.policy)
         policy["kind"] = "context-recovery"
         policy["candidate_states"] = list(candidates)
