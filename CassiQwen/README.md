@@ -1638,7 +1638,7 @@ machine-readable receipts are under the machine-local artifact path
 on this workstation with:
 
 ```text
-python -B verify_cassi_theory_recall.py --run-dir D:/cassi-theory-recall-0.8b-final8
+python -B research/verify_cassi_theory_recall.py --run-dir D:/cassi-theory-recall-0.8b-final8
 ```
 
 The verifier independently reopens the persisted field, re-derives protocol,
@@ -2607,9 +2607,9 @@ Run the complete small-model CPU/Vulkan and primary-model transfer receipts
 from the `CassiQwen` root:
 
 ```powershell
-python -B run_cassi_apprentice_receipt.py --model Qwen3.5-0.8B-Q4_0.gguf --field-device CPU --gpu-layers 0 --memory-mib 128 --out _diag/apprentice/small-cpu
-python -B run_cassi_apprentice_receipt.py --model Qwen3.5-0.8B-Q4_0.gguf --field-device Vulkan0 --gpu-layers 99 --memory-mib 128 --out _diag/apprentice/small-vulkan
-python -B run_cassi_apprentice_receipt.py --model Qwen3.8-27B-Q4_K_M.gguf --field-device Vulkan0 --gpu-layers 99 --memory-mib 1024 --scenario transfer --out _diag/apprentice/primary-transfer
+python -B research/run_cassi_apprentice_receipt.py --model Qwen3.5-0.8B-Q4_0.gguf --field-device CPU --gpu-layers 0 --memory-mib 128 --out _diag/apprentice/small-cpu
+python -B research/run_cassi_apprentice_receipt.py --model Qwen3.5-0.8B-Q4_0.gguf --field-device Vulkan0 --gpu-layers 99 --memory-mib 128 --out _diag/apprentice/small-vulkan
+python -B research/run_cassi_apprentice_receipt.py --model Qwen3.8-27B-Q4_K_M.gguf --field-device Vulkan0 --gpu-layers 99 --memory-mib 1024 --scenario transfer --out _diag/apprentice/primary-transfer
 ```
 
 The serving verifier discovers the actual model identifier through
@@ -2618,8 +2618,8 @@ expected local GGUF, and checks the model hash in every completed receipt.
 Teacher and teacher-free evidence are separate files:
 
 ```powershell
-python -B test_native_cassi_apprentice_stream.py --base-url http://127.0.0.1:8084 --model Qwen3.5-0.8B-Q4_0.gguf --out _diag/apprentice/server-final/client-always.json
-python -B test_native_cassi_apprentice_stream.py --base-url http://127.0.0.1:8084 --model Qwen3.5-0.8B-Q4_0.gguf --prior _diag/apprentice/server-final/client-always.json --out _diag/apprentice/server-final/client-never.json --expect-teacher never
+python -B tests/test_native_cassi_apprentice_stream.py --base-url http://127.0.0.1:8084 --model Qwen3.5-0.8B-Q4_0.gguf --out _diag/apprentice/server-final/client-always.json
+python -B tests/test_native_cassi_apprentice_stream.py --base-url http://127.0.0.1:8084 --model Qwen3.5-0.8B-Q4_0.gguf --prior _diag/apprentice/server-final/client-always.json --out _diag/apprentice/server-final/client-never.json --expect-teacher never
 ```
 
 `_diag/apprentice/server-final/serving-build-identity.json` pins the exact
@@ -3190,7 +3190,7 @@ and field arms to present identical model blocks. Raising any case's
 `max_tokens` rewrites the hashed protocol, so a budget-raised campaign needs its
 own frozen anchor.
 
-`cassi-qwen-client.mjs` remains offline teacher/baseline tooling. It verifies
+`research/cassi-qwen-client.mjs` remains offline teacher/baseline tooling. It verifies
 health and exact model identity before every completion, applies bounded
 request deadlines, returns a provenance receipt, and never silently retries.
 
@@ -3224,12 +3224,12 @@ Offline teacher/baseline checks (require a separately launched Qwen service on
 `127.0.0.1:8084`; neither live field-only path starts or contacts it):
 
 ```powershell
-node --test cassi-qwen-client.test.mjs
+node --test research/cassi-qwen-client.test.mjs
 node --test cassi-field-shadow.test.mjs
 node --test cassi-field-candidate-mapper.test.mjs
 node --test cassi-semantic-field-encoder.test.mjs
-node run-baseline-receipt.mjs
-node run-thinking-policy-receipt.mjs
+node research/run-baseline-receipt.mjs
+node research/run-thinking-policy-receipt.mjs
 node run-correction-persistence-board.mjs
 node run-q4-q6-escalation.mjs
 ```
@@ -3237,10 +3237,10 @@ node run-q4-q6-escalation.mjs
 Native baseline instrumentation (offline pinned build, not live serving):
 
 ```powershell
-python test_native_llama_stream.py
-python test_native_llama_stream.py --expect-cassi-disabled  # only with -NoCassiModal
-python test_native_llama_parallel.py --requests 16
-python test_native_llama_slot.py
+python tests/test_native_llama_stream.py
+python tests/test_native_llama_stream.py --expect-cassi-disabled  # only with -NoCassiModal
+python tests/test_native_llama_parallel.py --requests 16
+python tests/test_native_llama_slot.py
 ```
 
 The stream smoke expects the modal metric to be enabled unless `--expect-cassi-disabled` is passed explicitly.
@@ -3253,7 +3253,7 @@ For a temporary OpenAI-compatible OMP transport seam, run the native server on `
 
 ```powershell
 python native_omp_provider.py --upstream http://127.0.0.1:8080 --port 8081
-python test_native_llama_stream.py --base-url http://127.0.0.1:8081
+python tests/test_native_llama_stream.py --base-url http://127.0.0.1:8081
 ```
 
 The proxy is loopback-only, forwards SSE without changing payloads, and owns no model or field state.
