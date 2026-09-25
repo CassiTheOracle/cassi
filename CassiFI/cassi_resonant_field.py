@@ -756,14 +756,20 @@ def _page_from_state(workspace: ResonantWorkspace, z: np.ndarray, *, heartbeat_p
     return page.reshape(workspace.profile.page_shape)
 
 
+import hashlib
+import json
+from functools import partial
+
+_json_dumps = partial(
+    json.dumps,
+    sort_keys=True,
+    separators=(",", ":"),
+    ensure_ascii=False,
+    allow_nan=False,
+)
+
 def _canonical_sha256(value: Any) -> str:
-    encoded = json.dumps(
-        _jsonable(value),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-        allow_nan=False,
-    ).encode("utf-8")
+    encoded = _json_dumps(value).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 def _validate_parent_register_path(path: Any) -> str:
