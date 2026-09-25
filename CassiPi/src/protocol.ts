@@ -6,7 +6,7 @@ export const REQUEST_SCHEMA = "cassifi.cassipi-owner-request.v1";
 export const RESPONSE_SCHEMA = "cassifi.cassipi-owner-response.v1";
 export const DESCRIPTOR_SCHEMA = "cassifi.cassipi-owner-descriptor.v1";
 export const PROTOCOL_ID = "cassifi.cassipi-owner-rpc.v1";
-export const FI_RUNTIME_ID = "cassifi.cassipi-field-intelligence.v3";
+export const FI_RUNTIME_ID = "cassifi.cassipi-field-intelligence.v4";
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 

@@ -935,7 +935,7 @@ describe("CassiPi extension boundary", () => {
     expect(observation?.request.source).toMatchObject({ parent_revision_id: oldRevision });
   });
 
-  test("explicit temporal commands reach v3 without adding a model-facing tool", async () => {
+  test("explicit temporal commands reach v4 without adding a model-facing tool", async () => {
     const value = harness();
     const command = value.commands.get("cassi")!;
     await command.handler(

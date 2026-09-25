@@ -14,7 +14,7 @@ from typing import Any, Mapping
 sys.dont_write_bytecode = True
 
 
-RUNTIME_ID = "cassifi.cassipi-field-intelligence.v3"
+RUNTIME_ID = "cassifi.cassipi-field-intelligence.v4"
 ENCODING_SCHEMA = "cassipi.direct-host-metadata-codec.v2"
 SCOPE = {
     "profile_id": "field-control-profile",

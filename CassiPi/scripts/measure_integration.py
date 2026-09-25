@@ -22,7 +22,7 @@ import psutil
 
 REQUEST_SCHEMA = "cassifi.cassipi-owner-request.v1"
 MAX_REQUEST_BYTES = 1024 * 1024
-RUNTIME_ID = "cassifi.cassipi-field-intelligence.v3"
+RUNTIME_ID = "cassifi.cassipi-field-intelligence.v4"
 CANDIDATE_COUNT = 64
 INPUT_SHA256 = "3" * 64
 
