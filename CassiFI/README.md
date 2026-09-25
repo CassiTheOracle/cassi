@@ -1245,6 +1245,33 @@ an explicit pause boundary, and actual execution-block invocation. See
 [design §31](FIELD-INTELLIGENCE-DESIGN.md#31-stored-program-computation-and-learning-execution-costs)
 for instruction semantics, the universality construction, and evidence limits.
 
+## Whole-corpus library field
+
+`cassi_library_field.py` writes every tracked Markdown and Python file of a
+repository into one paged regional field. Each file is a named value holding
+its exact git blob. The same image holds the passage table (Markdown sections
+titled by heading path, Python modules, classes, and functions, each at most
+4,000 characters), a BM25 term index split into 256 shards, and the library
+catalog. The profile is sized to the next power-of-two mode count with 25%
+growth headroom. The image persists as content-addressed pages: opening reads
+the control pages, a search wakes the index shards of its terms and the
+passage shards of its hits, and a read wakes the pages of one file.
+
+The CassiTheory library (HEAD `35edc04b`, 1,151 files, 26.2 MB) builds in
+12.5 s into a 2,097,152-mode field: 151 MB logical, 46% filled, 2,727 of 4,608
+pages committed, 13.7 MB on disk. Reopening takes 0.16 s and wakes 45 pages;
+every file reads back identical to its git blob. A search wakes a median of 21
+pages in about 28 ms. For 400 random ten-word phrases, the source passage ranks
+first 70% of the time and within the top five 94% of the time.
+
+```powershell
+python cassi_library_field.py build ../CassiTheory _diag/library-field-cassitheory
+python cassi_library_field.py search _diag/library-field-cassitheory "dark matter halo rotation curves"
+python cassi_library_field.py read _diag/library-field-cassitheory foundations/cassi-first-principles.md
+python cassi_library_field.py verify _diag/library-field-cassitheory --root ../CassiTheory
+python cassi_library_field.py report _diag/library-field-cassitheory
+```
+
 ## Active implementation
 
 The canonical runtime is a CPU/float64 regional field computer. Individual
@@ -1260,6 +1287,7 @@ do not own a second adaptive runtime. This repository root contains:
 | [`cassi_field_cognition.py`](cassi_field_cognition.py) | Cognition, learned variable-span language, autonomous bounded representation induction and revision, planning, inquiry, authority-request, assessment, and sustained-episode kernel |
 | [`cassi_field_input.py`](cassi_field_input.py) | Stateless deterministic source codecs, bounded typed paging, exact source linkage, and cognition observation construction |
 | [`cassi_field_owner.py`](cassi_field_owner.py) | Single-owner persistence, immutable checkpoints, journals, authority, capacity, and exactly-once regional operations |
+| [`cassi_library_field.py`](cassi_library_field.py) | Whole-repository library in one paged regional field: exact git-blob files, heading and definition passages, sharded BM25 index, and build/search/read/verify/report CLI |
 | [`cassi_field_hive.py`](cassi_field_hive.py) | Experience capsules, portable field-program bundles, adoption receipts, generation lineage, and revocation-safe transfer |
 | [`cassi_hive_store.py`](cassi_hive_store.py) | SQLite/immutable-object hive persistence, session state, reviews, bundles, adoptions, and revocations |
 | [`cassi_hive_policy.py`](cassi_hive_policy.py) | Explicit isolated, scout, member, reviewer, and leader exchange policies |
