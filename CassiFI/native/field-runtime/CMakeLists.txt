@@ -2,41 +2,50 @@ cmake_minimum_required(VERSION 3.24)
 project(cassifi_field_runtime LANGUAGES CXX)
 
 add_executable(cassifi-field-runtime main.cpp)
-target_compile_features(cassifi-field-runtime PRIVATE cxx_std_20)
-target_compile_definitions(cassifi-field-runtime PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
-
-if(MSVC)
-  target_compile_options(cassifi-field-runtime PRIVATE /W4 /permissive- /EHsc /utf-8)
-else()
-  target_compile_options(cassifi-field-runtime PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
-if(WIN32)
-  target_link_libraries(cassifi-field-runtime PRIVATE advapi32)
-endif()
+add_executable(cassifi-group-smoke group_smoke.cpp)
 
 set(CASSIFI_LLAMA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../CassiQwen/native/llama.cpp")
-set(CASSIFI_LLAMA_BUILD "${CASSIFI_LLAMA_ROOT}/b8-stream")
-if(WIN32 AND EXISTS "${CASSIFI_LLAMA_BUILD}/src/Release/llama.lib")
-  target_include_directories(cassifi-field-runtime PRIVATE
-    "${CASSIFI_LLAMA_ROOT}/include"
-    "${CASSIFI_LLAMA_ROOT}/ggml/include")
-  target_link_libraries(cassifi-field-runtime PRIVATE
-    "${CASSIFI_LLAMA_BUILD}/src/Release/llama.lib")
-  target_compile_definitions(cassifi-field-runtime PRIVATE CASSIFI_HAVE_LLAMA=1)
-  foreach(runtime_dll llama.dll ggml.dll ggml-base.dll ggml-cpu.dll ggml-vulkan.dll)
-    add_custom_command(TARGET cassifi-field-runtime POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CASSIFI_LLAMA_BUILD}/bin/Release/${runtime_dll}"
-        "$<TARGET_FILE_DIR:cassifi-field-runtime>/${runtime_dll}")
-  endforeach()
-endif()
+# Cache entry so a configure line can override it (-DCASSIFI_LLAMA_BUILD=<dir>)
+# while the default stays the shared b8-stream tree.
+set(CASSIFI_LLAMA_BUILD "${CASSIFI_LLAMA_ROOT}/b8-stream" CACHE PATH
+  "Existing llama.cpp build tree providing src/Release/llama.lib")
 
-find_package(Vulkan QUIET)
-if(Vulkan_FOUND)
-  target_link_libraries(cassifi-field-runtime PRIVATE Vulkan::Vulkan)
-  target_compile_definitions(cassifi-field-runtime PRIVATE CASSIFI_HAVE_VULKAN=1)
-endif()
+# Shared wiring for the native console executables: identical compiler settings,
+# the optional llama runtime linkage, and the optional Vulkan device library.
+function(cassifi_configure_native_executable target)
+  target_compile_features(${target} PRIVATE cxx_std_20)
+  target_compile_definitions(${target} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4 /permissive- /EHsc /utf-8)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+  if(WIN32)
+    target_link_libraries(${target} PRIVATE advapi32)
+  endif()
+  if(WIN32 AND EXISTS "${CASSIFI_LLAMA_BUILD}/src/Release/llama.lib")
+    target_include_directories(${target} PRIVATE
+      "${CASSIFI_LLAMA_ROOT}/include"
+      "${CASSIFI_LLAMA_ROOT}/ggml/include")
+    target_link_libraries(${target} PRIVATE
+      "${CASSIFI_LLAMA_BUILD}/src/Release/llama.lib")
+    target_compile_definitions(${target} PRIVATE CASSIFI_HAVE_LLAMA=1)
+    foreach(runtime_dll llama.dll ggml.dll ggml-base.dll ggml-cpu.dll ggml-vulkan.dll)
+      add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CASSIFI_LLAMA_BUILD}/bin/Release/${runtime_dll}"
+          "$<TARGET_FILE_DIR:${target}>/${runtime_dll}")
+    endforeach()
+  endif()
+  find_package(Vulkan QUIET)
+  if(Vulkan_FOUND)
+    target_link_libraries(${target} PRIVATE Vulkan::Vulkan)
+    target_compile_definitions(${target} PRIVATE CASSIFI_HAVE_VULKAN=1)
+  endif()
+endfunction()
+
+cassifi_configure_native_executable(cassifi-field-runtime)
+cassifi_configure_native_executable(cassifi-group-smoke)
 
 install(TARGETS cassifi-field-runtime RUNTIME DESTINATION bin)
 

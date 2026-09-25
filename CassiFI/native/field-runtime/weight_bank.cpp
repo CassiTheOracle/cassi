@@ -23,6 +23,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <filesystem>
+ 
 
 #ifdef _WIN32
 #include <windows.h>
@@ -138,6 +140,7 @@ private:
 };
 
 struct MatvecPlan {
+
     ggml_context * context = nullptr;
     ggml_backend_buffer_t buffer = nullptr;
     ggml_tensor * input = nullptr;
@@ -146,6 +149,7 @@ struct MatvecPlan {
     ggml_tensor * matrix = nullptr;
     size_t cols = 0;
     size_t rows = 0;
+    size_t batch_count = 0;
 
     MatvecPlan() = default;
     MatvecPlan(const MatvecPlan &) = delete;
@@ -167,6 +171,7 @@ struct MatvecPlan {
         matrix = nullptr;
         cols = 0;
         rows = 0;
+        batch_count = 0;
     }
 };
 
@@ -202,6 +207,7 @@ struct ExpertSlice {
     ggml_context * context = nullptr;
     ggml_backend_buffer_t buffer = nullptr;
     ggml_tensor * tensor = nullptr;
+    std::unordered_map<size_t, std::unique_ptr<MatvecPlan>> batch_plans;
     std::unique_ptr<MatvecPlan> plan;
 
     ExpertSlice() = default;
@@ -211,6 +217,7 @@ struct ExpertSlice {
         : context(other.context),
           buffer(other.buffer),
           tensor(other.tensor),
+          batch_plans(std::move(other.batch_plans)),
           plan(std::move(other.plan)) {
         other.context = nullptr;
         other.buffer = nullptr;
@@ -222,6 +229,7 @@ struct ExpertSlice {
             context = other.context;
             buffer = other.buffer;
             tensor = other.tensor;
+            batch_plans = std::move(other.batch_plans);
             plan = std::move(other.plan);
             other.context = nullptr;
             other.buffer = nullptr;
@@ -232,6 +240,7 @@ struct ExpertSlice {
     ~ExpertSlice() { reset(); }
 
     void reset() noexcept {
+        batch_plans.clear();
         plan.reset();
         if (buffer != nullptr) {
             ggml_backend_buffer_free(buffer);
@@ -251,13 +260,15 @@ struct TensorEntry {
     size_t source_size = 0;
     bool expert = false;
     cassifi_weight_tensor_info_t info{};
-    std::unique_ptr<MatvecPlan> dense_plan;
     std::unordered_map<int32_t, ExpertSlice> slices;
+    std::unordered_map<size_t, std::unique_ptr<MatvecPlan>> dense_batch_plans;
+    std::unique_ptr<MatvecPlan> dense_plan;
     std::unordered_map<int32_t, uint64_t> hits;
     std::unordered_map<int32_t, uint64_t> misses;
 };
 
 class WeightBank;
+struct DeviceEpochState;
 
 struct DeviceTensorValue {
     ggml_context * context = nullptr;
@@ -265,24 +276,36 @@ struct DeviceTensorValue {
     ggml_tensor * tensor = nullptr;
     size_t count = 0;
     std::shared_ptr<DeviceTensorValue> parent;
+    std::weak_ptr<DeviceEpochState> epoch;
 
     DeviceTensorValue() = default;
     DeviceTensorValue(const DeviceTensorValue &) = delete;
     DeviceTensorValue & operator=(const DeviceTensorValue &) = delete;
-    ~DeviceTensorValue() { reset(); }
+    ~DeviceTensorValue();
+    void reset() noexcept;
+};
 
+struct AffineCoefficients {
+    ggml_context * context = nullptr;
+    ggml_backend_buffer_t buffer = nullptr;
+    ggml_tensor * a = nullptr;
+    ggml_tensor * b = nullptr;
+    ggml_tensor * bias = nullptr;
+    std::vector<float> a_values;
+    std::vector<float> b_values;
+    std::vector<float> bias_values;
+    size_t input_width = 0;
+    size_t rank = 0;
+    size_t output_width = 0;
+
+    AffineCoefficients() = default;
+    AffineCoefficients(const AffineCoefficients &) = delete;
+    AffineCoefficients & operator=(const AffineCoefficients &) = delete;
+    ~AffineCoefficients() { reset(); }
     void reset() noexcept {
-        if (buffer != nullptr) {
-            ggml_backend_buffer_free(buffer);
-            buffer = nullptr;
-        }
-        if (context != nullptr) {
-            ggml_free(context);
-            context = nullptr;
-        }
-        tensor = nullptr;
-        count = 0;
-        parent.reset();
+        if (buffer != nullptr) ggml_backend_buffer_free(std::exchange(buffer, nullptr));
+        if (context != nullptr) ggml_free(std::exchange(context, nullptr));
+        a = b = bias = nullptr;
     }
 };
 
@@ -291,8 +314,11 @@ struct DeviceEpochState {
     ggml_backend_t backend = nullptr;
     ggml_context * field_context = nullptr;
     ggml_backend_buffer_t field_buffer = nullptr;
+    std::unordered_map<std::string, std::unique_ptr<AffineCoefficients>> affine_coefficients;
     std::array<ggml_tensor *, 4> planes{};
     std::vector<std::weak_ptr<DeviceTensorValue>> values;
+    std::unordered_map<size_t, std::vector<ggml_backend_buffer_t>> spare_buffers;
+    size_t spare_bytes = 0;
     size_t mode_count = 0;
     int32_t gain_ppm = 0;
     bool open = true;
@@ -302,6 +328,21 @@ struct DeviceEpochState {
     DeviceEpochState(const DeviceEpochState &) = delete;
     DeviceEpochState & operator=(const DeviceEpochState &) = delete;
     ~DeviceEpochState() { close(); }
+    void recycle(size_t count, ggml_backend_buffer_t buffer) noexcept {
+        const size_t bytes = ggml_backend_buffer_get_size(buffer);
+        constexpr size_t kMaxSpareBytes = 64U * 1024U * 1024U;
+        if (open && bytes <= 1024U * 1024U && bytes <= kMaxSpareBytes - spare_bytes) {
+            try {
+                spare_buffers[count].push_back(buffer);
+                spare_bytes += bytes;
+                return;
+            } catch (const std::exception &) {
+                // Resource pressure must never make a tensor release throw.
+            }
+        }
+        ggml_backend_buffer_free(buffer);
+    }
+
 
     void close() noexcept {
         if (!open && owner == nullptr) return;
@@ -310,7 +351,13 @@ struct DeviceEpochState {
         for (auto it = values.rbegin(); it != values.rend(); ++it) {
             if (auto value = it->lock()) value->reset();
         }
+        affine_coefficients.clear();
         values.clear();
+        for (auto & [count, buffers] : spare_buffers) {
+            for (auto * buffer : buffers) ggml_backend_buffer_free(buffer);
+        }
+        spare_buffers.clear();
+        spare_bytes = 0;
         if (field_buffer != nullptr) {
             ggml_backend_buffer_free(field_buffer);
             field_buffer = nullptr;
@@ -326,6 +373,23 @@ struct DeviceEpochState {
     }
 };
 
+DeviceTensorValue::~DeviceTensorValue() { reset(); }
+
+void DeviceTensorValue::reset() noexcept {
+    if (buffer != nullptr) {
+        auto * released = std::exchange(buffer, nullptr);
+        if (auto owner = epoch.lock()) owner->recycle(count, released);
+        else ggml_backend_buffer_free(released);
+    }
+    if (context != nullptr) {
+        ggml_free(context);
+        context = nullptr;
+    }
+    tensor = nullptr;
+    count = 0;
+    parent.reset();
+}
+
 class WeightBank {
 public:
     static int load(const char * path, const char * backend_name, int32_t threads, WeightBank ** out);
@@ -334,8 +398,15 @@ public:
     int read_vector(const char * name, float * out, size_t capacity, size_t * out_count) const;
     int read_tensor_f32(const char * name, float * out, size_t capacity, size_t * out_count) const;
     int read_embedding(const char * name, uint64_t token, float * out, size_t capacity, size_t * out_count) const;
-    int matvec(const char * name, const float * input, size_t input_count, float * output,
-               size_t output_capacity, size_t * output_count, int32_t expert);
+    int matvec(const char * name, const float * input, size_t input_count,
+               float * output, size_t output_capacity, size_t * output_count,
+               int32_t expert);
+    int matvec_batch(const char * name, const float * inputs, size_t batch_count,
+                     size_t input_width, float * outputs, size_t output_capacity,
+                     size_t * output_count, int32_t expert);
+    int matvec_batch_experts(const char * name, const float * inputs, size_t batch_count,
+                             size_t input_width, const int32_t * experts,
+                             float * outputs, size_t output_capacity, size_t * output_count);
     int matvec_many(
         const char * const * names, const int32_t * experts, size_t request_count,
         const float * input, size_t input_count, float * const * outputs,
@@ -396,6 +467,13 @@ public:
     int device_matvec(
         const std::shared_ptr<DeviceEpochState> & epoch, const char * name,
         const std::shared_ptr<DeviceTensorValue> & input, int32_t expert,
+        std::shared_ptr<DeviceTensorValue> * out_value
+    );
+    int device_low_rank_affine(
+        const std::shared_ptr<DeviceEpochState> & epoch,
+        const std::shared_ptr<DeviceTensorValue> & input, const char * method_id,
+        const float * a, size_t input_width, size_t rank, const float * b,
+        size_t output_width, const float * bias,
         std::shared_ptr<DeviceTensorValue> * out_value
     );
     int device_matvec_many(
@@ -493,6 +571,10 @@ public:
         size_t kv_head, size_t kv_heads, size_t value_dim,
         std::shared_ptr<DeviceTensorValue> * out_value
     );
+    int device_epoch_snapshot(
+        const std::shared_ptr<DeviceEpochState> & epoch,
+        float * planes, size_t plane_capacity, size_t * out_count
+    );
     int device_epoch_finish(
         const std::shared_ptr<DeviceEpochState> & epoch,
         float * final_planes, size_t plane_capacity, size_t * out_count
@@ -513,7 +595,15 @@ private:
     int raw_bytes(const TensorEntry & entry, size_t offset, void * out, size_t size) const;
     int dequant_row(const TensorEntry & entry, size_t row_offset, float * out, size_t count) const;
     int ensure_matvec_plan(
-        ggml_tensor * matrix, size_t cols, size_t rows, std::unique_ptr<MatvecPlan> & plan
+        ggml_tensor * matrix, size_t cols, size_t rows, size_t batch_count,
+        std::unique_ptr<MatvecPlan> & plan
+    );
+    // Shared body of matvec_batch / matvec_batch_experts. Caller holds mutex_
+    // and has resolved `entry`; computes rows [batch_count, width] of one
+    // tensor/expert slice into `outputs` and writes *output_count.
+    int matvec_batch_core(
+        TensorEntry & entry, const float * inputs, size_t batch_count, size_t input_width,
+        float * outputs, size_t output_capacity, size_t * output_count, int32_t expert
     );
     int validate_device_epoch(const std::shared_ptr<DeviceEpochState> & epoch, bool mutate) const;
     int validate_device_value(
@@ -865,6 +955,7 @@ int WeightBank::ensure_matvec_plan(
     ggml_tensor * matrix,
     size_t cols,
     size_t rows,
+    size_t batch_count,
     std::unique_ptr<MatvecPlan> & plan
 ) {
     if (
@@ -872,6 +963,7 @@ int WeightBank::ensure_matvec_plan(
         && plan->matrix == matrix
         && plan->cols == cols
         && plan->rows == rows
+        && plan->batch_count == batch_count
     ) {
         return CASSIFI_WEIGHT_BANK_OK;
     }
@@ -893,11 +985,20 @@ int WeightBank::ensure_matvec_plan(
             "failed to allocate matvec context"
         );
     }
-    created->input = ggml_new_tensor_1d(
-        created->context,
-        GGML_TYPE_F32,
-        static_cast<int64_t>(cols)
-    );
+    if (batch_count == 1) {
+        created->input = ggml_new_tensor_1d(
+            created->context,
+            GGML_TYPE_F32,
+            static_cast<int64_t>(cols)
+        );
+    } else {
+        created->input = ggml_new_tensor_2d(
+            created->context,
+            GGML_TYPE_F32,
+            static_cast<int64_t>(cols),
+            static_cast<int64_t>(batch_count)
+        );
+    }
     if (created->input == nullptr) {
         return fail(
             CASSIFI_WEIGHT_BANK_BACKEND_ERROR,
@@ -909,10 +1010,11 @@ int WeightBank::ensure_matvec_plan(
     if (
         created->result == nullptr
         || created->result->ne[0] != static_cast<int64_t>(rows)
+        || created->result->ne[1] != static_cast<int64_t>(batch_count)
     ) {
         return fail(
             CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
-            "GGML rejected matrix-vector dimensions"
+            "GGML rejected matrix-batch dimensions"
         );
     }
     created->graph = ggml_new_graph_custom(created->context, 16, false);
@@ -936,6 +1038,7 @@ int WeightBank::ensure_matvec_plan(
     created->matrix = matrix;
     created->cols = cols;
     created->rows = rows;
+    created->batch_count = batch_count;
     plan = std::move(created);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -984,6 +1087,7 @@ int WeightBank::matvec(const char * name, const float * input, size_t input_coun
         matrix,
         cols,
         rows,
+        1,
         *plan_slot
     );
     if (plan_result != CASSIFI_WEIGHT_BANK_OK) return plan_result;
@@ -1013,6 +1117,277 @@ int WeightBank::matvec(const char * name, const float * input, size_t input_coun
     *output_count = rows;
     return CASSIFI_WEIGHT_BANK_OK;
 }
+int WeightBank::matvec_batch(
+    const char * name,
+    const float * inputs,
+    size_t batch_count,
+    size_t input_width,
+    float * outputs,
+    size_t output_capacity,
+    size_t * output_count,
+    int32_t expert
+) {
+    if (
+        name == nullptr
+        || inputs == nullptr
+        || outputs == nullptr
+        || output_count == nullptr
+        || batch_count == 0
+    ) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT,
+            "matvec_batch requires name, inputs, outputs, count and a non-empty batch"
+        );
+    }
+    if (
+        batch_count > static_cast<size_t>(std::numeric_limits<int64_t>::max())
+        || input_width > static_cast<size_t>(std::numeric_limits<int64_t>::max())
+    ) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
+            "matvec_batch dimensions exceed GGML limits"
+        );
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    TensorEntry * entry = find(name);
+    if (entry == nullptr) {
+        return fail(CASSIFI_WEIGHT_BANK_NOT_FOUND, "tensor was not found");
+    }
+    size_t written = 0;
+    const int rc = matvec_batch_core(
+        *entry, inputs, batch_count, input_width, outputs, output_capacity, &written, expert
+    );
+    if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    *output_count = written;
+    return CASSIFI_WEIGHT_BANK_OK;
+}
+
+int WeightBank::matvec_batch_core(
+    TensorEntry & entry,
+    const float * inputs,
+    size_t batch_count,
+    size_t input_width,
+    float * outputs,
+    size_t output_capacity,
+    size_t * output_count,
+    int32_t expert
+) {
+    if (entry.info.rank < 1 || entry.tensor->ne[0] <= 0 || entry.tensor->ne[1] <= 0) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "matvec_batch requires a non-empty matrix");
+    }
+    const size_t cols = static_cast<size_t>(entry.tensor->ne[0]);
+    const size_t rows = static_cast<size_t>(entry.tensor->ne[1]);
+    if (input_width != cols) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "matvec_batch input width does not match tensor");
+    }
+    size_t input_count = 0;
+    size_t output_value_count = 0;
+    size_t input_bytes = 0;
+    size_t output_bytes = 0;
+    if (
+        !checked_mul(batch_count, cols, input_count)
+        || !checked_mul(batch_count, rows, output_value_count)
+        || !checked_mul(input_count, sizeof(float), input_bytes)
+        || !checked_mul(output_value_count, sizeof(float), output_bytes)
+    ) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
+            "matvec_batch buffer dimensions overflow native size"
+        );
+    }
+    if (output_capacity < output_value_count) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "matvec_batch output capacity is too small");
+    }
+    if (entry.expert) {
+        if (expert < 0) {
+            return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "expert index is required for an expert tensor");
+        }
+        const int rc = prefetch_locked(entry, expert);
+        if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    } else if (expert >= 0) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "expert index supplied for a dense tensor");
+    }
+
+    try {
+        ggml_tensor * matrix = entry.tensor;
+        std::unordered_map<size_t, std::unique_ptr<MatvecPlan>> * plans =
+            &entry.dense_batch_plans;
+        if (entry.expert) {
+            auto slice = entry.slices.find(expert);
+            if (slice == entry.slices.end() || slice->second.tensor == nullptr) {
+                return fail(
+                    CASSIFI_WEIGHT_BANK_BACKEND_ERROR,
+                    "expert slice is not resident"
+                );
+            }
+            matrix = slice->second.tensor;
+            plans = &slice->second.batch_plans;
+        }
+        auto inserted = plans->try_emplace(batch_count);
+        std::unique_ptr<MatvecPlan> & plan_slot = inserted.first->second;
+        const int plan_result = ensure_matvec_plan(
+            matrix,
+            cols,
+            rows,
+            batch_count,
+            plan_slot
+        );
+        if (plan_result != CASSIFI_WEIGHT_BANK_OK) return plan_result;
+        MatvecPlan & plan = *plan_slot;
+        ggml_backend_tensor_set(plan.input, inputs, 0, input_bytes);
+        const ggml_status status = ggml_backend_graph_compute(backend_, plan.graph);
+        if (status != GGML_STATUS_SUCCESS) {
+            return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend matvec batch failed");
+        }
+        ggml_backend_tensor_get(plan.result, outputs, 0, output_bytes);
+        *output_count = output_value_count;
+        return CASSIFI_WEIGHT_BANK_OK;
+    } catch (const std::bad_alloc &) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_BACKEND_ERROR,
+            "failed to allocate reusable matvec batch plan"
+        );
+    }
+}
+
+int WeightBank::matvec_batch_experts(
+    const char * name,
+    const float * inputs,
+    size_t batch_count,
+    size_t input_width,
+    const int32_t * experts,
+    float * outputs,
+    size_t output_capacity,
+    size_t * output_count
+) {
+    if (
+        name == nullptr
+        || inputs == nullptr
+        || experts == nullptr
+        || outputs == nullptr
+        || output_count == nullptr
+        || batch_count == 0
+    ) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT,
+            "matvec_batch_experts requires name, inputs, experts, outputs, count and a non-empty batch"
+        );
+    }
+    if (
+        batch_count > static_cast<size_t>(std::numeric_limits<int64_t>::max())
+        || input_width > static_cast<size_t>(std::numeric_limits<int64_t>::max())
+    ) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
+            "matvec_batch_experts dimensions exceed GGML limits"
+        );
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    TensorEntry * entry = find(name);
+    if (entry == nullptr) {
+        return fail(CASSIFI_WEIGHT_BANK_NOT_FOUND, "tensor was not found");
+    }
+    if (entry->info.rank < 1 || entry->tensor->ne[0] <= 0 || entry->tensor->ne[1] <= 0) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "matvec_batch_experts requires a non-empty matrix");
+    }
+    const size_t cols = static_cast<size_t>(entry->tensor->ne[0]);
+    const size_t rows = static_cast<size_t>(entry->tensor->ne[1]);
+    if (input_width != cols) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "matvec_batch_experts input width does not match tensor");
+    }
+    size_t output_value_count = 0;
+    size_t output_bytes = 0;
+    if (
+        !checked_mul(batch_count, rows, output_value_count)
+        || !checked_mul(output_value_count, sizeof(float), output_bytes)
+    ) {
+        return fail(
+            CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
+            "matvec_batch_experts buffer dimensions overflow native size"
+        );
+    }
+    if (output_capacity < output_value_count) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "matvec_batch_experts output capacity is too small");
+    }
+
+    // Partition rows by requested expert; first appearance fixes group order.
+    std::vector<int32_t> distinct_experts;
+    std::vector<std::vector<size_t>> row_groups;
+    distinct_experts.reserve(batch_count);
+    row_groups.reserve(batch_count);
+    for (size_t row = 0; row < batch_count; ++row) {
+        const int32_t expert = experts[row];
+        size_t group = 0;
+        for (; group < distinct_experts.size(); ++group) {
+            if (distinct_experts[group] == expert) break;
+        }
+        if (group == distinct_experts.size()) {
+            distinct_experts.push_back(expert);
+            row_groups.emplace_back();
+        }
+        row_groups[group].push_back(row);
+    }
+
+    if (distinct_experts.size() == 1U) {
+        size_t written = 0;
+        const int rc = matvec_batch_core(
+            *entry, inputs, batch_count, input_width, outputs, output_capacity, &written,
+            distinct_experts[0]
+        );
+        if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+        *output_count = written;
+        return CASSIFI_WEIGHT_BANK_OK;
+    }
+
+    std::vector<float> gathered_inputs;
+    std::vector<float> group_outputs;
+    for (size_t group = 0; group < distinct_experts.size(); ++group) {
+        const std::vector<size_t> & indices = row_groups[group];
+        const float * group_input = inputs;
+        size_t group_count = batch_count;
+        if (indices.size() != batch_count) {
+            size_t gathered_values = 0;
+            if (!checked_mul(indices.size(), cols, gathered_values)) {
+                return fail(
+                    CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
+                    "matvec_batch_experts gathered input overflows native size"
+                );
+            }
+            gathered_inputs.resize(gathered_values);
+            for (size_t item = 0; item < indices.size(); ++item) {
+                const float * source = inputs + indices[item] * input_width;
+                float * destination = gathered_inputs.data() + item * input_width;
+                for (size_t col = 0; col < input_width; ++col) destination[col] = source[col];
+            }
+            group_input = gathered_inputs.data();
+            group_count = indices.size();
+        }
+        size_t group_value_count = 0;
+        if (!checked_mul(group_count, rows, group_value_count)) {
+            return fail(
+                CASSIFI_WEIGHT_BANK_SHAPE_ERROR,
+                "matvec_batch_experts subgroup output overflows native size"
+            );
+        }
+        group_outputs.resize(group_value_count);
+        size_t subgroup_written = 0;
+        const int rc = matvec_batch_core(
+            *entry, group_input, group_count, input_width, group_outputs.data(),
+            group_value_count, &subgroup_written, distinct_experts[group]
+        );
+        if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+        for (size_t item = 0; item < indices.size(); ++item) {
+            float * destination = outputs + indices[item] * rows;
+            const float * source = group_outputs.data() + item * rows;
+            for (size_t col = 0; col < rows; ++col) destination[col] = source[col];
+        }
+    }
+    *output_count = output_value_count;
+    return CASSIFI_WEIGHT_BANK_OK;
+}
+
 
 int WeightBank::matvec_many(
     const char * const * names,
@@ -1391,7 +1766,8 @@ int WeightBank::load(const char * path, const char * backend_name, int32_t threa
         entry.tensor = tensor;
         entry.source_offset = absolute;
         entry.source_size = size;
-        entry.expert = ne[2] > 1;
+        // GGUF expert banks are rank-3; rank-4 vision convolutions are dense.
+        entry.expert = ne[2] > 1 && ne[3] == 1;
         entry.info.rank = GGML_MAX_DIMS;
         while (entry.info.rank > 1 && ne[entry.info.rank - 1] == 1) --entry.info.rank;
         for (uint32_t dim = 0; dim < GGML_MAX_DIMS; ++dim) entry.info.dims[dim] = ne[dim];
@@ -1498,8 +1874,21 @@ int WeightBank::make_device_value(
         if (value->tensor == nullptr) {
             return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to allocate device activation tensor");
         }
-        value->buffer = ggml_backend_alloc_ctx_tensors(value->context, epoch->backend);
-        if (value->buffer == nullptr) return resource_wait(bytes, "activation buffer");
+        auto & spares = epoch->spare_buffers[count];
+        if (!spares.empty()) {
+            value->buffer = spares.back();
+            spares.pop_back();
+            epoch->spare_bytes -= ggml_backend_buffer_get_size(value->buffer);
+            if (ggml_backend_tensor_alloc(
+                    value->buffer, value->tensor,
+                    ggml_backend_buffer_get_base(value->buffer)) != GGML_STATUS_SUCCESS) {
+                return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to rebind device activation buffer");
+            }
+        } else {
+            value->buffer = ggml_backend_alloc_ctx_tensors(value->context, epoch->backend);
+            if (value->buffer == nullptr) return resource_wait(bytes, "activation buffer");
+        }
+        value->epoch = epoch;
         value->count = count;
         epoch->values.emplace_back(value);
     } catch (const std::exception &) {
@@ -1739,6 +2128,33 @@ int WeightBank::device_tensor_download_many(
     } catch (const std::exception &) {
         return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to allocate batched device download state");
     }
+}
+
+int WeightBank::device_epoch_snapshot(
+    const std::shared_ptr<DeviceEpochState> & epoch,
+    float * planes, size_t plane_capacity, size_t * out_count
+) {
+    if (planes == nullptr || out_count == nullptr) {
+        return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "device epoch snapshot requires a plane buffer and count");
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    const int rc = validate_device_epoch(epoch, true);
+    if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    size_t count = 0;
+    if (!checked_mul(epoch->mode_count, size_t{4}, count) || plane_capacity < count) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "device epoch snapshot capacity is too small");
+    }
+    const size_t plane_bytes = epoch->mode_count * sizeof(float);
+    for (size_t plane = 0; plane < epoch->planes.size(); ++plane) {
+        ggml_backend_tensor_get(
+            epoch->planes[plane],
+            planes + plane * epoch->mode_count,
+            0,
+            plane_bytes
+        );
+    }
+    *out_count = count;
+    return CASSIFI_WEIGHT_BANK_OK;
 }
 
 int WeightBank::device_epoch_finish(
@@ -2057,6 +2473,132 @@ int WeightBank::device_scale(
     return CASSIFI_WEIGHT_BANK_OK;
 }
 
+int WeightBank::device_low_rank_affine(
+    const std::shared_ptr<DeviceEpochState> & epoch,
+    const std::shared_ptr<DeviceTensorValue> & input, const char * method_id,
+    const float * a, size_t input_width, size_t rank, const float * b,
+    size_t output_width, const float * bias,
+    std::shared_ptr<DeviceTensorValue> * out_value
+) {
+    if (out_value == nullptr || method_id == nullptr || method_id[0] == '\0' ||
+        a == nullptr || b == nullptr || bias == nullptr) {
+        return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "low-rank affine requires method identity and coefficient arrays");
+    }
+    out_value->reset();
+    if (input_width == 0 || rank == 0 || output_width == 0 ||
+        input_width > static_cast<size_t>(std::numeric_limits<int64_t>::max()) ||
+        rank > static_cast<size_t>(std::numeric_limits<int64_t>::max()) ||
+        output_width > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "low-rank affine dimensions are invalid");
+    }
+    size_t acount = 0, bcount = 0, total = 0;
+    if (!checked_mul(input_width, rank, acount) ||
+        !checked_mul(rank, output_width, bcount) ||
+        !checked_add(acount, bcount, total) ||
+        !checked_add(total, output_width, total) || total > 16U * 1024U * 1024U) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "low-rank affine coefficients exceed the bounded size limit");
+    }
+    for (size_t i = 0; i < acount; ++i) if (!std::isfinite(a[i]))
+        return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "low-rank affine A contains a non-finite value");
+    for (size_t i = 0; i < bcount; ++i) if (!std::isfinite(b[i]))
+        return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "low-rank affine B contains a non-finite value");
+    for (size_t i = 0; i < output_width; ++i) if (!std::isfinite(bias[i]))
+        return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "low-rank affine bias contains a non-finite value");
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    int rc = validate_device_epoch(epoch, true);
+    if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    rc = validate_device_value(epoch, input);
+    if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    if (input->count % input_width != 0) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "low-rank affine input is not a whole number of rows");
+    }
+    const size_t rows = input->count / input_width;
+    size_t output_count = 0;
+    if (rows == 0 || !checked_mul(rows, output_width, output_count) ||
+        output_count > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "low-rank affine output size overflows");
+    }
+    std::string key(method_id);
+    AffineCoefficients * coeff = nullptr;
+    auto found = epoch->affine_coefficients.find(key);
+    if (found != epoch->affine_coefficients.end()) {
+        coeff = found->second.get();
+        if (coeff->input_width != input_width || coeff->rank != rank ||
+            coeff->output_width != output_width) {
+            return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "method identity was reused with different low-rank affine dimensions");
+        }
+        // Compare in logical order using owned copies: a repeated key is immutable.
+        for (size_t r = 0; r < rank; ++r) for (size_t i = 0; i < input_width; ++i)
+            if (coeff->a_values[r * input_width + i] != a[i * rank + r])
+                return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "method identity was reused with different A coefficients");
+        for (size_t o = 0; o < output_width; ++o) for (size_t r = 0; r < rank; ++r)
+            if (coeff->b_values[o * rank + r] != b[r * output_width + o])
+                return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "method identity was reused with different B coefficients");
+        if (!std::equal(coeff->bias_values.begin(), coeff->bias_values.end(), bias))
+            return fail(CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT, "method identity was reused with different bias coefficients");
+    } else {
+        std::unique_ptr<AffineCoefficients> created(new (std::nothrow) AffineCoefficients());
+        if (!created) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to allocate low-rank affine coefficient owner");
+        coeff = created.get();
+        coeff->input_width = input_width;
+        coeff->rank = rank;
+        coeff->output_width = output_width;
+        try {
+            coeff->a_values.resize(acount);
+            coeff->b_values.resize(bcount);
+            coeff->bias_values.assign(bias, bias + output_width);
+            for (size_t r = 0; r < rank; ++r) for (size_t i = 0; i < input_width; ++i)
+                coeff->a_values[r * input_width + i] = a[i * rank + r];
+            for (size_t o = 0; o < output_width; ++o) for (size_t r = 0; r < rank; ++r)
+                coeff->b_values[o * rank + r] = b[r * output_width + o];
+        } catch (const std::exception &) {
+            return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to retain low-rank affine coefficients");
+        }
+        ggml_init_params params{};
+        params.mem_size = kContextBytes;
+        params.no_alloc = true;
+        coeff->context = ggml_init(params);
+        if (coeff->context == nullptr) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to allocate low-rank affine tensor context");
+        coeff->a = ggml_new_tensor_2d(coeff->context, GGML_TYPE_F32,
+            static_cast<int64_t>(input_width), static_cast<int64_t>(rank));
+        coeff->b = ggml_new_tensor_2d(coeff->context, GGML_TYPE_F32,
+            static_cast<int64_t>(rank), static_cast<int64_t>(output_width));
+        coeff->bias = ggml_new_tensor_1d(coeff->context, GGML_TYPE_F32, static_cast<int64_t>(output_width));
+        if (coeff->a == nullptr || coeff->b == nullptr || coeff->bias == nullptr)
+            return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to allocate low-rank affine tensors");
+        coeff->buffer = ggml_backend_alloc_ctx_tensors(coeff->context, epoch->backend);
+        if (coeff->buffer == nullptr)
+            return resource_wait((total * sizeof(float)), "low-rank affine coefficients");
+        ggml_backend_tensor_set(coeff->a, coeff->a_values.data(), 0, acount * sizeof(float));
+        ggml_backend_tensor_set(coeff->b, coeff->b_values.data(), 0, bcount * sizeof(float));
+        ggml_backend_tensor_set(coeff->bias, coeff->bias_values.data(), 0, output_width * sizeof(float));
+        try {
+            epoch->affine_coefficients.emplace(std::move(key), std::move(created));
+        } catch (const std::exception &) {
+            return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to cache low-rank affine coefficients");
+        }
+    }
+    std::shared_ptr<DeviceTensorValue> value;
+    rc = make_device_value(epoch, output_count, &value);
+    if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    DeviceGraphWorkspace workspace;
+    if (!workspace.init()) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to allocate low-rank affine graph context");
+    ggml_tensor * rows_input = ggml_reshape_2d(workspace.context, input->tensor,
+        static_cast<int64_t>(input_width), static_cast<int64_t>(rows));
+    ggml_tensor * hidden = rows_input == nullptr ? nullptr : ggml_mul_mat(workspace.context, coeff->a, rows_input);
+    ggml_tensor * projected = hidden == nullptr ? nullptr : ggml_mul_mat(workspace.context, coeff->b, hidden);
+    ggml_tensor * summed = projected == nullptr ? nullptr : ggml_add(workspace.context, projected, coeff->bias);
+    ggml_tensor * copy = summed == nullptr ? nullptr : ggml_cpy(workspace.context, summed, value->tensor);
+    if (copy == nullptr) return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "GGML rejected low-rank affine dimensions");
+    std::vector<ggml_tensor *> roots{copy};
+    if (!workspace.build(roots, 32)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build low-rank affine graph");
+    if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "low-rank affine graph");
+    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML low-rank affine graph failed");
+    *out_value = std::move(value);
+    return CASSIFI_WEIGHT_BANK_OK;
+}
+
 int WeightBank::device_binary(
     const std::shared_ptr<DeviceEpochState> & epoch,
     const std::shared_ptr<DeviceTensorValue> & left,
@@ -2072,7 +2614,9 @@ int WeightBank::device_binary(
     if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
     rc = validate_device_value(epoch, right);
     if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
-    if (left->count != right->count) return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "device binary operands must have equal widths");
+    if (left->count != right->count && (!multiply || right->count != 1)) {
+        return fail(CASSIFI_WEIGHT_BANK_SHAPE_ERROR, "device binary operands must have equal widths");
+    }
     std::shared_ptr<DeviceTensorValue> value;
     rc = make_device_value(epoch, left->count, &value);
     if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
@@ -2393,7 +2937,7 @@ int WeightBank::device_recurrent_conv(
     for (size_t tap = 0; tap < tap_count; ++tap) {
         const size_t history_row = history_rows - 1 - tap;
         const size_t history_offset = history_row * channels * sizeof(float);
-        const size_t kernel_offset = tap * kernel->tensor->nb[0];
+        const size_t kernel_offset = (kernel_size - 1 - tap) * kernel->tensor->nb[0];
         ggml_tensor * sample = ggml_view_1d(
             workspace.context, history->tensor, static_cast<int64_t>(channels), history_offset
         );
@@ -2978,13 +3522,29 @@ int WeightBank::device_exchange(
     *out_delta = std::move(delta_capture);
     return CASSIFI_WEIGHT_BANK_OK;
 }
-
 } // namespace
 
-struct cassifi_weight_bank { WeightBank * impl = nullptr; };
+
+struct cassifi_weight_bank { std::shared_ptr<WeightBank> impl; };
 struct cassifi_device_epoch {
     std::shared_ptr<DeviceEpochState> impl;
 };
+
+namespace {
+
+std::mutex shared_banks_mutex;
+std::unordered_map<std::string, std::weak_ptr<WeightBank>> shared_banks;
+
+std::string shared_bank_key(const char * path, const char * backend, int32_t threads) {
+    std::error_code error;
+    auto normalized = std::filesystem::absolute(path, error);
+    const std::string model_path = error ? std::string(path) : normalized.lexically_normal().string();
+    const std::string selected_backend = std::string(backend) == "vk" ? "vulkan" : backend;
+    return model_path + "\n" + selected_backend + "\n" + std::to_string(threads);
+}
+
+}
+
 
 struct cassifi_device_tensor {
     std::shared_ptr<DeviceEpochState> epoch;
@@ -3097,27 +3657,60 @@ int with_three_device_inputs(
 
 extern "C" {
 
+int cassifi_weight_bank_vulkan_memory(size_t * out_free_bytes, size_t * out_total_bytes) {
+    if (out_free_bytes == nullptr || out_total_bytes == nullptr) return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
+    *out_free_bytes = 0;
+    *out_total_bytes = 0;
+#ifdef CASSIFI_WEIGHT_BANK_HAS_VULKAN
+    if (ggml_backend_vk_get_device_count() <= 0) return CASSIFI_WEIGHT_BANK_DEVICE_UNAVAILABLE;
+    ggml_backend_t backend = ggml_backend_vk_init(0);
+    if (backend == nullptr) return CASSIFI_WEIGHT_BANK_DEVICE_UNAVAILABLE;
+    ggml_backend_dev_t device = ggml_backend_get_device(backend);
+    if (device != nullptr) ggml_backend_dev_memory(device, out_free_bytes, out_total_bytes);
+    ggml_backend_free(backend);
+    return device == nullptr || *out_total_bytes == 0 ? CASSIFI_WEIGHT_BANK_DEVICE_UNAVAILABLE : CASSIFI_WEIGHT_BANK_OK;
+#else
+    return CASSIFI_WEIGHT_BANK_DEVICE_UNAVAILABLE;
+#endif
+}
+
 int cassifi_weight_bank_load(const char * path, const char * backend, int32_t threads, cassifi_weight_bank_t ** out_bank) {
     if (out_bank == nullptr) return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
     *out_bank = nullptr;
-    WeightBank * loaded = nullptr;
-    const int rc = WeightBank::load(path, backend, threads, &loaded);
-    if (rc != 0) return rc;
-    auto * wrapper = new (std::nothrow) cassifi_weight_bank_t;
-    if (wrapper == nullptr) {
-        delete loaded;
-        return CASSIFI_WEIGHT_BANK_BACKEND_ERROR;
+    if (path == nullptr || backend == nullptr || threads <= 0) {
+        return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
     }
-    wrapper->impl = loaded;
-    *out_bank = wrapper;
-    return CASSIFI_WEIGHT_BANK_OK;
+    std::shared_ptr<WeightBank> shared;
+    try {
+        const std::string key = shared_bank_key(path, backend, threads);
+        std::lock_guard<std::mutex> lock(shared_banks_mutex);
+        auto found = shared_banks.find(key);
+        if (found != shared_banks.end()) shared = found->second.lock();
+        if (shared == nullptr) {
+            WeightBank * loaded = nullptr;
+            const int rc = WeightBank::load(path, backend, threads, &loaded);
+            if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+            shared.reset(loaded);
+            shared_banks[key] = shared;
+            for (auto it = shared_banks.begin(); it != shared_banks.end();) {
+                if (it->second.expired()) it = shared_banks.erase(it);
+                else ++it;
+            }
+        }
+        auto * wrapper = new (std::nothrow) cassifi_weight_bank_t;
+        if (wrapper == nullptr) return CASSIFI_WEIGHT_BANK_BACKEND_ERROR;
+        wrapper->impl = std::move(shared);
+        *out_bank = wrapper;
+        return CASSIFI_WEIGHT_BANK_OK;
+    } catch (const std::bad_alloc &) {
+        return CASSIFI_WEIGHT_BANK_BACKEND_ERROR;
+    } catch (const std::exception &) {
+        return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
+    }
 }
 
 void cassifi_weight_bank_close(cassifi_weight_bank_t * bank) {
-    if (bank != nullptr) {
-        delete bank->impl;
-        delete bank;
-    }
+    delete bank;
 }
 
 const char * cassifi_weight_bank_last_error(const cassifi_weight_bank_t * bank) {
@@ -3163,6 +3756,54 @@ int cassifi_weight_bank_matvec_many(
             output_counts
         );
 }
+int cassifi_weight_bank_matvec_batch(
+    const cassifi_weight_bank_t * bank,
+    const char * name,
+    const float * inputs,
+    size_t batch_count,
+    size_t input_width,
+    float * outputs,
+    size_t output_capacity,
+    size_t * output_count,
+    int32_t expert
+) {
+    return bank == nullptr || bank->impl == nullptr
+        ? CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT
+        : bank->impl->matvec_batch(
+            name,
+            inputs,
+            batch_count,
+            input_width,
+            outputs,
+            output_capacity,
+            output_count,
+            expert
+        );
+}
+int cassifi_weight_bank_matvec_batch_experts(
+    const cassifi_weight_bank_t * bank,
+    const char * name,
+    const float * inputs,
+    size_t batch_count,
+    size_t input_width,
+    const int32_t * experts,
+    float * outputs,
+    size_t output_capacity,
+    size_t * output_count
+) {
+    return bank == nullptr || bank->impl == nullptr
+        ? CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT
+        : bank->impl->matvec_batch_experts(
+            name,
+            inputs,
+            batch_count,
+            input_width,
+            experts,
+            outputs,
+            output_capacity,
+            output_count
+        );
+}
 int cassifi_weight_bank_prefetch(cassifi_weight_bank_t * bank, const char * name, int32_t expert) {
     return bank == nullptr || bank->impl == nullptr ? CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT : bank->impl->prefetch(name, expert);
 }
@@ -3192,6 +3833,15 @@ int cassifi_weight_bank_device_epoch_begin(
     handle->impl = std::move(state);
     *out_epoch = handle;
     return CASSIFI_WEIGHT_BANK_OK;
+}
+
+int cassifi_weight_bank_device_epoch_snapshot(
+    cassifi_device_epoch_t * epoch, float * planes, size_t plane_capacity, size_t * out_count
+) {
+    if (epoch == nullptr || epoch->impl == nullptr) return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
+    WeightBank * owner = epoch->impl->owner;
+    if (owner == nullptr) return CASSIFI_WEIGHT_BANK_DEVICE_EPOCH_CLOSED;
+    return owner->device_epoch_snapshot(epoch->impl, planes, plane_capacity, out_count);
 }
 
 int cassifi_weight_bank_device_epoch_finish(
@@ -3301,6 +3951,12 @@ int cassifi_weight_bank_device_tensor_download_many(
 void cassifi_weight_bank_device_tensor_release(cassifi_device_tensor_t * tensor) {
     delete tensor;
 }
+void cassifi_weight_bank_device_tensor_release_many(
+    cassifi_device_tensor_t * const * tensors, size_t tensor_count
+) {
+    if (tensors == nullptr) return;
+    for (size_t i = 0; i < tensor_count; ++i) delete tensors[i];
+}
 
 int cassifi_weight_bank_device_matvec(
     cassifi_device_epoch_t * epoch, const char * name, const cassifi_device_tensor_t * input,
@@ -3318,6 +3974,26 @@ int cassifi_weight_bank_device_matvec(
     if (handle == nullptr) return CASSIFI_WEIGHT_BANK_BACKEND_ERROR;
     *out_tensor = handle;
     return CASSIFI_WEIGHT_BANK_OK;
+}
+
+int cassifi_weight_bank_device_low_rank_affine(
+    cassifi_device_epoch_t * epoch, const cassifi_device_tensor_t * input,
+    const char * method_id, const float * a, size_t input_width, size_t rank,
+    const float * b, size_t output_width, const float * bias,
+    cassifi_device_tensor_t ** out_tensor
+) {
+    if (out_tensor == nullptr) return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
+    *out_tensor = nullptr;
+    if (epoch == nullptr || epoch->impl == nullptr) return CASSIFI_WEIGHT_BANK_INVALID_ARGUMENT;
+    if (epoch->impl->owner == nullptr) return CASSIFI_WEIGHT_BANK_DEVICE_EPOCH_CLOSED;
+    std::shared_ptr<DeviceTensorValue> input_value;
+    const int handle_rc = get_device_input(epoch, input, &input_value);
+    if (handle_rc != CASSIFI_WEIGHT_BANK_OK) return handle_rc;
+    std::shared_ptr<DeviceTensorValue> value;
+    const int rc = epoch->impl->owner->device_low_rank_affine(
+        epoch->impl, input_value, method_id, a, input_width, rank, b, output_width, bias, &value);
+    if (rc != CASSIFI_WEIGHT_BANK_OK) return rc;
+    return finish_device_output(epoch, value, out_tensor);
 }
 
 int cassifi_weight_bank_device_matvec_many(

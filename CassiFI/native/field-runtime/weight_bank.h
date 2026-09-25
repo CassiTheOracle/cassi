@@ -45,6 +45,8 @@ enum {
 
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_load(
     const char * path, const char * backend, int32_t threads, cassifi_weight_bank_t ** out_bank);
+CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_vulkan_memory(
+    size_t * out_free_bytes, size_t * out_total_bytes);
 CASSIFI_WEIGHT_BANK_API void cassifi_weight_bank_close(cassifi_weight_bank_t * bank);
 CASSIFI_WEIGHT_BANK_API const char * cassifi_weight_bank_last_error(const cassifi_weight_bank_t * bank);
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_tensor_info(
@@ -56,6 +58,25 @@ CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_read_embedding(
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_matvec(
     const cassifi_weight_bank_t * bank, const char * name, const float * input, size_t input_count,
     float * output, size_t output_capacity, size_t * output_count, int32_t expert);
+/* Multiply one dense or selected-expert matrix by a row-major batch of inputs.
+ * Inputs and outputs are [batch, width]; output_count is batch * output_width.
+ */
+CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_matvec_batch(
+    const cassifi_weight_bank_t * bank, const char * name,
+    const float * inputs, size_t batch_count, size_t input_width,
+    float * outputs, size_t output_capacity, size_t * output_count,
+    int32_t expert);
+/* Cross-expert batch: one native call for rows that name different expert
+ * slices of the same tensor. experts is [batch] with -1 for dense tensors;
+ * every other value must be a valid expert of an expert tensor. Inputs and
+ * outputs are [batch, width]; output_count is batch * output_width. Rows are
+ * grouped by expert internally so same-expert rows still share one GGML plan.
+ */
+CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_matvec_batch_experts(
+    const cassifi_weight_bank_t * bank, const char * name,
+    const float * inputs, size_t batch_count, size_t input_width,
+    const int32_t * experts,
+    float * outputs, size_t output_capacity, size_t * output_count);
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_matvec_many(
     const cassifi_weight_bank_t * bank,
     const char * const * names, const int32_t * experts, size_t request_count,
@@ -81,16 +102,21 @@ CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_residency(
  *   Operations require values from the same open epoch and remain device-side.
  * - Each exchange returns input/output, actual GPU F32 scale, and pre-addition
  *   delta captures as device tensors; download them together at stage end.
- * - download_many and finish are the explicit host-readback boundary. Call
- *   close on success or abort; close releases the candidate planes and every
- *   remaining activation buffer without publishing owner state. Closing the
- *   weight bank also invalidates and releases all of its live epochs.
+ * - download_many, snapshot and finish are explicit host-readback boundaries.
+ *   Snapshot leaves its source epoch open and unchanged; a caller can use the
+ *   returned plane copy to begin an independent candidate epoch.
+ * - Call close on success or abort; close releases the candidate planes and
+ *   every remaining activation buffer without publishing owner state. Closing
+ *   the weight bank also invalidates and releases all of its live epochs.
  * - Returned tensor wrappers must be released. They become unusable after
  *   epoch/bank close, but may safely be released afterward.
  */
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_epoch_begin(
     cassifi_weight_bank_t * bank, const float * initial_planes, size_t plane_value_count,
     size_t mode_count, int32_t gain_ppm, cassifi_device_epoch_t ** out_epoch);
+/* Read a live epoch's planes without finalizing or changing that epoch. */
+CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_epoch_snapshot(
+    cassifi_device_epoch_t * epoch, float * planes, size_t plane_capacity, size_t * out_count);
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_epoch_finish(
     cassifi_device_epoch_t * epoch, float * final_planes, size_t plane_capacity, size_t * out_count);
 CASSIFI_WEIGHT_BANK_API void cassifi_weight_bank_device_epoch_close(cassifi_device_epoch_t * epoch);
@@ -112,6 +138,8 @@ CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_tensor_download_many(
     float * out, size_t capacity, size_t * out_count,
     size_t * value_offsets, size_t * value_counts);
 CASSIFI_WEIGHT_BANK_API void cassifi_weight_bank_device_tensor_release(cassifi_device_tensor_t * tensor);
+CASSIFI_WEIGHT_BANK_API void cassifi_weight_bank_device_tensor_release_many(
+    cassifi_device_tensor_t * const * tensors, size_t tensor_count);
 
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_embedding(
     cassifi_device_epoch_t * epoch, const char * name, uint64_t token,
@@ -136,12 +164,18 @@ CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_sigmoid(
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_scale(
     cassifi_device_epoch_t * epoch, const cassifi_device_tensor_t * input, float scale,
     cassifi_device_tensor_t ** out_tensor);
+/* Multiplication also accepts a one-element right operand; addition requires equal widths. */
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_mul(
     cassifi_device_epoch_t * epoch, const cassifi_device_tensor_t * left,
     const cassifi_device_tensor_t * right, cassifi_device_tensor_t ** out_tensor);
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_add(
     cassifi_device_epoch_t * epoch, const cassifi_device_tensor_t * left,
     const cassifi_device_tensor_t * right, cassifi_device_tensor_t ** out_tensor);
+CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_low_rank_affine(
+    cassifi_device_epoch_t * epoch, const cassifi_device_tensor_t * input,
+    const char * method_id, const float * a, size_t input_width, size_t rank,
+    const float * b, size_t output_width, const float * bias,
+    cassifi_device_tensor_t ** out_tensor);
 CASSIFI_WEIGHT_BANK_API int cassifi_weight_bank_device_concat(
     cassifi_device_epoch_t * epoch, const cassifi_device_tensor_t * left,
     const cassifi_device_tensor_t * right, cassifi_device_tensor_t ** out_tensor);
