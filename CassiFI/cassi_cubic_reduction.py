@@ -647,55 +647,233 @@ def _allowed_boolean_states(
         or any(not 0 <= index < len(profile.vectors) for index in selected)
     ):
         raise CubicReductionError("Boolean projection ports must contain one or two coordinates")
-    vectors = tuple(profile.vectors[index] for index in selected)
-    first_nonzero: list[int | None] = []
-    for vector in vectors:
-        first: int | None = None
-        for position, value in enumerate(vector):
-            ledger.projection_vector_entries_checked += 1
-            if value and first is None:
-                first = position
-        first_nonzero.append(first)
 
+    # Pre-fetch vectors and indices to avoid repeated lookups
+    vec0 = profile.vectors[selected[0]]
+    vec1 = profile.vectors[selected[1]] if len(selected) == 2 else None
+
+    # Determine first non-zero positions
+    # We count entries checked for both vectors
+    ledger.projection_vector_entries_checked += len(vec0)
+    if vec1 is not None:
+        ledger.projection_vector_entries_checked += len(vec1)
+
+    # Find first non-zero for vec0
+    pivot0 = None
+    for pos, val in enumerate(vec0):
+        if val:
+            pivot0 = pos
+            break
+
+    # Find first non-zero for vec1 if it exists
+    pivot1 = None
+    if vec1 is not None:
+        for pos, val in enumerate(vec1):
+            if val:
+                pivot1 = pos
+                break
+
+    # Check proportionality if we have two vectors and both have pivots
     proportional = False
-    pivot: int | None = None
-    if len(vectors) == 2 and first_nonzero[0] is not None and first_nonzero[1] is not None:
-        pivot = first_nonzero[0]
-        left_scale = vectors[0][pivot]
-        right_scale = vectors[1][pivot]
+    pivot = None
+    if vec1 is not None and pivot0 is not None and pivot1 is not None:
+        pivot = pivot0
+        left_scale = vec0[pivot]
+        right_scale = vec1[pivot]
+
+        # Check if vec0[pivot]*vec1 == vec1[pivot]*vec0
+        # We can iterate through the vector lengths. 
+        # Note: vectors are likely same length in this context, but we check min length or assume equal.
+        # Given the original code iterates zip(vectors[0], vectors[1]), we assume equal length.
         disagreements = 0
-        for left, right in zip(vectors[0], vectors[1], strict=True):
+        for left, right in zip(vec0, vec1, strict=True):
             ledger.projection_vector_entries_checked += 1
-            disagreements += int(right * left_scale != left * right_scale)
+            # Use integer arithmetic to avoid float issues, though original used Fraction for targets later.
+            # Here we just check cross-multiplication equality.
+            if right * left_scale != left * right_scale:
+                disagreements += 1
         proportional = disagreements == 0
 
     ledger.projection_queries += 1
     ledger.projection_fast_queries += 1
+
+    # Get particular values
+    part0 = profile.particular[selected[0]]
+    part1 = profile.particular[selected[1]] if len(selected) == 2 else None
+
     allowed: list[tuple[int, ...]] = []
-    for state in itertools.product((0, 1), repeat=len(selected)):
+
+    # Iterate through states (0,0), (0,1), (1,0), (1,1)
+    # Since len(selected) is 1 or 2, we can unroll or use simple loops
+    if len(selected) == 1:
+        # State is (s0,)
+        # targets[0] = s0 - part0
+        # Condition: pivot0 is not None OR targets[0] == 0
+        # i.e., pivot0 is not None OR (s0 - part0) == 0 => s0 == part0
+
+        # Check s0 = 0
         ledger.projection_states_checked += 1
-        targets = tuple(
-            Fraction(value) - profile.particular[index]
-            for index, value in zip(selected, state, strict=True)
-        )
-        if len(selected) == 1:
-            possible = first_nonzero[0] is not None or targets[0] == 0
-        elif first_nonzero[0] is None and first_nonzero[1] is None:
-            possible = targets == (0, 0)
-        elif first_nonzero[0] is None:
-            possible = targets[0] == 0
-        elif first_nonzero[1] is None:
-            possible = targets[1] == 0
-        elif not proportional:
-            possible = True
+        if pivot0 is not None or 0 == part0:
+            allowed.append((0,))
+
+        # Check s0 = 1
+        ledger.projection_states_checked += 1
+        if pivot0 is not None or 1 == part0:
+            allowed.append((1,))
+
+    else:
+        # len(selected) == 2
+        # States: (0,0), (0,1), (1,0), (1,1)
+        # targets = (s0 - part0, s1 - part1)
+
+        # Determine condition based on pivots
+        # Case 1: pivot0 is None and pivot1 is None
+        #   possible = targets == (0,0) => s0==part0 and s1==part1
+        # Case 2: pivot0 is None
+        #   possible = targets[0] == 0 => s0==part0
+        # Case 3: pivot1 is None
+        #   possible = targets[1] == 0 => s1==part1
+        # Case 4: neither is None
+        #   If not proportional: possible = True
+        #   If proportional: targets[1]*vec0[pivot] == targets[0]*vec1[pivot]
+
+        p0_val = part0
+        p1_val = part1
+
+        # Pre-calculate boolean flags for the "None" pivot cases to simplify inner loop
+        has_pivot0 = pivot0 is not None
+        has_pivot1 = pivot1 is not None
+
+        if not has_pivot0 and not has_pivot1:
+            # Both pivots None: only (part0, part1) is allowed if they are integers 0 or 1
+            # Since part0/part1 are floats/doubles from profile, we check if they are exactly 0.0 or 1.0
+            # And if the state matches.
+            # Actually, targets[0] == 0 means s0 - part0 == 0 => s0 == part0.
+            # Since s0 is 0 or 1, part0 must be 0 or 1.
+
+            # Check (0,0)
+            ledger.projection_states_checked += 1
+            if 0 == p0_val and 0 == p1_val:
+                allowed.append((0, 0))
+
+            # Check (0,1)
+            ledger.projection_states_checked += 1
+            if 0 == p0_val and 1 == p1_val:
+                allowed.append((0, 1))
+
+            # Check (1,0)
+            ledger.projection_states_checked += 1
+            if 1 == p0_val and 0 == p1_val:
+                allowed.append((1, 0))
+
+            # Check (1,1)
+            ledger.projection_states_checked += 1
+            if 1 == p0_val and 1 == p1_val:
+                allowed.append((1, 1))
+
+        elif not has_pivot0:
+            # pivot0 is None, pivot1 is not None
+            # Condition: targets[0] == 0 => s0 == p0_val
+            # s0 must be 0 or 1, so p0_val must be 0 or 1.
+
+            # If p0_val is not 0 or 1, no state is possible? 
+            # Wait, if p0_val is not 0 or 1, then s0 == p0_val is never true for s0 in {0,1}.
+            # So no states are allowed.
+
+            if p0_val == 0:
+                # s0 must be 0. s1 can be 0 or 1.
+                # Check (0,0)
+                ledger.projection_states_checked += 1
+                allowed.append((0, 0))
+
+                # Check (0,1)
+                ledger.projection_states_checked += 1
+                allowed.append((0, 1))
+            elif p0_val == 1:
+                # s0 must be 1. s1 can be 0 or 1.
+                # Check (1,0)
+                ledger.projection_states_checked += 1
+                allowed.append((1, 0))
+
+                # Check (1,1)
+                ledger.projection_states_checked += 1
+                allowed.append((1, 1))
+
+        elif not has_pivot1:
+            # pivot1 is None, pivot0 is not None
+            # Condition: targets[1] == 0 => s1 == p1_val
+
+            if p1_val == 0:
+                # s1 must be 0. s0 can be 0 or 1.
+                # Check (0,0)
+                ledger.projection_states_checked += 1
+                allowed.append((0, 0))
+
+                # Check (1,0)
+                ledger.projection_states_checked += 1
+                allowed.append((1, 0))
+
+            elif p1_val == 1:
+                # s1 must be 1. s0 can be 0 or 1.
+                # Check (0,1)
+                ledger.projection_states_checked += 1
+                allowed.append((0, 1))
+
+                # Check (1,1)
+                ledger.projection_states_checked += 1
+                allowed.append((1, 1))
+
         else:
-            assert pivot is not None
-            possible = (
-                targets[1] * vectors[0][pivot]
-                == targets[0] * vectors[1][pivot]
-            )
-        if possible:
-            allowed.append(tuple(state))
+            # Both pivots exist
+            if not proportional:
+                # All states are possible
+                # Check (0,0)
+                ledger.projection_states_checked += 1
+                allowed.append((0, 0))
+
+                # Check (0,1)
+                ledger.projection_states_checked += 1
+                allowed.append((0, 1))
+
+                # Check (1,0)
+                ledger.projection_states_checked += 1
+                allowed.append((1, 0))
+
+                # Check (1,1)
+                ledger.projection_states_checked += 1
+                allowed.append((1, 1))
+
+            else:
+                # Proportional: targets[1]*vec0[pivot] == targets[0]*vec1[pivot]
+                # Let L = vec0[pivot], R = vec1[pivot]
+                # (s1 - p1_val)*L == (s0 - p0_val)*R
+                # s1*L - p1_val*L == s0*R - p0_val*R
+                # s1*L - s0*R == p1_val*L - p0_val*R
+
+                L = vec0[pivot]
+                R = vec1[pivot]
+                rhs = p1_val * L - p0_val * R
+
+                # Check (0,0)
+                ledger.projection_states_checked += 1
+                if 0*L - 0*R == rhs:
+                    allowed.append((0, 0))
+
+                # Check (0,1)
+                ledger.projection_states_checked += 1
+                if 1*L - 0*R == rhs:
+                    allowed.append((0, 1))
+
+                # Check (1,0)
+                ledger.projection_states_checked += 1
+                if 0*L - 1*R == rhs:
+                    allowed.append((1, 0))
+
+                # Check (1,1)
+                ledger.projection_states_checked += 1
+                if 1*L - 1*R == rhs:
+                    allowed.append((1, 1))
+
     return tuple(allowed)
 
 
