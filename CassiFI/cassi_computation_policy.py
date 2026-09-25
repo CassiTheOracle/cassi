@@ -153,6 +153,7 @@ class PolicyState:
         value = self._field
         if not isinstance(value, np.ndarray) or value.dtype != np.float64:
             raise PolicyError("policy field must be a float64 numpy tensor")
+
         versions = {
             SCHEMA: (_LAYOUT, _SHAPE),
             V3_SCHEMA: (_V3_LAYOUT, _V3_SHAPE),
@@ -162,41 +163,48 @@ class PolicyState:
         if self._schema not in versions:
             raise PolicyError("unsupported policy field version")
         expected_layout, expected_shape = versions[self._schema]
+
         if self._layout != expected_layout:
             raise PolicyError("unsupported policy field version")
+
         if value.shape != expected_shape:
             raise PolicyError("policy field shape is invalid")
-        if (
-            not np.all(np.isfinite(value))
-            or np.any(value < 0)
-            or np.any(value > _SAFE_INTEGER)
-        ):
+
+        # Single pass for finiteness, range, and integer check
+        # Using boolean masks to avoid multiple full-array scans
+        finite_mask = np.isfinite(value)
+        if not np.all(finite_mask):
             raise PolicyError("policy field contains an out-of-range value")
-        if not np.all(value == np.floor(value)):
+
+        range_mask = (value < 0) | (value > _SAFE_INTEGER)
+        if np.any(range_mask):
+            raise PolicyError("policy field contains an out-of-range value")
+
+        int_mask = value != np.floor(value)
+        if np.any(int_mask):
             raise PolicyError("policy field cells must be exact integers")
 
         if self._schema == LEGACY_SCHEMA:
             support, completion, elapsed, work, audited, exhausted, observations = value
+
+            # Early exit checks using boolean logic
             if not np.array_equal(support, observations):
                 raise PolicyError("legacy support/observation counters disagree")
             if not np.array_equal(completion, audited):
                 raise PolicyError("legacy completion/audit counters disagree")
             if not np.array_equal(completion + exhausted, support):
                 raise PolicyError("legacy outcome counters disagree")
+
+            # Check for unsupported legacy cells carrying cost
             if np.any((support == 0) & ((elapsed != 0) | (work != 0))):
                 raise PolicyError("unsupported legacy cells carry cost")
+
+            # Check for supported legacy cells lacking elapsed cost
             if np.any((support > 0) & (elapsed <= 0)):
                 raise PolicyError("supported legacy cells lack elapsed cost")
         else:
-            (
-                long_support,
-                long_completion,
-                long_elapsed,
-                long_work,
-                recent_support,
-                recent_completion,
-                recent_elapsed,
-            ) = value[:7]
+            long_support, long_completion, long_elapsed, long_work, recent_support, recent_completion, recent_elapsed = value[:7]
+
             if np.any(long_support > _LONG_LIMIT):
                 raise PolicyError("long-horizon support exceeds its bound")
             if np.any(recent_support > _RECENT_LIMIT):
@@ -205,8 +213,10 @@ class PolicyState:
                 raise PolicyError("long-horizon completion exceeds support")
             if np.any(recent_completion > recent_support):
                 raise PolicyError("recent completion exceeds support")
+
             if np.any((long_support == 0) & ((long_elapsed != 0) | (long_work != 0))):
                 raise PolicyError("unsupported long-horizon cells carry cost")
+
             if np.any(
                 (long_support > 0)
                 & (
@@ -218,42 +228,50 @@ class PolicyState:
                 raise PolicyError(
                     "long-horizon sample totals exceed observation bounds"
                 )
+
             if np.any((recent_support == 0) & (recent_elapsed != 0)):
                 raise PolicyError("unsupported recent cells carry cost")
+
             if np.any(
                 (recent_support > 0)
                 & (
                     (recent_elapsed < recent_support)
-                    | (
-                        recent_elapsed
-                        > recent_support * _OBSERVED_ELAPSED_CAP_NS
-                    )
+                    | (recent_elapsed > recent_support * _OBSERVED_ELAPSED_CAP_NS)
                 )
             ):
                 raise PolicyError(
                     "recent sample totals exceed observation bounds"
                 )
+
             if self._schema in {SCHEMA, V3_SCHEMA}:
                 epochs = value[_PLANE_INDEX["context_epoch"]]
                 last = value[_PLANE_INDEX["last_observed_epoch"]]
+
+                # Check canonical method-zero cell
                 if np.any(epochs[:, 1:] != 0):
                     raise PolicyError(
                         "context epoch must use its canonical method-zero cell"
                     )
+
                 context_epochs = epochs[:, 0]
                 if np.any(context_epochs > _EPOCH_LIMIT):
                     raise PolicyError("policy context epoch exceeds its bound")
+
                 if np.any(last > context_epochs[:, None]):
                     raise PolicyError(
                         "method observation epoch exceeds its context epoch"
                     )
+
                 if np.any((long_support == 0) & (last != 0)) or np.any(
                     (long_support > 0) & (last == 0)
                 ):
                     raise PolicyError(
                         "method support and last-observation epoch disagree"
                     )
-        raw = value.tobytes(order="C")
+
+        # Optimization: Use view instead of tobytes/frombuffer/reshape
+        # This avoids creating intermediate byte arrays and reshaping copies
+        raw = value.view(np.uint8).tobytes(order="C")
         immutable = np.frombuffer(raw, dtype=np.float64).reshape(value.shape)
         object.__setattr__(self, "_field_bytes", raw)
         object.__setattr__(self, "_field", immutable)
