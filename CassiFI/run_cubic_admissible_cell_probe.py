@@ -233,28 +233,98 @@ def enumerate_width_two_bases(
             "reason": "basis_subset_cap",
         }
 
+    # Precompute non-zero indices for each vector to speed up support counting
+    # vectors is a tuple of tuples of Fractions
+    vector_nonzero_indices = []
+    for vec in vectors:
+        nz = [i for i, coord in enumerate(vec) if coord != 0]
+        vector_nonzero_indices.append(nz)
+
+    # Precompute the support size (number of non-zero coords) for each vector
+    # This is used in the max calculation for width_two check
+    vector_support_sizes = [len(nz) for nz in vector_nonzero_indices]
+
     independent = 0
     histogram: Counter[int] = Counter()
     width_two: list[list[int]] = []
+
+    # Cache the rank function to avoid attribute lookup overhead in loop
+    _vector_rank = production._vector_rank
+
+    # We need to check if the selected nullity vectors are linearly independent.
+    # The original code calls _vector_rank(basis_vectors) != nullity.
+    # To speed up, we can try to construct the basis matrix and check rank,
+    # but _vector_rank is the bottleneck. We must call it.
+    # However, we can optimize the inner loop for maximum_support calculation.
+
+    # The original code calculates:
+    # max( sum(coordinate != 0 for coordinate in _basis_coordinates(basis_vectors, vector)) for vector in vectors )
+    # _basis_coordinates returns the coordinates of 'vector' in the basis 'basis_vectors'.
+    # This is essentially solving a linear system or projecting.
+    # Since we already checked that basis_vectors are independent and size is nullity,
+    # they form a basis for the kernel.
+    # However, _basis_coordinates is likely expensive.
+
+    # Let's look at what _basis_coordinates does. It likely solves for coefficients.
+    # If we can avoid calling it for every vector in the outer loop, we win.
+    # But we need the support of the representation of EACH original vector in the new basis.
+    # Wait, the code iterates `for vector in vectors`. `vectors` are the kernel vectors.
+    # So for a chosen basis (subset of vectors), we represent EVERY vector in the kernel
+    # in terms of this basis.
+    # Since the basis IS a subset of the vectors, for vectors IN the basis, the representation
+    # is just the standard basis vector (1 at its position, 0 elsewhere).
+    # For vectors NOT in the basis, we need to find their coordinates.
+
+    # Optimization:
+    # 1. Identify which vectors are in the basis.
+    # 2. For vectors in the basis, the support size in the basis representation is 1.
+    # 3. For vectors NOT in the basis, we need to compute the representation.
+    #    This still requires calling _basis_coordinates or equivalent.
+
+    # Let's stick to the original logic but optimize the data access.
+
     for selected in itertools.combinations(range(size), nullity):
         basis_vectors = tuple(vectors[index] for index in selected)
-        if production._vector_rank(basis_vectors) != nullity:
+
+        # Check independence
+        if _vector_rank(basis_vectors) != nullity:
             continue
+
         independent += 1
-        maximum_support = max(
-            (
-                sum(
-                    coordinate != 0
-                    for coordinate in production._basis_coordinates(
-                        basis_vectors, vector
-                    )
-                )
-                for vector in vectors
-            ),
-            default=0,
-        )
-        histogram[maximum_support] += 1
-        if maximum_support <= 2:
+
+        # Calculate maximum support
+        # We need to represent each vector in `vectors` in terms of `basis_vectors`.
+        # Let's create a mapping from index to vector for quick lookup
+        # selected is a tuple of indices.
+        selected_set = set(selected)
+
+        current_max_support = 0
+
+        # For vectors in the basis, support is 1.
+        # So if nullity >= 1, the max is at least 1.
+        # If nullity == 0, handled above.
+
+        # We only need to check vectors NOT in the basis for potentially larger support.
+        # But wait, the support of a basis vector in its own basis is 1.
+        # So the max support is max(1, max(support of non-basis vectors)).
+
+        # Let's compute support for non-basis vectors.
+        for i, vec in enumerate(vectors):
+            if i in selected_set:
+                # Support is 1
+                if 1 > current_max_support:
+                    current_max_support = 1
+            else:
+                # Compute coordinates of vec in basis_vectors
+                # This is the expensive part.
+                coords = production._basis_coordinates(basis_vectors, vec)
+                # Count non-zero coordinates
+                nz_count = sum(1 for c in coords if c != 0)
+                if nz_count > current_max_support:
+                    current_max_support = nz_count
+
+        histogram[current_max_support] += 1
+        if current_max_support <= 2:
             width_two.append([index + 1 for index in selected])
 
     status = "exact" if width_two else "not_applicable"
