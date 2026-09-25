@@ -44,6 +44,8 @@ struct cassi_field_config {
     uint32_t fixture_entries = 0;
     // Exact native-pipeline contexts retain only vector handoff scratch, never adaptive field state.
     bool scratch_only = false;
+    // Group host capacity (shared weight-bank rows); 0 = no group scratch.
+    uint32_t group_rows = 0;
 };
 
 struct cassi_query {
@@ -112,6 +114,9 @@ public:
     ggml_tensor * add_vectors(ggml_tensor * left, ggml_tensor * right);
     ggml_tensor * copy_vector(ggml_tensor * source, uint32_t slot);
     ggml_tensor * load_vector(const float * data, size_t count);
+    // Shared weight-bank group scratch: [embedding_width, group_rows] F32 host
+    // handoff into device memory; count must equal embedding_width * group_rows.
+    ggml_tensor * load_matrix(const float * data, size_t count);
 
     size_t context_snapshot_size() const;
     void context_snapshot_get(void * destination, size_t size) const;

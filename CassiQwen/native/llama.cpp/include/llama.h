@@ -764,6 +764,131 @@ extern "C" {
                          int32_t   il_start,
                          int32_t   il_end);
 
+    enum llama_cassi_graph_site_kind {
+        LLAMA_CASSI_GRAPH_SITE_EXPERTS = 1,
+        LLAMA_CASSI_GRAPH_SITE_RECURRENT = 2,
+        LLAMA_CASSI_GRAPH_SITE_ATTENTION_MEMORY = 3,
+        LLAMA_CASSI_GRAPH_SITE_EXECUTION_CHOICE = 6,
+    };
+    enum llama_cassi_cancel_status {
+        LLAMA_CASSI_CANCEL_OK = 0,
+        LLAMA_CASSI_CANCEL_NO_ACTIVE_TRANSACTION = 1,
+        LLAMA_CASSI_CANCEL_ROLLBACK_UNAVAILABLE = 2,
+        LLAMA_CASSI_CANCEL_RESTORE_FAILED = 3,
+    };
+
+
+    // One owner-held Qwen graph-site candidate. Coefficient buffers use row-major
+    // low-rank factors A[input_width, rank], B[rank, output_width], and bias[output_width].
+    // Every pointer is copied synchronously by llama_cassi_graph_site_candidate_set.
+    // Recurrent input/output coefficients use canonical C-order features:
+    // hidden, conv_history[rows, channels], recurrent_state[heads, value, key].
+    // Attention-memory successor is flat C-order [hidden(n_embd), k_row(attn_kv_heads *
+    // attn_kv_head_width, head-major, post-RoPE cache form), v_row(same width/layout)];
+    // attn_kv_heads/attn_kv_head_width are unused (zero) for every other kind.
+    // Execution-choice successor is a pure logits vector over the model vocabulary,
+    // no attn_kv_* fields used.
+    // The context packs them once into the backend's native cache order at admission.
+    typedef struct llama_cassi_graph_site_candidate {
+        enum llama_cassi_graph_site_kind kind;
+        llama_seq_id seq_id;
+        int32_t position;
+        int32_t layer;
+        uint64_t owner_generation;
+        uint64_t predecessor_generation;
+        const char * sequence_id;
+        const char * source_sha256;
+        const char * architecture;
+        const char * backend;
+        const char * input_tensor;
+        const char * output_tensor;
+        const char * tensor_dtype;
+        const char * stage;
+        const char * site;
+        const char * specialist;
+        const char * predecessor_sha256;
+        const char * request_sha256;
+        bool request_sha256_pending;
+        const char * invocation_sha256;
+        const char * candidate_sha256;
+
+        const char * intervention_order;
+
+        const char * dependencies_json;
+        const char * method_key;
+        uint64_t method_generation;
+        uint32_t input_width;
+        uint32_t rank;
+        uint32_t output_width;
+        const float * a;
+        size_t a_count;
+        const float * b;
+        size_t b_count;
+        const float * bias;
+        size_t bias_count;
+        uint32_t conv_history_rows;
+        uint32_t conv_history_channels;
+        uint32_t recurrent_state_heads;
+        uint32_t recurrent_state_value_width;
+        uint32_t recurrent_state_key_width;
+        uint32_t attn_kv_heads;
+        uint32_t attn_kv_head_width;
+        const float * input_support_anchor;
+        size_t input_support_anchor_count;
+        float input_support_radius;
+        float input_support_anchor_norm;
+        const int32_t * expected_expert_ids;
+        size_t expected_expert_ids_count;
+    } llama_cassi_graph_site_candidate;
+
+    // Hashes are measured graph tensor bytes and native service state. Request,
+    // invocation, candidate, and predecessor fields bind this evidence to its ticket;
+    // they are identities, never substitutes for the measured input/output/native hashes.
+    // native_successor_sha256 is filled by the CASSI wrapper after it hashes the exact
+    // post-token serialized KV/GDN plus effective sampler state via the setter below.
+    typedef struct llama_cassi_graph_site_candidate_result {
+        bool attempted;
+        bool admitted;
+        uint64_t owner_generation;
+        uint64_t operators_omitted;
+        uint64_t weights_omitted;
+        uint64_t weight_bytes_omitted;
+        uint64_t transfer_bytes_omitted;
+        char refusal[128];
+        char input_sha256[65];
+        char output_sha256[65];
+        char native_successor_sha256[65];
+        char request_sha256[65];
+        bool request_sha256_pending;
+        char invocation_sha256[65];
+        char predecessor_sha256[65];
+        char successor_sha256[65];
+        char successor_state_json[2048];
+        // Borrowed measured route IDs, owned by the context and valid until its
+        // next graph-site result mutation or destruction.
+        const int32_t * actual_expert_ids;
+        size_t actual_expert_ids_count;
+
+        char candidate_sha256[65];
+    } llama_cassi_graph_site_candidate_result;
+
+    LLAMA_API bool llama_cassi_graph_site_candidate_set(
+            struct llama_context * ctx,
+            const struct llama_cassi_graph_site_candidate * candidate);
+    LLAMA_API void llama_cassi_graph_site_candidate_clear(
+            struct llama_context * ctx,
+            const char * sequence_id,
+            uint64_t owner_generation);
+    LLAMA_API bool llama_cassi_graph_site_candidate_get_result(
+            const struct llama_context * ctx,
+            struct llama_cassi_graph_site_candidate_result * result);
+    LLAMA_API bool llama_cassi_graph_site_candidate_set_native_successor_sha256(
+            struct llama_context * ctx,
+            const char * candidate_sha256,
+            const char * invocation_sha256,
+            const char * native_successor_sha256);
+
+
     // Cassi Qi bridge state uses the native contiguous layout [sequence, scale, mode, plane].
     // Counts are float elements, not bytes. These functions fail closed unless Qi is enabled
     // and count exactly matches the configured per-sequence state size.

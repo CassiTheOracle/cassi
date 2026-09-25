@@ -64,6 +64,76 @@ static bool can_reuse_kq_mask(
 }
 
 // impl
+void llm_graph_input_site_affine::set_input(const llama_ubatch * ubatch) {
+    GGML_UNUSED(ubatch);
+    GGML_ASSERT(data != nullptr && value != nullptr && value->type == GGML_TYPE_F32);
+    GGML_ASSERT(ggml_is_contiguous(value));
+    GGML_ASSERT(data->size() * sizeof(float) == ggml_nbytes(value));
+    if (value->buffer == nullptr) {
+        throw std::runtime_error("graph_site_candidate_input_unallocated");
+    }
+    ggml_backend_tensor_set(value, data->data(), 0, ggml_nbytes(value));
+}
+
+bool llm_graph_input_site_affine::can_reuse(const llm_graph_params & params) {
+    GGML_UNUSED(params);
+    return false;
+}
+
+ggml_tensor * build_graph_site_affine(
+        ggml_context * ctx,
+        llm_graph_result * res,
+        ggml_tensor * input,
+        const llm_graph_site_candidate_config & candidate) {
+    auto * in_a = static_cast<llm_graph_input_site_affine *>(
+        res->add_input(std::make_unique<llm_graph_input_site_affine>(&candidate.a)));
+    in_a->value = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
+        candidate.input_width, candidate.rank);
+    ggml_set_input(in_a->value);
+    auto * in_b = static_cast<llm_graph_input_site_affine *>(
+        res->add_input(std::make_unique<llm_graph_input_site_affine>(&candidate.b)));
+    in_b->value = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
+        candidate.rank, candidate.output_width);
+    ggml_set_input(in_b->value);
+    auto * in_bias = static_cast<llm_graph_input_site_affine *>(
+        res->add_input(std::make_unique<llm_graph_input_site_affine>(&candidate.bias)));
+    in_bias->value = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, candidate.output_width);
+    ggml_set_input(in_bias->value);
+    ggml_tensor * low_rank = ggml_mul_mat(ctx, in_a->value, input);
+    return ggml_add(ctx, ggml_mul_mat(ctx, in_b->value, low_rank), in_bias->value);
+}
+
+bool graph_site_candidate_eligible(
+        const llm_graph_site_candidate_config & candidate,
+        const llama_ubatch & ubatch) {
+    return ubatch.n_tokens == 1 && ubatch.n_seq_tokens == 1 &&
+        ubatch.n_seqs == 1 && ubatch.n_seqs_unq == 1 &&
+        ubatch.n_seq_id != nullptr && ubatch.n_seq_id[0] == 1 &&
+        ubatch.seq_id != nullptr && ubatch.seq_id[0] != nullptr &&
+        ubatch.pos != nullptr &&
+        ubatch.seq_id[0][0] == candidate.seq_id &&
+        ubatch.pos[0] == candidate.position;
+}
+
+bool graph_site_affine_layout_supported(
+        const llm_graph_site_candidate_config & candidate,
+        int64_t input_width,
+        int64_t output_width) {
+    if (input_width <= 0 || output_width <= 0 ||
+            input_width > UINT32_MAX || output_width > UINT32_MAX ||
+            candidate.input_width != (uint32_t) input_width ||
+            candidate.output_width != (uint32_t) output_width ||
+            candidate.rank == 0 || candidate.rank > 16) {
+        return false;
+    }
+
+    const uint64_t a_count = (uint64_t) candidate.input_width * candidate.rank;
+    const uint64_t b_count = (uint64_t) candidate.rank * candidate.output_width;
+    return candidate.a.size() == a_count &&
+        candidate.b.size() == b_count &&
+        candidate.bias.size() == candidate.output_width;
+}
+
 
 void llm_graph_input_embd::set_input(const llama_ubatch * ubatch) {
     if (ubatch->token) {
@@ -126,8 +196,30 @@ llm_graph_input_cassi_service::llm_graph_input_cassi_service(const llm_cassi_ser
     config(config) {
 }
 
+// A multi-row Cassi service transaction must name every row: without per-row
+// positions and sequence ids the rows cannot be isolated inside the memory
+// modules, so the transaction is refused rather than silently merged.
+// n_rows == 1 keeps the legacy single-token contract (batch_* pointers may stay
+// null and the graph derives the row from the ubatch instead).
+static void assert_cassi_service_rows(const llm_cassi_service_config & service) {
+    GGML_ASSERT(service.n_rows >= 1);
+    if (service.n_rows == 1) {
+        return;
+    }
+    GGML_ASSERT(service.batch_pos != nullptr);
+    GGML_ASSERT(service.batch_seq_ids != nullptr);
+    GGML_ASSERT(service.input != nullptr && service.input->type == GGML_TYPE_F32);
+    GGML_ASSERT(ggml_is_contiguous(service.input));
+    GGML_ASSERT(service.input->ne[0] > 0 && service.input->ne[1] == (int64_t) service.n_rows);
+    for (uint32_t r = 0; r < service.n_rows; ++r) {
+        GGML_ASSERT(service.batch_pos[r] >= 0);
+        GGML_ASSERT(service.batch_seq_ids[r] >= 0);
+    }
+}
+
 void llm_graph_input_cassi_service::set_input(const llama_ubatch *) {
     GGML_ASSERT(config != nullptr && config->input != nullptr && value != nullptr);
+    assert_cassi_service_rows(*config);
     GGML_ASSERT(config->input->type == GGML_TYPE_F32 && value->type == GGML_TYPE_F32);
     GGML_ASSERT(ggml_are_same_shape(config->input, value));
     GGML_ASSERT(ggml_is_contiguous(config->input) && ggml_is_contiguous(value));
@@ -141,8 +233,26 @@ void llm_graph_input_cassi_service::set_input(const llama_ubatch *) {
 
 bool llm_graph_input_cassi_service::can_reuse(const llm_graph_params & params) {
     config = params.cassi_service;
-    return config != nullptr && config->input != nullptr && value != nullptr &&
-        config->input->type == GGML_TYPE_F32 && ggml_are_same_shape(config->input, value);
+    if (config == nullptr || config->input == nullptr || value == nullptr ||
+            config->input->type != GGML_TYPE_F32 || !ggml_are_same_shape(config->input, value)) {
+        return false;
+    }
+    // The same-shape check above already refuses a config whose n_rows (or
+    // stage width) changed; the row-naming pointers must stay consistent too,
+    // because a reused graph would otherwise run without per-row isolation.
+    if (config->n_rows > 1 &&
+            (config->batch_pos == nullptr || config->batch_seq_ids == nullptr ||
+             config->input->ne[1] != (int64_t) config->n_rows)) {
+        return false;
+    }
+    if (config->n_rows > 1 && params.ubatch.pos != nullptr && params.ubatch.n_tokens == (uint32_t) config->n_rows) {
+        for (uint32_t r = 0; r < config->n_rows; ++r) {
+            if (params.ubatch.pos[r] != config->batch_pos[r]) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 
@@ -1439,6 +1549,7 @@ void llm_graph_result::reset() {
     t_cassi_qi_seam_budget = nullptr;
     t_cassi_qi_seam_scale  = nullptr;
     t_cassi_service = nullptr;
+    graph_site_candidate_result = {};
     t_cassi_capture_embed = nullptr;
     t_cassi_capture_head_input = nullptr;
     t_cassi_capture_attention_input.resize(LLAMA_MAX_LAYERS + 1);

@@ -410,7 +410,16 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
             ggml_build_forward_expand(gf, cur);
 
             if (hparams.is_recr(il)) {
-                cur = build_layer_attn_linear(inp->get_recr(), cur, il);
+                const auto * site_candidate = params.cassi_graph_site_candidate;
+                if (site_candidate != nullptr &&
+                        site_candidate->kind == llm_graph_site_candidate_kind::RECURRENT &&
+                        site_candidate->layer == il &&
+                        graph_site_candidate_eligible(*site_candidate, ubatch)) {
+                    cur = build_layer_attn_linear_candidate(
+                        inp->get_recr(), cur, il, site_candidate);
+                } else {
+                    cur = build_layer_attn_linear(inp->get_recr(), cur, il);
+                }
             } else {
                 ggml_tensor * history_k = nullptr;
                 ggml_tensor * history_v = nullptr;
@@ -697,13 +706,67 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
 }
 
 void llama_model_qwen35::graph::build_cassi_service(const llm_graph_params & params) {
-    if (params.cassi_service == nullptr || ubatch.n_tokens != 1 || ubatch.n_seq_tokens != 1 ||
-            ubatch.n_seqs != 1 || ubatch.n_seqs_unq != 1) {
+    if (params.cassi_service == nullptr) {
         throw std::runtime_error("invalid Cassi apprenticeship service request");
     }
     const llm_cassi_service_config & service = *params.cassi_service;
     if (service.kind == LLAMA_CASSI_TEXT) {
         throw std::runtime_error("TEXT is not a native service");
+    }
+    if (service.n_rows < 1) {
+        throw std::runtime_error("invalid Cassi apprenticeship service request");
+    }
+    const uint32_t n_rows = service.n_rows;
+    if (n_rows == 1) {
+        // legacy single-token transaction, unchanged
+        if (ubatch.n_tokens != 1 || ubatch.n_seq_tokens != 1 ||
+                ubatch.n_seqs != 1 || ubatch.n_seqs_unq != 1) {
+            throw std::runtime_error("invalid Cassi apprenticeship service request");
+        }
+    } else {
+        // multi-row transaction: one shared fused graph pass serves one
+        // homogeneous stage (EMBED / ATTENTION / FFN / HEAD) for a set of rows.
+        // The shared F32 handoff is one [stage_width, n_rows] tensor and every
+        // projection below is ggml_mul_mat(A, B) with the right-hand side
+        // [in, n_rows], so the model's matrix work for the whole stage runs in
+        // a single graph pass whose output is [out_width, n_rows] in the
+        // identical row order (column r belongs to row r end-to-end).
+        //
+        // Per-row isolation: row r is token batch_tokens[r] at position
+        // batch_pos[r] in sequence batch_seq_ids[r]; the ubatch carries one
+        // token per row with ubatch.seq_id[r][0] == batch_seq_ids[r], so the
+        // KV attention mask lets row r attend only to cells of its own
+        // sequence up to batch_pos[r], and the recurrent (GDN) conv/state
+        // gathers and stores are indexed by the same per-token sequence ids.
+        if (ubatch.n_tokens != n_rows || ubatch.n_seq_tokens != 1 ||
+                ubatch.n_seqs != n_rows || ubatch.n_seqs_unq != n_rows ||
+                ubatch.pos == nullptr || ubatch.n_seq_id == nullptr ||
+                ubatch.seq_id == nullptr || ubatch.n_pos < 1) {
+            throw std::runtime_error("invalid Cassi apprenticeship service request");
+        }
+        if (service.batch_pos == nullptr || service.batch_seq_ids == nullptr) {
+            throw std::runtime_error("invalid Cassi apprenticeship service request");
+        }
+        for (uint32_t r = 0; r < n_rows; ++r) {
+            if (ubatch.n_seq_id[r] != 1 || ubatch.seq_id[r] == nullptr ||
+                    ubatch.seq_id[r][0] != service.batch_seq_ids[r] ||
+                    ubatch.pos[r] != service.batch_pos[r] ||
+                    service.batch_pos[r] < 0 || service.batch_seq_ids[r] < 0) {
+                throw std::runtime_error("invalid Cassi apprenticeship service request");
+            }
+            for (uint32_t s = 0; s < r; ++s) {
+                if (ubatch.seq_id[r][0] == ubatch.seq_id[s][0]) {
+                    throw std::runtime_error("invalid Cassi apprenticeship service request");
+                }
+            }
+        }
+    }
+    // A graph-site candidate names exactly one (seq_id, position) row and
+    // replaces that row's operators; a fused pass would apply it to every row,
+    // so a candidate mixed into a service transaction is refused rather than
+    // merged into the wrong rows' states.
+    if (params.cassi_graph_site_candidate != nullptr) {
+        throw std::runtime_error("unsupported graph-site candidate mixed with Cassi apprenticeship service");
     }
 
     ggml_tensor * cur = nullptr;
@@ -711,16 +774,31 @@ void llama_model_qwen35::graph::build_cassi_service(const llm_graph_params & par
         if (service.layer != -1 || service.input != nullptr) {
             throw std::runtime_error("invalid embedding service request");
         }
+        if (n_rows > 1) {
+            if (service.batch_tokens == nullptr || ubatch.token == nullptr) {
+                throw std::runtime_error("invalid embedding service request");
+            }
+            for (uint32_t r = 0; r < n_rows; ++r) {
+                if (ubatch.token[r] != service.batch_tokens[r] ||
+                        ubatch.token[r] < 0 ||
+                        (uint64_t) ubatch.token[r] >= (uint64_t) model.vocab.n_tokens()) {
+                    throw std::runtime_error("invalid embedding service request");
+                }
+            }
+        }
         cur = build_inp_embd(model.tok_embd);
         cb(cur, "cassi_service_embed_output", -1);
     } else {
+        if (service.stage_width != 0 && service.stage_width != (uint32_t) hparams.n_embd) {
+            throw std::runtime_error("invalid Cassi apprenticeship service input");
+        }
         if (service.input == nullptr || service.input->type != GGML_TYPE_F32 ||
                 !ggml_is_contiguous(service.input) || service.input->ne[0] != hparams.n_embd ||
-                service.input->ne[1] != 1 || service.input->ne[2] != 1 || service.input->ne[3] != 1) {
+                service.input->ne[1] != (int64_t) n_rows || service.input->ne[2] != 1 || service.input->ne[3] != 1) {
             throw std::runtime_error("invalid Cassi apprenticeship service input");
         }
         auto input = std::make_unique<llm_graph_input_cassi_service>(&service);
-        input->value = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, hparams.n_embd, 1);
+        input->value = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, hparams.n_embd, n_rows);
         ggml_set_input(input->value);
         cur = static_cast<llm_graph_input_cassi_service *>(res->add_input(std::move(input)))->value;
         cb(cur, "cassi_service_input", service.layer);
@@ -1016,6 +1094,18 @@ ggml_tensor * llama_model_qwen35::graph::build_layer_attn_linear(
     cur = ggml_reshape_2d(ctx0, cur, n_embd, n_seq_tokens * n_seqs);
 
     return cur;
+}
+
+ggml_tensor * llama_model_qwen35::graph::build_layer_attn_linear_candidate(
+        llm_graph_input_rs * inp,
+        ggml_tensor * cur,
+        int il,
+        const llm_graph_site_candidate_config * candidate) {
+    // Shared exact RECURRENT site builder; a refusal receipt is already recorded
+    // there, and the native linear-attention layer stays the fallback.
+    ggml_tensor * site_cur = build_layer_attn_linear_site_candidate(
+        model.layers[il], inp, cur, il, candidate);
+    return site_cur != nullptr ? site_cur : build_layer_attn_linear(inp, cur, il);
 }
 
 ggml_tensor * llama_model_qwen35::graph::build_layer_ffn(ggml_tensor * cur, const int il) {

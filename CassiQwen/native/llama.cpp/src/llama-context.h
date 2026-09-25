@@ -158,6 +158,40 @@ struct llama_context {
     int32_t cassi_begin_token(llama_token token, llama_pos pos);
     ggml_tensor * cassi_service(const llm_cassi_service_config & config);
     int32_t cassi_end_token();
+    // Restores the full pre-token sequence and sampler snapshot, including the
+    // latest committed token while its rollback window remains open.
+    // Non-OK results require abandoning the context rather than replaying on modified state.
+    llama_cassi_cancel_status cassi_cancel_token();
+
+
+
+    // Multi-row apprenticeship service transactions. One homogeneous stage carries
+    // n_rows token rows from distinct sequences/positions in a single ubatch; the
+    // legacy single-token API above remains its byte-identical n_rows=1 case.
+    // The two API families must not be mixed on one active transaction.
+    int32_t cassi_begin_tokens(const llama_batch & batch_req, uint32_t n_rows);
+    int32_t cassi_end_tokens();
+    // Group-boundary fence: cancels the active batch transaction without advancing
+    // any per-sequence next position, so the whole group can be replayed.
+    int32_t cassi_cancel_tokens();
+    uint32_t cassi_service_rows() const;
+    // Next service position for a sequence under the batch API (-1 for invalid seq).
+    llama_pos cassi_service_next_pos_seq(llama_seq_id seq_id) const;
+    // Group churn: wipe seq_id's KV cells and reset its next service position
+    // to 0 so a rejoining group seat member can replay from position 0. Fails
+    // outside a valid apprenticeship context or while a token transaction is
+    // in flight (caller must be at a round boundary).
+    int32_t cassi_group_row_reset(llama_seq_id seq_id);
+    // Exact-pipeline discard: the single-token API above (cassi_begin_token/
+    // cassi_end_token) is used outside the graph-site-candidate rollback window
+    // by plain exact evaluation, so its writes are permanent the moment
+    // cassi_end_token returns (no cassi_service_snapshot is captured). Undoing
+    // already-committed positions therefore requires truncating seq 0's memory
+    // directly and rewinding the next single-token service position to `pos`.
+    // Fails while a token/batch transaction is in flight or if pos is ahead of
+    // the current service cursor.
+    int32_t cassi_service_rewind(llama_pos pos);
+
     int32_t cassi_service_graph_nodes() const;
     int32_t cassi_last_graph_nodes() const;
     uint64_t cassi_last_graph_weight_bytes() const;
@@ -168,6 +202,14 @@ struct llama_context {
             const ggml_tensor * output,
             const ggml_tensor * boundary,
             bool embedding_row = false) const;
+    bool graph_site_candidate_set(const llama_cassi_graph_site_candidate & candidate);
+    void graph_site_candidate_clear(const std::string & sequence_id = {}, uint64_t owner_generation = 0);
+    const llm_graph_site_candidate_result & graph_site_candidate_get_result() const;
+    bool graph_site_candidate_set_native_successor_sha256(
+        const std::string & candidate_sha256,
+        const std::string & invocation_sha256,
+        const std::string & native_successor_sha256);
+
     void enable_cassi_capture();
     bool cassi_capture_get(llama_cassi_capture & capture);
     // Capture dump path for the public API: shape and copy read the last decoded graph,
@@ -317,6 +359,16 @@ private:
     size_t state_write_data(llama_io_write_i & io);
     size_t state_read_data (llama_io_read_i  & io);
     size_t state_seq_write_data(llama_io_write_i & io, llama_seq_id seq_id, llama_state_seq_flags flags);
+    bool cassi_token_snapshot_capture(llama_seq_id seq_id);
+    bool cassi_token_snapshot_restore();
+    void cassi_token_snapshot_clear();
+    bool cassi_group_snapshot_capture(const llama_batch & batch, uint32_t n_rows);
+    bool cassi_group_snapshot_restore(uint32_t n_rows);
+    void cassi_group_snapshot_clear();
+    bool graph_site_candidate_target_stage(llm_graph_type gtype) const;
+    void graph_site_candidate_measure_result();
+
+
     size_t state_seq_read_data (llama_io_read_i  & io, llama_seq_id seq_id, llama_state_seq_flags flags);
     void queue_cassi_modal_state(const llm_graph_result * res, const llama_ubatch & ubatch);
     void complete_cassi_modal_state();
@@ -353,9 +405,44 @@ private:
     llama_ubatch cassi_service_ubatch = {};
     bool cassi_service_active = false;
     bool cassi_service_mctx_applied = false;
+    llm_graph_site_candidate_config graph_site_candidate;
+    mutable llm_graph_site_candidate_result graph_site_candidate_result;
+    bool graph_site_candidate_pending = false;
+    struct graph_site_sequence_state {
+        uint64_t owner_generation = 0;
+        uint64_t generation_floor = 0;
+        std::map<std::string, uint64_t> method_generations;
+        std::string source_sha256;
+    };
+    std::map<std::string, graph_site_sequence_state> graph_site_sequence_states;
     llama_pos cassi_service_next_pos = 0;
+    // Batch-API transaction state: per-sequence next service positions and the
+    // active row count. cassi_service_batch distinguishes the two API families.
+    std::vector<llama_pos> cassi_service_row_next_pos;
+    uint32_t cassi_service_row_count = 0;
+    struct cassi_service_row_snapshot {
+        llama_seq_id seq_id = -1;
+        llama_pos next_pos = -1;
+        std::vector<uint8_t> state;
+    };
+    std::vector<cassi_service_row_snapshot> cassi_service_group_snapshot;
+    bool cassi_service_batch = false;
     uint64_t cassi_service_epoch = 0;
     int32_t cassi_service_nodes = 0;
+    std::vector<uint8_t> cassi_service_state_snapshot;
+    llama_sampler * cassi_service_sampler_snapshot = nullptr;
+    llama_sampler * cassi_service_sampler_target = nullptr;
+    llama_seq_id cassi_service_snapshot_seq = -1;
+    llama_pos cassi_service_snapshot_next_pos = -1;
+    bool cassi_service_snapshot_committed = false;
+
+    bool cassi_service_snapshot_valid = false;
+    bool cassi_service_poisoned = false;
+    std::string cassi_service_snapshot_graph_sequence_id;
+    graph_site_sequence_state cassi_service_snapshot_graph_sequence_state;
+    bool cassi_service_snapshot_graph_sequence_exists = false;
+
+
 
     struct cassi_modal_pending {
         bool valid = false;

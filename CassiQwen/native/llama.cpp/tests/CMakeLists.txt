@@ -162,6 +162,18 @@ target_link_libraries(test-cassi-apprentice PRIVATE vendor-hash)
 llama_build(test-cassi-apprentice-qwen.cpp)
 target_link_libraries(test-cassi-apprentice-qwen PRIVATE vendor-hash)
 llama_build(test-cassi-apprentice-owner.cpp)
+llama_build(test-cassi-draft-sampler.cpp)
+llama_test(test-cassi-draft-sampler)
+
+# graph-site candidate ABI driver: real Qwen3.5 GGUF supplied on the CLI
+# (MODEL cpu|gpu), opt-in only - not part of the default test suite.
+llama_build(test-cassi-graph-site.cpp)
+target_link_libraries(test-cassi-graph-site PRIVATE vendor-hash)
+
+# draft-verify (speculative decoding verifier seam) ABI driver: real Qwen3.5
+# GGUF supplied on the CLI (MODEL cpu|gpu), opt-in only - not part of the
+# default test suite.
+llama_build(test-cassi-draft-verify.cpp)
 
 if (NOT WIN32 OR NOT BUILD_SHARED_LIBS)
     # these tests are disabled on Windows because they use internal functions not exported with LLAMA_API (when building with shared libraries)

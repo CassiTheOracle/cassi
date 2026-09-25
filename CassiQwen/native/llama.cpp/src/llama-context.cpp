@@ -16,6 +16,13 @@
 #include "llama-sampler.h"
 #include "llama.h"
 
+extern "C" {
+#include "sha256/sha256.h"
+}
+
+
+#include <vector>
+
 #include <algorithm>
 #include <cinttypes>
 #include <cmath>
@@ -24,6 +31,209 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
+
+static bool graph_site_tensor_i32_values(
+        ggml_backend_sched_t sched,
+        ggml_tensor * tensor,
+        size_t expected_elements,
+        std::vector<int32_t> & values) {
+    if (sched == nullptr || tensor == nullptr || tensor->type != GGML_TYPE_I32 ||
+            tensor->buffer == nullptr || !ggml_is_contiguous(tensor) ||
+            (size_t) ggml_nelements(tensor) != expected_elements ||
+            expected_elements > SIZE_MAX / sizeof(int32_t) ||
+            ggml_nbytes(tensor) != expected_elements * sizeof(int32_t) ||
+            expected_elements == 0) {
+        return false;
+    }
+    ggml_backend_t backend = ggml_backend_sched_get_tensor_backend(sched, tensor);
+    if (backend == nullptr) {
+        return false;
+    }
+    values.resize(expected_elements);
+    ggml_backend_tensor_get(tensor, values.data(), 0, ggml_nbytes(tensor));
+    return true;
+}
+
+static bool graph_site_tensor_vector_shape(const ggml_tensor * tensor, uint32_t width) {
+    return tensor != nullptr && width > 0 &&
+        tensor->ne[0] == (int64_t) width && tensor->ne[1] == 1 &&
+        tensor->ne[2] == 1 && tensor->ne[3] == 1;
+}
+
+static bool graph_site_valid_sha256(const char * value) {
+    if (value == nullptr || std::strlen(value) != 64) {
+        return false;
+    }
+    for (size_t i = 0; i < 64; ++i) {
+        const char c = value[i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) {
+            return false;
+        }
+    }
+    return true;
+}
+template <size_t N>
+static void graph_site_copy_c_string(char (&destination)[N], const std::string & source) {
+    const size_t size = std::min(source.size(), N - 1);
+    if (size != 0) {
+        std::memcpy(destination, source.data(), size);
+    }
+    destination[size] = '\0';
+}
+
+static std::string graph_site_sha256_hex(const uint8_t digest[32]) {
+    static constexpr char HEX[] = "0123456789abcdef";
+    std::string result(64, '0');
+    for (size_t i = 0; i < 32; ++i) {
+        result[2 * i] = HEX[digest[i] >> 4];
+        result[2 * i + 1] = HEX[digest[i] & 0x0f];
+    }
+    return result;
+}
+
+static bool graph_site_sha256_bytes(const void * data, size_t size, std::string & digest) {
+    if (data == nullptr || size == 0) {
+        return false;
+    }
+    uint8_t hash[32];
+    sha256_hash(hash, reinterpret_cast<const unsigned char *>(data), size);
+    digest = graph_site_sha256_hex(hash);
+    return true;
+}
+
+static bool graph_site_tensor_sha256(
+        ggml_backend_sched_t sched,
+        ggml_tensor * tensor,
+        size_t expected_elements,
+        std::vector<uint8_t> & bytes,
+        std::string & digest) {
+    if (sched == nullptr || tensor == nullptr || tensor->type != GGML_TYPE_F32 ||
+            tensor->buffer == nullptr || !ggml_is_contiguous(tensor) ||
+            (size_t) ggml_nelements(tensor) != expected_elements ||
+            expected_elements > SIZE_MAX / sizeof(float) ||
+            ggml_nbytes(tensor) != expected_elements * sizeof(float) ||
+            ggml_nbytes(tensor) == 0) {
+        return false;
+    }
+    ggml_backend_t backend = ggml_backend_sched_get_tensor_backend(sched, tensor);
+    if (backend == nullptr) {
+        return false;
+    }
+    bytes.resize(ggml_nbytes(tensor));
+    ggml_backend_tensor_get(tensor, bytes.data(), 0, bytes.size());
+    return graph_site_sha256_bytes(bytes.data(), bytes.size(), digest);
+}
+
+static std::string graph_site_json_quote(const char * text) {
+    static constexpr char HEX[] = "0123456789abcdef";
+    std::string result = "\"";
+    for (const unsigned char * p = reinterpret_cast<const unsigned char *>(text); *p != 0; ++p) {
+        switch (*p) {
+            case '\"': result += "\\\""; break;
+            case '\\': result += "\\\\"; break;
+            case '\b': result += "\\b"; break;
+            case '\f': result += "\\f"; break;
+            case '\n': result += "\\n"; break;
+            case '\r': result += "\\r"; break;
+            case '\t': result += "\\t"; break;
+            default:
+                if (*p < 0x20) {
+                    result += "\\u00";
+                    result += HEX[*p >> 4];
+                    result += HEX[*p & 0x0f];
+                } else {
+                    result += (char) *p;
+                }
+        }
+    }
+    result += '\"';
+    return result;
+}
+
+static std::string graph_site_f32_descriptor_json(
+        const std::string & digest,
+        const std::string & shape_json) {
+    return "{\"dtype\":\"<f4\",\"order\":\"C\",\"sha256\":\"" + digest +
+        "\",\"shape\":" + shape_json + "}";
+}
+
+static std::string graph_site_i32_descriptor_json(
+        const std::string & digest,
+        const std::string & shape_json,
+        const std::vector<int32_t> & values) {
+    std::string json = "{\"dtype\":\"<i4\",\"order\":\"C\",\"sha256\":\"" + digest +
+        "\",\"shape\":" + shape_json + ",\"values\":[";
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (i != 0) {
+            json += ',';
+        }
+        json += std::to_string(values[i]);
+    }
+    json += "]}";
+    return json;
+}
+
+static std::string graph_site_tensor_descriptor_json(
+        const std::string & digest,
+        uint32_t width) {
+    return graph_site_f32_descriptor_json(digest, "[" + std::to_string(width) + "]");
+}
+
+static bool graph_site_sampler_cloneable(const llama_sampler * sampler) {
+    if (sampler == nullptr) {
+        return true;
+    }
+    if (sampler->iface == nullptr) {
+        return false;
+    }
+    auto * mutable_sampler = const_cast<llama_sampler *>(sampler);
+    if (llama_sampler_chain_get(mutable_sampler, -1) != nullptr) {
+        const int n_samplers = llama_sampler_chain_n(sampler);
+        for (int i = 0; i < n_samplers; ++i) {
+            const llama_sampler * child = llama_sampler_chain_get(mutable_sampler, i);
+            if (!graph_site_sampler_cloneable(child)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return sampler->iface->clone != nullptr || sampler->ctx == nullptr;
+}
+
+static std::string graph_site_successor_json_digest(const std::string & json) {
+    std::string digest;
+    if (!graph_site_sha256_bytes(json.data(), json.size(), digest)) {
+        return {};
+    }
+    return digest;
+}
+
+static std::string graph_site_successor_state_json(
+        const std::string & semantic_name,
+        const std::string & digest,
+        const std::string & shape_json) {
+    return "{" + graph_site_json_quote(semantic_name.c_str()) + ":" +
+        graph_site_f32_descriptor_json(digest, shape_json) + "}";
+}
+static std::string graph_site_successor_map_json(
+        const std::vector<std::pair<std::string, std::string>> & descriptors) {
+    std::vector<std::pair<std::string, std::string>> ordered = descriptors;
+    std::sort(ordered.begin(), ordered.end(), [](const auto & lhs, const auto & rhs) {
+        return lhs.first < rhs.first;
+    });
+    std::string json = "{";
+    for (size_t i = 0; i < ordered.size(); ++i) {
+        if (i != 0) {
+            json += ',';
+        }
+        json += graph_site_json_quote(ordered[i].first.c_str());
+        json += ':';
+        json += ordered[i].second;
+    }
+    json += '}';
+    return json;
+}
+
 
 //
 // llama_context
@@ -660,6 +870,7 @@ llama_context::llama_context(
 }
 
 llama_context::~llama_context() {
+    cassi_token_snapshot_clear();
     // wait for any pending asynchronous copies into the output buffers before they are freed
     synchronize();
 
@@ -1851,13 +2062,249 @@ float llama_context::score_cassi_qi_token(llama_seq_id seq_id, llama_token token
     return std::isfinite(score) ? score : -INFINITY;
 }
 
+static void graph_site_candidate_bind_identity(
+        const llm_graph_site_candidate_config & candidate,
+        llm_graph_site_candidate_result & result) {
+    result.owner_generation = candidate.owner_generation;
+    result.request_sha256 = candidate.request_sha256;
+    result.request_sha256_pending = candidate.request_sha256_pending;
+    result.invocation_sha256 = candidate.invocation_sha256;
+    result.predecessor_sha256 = candidate.predecessor_sha256;
+    result.candidate_sha256 = candidate.candidate_sha256;
+}
+
+void llama_context::cassi_token_snapshot_clear() {
+    if (cassi_service_sampler_snapshot != nullptr) {
+        llama_sampler_free(cassi_service_sampler_snapshot);
+        cassi_service_sampler_snapshot = nullptr;
+    }
+    cassi_service_sampler_target = nullptr;
+    cassi_service_state_snapshot.clear();
+    cassi_service_snapshot_seq = -1;
+    cassi_service_snapshot_next_pos = -1;
+    cassi_service_snapshot_committed = false;
+    cassi_service_snapshot_valid = false;
+    cassi_service_snapshot_graph_sequence_id.clear();
+    cassi_service_snapshot_graph_sequence_state = {};
+    cassi_service_snapshot_graph_sequence_exists = false;
+}
+
+bool llama_context::cassi_token_snapshot_capture(llama_seq_id seq_id) {
+    cassi_token_snapshot_clear();
+    if (!graph_site_candidate_pending || seq_id < 0) {
+        return false;
+    }
+    const auto sampler_it = sampling.samplers.find(seq_id);
+    llama_sampler * sampler = sampler_it == sampling.samplers.end() ? nullptr : sampler_it->second;
+    if (!graph_site_sampler_cloneable(sampler)) {
+        return false;
+    }
+    try {
+        const size_t state_size = state_seq_get_size(seq_id, LLAMA_STATE_SEQ_FLAGS_NONE);
+        if (state_size == 0) {
+            return false;
+        }
+        cassi_service_state_snapshot.resize(state_size);
+        if (state_seq_get_data(
+                seq_id, cassi_service_state_snapshot.data(), state_size,
+                LLAMA_STATE_SEQ_FLAGS_NONE) != state_size) {
+            cassi_token_snapshot_clear();
+            return false;
+        }
+        cassi_service_sampler_target = sampler;
+        if (cassi_service_sampler_target != nullptr) {
+            cassi_service_sampler_snapshot =
+                llama_sampler_clone(cassi_service_sampler_target);
+            if (cassi_service_sampler_snapshot == nullptr) {
+                cassi_token_snapshot_clear();
+                return false;
+            }
+        }
+        cassi_service_snapshot_seq = seq_id;
+        cassi_service_snapshot_next_pos = cassi_service_next_pos;
+        cassi_service_snapshot_graph_sequence_id = graph_site_candidate.sequence_id;
+        const auto graph_state = graph_site_sequence_states.find(
+            cassi_service_snapshot_graph_sequence_id);
+        if (graph_state != graph_site_sequence_states.end()) {
+            cassi_service_snapshot_graph_sequence_state = graph_state->second;
+            cassi_service_snapshot_graph_sequence_exists = true;
+        }
+        cassi_service_snapshot_valid = true;
+        return true;
+    } catch (...) {
+        cassi_token_snapshot_clear();
+        return false;
+    }
+}
+
+bool llama_context::cassi_token_snapshot_restore() {
+    if (!cassi_service_snapshot_valid || cassi_service_snapshot_seq < 0 ||
+            cassi_service_state_snapshot.empty()) {
+        return false;
+    }
+    bool restored = false;
+    try {
+        const size_t bytes = state_seq_set_data(
+            cassi_service_snapshot_seq,
+            cassi_service_state_snapshot.data(),
+            cassi_service_state_snapshot.size(),
+            0);
+        restored = bytes == cassi_service_state_snapshot.size();
+        if (restored) {
+            const llama_seq_id seq_id = cassi_service_snapshot_seq;
+            const auto sampler_it = sampling.samplers.find(seq_id);
+            llama_sampler * current_sampler =
+                sampler_it == sampling.samplers.end() ? nullptr : sampler_it->second;
+            if (cassi_service_sampler_target != nullptr) {
+                restored = current_sampler == cassi_service_sampler_target &&
+                    cassi_service_sampler_snapshot != nullptr;
+                if (restored) {
+                    llama_sampler_copy(cassi_service_sampler_snapshot, current_sampler);
+                }
+            } else {
+                restored = current_sampler == nullptr &&
+                    cassi_service_sampler_snapshot == nullptr;
+            }
+        }
+        if (restored) {
+            cassi_service_next_pos = cassi_service_snapshot_next_pos;
+            if (cassi_service_snapshot_graph_sequence_exists) {
+                graph_site_sequence_states[cassi_service_snapshot_graph_sequence_id] =
+                    cassi_service_snapshot_graph_sequence_state;
+            } else {
+                graph_site_sequence_states.erase(
+                    cassi_service_snapshot_graph_sequence_id);
+            }
+        }
+    } catch (...) {
+        restored = false;
+    }
+    if (!restored) {
+        cassi_service_poisoned = true;
+    }
+    cassi_service_active = false;
+    cassi_service_mctx.reset();
+    cassi_service_ubatch = {};
+    cassi_service_mctx_applied = false;
+    cassi_service_nodes = 0;
+    cassi_service_epoch++;
+    cassi_token_snapshot_clear();
+    return restored;
+}
+
+bool llama_context::cassi_group_snapshot_capture(const llama_batch & batch, uint32_t n_rows) {
+    cassi_group_snapshot_clear();
+    if (n_rows == 0 || batch.n_tokens != static_cast<int32_t>(n_rows) ||
+            batch.token == nullptr || batch.pos == nullptr ||
+            cassi_service_row_next_pos.size() < cparams.n_seq_max) {
+        return false;
+    }
+    try {
+        cassi_service_group_snapshot.reserve(n_rows);
+        for (uint32_t r = 0; r < n_rows; ++r) {
+            const llama_seq_id seq_id =
+                batch.seq_id && batch.seq_id[r] ? batch.seq_id[r][0] : 0;
+            if (seq_id < 0 || static_cast<uint32_t>(seq_id) >= cparams.n_seq_max) {
+                cassi_group_snapshot_clear();
+                return false;
+            }
+            cassi_service_row_snapshot snapshot;
+            snapshot.seq_id = seq_id;
+            snapshot.next_pos = cassi_service_row_next_pos[seq_id];
+            const size_t state_size = state_seq_get_size(seq_id, LLAMA_STATE_SEQ_FLAGS_NONE);
+            if (state_size == 0) {
+                cassi_group_snapshot_clear();
+                return false;
+            }
+            snapshot.state.resize(state_size);
+            if (state_seq_get_data(seq_id, snapshot.state.data(), state_size,
+                    LLAMA_STATE_SEQ_FLAGS_NONE) != state_size) {
+                cassi_group_snapshot_clear();
+                return false;
+            }
+            cassi_service_group_snapshot.push_back(std::move(snapshot));
+        }
+    } catch (...) {
+        cassi_group_snapshot_clear();
+        return false;
+    }
+    return cassi_service_group_snapshot.size() == n_rows;
+}
+
+bool llama_context::cassi_group_snapshot_restore(uint32_t n_rows) {
+    if (n_rows == 0 || cassi_service_group_snapshot.size() != n_rows) {
+        cassi_group_snapshot_clear();
+        cassi_service_poisoned = true;
+        return false;
+    }
+    bool restored = true;
+    for (const auto & snapshot : cassi_service_group_snapshot) {
+        if (snapshot.seq_id < 0 ||
+                static_cast<uint32_t>(snapshot.seq_id) >= cparams.n_seq_max ||
+                snapshot.state.empty()) {
+            restored = false;
+            continue;
+        }
+        try {
+            const size_t bytes = state_seq_set_data(
+                snapshot.seq_id, snapshot.state.data(), snapshot.state.size(), 0);
+            restored = bytes == snapshot.state.size() && restored;
+            if (static_cast<size_t>(snapshot.seq_id) >= cassi_service_row_next_pos.size()) {
+                restored = false;
+            } else {
+                cassi_service_row_next_pos[snapshot.seq_id] = snapshot.next_pos;
+            }
+        } catch (...) {
+            restored = false;
+        }
+    }
+    cassi_group_snapshot_clear();
+    if (!restored) {
+        cassi_service_poisoned = true;
+    }
+    return restored;
+}
+
+void llama_context::cassi_group_snapshot_clear() {
+    cassi_service_group_snapshot.clear();
+}
+
 int32_t llama_context::cassi_begin_token(llama_token token, llama_pos pos) {
-    if (!cparams.cassi_apprentice || cassi_service_active || pos != cassi_service_next_pos ||
-            pos < 0 || static_cast<uint32_t>(pos) >= cparams.n_ctx ||
+    if (!cparams.cassi_apprentice || cassi_service_active || cassi_service_batch ||
+            cassi_service_poisoned || cassi_service_snapshot_valid ||
+            !cassi_service_group_snapshot.empty() ||
+            pos != cassi_service_next_pos || pos < 0 ||
+            static_cast<uint32_t>(pos) >= cparams.n_ctx ||
             token < 0 || token >= model.vocab.n_tokens()) {
         LLAMA_LOG_ERROR("%s: invalid apprenticeship token transaction\n", __func__);
         return -1;
     }
+
+    cassi_token_snapshot_clear();
+    if (!graph_site_candidate_pending) {
+        graph_site_candidate_result = {};
+    }
+    const auto reject_candidate = [&](const char * reason, bool restore_snapshot) {
+        if (restore_snapshot && cassi_service_snapshot_valid) {
+            if (!cassi_token_snapshot_restore()) {
+                reason = "rollback_restore_failed";
+            }
+        }
+        if (graph_site_candidate_pending) {
+            graph_site_candidate_result = {};
+            graph_site_candidate_bind_identity(
+                graph_site_candidate, graph_site_candidate_result);
+            graph_site_candidate_result.attempted = true;
+            graph_site_candidate_result.admitted = false;
+            graph_site_candidate_result.refusal = reason;
+            graph_site_candidate_pending = false;
+        }
+        cassi_service_mctx.reset();
+        cassi_service_ubatch = {};
+        cassi_service_active = false;
+        cassi_token_snapshot_clear();
+        return -1;
+    };
 
     int32_t n_seq_id = 1;
     llama_seq_id seq = 0;
@@ -1872,18 +2319,20 @@ int32_t llama_context::cassi_begin_token(llama_token token, llama_pos pos) {
     batch.logits = &logits;
     if (!balloc->init(batch, model.vocab, memory.get(), model.hparams.n_embd, 1, false)) {
         LLAMA_LOG_ERROR("%s: failed to initialize apprenticeship batch\n", __func__);
-        return -1;
+        return reject_candidate("native_batch_unavailable", false);
     }
     balloc->split_reset();
     cassi_service_mctx.reset();
+    if (graph_site_candidate_pending && !cassi_token_snapshot_capture(seq)) {
+        return reject_candidate("rollback_snapshot_unavailable", false);
+    }
     if (memory != nullptr) {
         // False also means that the memory module had no pending update.
         memory_update(false);
-        cassi_service_mctx = memory->init_batch(*balloc, 1, false);
+        cassi_service_mctx = memory->init_batch(*balloc, std::max<uint32_t>(1, cparams.n_rs_seq + 2), false);
         if (!cassi_service_mctx || llama_memory_status_is_fail(cassi_service_mctx->get_status())) {
-            cassi_service_mctx.reset();
             LLAMA_LOG_ERROR("%s: failed to prepare apprenticeship memory transaction\n", __func__);
-            return -1;
+            return reject_candidate("native_memory_transaction_unavailable", true);
         }
         cassi_service_ubatch = cassi_service_mctx->get_ubatch();
     } else {
@@ -1892,12 +2341,12 @@ int32_t llama_context::cassi_begin_token(llama_token token, llama_pos pos) {
     if (cassi_service_ubatch.n_tokens != 1 || cassi_service_ubatch.n_seq_tokens != 1 ||
             cassi_service_ubatch.n_seqs != 1 || cassi_service_ubatch.n_seqs_unq != 1 ||
             cassi_service_ubatch.pos == nullptr || cassi_service_ubatch.pos[0] != pos) {
-        cassi_service_mctx.reset();
         LLAMA_LOG_ERROR("%s: invalid apprenticeship microbatch\n", __func__);
-        return -1;
+        return reject_candidate("native_microbatch_invalid", true);
     }
     cassi_service_active = true;
     cassi_service_mctx_applied = false;
+    cassi_service_batch = false;
     cassi_service_epoch++;
     cassi_service_nodes = 0;
     return 0;
@@ -1908,6 +2357,44 @@ ggml_tensor * llama_context::cassi_service(const llm_cassi_service_config & conf
             config.request_epoch != cassi_service_epoch || config.kind == LLAMA_CASSI_TEXT) {
         LLAMA_LOG_ERROR("%s: invalid apprenticeship service transition\n", __func__);
         return nullptr;
+    }
+    if (config.n_rows > 1) {
+        // Multi-row homogeneous stage: the row descriptors must identify exactly the
+        // rows of the active transaction, and the handoff tensor must carry one
+        // column per row ([width, n_rows], column i belonging to row i).
+        if (config.n_rows != cassi_service_row_count) {
+            LLAMA_LOG_ERROR("%s: service row count %u does not match the active transaction (%u rows)\n",
+                    __func__, config.n_rows, cassi_service_row_count);
+            return nullptr;
+        }
+        if (config.batch_pos == nullptr || config.batch_seq_ids == nullptr ||
+                (config.kind == LLAMA_CASSI_EMBED && config.batch_tokens == nullptr)) {
+            LLAMA_LOG_ERROR("%s: missing apprenticeship row descriptors\n", __func__);
+            return nullptr;
+        }
+        if (config.input != nullptr &&
+                (config.input->type != GGML_TYPE_F32 ||
+                 config.input->ne[1] != (int64_t) config.n_rows ||
+                 (config.stage_width != 0 && config.input->ne[0] != (int64_t) config.stage_width) ||
+                 (config.stage_width == 0 && config.input->ne[0] != model.hparams.n_embd))) {
+            LLAMA_LOG_ERROR("%s: invalid apprenticeship service input shape (expected [%s%u] F32)\n",
+                    __func__,
+                    config.stage_width != 0 ? "" : format("n_embd = %u, ", model.hparams.n_embd).c_str(),
+                    config.n_rows);
+            return nullptr;
+        }
+        for (uint32_t r = 0; r < config.n_rows; ++r) {
+            const bool row_matches = config.batch_pos[r] == cassi_service_ubatch.pos[r] &&
+                config.batch_seq_ids[r] == cassi_service_ubatch.seq_id[r][0] &&
+                (config.batch_tokens == nullptr ||
+                    (config.kind != LLAMA_CASSI_EMBED ||
+                        config.batch_tokens[r] == cassi_service_ubatch.token[r]));
+            if (!row_matches) {
+                LLAMA_LOG_ERROR("%s: service row %u does not match the active transaction\n",
+                        __func__, r);
+                return nullptr;
+            }
+        }
     }
     if (config.kind == LLAMA_CASSI_ATTENTION) {
         if (config.layer < 0 || static_cast<uint32_t>(config.layer) >= cparams.cassi_attention_owned.size() ||
@@ -1922,6 +2409,7 @@ ggml_tensor * llama_context::cassi_service(const llm_cassi_service_config & conf
         config.kind == LLAMA_CASSI_ATTENTION ? cassi_service_mctx.get() : nullptr;
     llm_graph_result * result =
         process_ubatch(cassi_service_ubatch, LLM_GRAPH_TYPE_CASSI_SERVICE, mctx, status);
+    LLAMA_LOG_DEBUG("%s: group eval done status=%d out=%p\n", __func__, (int)status, result ? (void*)result->get_cassi_service() : nullptr);
     if (result == nullptr || status != GGML_STATUS_SUCCESS || result->get_cassi_service() == nullptr) {
         LLAMA_LOG_ERROR("%s: apprenticeship service graph failed\n", __func__);
         return nullptr;
@@ -1932,7 +2420,7 @@ ggml_tensor * llama_context::cassi_service(const llm_cassi_service_config & conf
 }
 
 int32_t llama_context::cassi_end_token() {
-    if (!cparams.cassi_apprentice || !cassi_service_active) {
+    if (!cparams.cassi_apprentice || !cassi_service_active || cassi_service_batch) {
         LLAMA_LOG_ERROR("%s: no apprenticeship token transaction\n", __func__);
         return -1;
     }
@@ -1940,11 +2428,286 @@ int32_t llama_context::cassi_end_token() {
         LLAMA_LOG_ERROR("%s: apprenticeship transaction produced more than one microbatch\n", __func__);
         return -1;
     }
+    const bool candidate_admitted =
+        graph_site_candidate_result.attempted && graph_site_candidate_result.admitted;
+    if (candidate_admitted && !cassi_service_snapshot_valid) {
+        cassi_service_poisoned = true;
+        graph_site_candidate_result.admitted = false;
+        graph_site_candidate_result.refusal = "rollback_snapshot_unavailable";
+        return -1;
+    }
     cassi_service_mctx.reset();
     cassi_service_ubatch = {};
     cassi_service_active = false;
     cassi_service_mctx_applied = false;
     cassi_service_next_pos++;
+    if (candidate_admitted) {
+        cassi_service_snapshot_committed = true;
+    } else {
+        cassi_token_snapshot_clear();
+    }
+    return 0;
+}
+
+llama_cassi_cancel_status llama_context::cassi_cancel_token() {
+    if (cassi_service_batch) {
+        return LLAMA_CASSI_CANCEL_NO_ACTIVE_TRANSACTION;
+    }
+    if (!cassi_service_active &&
+            !(cassi_service_snapshot_valid && cassi_service_snapshot_committed)) {
+        return LLAMA_CASSI_CANCEL_NO_ACTIVE_TRANSACTION;
+    }
+    if (!cassi_service_snapshot_valid) {
+        cassi_service_poisoned = true;
+        cassi_service_active = false;
+        cassi_service_mctx.reset();
+        cassi_service_ubatch = {};
+        cassi_service_mctx_applied = false;
+        cassi_service_epoch++;
+        cassi_token_snapshot_clear();
+        return LLAMA_CASSI_CANCEL_ROLLBACK_UNAVAILABLE;
+    }
+    if (!cassi_token_snapshot_restore()) {
+        return LLAMA_CASSI_CANCEL_RESTORE_FAILED;
+    }
+    if (graph_site_candidate_result.attempted &&
+            graph_site_candidate_result.admitted) {
+        graph_site_candidate_result.admitted = false;
+        graph_site_candidate_result.native_successor_sha256.clear();
+        graph_site_candidate_result.refusal = "candidate_cancelled";
+    }
+    return LLAMA_CASSI_CANCEL_OK;
+}
+
+int32_t llama_context::cassi_begin_tokens(const llama_batch & batch_req, uint32_t n_rows) {
+    if (!cparams.cassi_apprentice || cassi_service_active || cassi_service_batch ||
+            cassi_service_poisoned || cassi_service_snapshot_valid ||
+            !cassi_service_group_snapshot.empty() || graph_site_candidate_pending) {
+        LLAMA_LOG_ERROR("%s: invalid apprenticeship token transaction\n", __func__);
+        return -1;
+    }
+    if (n_rows == 0 || batch_req.n_tokens != static_cast<int32_t>(n_rows) ||
+            batch_req.token == nullptr || batch_req.pos == nullptr) {
+        LLAMA_LOG_ERROR("%s: invalid apprenticeship token rows (n_rows = %u, n_tokens = %d)\n",
+                __func__, n_rows, batch_req.n_tokens);
+        return -1;
+    }
+    cassi_token_snapshot_clear();
+    graph_site_candidate_result = {};
+    // Bounded stage: one homogeneous ubatch must carry every row, and each row
+    // maps to one KV/SSM sequence slot.
+    const uint32_t row_cap = std::min(std::min(cparams.n_seq_max, cparams.n_batch), cparams.n_ubatch);
+    if (n_rows > row_cap) {
+        LLAMA_LOG_ERROR("%s: n_rows = %u exceeds the bounded stage capacity %u (n_seq_max = %u, n_batch = %u, n_ubatch = %u)\n",
+                __func__, n_rows, row_cap, cparams.n_seq_max, cparams.n_batch, cparams.n_ubatch);
+        return -1;
+    }
+
+    std::unordered_set<llama_seq_id> row_seqs;
+    for (uint32_t r = 0; r < n_rows; ++r) {
+        const llama_token   token = batch_req.token[r];
+        const llama_pos     pos   = batch_req.pos[r];
+        const int32_t       n_seq = batch_req.n_seq_id ? batch_req.n_seq_id[r] : 1;
+        const llama_seq_id  seq   = batch_req.seq_id && batch_req.seq_id[r] ? batch_req.seq_id[r][0] : 0;
+        if (token < 0 || token >= model.vocab.n_tokens()) {
+            LLAMA_LOG_ERROR("%s: invalid token[%u] = %d\n", __func__, r, token);
+            return -1;
+        }
+        if (n_seq != 1) {
+            LLAMA_LOG_ERROR("%s: row %u maps to %d sequences - each row must identify exactly one sequence\n",
+                    __func__, r, n_seq);
+            return -1;
+        }
+        if (seq < 0 || static_cast<uint32_t>(seq) >= cparams.n_seq_max) {
+            LLAMA_LOG_ERROR("%s: invalid seq_id[%u] = %d (n_seq_max = %u)\n",
+                    __func__, r, seq, cparams.n_seq_max);
+            return -1;
+        }
+        if (pos < 0 || static_cast<uint32_t>(pos) >= cparams.n_ctx ||
+                (!cparams.kv_unified && static_cast<uint32_t>(pos) >= cparams.n_ctx_seq)) {
+            LLAMA_LOG_ERROR("%s: invalid pos[%u] = %d (n_ctx = %u, n_ctx_seq = %u)\n",
+                    __func__, r, pos, cparams.n_ctx, cparams.n_ctx_seq);
+            return -1;
+        }
+        if (!row_seqs.insert(seq).second) {
+            LLAMA_LOG_ERROR("%s: duplicate seq_id %d at row %u - a homogeneous stage must not repeat a sequence\n",
+                    __func__, seq, r);
+            return -1;
+        }
+    }
+    // Per-row protocol fence: every row lands on its sequence's next service position.
+    if (cassi_service_row_next_pos.size() < cparams.n_seq_max) {
+        cassi_service_row_next_pos.resize(cparams.n_seq_max, 0);
+    }
+    for (uint32_t r = 0; r < n_rows; ++r) {
+        const llama_seq_id seq = batch_req.seq_id && batch_req.seq_id[r] ? batch_req.seq_id[r][0] : 0;
+        if (batch_req.pos[r] != cassi_service_row_next_pos[seq]) {
+            LLAMA_LOG_ERROR("%s: pos[%u] = %d is not the next service position for seq_id %d (expected %d)\n",
+                    __func__, r, batch_req.pos[r], seq, cassi_service_row_next_pos[seq]);
+            return -1;
+        }
+    }
+
+    if (!cassi_group_snapshot_capture(batch_req, n_rows)) {
+        LLAMA_LOG_ERROR("%s: failed to snapshot apprenticeship group state\n", __func__);
+        return -1;
+    }
+    const auto abort_group = [&](const std::string & reason) {
+        cassi_service_mctx.reset();
+        cassi_service_ubatch = {};
+        cassi_service_active = false;
+        cassi_service_batch = false;
+        cassi_service_row_count = 0;
+        cassi_service_mctx_applied = false;
+        cassi_service_epoch++;
+        const bool restored = cassi_group_snapshot_restore(n_rows);
+        LLAMA_LOG_ERROR("%s: %s%s\n", __func__, reason.c_str(),
+                restored ? "" : " (group state restore failed; context poisoned)");
+        return -1;
+    };
+
+    llama_batch batch = batch_req;
+    if (!balloc->init(batch, model.vocab, memory.get(), model.hparams.n_embd,
+                cparams.kv_unified ? LLAMA_MAX_SEQ : cparams.n_seq_max, false)) {
+        return abort_group("failed to initialize apprenticeship batch");
+    }
+    balloc->split_reset();
+    cassi_service_mctx.reset();
+    if (memory != nullptr) {
+        // False also means that the memory module had no pending update.
+        memory_update(false);
+        cassi_service_mctx = memory->init_batch(*balloc, std::max<uint32_t>(n_rows, cparams.n_rs_seq + 2), false);
+        if (!cassi_service_mctx || llama_memory_status_is_fail(cassi_service_mctx->get_status())) {
+            return abort_group("failed to prepare apprenticeship memory transaction");
+        }
+        cassi_service_ubatch = cassi_service_mctx->get_ubatch();
+    } else {
+        cassi_service_ubatch = balloc->split_simple(n_rows);
+    }
+    // The whole homogeneous stage must execute as one ubatch in one graph run.
+    if (cassi_service_ubatch.n_tokens != n_rows || cassi_service_ubatch.n_seq_tokens != 1 ||
+            cassi_service_ubatch.n_seqs != n_rows || cassi_service_ubatch.n_seqs_unq != n_rows ||
+            cassi_service_ubatch.token == nullptr || cassi_service_ubatch.pos == nullptr ||
+            cassi_service_ubatch.seq_id == nullptr || cassi_service_ubatch.n_seq_id == nullptr) {
+        return abort_group("invalid apprenticeship microbatch - one homogeneous stage requires a single ubatch"
+                " (use kv_unified or strictly consecutive increasing seq ids for the group)");
+    }
+    for (uint32_t r = 0; r < n_rows; ++r) {
+        const llama_seq_id seq = batch_req.seq_id && batch_req.seq_id[r] ? batch_req.seq_id[r][0] : 0;
+        if (cassi_service_ubatch.n_seq_id[r] != 1 || cassi_service_ubatch.seq_id[r] == nullptr ||
+                cassi_service_ubatch.seq_id[r][0] != seq ||
+                cassi_service_ubatch.pos[r] != batch_req.pos[r] ||
+                cassi_service_ubatch.token[r] != batch_req.token[r]) {
+            return abort_group(format(
+                "apprenticeship microbatch row %u does not match its request row", r));
+        }
+    }
+    cassi_service_active = true;
+    cassi_service_mctx_applied = false;
+    cassi_service_batch = true;
+    cassi_service_row_count = n_rows;
+    cassi_service_epoch++;
+    cassi_service_nodes = 0;
+    return 0;
+}
+
+int32_t llama_context::cassi_end_tokens() {
+    if (!cparams.cassi_apprentice || !cassi_service_active || !cassi_service_batch) {
+        LLAMA_LOG_ERROR("%s: no apprenticeship token transaction\n", __func__);
+        return -1;
+    }
+    if (cassi_service_mctx_applied && cassi_service_mctx != nullptr && cassi_service_mctx->next()) {
+        LLAMA_LOG_ERROR("%s: apprenticeship transaction produced more than one microbatch\n", __func__);
+        return -1;
+    }
+    // Commit: advance each row's sequence to the next service position.
+    if (cassi_service_ubatch.pos != nullptr && cassi_service_ubatch.seq_id != nullptr) {
+        for (uint32_t r = 0; r < cassi_service_row_count; ++r) {
+            const llama_seq_id seq = cassi_service_ubatch.seq_id[r][0];
+            if (seq >= 0 && static_cast<uint32_t>(seq) < cassi_service_row_next_pos.size()) {
+                cassi_service_row_next_pos[seq] = cassi_service_ubatch.pos[r] + 1;
+            }
+        }
+    }
+    cassi_service_mctx.reset();
+    cassi_service_ubatch = {};
+    cassi_service_active = false;
+    cassi_service_batch = false;
+    cassi_service_row_count = 0;
+    cassi_service_mctx_applied = false;
+    cassi_group_snapshot_clear();
+    return 0;
+}
+
+int32_t llama_context::cassi_cancel_tokens() {
+    if (!cparams.cassi_apprentice || !cassi_service_active || !cassi_service_batch) {
+        LLAMA_LOG_ERROR("%s: no apprenticeship token transaction\n", __func__);
+        return -1;
+    }
+    const uint32_t row_count = cassi_service_row_count;
+    cassi_service_mctx.reset();
+    cassi_service_ubatch = {};
+    cassi_service_active = false;
+    cassi_service_batch = false;
+    cassi_service_row_count = 0;
+    cassi_service_mctx_applied = false;
+    cassi_service_epoch++;
+    if (!cassi_group_snapshot_restore(row_count)) {
+        LLAMA_LOG_ERROR("%s: apprenticeship group state restore failed; context poisoned\n", __func__);
+        return -1;
+    }
+    return 0;
+
+}
+uint32_t llama_context::cassi_service_rows() const {
+    return cassi_service_active ? cassi_service_row_count : 0;
+}
+
+llama_pos llama_context::cassi_service_next_pos_seq(llama_seq_id seq_id) const {
+    if (seq_id < 0 || static_cast<uint32_t>(seq_id) >= cparams.n_seq_max) {
+        return -1;
+    }
+    return seq_id < static_cast<llama_seq_id>(cassi_service_row_next_pos.size()) ?
+        cassi_service_row_next_pos[seq_id] : 0;
+}
+
+int32_t llama_context::cassi_group_row_reset(llama_seq_id seq_id) {
+    if (!cparams.cassi_apprentice || cassi_service_active || cassi_service_batch) {
+        LLAMA_LOG_ERROR("%s: no apprenticeship group at a round boundary\n", __func__);
+        return -1;
+    }
+    if (seq_id < 0 || static_cast<uint32_t>(seq_id) >= cparams.n_seq_max) {
+        LLAMA_LOG_ERROR("%s: invalid seq_id %d\n", __func__, seq_id);
+        return -1;
+    }
+    if (!memory) {
+        LLAMA_LOG_ERROR("%s: no memory module\n", __func__);
+        return -1;
+    }
+    memory->seq_rm(seq_id, -1, -1);
+    if (cassi_service_row_next_pos.size() < cparams.n_seq_max) {
+        cassi_service_row_next_pos.resize(cparams.n_seq_max, 0);
+    }
+    cassi_service_row_next_pos[seq_id] = 0;
+    return 0;
+}
+
+int32_t llama_context::cassi_service_rewind(llama_pos pos) {
+    if (!cparams.cassi_apprentice || cassi_service_active || cassi_service_batch ||
+            pos < 0 || pos > cassi_service_next_pos) {
+        LLAMA_LOG_ERROR("%s: invalid apprenticeship rewind request\n", __func__);
+        return -1;
+    }
+    if (pos < cassi_service_next_pos) {
+        if (!memory) {
+            LLAMA_LOG_ERROR("%s: no memory module\n", __func__);
+            return -1;
+        }
+        memory->seq_rm(0, pos, -1);
+    }
+    cassi_service_next_pos = pos;
+    cassi_service_poisoned = false;
+    cassi_token_snapshot_clear();
     return 0;
 }
 
@@ -2216,6 +2979,7 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
 
     auto * res = gf_res_prev.get();
     auto * gf  = res->get_gf();
+    LLAMA_LOG_DEBUG("%s: enter gtype=%d n_tokens=%d\n", __func__, (int)gtype, ubatch.n_tokens);
 
     // the new graph parameters
     // in order to correctly reuse a graph, it's full topology has to be uniquely determined by these parameters
@@ -2272,6 +3036,16 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
     const auto status = graph_compute(res->get_gf(), ubatch.n_tokens > 1);
     if (status != GGML_STATUS_SUCCESS) {
         LLAMA_LOG_ERROR("%s: failed to compute graph, compute status: %d\n", __func__, status);
+        if (graph_site_candidate_pending) {
+            graph_site_candidate_bind_identity(
+                graph_site_candidate, graph_site_candidate_result);
+            if (!graph_site_candidate_result.attempted) {
+                graph_site_candidate_result.attempted = true;
+                graph_site_candidate_result.admitted = false;
+                graph_site_candidate_result.refusal = "graph_compute_failed";
+            }
+            graph_site_candidate_pending = false;
+        }
         ret = status;
         return nullptr;
     }
@@ -2279,6 +3053,33 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
     queue_cassi_field_state(res, ubatch);
     queue_cassi_qi_field_state(res, ubatch);
 
+    if (graph_site_candidate_pending) {
+        const auto & receipt = res->get_graph_site_candidate_result();
+        if (receipt.attempted) {
+            graph_site_candidate_result = receipt;
+            graph_site_candidate_bind_identity(
+                graph_site_candidate, graph_site_candidate_result);
+            if (graph_site_candidate_result.admitted) {
+                graph_site_candidate_measure_result();
+            }
+            if (graph_site_candidate_result.admitted) {
+                auto & sequence = graph_site_sequence_states[graph_site_candidate.sequence_id];
+                const std::string method_identity = std::to_string(graph_site_candidate.layer) + ":" +
+                    std::to_string((uint32_t) graph_site_candidate.kind) + ":" +
+                    graph_site_candidate.method_key;
+                sequence.source_sha256 = graph_site_candidate.source_sha256;
+                sequence.owner_generation = graph_site_candidate.owner_generation;
+                sequence.method_generations[method_identity] = graph_site_candidate.method_generation;
+            }
+        } else if (!graph_site_candidate_result.attempted) {
+            graph_site_candidate_bind_identity(
+                graph_site_candidate, graph_site_candidate_result);
+            graph_site_candidate_result.attempted = true;
+            graph_site_candidate_result.admitted = false;
+            graph_site_candidate_result.refusal = "candidate_not_admitted";
+        }
+        graph_site_candidate_pending = false;
+    }
     ret = GGML_STATUS_SUCCESS;
 
     return res;
@@ -3345,12 +4146,772 @@ ggml_cgraph * llama_context::graph_reserve(
 
     return gf;
 }
+bool llama_context::graph_site_candidate_set(const llama_cassi_graph_site_candidate & c) {
+    if (cassi_service_active || cassi_service_snapshot_valid ||
+            !cassi_service_group_snapshot.empty() || graph_site_candidate_pending ||
+            cassi_service_poisoned) {
+        return false;
+    }
+    const auto reject = [&](const char * reason) {
+        graph_site_candidate = {};
+        graph_site_candidate_pending = false;
+        graph_site_candidate_result = {};
+        graph_site_candidate_result.attempted = true;
+        graph_site_candidate_result.owner_generation = c.owner_generation;
+        graph_site_candidate_result.refusal = reason;
+        return false;
+    };
+    const auto valid_sha256 = [](const char * value) {
+        if (value == nullptr || std::strlen(value) != 64) {
+            return false;
+        }
+        for (size_t i = 0; i < 64; ++i) {
+            const char c = value[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) {
+                return false;
+            }
+        }
+        return true;
+    };
+    if ((c.kind != LLAMA_CASSI_GRAPH_SITE_EXPERTS && c.kind != LLAMA_CASSI_GRAPH_SITE_RECURRENT &&
+                c.kind != LLAMA_CASSI_GRAPH_SITE_ATTENTION_MEMORY &&
+                c.kind != LLAMA_CASSI_GRAPH_SITE_EXECUTION_CHOICE) ||
+            c.architecture == nullptr ||
+            std::strcmp(c.architecture, llm_arch_name(model.arch)) != 0 ||
+            c.source_sha256 == nullptr || c.sequence_id == nullptr || c.sequence_id[0] == '\0' ||
+            c.backend == nullptr || c.backend[0] == '\0' ||
+            c.input_tensor == nullptr || c.output_tensor == nullptr ||
+            c.tensor_dtype == nullptr || std::strcmp(c.tensor_dtype, "f32") != 0 ||
+            c.stage == nullptr || c.site == nullptr || c.specialist == nullptr || c.specialist[0] == '\0' ||
+            c.predecessor_sha256 == nullptr || c.request_sha256 == nullptr ||
+            c.invocation_sha256 == nullptr || c.candidate_sha256 == nullptr ||
+            c.intervention_order == nullptr || c.intervention_order[0] == '\0' ||
+            c.dependencies_json == nullptr || c.dependencies_json[0] == '\0' ||
+            c.method_key == nullptr || std::strcmp(c.method_key, "cassifi.graph-site-low-rank-affine.v1") != 0 ||
+            c.method_generation == 0 || c.a == nullptr || c.b == nullptr || c.bias == nullptr ||
+            c.input_width == 0 || c.output_width == 0 || c.rank == 0 || c.rank > 16 ||
+            c.position < 0 ||
+            (c.kind == LLAMA_CASSI_GRAPH_SITE_EXECUTION_CHOICE
+                ? c.layer != -1
+                : (c.layer < 0 || c.layer >= (int32_t) model.hparams.n_layer())) ||
+            c.seq_id < 0 || c.seq_id >= LLAMA_MAX_SEQ || c.owner_generation == 0 ||
+            !valid_sha256(c.source_sha256) || !valid_sha256(c.predecessor_sha256) ||
+            (c.request_sha256_pending
+                ? c.request_sha256[0] != '\0'
+                : !valid_sha256(c.request_sha256)) ||
+            !valid_sha256(c.invocation_sha256) || !valid_sha256(c.candidate_sha256)) {
+        return reject("invalid_candidate");
+    }
+
+    uint64_t expected_input = 0;
+    uint64_t expected_output = 0;
+    if (c.kind == LLAMA_CASSI_GRAPH_SITE_EXPERTS) {
+        const auto & layer = model.layers[c.layer];
+        if (std::strcmp(c.stage, "qwen-experts") != 0 ||
+                std::strcmp(c.site, "qwen-experts") != 0 ||
+                std::strcmp(c.specialist, "expert-synthesis") != 0 ||
+                std::strcmp(c.input_tensor, "attn_post_norm") != 0 ||
+                std::strcmp(c.output_tensor, "ffn_delta") != 0 ||
+                layer.ffn_gate_inp == nullptr || layer.ffn_down_exps == nullptr ||
+                (layer.ffn_gate_up_exps == nullptr &&
+                 (layer.ffn_up_exps == nullptr || layer.ffn_gate_exps == nullptr)) ||
+                ((layer.ffn_gate_inp_shexp != nullptr || layer.ffn_gate_shexp != nullptr ||
+                  layer.ffn_up_shexp != nullptr || layer.ffn_down_shexp != nullptr) &&
+                 (layer.ffn_gate_inp_shexp == nullptr || layer.ffn_gate_shexp == nullptr ||
+                  layer.ffn_up_shexp == nullptr || layer.ffn_down_shexp == nullptr))) {
+            return reject("expert_site_unsupported");
+        }
+        expected_input = model.hparams.n_embd;
+        expected_output = model.hparams.n_embd;
+        if (c.conv_history_rows != 0 || c.conv_history_channels != 0 ||
+                c.recurrent_state_heads != 0 || c.recurrent_state_value_width != 0 ||
+                c.recurrent_state_key_width != 0 ||
+                c.attn_kv_heads != 0 || c.attn_kv_head_width != 0) {
+            return reject("unexpected_recurrent_shape");
+        }
+    } else if (c.kind == LLAMA_CASSI_GRAPH_SITE_RECURRENT) {
+        const auto & layer = model.layers[c.layer];
+        if (std::strcmp(c.stage, "qwen-attention-route") != 0 ||
+                std::strcmp(c.site, "recurrent-attention") != 0 ||
+                std::strcmp(c.specialist, "recurrent-dynamics") != 0 ||
+                std::strcmp(c.input_tensor, "recurrent_features") != 0 ||
+                std::strcmp(c.output_tensor, "recurrent_successor") != 0 ||
+                !model.hparams.is_recr(c.layer) || layer.ssm_conv1d == nullptr) {
+            return reject("recurrent_site_unsupported");
+        }
+        const uint64_t conv_rows = (uint64_t) layer.ssm_conv1d->ne[0] - 1;
+        const uint64_t conv_channels = model.hparams.ssm_d_inner +
+            2ULL * model.hparams.ssm_n_group * model.hparams.ssm_d_state;
+        const uint64_t state_heads = model.hparams.ssm_dt_rank;
+        const uint64_t state_head_width = state_heads == 0 ? 0 :
+            model.hparams.ssm_d_inner / state_heads;
+        const uint64_t conv_width = conv_rows * conv_channels;
+        const uint64_t state_width = model.hparams.n_embd_s();
+        const uint64_t state_element_count =
+            state_heads * state_head_width * state_head_width;
+        const uint64_t total_width = model.hparams.n_embd + conv_width + state_width;
+        if (conv_rows == 0 || conv_channels == 0 || state_heads == 0 ||
+                state_head_width == 0 || total_width > UINT32_MAX ||
+                conv_width != (uint64_t) model.hparams.n_embd_r() ||
+                state_width != (uint64_t) model.hparams.n_embd_s() ||
+                state_element_count != state_width ||
+                c.conv_history_rows != conv_rows ||
+                c.conv_history_channels != conv_channels ||
+                c.recurrent_state_heads != state_heads ||
+                c.recurrent_state_value_width != state_head_width ||
+                c.recurrent_state_key_width != state_head_width ||
+                c.attn_kv_heads != 0 || c.attn_kv_head_width != 0) {
+            return reject("recurrent_state_shape_mismatch");
+        }
+        expected_input = total_width;
+        expected_output = total_width;
+    } else if (c.kind == LLAMA_CASSI_GRAPH_SITE_ATTENTION_MEMORY) {
+        const auto & layer = model.layers[c.layer];
+        if (std::strcmp(c.stage, "qwen-attention-route") != 0 ||
+                std::strcmp(c.site, "attention-memory") != 0 ||
+                std::strcmp(c.specialist, "attention-memory") != 0 ||
+                std::strcmp(c.input_tensor, "attention_features") != 0 ||
+                std::strcmp(c.output_tensor, "attention_successor") != 0 ||
+                model.hparams.is_recr(c.layer) || layer.wo == nullptr) {
+            return reject("attention_memory_site_unsupported");
+        }
+        const uint64_t kv_heads = model.hparams.n_head_kv(c.layer);
+        const uint64_t kv_head_width = model.hparams.n_embd_head_v(c.layer);
+        if (kv_heads == 0 || kv_head_width == 0 ||
+                kv_head_width != model.hparams.n_embd_head_k(c.layer) ||
+                c.attn_kv_heads != kv_heads || c.attn_kv_head_width != kv_head_width ||
+                c.conv_history_rows != 0 || c.conv_history_channels != 0 ||
+                c.recurrent_state_heads != 0 || c.recurrent_state_value_width != 0 ||
+                c.recurrent_state_key_width != 0) {
+            return reject("attention_memory_state_shape_mismatch");
+        }
+        const uint64_t kv_width = kv_heads * kv_head_width;
+        if (kv_width > UINT32_MAX ||
+                (uint64_t) model.hparams.n_embd + 2ULL * kv_width > UINT32_MAX) {
+            return reject("method_shape_mismatch");
+        }
+        expected_input = model.hparams.n_embd;
+        expected_output = model.hparams.n_embd + 2ULL * kv_width;
+    } else {
+        if (std::strcmp(c.stage, "qwen-head") != 0 ||
+                std::strcmp(c.site, "execution-choice") != 0 ||
+                std::strcmp(c.specialist, "execution-choice") != 0 ||
+                std::strcmp(c.input_tensor, "head_input") != 0 ||
+                std::strcmp(c.output_tensor, "logits") != 0) {
+            return reject("execution_choice_site_unsupported");
+        }
+        if (c.conv_history_rows != 0 || c.conv_history_channels != 0 ||
+                c.recurrent_state_heads != 0 || c.recurrent_state_value_width != 0 ||
+                c.recurrent_state_key_width != 0 ||
+                c.attn_kv_heads != 0 || c.attn_kv_head_width != 0) {
+            return reject("unexpected_recurrent_shape");
+        }
+        const uint64_t vocab_size = (uint64_t) model.vocab.n_tokens();
+        if (vocab_size == 0 || vocab_size > UINT32_MAX) {
+            return reject("method_shape_mismatch");
+        }
+        expected_input = model.hparams.n_embd;
+        expected_output = vocab_size;
+    }
+    if (expected_input > UINT32_MAX || expected_output > UINT32_MAX) {
+        return reject("method_shape_mismatch");
+    }
+    const uint64_t expected_a_count = expected_input * c.rank;
+    const uint64_t expected_b_count = (uint64_t) c.rank * expected_output;
+    if (c.input_width != expected_input || c.output_width != expected_output ||
+            c.a_count != expected_a_count || c.b_count != expected_b_count ||
+            c.bias_count != expected_output) {
+        return reject("method_shape_mismatch");
+    }
+    if (c.input_support_anchor == nullptr ||
+            c.input_support_anchor_count != expected_input ||
+            !std::isfinite(c.input_support_radius) || c.input_support_radius < 0.0f ||
+            !std::isfinite(c.input_support_anchor_norm) ||
+            c.input_support_anchor_norm < 0.0f) {
+        return reject("input_support_guard_invalid");
+    }
+    for (size_t i = 0; i < c.input_support_anchor_count; ++i) {
+        if (!std::isfinite(c.input_support_anchor[i])) {
+            return reject("input_support_anchor_nonfinite");
+        }
+    }
+    if (c.kind == LLAMA_CASSI_GRAPH_SITE_EXPERTS) {
+        if (c.expected_expert_ids == nullptr ||
+                c.expected_expert_ids_count != model.hparams.n_expert_used) {
+            return reject("expected_expert_route_required");
+        }
+        std::vector<uint8_t> seen(model.hparams.n_expert, 0);
+        for (size_t i = 0; i < c.expected_expert_ids_count; ++i) {
+            const int32_t expert_id = c.expected_expert_ids[i];
+            if (expert_id < 0 || (uint32_t) expert_id >= model.hparams.n_expert ||
+                    seen[expert_id] != 0) {
+                return reject("expected_expert_route_invalid");
+            }
+            seen[expert_id] = 1;
+        }
+    } else if (c.expected_expert_ids != nullptr || c.expected_expert_ids_count != 0) {
+        return reject("unexpected_expert_route");
+    }
+
+    auto & sequence = graph_site_sequence_states[c.sequence_id];
+    const std::string method_identity = std::to_string(c.layer) + ":" +
+        std::to_string((uint32_t) c.kind) + ":" + c.method_key;
+    const auto previous_method = sequence.method_generations.find(method_identity);
+    if ((!sequence.source_sha256.empty() && sequence.source_sha256 != c.source_sha256) ||
+            c.predecessor_generation != sequence.owner_generation ||
+            c.owner_generation <= sequence.generation_floor ||
+            c.owner_generation <= sequence.owner_generation ||
+            (previous_method != sequence.method_generations.end() &&
+             c.method_generation < previous_method->second)) {
+        return reject("stale_predecessor_or_generation");
+    }
+
+    graph_site_candidate = {};
+    graph_site_candidate.kind = c.kind == LLAMA_CASSI_GRAPH_SITE_EXPERTS ? llm_graph_site_candidate_kind::EXPERTS
+        : c.kind == LLAMA_CASSI_GRAPH_SITE_RECURRENT ? llm_graph_site_candidate_kind::RECURRENT
+        : c.kind == LLAMA_CASSI_GRAPH_SITE_ATTENTION_MEMORY ? llm_graph_site_candidate_kind::ATTENTION_MEMORY
+        : llm_graph_site_candidate_kind::EXECUTION_CHOICE;
+    graph_site_candidate.seq_id = c.seq_id;
+    graph_site_candidate.position = c.position;
+    graph_site_candidate.layer = c.layer;
+    graph_site_candidate.owner_generation = c.owner_generation;
+    graph_site_candidate.predecessor_generation = c.predecessor_generation;
+    graph_site_candidate.sequence_id = c.sequence_id;
+    graph_site_candidate.source_sha256 = c.source_sha256;
+    graph_site_candidate.architecture = c.architecture;
+    graph_site_candidate.backend = c.backend;
+    graph_site_candidate.input_tensor = c.input_tensor;
+    graph_site_candidate.output_tensor = c.output_tensor;
+    graph_site_candidate.tensor_dtype = c.tensor_dtype;
+    graph_site_candidate.stage = c.stage;
+    graph_site_candidate.site = c.site;
+    graph_site_candidate.specialist = c.specialist;
+    graph_site_candidate.predecessor_sha256 = c.predecessor_sha256;
+    graph_site_candidate.request_sha256 = c.request_sha256;
+    graph_site_candidate.request_sha256_pending = c.request_sha256_pending;
+    graph_site_candidate.invocation_sha256 = c.invocation_sha256;
+    graph_site_candidate.candidate_sha256 = c.candidate_sha256;
+    graph_site_candidate.intervention_order = c.intervention_order;
+    graph_site_candidate.dependencies_json = c.dependencies_json;
+    graph_site_candidate.method_key = c.method_key;
+    graph_site_candidate.method_generation = c.method_generation;
+    graph_site_candidate.input_width = c.input_width;
+    graph_site_candidate.input_support_radius = c.input_support_radius;
+    graph_site_candidate.input_support_anchor_norm = c.input_support_anchor_norm;
+    if (c.expected_expert_ids_count != 0) {
+        graph_site_candidate.expected_expert_ids.assign(
+            c.expected_expert_ids,
+            c.expected_expert_ids + c.expected_expert_ids_count);
+    }
+    graph_site_candidate.rank = c.rank;
+    graph_site_candidate.output_width = c.output_width;
+    graph_site_candidate.conv_history_rows = c.conv_history_rows;
+    graph_site_candidate.conv_history_channels = c.conv_history_channels;
+    graph_site_candidate.recurrent_state_heads = c.recurrent_state_heads;
+    graph_site_candidate.recurrent_state_value_width = c.recurrent_state_value_width;
+    graph_site_candidate.recurrent_state_key_width = c.recurrent_state_key_width;
+    graph_site_candidate.attn_kv_heads = c.attn_kv_heads;
+    graph_site_candidate.attn_kv_head_width = c.attn_kv_head_width;
+    graph_site_candidate.a.resize(c.a_count);
+    graph_site_candidate.b.resize(c.b_count);
+    graph_site_candidate.bias.resize(c.bias_count);
+    const auto canonical_to_native = [&](uint32_t canonical_index) -> uint32_t {
+        if (c.kind != LLAMA_CASSI_GRAPH_SITE_RECURRENT ||
+                canonical_index < (uint32_t) model.hparams.n_embd) {
+            return canonical_index;
+        }
+        const uint64_t hidden = model.hparams.n_embd;
+        const uint64_t conv_width = (uint64_t) c.conv_history_rows * c.conv_history_channels;
+        if (canonical_index < hidden + conv_width) {
+            const uint64_t conv_index = canonical_index - hidden;
+            const uint64_t row = conv_index / c.conv_history_channels;
+            const uint64_t channel = conv_index % c.conv_history_channels;
+            return (uint32_t) (hidden + channel * c.conv_history_rows + row);
+        }
+        const uint64_t state_index = canonical_index - hidden - conv_width;
+        const uint64_t value_width = c.recurrent_state_value_width;
+        const uint64_t key_width = c.recurrent_state_key_width;
+        const uint64_t state_head_width = value_width * key_width;
+        const uint64_t head = state_index / state_head_width;
+        const uint64_t value = (state_index / key_width) % value_width;
+        const uint64_t key = state_index % key_width;
+        const uint64_t native_state_index =
+            head * state_head_width + key * value_width + value;
+        return (uint32_t) (hidden + conv_width + native_state_index);
+    };
+    graph_site_candidate.input_support_anchor.resize(c.input_support_anchor_count);
+    for (uint32_t canonical_i = 0; canonical_i < c.input_width; ++canonical_i) {
+        graph_site_candidate.input_support_anchor[canonical_to_native(canonical_i)] =
+            c.input_support_anchor[canonical_i];
+    }
+    for (uint32_t canonical_i = 0; canonical_i < c.input_width; ++canonical_i) {
+        const uint32_t native_i = canonical_to_native(canonical_i);
+        for (uint32_t r = 0; r < c.rank; ++r) {
+            graph_site_candidate.a[(size_t) r * c.input_width + native_i] =
+                c.a[(size_t) canonical_i * c.rank + r];
+        }
+    }
+    for (uint32_t canonical_o = 0; canonical_o < c.output_width; ++canonical_o) {
+        const uint32_t native_o = canonical_to_native(canonical_o);
+        graph_site_candidate.bias[native_o] = c.bias[canonical_o];
+        for (uint32_t r = 0; r < c.rank; ++r) {
+            graph_site_candidate.b[(size_t) native_o * c.rank + r] =
+                c.b[(size_t) r * c.output_width + canonical_o];
+        }
+    }
+    const auto finite = [](const std::vector<float> & values) {
+        return std::all_of(values.begin(), values.end(), [](float value) { return std::isfinite(value); });
+    };
+    if (!finite(graph_site_candidate.a) || !finite(graph_site_candidate.b) ||
+            !finite(graph_site_candidate.bias)) {
+        return reject("nonfinite_coefficients");
+    }
+    graph_site_candidate_result = {};
+    graph_site_candidate_pending = true;
+    return true;
+}
+
+void llama_context::graph_site_candidate_clear(const std::string & sequence_id, uint64_t owner_generation) {
+    if (!sequence_id.empty()) {
+        auto & sequence = graph_site_sequence_states[sequence_id];
+        sequence.generation_floor = std::max(sequence.generation_floor, owner_generation);
+    }
+    const bool has_candidate = !graph_site_candidate.sequence_id.empty();
+    const bool sequence_matches =
+        sequence_id.empty() || graph_site_candidate.sequence_id == sequence_id;
+    const bool generation_matches =
+        !has_candidate || owner_generation >= graph_site_candidate.owner_generation;
+    if (sequence_matches && generation_matches) {
+        graph_site_candidate = {};
+        graph_site_candidate_pending = false;
+        graph_site_candidate_result = {};
+        graph_site_candidate_result.attempted = !sequence_id.empty();
+        graph_site_candidate_result.owner_generation = owner_generation;
+        graph_site_candidate_result.refusal = sequence_id.empty() ? "" : "candidate_cancelled";
+    }
+}
+
+const llm_graph_site_candidate_result & llama_context::graph_site_candidate_get_result() const {
+    return graph_site_candidate_result;
+}
+
+bool llama_context::graph_site_candidate_set_native_successor_sha256(
+        const std::string & candidate_sha256,
+        const std::string & invocation_sha256,
+        const std::string & native_successor_sha256) {
+    if (!graph_site_valid_sha256(candidate_sha256.c_str()) ||
+            !graph_site_valid_sha256(invocation_sha256.c_str()) ||
+            !graph_site_valid_sha256(native_successor_sha256.c_str()) ||
+            graph_site_candidate_pending || cassi_service_active ||
+            !cassi_service_snapshot_valid || !cassi_service_snapshot_committed ||
+            !graph_site_candidate_result.attempted || !graph_site_candidate_result.admitted ||
+            !graph_site_candidate_result.native_successor_sha256.empty() ||
+            graph_site_candidate_result.candidate_sha256 != candidate_sha256 ||
+            graph_site_candidate_result.invocation_sha256 != invocation_sha256 ||
+            graph_site_candidate.candidate_sha256 != candidate_sha256 ||
+            graph_site_candidate.invocation_sha256 != invocation_sha256) {
+        return false;
+    }
+    graph_site_candidate_result.native_successor_sha256 = native_successor_sha256;
+    return true;
+}
+
+bool llama_context::graph_site_candidate_target_stage(llm_graph_type gtype) const {
+    const auto & candidate = graph_site_candidate;
+    if (!cassi_service_active) {
+        // No apprenticeship service token: the candidate rides the ordinary
+        // one-token decode graph (a default context maps to
+        // LLM_GRAPH_TYPE_DEFAULT, an explicit decode context to
+        // LLM_GRAPH_TYPE_DECODER; the service-only gating below would
+        // otherwise make a staged candidate unreachable and it would be
+        // reported as candidate_not_admitted).
+        return (gtype == LLM_GRAPH_TYPE_DEFAULT || gtype == LLM_GRAPH_TYPE_DECODER) &&
+            !cassi_service_batch;
+    }
+    if (gtype != LLM_GRAPH_TYPE_CASSI_SERVICE ||
+            cassi_service_batch || cassi_service_config.n_rows != 1 ||
+            cassi_service_config.layer != candidate.layer) {
+        return false;
+    }
+    if (candidate.kind == llm_graph_site_candidate_kind::EXPERTS) {
+        return cassi_service_config.kind == LLAMA_CASSI_FFN &&
+            candidate.stage == "qwen-experts" && candidate.site == "qwen-experts" &&
+            candidate.specialist == "expert-synthesis" &&
+            candidate.input_tensor == "attn_post_norm" &&
+            candidate.output_tensor == "ffn_delta";
+    }
+    if (candidate.kind == llm_graph_site_candidate_kind::RECURRENT) {
+        return cassi_service_config.kind == LLAMA_CASSI_ATTENTION &&
+            candidate.stage == "qwen-attention-route" &&
+            candidate.site == "recurrent-attention" &&
+            candidate.specialist == "recurrent-dynamics" &&
+            candidate.input_tensor == "recurrent_features" &&
+            candidate.output_tensor == "recurrent_successor";
+    }
+    return false;
+}
+void llama_context::graph_site_candidate_measure_result() {
+    auto & result = graph_site_candidate_result;
+    const auto & candidate = graph_site_candidate;
+    const auto refuse = [&](const char * reason) {
+        result.admitted = false;
+        result.refusal = reason;
+        result.output_sha256.clear();
+        result.native_successor_sha256.clear();
+        result.successor_sha256.clear();
+        result.successor_state_json.clear();
+        result.input_tensor = nullptr;
+        result.output_tensor = nullptr;
+        result.expert_ids_tensor = nullptr;
+    };
+    if (!result.attempted || !result.admitted || result.input_tensor == nullptr ||
+            result.output_tensor == nullptr || candidate.input_width == 0 ||
+            candidate.output_width == 0 || sched == nullptr) {
+        refuse("graph_site_measurement_unavailable");
+        return;
+    }
+
+    // graph_compute is asynchronous.  Complete it before reading any graph or
+    // recurrent tensor so the receipt never hashes an in-flight or stale buffer.
+    synchronize();
+
+    const auto valid_vector_tensor = [](const ggml_tensor * tensor, uint32_t width) {
+        return tensor != nullptr && width != 0 && tensor->type == GGML_TYPE_F32 &&
+            tensor->buffer != nullptr && ggml_is_contiguous(tensor) &&
+            tensor->ne[0] == (int64_t) width && tensor->ne[1] == 1 &&
+            tensor->ne[2] == 1 && tensor->ne[3] == 1;
+    };
+    if (!valid_vector_tensor(result.input_tensor, candidate.input_width) ||
+            !valid_vector_tensor(result.output_tensor, candidate.output_width)) {
+        refuse("graph_site_tensor_layout_unsupported");
+        return;
+    }
+
+    std::vector<uint8_t> input_bytes;
+    std::vector<uint8_t> output_bytes;
+    std::string input_digest;
+    std::string output_digest;
+    if (!graph_site_tensor_sha256(
+                sched.get(), result.input_tensor, candidate.input_width,
+                input_bytes, input_digest) ||
+            !graph_site_tensor_sha256(
+                sched.get(), result.output_tensor, candidate.output_width,
+                output_bytes, output_digest)) {
+        refuse("graph_site_tensor_readback_failed");
+        return;
+    }
+    result.input_sha256 = input_digest;
+    if (candidate.request_sha256_pending) {
+        result.request_sha256 = input_digest;
+        result.request_sha256_pending = true;
+    } else {
+        result.request_sha256 = candidate.request_sha256;
+        result.request_sha256_pending = false;
+    }
+
+    // Support is evaluated against the native feature order consumed by the
+    // graph.  Candidate anchors are remapped at admission from canonical C
+    // order, so this comparison cannot silently label a native permutation C.
+    if (candidate.input_support_anchor.size() != candidate.input_width) {
+        refuse("input_support_anchor_unavailable");
+        return;
+    }
+    double distance_squared = 0.0;
+    for (uint32_t i = 0; i < candidate.input_width; ++i) {
+        float observed = 0.0f;
+        std::memcpy(&observed, input_bytes.data() + (size_t) i * sizeof(float), sizeof(float));
+        if (!std::isfinite(observed)) {
+            refuse("graph_site_input_nonfinite");
+            return;
+        }
+        const double delta = static_cast<double>(observed) -
+            static_cast<double>(candidate.input_support_anchor[i]);
+        distance_squared += delta * delta;
+        if (!std::isfinite(distance_squared)) {
+            refuse("input_support_distance_invalid");
+            return;
+        }
+    }
+    const double distance = std::sqrt(distance_squared);
+    const double support_limit = static_cast<double>(candidate.input_support_radius) +
+        1.0e-5 * std::max(1.0, static_cast<double>(candidate.input_support_anchor_norm));
+    if (!std::isfinite(distance) || !std::isfinite(support_limit) || distance > support_limit) {
+        refuse("input_support_mismatch");
+        return;
+    }
+
+    for (size_t offset = 0; offset < output_bytes.size(); offset += sizeof(float)) {
+        float observed = 0.0f;
+        std::memcpy(&observed, output_bytes.data() + offset, sizeof(float));
+        if (!std::isfinite(observed)) {
+            refuse("graph_site_output_nonfinite");
+            return;
+        }
+    }
+
+    if (candidate.kind == llm_graph_site_candidate_kind::EXPERTS) {
+        if (result.expert_ids_tensor == nullptr ||
+                result.expert_ids_tensor->ne[0] != (int64_t) candidate.expected_expert_ids.size() ||
+                result.expert_ids_tensor->ne[1] != 1 || result.expert_ids_tensor->ne[2] != 1 ||
+                result.expert_ids_tensor->ne[3] != 1) {
+            refuse("expert_route_tensor_layout_unsupported");
+            return;
+        }
+        std::vector<int32_t> actual_route;
+        if (!graph_site_tensor_i32_values(
+                    sched.get(), result.expert_ids_tensor,
+                    candidate.expected_expert_ids.size(), actual_route)) {
+            refuse("expert_route_readback_failed");
+            return;
+        }
+        const bool route_matches = actual_route == candidate.expected_expert_ids;
+        result.actual_expert_ids = std::move(actual_route);
+        if (!route_matches) {
+            refuse("expert_route_mismatch");
+            return;
+        }
+        result.output_sha256 = output_digest;
+        result.successor_state_json = graph_site_successor_state_json(
+            "expert_output", output_digest,
+            "[" + std::to_string(candidate.output_width) + "]");
+        result.successor_sha256 = graph_site_successor_json_digest(result.successor_state_json);
+        if (result.successor_sha256.empty()) {
+            refuse("graph_site_successor_digest_failed");
+            return;
+        }
+    } else if (candidate.kind == llm_graph_site_candidate_kind::RECURRENT) {
+        const uint64_t hidden_width = model.hparams.n_embd;
+        const uint64_t conv_rows = candidate.conv_history_rows;
+        const uint64_t conv_channels = candidate.conv_history_channels;
+        const uint64_t state_heads = candidate.recurrent_state_heads;
+        const uint64_t value_width = candidate.recurrent_state_value_width;
+        const uint64_t key_width = candidate.recurrent_state_key_width;
+        const uint64_t conv_width = conv_rows * conv_channels;
+        const uint64_t state_width = state_heads * value_width * key_width;
+        const uint64_t total_width = hidden_width + conv_width + state_width;
+        if (hidden_width == 0 || conv_rows == 0 || conv_channels == 0 || state_heads == 0 ||
+                value_width == 0 || key_width == 0 || conv_width > SIZE_MAX ||
+                state_width > SIZE_MAX || total_width != candidate.output_width ||
+                total_width > SIZE_MAX / sizeof(float) || output_bytes.size() != total_width * sizeof(float)) {
+            refuse("recurrent_successor_shape_unsupported");
+            return;
+        }
+
+        // The native recurrent buffer stores convolution history as
+        // [channel,row] and state as [head,key,value].  Hash each descriptor's
+        // actual values in its declared logical C-order shape instead of
+        // exposing that physical permutation as if it were C-order.
+        const auto direct_digest = [&](size_t byte_offset, size_t byte_count,
+                                       std::string & digest) {
+            return byte_count != 0 && byte_offset <= output_bytes.size() &&
+                byte_count <= output_bytes.size() - byte_offset &&
+                graph_site_sha256_bytes(output_bytes.data() + byte_offset, byte_count, digest);
+        };
+        std::string hidden_digest;
+        if (!direct_digest(0, (size_t) hidden_width * sizeof(float), hidden_digest)) {
+            refuse("recurrent_hidden_readback_failed");
+            return;
+        }
+        sha256_t conv_hash;
+        sha256_t state_hash;
+        sha256_init(&conv_hash);
+        sha256_init(&state_hash);
+        for (uint64_t row = 0; row < conv_rows; ++row) {
+            for (uint64_t channel = 0; channel < conv_channels; ++channel) {
+                const size_t native_index = (size_t) hidden_width +
+                    (size_t) channel * (size_t) conv_rows + (size_t) row;
+                sha256_update(&conv_hash,
+                    output_bytes.data() + native_index * sizeof(float), sizeof(float));
+            }
+        }
+        for (uint64_t head = 0; head < state_heads; ++head) {
+            for (uint64_t value = 0; value < value_width; ++value) {
+                for (uint64_t key = 0; key < key_width; ++key) {
+                    const size_t native_index = (size_t) hidden_width + (size_t) conv_width +
+                        (size_t) head * (size_t) value_width * (size_t) key_width +
+                        (size_t) key * (size_t) value_width + (size_t) value;
+                    sha256_update(&state_hash,
+                        output_bytes.data() + native_index * sizeof(float), sizeof(float));
+                }
+            }
+        }
+        uint8_t conv_digest_bytes[SHA256_DIGEST_SIZE];
+        uint8_t state_digest_bytes[SHA256_DIGEST_SIZE];
+        sha256_final(&conv_hash, conv_digest_bytes);
+        sha256_final(&state_hash, state_digest_bytes);
+        const std::string conv_digest = graph_site_sha256_hex(conv_digest_bytes);
+        const std::string state_digest = graph_site_sha256_hex(state_digest_bytes);
+        result.output_sha256 = output_digest;
+        const std::string conv_name = "conv_history." + std::to_string(candidate.layer);
+        const std::string state_name = "recurrent_state." + std::to_string(candidate.layer);
+        result.successor_state_json = graph_site_successor_map_json({
+            {"hidden", graph_site_f32_descriptor_json(
+                hidden_digest, "[" + std::to_string(hidden_width) + "]")},
+            {conv_name, graph_site_f32_descriptor_json(
+                conv_digest, "[" + std::to_string(conv_rows) + "," +
+                    std::to_string(conv_channels) + "]")},
+            {state_name, graph_site_f32_descriptor_json(
+                state_digest, "[" + std::to_string(state_heads) + "," +
+                    std::to_string(value_width) + "," + std::to_string(key_width) + "]")},
+        });
+        result.successor_sha256 = graph_site_successor_json_digest(result.successor_state_json);
+        if (result.successor_sha256.empty()) {
+            refuse("graph_site_successor_digest_failed");
+            return;
+        }
+    } else if (candidate.kind == llm_graph_site_candidate_kind::ATTENTION_MEMORY) {
+        const uint64_t hidden_width = model.hparams.n_embd;
+        const uint64_t kv_heads = candidate.attn_kv_heads;
+        const uint64_t kv_head_width = candidate.attn_kv_head_width;
+        const uint64_t kv_width = kv_heads * kv_head_width;
+        const uint64_t total_width = hidden_width + 2ULL * kv_width;
+        if (hidden_width == 0 || kv_heads == 0 || kv_head_width == 0 ||
+                kv_width > SIZE_MAX / sizeof(float) ||
+                total_width != candidate.output_width ||
+                total_width > SIZE_MAX / sizeof(float) ||
+                output_bytes.size() != total_width * sizeof(float)) {
+            refuse("attention_memory_successor_shape_unsupported");
+            return;
+        }
+        // The successor vector is already flat C-order (hidden, then k row,
+        // then v row, each head-major) with no native permutation to undo.
+        const auto direct_digest = [&](size_t byte_offset, size_t byte_count,
+                                       std::string & digest) {
+            return byte_count != 0 && byte_offset <= output_bytes.size() &&
+                byte_count <= output_bytes.size() - byte_offset &&
+                graph_site_sha256_bytes(output_bytes.data() + byte_offset, byte_count, digest);
+        };
+        std::string hidden_digest;
+        std::string k_digest;
+        std::string v_digest;
+        if (!direct_digest(0, (size_t) hidden_width * sizeof(float), hidden_digest) ||
+                !direct_digest((size_t) hidden_width * sizeof(float),
+                    (size_t) kv_width * sizeof(float), k_digest) ||
+                !direct_digest(((size_t) hidden_width + (size_t) kv_width) * sizeof(float),
+                    (size_t) kv_width * sizeof(float), v_digest)) {
+            refuse("attention_memory_readback_failed");
+            return;
+        }
+        result.output_sha256 = output_digest;
+        const std::string k_name = "kv_k." + std::to_string(candidate.layer);
+        const std::string v_name = "kv_v." + std::to_string(candidate.layer);
+        result.successor_state_json = graph_site_successor_map_json({
+            {"hidden", graph_site_f32_descriptor_json(
+                hidden_digest, "[" + std::to_string(hidden_width) + "]")},
+            {k_name, graph_site_f32_descriptor_json(
+                k_digest, "[" + std::to_string(kv_heads) + "," +
+                    std::to_string(kv_head_width) + "]")},
+            {v_name, graph_site_f32_descriptor_json(
+                v_digest, "[" + std::to_string(kv_heads) + "," +
+                    std::to_string(kv_head_width) + "]")},
+        });
+        result.successor_sha256 = graph_site_successor_json_digest(result.successor_state_json);
+        if (result.successor_sha256.empty()) {
+            refuse("graph_site_successor_digest_failed");
+            return;
+        }
+    } else if (candidate.kind == llm_graph_site_candidate_kind::EXECUTION_CHOICE) {
+        if (candidate.output_width == 0 ||
+                output_bytes.size() != (size_t) candidate.output_width * sizeof(float)) {
+            refuse("execution_choice_successor_shape_unsupported");
+            return;
+        }
+        result.output_sha256 = output_digest;
+        result.successor_state_json = graph_site_successor_state_json(
+            "logits", output_digest,
+            "[" + std::to_string(candidate.output_width) + "]");
+        result.successor_sha256 = graph_site_successor_json_digest(result.successor_state_json);
+        if (result.successor_sha256.empty()) {
+            refuse("graph_site_successor_digest_failed");
+            return;
+        }
+    } else {
+        refuse("graph_site_kind_unsupported");
+        return;
+    }
+    result.input_tensor = nullptr;
+    result.output_tensor = nullptr;
+    result.expert_ids_tensor = nullptr;
+}
+
 
 llm_graph_params llama_context::graph_params(
                         llm_graph_result * res,
                       const llama_ubatch & ubatch,
             const llama_memory_context_i * mctx,
                           llm_graph_type   gtype) const {
+    const llm_graph_site_candidate_config * candidate = nullptr;
+    if (graph_site_candidate_pending) {
+        const auto & c = graph_site_candidate;
+        const bool rows_known = ubatch.n_tokens > 0 && ubatch.seq_id != nullptr &&
+            ubatch.n_seq_id != nullptr && ubatch.pos != nullptr;
+        // A candidate intervention is admitted only when every token row of the
+        // ubatch is exactly the admitted (seq_id, position). A multi-row ubatch
+        // where only some rows match would apply the substituted site to rows
+        // that were never admitted - an unsupported mixed intervention, refused
+        // with a dedicated receipt so per-row receipts stay intact.
+        bool candidate_row_found = false;
+        bool rows_all_match = rows_known;
+        for (uint32_t i = 0; rows_known && i < ubatch.n_tokens; ++i) {
+            const bool row_match = ubatch.n_seq_id[i] == 1 && ubatch.seq_id[i] != nullptr &&
+                ubatch.seq_id[i][0] == c.seq_id && ubatch.pos[i] == c.position;
+            candidate_row_found = candidate_row_found || row_match;
+            rows_all_match = rows_all_match && row_match;
+        }
+        const bool token_matches = rows_all_match &&
+            ubatch.n_tokens == 1 && ubatch.n_seqs_unq == 1;
+        if (graph_site_candidate_target_stage(gtype)) {
+            const bool model_matches =
+                (model.arch == LLM_ARCH_QWEN35MOE || model.arch == LLM_ARCH_QWEN35) &&
+                c.architecture == llm_arch_name(model.arch) &&
+                c.method_key == "cassifi.graph-site-low-rank-affine.v1" &&
+                c.tensor_dtype == "f32" &&
+                (c.kind == llm_graph_site_candidate_kind::EXECUTION_CHOICE
+                    ? c.layer == -1
+                    : (c.layer >= 0 && c.layer < (int32_t) model.hparams.n_layer()));
+            bool site_matches = false;
+            if (model_matches && c.kind == llm_graph_site_candidate_kind::EXPERTS) {
+                const auto & layer = model.layers[c.layer];
+                const bool has_expert_weights = layer.ffn_gate_inp != nullptr &&
+                    layer.ffn_down_exps != nullptr &&
+                    (layer.ffn_gate_up_exps != nullptr ||
+                     (layer.ffn_up_exps != nullptr && layer.ffn_gate_exps != nullptr));
+                site_matches = c.input_width == model.hparams.n_embd &&
+                    c.output_width == model.hparams.n_embd && has_expert_weights;
+            } else if (model_matches && c.kind == llm_graph_site_candidate_kind::RECURRENT) {
+                const bool recurrent_state_available = mctx != nullptr &&
+                    cparams.n_rs_seq == 0 && model.hparams.is_recr(c.layer);
+                site_matches = recurrent_state_available;
+            } else if (model_matches && c.kind == llm_graph_site_candidate_kind::ATTENTION_MEMORY) {
+                const auto & layer = model.layers[c.layer];
+                const uint32_t kv_heads = model.hparams.n_head_kv(c.layer);
+                const uint32_t kv_head_width = model.hparams.n_embd_head_v(c.layer);
+                site_matches = layer.wo != nullptr && !model.hparams.is_recr(c.layer) &&
+                    kv_heads != 0 && kv_head_width != 0 &&
+                    kv_head_width == model.hparams.n_embd_head_k(c.layer) &&
+                    c.attn_kv_heads == kv_heads && c.attn_kv_head_width == kv_head_width &&
+                    c.input_width == model.hparams.n_embd &&
+                    c.output_width == model.hparams.n_embd + 2u * kv_heads * kv_head_width;
+            } else if (model_matches && c.kind == llm_graph_site_candidate_kind::EXECUTION_CHOICE) {
+                site_matches = c.input_width == model.hparams.n_embd &&
+                    c.output_width == (uint32_t) model.vocab.n_tokens();
+            }
+            if (token_matches && site_matches) {
+                candidate = &graph_site_candidate;
+            } else {
+                graph_site_candidate_result = {};
+                graph_site_candidate_bind_identity(c, graph_site_candidate_result);
+                graph_site_candidate_result.attempted = true;
+                graph_site_candidate_result.admitted = false;
+                graph_site_candidate_result.refusal = !token_matches
+                    ? (candidate_row_found && rows_known
+                        ? "multirow_candidate_unsupported"
+                        : "sequence_or_position_mismatch")
+                    : !model_matches ? "model_or_layer_mismatch"
+                    : "graph_site_unsupported";
+            }
+        }
+    }
     return {
         /*.arch        =*/ model.arch,
         /*.hparams     =*/ model.hparams,
@@ -3367,11 +4928,13 @@ llm_graph_params llama_context::graph_params(
         /*.cassi_field =*/ &cassi_field,
         /*.cassi_qi    =*/ &cassi_qi,
         /*.cassi_service =*/ gtype == LLM_GRAPH_TYPE_CASSI_SERVICE ? &cassi_service_config : nullptr,
+        /*.cassi_graph_site_candidate =*/ candidate,
         /*.samplers    =*/ sampling.samplers,
         /*.n_outputs   =*/ n_outputs,
         /*.cb          =*/ graph_get_cb(),
         /*.res         =*/ res,
     };
+
 }
 
 ggml_status llama_context::graph_compute(
@@ -5225,6 +6788,65 @@ int32_t llama_set_adapter_cvec(
 
     return res ? 0 : -1;
 }
+bool llama_cassi_graph_site_candidate_set(
+        llama_context * ctx,
+        const llama_cassi_graph_site_candidate * candidate) {
+    return ctx != nullptr && candidate != nullptr && ctx->graph_site_candidate_set(*candidate);
+}
+
+void llama_cassi_graph_site_candidate_clear(
+        llama_context * ctx,
+        const char * sequence_id,
+        uint64_t owner_generation) {
+    if (ctx != nullptr) {
+        ctx->graph_site_candidate_clear(sequence_id != nullptr ? sequence_id : "", owner_generation);
+    }
+}
+
+bool llama_cassi_graph_site_candidate_get_result(
+        const llama_context * ctx,
+        llama_cassi_graph_site_candidate_result * result) {
+    if (ctx == nullptr || result == nullptr) {
+        return false;
+    }
+    const auto & source = ctx->graph_site_candidate_get_result();
+    *result = {};
+    result->attempted = source.attempted;
+    result->admitted = source.admitted;
+    result->owner_generation = source.owner_generation;
+    result->operators_omitted = source.operators_omitted;
+    result->weights_omitted = source.weights_omitted;
+    result->weight_bytes_omitted = source.weight_bytes_omitted;
+    // The graph receipt has no measured transfer-byte counter.
+    graph_site_copy_c_string(result->refusal, source.refusal);
+    graph_site_copy_c_string(result->input_sha256, source.input_sha256);
+    graph_site_copy_c_string(result->output_sha256, source.output_sha256);
+    graph_site_copy_c_string(result->native_successor_sha256, source.native_successor_sha256);
+    graph_site_copy_c_string(result->request_sha256, source.request_sha256);
+    result->request_sha256_pending = source.request_sha256_pending;
+    graph_site_copy_c_string(result->invocation_sha256, source.invocation_sha256);
+    graph_site_copy_c_string(result->predecessor_sha256, source.predecessor_sha256);
+    graph_site_copy_c_string(result->successor_sha256, source.successor_sha256);
+    graph_site_copy_c_string(result->successor_state_json, source.successor_state_json);
+    result->actual_expert_ids = source.actual_expert_ids.empty()
+        ? nullptr
+        : source.actual_expert_ids.data();
+    result->actual_expert_ids_count = source.actual_expert_ids.size();
+    graph_site_copy_c_string(result->candidate_sha256, source.candidate_sha256);
+    return true;
+}
+
+bool llama_cassi_graph_site_candidate_set_native_successor_sha256(
+        llama_context * ctx,
+        const char * candidate_sha256,
+        const char * invocation_sha256,
+        const char * native_successor_sha256) {
+    return ctx != nullptr && candidate_sha256 != nullptr && invocation_sha256 != nullptr &&
+        native_successor_sha256 != nullptr &&
+        ctx->graph_site_candidate_set_native_successor_sha256(
+            candidate_sha256, invocation_sha256, native_successor_sha256);
+}
+
 
 size_t llama_cassi_qi_state_size(const llama_context * ctx) {
     return ctx != nullptr ? ctx->cassi_qi_state_size() : 0;

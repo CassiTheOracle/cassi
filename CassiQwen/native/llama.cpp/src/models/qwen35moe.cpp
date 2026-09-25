@@ -151,6 +151,7 @@ void llama_model_qwen35moe::load_arch_tensors(llama_model_loader & ml) {
     }
 }
 
+
 std::unique_ptr<llm_graph_context> llama_model_qwen35moe::build_arch_graph(const llm_graph_params & params) const {
     if (params.gtype == LLM_GRAPH_TYPE_DECODER_MTP) {
         return std::make_unique<graph_mtp>(*this, params);
@@ -166,6 +167,11 @@ llama_model_qwen35moe::graph::graph(const llama_model & model, const llm_graph_p
     const int64_t n_embd_head = hparams.n_embd_head_v();
 
     GGML_ASSERT(n_embd_head == hparams.n_embd_head_k());
+
+    if (params.gtype == LLM_GRAPH_TYPE_CASSI_SERVICE) {
+        build_cassi_service(params);
+        return;
+    }
 
     int sections[4];
     std::copy(std::begin(hparams.rope_sections), std::begin(hparams.rope_sections) + 4, sections);
@@ -418,8 +424,16 @@ llama_model_qwen35moe::graph::graph(const llama_model & model, const llm_graph_p
 
         // Determine layer type and build appropriate attention mechanism
         if (hparams.is_recr(il)) {
-            // Linear attention layer (gated delta net)
-            cur = build_layer_attn_linear(inp->get_recr(), cur, il);
+            const auto * recurrent_candidate = params.cassi_graph_site_candidate;
+            if (recurrent_candidate != nullptr &&
+                    recurrent_candidate->kind == llm_graph_site_candidate_kind::RECURRENT &&
+                    recurrent_candidate->layer == il &&
+                    graph_site_candidate_eligible(*recurrent_candidate, ubatch)) {
+                cur = build_layer_attn_linear_candidate(
+                    inp->get_recr(), cur, il, recurrent_candidate);
+            } else {
+                cur = build_layer_attn_linear(inp->get_recr(), cur, il);
+            }
         } else {
             // Full attention layer
             ggml_tensor * history_k = nullptr;
@@ -434,8 +448,17 @@ llama_model_qwen35moe::graph::graph(const llama_model & model, const llm_graph_p
                 history_k = history.first;
                 history_v = history.second;
             }
-            cur = build_layer_attn(
-                inp->get_attn(), cur, inp_pos, sections, il, history_k, history_v);
+            const auto * attn_candidate = params.cassi_graph_site_candidate;
+            if (attn_candidate != nullptr &&
+                    attn_candidate->kind == llm_graph_site_candidate_kind::ATTENTION_MEMORY &&
+                    attn_candidate->layer == il && history_k == nullptr && history_v == nullptr &&
+                    graph_site_candidate_eligible(*attn_candidate, ubatch)) {
+                cur = build_layer_attn_candidate(
+                    inp->get_attn(), cur, inp_pos, sections, il, history_k, history_v, attn_candidate);
+            } else {
+                cur = build_layer_attn(
+                    inp->get_attn(), cur, inp_pos, sections, il, history_k, history_v);
+            }
         }
 
         if (il == n_layer - 1 && inp_out_ids && cparams.embeddings_nextn_masked) {
@@ -454,10 +477,9 @@ llama_model_qwen35moe::graph::graph(const llama_model & model, const llm_graph_p
         ggml_tensor * attn_post_norm = build_norm(cur, model.layers[il].attn_post_norm, nullptr, LLM_NORM_RMS, il);
         cb(attn_post_norm, "attn_post_norm", il);
 
-        // MOE FFN layer
-        cur = build_layer_ffn(attn_post_norm, il);
+        const auto * site_candidate = params.cassi_graph_site_candidate;
+        cur = build_layer_ffn_candidate(attn_post_norm, il, site_candidate);
         cb(cur, "ffn_out", il);
-
         // Residual connection for FFN - add to the tensor from before post_attention_layernorm
         cur = ggml_add(ctx0, cur, ffn_residual);
         cb(cur, "post_moe", il);
@@ -540,11 +562,182 @@ llama_model_qwen35moe::graph::graph(const llama_model & model, const llm_graph_p
     res->t_embd = cur;
 
     // LM head
-    cur = build_lora_mm(model.output, cur, model.output_s);
+    cur = build_head_candidate(cur, params.cassi_graph_site_candidate);
 
     cb(cur, "result_output", -1);
     res->t_logits = cur;
 
+    ggml_build_forward_expand(gf, cur);
+}
+
+// Cassi apprenticeship service graph for the Qwen35 MoE trunk.
+//
+// One graph pass serves one homogeneous stage (EMBED / ATTENTION / FFN / HEAD)
+// for a set of rows. The legacy single-row transaction (service.n_rows == 1) is
+// the degenerate case of the same fused construction: the shared F32 handoff is
+// [stage_width, 1], every projection below is ggml_mul_mat(A, B) with B
+// [in, n_rows] and every output is [out_width, n_rows] in the identical row
+// order (column r of each tensor belongs to row r end-to-end). A multi-row
+// transaction (n_rows > 1) therefore reads one shared F32 input
+// [stage_width, n_rows] and fuses all of the model's matrix work for the stage
+// into that single pass instead of running one graph per sequence.
+//
+// Per-row isolation:
+//   * row r is token batch_tokens[r] at position batch_pos[r] in sequence
+//     batch_seq_ids[r]; the ubatch carries one token per row with
+//     ubatch.seq_id[r][0] == batch_seq_ids[r], so the KV cache mask built from
+//     the ubatch lets row r attend only to cells of its own sequence up to
+//     batch_pos[r], and the recurrent (GDN) conv/state gathers and writes are
+//     indexed by the same per-token sequence ids.
+//   * rows of the same sequence cannot be fused (the second row depends on the
+//     first row's state write), so a multi-row transaction is refused when two
+//     rows share a sequence id.
+void llama_model_qwen35moe::graph::build_cassi_service(const llm_graph_params & params) {
+    if (params.cassi_service == nullptr) {
+        throw std::runtime_error("invalid Cassi apprenticeship service request");
+    }
+    const llm_cassi_service_config & service = *params.cassi_service;
+    if (service.kind == LLAMA_CASSI_TEXT) {
+        throw std::runtime_error("TEXT is not a native service");
+    }
+    if (service.n_rows < 1) {
+        throw std::runtime_error("invalid Cassi apprenticeship service request");
+    }
+    const uint32_t n_rows = service.n_rows;
+
+    const auto * site_candidate = params.cassi_graph_site_candidate;
+
+    if (n_rows == 1) {
+        if (ubatch.n_tokens != 1 || ubatch.n_seq_tokens != 1 ||
+                ubatch.n_seqs != 1 || ubatch.n_seqs_unq != 1) {
+            throw std::runtime_error("invalid Cassi apprenticeship service request");
+        }
+        // A one-row candidate is admitted only at its exact service target below.
+    } else {
+        // homogeneous rows: one token per row, one row per unique sequence,
+        // all rows named by the config.
+        if (ubatch.n_tokens != n_rows || ubatch.n_seq_tokens != 1 ||
+                ubatch.n_seqs != n_rows || ubatch.n_seqs_unq != n_rows ||
+                ubatch.pos == nullptr || ubatch.n_seq_id == nullptr ||
+                ubatch.seq_id == nullptr || ubatch.n_pos < 1) {
+            throw std::runtime_error("invalid Cassi apprenticeship service request");
+        }
+        if (service.batch_pos == nullptr || service.batch_seq_ids == nullptr) {
+            throw std::runtime_error("invalid Cassi apprenticeship service request");
+        }
+        for (uint32_t r = 0; r < n_rows; ++r) {
+            if (ubatch.n_seq_id[r] != 1 || ubatch.seq_id[r] == nullptr ||
+                    ubatch.seq_id[r][0] != service.batch_seq_ids[r] ||
+                    ubatch.pos[r] != service.batch_pos[r] ||
+                    service.batch_pos[r] < 0 || service.batch_seq_ids[r] < 0) {
+                throw std::runtime_error("invalid Cassi apprenticeship service request");
+            }
+            for (uint32_t s = 0; s < r; ++s) {
+                if (ubatch.seq_id[r][0] == ubatch.seq_id[s][0]) {
+                    throw std::runtime_error("invalid Cassi apprenticeship service request");
+                }
+            }
+        }
+    }
+    if (site_candidate != nullptr) {
+        const bool exact_service_site =
+            n_rows == 1 && service.layer == site_candidate->layer &&
+            graph_site_candidate_eligible(*site_candidate, ubatch) &&
+            ((service.kind == LLAMA_CASSI_FFN &&
+                    site_candidate->kind == llm_graph_site_candidate_kind::EXPERTS) ||
+             (service.kind == LLAMA_CASSI_ATTENTION &&
+                    site_candidate->kind == llm_graph_site_candidate_kind::RECURRENT &&
+                    service.layer >= 0 && hparams.is_recr(service.layer)));
+        if (!exact_service_site) {
+            throw std::runtime_error("unsupported graph-site candidate mixed with Cassi apprenticeship service");
+        }
+    }
+
+
+    ggml_tensor * cur = nullptr;
+    if (service.kind == LLAMA_CASSI_EMBED) {
+        if (service.layer != -1 || service.input != nullptr) {
+            throw std::runtime_error("invalid embedding service request");
+        }
+        if (n_rows > 1) {
+            if (service.batch_tokens == nullptr || ubatch.token == nullptr) {
+                throw std::runtime_error("invalid embedding service request");
+            }
+            for (uint32_t r = 0; r < n_rows; ++r) {
+                if (ubatch.token[r] != service.batch_tokens[r] ||
+                        ubatch.token[r] < 0 ||
+                        (uint64_t) ubatch.token[r] >= (uint64_t) model.vocab.n_tokens()) {
+                    throw std::runtime_error("invalid embedding service request");
+                }
+            }
+        }
+        // One shared embedding pass: the token rows gather into
+        // [n_embd, n_rows] from a single token input, fused as GEMM RHS n_rows
+        // through the stage's consumers below (when this stage is embedded
+        // into a larger transaction) and returned as the stage output.
+        cur = build_inp_embd(model.tok_embd);
+        cb(cur, "cassi_service_embed_output", -1);
+    } else {
+        if (service.stage_width != 0 && service.stage_width != (uint32_t) hparams.n_embd) {
+            throw std::runtime_error("invalid Cassi apprenticeship service input");
+        }
+        if (service.input == nullptr || service.input->type != GGML_TYPE_F32 ||
+                !ggml_is_contiguous(service.input) ||
+                service.input->ne[0] != hparams.n_embd ||
+                service.input->ne[1] != (int64_t) n_rows ||
+                service.input->ne[2] != 1 || service.input->ne[3] != 1) {
+            throw std::runtime_error("invalid Cassi apprenticeship service input");
+        }
+        auto input = std::make_unique<llm_graph_input_cassi_service>(&service);
+        input->value = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, hparams.n_embd, n_rows);
+        ggml_set_input(input->value);
+        cur = static_cast<llm_graph_input_cassi_service *>(res->add_input(std::move(input)))->value;
+        cb(cur, "cassi_service_input", service.layer);
+
+        if (service.kind == LLAMA_CASSI_ATTENTION) {
+            if (service.layer < 0 || service.layer >= (int32_t) n_layer || params.mctx == nullptr) {
+                throw std::runtime_error("invalid attention service request");
+            }
+            const int il = service.layer;
+            auto * memory_input = build_inp_mem_hybrid();
+            cur = build_norm(cur, model.layers[il].attn_norm, nullptr, LLM_NORM_RMS, il);
+            cb(cur, "cassi_service_attn_norm", il);
+            if (hparams.is_recr(il)) {
+                // Gated delta net service: conv/state gathers and stores are
+                // indexed by the per-token sequence ids of the ubatch, so each
+                // row reads and writes only its own sequence's GDN/conv state.
+                cur = build_layer_attn_linear_candidate(
+                    memory_input->get_recr(), cur, il, site_candidate);
+            } else {
+                int sections[4];
+                std::copy(std::begin(hparams.rope_sections), std::begin(hparams.rope_sections) + 4, sections);
+                ggml_tensor * inp_pos = build_inp_pos();
+                cur = build_layer_attn(memory_input->get_attn(), cur, inp_pos, sections, il, nullptr, nullptr);
+            }
+            cb(cur, "cassi_service_attention_delta", il);
+        } else if (service.kind == LLAMA_CASSI_FFN) {
+            if (service.layer < 0 || service.layer >= (int32_t) n_layer) {
+                throw std::runtime_error("invalid FFN service request");
+            }
+            const int il = service.layer;
+            cur = build_norm(cur, model.layers[il].attn_post_norm, nullptr, LLM_NORM_RMS, il);
+            cb(cur, "cassi_service_ffn_norm", il);
+            cur = build_layer_ffn_candidate(cur, il, site_candidate);
+            cb(cur, "cassi_service_ffn_delta", il);
+        } else if (service.kind == LLAMA_CASSI_HEAD) {
+            if (service.layer != -1) {
+                throw std::runtime_error("invalid head service request");
+            }
+            cur = build_norm(cur, model.output_norm, nullptr, LLM_NORM_RMS, -1);
+            cb(cur, "cassi_service_head_norm", -1);
+            cur = build_lora_mm(model.output, cur, model.output_s);
+            cb(cur, "cassi_service_head_logits", -1);
+        } else {
+            throw std::runtime_error("invalid Cassi apprenticeship service kind");
+        }
+    }
+    res->t_cassi_service = cur;
+    cb(cur, "cassi_service_output", service.layer);
     ggml_build_forward_expand(gf, cur);
 }
 
@@ -657,6 +850,98 @@ ggml_tensor * llama_model_qwen35moe::graph::build_layer_attn(
     cb(cur, "attn_output", il);
 
     return cur;
+}
+
+ggml_tensor * llama_model_qwen35moe::graph::build_layer_attn_candidate(
+        llm_graph_input_attn_kv * inp,
+        ggml_tensor *             cur,
+        ggml_tensor *             inp_pos,
+        int *                     sections,
+        int                       il,
+        ggml_tensor *              cassi_history_k,
+        ggml_tensor *              cassi_history_v,
+        const llm_graph_site_candidate_config * candidate) {
+    if (candidate == nullptr ||
+            candidate->kind != llm_graph_site_candidate_kind::ATTENTION_MEMORY ||
+            candidate->layer != il ||
+            cassi_history_k != nullptr || cassi_history_v != nullptr ||
+            !graph_site_candidate_eligible(*candidate, ubatch)) {
+        return build_layer_attn(inp, cur, inp_pos, sections, il, cassi_history_k, cassi_history_v);
+    }
+
+    const int64_t n_embd_head = hparams.n_embd_head_v();
+    GGML_ASSERT(n_embd_head == hparams.n_embd_head_k());
+
+    const uint32_t kv_width = candidate->attn_kv_heads * candidate->attn_kv_head_width;
+    const int64_t expected_output_width = (int64_t) hparams.n_embd + 2 * (int64_t) kv_width;
+
+    const bool site_layout_supported =
+        cur->type == GGML_TYPE_F32 &&
+        ggml_is_contiguous(cur) &&
+        cur->ne[0] == hparams.n_embd &&
+        cur->ne[1] == 1 &&
+        cur->ne[2] == 1 &&
+        cur->ne[3] == 1 &&
+        candidate->attn_kv_heads == (uint32_t) n_head_kv &&
+        candidate->attn_kv_head_width == (uint32_t) n_embd_head &&
+        graph_site_affine_layout_supported(*candidate, hparams.n_embd, expected_output_width);
+    if (!site_layout_supported) {
+        llm_graph_site_candidate_result receipt;
+        receipt.attempted = true;
+        receipt.admitted = false;
+        receipt.owner_generation = candidate->owner_generation;
+        receipt.refusal = "attention_site_layout_unsupported";
+        res->set_graph_site_candidate_result(std::move(receipt));
+        return build_layer_attn(inp, cur, inp_pos, sections, il, cassi_history_k, cassi_history_v);
+    }
+
+    ggml_tensor * successor = build_graph_site_affine(ctx0, res, cur, *candidate);
+    cb(successor, "attention_successor", il);
+
+    const size_t element_size = ggml_element_size(successor);
+    ggml_tensor * hidden_successor = ggml_view_2d(ctx0, successor, hparams.n_embd, 1, successor->nb[1], 0);
+    cb(hidden_successor, "attention_hidden_out", il);
+
+    const size_t kv_offset = (size_t) hparams.n_embd * element_size;
+    ggml_tensor * k_flat = ggml_view_2d(ctx0, successor, kv_width, 1, successor->nb[1], kv_offset);
+    ggml_tensor * v_flat = ggml_view_2d(ctx0, successor, kv_width, 1, successor->nb[1],
+        kv_offset + (size_t) kv_width * element_size);
+
+    ggml_tensor * k_cur = ggml_reshape_3d(ctx0, ggml_cont(ctx0, k_flat), n_embd_head, n_head_kv, 1);
+    ggml_tensor * v_cur = ggml_reshape_3d(ctx0, ggml_cont(ctx0, v_flat), n_embd_head, n_head_kv, 1);
+    cb(k_cur, "attention_kv_k_in", il);
+    cb(v_cur, "attention_kv_v_in", il);
+
+    const auto * mctx_cur = inp->mctx;
+    const auto & k_idxs = inp->get_k_idxs();
+    const auto & v_idxs = inp->get_v_idxs();
+    ggml_build_forward_expand(gf, mctx_cur->cpy_k(ctx0, k_cur, k_idxs, il));
+    ggml_build_forward_expand(gf, mctx_cur->cpy_v(ctx0, v_cur, v_idxs, il));
+
+    llm_graph_site_candidate_result receipt;
+    receipt.attempted = true;
+    receipt.admitted = true;
+    receipt.owner_generation = candidate->owner_generation;
+    receipt.input_tensor = cur;
+    receipt.output_tensor = successor;
+    // Skipped native operators: Q/K/V projection+norm, RoPE+attention, gate, wo.
+    receipt.operators_omitted = 4;
+    const auto & layer = model.layers[il];
+    const auto add_omitted_weight = [&](const ggml_tensor * weight) {
+        if (weight != nullptr) {
+            ++receipt.weights_omitted;
+            receipt.weight_bytes_omitted += ggml_nbytes(weight);
+        }
+    };
+    add_omitted_weight(layer.wq);
+    add_omitted_weight(layer.wk);
+    add_omitted_weight(layer.wv);
+    add_omitted_weight(layer.wo);
+    add_omitted_weight(layer.attn_q_norm);
+    add_omitted_weight(layer.attn_k_norm);
+    res->set_graph_site_candidate_result(std::move(receipt));
+
+    return hidden_successor;
 }
 
 ggml_tensor * llama_model_qwen35moe::graph::build_layer_attn_linear(
@@ -793,6 +1078,18 @@ ggml_tensor * llama_model_qwen35moe::graph::build_layer_attn_linear(
     return cur;
 }
 
+ggml_tensor * llama_model_qwen35moe::graph::build_layer_attn_linear_candidate(
+        llm_graph_input_rs * inp,
+        ggml_tensor * cur,
+        int il,
+        const llm_graph_site_candidate_config * candidate) {
+    // Shared exact RECURRENT site builder; a refusal receipt is already recorded
+    // there, and the native linear-attention layer stays the fallback.
+    ggml_tensor * site_cur = build_layer_attn_linear_site_candidate(
+        model.layers[il], inp, cur, il, candidate);
+    return site_cur != nullptr ? site_cur : build_layer_attn_linear(inp, cur, il);
+}
+
 ggml_tensor * llama_model_qwen35moe::graph::build_layer_ffn(ggml_tensor * cur, const int il) {
     // Check if this is an MoE layer
     GGML_ASSERT(model.layers[il].ffn_gate_inp != nullptr);
@@ -847,6 +1144,152 @@ ggml_tensor * llama_model_qwen35moe::graph::build_layer_ffn(ggml_tensor * cur, c
     }
 
     return cur;
+}
+
+ggml_tensor * llama_model_qwen35moe::graph::build_layer_ffn_candidate(
+        ggml_tensor * cur,
+        int il,
+        const llm_graph_site_candidate_config * candidate) {
+    if (candidate == nullptr ||
+            candidate->kind != llm_graph_site_candidate_kind::EXPERTS ||
+            candidate->layer != il ||
+            !graph_site_candidate_eligible(*candidate, ubatch)) {
+        return build_layer_ffn(cur, il);
+    }
+
+    const bool site_layout_supported =
+        cur->type == GGML_TYPE_F32 &&
+        ggml_is_contiguous(cur) &&
+        cur->ne[0] == hparams.n_embd &&
+        cur->ne[1] == 1 &&
+        cur->ne[2] == 1 &&
+        cur->ne[3] == 1 &&
+        graph_site_affine_layout_supported(*candidate, hparams.n_embd, hparams.n_embd);
+    bool expected_route_supported =
+        candidate->expected_expert_ids.size() == (size_t) n_expert_used;
+    for (size_t i = 0; expected_route_supported &&
+            i < candidate->expected_expert_ids.size(); ++i) {
+        const int32_t expert_id = candidate->expected_expert_ids[i];
+        if (expert_id < 0 || expert_id >= n_expert) {
+            expected_route_supported = false;
+            break;
+        }
+        for (size_t j = 0; j < i; ++j) {
+            if (candidate->expected_expert_ids[j] == expert_id) {
+                expected_route_supported = false;
+                break;
+            }
+        }
+    }
+    const bool route_layout_supported =
+        expected_route_supported && hparams.n_expert_groups <= 1 &&
+        n_expert > 0 && n_expert_used > 0 && n_expert_used <= n_expert;
+    if (!site_layout_supported || !route_layout_supported) {
+        llm_graph_site_candidate_result receipt;
+        receipt.attempted = true;
+        receipt.admitted = false;
+        receipt.owner_generation = candidate->owner_generation;
+        receipt.refusal = !site_layout_supported
+            ? "expert_site_layout_unsupported"
+            : "expert_route_layout_unsupported";
+        res->set_graph_site_candidate_result(std::move(receipt));
+        return build_layer_ffn(cur, il);
+    }
+
+    // Preserve native router observation and expose its exact top-k ids so the
+    // owner can validate the candidate route before acknowledgment.
+    ggml_tensor * router_logits =
+        build_lora_mm(model.layers[il].ffn_gate_inp, cur);
+    ggml_tensor * router_probs = ggml_soft_max(ctx0, router_logits);
+    ggml_tensor * expert_ids = ggml_argsort_top_k(ctx0, router_probs, n_expert_used);
+    cb(expert_ids, "ffn_moe_topk", il);
+    ggml_build_forward_expand(gf, expert_ids);
+
+    ggml_tensor * successor = build_graph_site_affine(ctx0, res, cur, *candidate);
+    llm_graph_site_candidate_result receipt;
+    receipt.attempted = true;
+    receipt.admitted = true;
+    receipt.owner_generation = candidate->owner_generation;
+    receipt.expert_ids_tensor = expert_ids;
+    receipt.input_tensor = cur;
+    receipt.output_tensor = successor;
+    // These are the two native MoE branches that were not built.
+    receipt.operators_omitted = 2;
+    const auto & layer = model.layers[il];
+    const auto add_omitted_weight = [&](const ggml_tensor * weight) {
+        if (weight != nullptr) {
+            ++receipt.weights_omitted;
+            receipt.weight_bytes_omitted += ggml_nbytes(weight);
+        }
+    };
+    if (layer.ffn_gate_up_exps != nullptr) {
+        add_omitted_weight(layer.ffn_gate_up_exps);
+    } else {
+        add_omitted_weight(layer.ffn_gate_exps);
+        add_omitted_weight(layer.ffn_up_exps);
+    }
+    add_omitted_weight(layer.ffn_down_exps);
+    if (layer.ffn_up_shexp != nullptr) {
+        add_omitted_weight(layer.ffn_gate_shexp);
+        add_omitted_weight(layer.ffn_up_shexp);
+        add_omitted_weight(layer.ffn_down_shexp);
+        add_omitted_weight(layer.ffn_gate_inp_shexp);
+    }
+    res->set_graph_site_candidate_result(std::move(receipt));
+    return successor;
+}
+
+ggml_tensor * llama_model_qwen35moe::graph::build_head_candidate(
+        ggml_tensor * cur,
+        const llm_graph_site_candidate_config * candidate) {
+    if (candidate == nullptr ||
+            candidate->kind != llm_graph_site_candidate_kind::EXECUTION_CHOICE ||
+            candidate->layer != -1 ||
+            !graph_site_candidate_eligible(*candidate, ubatch)) {
+        return build_lora_mm(model.output, cur, model.output_s);
+    }
+
+    const int64_t vocab_size = model.vocab.n_tokens();
+    const bool site_layout_supported =
+        cur->type == GGML_TYPE_F32 &&
+        ggml_is_contiguous(cur) &&
+        cur->ne[0] == hparams.n_embd &&
+        cur->ne[1] == 1 &&
+        cur->ne[2] == 1 &&
+        cur->ne[3] == 1 &&
+        graph_site_affine_layout_supported(*candidate, hparams.n_embd, vocab_size);
+    if (!site_layout_supported) {
+        llm_graph_site_candidate_result receipt;
+        receipt.attempted = true;
+        receipt.admitted = false;
+        receipt.owner_generation = candidate->owner_generation;
+        receipt.refusal = "execution_choice_site_layout_unsupported";
+        res->set_graph_site_candidate_result(std::move(receipt));
+        return build_lora_mm(model.output, cur, model.output_s);
+    }
+
+    ggml_tensor * successor = build_graph_site_affine(ctx0, res, cur, *candidate);
+    cb(successor, "logits", -1);
+
+    llm_graph_site_candidate_result receipt;
+    receipt.attempted = true;
+    receipt.admitted = true;
+    receipt.owner_generation = candidate->owner_generation;
+    receipt.input_tensor = cur;
+    receipt.output_tensor = successor;
+    // Skipped native operator: the LM-head matmul itself.
+    receipt.operators_omitted = 1;
+    if (model.output != nullptr) {
+        ++receipt.weights_omitted;
+        receipt.weight_bytes_omitted += ggml_nbytes(model.output);
+    }
+    if (model.output_s != nullptr) {
+        ++receipt.weights_omitted;
+        receipt.weight_bytes_omitted += ggml_nbytes(model.output_s);
+    }
+    res->set_graph_site_candidate_result(std::move(receipt));
+
+    return successor;
 }
 
 // LLM_GRAPH_TYPE_DECODER_MTP draft head for Qwen3.5/3.6 MoE

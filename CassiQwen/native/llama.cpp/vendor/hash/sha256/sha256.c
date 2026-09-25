@@ -5,6 +5,23 @@ This code is based on public domain code from Wei Dai's Crypto++ library. */
 #include "rotate-bits/rotate-bits.h"
 #include "sha256.h"
 
+#include <string.h>
+
+#if defined(_M_X64) || defined(__x86_64__)
+#define SHA256_X86 1
+#include <immintrin.h>
+#if defined(__GNUC__) || defined(__clang__)
+#define SHA256_X86_TARGET __attribute__((target("sha,sse4.1,ssse3")))
+#else
+#define SHA256_X86_TARGET
+#endif
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else
+#include <cpuid.h>
+#endif
+#endif
+
 /* define it for speed optimization */
 #define _SHA256_UNROLL
 #define _SHA256_UNROLL2
@@ -146,18 +163,118 @@ sha256_transform(uint32_t *state, const uint32_t *data)
 #undef s0
 #undef s1
 
+#ifdef SHA256_X86
+
+/* SHA extensions (Intel Goldmont+/Ice Lake+, every AMD Zen): the same
+   compression function, computed on the ABEF/CDGH register layout. */
+SHA256_X86_TARGET static void
+sha256_compress_x86(uint32_t *state, const unsigned char *data, size_t blocks)
+{
+  const __m128i byte_swap = _mm_set_epi64x(0x0c0d0e0f08090a0bLL, 0x0405060700010203LL);
+  __m128i tmp = _mm_shuffle_epi32(_mm_loadu_si128((const __m128i *)state), 0xB1);
+  __m128i state1 = _mm_shuffle_epi32(_mm_loadu_si128((const __m128i *)(state + 4)), 0x1B);
+  __m128i state0 = _mm_alignr_epi8(tmp, state1, 8);
+  state1 = _mm_blend_epi16(state1, tmp, 0xF0);
+  for (; blocks != 0; --blocks, data += 64)
+  {
+    const __m128i abef = state0;
+    const __m128i cdgh = state1;
+    __m128i schedule[4];
+    unsigned group;
+    for (group = 0; group < 16; ++group)
+    {
+      __m128i words, message;
+      if (group < 4)
+        words = _mm_shuffle_epi8(_mm_loadu_si128((const __m128i *)(data + group * 16)), byte_swap);
+      else
+      {
+        const __m128i previous = schedule[(group - 1) & 3];
+        words = _mm_sha256msg1_epu32(schedule[group & 3], schedule[(group - 3) & 3]);
+        words = _mm_add_epi32(words, _mm_alignr_epi8(previous, schedule[(group - 2) & 3], 4));
+        words = _mm_sha256msg2_epu32(words, previous);
+      }
+      schedule[group & 3] = words;
+      message = _mm_add_epi32(words, _mm_loadu_si128((const __m128i *)(K + group * 4)));
+      state1 = _mm_sha256rnds2_epu32(state1, state0, message);
+      message = _mm_shuffle_epi32(message, 0x0E);
+      state0 = _mm_sha256rnds2_epu32(state0, state1, message);
+    }
+    state0 = _mm_add_epi32(state0, abef);
+    state1 = _mm_add_epi32(state1, cdgh);
+  }
+  tmp = _mm_shuffle_epi32(state0, 0x1B);
+  state1 = _mm_shuffle_epi32(state1, 0xB1);
+  _mm_storeu_si128((__m128i *)state, _mm_blend_epi16(tmp, state1, 0xF0));
+  _mm_storeu_si128((__m128i *)(state + 4), _mm_alignr_epi8(state1, tmp, 8));
+}
+
+static void
+sha256_cpuid(unsigned leaf, unsigned regs[4])
+{
+#if defined(_MSC_VER)
+  int out[4];
+  unsigned i;
+  __cpuidex(out, (int)leaf, 0);
+  for (i = 0; i < 4; i++)
+    regs[i] = (unsigned)out[i];
+#else
+  __cpuid_count(leaf, 0, regs[0], regs[1], regs[2], regs[3]);
+#endif
+}
+
+static int
+sha256_x86_available(void)
+{
+  /* Deterministic, so a racing first call only repeats the query. */
+  static int available = -1;
+  if (available < 0)
+  {
+    unsigned regs[4] = {0, 0, 0, 0};
+    int result = 0;
+    sha256_cpuid(0, regs);
+    if (regs[0] >= 7)
+    {
+      int ssse3_sse41;
+      sha256_cpuid(1, regs);
+      ssse3_sse41 = (regs[2] & (1u << 9)) != 0 && (regs[2] & (1u << 19)) != 0;
+      sha256_cpuid(7, regs);
+      result = ssse3_sse41 && (regs[1] & (1u << 29)) != 0;
+    }
+    available = result;
+  }
+  return available;
+}
+
+#endif
+
+static void
+sha256_compress(uint32_t *state, const unsigned char *data, size_t blocks)
+{
+#ifdef SHA256_X86
+  if (sha256_x86_available())
+  {
+    sha256_compress_x86(state, data, blocks);
+    return;
+  }
+#endif
+  for (; blocks != 0; --blocks, data += 64)
+  {
+    uint32_t data32[16];
+    unsigned i;
+    for (i = 0; i < 16; i++)
+      data32[i] =
+        ((uint32_t)(data[i * 4    ]) << 24) +
+        ((uint32_t)(data[i * 4 + 1]) << 16) +
+        ((uint32_t)(data[i * 4 + 2]) <<  8) +
+        ((uint32_t)(data[i * 4 + 3]));
+    sha256_transform(state, data32);
+  }
+}
+
 static void
 sha256_write_byte_block(sha256_t *p)
 {
-  uint32_t data32[16];
-  unsigned i;
-  for (i = 0; i < 16; i++)
-    data32[i] =
-      ((uint32_t)(p->buffer[i * 4    ]) << 24) +
-      ((uint32_t)(p->buffer[i * 4 + 1]) << 16) +
-      ((uint32_t)(p->buffer[i * 4 + 2]) <<  8) +
-      ((uint32_t)(p->buffer[i * 4 + 3]));
-  sha256_transform(p->state, data32);
+  sha256_compress(p->state, p->buffer, 1);
 }
 
 
@@ -174,18 +291,31 @@ sha256_hash(unsigned char *buf, const unsigned char *data, size_t size)
 void
 sha256_update(sha256_t *p, const unsigned char *data, size_t size)
 {
-  uint32_t curBufferPos = (uint32_t)p->count & 0x3F;
-  while (size > 0)
+  size_t pos = (size_t)(p->count & 0x3F);
+  if (size == 0)
+    return;
+  p->count += size;
+  if (pos != 0)
   {
-    p->buffer[curBufferPos++] = *data++;
-    p->count++;
-    size--;
-    if (curBufferPos == 64)
-    {
-      curBufferPos = 0;
-      sha256_write_byte_block(p);
-    }
+    size_t take = 64 - pos;
+    if (take > size)
+      take = size;
+    memcpy(p->buffer + pos, data, take);
+    data += take;
+    size -= take;
+    if (pos + take < 64)
+      return;
+    sha256_write_byte_block(p);
   }
+  if (size >= 64)
+  {
+    size_t blocks = size / 64;
+    sha256_compress(p->state, data, blocks);
+    data += blocks * 64;
+    size -= blocks * 64;
+  }
+  if (size != 0)
+    memcpy(p->buffer, data, size);
 }
 
 

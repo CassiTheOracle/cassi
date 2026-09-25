@@ -97,6 +97,20 @@ struct llm_build_delta_net_base : public llm_graph_context {
             ggml_tensor *        s,
             int                  il,
             bool                 write_state = true);
+
+    // Exact RECURRENT graph-site candidate: the candidate's low-rank successor
+    // replaces the linear-attention layer over [hidden | conv history | recurrent
+    // state] for the one admitted row and writes that successor back as the new
+    // conv/recurrent state. Returns the successor's hidden slice when applied;
+    // nullptr when nothing could be applied exactly (a refusal receipt is already
+    // recorded unless candidate was nullptr), and the caller then runs its own
+    // build_layer_attn_linear so native operators stay the fallback.
+    ggml_tensor * build_layer_attn_linear_site_candidate(
+            const llama_layer &        layer,
+            llm_graph_input_rs *       inp,
+            ggml_tensor *              cur,
+            int                        il,
+            const llm_graph_site_candidate_config * candidate);
 };
 
 struct llm_build_rwkv6_base : public llm_graph_context {
@@ -2213,6 +2227,11 @@ struct llama_model_qwen35 : public llama_model_base {
              llm_graph_input_rs * inp,
                     ggml_tensor * cur,
                             int   il);
+        ggml_tensor * build_layer_attn_linear_candidate(
+             llm_graph_input_rs * inp,
+                    ggml_tensor * cur,
+                            int   il,
+        const llm_graph_site_candidate_config * candidate);
 
         ggml_tensor * build_layer_ffn(
                     ggml_tensor * cur,
@@ -2250,6 +2269,7 @@ struct llama_model_qwen35moe : public llama_model_base {
     struct graph : public llm_build_delta_net_base {
         graph(const llama_model & model, const llm_graph_params & params);
     private:
+        void build_cassi_service(const llm_graph_params & params);
         ggml_tensor * build_layer_attn(
         llm_graph_input_attn_kv * inp_attn,
                     ggml_tensor * cur,
@@ -2259,14 +2279,37 @@ struct llama_model_qwen35moe : public llama_model_base {
                     ggml_tensor * cassi_history_k,
                     ggml_tensor * cassi_history_v);
 
+        ggml_tensor * build_layer_attn_candidate(
+        llm_graph_input_attn_kv * inp_attn,
+                    ggml_tensor * cur,
+                    ggml_tensor * inp_pos,
+                            int * sections,
+                            int   il,
+                    ggml_tensor * cassi_history_k,
+                    ggml_tensor * cassi_history_v,
+        const llm_graph_site_candidate_config * candidate);
+
         ggml_tensor * build_layer_attn_linear(
              llm_graph_input_rs * inp,
                     ggml_tensor * cur,
                             int   il);
+        ggml_tensor * build_layer_attn_linear_candidate(
+             llm_graph_input_rs * inp,
+                    ggml_tensor * cur,
+                            int   il,
+        const llm_graph_site_candidate_config * candidate);
 
         ggml_tensor * build_layer_ffn(
                     ggml_tensor * cur,
                             int   il);
+        ggml_tensor * build_layer_ffn_candidate(
+                    ggml_tensor * cur,
+                            int   il,
+        const llm_graph_site_candidate_config * candidate);
+
+        ggml_tensor * build_head_candidate(
+                    ggml_tensor * cur,
+        const llm_graph_site_candidate_config * candidate);
 
         ggml_tensor * build_norm_gated(
                     ggml_tensor * input,

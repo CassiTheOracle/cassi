@@ -63,8 +63,22 @@ constexpr uint16_t SYSTEM_SYMBOL = 257;
 constexpr uint16_t USER_SYMBOL = 258;
 constexpr uint16_t ASSISTANT_SYMBOL = 259;
 constexpr uint32_t ALPHABET_SIZE = 260;
-constexpr size_t GRAPH_SIZE = 65536;
-constexpr size_t GRAPH_CONTEXT_BYTES = 64 * 1024 * 1024;
+// GRAPH_SIZE is the node-budget floor for graph_scope calls that do not pass
+// an explicit node_budget. The vast majority of call sites (run_sense,
+// commit_candidate, observe()'s single-entry update, guide_byte, ...) build
+// fixed-size graphs of well under a thousand nodes regardless of page.entries
+// or memory_bytes; only run_probe's Phase 1/2 scopes scale with page.entries
+// and always pass their own (larger) explicit node_budget. GRAPH_SCOPE_OVERHEAD_BYTES
+// is a small fixed alignment/margin added on top of the node-budget-derived
+// size; it must stay small because every graph_scope construction pays it,
+// including the ~50 short-lived scopes/byte that sense_marker() creates
+// (run_sense's main + commit scope, once per TEXT/ATTENTION page). Reusing the
+// 4 MiB STATIC_CONTEXT_BYTES margin (sized for the one-time persistent
+// static_context that holds every field/resource tensor descriptor) here used
+// to multiply into gigabytes of transient malloc/free churn and multi-minute
+// runs once a prompt's bytes fan out across dozens of pages.
+constexpr size_t GRAPH_SIZE = 4096;
+constexpr size_t GRAPH_SCOPE_OVERHEAD_BYTES = 64 * 1024;
 constexpr size_t STATIC_CONTEXT_BYTES = 4 * 1024 * 1024;
 
 constexpr std::array<uint32_t, 4> PRIMES = { 4093, 4099, 4127, 4133 };
@@ -208,6 +222,8 @@ struct width_resources {
     ggml_tensor * probe_encoded = nullptr;
     ggml_tensor * probe_weights = nullptr;
     ggml_tensor * probe_distances = nullptr;
+    ggml_tensor * probe_target_real = nullptr;
+    ggml_tensor * probe_target_imag = nullptr;
     ggml_tensor * byte_scores = nullptr;
 };
 
@@ -215,16 +231,17 @@ struct graph_scope {
     ggml_context_ptr context;
     ggml_cgraph * graph = nullptr;
 
-    graph_scope() {
+    explicit graph_scope(size_t node_budget = GRAPH_SIZE) {
         ggml_init_params params = {};
-        params.mem_size = GRAPH_CONTEXT_BYTES;
+        params.mem_size = node_budget * ggml_tensor_overhead()
+            + ggml_graph_overhead_custom(node_budget, false) + GRAPH_SCOPE_OVERHEAD_BYTES;
         params.mem_buffer = nullptr;
         params.no_alloc = true;
         context.reset(ggml_init(params));
         if (!context) {
             fail("apprentice_graph_allocation_failed");
         }
-        graph = ggml_new_graph_custom(context.get(), GRAPH_SIZE, false);
+        graph = ggml_new_graph_custom(context.get(), node_budget, false);
         if (graph == nullptr) {
             fail("apprentice_graph_allocation_failed");
         }
@@ -288,6 +305,7 @@ struct llama_cassi_field::impl {
     ggml_tensor * guided_vector = nullptr;
     std::array<ggml_tensor *, 2> handoff_vectors = {};
     ggml_tensor * boundary_vector = nullptr;
+    ggml_tensor * boundary_matrix = nullptr;
     ggml_tensor * metadata_physical = nullptr;
     ggml_tensor * scalar_output = nullptr;
     ggml_tensor * candidate_validation = nullptr;
@@ -440,6 +458,10 @@ struct llama_cassi_field::impl {
             tensor = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
         }
         boundary_vector = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, cfg.embedding_width);
+        if (cfg.group_rows > 0) {
+            boundary_matrix = ggml_new_tensor_2d(ctx, GGML_TYPE_F32,
+                cfg.embedding_width, cfg.group_rows);
+        }
 
         if (!cfg.scratch_only) {
             if (mode_count > static_cast<uint64_t>(std::numeric_limits<int64_t>::max() / CASSI_APPRENTICE_COMPONENT_COUNT) ||
@@ -490,6 +512,12 @@ struct llama_cassi_field::impl {
                 resource.probe_encoded = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, 2);
                 resource.probe_weights = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, resource.max_entries);
                 resource.probe_distances = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, resource.max_entries);
+                // Per-entry target vectors, written immediately during run_probe's
+                // build phase and re-read (as views) during its reduction phase, so
+                // neither phase needs to keep O(page.entries) live graph tensors at
+                // once (see run_probe for the free-block-exhaustion rationale).
+                resource.probe_target_real = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, resource.max_entries);
+                resource.probe_target_imag = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, resource.width, resource.max_entries);
                 resource.byte_scores = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 256);
                 resources.emplace(resource.width, resource);
             }
@@ -1136,100 +1164,128 @@ struct llama_cassi_field::impl {
         const auto & page = checked_page(query.page);
         prepare_query(query, page);
         auto & resource = width_resource(page.width);
-        graph_scope scope;
-        ggml_context * ctx = scope.context.get();
-        ggml_tensor * memory = page_view(ctx, page, true);
-        key_graph key = build_query_graph(ctx, page);
-        std::vector<ggml_tensor *> entry_weights;
-        std::vector<ggml_tensor *> entry_distances;
-        std::vector<encoded_graph> entry_targets;
-        entry_weights.reserve(page.entries);
-        entry_distances.reserve(page.entries);
-        entry_targets.reserve(page.entries);
         const float radius = page.kind == CASSI_FIELD_TEXT || page.kind == CASSI_FIELD_EMBED ? TEXT_RADIUS : VECTOR_RADIUS;
 
-        for (uint32_t entry = 0; entry < page.entries; ++entry) {
-            const uint64_t base = static_cast<uint64_t>(entry) * page.entry_stride();
-            std::vector<ggml_tensor *> distance_parts;
-            std::vector<ggml_tensor *> target_real_parts;
-            std::vector<ggml_tensor *> target_imag_parts;
-            std::vector<ggml_tensor *> occupancy_parts;
-            std::vector<ggml_tensor *> availability_parts;
-            for (uint32_t scale = 0; scale < CASSI_APPRENTICE_SCALE_COUNT; ++scale) {
-                ggml_tensor * occupancy = common_plane(ctx, memory, base + 3ULL * page.width, 1, scale, false);
-                ggml_tensor * availability = ggml_step(ctx, ggml_scale_bias(ctx, occupancy, 1.0f, -OCCUPANCY_FLOOR));
-                ggml_tensor * safe_occupancy =
-                    ggml_clamp(ctx, occupancy, OCCUPANCY_FLOOR, 1.0f);
-                ggml_tensor * repeated_occupancy = nullptr;
-                ggml_tensor * distance = nullptr;
-                for (uint32_t block = 0; block < 2; ++block) {
-                    for (uint32_t part = 0; part < 2; ++part) {
-                        ggml_tensor * stored = common_plane(ctx, memory,
-                            base + static_cast<uint64_t>(block) * page.width,
-                            page.width, scale, part != 0);
-                        repeated_occupancy = ggml_repeat(ctx, safe_occupancy, stored);
-                        ggml_tensor * normalized = ggml_div(ctx, stored, repeated_occupancy);
-                        ggml_tensor * difference = ggml_sub(ctx, key.value[scale][block][part], normalized);
-                        ggml_tensor * component_distance = ggml_sum(ctx, ggml_sqr(ctx, difference));
-                        distance = distance == nullptr ? component_distance : ggml_add(ctx, distance, component_distance);
+        // Phase 1: build each entry's weight/distance/target and write it
+        // immediately into the persistent per-width resource buffers below,
+        // instead of keeping page.entries worth of live output tensors around
+        // for a later reduction. Keeping them alive used to make the dynamic
+        // graph allocator's free-block list grow by ~4 unmergeable regions
+        // per entry, overflowing MAX_FREE_BLOCKS in ggml-alloc.c well before
+        // page.entries reached even a few hundred. Each entry still emits a
+        // fixed-size subgraph (~320 nodes), so the node *capacity* still has
+        // to scale with page.entries even though live *memory* no longer does.
+        constexpr size_t BUILD_PER_ENTRY_NODE_BUDGET = 500;
+        constexpr size_t NODE_BUDGET_OVERHEAD = 8192;
+        const size_t build_node_budget = std::max<size_t>(GRAPH_SIZE,
+            static_cast<size_t>(page.entries) * BUILD_PER_ENTRY_NODE_BUDGET + NODE_BUDGET_OVERHEAD);
+        {
+            graph_scope build_scope(build_node_budget);
+            ggml_context * ctx = build_scope.context.get();
+            ggml_tensor * memory = page_view(ctx, page, true);
+            key_graph key = build_query_graph(ctx, page);
+            std::vector<ggml_tensor *> build_outputs;
+            build_outputs.reserve(static_cast<size_t>(page.entries) * 4);
+
+            for (uint32_t entry = 0; entry < page.entries; ++entry) {
+                const uint64_t base = static_cast<uint64_t>(entry) * page.entry_stride();
+                std::vector<ggml_tensor *> distance_parts;
+                std::vector<ggml_tensor *> target_real_parts;
+                std::vector<ggml_tensor *> target_imag_parts;
+                std::vector<ggml_tensor *> occupancy_parts;
+                std::vector<ggml_tensor *> availability_parts;
+                for (uint32_t scale = 0; scale < CASSI_APPRENTICE_SCALE_COUNT; ++scale) {
+                    ggml_tensor * occupancy = common_plane(ctx, memory, base + 3ULL * page.width, 1, scale, false);
+                    ggml_tensor * availability = ggml_step(ctx, ggml_scale_bias(ctx, occupancy, 1.0f, -OCCUPANCY_FLOOR));
+                    ggml_tensor * safe_occupancy =
+                        ggml_clamp(ctx, occupancy, OCCUPANCY_FLOOR, 1.0f);
+                    ggml_tensor * repeated_occupancy = nullptr;
+                    ggml_tensor * distance = nullptr;
+                    for (uint32_t block = 0; block < 2; ++block) {
+                        for (uint32_t part = 0; part < 2; ++part) {
+                            ggml_tensor * stored = common_plane(ctx, memory,
+                                base + static_cast<uint64_t>(block) * page.width,
+                                page.width, scale, part != 0);
+                            repeated_occupancy = ggml_repeat(ctx, safe_occupancy, stored);
+                            ggml_tensor * normalized = ggml_div(ctx, stored, repeated_occupancy);
+                            ggml_tensor * difference = ggml_sub(ctx, key.value[scale][block][part], normalized);
+                            ggml_tensor * component_distance = ggml_sum(ctx, ggml_sqr(ctx, difference));
+                            distance = distance == nullptr ? component_distance : ggml_add(ctx, distance, component_distance);
+                        }
                     }
+                    distance_parts.push_back(ggml_mul(ctx, distance, availability));
+                    ggml_tensor * stored_target_real = common_plane(ctx, memory,
+                        base + 2ULL * page.width, page.width, scale, false);
+                    ggml_tensor * stored_target_imag = common_plane(ctx, memory,
+                        base + 2ULL * page.width, page.width, scale, true);
+                    target_real_parts.push_back(ggml_mul(ctx,
+                        ggml_div(ctx, stored_target_real, ggml_repeat(ctx, safe_occupancy, stored_target_real)),
+                        ggml_repeat(ctx, availability, stored_target_real)));
+                    target_imag_parts.push_back(ggml_mul(ctx,
+                        ggml_div(ctx, stored_target_imag, ggml_repeat(ctx, safe_occupancy, stored_target_imag)),
+                        ggml_repeat(ctx, availability, stored_target_imag)));
+                    occupancy_parts.push_back(ggml_mul(ctx, occupancy, availability));
+                    availability_parts.push_back(availability);
                 }
-                distance_parts.push_back(ggml_mul(ctx, distance, availability));
-                ggml_tensor * stored_target_real = common_plane(ctx, memory,
-                    base + 2ULL * page.width, page.width, scale, false);
-                ggml_tensor * stored_target_imag = common_plane(ctx, memory,
-                    base + 2ULL * page.width, page.width, scale, true);
-                target_real_parts.push_back(ggml_mul(ctx,
-                    ggml_div(ctx, stored_target_real, ggml_repeat(ctx, safe_occupancy, stored_target_real)),
-                    ggml_repeat(ctx, availability, stored_target_real)));
-                target_imag_parts.push_back(ggml_mul(ctx,
-                    ggml_div(ctx, stored_target_imag, ggml_repeat(ctx, safe_occupancy, stored_target_imag)),
-                    ggml_repeat(ctx, availability, stored_target_imag)));
-                occupancy_parts.push_back(ggml_mul(ctx, occupancy, availability));
-                availability_parts.push_back(availability);
+                ggml_tensor * available_count = availability_parts.front();
+                ggml_tensor * distance_sum = distance_parts.front();
+                ggml_tensor * target_real_sum = target_real_parts.front();
+                ggml_tensor * target_imag_sum = target_imag_parts.front();
+                ggml_tensor * occupancy_sum = occupancy_parts.front();
+                for (uint32_t scale = 1; scale < CASSI_APPRENTICE_SCALE_COUNT; ++scale) {
+                    available_count = ggml_add(ctx, available_count, availability_parts[scale]);
+                    distance_sum = ggml_add(ctx, distance_sum, distance_parts[scale]);
+                    target_real_sum = ggml_add(ctx, target_real_sum, target_real_parts[scale]);
+                    target_imag_sum = ggml_add(ctx, target_imag_sum, target_imag_parts[scale]);
+                    occupancy_sum = ggml_add(ctx, occupancy_sum, occupancy_parts[scale]);
+                }
+                ggml_tensor * safe_count = ggml_clamp(ctx,
+                    ggml_scale_bias(ctx, available_count, 1.0f, 1.0e-20f), 1.0f, 4.0f);
+                ggml_tensor * distance = ggml_div(ctx, distance_sum, safe_count);
+                ggml_tensor * target_real = ggml_div(ctx, target_real_sum, ggml_repeat(ctx, safe_count, target_real_sum));
+                ggml_tensor * target_imag = ggml_div(ctx, target_imag_sum, ggml_repeat(ctx, safe_count, target_imag_sum));
+                ggml_tensor * mean_occupancy = ggml_div(ctx, occupancy_sum, safe_count);
+                ggml_tensor * kernel = ggml_clamp(ctx,
+                    ggml_scale_bias(ctx, distance, -1.0f / (radius * radius), 1.0f), 0.0f, 1.0f);
+                kernel = ggml_sqr(ctx, kernel);
+                ggml_tensor * error = common_plane(ctx, memory, base + 3ULL * page.width + 4, 1, 0, false);
+                ggml_tensor * weight = ggml_div(ctx,
+                    ggml_mul(ctx, kernel, mean_occupancy),
+                    ggml_scale_bias(ctx, error, 1.0f, 1.0f));
+                const uint64_t weight_offset = static_cast<uint64_t>(entry) * sizeof(float);
+                const uint64_t target_offset = static_cast<uint64_t>(entry) * page.width * sizeof(float);
+                build_outputs.push_back(ggml_cpy(ctx, distance, ggml_view_1d(ctx, resource.probe_distances, 1, weight_offset)));
+                build_outputs.push_back(ggml_cpy(ctx, weight, ggml_view_1d(ctx, resource.probe_weights, 1, weight_offset)));
+                build_outputs.push_back(ggml_cpy(ctx, target_real, ggml_view_1d(ctx, resource.probe_target_real, page.width, target_offset)));
+                build_outputs.push_back(ggml_cpy(ctx, target_imag, ggml_view_1d(ctx, resource.probe_target_imag, page.width, target_offset)));
             }
-            ggml_tensor * available_count = availability_parts.front();
-            ggml_tensor * distance_sum = distance_parts.front();
-            ggml_tensor * target_real_sum = target_real_parts.front();
-            ggml_tensor * target_imag_sum = target_imag_parts.front();
-            ggml_tensor * occupancy_sum = occupancy_parts.front();
-            for (uint32_t scale = 1; scale < CASSI_APPRENTICE_SCALE_COUNT; ++scale) {
-                available_count = ggml_add(ctx, available_count, availability_parts[scale]);
-                distance_sum = ggml_add(ctx, distance_sum, distance_parts[scale]);
-                target_real_sum = ggml_add(ctx, target_real_sum, target_real_parts[scale]);
-                target_imag_sum = ggml_add(ctx, target_imag_sum, target_imag_parts[scale]);
-                occupancy_sum = ggml_add(ctx, occupancy_sum, occupancy_parts[scale]);
-            }
-            ggml_tensor * safe_count = ggml_clamp(ctx,
-                ggml_scale_bias(ctx, available_count, 1.0f, 1.0e-20f), 1.0f, 4.0f);
-            ggml_tensor * distance = ggml_div(ctx, distance_sum, safe_count);
-            ggml_tensor * target_real = ggml_div(ctx, target_real_sum, ggml_repeat(ctx, safe_count, target_real_sum));
-            ggml_tensor * target_imag = ggml_div(ctx, target_imag_sum, ggml_repeat(ctx, safe_count, target_imag_sum));
-            ggml_tensor * mean_occupancy = ggml_div(ctx, occupancy_sum, safe_count);
-            ggml_tensor * kernel = ggml_clamp(ctx,
-                ggml_scale_bias(ctx, distance, -1.0f / (radius * radius), 1.0f), 0.0f, 1.0f);
-            kernel = ggml_sqr(ctx, kernel);
-            ggml_tensor * error = common_plane(ctx, memory, base + 3ULL * page.width + 4, 1, 0, false);
-            ggml_tensor * weight = ggml_div(ctx,
-                ggml_mul(ctx, kernel, mean_occupancy),
-                ggml_scale_bias(ctx, error, 1.0f, 1.0f));
-            entry_distances.push_back(distance);
-            entry_weights.push_back(weight);
-            entry_targets.push_back({ target_real, target_imag });
+            execute(build_scope, build_outputs);
         }
 
-        ggml_tensor * weights = concatenate(ctx, entry_weights, 0);
-        ggml_tensor * distances = concatenate(ctx, entry_distances, 0);
-        ggml_tensor * total_weight = ggml_sum(ctx, weights);
+        // Phase 2: a much smaller reduction graph that re-reads each entry's
+        // weight/target as a view into the (now populated) persistent buffers
+        // above instead of the original tensor objects, keeping this graph's
+        // live-tensor count O(1) per entry too.
+        constexpr size_t REDUCE_PER_ENTRY_NODE_BUDGET = 48;
+        const size_t reduce_node_budget = std::max<size_t>(GRAPH_SIZE,
+            static_cast<size_t>(page.entries) * REDUCE_PER_ENTRY_NODE_BUDGET + NODE_BUDGET_OVERHEAD);
+        graph_scope scope(reduce_node_budget);
+        ggml_context * ctx = scope.context.get();
+        ggml_tensor * total_weight = ggml_sum(ctx, ggml_view_1d(ctx, resource.probe_weights, page.entries, 0));
         ggml_tensor * safe_total = ggml_clamp(ctx,
             ggml_scale_bias(ctx, total_weight, 1.0f, 1.0e-20f), WEIGHT_FLOOR, std::numeric_limits<float>::max());
         ggml_tensor * target_real_numerator = nullptr;
         ggml_tensor * target_imag_numerator = nullptr;
         for (uint32_t entry = 0; entry < page.entries; ++entry) {
-            ggml_tensor * repeated_weight_real = ggml_repeat(ctx, entry_weights[entry], entry_targets[entry].real);
-            ggml_tensor * repeated_weight_imag = ggml_repeat(ctx, entry_weights[entry], entry_targets[entry].imag);
-            ggml_tensor * real_part = ggml_mul(ctx, entry_targets[entry].real, repeated_weight_real);
-            ggml_tensor * imag_part = ggml_mul(ctx, entry_targets[entry].imag, repeated_weight_imag);
+            const uint64_t weight_offset = static_cast<uint64_t>(entry) * sizeof(float);
+            const uint64_t target_offset = static_cast<uint64_t>(entry) * page.width * sizeof(float);
+            ggml_tensor * entry_weight = ggml_view_1d(ctx, resource.probe_weights, 1, weight_offset);
+            ggml_tensor * entry_target_real = ggml_view_1d(ctx, resource.probe_target_real, page.width, target_offset);
+            ggml_tensor * entry_target_imag = ggml_view_1d(ctx, resource.probe_target_imag, page.width, target_offset);
+            ggml_tensor * repeated_weight_real = ggml_repeat(ctx, entry_weight, entry_target_real);
+            ggml_tensor * repeated_weight_imag = ggml_repeat(ctx, entry_weight, entry_target_imag);
+            ggml_tensor * real_part = ggml_mul(ctx, entry_target_real, repeated_weight_real);
+            ggml_tensor * imag_part = ggml_mul(ctx, entry_target_imag, repeated_weight_imag);
             target_real_numerator = target_real_numerator == nullptr ? real_part : ggml_add(ctx, target_real_numerator, real_part);
             target_imag_numerator = target_imag_numerator == nullptr ? imag_part : ggml_add(ctx, target_imag_numerator, imag_part);
         }
@@ -1237,25 +1293,26 @@ struct llama_cassi_field::impl {
         ggml_tensor * target_imag = ggml_div(ctx, target_imag_numerator, ggml_repeat(ctx, safe_total, target_imag_numerator));
         ggml_tensor * scatter_numerator = nullptr;
         for (uint32_t entry = 0; entry < page.entries; ++entry) {
+            const uint64_t weight_offset = static_cast<uint64_t>(entry) * sizeof(float);
+            const uint64_t target_offset = static_cast<uint64_t>(entry) * page.width * sizeof(float);
+            ggml_tensor * entry_weight = ggml_view_1d(ctx, resource.probe_weights, 1, weight_offset);
+            ggml_tensor * entry_target_real = ggml_view_1d(ctx, resource.probe_target_real, page.width, target_offset);
+            ggml_tensor * entry_target_imag = ggml_view_1d(ctx, resource.probe_target_imag, page.width, target_offset);
             ggml_tensor * difference2 = ggml_add(ctx,
-                ggml_sqr(ctx, ggml_sub(ctx, entry_targets[entry].real, target_real)),
-                ggml_sqr(ctx, ggml_sub(ctx, entry_targets[entry].imag, target_imag)));
+                ggml_sqr(ctx, ggml_sub(ctx, entry_target_real, target_real)),
+                ggml_sqr(ctx, ggml_sub(ctx, entry_target_imag, target_imag)));
             ggml_tensor * contribution = ggml_mul(ctx,
-                ggml_sum(ctx, difference2), entry_weights[entry]);
+                ggml_sum(ctx, difference2), entry_weight);
             scatter_numerator = scatter_numerator == nullptr ? contribution : ggml_add(ctx, scatter_numerator, contribution);
         }
         ggml_tensor * scatter = ggml_div(ctx, scatter_numerator, safe_total);
         ggml_tensor * encoded_flat = concatenate(ctx, { target_real, target_imag }, 0);
         ggml_tensor * encoded = ggml_reshape_2d(ctx, encoded_flat, page.width, 2);
 
-        ggml_tensor * weights_out = ggml_view_1d(ctx, resource.probe_weights, page.entries, 0);
-        ggml_tensor * distances_out = ggml_view_1d(ctx, resource.probe_distances, page.entries, 0);
         ggml_tensor * encoded_out = resource.probe_encoded;
         ggml_tensor * total_out = ggml_view_1d(ctx, scalar_output, 1, 0);
         ggml_tensor * scatter_out = ggml_view_1d(ctx, scalar_output, 1, sizeof(float));
         std::vector<ggml_tensor *> outputs = {
-            ggml_cpy(ctx, weights, weights_out),
-            ggml_cpy(ctx, distances, distances_out),
             ggml_cpy(ctx, encoded, encoded_out),
             ggml_cpy(ctx, total_weight, total_out),
             ggml_cpy(ctx, scatter, scatter_out),
@@ -1586,23 +1643,6 @@ struct llama_cassi_field::impl {
         return concatenate(ctx, scales, 2);
     }
 
-    ggml_tensor * set_candidate_metadata(
-        ggml_context * ctx,
-        ggml_tensor * candidate,
-        const cassi_field_page & page,
-        uint32_t entry) {
-        const size_t metadata_block_bytes =
-            6 * 8 * CASSI_APPRENTICE_SCALE_COUNT * sizeof(float);
-        ggml_tensor * metadata = ggml_view_3d(ctx, metadata_physical,
-            6, 8, CASSI_APPRENTICE_SCALE_COUNT,
-            metadata_physical->nb[1], metadata_physical->nb[2],
-            static_cast<size_t>(entry) * metadata_block_bytes);
-        const uint64_t mode = static_cast<uint64_t>(entry) * page.entry_stride() + 3ULL * page.width;
-        return ggml_set(ctx, candidate, metadata,
-            candidate->nb[1], candidate->nb[2], candidate->nb[3],
-            mode * sizeof(float));
-    }
-
     ggml_tensor * memory_validation(
         ggml_context * ctx,
         ggml_tensor * candidate,
@@ -1760,9 +1800,17 @@ struct llama_cassi_field::impl {
         candidate = ggml_set(ctx, candidate, updated,
             candidate->nb[1], candidate->nb[2], candidate->nb[3],
             static_cast<uint64_t>(selected) * page.entry_stride() * sizeof(float));
-        for (uint32_t entry = 0; entry < page.entries; ++entry) {
-            candidate = set_candidate_metadata(ctx, candidate, page, entry);
-        }
+        // Bulk-copy every entry's metadata block in one strided set instead of
+        // one ggml view+set per entry: metadata_physical is already contiguous
+        // as [6, 8, SCALE_COUNT, maximum_entries], so a single 4D view over the
+        // first page.entries slices lines up with candidate's per-entry stride.
+        ggml_tensor * metadata_batch = ggml_view_4d(ctx, metadata_physical,
+            6, 8, CASSI_APPRENTICE_SCALE_COUNT, page.entries,
+            metadata_physical->nb[1], metadata_physical->nb[2], metadata_physical->nb[3], 0);
+        candidate = ggml_set(ctx, candidate, metadata_batch,
+            candidate->nb[1], candidate->nb[2],
+            page.entry_stride() * sizeof(float),
+            3ULL * page.width * sizeof(float));
 
         const uint64_t selected_base = static_cast<uint64_t>(selected) * page.entry_stride();
         ggml_tensor * yang_real = range_plane_view(ctx, candidate, selected_base, page.entry_stride(), 0, 0);
@@ -1905,6 +1953,20 @@ struct llama_cassi_field::impl {
         return boundary_vector;
     }
 
+    ggml_tensor * load_matrix(const float * data, size_t count) {
+        if (data == nullptr || cfg.group_rows == 0 || boundary_matrix == nullptr ||
+                count != static_cast<size_t>(cfg.embedding_width) * cfg.group_rows) {
+            fail("apprentice_service_vector_invalid");
+        }
+        for (size_t index = 0; index < count; ++index) {
+            if (!std::isfinite(data[index])) {
+                fail("apprentice_service_vector_nonfinite");
+            }
+        }
+        ggml_backend_tensor_set(boundary_matrix, data, 0, count * sizeof(float));
+        return boundary_matrix;
+    }
+
     size_t context_snapshot_bytes() const {
         uint64_t modes = 0;
         for (const cassi_field_page & page : page_descriptors) {
@@ -1917,8 +1979,11 @@ struct llama_cassi_field::impl {
     }
 
     void context_snapshot_get(void * destination, size_t size) const {
-        if (destination == nullptr || size != context_snapshot_bytes()) {
+        if (size != context_snapshot_bytes() || (size != 0 && destination == nullptr)) {
             fail("apprentice_state_buffer_invalid");
+        }
+        if (size == 0) {
+            return;
         }
         uint8_t * output = static_cast<uint8_t *>(destination);
         size_t output_offset = 0;
@@ -1938,8 +2003,11 @@ struct llama_cassi_field::impl {
     }
 
     void context_snapshot_set(const void * source, size_t size) {
-        if (source == nullptr || size != context_snapshot_bytes()) {
+        if (size != context_snapshot_bytes() || (size != 0 && source == nullptr)) {
             fail("apprentice_state_buffer_invalid");
+        }
+        if (size == 0) {
+            return;
         }
         const uint8_t * input = static_cast<const uint8_t *>(source);
         size_t input_offset = 0;
@@ -2125,18 +2193,23 @@ struct llama_cassi_field::impl {
     }
 
     void state_get(void * destination, size_t size) const {
-        if (destination == nullptr || size != state_bytes) {
+        if (size != state_bytes || (size != 0 && destination == nullptr)) {
             fail("apprentice_state_buffer_invalid");
+        }
+        if (size == 0) {
+            return;
         }
         ggml_backend_tensor_get(field, destination, 0, size);
     }
 
     void state_set(const void * source, size_t size, uint64_t new_revision, uint64_t new_evictions) {
-        if (source == nullptr || size != state_bytes) {
+        if (size != state_bytes || (size != 0 && source == nullptr)) {
             fail("apprentice_checkpoint_invalid");
         }
-        validate_state(static_cast<const float *>(source));
-        ggml_backend_tensor_set(field, source, 0, size);
+        if (size != 0) {
+            validate_state(static_cast<const float *>(source));
+            ggml_backend_tensor_set(field, source, 0, size);
+        }
         revision = new_revision;
         evictions = new_evictions;
     }
@@ -2268,6 +2341,10 @@ ggml_tensor * llama_cassi_field::copy_vector(ggml_tensor * source, uint32_t slot
 }
 ggml_tensor * llama_cassi_field::load_vector(const float * data, size_t count) {
     return pimpl->load_vector(data, count);
+}
+
+ggml_tensor * llama_cassi_field::load_matrix(const float * data, size_t count) {
+    return pimpl->load_matrix(data, count);
 }
 size_t llama_cassi_field::context_snapshot_size() const { return pimpl->context_snapshot_bytes(); }
 void llama_cassi_field::context_snapshot_get(void * destination, size_t size) const {

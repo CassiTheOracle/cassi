@@ -815,3 +815,151 @@ ggml_tensor * llm_build_delta_net_base::build_recurrent_attn(
 
     return output;
 }
+
+ggml_tensor * llm_build_delta_net_base::build_layer_attn_linear_site_candidate(
+        const llama_layer & layer,
+        llm_graph_input_rs * inp,
+        ggml_tensor * cur,
+        int il,
+        const llm_graph_site_candidate_config * candidate) {
+    if (candidate == nullptr) {
+        return nullptr;
+    }
+
+    const auto refuse_candidate = [&](const char * reason) {
+        llm_graph_site_candidate_result receipt;
+        receipt.attempted = true;
+        receipt.admitted = false;
+        receipt.owner_generation = candidate->owner_generation;
+        receipt.refusal = reason;
+        res->set_graph_site_candidate_result(std::move(receipt));
+    };
+
+    const auto * mctx_cur = inp != nullptr ? inp->mctx : nullptr;
+    const int64_t n_embd = hparams.n_embd;
+    const int64_t conv_width = hparams.n_embd_r();
+    const int64_t state_width = hparams.n_embd_s();
+    const ggml_tensor * conv_kernel = layer.ssm_conv1d;
+    const int64_t conv_rows = conv_kernel != nullptr && conv_kernel->ne[0] > 1
+        ? conv_kernel->ne[0] - 1 : 0;
+    const int64_t conv_channels = hparams.ssm_d_inner +
+        2 * hparams.ssm_n_group * hparams.ssm_d_state;
+    const int64_t state_heads = hparams.ssm_dt_rank;
+    const int64_t state_head_width = state_heads > 0 &&
+        hparams.ssm_d_inner % state_heads == 0
+            ? hparams.ssm_d_inner / state_heads : 0;
+    const int64_t expected_conv_width = conv_rows * conv_channels;
+    const int64_t expected_state_width =
+        state_heads * state_head_width * state_head_width;
+    const int64_t input_width = n_embd + conv_width + state_width;
+
+    ggml_tensor * conv_states_all = mctx_cur != nullptr ? mctx_cur->get_r_l(il) : nullptr;
+    ggml_tensor * ssm_states_all = mctx_cur != nullptr ? mctx_cur->get_s_l(il) : nullptr;
+    const uint32_t mem_size = mctx_cur != nullptr ? mctx_cur->get_size() : 0;
+    const uint32_t kv_head = mctx_cur != nullptr ? mctx_cur->get_head() : 0;
+    const uint32_t n_rs = mctx_cur != nullptr ? mctx_cur->get_n_rs() : 0;
+
+    const bool supported_layout =
+        candidate->kind == llm_graph_site_candidate_kind::RECURRENT &&
+        candidate->layer == il &&
+        graph_site_candidate_eligible(*candidate, ubatch) &&
+        cparams.n_rs_seq == 0 &&
+        cur != nullptr && cur->type == GGML_TYPE_F32 &&
+        ggml_is_contiguous(cur) && cur->ne[0] == n_embd &&
+        cur->ne[1] == 1 && cur->ne[2] == 1 && cur->ne[3] == 1 &&
+        mctx_cur != nullptr && conv_states_all != nullptr && ssm_states_all != nullptr &&
+        mem_size > 0 && kv_head < mem_size && n_rs > 0 && n_rs <= mem_size &&
+        conv_kernel != nullptr && conv_rows > 0 && conv_channels > 0 &&
+        conv_kernel->ne[1] == conv_channels &&
+        n_embd > 0 && conv_width > 0 && state_width > 0 &&
+        state_heads > 0 && state_head_width > 0 &&
+        conv_rows <= UINT32_MAX && conv_channels <= UINT32_MAX &&
+        state_heads <= UINT32_MAX && state_head_width <= UINT32_MAX &&
+        expected_conv_width == conv_width && expected_state_width == state_width &&
+        conv_states_all->type == GGML_TYPE_F32 &&
+        conv_states_all->ne[0] == conv_width &&
+        conv_states_all->ne[1] >= mem_size &&
+        conv_states_all->ne[2] == 1 && conv_states_all->ne[3] == 1 &&
+        conv_states_all->nb[0] == ggml_type_size(GGML_TYPE_F32) &&
+        conv_states_all->nb[1] == ggml_row_size(GGML_TYPE_F32, conv_width) &&
+        ssm_states_all->type == GGML_TYPE_F32 &&
+        ssm_states_all->ne[0] == state_width &&
+        ssm_states_all->ne[1] >= mem_size &&
+        ssm_states_all->ne[2] == 1 && ssm_states_all->ne[3] == 1 &&
+        ssm_states_all->nb[0] == ggml_type_size(GGML_TYPE_F32) &&
+        ssm_states_all->nb[1] == ggml_row_size(GGML_TYPE_F32, state_width) &&
+        candidate->conv_history_rows == (uint32_t) conv_rows &&
+        candidate->conv_history_channels == (uint32_t) conv_channels &&
+        candidate->recurrent_state_heads == (uint32_t) state_heads &&
+        candidate->recurrent_state_value_width == (uint32_t) state_head_width &&
+        candidate->recurrent_state_key_width == (uint32_t) state_head_width &&
+        graph_site_affine_layout_supported(*candidate, input_width, input_width);
+
+    if (!supported_layout) {
+        refuse_candidate("recurrent_state_layout_unsupported");
+        return nullptr;
+    }
+
+    ggml_tensor * conv_history = build_rs(inp, conv_states_all, conv_width, ubatch.n_seqs);
+    ggml_tensor * recurrent_state = build_rs(inp, ssm_states_all, state_width, ubatch.n_seqs);
+    ggml_tensor * features = ggml_concat(ctx0, cur, conv_history, 0);
+    features = ggml_concat(ctx0, features, recurrent_state, 0);
+    cb(features, "recurrent_features", il);
+    if (features->type != GGML_TYPE_F32 || !ggml_is_contiguous(features) ||
+            features->ne[0] != input_width || features->ne[1] != 1 ||
+            features->ne[2] != 1 || features->ne[3] != 1) {
+        refuse_candidate("recurrent_input_tensor_layout_unsupported");
+        return nullptr;
+    }
+
+    ggml_tensor * successor = build_graph_site_affine(ctx0, res, features, *candidate);
+    cb(successor, "recurrent_successor", il);
+    if (successor->type != GGML_TYPE_F32 || !ggml_is_contiguous(successor) ||
+            successor->ne[0] != input_width || successor->ne[1] != 1 ||
+            successor->ne[2] != 1 || successor->ne[3] != 1) {
+        refuse_candidate("recurrent_successor_layout_unsupported");
+        return nullptr;
+    }
+
+    const int64_t n_written = 1;
+    const size_t element_size = ggml_element_size(successor);
+    ggml_tensor * hidden_successor = ggml_view_2d(ctx0, successor,
+        n_embd, n_written, successor->nb[1], 0);
+    cb(hidden_successor, "linear_attn_out", il);
+    const size_t conv_offset = (size_t) n_embd * element_size;
+    ggml_tensor * conv_successor = ggml_view_2d(ctx0, successor,
+        conv_width, n_written, successor->nb[1], conv_offset);
+    const size_t state_offset = (size_t) (n_embd + conv_width) * element_size;
+    ggml_tensor * state_successor = ggml_view_2d(ctx0, successor,
+        state_width, n_written, successor->nb[1], state_offset);
+
+    const size_t conv_row_size = ggml_row_size(conv_states_all->type, conv_width);
+    ggml_tensor * conv_state_update = ggml_view_2d(ctx0, conv_states_all,
+        conv_width, n_written, conv_states_all->nb[1], kv_head * conv_row_size);
+    ggml_build_forward_expand(gf, ggml_cpy(ctx0, conv_successor, conv_state_update));
+
+    const size_t state_row_size = ggml_row_size(ssm_states_all->type, state_width);
+    ggml_tensor * recurrent_state_update = ggml_view_2d(ctx0, ssm_states_all,
+        state_width, n_written, ssm_states_all->nb[1], kv_head * state_row_size);
+    ggml_build_forward_expand(gf, ggml_cpy(ctx0, state_successor, recurrent_state_update));
+
+    llm_graph_site_candidate_result receipt;
+    receipt.attempted = true;
+    receipt.admitted = true;
+    receipt.owner_generation = candidate->owner_generation;
+    receipt.input_tensor = features;
+    receipt.output_tensor = successor;
+    receipt.operators_omitted = 1;
+    const ggml_tensor * omitted_weights[] = {
+        layer.wqkv, layer.wqkv_gate, layer.ssm_beta, layer.ssm_alpha,
+        layer.ssm_dt, layer.ssm_a, layer.ssm_conv1d, layer.ssm_norm, layer.ssm_out,
+    };
+    for (const ggml_tensor * weight : omitted_weights) {
+        if (weight != nullptr) {
+            ++receipt.weights_omitted;
+            receipt.weight_bytes_omitted += ggml_nbytes(weight);
+        }
+    }
+    res->set_graph_site_candidate_result(std::move(receipt));
+    return hidden_successor;
+}

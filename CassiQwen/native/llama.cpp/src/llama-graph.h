@@ -4,6 +4,8 @@
 #include "llama-batch.h"
 #include "llama-hparams.h"
 #include "llama-adapter.h"
+#include <string>
+
 #include "../include/llama-cassi.h"
 
 #include <cstdint>
@@ -31,6 +33,112 @@ class llama_kv_cache_iswa_context;
 class llama_memory_recurrent_context;
 class llama_memory_hybrid_context;
 class llama_memory_hybrid_iswa_context;
+
+enum class llm_graph_site_candidate_kind : uint32_t {
+    EXPERTS = 1,
+    RECURRENT = 2,
+    ATTENTION_MEMORY = 3,
+    EXECUTION_CHOICE = 6,
+};
+
+struct llm_graph_site_candidate_config {
+    llm_graph_site_candidate_kind kind = llm_graph_site_candidate_kind::EXPERTS;
+    llama_seq_id seq_id = -1;
+    int32_t position = -1;
+    int32_t layer = -1;
+    uint64_t owner_generation = 0;
+    uint64_t predecessor_generation = 0;
+    std::string sequence_id;
+    std::string source_sha256;
+    std::string architecture;
+    std::string backend;
+    std::string input_tensor;
+    std::string output_tensor;
+    std::string tensor_dtype;
+    std::string stage;
+    std::string site;
+    std::string specialist;
+    std::string predecessor_sha256;
+    std::string request_sha256;
+    bool request_sha256_pending = false;
+    std::string invocation_sha256;
+    std::string candidate_sha256;
+    std::string intervention_order;
+    std::string dependencies_json;
+    std::string method_key;
+    uint64_t method_generation = 0;
+    uint32_t input_width = 0;
+    uint32_t rank = 0;
+    uint32_t output_width = 0;
+    std::vector<float> a;
+    std::vector<float> b;
+    std::vector<float> bias;
+    uint32_t conv_history_rows = 0;
+    uint32_t conv_history_channels = 0;
+    uint32_t recurrent_state_heads = 0;
+    uint32_t recurrent_state_value_width = 0;
+    uint32_t recurrent_state_key_width = 0;
+    uint32_t attn_kv_heads = 0;
+    uint32_t attn_kv_head_width = 0;
+    std::vector<float> input_support_anchor;
+    float input_support_radius = 0.0f;
+    float input_support_anchor_norm = 0.0f;
+    std::vector<int32_t> expected_expert_ids;
+};
+
+struct llm_graph_site_candidate_result {
+    bool attempted = false;
+    bool admitted = false;
+    uint64_t owner_generation = 0;
+    uint64_t operators_omitted = 0;
+    uint64_t weights_omitted = 0;
+    uint64_t weight_bytes_omitted = 0;
+    std::string refusal;
+    std::string input_sha256;
+    std::string output_sha256;
+    std::string native_successor_sha256;
+    std::string request_sha256;
+    bool request_sha256_pending = false;
+    std::string invocation_sha256;
+    std::string predecessor_sha256;
+    std::string successor_sha256;
+    std::string successor_state_json;
+    // Measured native route order; retained by the context result for C API receipt views.
+    std::vector<int32_t> actual_expert_ids;
+
+    std::string candidate_sha256;
+    ggml_tensor * input_tensor = nullptr;
+    ggml_tensor * output_tensor = nullptr;
+    ggml_tensor * expert_ids_tensor = nullptr;
+};
+
+class llm_graph_result;
+
+// Shared graph-site helpers. The exact low-rank successor affine and the layout
+// checks that gate it are identical for every Qwen graph that exposes a site
+// (dense-hybrid recurrent layers and MoE experts), so they live in one place.
+ggml_tensor * build_graph_site_affine(
+        ggml_context * ctx,
+        llm_graph_result * res,
+        ggml_tensor * input,
+        const llm_graph_site_candidate_config & candidate);
+
+// A graph-site candidate names exactly one row: seq_id and position are both
+// validated non-negative at admission time (llama-context graph-site ABI). The
+// candidate may only replace a site when the graph computes exactly that row;
+// a batched pass would apply the low-rank affine to every row of the fused
+// tensor, so a multi-row or mismatched batch is refused and the model's own
+// operators run instead (the receipt stays unset, which the context reports as
+// candidate_not_admitted). This fails closed on mixed candidate rows instead of
+// merging wrong states.
+bool graph_site_candidate_eligible(
+        const llm_graph_site_candidate_config & candidate,
+        const llama_ubatch & ubatch);
+
+bool graph_site_affine_layout_supported(
+        const llm_graph_site_candidate_config & candidate,
+        int64_t input_width,
+        int64_t output_width);
 
 // certain models (typically multi-modal) can produce different types of graphs
 enum llm_graph_type {
@@ -122,7 +230,17 @@ protected:
     int debug = 0;
 };
 
+
 using llm_graph_input_ptr = std::unique_ptr<llm_graph_input_i>;
+class llm_graph_input_site_affine : public llm_graph_input_i {
+public:
+    explicit llm_graph_input_site_affine(const std::vector<float> * data) : data(data) {}
+    void set_input(const llama_ubatch * ubatch) override;
+    bool can_reuse(const llm_graph_params & params) override;
+    ggml_tensor * value = nullptr;
+private:
+    const std::vector<float> * data;
+};
 
 class llm_graph_input_embd : public llm_graph_input_i {
 public:
@@ -794,6 +912,18 @@ struct llm_cassi_service_config {
     int32_t layer = -1;
     ggml_tensor * input = nullptr;
     uint64_t request_epoch = 0;
+
+    // Multi-row decode extension. n_rows == 1 reproduces the legacy single-token
+    // service transaction exactly (batch_* pointers may stay null for that case).
+    // Each row r identifies one sequence's next stage row: token batch_tokens[r]
+    // at position batch_pos[r] in sequence batch_seq_ids[r]. The handoff tensor
+    // `input` is [width, n_rows] when n_rows > 1, column i belonging to row i;
+    // the stage output is [out_width, n_rows] in the same order.
+    uint32_t n_rows = 1;
+    const llama_token * batch_tokens = nullptr;  // [n_rows], embed stage only
+    const llama_pos * batch_pos = nullptr;       // [n_rows]
+    const llama_seq_id * batch_seq_ids = nullptr; // [n_rows]
+    uint32_t stage_width = 0;                    // per-row tensor width, 0 selects legacy field width
 };
 
 class llm_graph_input_cassi_service : public llm_graph_input_i {
@@ -860,6 +990,7 @@ struct llm_graph_params {
     const llm_cassi_field_config * cassi_field;
     const llm_cassi_qi_field_config * cassi_qi;
     const llm_cassi_service_config * cassi_service;
+    const llm_graph_site_candidate_config * cassi_graph_site_candidate = nullptr;
 
     std::map<llama_seq_id, llama_sampler *> samplers;
 
@@ -887,6 +1018,9 @@ struct llm_graph_params {
     // return true if the "other" params would result in a graph with the same topology as with the current params
     //   having the same topology allows us to reuse the graph in some cases
     bool allow_reuse(const llm_graph_params & other) const {
+        if (cassi_graph_site_candidate != nullptr || other.cassi_graph_site_candidate != nullptr) {
+            return false;
+        }
         // first check the ubatch
         bool can_reuse_ubatch =
             ubatch.equal_seqs() == other.ubatch.equal_seqs() &&
@@ -1086,6 +1220,12 @@ public:
         t_cassi_qi_state_field_width = field_width;
         t_cassi_qi_state_row_width = row_width;
     }
+    const llm_graph_site_candidate_result & get_graph_site_candidate_result() const {
+        return graph_site_candidate_result;
+    }
+    void set_graph_site_candidate_result(llm_graph_site_candidate_result value) {
+        graph_site_candidate_result = std::move(value);
+    }
     ggml_tensor * get_cassi_service() const { return t_cassi_service; }
     ggml_context * get_ctx() const { return ctx_compute.get(); }
 
@@ -1123,6 +1263,7 @@ public:
     ggml_tensor * t_cassi_qi    = nullptr; // packed [flux 2*M*T, state 9*M*S, diag 10*S]
     ggml_tensor * t_cassi_qi_flux = nullptr; // [n_embd, n_tokens] view of the flux block, for the state-write seams
     ggml_tensor * t_cassi_qi_seam_budget = nullptr; // scalar: the largest scale the modulated write allows
+    llm_graph_site_candidate_result graph_site_candidate_result;
     ggml_tensor * t_cassi_qi_seam_scale  = nullptr; // scalar: the scale the modulated write applied
     int64_t t_cassi_qi_state_field_width = 0; // channels the seam addressed on this build
     int64_t t_cassi_qi_state_row_width = 0;   // channels in the suppressed state row
