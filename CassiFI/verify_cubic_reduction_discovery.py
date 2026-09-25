@@ -1075,34 +1075,102 @@ def nonnegative_row_bound(
 ) -> tuple[int, dict[str, Any]] | None:
     n, rows, rhs = system
     checked = 0
-    for support_size in range(1, min(ROW_BOUND_SUPPORT_CAP, len(rows)) + 1):
+
+    # Pre-extract rows and rhs for faster access
+    # rows is tuple of tuples, rhs is tuple
+    # We will iterate combinations
+
+    max_support = min(ROW_BOUND_SUPPORT_CAP, len(rows))
+
+    # Cache row data to avoid repeated tuple indexing if possible, 
+    # though tuple indexing is fast. The main cost is the nested loops.
+
+    for support_size in range(1, max_support + 1):
+        # itertools.combinations(range(len(rows)), support_size)
+        # We can optimize the inner loops
+
+        # Generate all sign combinations
+        # itertools.product((-1, 1), repeat=support_size)
+
+        # To speed up, we can use a single loop over combinations and signs
+        # and compute the required values efficiently.
+
+        # Optimization: Pre-calculate the rows as lists for mutable operations?
+        # No, we just need to sum them.
+
+        # Let's try to minimize the inner loop overhead.
+
         for selected_rows in itertools.combinations(range(len(rows)), support_size):
+            # selected_rows is a tuple of indices
+
+            # We need to iterate over all sign combinations
+            # Instead of nested product, we can iterate and compute
+
+            # To avoid creating many small lists, we can compute on the fly.
+
+            # Let's pre-fetch the rows for this combination
+            selected_row_data = [rows[idx] for idx in selected_rows]
+            selected_rhs_vals = [rhs[idx] for idx in selected_rows]
+
+            # Iterate over signs
             for signs in itertools.product((-1, 1), repeat=support_size):
                 checked += 1
                 ledger.row_bound_combinations += 1
+
+                # Compute target and combined vector
+                # Using a list comprehension or loop
+
+                # Initialize combined
                 combined = [0] * n
                 target = 0
-                for row_index, multiplier in zip(selected_rows, signs, strict=True):
-                    target += multiplier * rhs[row_index]
+
+                # Unroll the zip loop for speed
+                for i in range(support_size):
+                    row_index = selected_rows[i]
+                    multiplier = signs[i]
+
+                    # Update target
+                    target += multiplier * selected_rhs_vals[i]
                     ledger.row_bound_coefficient_updates += 1
-                    for column, coefficient in enumerate(rows[row_index]):
-                        combined[column] += multiplier * coefficient
+
+                    # Update combined
+                    row_data = selected_row_data[i]
+                    for col_idx in range(n):
+                        combined[col_idx] += multiplier * row_data[col_idx]
                         ledger.row_bound_coefficient_updates += 1
-                if target < 0 or any(coefficient < 0 for coefficient in combined):
+
+                # Check if target < 0 or any coefficient < 0
+                if target < 0:
                     continue
-                forced_column = next(
-                    (
-                        column
-                        for column, coefficient in enumerate(combined)
-                        if coefficient > target
-                    ),
-                    None,
-                )
+
+                # Check for negative coefficients
+                # Using any() is fast, but we can optimize by checking during sum?
+                # No, we need the full sum first.
+
+                has_negative = False
+                for coeff in combined:
+                    if coeff < 0:
+                        has_negative = True
+                        break
+
+                if has_negative:
+                    continue
+
+                # Find forced column: first column where coefficient > target
+                forced_column = None
+                for col_idx, coeff in enumerate(combined):
+                    if coeff > target:
+                        forced_column = col_idx
+                        break
+
                 if forced_column is None:
                     continue
+
+                # Found a valid bound
                 multipliers = [0] * len(rows)
-                for row_index, multiplier in zip(selected_rows, signs, strict=True):
-                    multipliers[row_index] = multiplier
+                for i in range(support_size):
+                    multipliers[selected_rows[i]] = signs[i]
+
                 return forced_column, {
                     "kind": "nonnegative_row_bound",
                     "support_cap": ROW_BOUND_SUPPORT_CAP,
@@ -1113,6 +1181,7 @@ def nonnegative_row_bound(
                     "forced_column": forced_column + 1,
                     "forced_value": 0,
                 }
+
     return None
 
 
