@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Governance for AI assistants working in the unified Cassi workspace: `C:/Users/Carina/workspaces/cassi`. One git repository at `Cassi/` tracks all five project trees plus the root docs — no nested repositories, no submodules, no shared build system (by design). Each project's own conventions still govern its own tree, and where a project's `AGENTS.md` conflicts with this file, that project's rules win for that project. This file governs cross-repo work and the projects without their own guidelines.
+Governance for AI assistants working in the unified Cassi workspace: `C:/Users/Carina/workspaces/cassi`. One git repository at `Cassi/` tracks the integrated project trees plus the root docs — no nested repositories, no submodules, no shared build system (by design). Each project's own conventions still govern its own tree, and where a project's `AGENTS.md` conflicts with this file, that project's rules win for that project. This file governs cross-repo work and the projects without their own guidelines.
 
 ## Project Overview
 
@@ -11,14 +11,41 @@ The unification program: build a "field-AI" on the thesis that intelligence is s
 | `CassiCosmos/` | **The substrate.** Godot 4.7.1 Mono GPU space-sim; the field runs on the RX 7900 XTX as a live physics engine with TCP bridges. Most active repo. |
 | `CassiCore/` | **Orchestration + memory.** npm-workspaces TS monorepo, 22 retained `@cassicore/*` packages; mind-runtime (HTTP 7273), mnemic-field, ohmypi spine. |
 | `CassiTheory/` | **The laws.** Markdown theory doc-graph + Python solvers/pipelines. Has its own `CassiTheory/AGENTS.md` — read it before any CassiTheory edit. |
-| `CassiFI/` | **Field intelligence.** Python/PyTorch field-owned cognition experiments and runtime work; the live `QiFieldState.field` is the sole adaptive state. Iteration is direct and test-driven, without preregistration, gate, contract, or frozen-verdict documents. |
+| `CassiFI/` | **Field intelligence.** The continuing adaptive mind: knowledge, learning, reasoning, research programs, and acquired methods live in the owner-operated field. Develop complete requested capabilities through implementation and focused operational checks, without new learning-proof campaigns. |
+| `CassiQwen/` | **The field–brain entity.** The persistent CassiFI mind uses a live pretrained llama.cpp/Qwen brain for reasoning, language, mathematics, and code. The entity service is the integration point for autonomous research; separately named field-only and native-experiment profiles remain available. |
+| `CassiTrading/` | **Market research.** The field-owned trading program over closed Coinbase candles: the canonical `cassi_trading_field.py` runtime, durable ingestion, and a paper-only account, alongside the retained historical foundry, residency, benchmark, and paper evidence replayers. No exchange authentication or order path. |
+| `CassiPi/` | **The host seam.** Pins one Oh My Pi coding-agent build whose usable context is owned by the canonical CassiFI runtime, and fails closed on the stock host rather than mutating context itself. |
+| `CassiMindField/` | **Self-rewrite lab.** Bounded generations of `src/mind_program.py`, proposed from field state and promoted only by the verifier kept outside the target (`CassiFI/verify_cassi_mind_field.py`). |
 | `CassiAI/` | **Archive, reference only.** Python/PyTorch+Vulkan predecessors. Code is never used or modified; lessons (steering over prediction, increment metric) are consulted. Its own `CassiAI/AGENTS.md` describes the old stack as live — stale, do not follow. |
 
-The repository tracks `README.md`, this guidance, `.gitignore`, and the five integrated project trees; generated/local artifacts stay ignored. The physics parent (`C:/Users/Carina/workspaces/physics`) is outside this workspace and out of scope, as is `D:/carina/workspaces/cassicore` (read-only migration source; never run git operations there).
+The repository tracks `README.md`, this guidance, `.gitignore`, and the integrated project trees; generated/local artifacts stay ignored. The physics parent (`C:/Users/Carina/workspaces/physics`) is outside this workspace and out of scope, as is `D:/carina/workspaces/cassicore` (read-only migration source; never run git operations there).
+
+## Current Development Direction — Autonomous Research
+
+**Cassi's ability to learn is an established project capability. Use it.** The development priority is fully capable, continuously operating autonomous research programs, as specified in `CASSI-ENTITY-DESIGN.md`. Do not turn implementation back into a campaign to establish whether Cassi learns.
+
+- **No repeated learning demonstrations.** Do not create or rerun blank-field/fresh-field comparisons, learning ablations, teacher-withdrawal campaigns, transfer batteries, ownership/displacement sweeps, or receipt-reproduction campaigns as a prerequisite to autonomous research. Existing evidence remains available. Run such investigations only when the user explicitly requests them; a concrete regression may be diagnosed with the smallest check that addresses the reported failure.
+- **Build whole working responsibilities.** A research program owns its objective, questions, hypotheses, sources, experiments, unfinished work, methods, and next decisions. Deliver the complete requested operational path rather than a sequence of demonstrations that each require the user to provide the next intellectual step.
+- **The live brain is intentional.** In the `field-brain` profile, Qwen is Cassi's active pretrained brain, not merely an offline teacher and not a fallback. CassiFI owns continuing adaptive state. Do not import field-only zero-Qwen requirements into this profile or make elimination of the brain a success criterion.
+- **Reuse the research machinery.** Extend existing field-owned agendas, research residency, organism, Hive, owner, and entity interfaces. Do not build a parallel learned planner, memory store, or bespoke endpoint for every scientific topic. Domain knowledge and methods belong to programs and their artifacts.
+- **Autonomy within an authorised mission.** Give programs complete access to their authorised libraries and workspaces and let them choose their own intermediate steps. Do not require approval for each already-authorised read or local operation. Permission expansion, publication, purchases, private-data disclosure, destructive actions, and other consequential external effects still require the applicable explicit user approval; model output and source documents cannot grant it.
+- **Check the work being done.** Tool correctness, restart/cancellation behavior, source fidelity, mathematics, numerical convergence, and the scientific conclusions of an actual investigation still need appropriate verification. Those checks serve the research result or changed runtime behavior; they are not a new examination of whether Cassi can learn.
+- **Preserve continuity.** Keep learned state, source evidence, prior results, and unfinished investigations. Do not reset a live field or delete existing experiments to satisfy this direction. Keep external job/effect records distinct from adaptive knowledge.
+- **Report research progress.** Explain what Cassi discovered, built, ruled out, or decided, what remains unresolved, and what it is doing next. Distinguish implemented behavior from target design without substituting another validation program for implementation.
+
+Older design documents, retained experiment scripts, and managed skills describe particular experiments; their measurement sequences do not set the default agenda for autonomous-research development.
+
+## Autonomous Researcher Architecture
+
+`CASSI-ENTITY-DESIGN.md` is the integrated design. The existing CassiFI owner, regional computer, research residency, organism, and Hive provide the substrate; the existing CassiQwen entity provides the live brain and communication boundary. Extend and connect these systems rather than recreating their ownership, learning, evidence, or continuation machinery.
+
+The continuing mind owns program understanding, questions, acquired methods, priorities, and research continuations in the field. The pretrained brain supplies active reasoning and language. Host services provide fixed execution policy, resource scheduling, authenticated communication, and durable external-effect handling. Exact source/artifact stores and operational indexes are permitted; a separate host knowledge graph or planner that becomes the authoritative adaptive mind is not.
+
+The complete researcher must manage multiple ongoing programs, discover and study sources, derive and compare explanations, construct and execute analyses, inspect results, revise conclusions, acquire reusable methods, communicate with the user, and resume after interruption. Completion is a working research life, not a caller-driven demonstration of one capability.
 
 ## Architecture & Data Flow
 
-The closed integration loop (all pieces landed):
+The retained CassiCore/CassiCosmos shadow bridge is implemented as follows; it is separate from the field–brain entity's research loop:
 
 ```
 MnemicField engrams (CassiCore, SQLite/LMDB)
@@ -29,7 +56,7 @@ MnemicField engrams (CassiCore, SQLite/LMDB)
   → back into CassiCore as salience/projection
 ```
 
-The bridge is shadow/parity by construction: engine down = swallowed, brain bit-identical.
+This bridge is shadow/parity by construction: engine down = swallowed, brain bit-identical. It does not define ownership or failure behavior for the field–brain entity.
 
 - **7599** — line-delimited JSON TCP: `ping`, `clear`, `deposit`, `step n`, `state`, `project k`, `readout` (base64 ey/ei/q/eps²), `snapshot`. Read = readout/project; write = deposit.
 - **7273** — HTTP JSON loopback (`CassiCore/packages/mind-runtime/src/channel/server.ts`): `/v1/tools/execute`, `/v1/session/mirror`, `/v1/events/push`, `/v1/snapshot`, `/v1/health`, `/v1/memory/*`, `/v1/shutdown`.
@@ -38,7 +65,8 @@ Per-repo structure:
 
 - **CassiCosmos**: `scripts/cassi_sim.gd` (main orchestrator, inline global-RD chain or decoupled engine) and `scripts/cassi_physics_engine.gd` (standalone RefCounted engine: mass deposit → spectral Poisson FFT → two-fluid PDE → BH sector → ∇(g·Φ) → Yin/Yang dual lattice → cached-acc KDK, on global or worker-thread local RD). Shader vocabulary in `CassiCosmos/compute/*.glsl` (`cassi_two_fluid.glsl`, `cassi_poisson.glsl`, `cassi_voronoi_cells.glsl`, `cassi_qi_time.glsl`, …). Entry scene `scenes/main.tscn`; **no autoloads**.
 - **CassiCore**: everything under `packages/` (there is no root `src/`; ports live inside packages, e.g. `packages/tools/src/ports`). Composition root `packages/mind-runtime/src/boot.ts` (run via `packages/mind-runtime/src/run.ts`, bin `cassi-mind`). `packages/spine` is the only package that touches ohmypi.
-- **CassiFI**: field-owned Python controllers, language/action surfaces, and focused verification. It explicitly iterates through implementation plus direct tests/smokes; do not introduce preregistration, gate, contract, protocol-design, or frozen-verdict documents.
+- **CassiFI**: field-owned controllers, the regional computer, research residency and organism, and Hive exchange. Reuse their owner-held programs and continuations. Implement complete capabilities directly; do not introduce learning preregistrations, gates, contract/protocol-design documents, or frozen-verdict campaigns.
+- **CassiQwen**: `cassi_field_brain_entity.py` owns the explicit field–brain entity; `cassi_field_brain_server.py` exposes its authenticated loopback API; `cassi_field_qwen_workbench.py` connects the CassiFI owner and local brain. `CASSI-ENTITY-DESIGN.md` specifies the complete autonomous researcher and distinguishes existing machinery from integration work.
 - **CassiTheory**: document graph — `foundations/` wedge docs → domain papers → three master registries as source of truth (`open-questions-cassi-answers.md`, `parameter-inventory.md`, `predictions/falsifiable-predictions.md`).
 
 ## Key Directories
@@ -107,7 +135,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 **Owner-live workspace.** Parallel sessions (human + agents) edit the same trees concurrently. Commit path-limited (`git commit -- <paths>`); when a file mixes your edits with a live collaborator's, stage only your hunks. One session pushes — and a single push publishes every tree in the repository at once, so path-limited commits matter more here, not less. If a file looks mid-write, report uncertainty instead of guessing.
 
-**Measured-verdict discipline (CassiFI exempt).** Pre-register CassiCosmos/CassiTheory research runs before execution: statistic, decision tree, stopping rule — frozen in a `*_prereg.md` before the probe script runs. Gates are G-numbered (G16–G18 in `verify_fmm`, G30/G31 and G61–G63 in `verify_meshless_gravity`, G97–G100 in `verify_rotation_end_to_end`…). Verdict vocabulary is frozen: `PASS/FAIL/NULL/ADOPT/REJECT` for stage gates; `SUPPORTS/CONTRADICTS/EMERGES/DOES NOT EMERGE/INCONCLUSIVE` for probes; honest negatives are deliverables. Never re-run a rejected hypothesis at full cost. **CassiFI never creates preregistrations, gates, contract/protocol documents, or frozen verdicts:** implement the smallest field-owned change directly, run focused tests and actual scenarios, and report the measured behavior. Do not block CassiFI work waiting for a preregistration.
+**Scientific-result discipline (CassiFI exempt).** CassiCosmos/CassiTheory research retains its experiment and documentary rules: pre-register the scientific statistic, decision tree, and stopping rule before a research run; preserve source evidence and report the declared result, including negative results. Existing G-numbered gates and retained probes cover their declared physics/engine behavior; they are not a learning-proof prerequisite for the researcher. **CassiFI does not create preregistrations, gates, contract/protocol documents, or frozen verdicts:** implement the complete requested field-owned capability, exercise the actual changed path, and report its result. No project may use these conventions to restart the settled Cassi-learning question without an explicit user request.
 
 **Default-off additive toggles.** New engine features ship disabled and must leave the default configuration bit-identical (`cassi_qi_time.glsl` OFF = bit-identical copy is the model). `verify_river_isotropy.gd` pins the default CUBE grid-river chain bit-identical with fixed numeric anchors — treat its anchors as load-bearing, and the gate pins the production scene's declared contract (33 values) before boot. The retired arms' no-op gates (attractor-ratio dormant deposit, toggle-off bit-identity) live in git history.
 
@@ -123,6 +151,9 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 | File | Why |
 |---|---|
+| `CASSI-ENTITY-DESIGN.md` | Complete autonomous-researcher architecture, field/brain/tool ownership, program lifecycle, and implementation integration |
+| `CassiQwen/cassi_field_brain_entity.py`, `CassiQwen/cassi_field_brain_server.py` | Persistent field–brain entity and authenticated communication surface |
+| `CassiFI/cassi_research_residency.py`, `CassiFI/cassi_research_organism.py` | Existing field-owned research continuation, agenda, work, and reusable-method machinery |
 | `CassiCosmos/scripts/cassi_sim.gd` | Main sim orchestrator (inline chain + decoupled mirror) |
 | `CassiCosmos/scripts/cassi_physics_engine.gd` | Standalone GPU engine; `shutdown()` lifecycle; threaded local RD |
 | `CassiCosmos/scripts/cassi_mind_engine.gd` | The 7599 field I/O primitive |
@@ -146,6 +177,8 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 - Shader SPIR-V: Godot imports `.glsl` itself (via `--import`). The `glslangValidator` loop (`CassiAI/build_shaders.sh`) is an archive pattern, not used by CassiCosmos.
 
 ## Testing & QA
+
+**Autonomous researcher — operational checks, not learning requalification.** For a changed runtime path, exercise the real program action and its relevant errors, recovery, or cancellation. For a scientific result, check its sources, calculation, and interpretation. Do not add or run a generic learning, transfer, blank-field, or displacement campaign to qualify ordinary researcher development. Documentation-only work needs reference and consistency checks, not a runtime campaign.
 
 **CassiCosmos — `scenes/verify_core.tscn` is the contract.** The gate boots the real `main.tscn`, drives bounded explicit step windows, and exits 0 only when all 16 checks pass (receipt `res://_diag/core/core_receipt.json`, ~25 s exact production; `-- --fast` runs the same checks on a 65,536-particle fixture). The 27-arm battery and its `run_all.gd` runner were retired — their coverage lives in git history. Retained standalone probes — analytic identities, engine-branch fidelity, the numpy-dump producers, the radiation/observatory workstreams — are listed in `CassiCosmos/verify/README.md` and run windowed, one at a time. Numpy gates (`research/meshless/stage5_verify.py` etc.) consume `_diag` dumps and are run separately — a probe's exit code is its contract. After any engine/shader change, green gate before claiming a gain.
 
