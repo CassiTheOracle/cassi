@@ -269,41 +269,70 @@ def canonical_affine_system(
     ledger: _WorkLedger | None = None,
 ) -> AffineBooleanSystem:
     """Normalize row scale/order and remove exact duplicate equations."""
-
     _exact_integer(variable_count, "variable_count", minimum=0)
+
+    # Localize frequently used functions to avoid attribute lookup overhead
+    gcd_func = math.gcd
+    abs_func = abs
+
+    # Convert inputs to immutable tuples immediately to ensure consistent behavior
     rows = tuple(tuple(row) for row in coefficients)
     targets = tuple(rhs)
+
     if len(rows) != len(targets):
         raise CubicReductionError("coefficient rows and rhs length disagree")
-    normalized: list[tuple[tuple[int, ...], int]] = []
+
     if ledger is not None:
         ledger.canonicalizations += 1
+
+    normalized: list[tuple[tuple[int, ...], int]] = []
+
+    # Process each row
     for row, target in zip(rows, targets, strict=True):
+        # Validate row width
         if len(row) != variable_count:
             raise CubicReductionError("coefficient row width is invalid")
+
+        # Convert coefficients to exact integers
         integer_row = tuple(_exact_integer(value, "coefficient") for value in row)
         integer_target = _exact_integer(target, "rhs")
+
         if ledger is not None:
             ledger.rows_normalized += 1
-        divisor = 0
-        for value in (*integer_row, integer_target):
-            divisor = math.gcd(divisor, abs(value))
+
+        # Compute GCD of all values in the row and target efficiently
+        # Start with the absolute value of the first element or 0
+        divisor = abs_func(integer_row[0]) if integer_row else 0
+        divisor = gcd_func(divisor, abs_func(integer_target))
+        for val in integer_row[1:]:
+            divisor = gcd_func(divisor, abs_func(val))
+
         divisor = max(1, divisor)
+
         if divisor > 1 and ledger is not None:
             ledger.gcd_reductions += 1
+
+        # Normalize by dividing by GCD
         integer_row = tuple(value // divisor for value in integer_row)
         integer_target //= divisor
-        first = next(
-            (value for value in (*integer_row, integer_target) if value != 0),
-            0,
-        )
+
+        # Find first non-zero element to determine sign
+        first = integer_row[0]
+        if first == 0:
+            first = integer_target
         if first < 0:
             integer_row = tuple(-value for value in integer_row)
             integer_target = -integer_target
+
+        # Skip zero rows (0=0)
         if not any(integer_row) and integer_target == 0:
             continue
+
         normalized.append((integer_row, integer_target))
+
+    # Sort normalized rows for deduplication
     normalized.sort()
+
     unique: list[tuple[tuple[int, ...], int]] = []
     for row in normalized:
         if unique and row == unique[-1]:
@@ -311,13 +340,16 @@ def canonical_affine_system(
                 ledger.duplicate_rows_removed += 1
             continue
         unique.append(row)
+
     system = AffineBooleanSystem(
         variable_count,
         tuple(row for row, _ in unique),
         tuple(target for _, target in unique),
     )
+
     if ledger is not None:
         ledger.observe_system(system)
+
     return system
 
 
