@@ -14,7 +14,8 @@ extends Node
 ##   {"cmd":"state"}                     -> {"ok":true,"cmd":"state","step":..,"t":..,
 ##                                           "mean_ey":..,"mean_ei":..,"max_eps2":..}
 ##   {"cmd":"project","k":..}            -> {"ok":true,"cmd":"project","step":..,"t":..,
-##                                           "cells":[{i,gx,gy,gz,x,y,z,ey,ei,q},..]} (top-k by q)
+##                                           "cells":[{i,gx,gy,gz,x,y,z,ey,ei,q,
+##                                                     phase_current_x},..]} (top-k by q)
 ##   {"cmd":"readout"}                   -> {"ok":true,"cmd":"readout","ey_b64":..,"ei_b64":..,
 ##                                           "q_b64":..,"eps2_b64":..}
 ##   {"cmd":"snapshot","label":..}       -> {"ok":true,"cmd":"snapshot","path":..}
@@ -488,7 +489,235 @@ func compute_readout() -> Dictionary:
 ## which is stale outside steps). Flat index i = gx*N*N + gy*N + gz (x-major,
 ## matching the `_scatter` ii*n*n + jj*n + kk layout). Physical coords use the
 ## box map (2*g/(N-1)-1)*extent. Cells sorted by q DESC, ties by flat index ASC.
-func compute_projection(k: int) -> Dictionary:
+## Spatial phase current at one projected cell:
+##   j_x = EY * ∂x(EI) - EI * ∂x(EY) = q * ∂x atan2(EI, EY).
+## The periodic central difference follows the projection/deposit x axis
+## (x-major host layout) and the PDE's physical cell spacing 2*extent.x/N.
+## This is a read-only diagnostic derived from the already-read canonical
+## field; it adds no GPU state, pass, or evolution coupling.
+func _phase_current_x(ey: PackedFloat32Array, ei: PackedFloat32Array,
+		gx: int, gy: int, gz: int) -> float:
+	var n: int = grid_n
+	var gx_minus: int = (gx - 1 + n) % n
+	var gx_plus: int = (gx + 1) % n
+	var center: int = gx * n * n + gy * n + gz
+	var minus_x: int = gx_minus * n * n + gy * n + gz
+	var plus_x: int = gx_plus * n * n + gy * n + gz
+	var two_hx: float = 4.0 * extent.x / float(n)
+	var d_ey_dx: float = (ey[plus_x] - ey[minus_x]) / two_hx
+	var d_ei_dx: float = (ei[plus_x] - ei[minus_x]) / two_hx
+	return ey[center] * d_ei_dx - ei[center] * d_ey_dx
+
+
+## Bounded distributed phase-flow vision along the experiment's x axis.
+## Each slab integrates the canonical coherence density and signed/absolute
+## phase current over every y,z cell.  The sum (rather than a top-cell sample)
+## preserves remote flow while the absolute sum prevents counter-propagating
+## currents from cancelling one another.
+func _phase_profile_x(ey: PackedFloat32Array, ei: PackedFloat32Array,
+		bin_count: int) -> Dictionary:
+	var n: int = grid_n
+	bin_count = clampi(bin_count, 1, n)
+	var q_sum := PackedFloat64Array()
+	var current_x_sum := PackedFloat64Array()
+	var current_x_abs_sum := PackedFloat64Array()
+	var cell_count := PackedInt32Array()
+	q_sum.resize(bin_count)
+	current_x_sum.resize(bin_count)
+	current_x_abs_sum.resize(bin_count)
+	cell_count.resize(bin_count)
+	for gx in range(n):
+		var bin_index: int = floori(
+			float(gx * bin_count) / float(n)
+		)
+		for gy in range(n):
+			for gz in range(n):
+				var idx: int = gx * n * n + gy * n + gz
+				var q_value: float = ey[idx] * ey[idx] + ei[idx] * ei[idx]
+				var current_x: float = _phase_current_x(
+					ey, ei, gx, gy, gz
+				)
+				q_sum[bin_index] += q_value
+				current_x_sum[bin_index] += current_x
+				current_x_abs_sum[bin_index] += absf(current_x)
+				cell_count[bin_index] += 1
+	var bins: Array = []
+	bins.resize(bin_count)
+	for bin_index in range(bin_count):
+		var first_gx: int = ceili(float(bin_index * n) / float(bin_count))
+		var past_gx: int = ceili(
+			float((bin_index + 1) * n) / float(bin_count)
+		)
+		var x_min: float = (
+			2.0 * float(first_gx) / float(n) - 1.0
+		) * extent.x
+		var x_max: float = (
+			2.0 * float(past_gx) / float(n) - 1.0
+		) * extent.x
+		bins[bin_index] = {
+			"bin": bin_index,
+			"x_min": x_min,
+			"x_max": x_max,
+			"x": 0.5 * (x_min + x_max),
+			"cell_count": cell_count[bin_index],
+			"q_sum": q_sum[bin_index],
+			"current_x_sum": current_x_sum[bin_index],
+			"current_x_abs_sum": current_x_abs_sum[bin_index],
+		}
+	return {
+		"axis": "x",
+		"bin_count": bin_count,
+		"bins": bins,
+	}
+
+
+func _empty_phase_profile_x() -> Dictionary:
+	return {"axis": "x", "bin_count": 0, "bins": []}
+func _empty_phase_winding() -> Dictionary:
+	return {
+		"schema": "cassi.phase-winding-native.v1",
+		"grid_n": grid_n,
+		"center": {"gx": grid_n / 2, "gy": grid_n / 2, "gz": grid_n / 2},
+		"radii_cells": [2, 4, 8],
+		"planes": ["xy", "xz", "yz"],
+		"rows": [],
+	}
+
+
+func _phase_winding_index(center: Vector3i, offset: Vector3i) -> int:
+	var n: int = grid_n
+	var gx: int = posmod(center.x + offset.x, n)
+	var gy: int = posmod(center.y + offset.y, n)
+	var gz: int = posmod(center.z + offset.z, n)
+	return (gx * n + gy) * n + gz
+
+
+func _phase_current_components(ey: PackedFloat32Array, ei: PackedFloat32Array,
+		gx: int, gy: int, gz: int) -> Vector3:
+	var n: int = grid_n
+	var gxm: int = posmod(gx - 1, n)
+	var gxp: int = posmod(gx + 1, n)
+	var gym: int = posmod(gy - 1, n)
+	var gyp: int = posmod(gy + 1, n)
+	var gzm: int = posmod(gz - 1, n)
+	var gzp: int = posmod(gz + 1, n)
+	var center: int = (gx * n + gy) * n + gz
+	var idx_xm: int = (gxm * n + gy) * n + gz
+	var idx_xp: int = (gxp * n + gy) * n + gz
+	var idx_ym: int = (gx * n + gym) * n + gz
+	var idx_yp: int = (gx * n + gyp) * n + gz
+	var idx_zm: int = (gx * n + gy) * n + gzm
+	var idx_zp: int = (gx * n + gy) * n + gzp
+	var two_hx: float = 4.0 * extent.x / float(n)
+	var two_hy: float = 4.0 * extent.y / float(n)
+	var two_hz: float = 4.0 * extent.z / float(n)
+	var eyv: float = ey[center]
+	var eiv: float = ei[center]
+	return Vector3(
+		eyv * (ei[idx_xp] - ei[idx_xm]) / two_hx
+			- eiv * (ey[idx_xp] - ey[idx_xm]) / two_hx,
+		eyv * (ei[idx_yp] - ei[idx_ym]) / two_hy
+			- eiv * (ey[idx_yp] - ey[idx_ym]) / two_hy,
+		eyv * (ei[idx_zp] - ei[idx_zm]) / two_hz
+			- eiv * (ey[idx_zp] - ey[idx_zm]) / two_hz,
+	)
+
+
+func _phase_winding_square_loop(plane: String, radius: int) -> Array:
+	var points: Array = []
+	if plane == "xy":
+		for u in range(-radius, radius):
+			points.append(Vector3i(u, -radius, 0))
+		for v in range(-radius, radius):
+			points.append(Vector3i(radius, v, 0))
+		for u in range(radius, -radius, -1):
+			points.append(Vector3i(u, radius, 0))
+		for v in range(radius, -radius, -1):
+			points.append(Vector3i(-radius, v, 0))
+	elif plane == "xz":
+		for u in range(-radius, radius):
+			points.append(Vector3i(u, 0, -radius))
+		for v in range(-radius, radius):
+			points.append(Vector3i(radius, 0, v))
+		for u in range(radius, -radius, -1):
+			points.append(Vector3i(u, 0, radius))
+		for v in range(radius, -radius, -1):
+			points.append(Vector3i(-radius, 0, v))
+	else:
+		for u in range(-radius, radius):
+			points.append(Vector3i(0, u, -radius))
+		for v in range(-radius, radius):
+			points.append(Vector3i(0, radius, v))
+		for u in range(radius, -radius, -1):
+			points.append(Vector3i(0, u, radius))
+		for v in range(radius, -radius, -1):
+			points.append(Vector3i(0, -radius, v))
+	return points
+
+
+func _phase_winding_probe(
+		ey: PackedFloat32Array, ei: PackedFloat32Array) -> Dictionary:
+	var center := Vector3i(grid_n / 2, grid_n / 2, grid_n / 2)
+	var rows: Array = []
+	var spacing := Vector3(
+		2.0 * extent.x / float(grid_n),
+		2.0 * extent.y / float(grid_n),
+		2.0 * extent.z / float(grid_n),
+	)
+	for plane in ["xy", "xz", "yz"]:
+		for radius in [2, 4, 8]:
+			var loop: Array = _phase_winding_square_loop(plane, radius)
+			var phase_circulation: float = 0.0
+			var current_circulation: float = 0.0
+			var q_min: float = 1.0e30
+			var q_sum: float = 0.0
+			for point_index in range(loop.size()):
+				var point: Vector3i = loop[point_index]
+				var next: Vector3i = loop[(point_index + 1) % loop.size()]
+				var idx: int = _phase_winding_index(center, point)
+				var next_idx: int = _phase_winding_index(center, next)
+				var theta: float = atan2(ei[idx], ey[idx])
+				var next_theta: float = atan2(ei[next_idx], ey[next_idx])
+				var delta_theta: float = next_theta - theta
+				phase_circulation += atan2(sin(delta_theta), cos(delta_theta))
+				var q_value: float = ey[idx] * ey[idx] + ei[idx] * ei[idx]
+				q_min = minf(q_min, q_value)
+				q_sum += q_value
+				var gx: int = posmod(center.x + point.x, grid_n)
+				var gy: int = posmod(center.y + point.y, grid_n)
+				var gz: int = posmod(center.z + point.z, grid_n)
+				var current := _phase_current_components(ey, ei, gx, gy, gz)
+				var delta := Vector3(
+					float(next.x - point.x),
+					float(next.y - point.y),
+					float(next.z - point.z),
+				) * spacing
+				current_circulation += current.dot(delta)
+			rows.append({
+				"plane": plane,
+				"radius_cells": radius,
+				"winding_number": phase_circulation / (2.0 * PI),
+				"phase_circulation": phase_circulation,
+				"current_circulation": current_circulation,
+				"q_min": q_min,
+				"q_mean": q_sum / float(loop.size()),
+			})
+	return {
+		"schema": "cassi.phase-winding-native.v1",
+		"grid_n": grid_n,
+		"center": {"gx": center.x, "gy": center.y, "gz": center.z},
+		"radii_cells": [2, 4, 8],
+		"planes": ["xy", "xz", "yz"],
+		"rows": rows,
+	}
+
+
+func compute_projection(
+		k: int,
+		phase_bins: int = 0,
+		topology_bins: int = 0,
+		winding_probe: int = 0) -> Dictionary:
+
 	var cells: int = grid_n * grid_n * grid_n
 	if k < 1:
 		k = 8
@@ -496,7 +725,15 @@ func compute_projection(k: int) -> Dictionary:
 	if k > cells:
 		k = cells
 	if k == 0:
-		return {"step": _step, "t": _t, "cells": []}
+		return {
+			"step": _step,
+			"t": _t,
+			"cells": [],
+			"phase_profile": _empty_phase_profile_x(),
+			"phase_topology": [],
+			"phase_topology_bins": 0,
+			"phase_winding": _empty_phase_winding(),
+		}
 	var rb := readback_ey_ei()
 	var ey: PackedFloat32Array = rb[0]
 	var ei: PackedFloat32Array = rb[1]
@@ -548,6 +785,9 @@ func compute_projection(k: int) -> Dictionary:
 		var rem: int = idx % (n * n)
 		var gy: int = rem / n
 		var gz: int = rem % n
+		var phase_current_x: float = _phase_current_x(
+			ey, ei, gx, gy, gz
+		)
 		out[t] = {
 			"i": idx,
 			"gx": gx, "gy": gy, "gz": gz,
@@ -556,9 +796,32 @@ func compute_projection(k: int) -> Dictionary:
 			"z": (2.0 * float(gz) / float(n - 1) - 1.0) * extent.z,
 			"ey": ey[idx], "ei": ei[idx],
 			"q": sorted_q[t],
+			"phase_current_x": phase_current_x,
 		}
-	return {"step": _step, "t": _t, "cells": out}
-
+	var phase_profile: Dictionary = (
+		_phase_profile_x(ey, ei, phase_bins)
+		if phase_bins > 0
+		else _empty_phase_profile_x()
+	)
+	var phase_topology: Array = (
+		_compute_phase_topology(ey, ei, topology_bins)
+		if topology_bins > 0
+		else []
+	)
+	var phase_winding: Dictionary = (
+		_phase_winding_probe(ey, ei)
+		if winding_probe > 0
+		else _empty_phase_winding()
+	)
+	return {
+		"step": _step,
+		"t": _t,
+		"cells": out,
+		"phase_profile": phase_profile,
+		"phase_topology": phase_topology,
+		"phase_topology_bins": topology_bins if not phase_topology.is_empty() else 0,
+		"phase_winding": phase_winding,
+	}
 
 func _projection_pair_worse(q_a: float, i_a: int, q_b: float, i_b: int) -> bool:
 	return q_a < q_b or (q_a == q_b and i_a > i_b)
@@ -607,6 +870,83 @@ func _projection_heap_sift_down(heap_q: PackedFloat64Array,
 		heap_q[child] = q_tmp
 		heap_i[child] = i_tmp
 		parent = child
+
+
+func _compute_phase_topology(
+		ey: PackedFloat32Array,
+		ei: PackedFloat32Array,
+		topology_bins: int) -> Array:
+	if topology_bins != 4:
+		return []
+	var n: int = grid_n
+	var bin_count: int = topology_bins * topology_bins * topology_bins
+	var bin_volume: float = float((n / topology_bins) ** 3)
+	var q_sums := PackedFloat64Array()
+	var jx_sums := PackedFloat64Array()
+	var jy_sums := PackedFloat64Array()
+	var jz_sums := PackedFloat64Array()
+	q_sums.resize(bin_count)
+	jx_sums.resize(bin_count)
+	jy_sums.resize(bin_count)
+	jz_sums.resize(bin_count)
+	for gx in range(n):
+		var gxm: int = (gx - 1 + n) % n
+		var gxp: int = (gx + 1) % n
+		for gy in range(n):
+			var gym: int = (gy - 1 + n) % n
+			var gyp: int = (gy + 1) % n
+			for gz in range(n):
+				var gzm: int = (gz - 1 + n) % n
+				var gzp: int = (gz + 1) % n
+				var idx: int = (gx * n + gy) * n + gz
+				var idx_xm: int = (gxm * n + gy) * n + gz
+				var idx_xp: int = (gxp * n + gy) * n + gz
+				var idx_ym: int = (gx * n + gym) * n + gz
+				var idx_yp: int = (gx * n + gyp) * n + gz
+				var idx_zm: int = (gx * n + gy) * n + gzm
+				var idx_zp: int = (gx * n + gy) * n + gzp
+				var eyv: float = ey[idx]
+				var eiv: float = ei[idx]
+				var bin_x: int = mini(
+					gx * topology_bins / n, topology_bins - 1
+				)
+				var bin_y: int = mini(
+					gy * topology_bins / n, topology_bins - 1
+				)
+				var bin_z: int = mini(
+					gz * topology_bins / n, topology_bins - 1
+				)
+				var bin_index: int = (
+					(bin_x * topology_bins + bin_y) * topology_bins + bin_z
+				)
+				q_sums[bin_index] += eyv * eyv + eiv * eiv
+				jx_sums[bin_index] += eyv * 0.5 * (
+					ei[idx_xp] - ei[idx_xm]
+				) - eiv * 0.5 * (ey[idx_xp] - ey[idx_xm])
+				jy_sums[bin_index] += eyv * 0.5 * (
+					ei[idx_yp] - ei[idx_ym]
+				) - eiv * 0.5 * (ey[idx_yp] - ey[idx_ym])
+				jz_sums[bin_index] += eyv * 0.5 * (
+					ei[idx_zp] - ei[idx_zm]
+				) - eiv * 0.5 * (ey[idx_zp] - ey[idx_zm])
+	var rows: Array = []
+	for bin_x in range(topology_bins):
+		for bin_y in range(topology_bins):
+			for bin_z in range(topology_bins):
+				var bin_index: int = (
+					(bin_x * topology_bins + bin_y) * topology_bins + bin_z
+				)
+				rows.append({
+					"bin": bin_index,
+					"bx": bin_x,
+					"by": bin_y,
+					"bz": bin_z,
+					"q": q_sums[bin_index],
+					"jx": jx_sums[bin_index] / bin_volume,
+					"jy": jy_sums[bin_index] / bin_volume,
+					"jz": jz_sums[bin_index] / bin_volume,
+				})
+	return rows
 
 
 func _sha256_hex(bytes: PackedByteArray) -> String:
@@ -855,7 +1195,24 @@ func _handle_line(line: String) -> String:
 				var kv: Variant = obj["k"]
 				if kv is int or kv is float:
 					proj_k = int(kv)
-			var pr := compute_projection(proj_k)
+			var phase_bins: int = 0
+			if obj.has("phase_bins"):
+				var bv: Variant = obj["phase_bins"]
+				if bv is int or bv is float:
+					phase_bins = int(bv)
+			var topology_bins: int = 0
+			if obj.has("topology_bins"):
+				var tv: Variant = obj["topology_bins"]
+				if tv is int or tv is float:
+					topology_bins = int(tv)
+			var winding_probe: int = 0
+			if obj.has("winding_probe"):
+				var wv: Variant = obj["winding_probe"]
+				if wv is int or wv is float:
+					winding_probe = int(wv)
+			var pr := compute_projection(
+				proj_k, phase_bins, topology_bins, winding_probe
+			)
 			pr["ok"] = true
 			pr["cmd"] = "project"
 			return JSON.stringify(pr)
