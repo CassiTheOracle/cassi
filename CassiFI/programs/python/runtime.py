@@ -63,6 +63,16 @@ class _GuestSignal(Exception):
         self.exception = exception
 
 
+
+class _ResourceLimitPause(BaseException):
+    """Internal quota wait; deliberately not a guest-catchable exception."""
+
+    def __init__(self, limit: str, required: int, message: str) -> None:
+        super().__init__(message)
+        self.limit = limit
+        self.required = required
+        self.message = message
+
 def _plain(value: Any) -> Any:
     return json.loads(canonical_json_bytes(value).decode("utf-8"))
 
@@ -197,6 +207,12 @@ def _alloc(
     finalizer: bool = False,
 ) -> dict[str, Any]:
     if len(state["heap"]) >= _limit(state, "max_heap_objects"):
+        if state.get("_instruction_active") is True:
+            raise _ResourceLimitPause(
+                "max_heap_objects",
+                len(state["heap"]) + 1,
+                "field heap object limit exhausted",
+            )
         raise _GuestSignal(
             _emergency_exception(
                 state,
@@ -424,6 +440,30 @@ def _exception(
         },
         type_name=type_name,
     )
+
+
+def _quota_exhausted(
+    state: MutableMapping[str, Any],
+    limit: str,
+    required: int,
+    message: str,
+    *,
+    guest_type: str = "MemoryError",
+) -> None:
+    if state.get("_instruction_active") is True:
+        raise _ResourceLimitPause(limit, required, message)
+    raise _GuestSignal(_exception(state, guest_type, message))
+
+
+def _check_source_limit(state: MutableMapping[str, Any], source: str) -> None:
+    source_bytes = len(source.encode("utf-8"))
+    if source_bytes > _limit(state, "max_source_bytes"):
+        _quota_exhausted(
+            state,
+            "max_source_bytes",
+            source_bytes,
+            "source exceeds the compiler byte bound",
+        )
 def _exception_leaves(state: Mapping[str, Any], exception: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     item = _heap_object(state, exception)
     children = item["payload"].get("exceptions") if item["kind"] == "exception" else None
@@ -524,20 +564,37 @@ def _from_host(state: MutableMapping[str, Any], value: Any, memo: dict[int, Mapp
         return _v_bool(value)
     if isinstance(value, int):
         if value.bit_length() > _limit(state, "max_integer_bits"):
-            raise _GuestSignal(_exception(state, "OverflowError", "integer exceeds field limit"))
+            _quota_exhausted(
+                state,
+                "max_integer_bits",
+                value.bit_length(),
+                "integer exceeds field limit",
+                guest_type="OverflowError",
+            )
         return _v_int(value)
     if isinstance(value, float):
         return _v_float(value)
     if isinstance(value, complex):
         return _v_complex(value)
     if isinstance(value, str):
-        if len(value.encode("utf-8", "surrogatepass")) > _limit(state, "max_string_bytes"):
-            raise _GuestSignal(_exception(state, "MemoryError", "string exceeds field limit"))
+        encoded_bytes = len(value.encode("utf-8", "surrogatepass"))
+        if encoded_bytes > _limit(state, "max_string_bytes"):
+            _quota_exhausted(
+                state,
+                "max_string_bytes",
+                encoded_bytes,
+                "string exceeds field limit",
+            )
         return _v_str(value)
     if isinstance(value, (bytes, bytearray)):
         raw = bytes(value)
         if len(raw) > _limit(state, "max_string_bytes"):
-            raise _GuestSignal(_exception(state, "MemoryError", "byte string exceeds field limit"))
+            _quota_exhausted(
+                state,
+                "max_string_bytes",
+                len(raw),
+                "byte string exceeds field limit",
+            )
         if isinstance(value, bytes):
             return _v_bytes(raw)
         return _alloc(state, "bytearray", {"bytes": base64.b64encode(raw).decode("ascii")})
@@ -548,7 +605,12 @@ def _from_host(state: MutableMapping[str, Any], value: Any, memo: dict[int, Mapp
         return memo[identity]
     if isinstance(value, (list, tuple, set, frozenset)):
         if len(value) > _limit(state, "max_collection_items"):
-            raise _GuestSignal(_exception(state, "MemoryError", "collection exceeds field limit"))
+            _quota_exhausted(
+                state,
+                "max_collection_items",
+                len(value),
+                "collection exceeds field limit",
+            )
         kind = "list" if isinstance(value, list) else "tuple" if isinstance(value, tuple) else "set" if isinstance(value, set) else "frozenset"
         ref = _alloc(state, kind, {"items": []})
         memo[identity] = ref
@@ -557,7 +619,12 @@ def _from_host(state: MutableMapping[str, Any], value: Any, memo: dict[int, Mapp
         return ref
     if isinstance(value, Mapping):
         if len(value) > _limit(state, "max_collection_items"):
-            raise _GuestSignal(_exception(state, "MemoryError", "mapping exceeds field limit"))
+            _quota_exhausted(
+                state,
+                "max_collection_items",
+                len(value),
+                "mapping exceeds field limit",
+            )
         ref = _alloc(state, "dict", {"entries": []})
         memo[identity] = ref
         item = _heap_object(state, ref)
@@ -951,6 +1018,8 @@ def _binary(state: MutableMapping[str, Any], op: str, left: Mapping[str, Any], r
         }
         result = operations[op](a, b)
         return _from_host(state, result)
+    except _ResourceLimitPause:
+        raise
     except _GuestSignal:
         raise
     except BaseException as exc:
@@ -1099,6 +1168,8 @@ def _unary(state: MutableMapping[str, Any], op: str, value: Mapping[str, Any]) -
         if op == "pos": return _from_host(state, +_to_host(state, value))
         if op == "neg": return _from_host(state, -_to_host(state, value))
         raise RuntimeError("unary operation is invalid")
+    except _ResourceLimitPause:
+        raise
     except _GuestSignal:
         raise
     except BaseException as exc:
@@ -1115,6 +1186,8 @@ def _compare(state: MutableMapping[str, Any], op: str, left: Mapping[str, Any], 
         if op == "ne": return _v_bool(not _value_equal(state, left, right))
         a, b = _to_host(state, left), _to_host(state, right)
         return _v_bool({"lt": operator.lt, "le": operator.le, "gt": operator.gt, "ge": operator.ge}[op](a, b))
+    except _ResourceLimitPause:
+        raise
     except _GuestSignal:
         raise
     except BaseException as exc:
@@ -1133,7 +1206,12 @@ def _dict_set(state: MutableMapping[str, Any], ref: Mapping[str, Any], key: Mapp
     index = _dict_find(state, item, key)
     if index is None:
         if len(item["payload"]["entries"]) >= _limit(state, "max_collection_items"):
-            raise _GuestSignal(_exception(state, "MemoryError", "mapping exceeds field limit"))
+            _quota_exhausted(
+                state,
+                "max_collection_items",
+                len(item["payload"]["entries"]) + 1,
+                "mapping exceeds field limit",
+            )
         item["payload"]["entries"].append([_plain(key), _plain(value)])
     else:
         item["payload"]["entries"][index][1] = _plain(value)
@@ -1170,6 +1248,8 @@ def _get_item(state: MutableMapping[str, Any], container: Mapping[str, Any], key
             start, stop = int(item["payload"]["start"]), int(item["payload"]["stop"])
             return _from_host(state, data[start:stop][_index_value(state, key)])
         raise TypeError("object is not subscriptable")
+    except _ResourceLimitPause:
+        raise
     except _GuestSignal:
         raise
     except BaseException as exc:
@@ -1210,6 +1290,8 @@ def _store_item(state: MutableMapping[str, Any], container: Mapping[str, Any], k
             base["payload"]["bytes"] = base64.b64encode(bytes(data)).decode("ascii")
             _mutated(base); return
         raise TypeError("object does not support item assignment")
+    except _ResourceLimitPause:
+        raise
     except _GuestSignal:
         raise
     except BaseException as exc:
@@ -1227,6 +1309,8 @@ def _delete_item(state: MutableMapping[str, Any], container: Mapping[str, Any], 
             del item["payload"]["items"][_index_value(state, key)]
         else: raise TypeError("object does not support item deletion")
         _mutated(item)
+    except _ResourceLimitPause:
+        raise
     except _GuestSignal:
         raise
     except BaseException as exc:
@@ -1722,7 +1806,13 @@ def _new_frame(
     return_context: Mapping[str, Any] | None = None,
 ) -> str:
     if len(state["frames"]) >= _limit(state, "max_frames"):
-        raise _GuestSignal(_exception(state, "RecursionError", "field frame limit exhausted"))
+        _quota_exhausted(
+            state,
+            "max_frames",
+            len(state["frames"]) + 1,
+            "field frame limit exhausted",
+            guest_type="RecursionError",
+        )
     frame_id = _next_id(state, "frame")
     state["frames"][frame_id] = {
         "schema": "cassifi.py-frame-state.v1",
@@ -1829,7 +1919,13 @@ def _push_frame_call(
         )
     if len(task["stack"]) >= _limit(state, "max_call_depth"):
         del state["frames"][frame_id]
-        raise _GuestSignal(_exception(state, "RecursionError", "maximum field call depth exceeded"))
+        _quota_exhausted(
+            state,
+            "max_call_depth",
+            len(task["stack"]) + 1,
+            "maximum field call depth exceeded",
+            guest_type="RecursionError",
+        )
     task["stack"].append(frame_id)
     return None
 
@@ -2142,8 +2238,11 @@ def _append_collected_value(
     ):
         return
     if len(items) >= _limit(state, "max_collection_items"):
-        raise _GuestSignal(
-            _exception(state, "MemoryError", "collection exceeds field limit")
+        _quota_exhausted(
+            state,
+            "max_collection_items",
+            len(items) + 1,
+            "collection exceeds field limit",
         )
     items.append(_plain(value))
     _mutated(item)
@@ -2294,8 +2393,16 @@ def _call_builtin(state: MutableMapping[str, Any], task: MutableMapping[str, Any
     if name == "print":
         sep = _as_str(keywords.get("sep", _v_str(" "))); end = _as_str(keywords.get("end", _v_str("\n")))
         text = sep.join(_as_str(value) if value.get("t") == "str" else _repr_value(state, value) for value in positional) + end
-        state["stdout"] += text
-        if len(state["stdout"].encode("utf-8")) > _limit(state, "max_string_bytes"): raise _GuestSignal(_exception(state, "MemoryError", "stdout exceeds field limit"))
+        next_stdout = state["stdout"] + text
+        stdout_bytes = len(next_stdout.encode("utf-8"))
+        if stdout_bytes > _limit(state, "max_string_bytes"):
+            _quota_exhausted(
+                state,
+                "max_string_bytes",
+                stdout_bytes,
+                "stdout exceeds field limit",
+            )
+        state["stdout"] = next_stdout
         return _v_none()
     if name == "hash":
         if len(positional) != 1 or keywords:
@@ -2550,8 +2657,18 @@ def _dynamic_code(state: MutableMapping[str, Any], task: MutableMapping[str, Any
         source = _as_str(source_value)
         filename = _as_str(bound["filename"])
         mode = _as_str(bound["mode"])
+        _check_source_limit(state, source)
         program = compile_python(source, source_name=filename, module=state["programs"][state["frames"][task["stack"][-1]]["program_id"]]["module"], mode=mode, program_id=f"dynamic:{hashlib.sha256(source.encode()).hexdigest()[:16]}", max_source_bytes=_limit(state, "max_source_bytes"))
-        if len(state["programs"]) >= _limit(state, "max_programs"): raise _GuestSignal(_exception(state, "MemoryError", "program limit exhausted"))
+        if (
+            program.program_id not in state["programs"]
+            and len(state["programs"]) >= _limit(state, "max_programs")
+        ):
+            _quota_exhausted(
+                state,
+                "max_programs",
+                len(state["programs"]) + 1,
+                "program limit exhausted",
+            )
         state["programs"][program.program_id] = program.as_dict()
         return _alloc(state, "code", {"program_id": program.program_id, "entry": program.code["entry"], "mode": mode, "source_sha256": program.source_sha256})
     if source_value.get("t") == "ref" and _heap_object(state, source_value)["kind"] == "code":
@@ -2560,8 +2677,18 @@ def _dynamic_code(state: MutableMapping[str, Any], task: MutableMapping[str, Any
         source = _as_str(source_value)
         mode = "eval" if name == "eval" else "exec"
         parent = state["programs"][state["frames"][task["stack"][-1]]["program_id"]]
+        _check_source_limit(state, source)
         program = compile_python(source, source_name="<dynamic>", module=parent["module"], mode=mode, program_id=f"dynamic:{hashlib.sha256((mode + chr(0) + source).encode()).hexdigest()[:16]}", max_source_bytes=_limit(state, "max_source_bytes"))
-        if len(state["programs"]) >= _limit(state, "max_programs"): raise _GuestSignal(_exception(state, "MemoryError", "program limit exhausted"))
+        if (
+            program.program_id not in state["programs"]
+            and len(state["programs"]) >= _limit(state, "max_programs")
+        ):
+            _quota_exhausted(
+                state,
+                "max_programs",
+                len(state["programs"]) + 1,
+                "program limit exhausted",
+            )
         state["programs"][program.program_id] = program.as_dict()
         code_ref = _alloc(state, "code", {"program_id": program.program_id, "entry": program.code["entry"], "mode": mode, "source_sha256": program.source_sha256})
     item = _heap_object(state, code_ref)
@@ -2608,7 +2735,20 @@ def _request_external(state: MutableMapping[str, Any], task: MutableMapping[str,
         )
     if state["branch_stack"]:
         raise _GuestSignal(_exception(state, "PermissionError", "speculative branches cannot dispatch external work"))
-    if len(state["operations"]) >= _limit(state, "max_operations"): raise _GuestSignal(_exception(state, "MemoryError", "operation limit exhausted"))
+    if len(state["operations"]) >= _limit(state, "max_operations"):
+        _quota_exhausted(
+            state,
+            "max_operations",
+            len(state["operations"]) + 1,
+            "operation limit exhausted",
+        )
+    if len(state["events"]) >= _limit(state, "max_events"):
+        _quota_exhausted(
+            state,
+            "max_events",
+            len(state["events"]) + 1,
+            "event limit exhausted",
+        )
     operation_id = _next_id(state, "operation")
     operation = {
         "schema": "cassifi.py-operation-state.v1",
@@ -2629,7 +2769,6 @@ def _request_external(state: MutableMapping[str, Any], task: MutableMapping[str,
     task["pending_call"] = {"kind": kind, "operation_id": operation_id}
     event = {"schema": "cassifi.program-event.v1", "event_id": _next_id(state, "event"), "kind": f"{kind}-request", "operation_id": operation_id, "payload": {"inputs": operation["inputs"], "keywords": operation["keywords"]}}
     state["events"].append(event)
-    if len(state["events"]) > _limit(state, "max_events"): raise _GuestSignal(_exception(state, "MemoryError", "event limit exhausted"))
     return {"t": "deferred"}
 
 
@@ -2668,7 +2807,19 @@ def _dynamic_import(state: MutableMapping[str, Any], task: MutableMapping[str, A
         raise ImportError(f"field module {module_name!r} requires unsupported native ABI {manifest.get('abi', 'unspecified')}")
     if manifest.get("kind") != "field-python" or not isinstance(manifest.get("source"), str):
         raise ImportError(f"field module {module_name!r} manifest is unsupported")
-    program = compile_python(manifest["source"], source_name=str(manifest.get("source_name", module_name)), module=module_name, package=str(manifest.get("package", module_name.rpartition(".")[0])) or None, mode="exec", program_id=f"module:{module_name}:{hashlib.sha256(manifest['source'].encode()).hexdigest()[:16]}", max_source_bytes=_limit(state, "max_source_bytes"))
+    source = str(manifest["source"])
+    _check_source_limit(state, source)
+    program = compile_python(source, source_name=str(manifest.get("source_name", module_name)), module=module_name, package=str(manifest.get("package", module_name.rpartition(".")[0])) or None, mode="exec", program_id=f"module:{module_name}:{hashlib.sha256(source.encode()).hexdigest()[:16]}", max_source_bytes=_limit(state, "max_source_bytes"))
+    if (
+        program.program_id not in state["programs"]
+        and len(state["programs"]) >= _limit(state, "max_programs")
+    ):
+        _quota_exhausted(
+            state,
+            "max_programs",
+            len(state["programs"]) + 1,
+            "program limit exhausted",
+        )
     state["programs"][program.program_id] = program.as_dict()
     namespace = _env(state, _check_value(state["runtime_roots"]["builtins"]), "module")
     _env_set(state, namespace, "__name__", _v_str(module_name))
@@ -2900,6 +3051,8 @@ def _finish_frame(state: MutableMapping[str, Any], task: MutableMapping[str, Any
     frame_id = frame["frame_id"]
     if task["stack"] and task["stack"][-1] == frame_id: task["stack"].pop()
     context = frame.get("return_context")
+    if context and context.get("kind") == "dynamic":
+        _sync_dynamic_context(state, context)
     if context and context.get("kind") in {"decorator", "sort-key"}:
         caller = state["frames"][task["stack"][-1]] if task["stack"] else None
         if caller is not None:
@@ -4719,9 +4872,10 @@ def _step(state: MutableMapping[str, Any]) -> str:
     task_id = state.get("active_task")
     task = state["tasks"].get(task_id)
     if not isinstance(task, MutableMapping): raise RuntimeError("active task is unavailable")
+    if task["status"] in {"waiting", "paused", "resource-paused"} or state["phase"] in {"paused", "resource-paused"}:
+        return "blocked"
     if _advance_finalizer_queue(state, task):
         return "running"
-    if task["status"] == "waiting": return "blocked"
     if task["status"] in {"completed", "faulted", "cancelled"}: return "done" if task["status"] == "completed" else "fault"
     if not task["stack"]:
         task["status"] = "completed"; state["phase"] = "completed"; return "done"
@@ -4733,6 +4887,8 @@ def _step(state: MutableMapping[str, Any]) -> str:
     instruction_pc = int(frame["pc"])
     state["fault_checkpoint"] = {
         "snapshot": _snapshot(state),
+        "ledger": copy.deepcopy(state["ledger"]),
+        "event_count": len(state["events"]),
         "frame_id": frame["frame_id"],
         "pc": instruction_pc,
         "program_id": frame["program_id"],
@@ -4741,20 +4897,45 @@ def _step(state: MutableMapping[str, Any]) -> str:
     instruction = instructions[instruction_pc]
     frame["pc"] = instruction_pc + 1
     logical_charge = 1
+    state["_instruction_active"] = True
     try:
         optimized_charge = _execute_optimized(state, frame, instruction_pc)
         if optimized_charge is None:
             _execute_instruction(state, task, frame, instruction)
         else:
             logical_charge = optimized_charge
+    except _ResourceLimitPause as pause:
+        checkpoint = state["fault_checkpoint"]
+        for key, value in checkpoint["snapshot"].items():
+            state[key] = value
+        state["ledger"] = copy.deepcopy(checkpoint["ledger"])
+        del state["events"][int(checkpoint["event_count"]):]
+        task = state["tasks"][task_id]
+        state["phase"] = "resource-paused"
+        task["status"] = "resource-paused"
+        state["resource_wait"] = {
+            "schema": "cassifi.python-runtime-resource-wait.v1",
+            "limit": pause.limit,
+            "required": pause.required,
+            "current": _limit(state, pause.limit),
+            "message": pause.message,
+            "task_id": task_id,
+            "operation_id": state["identity"]["operation_id"],
+            "frame_id": checkpoint["frame_id"],
+            "pc": checkpoint["pc"],
+            "source_span": copy.deepcopy(checkpoint["source_span"]),
+        }
+        return "blocked"
     except _GuestSignal as signal:
         _propagate(state, task, {"kind": "exception", "value": signal.exception})
     except (TypeError, ValueError, KeyError, IndexError, AttributeError, ImportError, ZeroDivisionError, OverflowError) as exc:
         _propagate(state, task, {"kind": "exception", "value": _raise_host(state, exc).exception})
+    finally:
+        state.pop("_instruction_active", None)
     state["ledger"]["instructions"] += logical_charge
     state["ledger"]["peak_heap_objects"] = max(state["ledger"]["peak_heap_objects"], len(state["heap"]))
     state["ledger"]["peak_frames"] = max(state["ledger"]["peak_frames"], len(state["frames"]))
-    return "blocked" if task["status"] == "waiting" else "fault" if task["status"] == "faulted" else "done" if task["status"] == "completed" else "running"
+    return "blocked" if task["status"] in {"waiting", "paused", "resource-paused"} else "fault" if task["status"] == "faulted" else "done" if task["status"] == "completed" else "running"
 
 
 def _checkpoint_payload(state: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -4821,7 +5002,9 @@ def _collect(state: MutableMapping[str, Any]) -> Mapping[str, Any]:
 
 def _snapshot(state: Mapping[str, Any]) -> Mapping[str, Any]:
     keys = ("programs", "heap", "frames", "tasks", "operations", "modules", "scheduler", "active_task", "counters", "phase", "result", "stdout", "finalizer_queue", "runtime_roots", "optimizer")
-    return _plain({key: state[key] for key in keys})
+    snapshot = {key: state[key] for key in keys}
+    snapshot["resource_wait"] = state.get("resource_wait")
+    return _plain(snapshot)
 
 
 def _begin_branch(
@@ -4970,6 +5153,59 @@ def _handle_arguments(
     if not arguments: return None
     operation = arguments.get("operation")
     task = state["tasks"].get(state["active_task"])
+    if operation == "increase-limits":
+        if state["phase"] in {"completed", "faulted", "cancelled"}:
+            raise RuntimeError(
+                f"runtime limits cannot be increased for {state['phase']} computation"
+            )
+        requested = arguments.get("limits")
+        if not isinstance(requested, Mapping) or not requested:
+            raise RuntimeError("limit increase requires a nonempty limits mapping")
+        unknown = [
+            name
+            for name in requested
+            if not isinstance(name, str) or name not in state["limits"]
+        ]
+        if unknown:
+            raise RuntimeError(
+                f"unknown runtime limits: {sorted(unknown, key=str)}"
+            )
+        changed: dict[str, int] = {}
+        for name, value in requested.items():
+            current_limit = _limit(state, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise RuntimeError(f"runtime limit {name} is invalid")
+            if value < current_limit:
+                raise RuntimeError(f"runtime limit {name} cannot be reduced")
+            if value > current_limit:
+                changed[name] = value
+        if not changed:
+            raise RuntimeError("limit increase must raise at least one runtime limit")
+        state["limits"].update(changed)
+        resource_wait = state.get("resource_wait")
+        if (
+            isinstance(resource_wait, Mapping)
+            and state["limits"].get(resource_wait.get("limit"), 0)
+            >= resource_wait.get("required", 1)
+        ):
+            state["resource_wait"] = None
+            if state["phase"] == "resource-paused":
+                state["phase"] = "running"
+                task["status"] = "running"
+            elif state["phase"] == "paused":
+                paused_from = state.get("paused_from")
+                if (
+                    isinstance(paused_from, MutableMapping)
+                    and paused_from.get("phase") == "resource-paused"
+                ):
+                    paused_from["phase"] = "running"
+                    paused_from["task_status"] = "running"
+        return {
+            "status": state["phase"],
+            "changed_limits": changed,
+            "resource_wait": copy.deepcopy(state.get("resource_wait")),
+            "charged_work": 1,
+        }
     if operation == "resume":
         operation_id = str(arguments.get("operation_id"))
         pending = state["operations"].get(operation_id)
@@ -5267,6 +5503,7 @@ def initial_state(
         "scheduler": [], "active_task": None,
         "counters": {"object": 1, "frame": 1, "task": 1, "operation": 1, "event": 1, "branch": 1},
         "phase": "running", "result": None, "stdout": "", "events": [],
+        "resource_wait": None,
         "branches": {}, "branch_stack": [], "finalizer_queue": [],
         "runtime_roots": {},
         "ledger": {"instructions": 0, "allocations": 0, "frames_created": 0, "collections": 0, "reclaimed_objects": 0, "branch_work": 0, "peak_heap_objects": 0, "peak_frames": 0},
@@ -5300,6 +5537,7 @@ def advance(state: Mapping[str, Any], arguments: Mapping[str, Any] | None, quant
         "inspect", "begin-branch", "rollback", "commit", "collect",
         "revocation", "optimize", "optimizer-status",
         "invalidate-optimization", "pause", "continue", "cancel",
+        "increase-limits",
     }
     if control is not None and control_operation in control_only:
         current["control_result"] = control
@@ -5324,6 +5562,8 @@ def advance(state: Mapping[str, Any], arguments: Mapping[str, Any] | None, quant
     elif status == "fault": status = "fault"
     elif status == "blocked": status = "blocked"
     output = current.get("result") or control
+    if output is None and current["phase"] == "resource-paused":
+        output = copy.deepcopy(current.get("resource_wait"))
     events = tuple(copy.deepcopy(current["events"][event_start:]))
     canonical_json_bytes(current)
     return current, status, max(work, 1 if control is not None else 0), output, events
@@ -5366,9 +5606,57 @@ def computation_view(state: Mapping[str, Any], *, offset: int = 0, limit: int = 
             ],
         },
         result=copy.deepcopy(state.get("result")),
-        unfinished_reason=("paused" if state["phase"] == "paused" else "awaiting-external-result" if any(task["status"] == "waiting" for task in state["tasks"].values()) else "finite-quantum" if state["phase"] == "running" else None),
+        unfinished_reason=("runtime-limit-exhausted" if state["phase"] == "resource-paused" else "paused" if state["phase"] == "paused" else "awaiting-external-result" if any(task["status"] == "waiting" for task in state["tasks"].values()) else "finite-quantum" if state["phase"] == "running" else None),
         page={"offset": offset, "limit": limit, "frame_total": len(frame_ids), "object_total": len(object_ids), "has_more": offset + limit < max(len(frame_ids), len(object_ids))},
     )
+
+
+def _json_guest_value(value: Any, active: set[int]) -> None:
+    if value is None or isinstance(value, (str, bool, int)):
+        return
+    if isinstance(value, float) and math.isfinite(value):
+        return
+    if isinstance(value, (list, dict)):
+        identity = id(value)
+        if identity in active:
+            raise ValueError("cyclic guest result")
+        active.add(identity)
+        try:
+            if isinstance(value, list):
+                for item in value:
+                    _json_guest_value(item, active)
+            else:
+                for key, item in value.items():
+                    if not isinstance(key, str):
+                        raise TypeError("guest JSON object key must be a string")
+                    _json_guest_value(item, active)
+        finally:
+            active.remove(identity)
+        return
+    raise TypeError("guest value is not JSON")
+
+
+def read_global(state: Mapping[str, Any], name: str) -> Any:
+    """Read a completed guest module global as a canonical JSON value."""
+    if not isinstance(state, Mapping) or state.get("schema") != RUNTIME_SCHEMA:
+        raise RuntimeError("field Python runtime state is invalid")
+    if state.get("phase") != "completed" or not isinstance(name, str) or not name:
+        raise RuntimeError("guest global is unavailable before completion")
+    program = state["programs"][state["identity"]["program_id"]]
+    module = state["modules"].get(program["module"])
+    if not isinstance(module, Mapping):
+        raise RuntimeError("guest module is unavailable")
+    namespace = _heap_object(state, module)["payload"]["namespace"]
+    values = _env_values(state, _check_value(namespace))
+    if name not in values:
+        raise RuntimeError(f"guest global {name!r} was not assigned")
+    try:
+        value = _to_host(state, _check_value(values[name]))
+        _json_guest_value(value, set())
+        encoded = json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True)
+        return json.loads(encoded)
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise RuntimeError(f"guest global {name!r} is not a JSON value") from exc
 
 
 __all__ = [
@@ -5378,5 +5666,6 @@ __all__ = [
     "advance",
     "computation_view",
     "initial_state",
+    "read_global",
     "optimizer_status",
 ]

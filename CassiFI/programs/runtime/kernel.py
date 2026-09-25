@@ -11,8 +11,12 @@ import json
 from typing import Any, Callable, Mapping, MutableMapping
 
 from cassi_field_regions import KernelResult
-from programs.model.kernel import regional_kernel as model_kernel
-from programs.model.runtime import RUNTIME_SCHEMA as MODEL_RUNTIME_SCHEMA, computation_view as model_view
+from programs.model.kernel import ModelKernelError, regional_kernel as model_kernel
+from programs.model.runtime import (
+    RUNTIME_SCHEMA as MODEL_RUNTIME_SCHEMA,
+    advance as model_advance,
+    computation_view as model_view,
+)
 from programs.python.kernel import regional_kernel as python_kernel
 from programs.python.records import canonical_json_bytes, digest_value
 from programs.python.runtime import RUNTIME_SCHEMA as PYTHON_RUNTIME_SCHEMA, computation_view as python_view
@@ -148,9 +152,16 @@ def _submit(state: MutableMapping[str, Any], arguments: Mapping[str, Any]) -> Ma
         resident = substate.get("resident_model")
         if isinstance(resident, MutableMapping):
             source = resident.get("source_sha256")
-            retained_policy = state.get("model_policies", {}).get(source)
-            if retained_policy is not None:
-                resident["policies"] = _plain(retained_policy)
+            if source:
+                retained_policy = state.get("model_policies", {}).get(source)
+                if retained_policy is None:
+                    retained_policy = _plain(resident.get("policies", {}))
+                    retained_policy["graph_sites"] = _plain(resident.get("graph_sites", {}))
+                    state.setdefault("model_policies", {})[source] = retained_policy
+                resident["policies"] = _plain({
+                    key: value for key, value in retained_policy.items() if key != "graph_sites"
+                })
+                resident.pop("graph_sites", None)
     task = {
         "schema": "cassifi.field-program-task.v1",
         "task_id": task_id,
@@ -211,6 +222,7 @@ def _advance_task(
     *,
     arguments: Mapping[str, Any],
     quantum: int,
+    project: bool = True,
 ) -> tuple[Mapping[str, Any], int, str]:
     task = state["tasks"].get(task_id)
     if not isinstance(task, MutableMapping):
@@ -221,36 +233,96 @@ def _advance_task(
     resident = task["state"].get("resident_model") if kind == "model" else None
     source = resident.get("source_sha256") if isinstance(resident, Mapping) else None
     branch_active = bool(task["state"].get("branch_stack"))
-    if source and not branch_active and arguments.get("operation") != "commit":
+    if isinstance(resident, MutableMapping) and source and (
+        (not branch_active and arguments.get("operation") != "commit")
+        or (branch_active and "graph_sites" not in resident)
+    ):
         retained_policy = state.get("model_policies", {}).get(source)
         if retained_policy is not None:
-            resident["policies"] = _plain(retained_policy)
-    if kind == "model":
-        # The scheduler already owns a private copy of the entire field state.
-        result = model_kernel(
-            task["state"], dict(arguments), effective_quantum, _owned_state=True
-        )
+            if not branch_active:
+                resident["policies"] = _plain({
+                    key: value for key, value in retained_policy.items() if key != "graph_sites"
+                })
+            retained_sites = retained_policy.get("graph_sites")
+            if isinstance(retained_sites, Mapping):
+                resident["graph_sites"] = _plain(retained_sites)
+    if kind == "model" and not project:
+        # The resident-cycle caller owns this model state. Returning through
+        # KernelResult here would canonicalize the whole model state and
+        # materialize its field-word image at every stage; the enclosing
+        # scheduler/field commit seals the state at its actual boundary.
+        if (
+            not isinstance(task["state"], Mapping)
+            or task["state"].get("schema") != MODEL_RUNTIME_SCHEMA
+        ):
+            raise ModelKernelError("field model state is invalid")
+        if not isinstance(arguments, Mapping):
+            raise ModelKernelError("field model arguments must be a mapping")
+        if (
+            isinstance(effective_quantum, bool)
+            or not isinstance(effective_quantum, int)
+            or not 1 <= effective_quantum <= 64
+        ):
+            raise ModelKernelError("field model quantum is outside its bound")
+        try:
+            (
+                model_state,
+                result_status,
+                result_work,
+                result_output,
+                result_events,
+            ) = model_advance(
+                task["state"], dict(arguments), effective_quantum, _owned_state=True
+            )
+        except ValueError as exc:
+            raise ModelKernelError(str(exc)) from exc
+        task["state"] = model_state
     else:
         result = kernel(task["state"], dict(arguments), effective_quantum)
-    # Keep the model's canonical result; other kernels retain defensive normalization.
-    task["state"] = result.state if kind == "model" else _plain(result.state)
+        result_status = result.status
+        result_work = result.work
+        result_output = result.output
+        result_events = result.events
+        task["state"] = result.state if kind == "model" else _plain(result.state)
+    # The private model advance retains its canonical result; other kernels
+    # retain defensive normalization.
     successor_resident = task["state"].get("resident_model") if kind == "model" else None
     if (
         source
-        and isinstance(successor_resident, Mapping)
+        and isinstance(successor_resident, MutableMapping)
         and not branch_active
         and not task["state"].get("branch_stack")
         and _phase(task["state"]) != "faulted"
-        and isinstance(successor_resident.get("policies"), Mapping)
+        and isinstance(successor_resident.get("policies"), MutableMapping)
     ):
-        state.setdefault("model_policies", {})[source] = _plain(successor_resident["policies"])
+        retained_policy = dict(successor_resident["policies"])
+        retained_policy.pop("graph_sites", None)
+        successor_resident["policies"] = retained_policy
+        successor_sites = successor_resident.get("graph_sites")
+        if isinstance(successor_sites, Mapping):
+            # The retained store is a separate record: writing the graph-site
+            # block into the same dict that was just published as the task's
+            # policies would smuggle the detached sites back into the state.
+            retained_policy = {
+                **retained_policy,
+                "graph_sites": (
+                    successor_sites if not project else _plain(successor_sites)
+                ),
+            }
+        # The fast model cycle owns this whole scheduler state until its
+        # model-state write. The next dispatch detaches the retained policy
+        # above, so a later fault cannot rewrite the last successful one.
+        state.setdefault("model_policies", {})[source] = retained_policy
+    if (source and isinstance(successor_resident, MutableMapping)
+            and not task["state"].get("branch_stack")):
+        successor_resident.pop("graph_sites", None)
     task["status"] = _task_status(task)
-    task["last_output"] = _plain(result.output)
-    task["last_work"] = int(result.work)
-    task["logical_work"] = int(task["logical_work"]) + int(result.work)
-    task["nested_events"] = [_plain(row) for row in result.events]
+    task["last_output"] = _plain(result_output)
+    task["last_work"] = int(result_work)
+    task["logical_work"] = int(task["logical_work"]) + int(result_work)
+    task["nested_events"] = [_plain(row) for row in result_events]
     state["selected_task_id"] = task_id
-    state["ledger"]["logical_work"] += int(result.work)
+    state["ledger"]["logical_work"] += int(result_work)
     state["ledger"]["dispatches"] += 1
     _event(
         state,
@@ -259,11 +331,15 @@ def _advance_task(
             "task_id": task_id,
             "kind": kind,
             "status": task["status"],
-            "work": int(result.work),
-            "nested_events": len(result.events),
+            "work": int(result_work),
+            "nested_events": len(result_events),
         },
     )
-    return _task_projection(task), int(result.work), str(result.status)
+    return (
+        _task_projection(task) if project else {"status": task["status"]},
+        int(result_work),
+        str(result_status),
+    )
 
 
 def task_view(

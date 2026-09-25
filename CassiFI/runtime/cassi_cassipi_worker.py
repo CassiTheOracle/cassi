@@ -57,6 +57,8 @@ SNAPSHOT_PATH = "/v1/view/snapshot"
 DESCRIPTOR_NAME = "runtime.json"
 LOCK_NAME = "owner.lock"
 MAX_REQUEST_BYTES = 1 << 20
+_VIEW_SNAPSHOT_MAX_AGE_SECONDS = 5.0
+_DESCRIPTOR_REFRESH_SECONDS = 2.0
 _SCOPE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}\Z")
 
 
@@ -357,6 +359,9 @@ class OwnerRuntime:
         self._closed = False
         self._scope_tokens: dict[str, Mapping[str, str]] = {}
         self._view_tokens: set[str] = set()
+        self._view_snapshot_workspace: Any = None
+        self._view_snapshot_data: Mapping[str, Any] | None = None
+        self._view_snapshot_captured = 0.0
         self._scheduler_state = "running"
         self._scheduler_stop = threading.Event()
         self._scheduler_thread: threading.Thread | None = None
@@ -370,6 +375,10 @@ class OwnerRuntime:
         self._scheduler_skipped = 0
         self._scheduler_backlogged = 0
         self._scheduler_last_failure: Mapping[str, Any] | None = None
+        self._scheduler_last_skip: Mapping[str, Any] | None = None
+        self._main_status: Mapping[str, Any] | None = None
+        self._main_initialization: Mapping[str, Any] | None = None
+        self._descriptor_last_persist = 0.0
         self._capture_path = data_home / "capture-control.json"
         self._capture = self._load_capture()
         if self._capture["paused"]:
@@ -426,8 +435,30 @@ class OwnerRuntime:
             with self._lock:
                 interval_epoch = self._tick_epoch
 
+    def _record_skip_locked(self, reason: str) -> None:
+        self._scheduler_last_skip = {"reason": reason, "wall_time": time.time()}
+
+    def _record_main_locked(self, inspection: Mapping[str, Any]) -> None:
+        task = inspection.get("task")
+        self._main_status = {
+            "computer_id": inspection.get("computer_id", "main"),
+            "status": inspection.get("status"),
+            "task_status": task.get("status") if isinstance(task, Mapping) else None,
+            "state_sha256": inspection.get("state_sha256"),
+            "inspected_wall_time": time.time(),
+        }
+
+    def _refresh_descriptor_locked(self) -> None:
+        """Keep the published descriptor's live scheduler view bounded-stale."""
+        now = time.monotonic()
+        if now - self._descriptor_last_persist < _DESCRIPTOR_REFRESH_SECONDS:
+            return
+        self._persist_descriptor_locked()
+
     def _scheduled_advance(self, tick_epoch: int) -> Mapping[str, Any] | None:
         """Deliver one identified transition request to the regional computer."""
+        initialize = False
+        operation_id: str | None = None
         with self._lock:
             if (
                 self._stopping
@@ -436,19 +467,77 @@ class OwnerRuntime:
                 or tick_epoch != self._tick_epoch
             ):
                 self._scheduler_skipped += 1
+                self._record_skip_locked("scheduler-not-advancing")
+                self._refresh_descriptor_locked()
                 return None
+            computers = self.adapter.owner.state.computers
             computer = next(
                 (
                     row
-                    for row in self.adapter.owner.state.computers
+                    for row in computers
                     if row.computer_id == "main"
                 ),
                 None,
             )
-            if computer is None or computer.inspect()["status"] != "running":
-                self._scheduler_skipped += 1
-                return None
-            operation_id = f"heartbeat:{self.adapter.owner.state.generation + 1}"
+            if computer is None:
+                if (
+                    not self._realtime
+                    or self._main_initialization is not None
+                    or computers
+                ):
+                    # Preserve a resident owner exactly: the heartbeat never
+                    # reconfigures or resets an existing owner, never
+                    # manufactures a 'main' beside unrelated resident
+                    # computers, and re-initializes at most once per launch.
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked("main-absent")
+                    self._refresh_descriptor_locked()
+                    return None
+                # A cold-start realtime owner admits no work yet because it
+                # owns no computer at all: configure the one canonical 'main'
+                # computer through the owner's own operation path.
+                initialize = True
+            else:
+                inspection = computer.inspect()
+                self._record_main_locked(inspection)
+                if inspection["status"] != "running":
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked(
+                        f"not-running:{inspection['status']}"
+                    )
+                    self._refresh_descriptor_locked()
+                    return None
+                task = inspection.get("task")
+                session = inspection.get("session")
+                task_status = (
+                    task.get("status") if isinstance(task, Mapping) else None
+                )
+                session_status = (
+                    session.get("status") if isinstance(session, Mapping) else None
+                )
+                if task_status == "idle":
+                    # No work is admitted: rest is exact, and the heartbeat
+                    # invents no cognitive outcome for it.
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked("no-admitted-work")
+                    self._refresh_descriptor_locked()
+                    return None
+                terminal = {"halted", "exhausted", "faulted", "counter-exhausted"}
+                if task_status in terminal or (
+                    task_status is None and session_status in terminal
+                ):
+                    # A finished task holds its exact end state; further
+                    # heartbeat advances would publish transitions with no
+                    # machine work behind them.
+                    reason = task_status or session_status
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked(f"no-admitted-work:{reason}")
+                    self._refresh_descriptor_locked()
+                    return None
+                operation_id = f"heartbeat:{self.adapter.owner.state.generation + 1}"
+        if initialize:
+            return self._initialize_main_computer()
+        assert operation_id is not None
         result = self.adapter.owner.operate_computer(
             operation_id,
             computer_id="main",
@@ -459,6 +548,57 @@ class OwnerRuntime:
             self._tick_epoch += 1
             self._scheduler_ticks += 1
             self._scheduler_last_tick = time.monotonic()
+            self._refresh_descriptor_locked()
+        return result
+
+    def _initialize_main_computer(self) -> Mapping[str, Any] | None:
+        """Admit the canonical 'main' computer once on an empty cold-start owner."""
+        with self._lock:
+            operation_id = (
+                f"heartbeat-initialize:{self.adapter.owner.state.generation + 1}"
+            )
+        try:
+            result = self.adapter.owner.operate_computer(
+                operation_id,
+                computer_id="main",
+                action="configure",
+                arguments={},
+            )
+        except (OwnerWorkerError, OwnerAdapterError, FieldIntelligenceError) as exc:
+            code = getattr(exc, "code", type(exc).__name__)
+            with self._lock:
+                self._main_initialization = {
+                    "operation_id": operation_id,
+                    "wall_time": time.time(),
+                    "status": "failed",
+                    "code": code,
+                }
+                self._scheduler_last_failure = {
+                    "code": code,
+                    "message": str(exc),
+                    "wall_time": time.time(),
+                }
+                self._record_skip_locked("initialization-failed")
+                self._refresh_descriptor_locked()
+            return None
+        receipt = result.get("receipt") if isinstance(result, Mapping) else None
+        with self._lock:
+            self._main_initialization = {
+                "operation_id": operation_id,
+                "wall_time": time.time(),
+                "status": "configured",
+                "computer_state_sha256": (
+                    receipt.get("state_sha256")
+                    if isinstance(receipt, Mapping)
+                    else None
+                ),
+            }
+            if isinstance(receipt, Mapping):
+                self._record_main_locked(receipt)
+            self._tick_epoch += 1
+            self._scheduler_ticks += 1
+            self._scheduler_last_tick = time.monotonic()
+            self._refresh_descriptor_locked()
         return result
 
     def _scheduler_metadata(self) -> Mapping[str, Any]:
@@ -478,6 +618,19 @@ class OwnerRuntime:
             "queue_count": queue["queue_count"],
             "backlog_limit": queue["backlog_limit"],
             "last_numerical_failure": self._scheduler_last_failure,
+            "main_computer": (
+                dict(self._main_status) if self._main_status is not None else None
+            ),
+            "main_initialization": (
+                dict(self._main_initialization)
+                if self._main_initialization is not None
+                else None
+            ),
+            "last_skip": (
+                dict(self._scheduler_last_skip)
+                if self._scheduler_last_skip is not None
+                else None
+            ),
         }
 
     def bind_descriptor(self, descriptor: Mapping[str, Any]) -> None:
@@ -488,6 +641,7 @@ class OwnerRuntime:
     def _persist_descriptor_locked(self) -> None:
         if self._descriptor is None:
             return
+        self._descriptor_last_persist = time.monotonic()
         descriptor = dict(self._descriptor)
         descriptor.update(
             {
@@ -504,10 +658,31 @@ class OwnerRuntime:
         self._descriptor = descriptor
         _atomic_private_write(self._descriptor_path, _canonical_json(descriptor))
 
+    def _view_snapshot_locked(self) -> Mapping[str, Any]:
+        """Reuse the bounded viewer projection while its source is unchanged
+        and its reported age stays bounded; an idle field is re-read so the
+        viewer always shows the actual current field without inventing a
+        transition."""
+        workspace = self.adapter.owner.state.resonant_workspace
+        age = time.monotonic() - self._view_snapshot_captured
+        if (
+            workspace is not self._view_snapshot_workspace
+            or self._view_snapshot_data is None
+            or age >= _VIEW_SNAPSHOT_MAX_AGE_SECONDS
+        ):
+            self._view_snapshot_data = snapshot(self.adapter)
+            self._view_snapshot_workspace = workspace
+            self._view_snapshot_captured = time.monotonic()
+        age = max(0.0, time.monotonic() - self._view_snapshot_captured)
+        sampling = dict(self._view_snapshot_data["sampling"])
+        sampling["snapshot_age_seconds"] = age
+        view = dict(self._view_snapshot_data)
+        view["sampling"] = sampling
+        return _parse_json(_canonical_json(view))
+
     def view_snapshot(self) -> Mapping[str, Any]:
         """Serialize one coherent owner snapshot through the mutation queue."""
-        encoded = self._executor.submit(lambda: _canonical_json(snapshot(self.adapter)))
-        return _parse_json(encoded)
+        return self._executor.submit(self._view_snapshot_locked)
 
     def close(self) -> None:
         with self._lock:

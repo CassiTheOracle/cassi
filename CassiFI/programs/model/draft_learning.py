@@ -26,6 +26,7 @@ from programs.python.records import canonical_json_bytes, digest_value
 DRAFT_POLICY_SCHEMA = "cassifi.model-draft-policy.v1"
 DRAFT_PROPOSAL_SCHEMA = "cassifi.model-draft-proposal.v1"
 DRAFT_COMPARISON_SCHEMA = "cassifi.model-draft-comparison.v1"
+DRAFT_SPECULATION_SCHEMA = "cassifi.model-speculation.v1"
 DRAFT_OBSERVATION_SCHEMA = "cassifi.model-draft-observation.v1"
 
 MAX_CONTEXT_WIDTH = 8
@@ -461,10 +462,11 @@ def propose_draft(
 ) -> dict[str, Any]:
     """Select a resident learned method and construct a bounded draft.
 
-    The proposal is pure and does not increment outcome counters.  The caller
-    stores it in the task snapshot, samples the target once, then calls
-    :func:`record_target_outcome` to fold the result back into the resident
-    policy.
+    The proposal is pure and does not increment outcome counters.  Its
+    deterministic selector gives each selected token a point-mass proposal
+    probability; observed transition frequencies are not the actual q used by
+    the sampler.  The caller stores it in task state and folds target outcomes
+    back into the resident policy.
     """
     resident = _canonical_policy(policy)
     context = _tokens(context_tokens, "draft context", maximum=65_536)
@@ -478,10 +480,12 @@ def propose_draft(
     )
     selected: Mapping[str, Any] | None = None
     selected_tokens: list[int] = []
+    selected_q_rows: list[list[dict[str, Any]]] = []
     for method in methods:
         width = int(method["context_width"])
         lookup = _row_lookup(method)
         generated: list[int] = []
+        generated_q_rows: list[list[dict[str, Any]]] = []
         for _ in range(min(requested, int(method["horizon"]))):
             history = (context + generated)[-width:]
             row = lookup.get(_context_key(history))
@@ -490,11 +494,12 @@ def propose_draft(
             token = _best_next(row, min_support=int(config["min_support"]), min_confidence=float(config["min_confidence"]))
             if token is None:
                 break
+            generated_q_rows.append([{"token": token, "probability": 1.0}])
             generated.append(token)
         if generated:
             selected = method
             selected_tokens = generated
-            break
+            selected_q_rows = generated_q_rows
     if selected is None:
         return {
             "schema": DRAFT_PROPOSAL_SCHEMA,
@@ -520,10 +525,100 @@ def propose_draft(
         "status": "proposed",
         "reason": "field-supported-continuation",
         "draft_source": "learned-context-continuation",
-        "pretrained_mtp": resident["pretrained_mtp"],
+        "proposal_q": selected_q_rows,
     }
     proposal["proposal_sha256"] = digest_value(proposal)
     return _plain(proposal)
+
+
+def speculation_frame(proposal: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate one draft proposal for operational speculation activation.
+
+    The frame is the explicit bounded hand-off to the model runtime: proposed
+    tokens come from a bounded CPU/cache table read, never a model execution.
+    Their q distributions describe the deterministic selector and may be used
+    only as verification candidates against exact native target distributions;
+    they never become model state by themselves.
+    """
+    if not isinstance(proposal, Mapping) or proposal.get("schema") != DRAFT_PROPOSAL_SCHEMA:
+        raise DraftLearningError("draft proposal schema is invalid")
+    model = proposal.get("model")
+    if not isinstance(model, Mapping):
+        raise DraftLearningError("draft proposal model identity is missing")
+    _text(model.get("program_id"), "proposal model program_id")
+    _digest(model.get("source_sha256"), "proposal model source_sha256")
+    draft = _tokens(proposal.get("draft_tokens", ()), "draft tokens")
+    if not draft:
+        raise DraftLearningError("abstained draft proposal has no speculation frame")
+    if len(draft) > MAX_HORIZON:
+        raise DraftLearningError("draft proposal exceeds its horizon bound")
+    raw_q_rows = proposal.get("proposal_q")
+    if (
+        isinstance(raw_q_rows, (str, bytes))
+        or not isinstance(raw_q_rows, Sequence)
+        or len(raw_q_rows) != len(draft)
+    ):
+        raise DraftLearningError("draft proposal q distributions do not match its horizon")
+    q_rows: list[list[dict[str, Any]]] = []
+    for index, (draft_token, raw_row) in enumerate(zip(draft, raw_q_rows)):
+        if (
+            isinstance(raw_row, (str, bytes))
+            or not isinstance(raw_row, Sequence)
+            or not raw_row
+            or len(raw_row) > MAX_NEXT_PER_ROW
+        ):
+            raise DraftLearningError(f"draft proposal q row {index} is invalid")
+        row: list[dict[str, Any]] = []
+        seen_tokens: set[int] = set()
+        for raw_item in raw_row:
+            if not isinstance(raw_item, Mapping):
+                raise DraftLearningError(f"draft proposal q row {index} contains an invalid item")
+            token = _token(raw_item.get("token"), "draft q token")
+            probability_value = raw_item.get("probability")
+            if isinstance(probability_value, bool):
+                raise DraftLearningError("draft q probability must be numeric")
+            try:
+                probability = float(probability_value)
+            except (TypeError, ValueError) as exc:
+                raise DraftLearningError("draft q probability must be numeric") from exc
+            if not math.isfinite(probability) or probability <= 0.0 or probability > 1.0:
+                raise DraftLearningError("draft q probability must be finite and in (0, 1]")
+            if token in seen_tokens:
+                raise DraftLearningError("draft q distribution repeats a token")
+            seen_tokens.add(token)
+            row.append({"token": token, "probability": probability})
+        total = math.fsum(item["probability"] for item in row)
+        if not math.isclose(total, 1.0, rel_tol=0.0, abs_tol=1e-12):
+            raise DraftLearningError("draft q distribution must sum to one")
+        if (
+            len(row) != 1
+            or row[0]["token"] != draft_token
+            or row[0]["probability"] != 1.0
+        ):
+            raise DraftLearningError(
+                "deterministic draft q must assign unit mass to its selected token"
+            )
+        q_rows.append(sorted(row, key=lambda item: item["token"]))
+    proposal_digest = proposal.get("proposal_sha256")
+    _digest(proposal_digest, "proposal_sha256")
+    proposal_body = {key: value for key, value in proposal.items() if key != "proposal_sha256"}
+    if digest_value(proposal_body) != proposal_digest:
+        raise DraftLearningError("draft proposal digest does not match its content")
+    method_id = proposal.get("method_id")
+    if not isinstance(method_id, str) or not method_id:
+        raise DraftLearningError("draft proposal names no resident method")
+    return _plain(
+        {
+            "schema": DRAFT_SPECULATION_SCHEMA,
+            "source": "resident-draft-policy",
+            "method_id": method_id,
+            "proposal_sha256": proposal.get("proposal_sha256"),
+            "draft_tokens": draft,
+            "horizon": len(draft),
+            "draft_lane": "cpu-cache",
+            "proposal_q": q_rows,
+        }
+    )
 
 
 def target_sample_and_compare(
@@ -768,6 +863,7 @@ __all__ = [
     "record_target_outcome",
     "record_target_sequence",
     "select_draft",
+    "speculation_frame",
     "target_sample_and_compare",
     "verify_target_sample_and_compare",
 ]

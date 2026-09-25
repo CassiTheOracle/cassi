@@ -35,6 +35,7 @@ def regional_state(
     limits: Mapping[str, int] | None = None,
     backend_policy: str = "auto",
     rng_seed: int = 1,
+    graph_site_modes: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     return initial_state(
         package,
@@ -51,6 +52,7 @@ def regional_state(
         limits=limits,
         backend_policy=backend_policy,
         rng_seed=rng_seed,
+        graph_site_modes=graph_site_modes,
     )
 
 

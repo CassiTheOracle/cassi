@@ -158,12 +158,18 @@ def _qwen_graph(
     source_id: str,
     source_sha256: str,
     manifest_sha256: str,
-) -> list[Mapping[str, Any]]:
+    trunk_depth: int | None = None,
+) -> tuple[list[Mapping[str, Any]], Mapping[str, int]]:
     """Lower Qwen35/Qwen35MoE into one scheduler-visible stage per operation.
 
     The executor receives tensor names and immutable GGUF identity, not a
     serialized llama graph.  Names are resolved against the manifest so dense
     and MoE variants can share the stage contract.
+
+    ``trunk_depth`` optionally truncates the whole program to the first D
+    trunk layers (1..full trunk count).  The head reads the final included
+    hidden state; per-layer KV/SSM state beyond D is never referenced by the
+    emitted graph.  The default (``None``) emits the full trunk unchanged.
     """
     tensor_names = {str(item["name"]) for item in tensors}
     layer_ids: set[int] = set()
@@ -178,6 +184,34 @@ def _qwen_graph(
         layer_count = (max(layer_ids) + 1) if layer_ids else 0
     if layer_count <= 0:
         raise GgufImportError("Qwen GGUF does not declare any transformer layers")
+    # Qwen3.5/3.6 appends NextN draft blocks to block_count. Ordinary
+    # decoder tokens stop at the trunk, before those prediction-only layers.
+    nextn_layers = metadata.get(f"{architecture}.nextn_predict_layers", 0)
+    if (
+        isinstance(nextn_layers, bool)
+        or not isinstance(nextn_layers, int)
+        or not 0 <= nextn_layers < layer_count
+    ):
+        raise GgufImportError("Qwen NextN layer count is outside the decoder stack")
+    layer_count -= nextn_layers
+    if trunk_depth is not None:
+        if isinstance(trunk_depth, bool) or not isinstance(trunk_depth, int):
+            raise GgufImportError("Qwen trunk depth must be an integer")
+        if not 1 <= trunk_depth <= layer_count:
+            raise GgufImportError(
+                f"Qwen trunk depth {trunk_depth} is outside the decoder trunk of {layer_count} layers"
+            )
+    # Without an explicit depth the emitted graph is bit-identical to the
+    # historical full-depth lowering.
+    emitted_count = layer_count if trunk_depth is None else trunk_depth
+    depth_fields: dict[str, Any] = (
+        {}
+        if trunk_depth is None
+        else {
+            "trunk_depth": trunk_depth,
+            "trunk_layer_count": layer_count,
+        }
+    )
 
     def names_for_layer(layer: int, *, moe: bool) -> dict[str, Any]:
         prefix = f"blk.{layer}."
@@ -248,6 +282,7 @@ def _qwen_graph(
         "manifest_sha256": manifest_sha256,
         "architecture": architecture,
         "metadata_sha256": digest_value(metadata),
+        **depth_fields,
     }
     graph: list[Mapping[str, Any]] = [
         {
@@ -260,7 +295,7 @@ def _qwen_graph(
             "state_effects": ["resident-token-embedding", "resident-snapshot"],
         }
     ]
-    for layer in range(layer_count):
+    for layer in range(emitted_count):
         layer_names = names_for_layer(layer, moe=moe)
         recurrent = bool(layer_names.pop("recurrent", False))
         if moe:
@@ -337,12 +372,16 @@ def _qwen_graph(
             "parameters": {
                 **common,
                 "layer": None,
+                **({"final_layer": emitted_count - 1} if depth_fields else {}),
                 "tensor_names": {"output_norm": output_norm, "output": head},
             },
             "state_effects": ["resident-token-head", "resident-snapshot"],
         }
     )
-    return graph
+    return graph, {
+        "trunk_layer_count": layer_count,
+        "trunk_depth": emitted_count,
+    }
 
 def _read_exact(stream: BinaryIO, size: int) -> bytes:
     data = stream.read(size)
@@ -624,15 +663,29 @@ def build_gguf_model_package(
     expected_source_sha256: str | None = None,
     execution: str = "resident-qwen",
     manifest: Mapping[str, Any] | None = None,
+    trunk_depth: int | None = None,
 ) -> ModelPackage:
     """Import an immutable GGUF into explicit resident Qwen stages.
 
     ``external-model`` is the only GGUF import mode that intentionally leaves
     execution to an explicitly selected external lane.
+
+    ``trunk_depth`` optionally fixes a whole-program trunk depth: the resident
+    graph emits only the first D trunk layers plus the head, so every
+    generated token runs the same shorter depth.  ``None`` keeps the full
+    depth and a bit-identical package.  A non-default depth changes the graph
+    digest (and therefore the program/package identity) while the source
+    SHA-256 and native architecture metadata stay unchanged.
     """
 
     if execution not in {"resident-qwen", "external-model"}:
         raise GgufImportError("GGUF execution mode is unsupported; use resident-qwen or external-model")
+    if trunk_depth is not None and (isinstance(trunk_depth, bool) or not isinstance(trunk_depth, int)):
+        raise GgufImportError("Qwen trunk depth must be an integer")
+    if trunk_depth is not None and execution != "resident-qwen":
+        raise GgufImportError(
+            "Qwen trunk depth applies only to the resident-qwen lowering"
+        )
 
     if manifest is None:
         manifest = inspect_gguf(
@@ -679,6 +732,7 @@ def build_gguf_model_package(
             "dependencies": [source_sha256],
             "placement": "immutable-gguf",
         }
+    trunk_info: Mapping[str, int] = {}
     if execution == "external-model":
         graph = [
             {
@@ -703,13 +757,14 @@ def build_gguf_model_package(
             raise GgufImportError(
                 f"resident GGUF architecture {architecture!r} has no explicit lowering"
             )
-        graph = _qwen_graph(
+        graph, trunk_info = _qwen_graph(
             architecture=architecture,
             metadata=manifest["model_metadata"],
             tensors=manifest["tensors"],
             source_id=str(manifest["source_id"]),
             source_sha256=source_sha256,
             manifest_sha256=digest_value(manifest),
+            trunk_depth=trunk_depth,
         )
         
     return build_model_package(
@@ -735,6 +790,14 @@ def build_gguf_model_package(
             "status": "admitted",
             "source_sha256": source_sha256,
             "manifest_sha256": digest_value(manifest),
+            **(
+                {
+                    "trunk_depth": trunk_info["trunk_depth"],
+                    "trunk_layer_count": trunk_info["trunk_layer_count"],
+                }
+                if trunk_depth is not None
+                else {}
+            ),
         },
         primitive_contracts=("immutable-gguf-v1", "model-continuation-v1"),
         numerical_profile={

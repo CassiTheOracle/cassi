@@ -32,9 +32,25 @@ class _TensorInfo(ctypes.Structure):
     ]
 
 
-# The only paths used for implicit discovery.  A caller may pass an explicit
+# The full native ABI that any usable weight-bank library must export.
+# Implicit discovery skips stale builds, while explicit paths fail with the
+# missing-symbol list during binding. Field previews require the snapshot ABI.
+_REQUIRED_SYMBOLS = (
+    "cassifi_weight_bank_load",
+    "cassifi_weight_bank_close",
+    "cassifi_weight_bank_last_error",
+    "cassifi_weight_bank_tensor_info",
+    "cassifi_weight_bank_read_vector",
+    "cassifi_weight_bank_read_embedding",
+    "cassifi_weight_bank_matvec",
+    "cassifi_weight_bank_matvec_batch",
+    "cassifi_weight_bank_device_epoch_snapshot",
+)
+
+# The only paths used for implicit discovery. A caller may pass an explicit
 # library_path (or CASSIFI_WEIGHT_BANK_LIBRARY), but even that path must name
-# this library and must not be llama.dll.
+# this library and must not be llama.dll. The isolated recurrent build can
+# remain usable while an older resident DLL is held open by another process.
 _LIBRARY_BASENAMES = (
     "cassifi-weight-bank.dll",
     "cassifi_weight_bank.dll",
@@ -59,13 +75,40 @@ def _library_candidates() -> list[Path]:
     cassifi_root = Path(__file__).resolve().parents[2]
     candidates: list[Path] = []
     runtime = cassifi_root / "native" / "field-runtime"
-    for build in (runtime / "build-resident", runtime / "build"):
+    for build in (runtime / "build-recurrent", runtime / "build-resident", runtime / "build"):
         for directory in (build / "Release", build, build / "Debug"):
             for basename in _LIBRARY_BASENAMES:
                 candidate = directory / basename
                 if candidate not in candidates:
                     candidates.append(candidate)
     return candidates
+
+
+# Loaded native libraries, keyed by absolute path.  Loading the same DLL once
+# per process keeps the OS loader from duplicating it and lets repeated
+# WeightBank/vulkan_memory constructions skip repeat work.
+_LOADED_LIBRARIES: dict[str, ctypes.CDLL] = {}
+# First implicitly resolved library that passed ABI verification.  Implicit
+# discovery is not repeated per construction in hot stages.
+_VERIFIED_IMPLICIT_LIBRARY: Path | None = None
+
+
+def _acquire_library(path: Path) -> ctypes.CDLL:
+    """Load the native library at ``path`` once and cache the handle."""
+    key = str(path)
+    cached = _LOADED_LIBRARIES.get(key)
+    if cached is not None:
+        return cached
+    try:
+        library = ctypes.CDLL(key)
+    except OSError as exc:
+        raise WeightBankError(f"cannot load cassifi-weight-bank {path}: {exc}") from exc
+    _LOADED_LIBRARIES[key] = library
+    return library
+
+
+def _library_exports_required_abi(library: ctypes.CDLL) -> list[str]:
+    return [name for name in _REQUIRED_SYMBOLS if not hasattr(library, name)]
 
 
 def _resolve_library(library_path: str | os.PathLike[str] | None) -> Path:
@@ -81,12 +124,29 @@ def _resolve_library(library_path: str | os.PathLike[str] | None) -> Path:
                 "library (llama.dll is never accepted)"
             )
         return path
+    global _VERIFIED_IMPLICIT_LIBRARY
+    verified = _VERIFIED_IMPLICIT_LIBRARY
+    if verified is not None:
+        return verified
+    rejected: list[str] = []
     for candidate in _library_candidates():
-        if _library_is_allowed(candidate):
-            return candidate
+        if not _library_is_allowed(candidate):
+            continue
+        try:
+            library = _acquire_library(candidate)
+        except WeightBankError:
+            rejected.append(str(candidate))
+            continue
+        if _library_exports_required_abi(library):
+            rejected.append(str(candidate))
+            continue
+        _VERIFIED_IMPLICIT_LIBRARY = candidate
+        return candidate
     searched = ", ".join(str(path) for path in _library_candidates())
     raise WeightBankError(
-        "cassifi-weight-bank native library is unavailable; searched only " + searched
+        "cassifi-weight-bank native library is unavailable (candidates missing "
+        "required ABI symbols such as cassifi_weight_bank_matvec_batch are "
+        "rejected); searched only " + searched
     )
 
 
@@ -97,6 +157,24 @@ def _as_c_string(value: str, label: str) -> bytes:
         return value.encode("utf-8")
     except UnicodeEncodeError as exc:
         raise WeightBankError(f"{label} is not valid UTF-8") from exc
+
+
+def vulkan_memory(
+    library_path: str | os.PathLike[str] | None = None,
+) -> tuple[int, int]:
+    """Query the same Vulkan device (index zero) used by the weight bank."""
+    library = _acquire_library(_resolve_library(library_path))
+    query = getattr(library, "cassifi_weight_bank_vulkan_memory", None)
+    if query is None:
+        raise WeightBankError("native weight bank has no Vulkan memory query")
+    query.argtypes = [ctypes.POINTER(ctypes.c_size_t), ctypes.POINTER(ctypes.c_size_t)]
+    query.restype = ctypes.c_int
+    free = ctypes.c_size_t()
+    total = ctypes.c_size_t()
+    result = query(ctypes.byref(free), ctypes.byref(total))
+    if result != 0 or not total.value or free.value > total.value:
+        raise WeightBankError(f"Vulkan memory query unavailable (error {result})")
+    return int(free.value), int(total.value)
 
 
 class WeightBank:
@@ -136,10 +214,7 @@ class WeightBank:
             raise WeightBankError(f"cannot verify GGUF model {path}: {exc}") from exc
 
         native_path = _resolve_library(library_path)
-        try:
-            library = ctypes.CDLL(str(native_path))
-        except OSError as exc:
-            raise WeightBankError(f"cannot load cassifi-weight-bank {native_path}: {exc}") from exc
+        library = _acquire_library(native_path)
         self._bind(library)
         self._library = library
         self._handle: ctypes.c_void_p | None = None
@@ -171,16 +246,7 @@ class WeightBank:
         self._handle = handle
 
     def _bind(self, library: ctypes.CDLL) -> None:
-        required = (
-            "cassifi_weight_bank_load",
-            "cassifi_weight_bank_close",
-            "cassifi_weight_bank_last_error",
-            "cassifi_weight_bank_tensor_info",
-            "cassifi_weight_bank_read_vector",
-            "cassifi_weight_bank_read_embedding",
-            "cassifi_weight_bank_matvec",
-        )
-        missing = [name for name in required if not hasattr(library, name)]
+        missing = [name for name in _REQUIRED_SYMBOLS if not hasattr(library, name)]
         if missing:
             raise WeightBankError("native library is missing ABI symbols: " + ", ".join(missing))
         self._load = library.cassifi_weight_bank_load
@@ -225,7 +291,36 @@ class WeightBank:
             ctypes.POINTER(ctypes.c_size_t),
             ctypes.c_int32,
         ]
-        self._matvec.restype = ctypes.c_int
+        self._matvec_batch = library.cassifi_weight_bank_matvec_batch
+        self._matvec_batch.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_char_p,
+            ctypes.POINTER(ctypes.c_float),
+            ctypes.c_size_t,
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_float),
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_size_t),
+            ctypes.c_int32,
+        ]
+        self._matvec_batch.restype = ctypes.c_int
+
+        self._matvec_batch_experts = getattr(
+            library, "cassifi_weight_bank_matvec_batch_experts", None
+        )
+        if self._matvec_batch_experts is not None:
+            self._matvec_batch_experts.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_char_p,
+                ctypes.POINTER(ctypes.c_float),
+                ctypes.c_size_t,
+                ctypes.c_size_t,
+                ctypes.POINTER(ctypes.c_int32),
+                ctypes.POINTER(ctypes.c_float),
+                ctypes.c_size_t,
+                ctypes.POINTER(ctypes.c_size_t),
+            ]
+            self._matvec_batch_experts.restype = ctypes.c_int
         self._matvec_many = getattr(library, "cassifi_weight_bank_matvec_many", None)
         if self._matvec_many is not None:
             self._matvec_many.argtypes = [
@@ -308,6 +403,10 @@ class WeightBank:
                  ctypes.POINTER(ctypes.c_size_t)],
             ),
             "release": ("cassifi_weight_bank_device_tensor_release", [ctypes.c_void_p]),
+            "release_many": (
+                "cassifi_weight_bank_device_tensor_release_many",
+                [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t],
+            ),
             "matvec": (
                 "cassifi_weight_bank_device_matvec",
                 [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int32,
@@ -318,6 +417,13 @@ class WeightBank:
                 [ctypes.c_void_p, ctypes.POINTER(ctypes.c_char_p),
                  ctypes.POINTER(ctypes.c_int32), ctypes.c_size_t, ctypes.c_void_p,
                  ctypes.POINTER(ctypes.c_void_p)],
+            ),
+            "low_rank_affine": (
+                "cassifi_weight_bank_device_low_rank_affine",
+                [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p,
+                 ctypes.POINTER(ctypes.c_float), ctypes.c_size_t, ctypes.c_size_t,
+                 ctypes.POINTER(ctypes.c_float), ctypes.c_size_t,
+                 ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_void_p)],
             ),
             "exchange": (
                 "cassifi_weight_bank_device_exchange",
@@ -426,6 +532,16 @@ class WeightBank:
             function.argtypes = argtypes
             function.restype = None if name in {"epoch_close", "release"} else ctypes.c_int
             self._device[name] = function
+        snapshot = getattr(library, "cassifi_weight_bank_device_epoch_snapshot", None)
+        if snapshot is not None and self._device:
+            snapshot.argtypes = [
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.c_float),
+                ctypes.c_size_t,
+                ctypes.POINTER(ctypes.c_size_t),
+            ]
+            snapshot.restype = ctypes.c_int
+            self._device["epoch_snapshot"] = snapshot
 
     def _require_open(self) -> ctypes.c_void_p:
         handle = self._handle
@@ -600,6 +716,139 @@ class WeightBank:
         if count != output_width:
             raise WeightBankError(f"matvec returned {count} values for expected length {output_width}")
         return output
+    def matvec_batch(
+        self, name: str, inputs: Any, expert: int | None = None
+    ) -> np.ndarray:
+        """Multiply one matrix by a row-major batch of independent vectors."""
+        info = self._info(name)
+        if int(info.rank) < 1:
+            raise WeightBankError(f"matvec_batch requires rank >= 1 tensor {name!r}")
+        try:
+            matrix = (
+                inputs
+                if isinstance(inputs, np.ndarray)
+                and inputs.dtype == np.float32
+                and inputs.flags.c_contiguous
+                else np.ascontiguousarray(inputs, dtype=np.float32)
+            )
+        except (TypeError, ValueError) as exc:
+            raise WeightBankError("matvec_batch input must be numeric") from exc
+        if matrix.ndim != 2 or matrix.shape[0] < 1:
+            raise WeightBankError("matvec_batch input must be a non-empty two-dimensional array")
+        input_width = int(info.dims[0])
+        output_width = int(info.dims[1])
+        if matrix.shape[1] != input_width:
+            raise WeightBankError(
+                f"matvec_batch input width is {matrix.shape[1]}, expected {input_width}"
+            )
+        if not np.isfinite(matrix).all():
+            raise WeightBankError("matvec_batch input contains a non-finite value")
+        # This is a real grouped native operation over distinct input rows.
+
+        output = np.empty((matrix.shape[0], output_width), dtype=np.float32)
+        written = ctypes.c_size_t()
+        expert_value = -1 if expert is None else self._expert_id(expert)
+        self._check(
+            self._matvec_batch(
+                self._require_open(),
+                _as_c_string(name, "tensor name"),
+                matrix.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                ctypes.c_size_t(matrix.shape[0]),
+                ctypes.c_size_t(input_width),
+                output.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                ctypes.c_size_t(output.size),
+                ctypes.byref(written),
+                ctypes.c_int32(expert_value),
+            ),
+            "matvec_batch",
+        )
+        if int(written.value) != output.size:
+            raise WeightBankError(
+                f"matvec_batch returned {written.value} values for expected length {output.size}"
+            )
+        return output
+
+    def matvec_batch_experts(
+        self, name: str, inputs: Any, experts: Any
+    ) -> np.ndarray:
+        """Multiply one tensor by a row-major batch whose rows name different
+        expert slices of that tensor (``None`` selects a dense tensor).
+
+        This is one native call: the bank partitions rows by expert internally
+        so same-expert rows still share a single GGML plan.
+        """
+        if self._matvec_batch_experts is None:
+            raise WeightBankError(
+                "native weight bank does not expose matvec_batch_experts"
+            )
+        info = self._info(name)
+        if int(info.rank) < 1:
+            raise WeightBankError(
+                f"matvec_batch_experts requires rank >= 1 tensor {name!r}"
+            )
+        try:
+            matrix = (
+                inputs
+                if isinstance(inputs, np.ndarray)
+                and inputs.dtype == np.float32
+                and inputs.flags.c_contiguous
+                else np.ascontiguousarray(inputs, dtype=np.float32)
+            )
+        except (TypeError, ValueError) as exc:
+            raise WeightBankError("matvec_batch_experts input must be numeric") from exc
+        if matrix.ndim != 2 or matrix.shape[0] < 1:
+            raise WeightBankError(
+                "matvec_batch_experts input must be a non-empty two-dimensional array"
+            )
+        input_width = int(info.dims[0])
+        output_width = int(info.dims[1])
+        if matrix.shape[1] != input_width:
+            raise WeightBankError(
+                f"matvec_batch_experts input width is {matrix.shape[1]}, expected {input_width}"
+            )
+        if not np.isfinite(matrix).all():
+            raise WeightBankError(
+                "matvec_batch_experts input contains a non-finite value"
+            )
+        try:
+            expert_list = list(experts)
+        except TypeError as exc:
+            raise WeightBankError(
+                "matvec_batch_experts experts must be a sequence"
+            ) from exc
+        if len(expert_list) != matrix.shape[0]:
+            raise WeightBankError(
+                f"matvec_batch_experts has {len(expert_list)} experts for "
+                f"{matrix.shape[0]} input rows"
+            )
+        expert_values = np.empty(len(expert_list), dtype=np.int32)
+        for index, expert in enumerate(expert_list):
+            expert_values[index] = (
+                -1 if expert is None else self._expert_id(expert)
+            )
+        output = np.empty((matrix.shape[0], output_width), dtype=np.float32)
+        written = ctypes.c_size_t()
+        self._check(
+            self._matvec_batch_experts(
+                self._require_open(),
+                _as_c_string(name, "tensor name"),
+                matrix.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                ctypes.c_size_t(matrix.shape[0]),
+                ctypes.c_size_t(input_width),
+                expert_values.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                output.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                ctypes.c_size_t(output.size),
+                ctypes.byref(written),
+            ),
+            "matvec_batch_experts",
+        )
+        if int(written.value) != output.size:
+            raise WeightBankError(
+                f"matvec_batch_experts returned {written.value} values for "
+                f"expected length {output.size}"
+            )
+        return output
+
 
     @staticmethod
     def _expert_id(expert: int) -> int:
@@ -724,6 +973,7 @@ class WeightBank:
             if not output.flags.c_contiguous or output.dtype != np.float32:
                 raise WeightBankError("matvec_many returned a non-contiguous float32 output")
         return outputs
+    
 
 
     def evict(self, name: str, expert: int | None = None) -> None:
@@ -831,6 +1081,7 @@ class DeviceEpoch:
             raise ValueError("device field needs four nonempty plane-major F32 arrays")
         self._bank = bank
         self._mode_count = int(initial.shape[1])
+        self._gain_ppm = int(gain_ppm)
         self._values: list[_DeviceTensor] = []
         self._sites: list[tuple[str, _DeviceTensor, _DeviceTensor, _DeviceTensor, _DeviceTensor]] = []
         handle = ctypes.c_void_p()
@@ -850,6 +1101,31 @@ class DeviceEpoch:
         if self._handle is None:
             raise WeightBankError("Vulkan field epoch is closed")
         return self._handle
+
+    def fork_preview(self) -> "DeviceEpoch":
+        """Copy the current Vulkan planes into a separate uncommitted epoch."""
+        self._open()
+        snapshot = self._bank._device.get("epoch_snapshot")
+        if snapshot is None:
+            raise WeightBankError(
+                "Vulkan field epoch snapshots are unavailable in this native ABI"
+            )
+        planes = np.empty((4, self._mode_count), dtype=np.float32)
+        count = ctypes.c_size_t()
+        self._bank._check(
+            snapshot(
+                self._open(),
+                planes.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                planes.size,
+                ctypes.byref(count),
+            ),
+            "Vulkan field epoch snapshot",
+        )
+        if count.value != planes.size:
+            raise WeightBankError("Vulkan field epoch snapshot returned incomplete planes")
+        if not np.isfinite(planes).all():
+            raise WeightBankError("Vulkan field epoch snapshot contains nonfinite values")
+        return DeviceEpoch(self._bank, planes, self._gain_ppm)
 
     def _ptr(self, tensor: _DeviceTensor) -> ctypes.c_void_p:
         self._open()
@@ -882,6 +1158,44 @@ class DeviceEpoch:
             self._open(), self._ptr(input), int(offset), int(count),
         )
 
+
+    def low_rank_affine(
+        self, input: _DeviceTensor, a: np.ndarray, b: np.ndarray, bias: np.ndarray,
+        *, method_id: str,
+    ) -> _DeviceTensor:
+        """Evaluate ``(input @ a) @ b + bias`` entirely on this epoch's GPU.
+
+        Coefficients use logical NumPy orientation ``a[input_width, rank]``,
+        ``b[rank, output_width]``, and ``bias[output_width]``. Inputs may hold
+        one or more consecutive rows whose flattened width is ``input_width``.
+        ``method_id`` scopes immutable coefficient reuse to this epoch.
+        """
+        self._ptr(input)
+        if not isinstance(method_id, str) or not method_id:
+            raise ValueError("method_id must be non-empty text")
+        a_array = np.ascontiguousarray(np.asarray(a, dtype=np.float32))
+        b_array = np.ascontiguousarray(np.asarray(b, dtype=np.float32))
+        bias_array = np.ascontiguousarray(np.asarray(bias, dtype=np.float32))
+        if a_array.ndim != 2 or b_array.ndim != 2 or bias_array.ndim != 1:
+            raise ValueError("low-rank affine expects A/B matrices and a bias vector")
+        if a_array.shape[1] != b_array.shape[0] or b_array.shape[1] != bias_array.size:
+            raise ValueError("low-rank affine coefficient dimensions do not match")
+        if a_array.shape[0] <= 0 or a_array.shape[1] <= 0 or bias_array.size <= 0:
+            raise ValueError("low-rank affine dimensions must be positive")
+        if input.count % a_array.shape[0]:
+            raise ValueError("input element count must contain complete input-width rows")
+        if not (np.isfinite(a_array).all() and np.isfinite(b_array).all()
+                and np.isfinite(bias_array).all()):
+            raise ValueError("low-rank affine coefficients must be finite")
+        return self._result(
+            "device low-rank affine", self._bank._device["low_rank_affine"],
+            self._open(), self._ptr(input), _as_c_string(method_id, "method_id"),
+            a_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            a_array.shape[0], a_array.shape[1],
+            b_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            b_array.shape[1],
+            bias_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        )
     def matvec(self, name: str, input: _DeviceTensor, *, expert: int | None = None) -> _DeviceTensor:
         return self._result(
             "device matvec", self._bank._device["matvec"],
@@ -1175,9 +1489,14 @@ class DeviceEpoch:
         """Free activations after a committed stage; the four planes stay resident."""
         if self._sites:
             raise WeightBankError("device site captures must be recorded before stage release")
-        for value in self._values:
-            value.close()
-        self._values.clear()
+        values, self._values = self._values, []
+        if values:
+            handles = (ctypes.c_void_p * len(values))(
+                *(value.handle.value if value.handle is not None else None for value in values)
+            )
+            for value in values:
+                value.handle = None
+            self._bank._device["release_many"](handles, len(values))
 
     def finish(self) -> np.ndarray:
         planes = np.empty((4, self._mode_count), dtype=np.float32)
@@ -1199,11 +1518,15 @@ class DeviceEpoch:
         handle, self._handle = self._handle, None
         if handle is None:
             return
-        self._bank._device_epochs.discard(self)
-        for value in self._values:
-            value.close()
-        self._values.clear()
+        values, self._values = self._values, []
         self._sites.clear()
+        if values:
+            handles = (ctypes.c_void_p * len(values))(
+                *(value.handle.value if value.handle is not None else None for value in values)
+            )
+            for value in values:
+                value.handle = None
+            self._bank._device["release_many"](handles, len(values))
         self._bank._device["epoch_close"](handle)
 
     def __del__(self) -> None:  # pragma: no cover - interpreter shutdown path

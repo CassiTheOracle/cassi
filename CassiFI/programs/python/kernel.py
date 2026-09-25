@@ -8,6 +8,7 @@ from cassi_field_regions import KernelResult
 from .compiler import compile_python
 from .records import PythonProgram, decode_record
 from .runtime import (
+    DEFAULT_LIMITS,
     RUNTIME_SCHEMA,
     RuntimeError as PythonRuntimeError,
     advance as advance_python,
@@ -54,6 +55,18 @@ def regional_state(
     regional_catalog_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Compile guest source and create its complete resumable regional state."""
+    max_source_bytes = DEFAULT_LIMITS["max_source_bytes"]
+    if limits is not None:
+        if not isinstance(limits, Mapping):
+            raise PythonKernelError("runtime limits must be a mapping")
+        max_source_bytes = limits.get("max_source_bytes", max_source_bytes)
+        if (
+            isinstance(max_source_bytes, bool)
+            or not isinstance(max_source_bytes, int)
+            or max_source_bytes < 1
+        ):
+            raise PythonKernelError("runtime limit max_source_bytes is invalid")
+
 
     if isinstance(source, str):
         program = compile_python(
@@ -62,6 +75,7 @@ def regional_state(
             module=module,
             package=package,
             source_name=filename,
+            max_source_bytes=max_source_bytes,
         )
     elif isinstance(source, PythonProgram):
         program = source

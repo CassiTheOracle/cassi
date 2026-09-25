@@ -741,12 +741,23 @@ def _sync_workbench(state: MutableMapping[str, Any], arguments: Mapping[str, Any
             outcome.get("question_id", arguments.get("question_id", digest_value(question)[:24])),
             "question_id",
         )
+        previous = program["questions"].get(question_id, {})
+        same_question = previous.get("question") == _plain(question)
         program["questions"][question_id] = {
             "question_id": question_id,
             "question": _plain(question),
-            "required_refs": _wb_refs(outcome.get("required_refs", ())),
-            "protected_refs": _wb_refs(outcome.get("protected_refs", ())),
-            "next_action": _plain(outcome.get("next_action")),
+            "required_refs": _wb_refs(outcome.get(
+                "required_refs",
+                previous.get("required_refs", ()) if same_question else (),
+            )),
+            "protected_refs": _wb_refs(outcome.get(
+                "protected_refs",
+                previous.get("protected_refs", ()) if same_question else (),
+            )),
+            "next_action": _plain(outcome.get(
+                "next_action",
+                previous.get("next_action") if same_question else None,
+            )),
         }
     if "questions" in outcome:
         questions = outcome["questions"]

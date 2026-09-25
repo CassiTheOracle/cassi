@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import json
 import math
+import struct
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from programs.python.records import ModelContinuation, TensorView, canonical_json_bytes, digest_value
@@ -23,6 +24,8 @@ RESIDENT_STAGE_REQUEST_SCHEMA = "cassifi.resident-model-stage-request.v1"
 RESIDENT_STAGE_RESULT_SCHEMA = "cassifi.resident-model-stage-result.v1"
 RESIDENT_STAGE_WAIT_REASON = "resident-model-stage"
 RESIDENT_PREFIX_REUSE_SCHEMA = "cassifi.resident-qwen-prefix-reuse.v1"
+# Largest number of consecutive native tokens one owner round may admit.
+NATIVE_TOKEN_RUN_MAX = 8
 RESIDENT_PREFIX_SNAPSHOT_WINDOW = 64
 DEFAULT_LIMITS = {
     "max_tensor_elements": 1_048_576,
@@ -324,6 +327,11 @@ def _complete_token(
             "target": token,
             "accepted": accepted,
             "prefix_position": int(state["continuation"]["token_position"]),
+            "mode": str(sample.get("mode", "")),
+            "draw": sample.get("draw"),
+            "source": speculation.get("source"),
+            "verification_lane": speculation.get("verification_lane"),
+            "request_sha256": speculation.get("verified_head_sha256"),
         }
     _apply_pending_deltas(state)
     state["generated_tokens"].append(token)
@@ -618,6 +626,60 @@ def _draft_propose(state: MutableMapping[str, Any]) -> None:
     except (TypeError, ValueError, KeyError) as exc:
         raise ModelRuntimeError("resident draft policy proposal failed") from exc
 
+
+_DRAFT_ATTEMPT_WINDOW = 16
+"""Closed draft attempts retained as isolated receipts beside the live one."""
+
+
+def _draft_begin_speculation(
+    state: MutableMapping[str, Any], proposal: Mapping[str, Any]
+) -> None:
+    """Verify a field-owned draft proposal against the real native target.
+
+    The proposal never controls Qwen state by itself: the runtime activates a
+    bounded speculation frame (explicit CPU/cache-lane proposed tokens, no
+    model execution of its own) and every proposed token is compared against
+    the exact native head sample -- same sampler mode, same draw, same head
+    stage request -- before its value may appear in the committed stream.
+    """
+    speculation = state.get("speculation")
+    if isinstance(speculation, MutableMapping) and speculation.get("status") == "active":
+        return
+    draft = list(proposal.get("draft_tokens") or ())
+    if not draft:
+        return
+    sampler = state["continuation"]["sampler_state"]
+    state["speculation"] = {
+        "schema": "cassifi.model-speculation.v1",
+        "source": "resident-draft-policy",
+        "draft_program_id": f"resident-draft:{proposal.get('method_id')}",
+        "method_id": proposal.get("method_id"),
+        "proposal_sha256": proposal.get("proposal_sha256"),
+        "fork_checkpoint_sha256": digest_value(_snapshot(state)),
+        "prefix_position": int(state["continuation"]["token_position"]),
+        "sampler_mode": str(sampler.get("mode", "greedy")),
+        "draft_tokens": draft,
+        "cursor": 0,
+        "accepted_tokens": [],
+        "rejected_tokens": [],
+        "mode": "target-sample-and-compare",
+        "verification_lane": "sequential-native-head",
+        "native_tokens_saved": 0,
+        "status": "active",
+    }
+    _event(
+        state,
+        "draft-speculation-begun",
+        {
+            "proposal_sha256": proposal.get("proposal_sha256"),
+            "method_id": proposal.get("method_id"),
+            "horizon": len(draft),
+            "prefix_position": int(state["continuation"]["token_position"]),
+            "draft_tokens": draft,
+        },
+    )
+
+
 def _policy_summary(state: Mapping[str, Any]) -> Mapping[str, Any]:
     """Summarize the learned field policies that shaped one model task.
 
@@ -708,7 +770,47 @@ def _policy_summary(state: Mapping[str, Any]) -> Mapping[str, Any]:
             "target_cost_units": int(drafting_raw.get("target_cost_units", 0) or 0),
             "pretrained_mtp": _plain(drafting_raw.get("pretrained_mtp")),
             "methods": draft_methods,
+            "recent_attempts": _plain(resident.get("draft_attempts")),
         }
+    graph_sites_raw = resident.get("graph_sites")
+    if isinstance(graph_sites_raw, Mapping):
+        telemetry = graph_sites_raw.get("telemetry")
+        telemetry = telemetry if isinstance(telemetry, Mapping) else {}
+        methods_raw = graph_sites_raw.get("methods")
+        methods = []
+        if isinstance(methods_raw, Mapping):
+            for key in sorted(methods_raw):
+                row = methods_raw[key]
+                if isinstance(row, Mapping):
+                    methods.append({
+                        "site": row.get("site"),
+                        "specialist": row.get("specialist"),
+                        "generation": row.get("generation"),
+                        "support": row.get("support"),
+                        "observed_error_mean": row.get("observed_error"),
+                        "task_success": row.get("task_success"),
+                        "task_failure": row.get("task_failure"),
+                        "native_ops_omitted": row.get("native_ops_omitted"),
+                        "admitted": row.get("admitted"),
+                        "backed_off": row.get("backed_off"),
+                    })
+        summary["graph_sites"] = {
+            "schema": graph_sites_raw.get("schema"),
+            "generation": graph_sites_raw.get("generation"),
+            "observed_error_samples": telemetry.get("observed_error", 0),
+            "task_outcome_samples": telemetry.get("task_outcome", 0),
+            "native_ops_omitted": telemetry.get("native_ops_omitted", 0),
+            "native_ops_executed": telemetry.get("native_ops_executed", 0),
+            "added_flops": telemetry.get("added_flops", 0),
+            "assisted": telemetry.get("assisted", 0),
+            "proposed": telemetry.get("proposed", 0),
+            "proposals_accepted": telemetry.get("proposals_accepted", 0),
+            "proposals_rejected": telemetry.get("proposals_rejected", 0),
+            "methods": methods,
+        }
+    else:
+        summary["graph_sites"] = None
+
     summary["expert_selection"] = _plain(resident.get("expert_selection"))
     summary["draft_comparison"] = _plain(resident.get("draft_comparison"))
     return _plain(summary)
@@ -744,6 +846,28 @@ def _draft_observe_target(
         raise ModelRuntimeError("resident draft target observation failed") from exc
     policies["drafting"] = updated
     resident["draft_comparison"] = comparison
+    attempts = resident.get("draft_attempts")
+    if not isinstance(attempts, list):
+        attempts = []
+    attempts.append(
+        {
+            "schema": "cassifi.draft-attempt-receipt.v1",
+            "method_id": proposal.get("method_id"),
+            "proposal_sha256": proposal.get("proposal_sha256"),
+            "status": comparison["status"],
+            "accepted_tokens": list(comparison["accepted_prefix"]),
+            "rejected_tokens": list(comparison["rejected_suffix"]),
+            "rejection_target": comparison["rejection_target"],
+            "target_tokens_committed": len(comparison["committed_tokens"]),
+            "target_cost_units": int(resident["draft_target_cost_units"]),
+            "draft_lane": "cpu-cache",
+            "native_tokens_saved": 0,
+            "revision": int(state["ledger"]["transitions"]),
+        }
+    )
+    if len(attempts) > _DRAFT_ATTEMPT_WINDOW:
+        del attempts[: len(attempts) - _DRAFT_ATTEMPT_WINDOW]
+    resident["draft_attempts"] = attempts
     resident["draft_proposal"] = None
     resident["draft_target_cost_units"] = 0
     resident["draft_target_tokens"] = []
@@ -783,8 +907,12 @@ def _start_resident_stage(state: MutableMapping[str, Any], operation: Mapping[st
     is_prompt = token_index < len(prompt_tokens)
     position = int(state["continuation"]["token_position"])
     should_sample = stage == "qwen-head" and (not is_prompt or token_index == len(prompt_tokens) - 1)
-    if should_sample and resident.get("draft_proposal") is None:
-        _draft_propose(state)
+    if should_sample:
+        if resident.get("draft_proposal") is None:
+            _draft_propose(state)
+        proposal = resident.get("draft_proposal")
+        if isinstance(proposal, Mapping):
+            _draft_begin_speculation(state, proposal)
     sampler = dict(state["continuation"]["sampler_state"])
     mode = str(sampler.get("mode", "greedy"))
     if mode not in {"greedy", "categorical"}:
@@ -796,6 +924,105 @@ def _start_resident_stage(state: MutableMapping[str, Any], operation: Mapping[st
         key: _plain(value) for key, value in parameters.items()
         if key not in {"source_sha256", "source_id", "manifest_sha256"}
     }
+    request_metadata = state["request"]
+    visual_reference = request_metadata.get("visual_embedding_id")
+    visual_positions = request_metadata.get("visual_embedding_positions")
+    visual_rope_positions = request_metadata.get("visual_rope_positions")
+    visual_image_grid = request_metadata.get("visual_image_grid")
+    visual_image_start = request_metadata.get("visual_image_start")
+    visual_rope_delta = request_metadata.get("visual_rope_delta")
+    placeholder_token = request_metadata.get("visual_placeholder_token_id")
+    if visual_reference is not None:
+        if (
+            not isinstance(visual_reference, str)
+            or not visual_reference
+            or not isinstance(visual_positions, Mapping)
+            or not isinstance(visual_rope_positions, Mapping)
+            or set(visual_positions) != set(visual_rope_positions)
+            or not isinstance(visual_image_grid, (list, tuple))
+            or len(visual_image_grid) != 2
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value < 1
+                for value in visual_image_grid
+            )
+            or isinstance(visual_image_start, bool)
+            or not isinstance(visual_image_start, int)
+            or visual_image_start < 0
+            or visual_image_start + len(visual_positions) > len(prompt_tokens)
+            or isinstance(visual_rope_delta, bool)
+            or not isinstance(visual_rope_delta, int)
+            or visual_rope_delta != (
+                len(visual_positions) - max(visual_image_grid)
+            )
+            or isinstance(placeholder_token, bool)
+            or not isinstance(placeholder_token, int)
+            or placeholder_token < 0
+        ):
+            raise ModelRuntimeError("resident visual embedding metadata is invalid")
+        raw_index = visual_positions.get(str(position))
+        raw_axes = visual_rope_positions.get(str(position))
+        image_marker = (
+            is_prompt and int(state["current_token"]) == placeholder_token
+        )
+        if raw_index is not None and (
+            isinstance(raw_index, bool)
+            or not isinstance(raw_index, int)
+            or raw_index < 0
+            or not image_marker
+        ):
+            raise ModelRuntimeError(
+                "visual embedding position does not match its image marker"
+            )
+        if (
+            stage == "qwen-embedding"
+            and image_marker
+            and raw_index is None
+        ):
+            raise ModelRuntimeError("visual image marker has no embedding row")
+        if raw_index is not None:
+            expected_axes = [
+                visual_image_start,
+                visual_image_start + raw_index // visual_image_grid[1],
+                visual_image_start + raw_index % visual_image_grid[1],
+                0,
+            ]
+            if (
+                not isinstance(raw_axes, (list, tuple))
+                or len(raw_axes) != 4
+                or any(
+                    isinstance(value, bool) or not isinstance(value, int)
+                    or value < 0
+                    for value in raw_axes
+                )
+                or list(raw_axes) != expected_axes
+                or position != visual_image_start + raw_index
+                or visual_image_grid[0] * visual_image_grid[1]
+                != len(visual_positions)
+            ):
+                raise ModelRuntimeError(
+                    "visual image M-RoPE coordinates differ from the merger grid"
+                )
+        stage_parameters["visual_embedding_id"] = visual_reference
+        if raw_index is not None:
+            stage_parameters["visual_embedding_index"] = raw_index
+            stage_parameters["rope_position_ids"] = list(raw_axes)
+        elif position >= visual_image_start + len(visual_positions):
+            corrected = position - visual_rope_delta
+            stage_parameters["rope_position_ids"] = [corrected] * 4
+    elif any(
+        value is not None
+        for value in (
+            visual_positions,
+            visual_rope_positions,
+            visual_image_grid,
+            placeholder_token,
+            visual_image_start,
+            visual_rope_delta,
+        )
+    ):
+        raise ModelRuntimeError(
+            "resident visual marker metadata has no embedding reference"
+        )
     model_metadata = state["package"].get("numerical_profile", {}).get("model_metadata", {})
     stage_parameters.update(
         {
@@ -825,7 +1052,87 @@ def _start_resident_stage(state: MutableMapping[str, Any], operation: Mapping[st
             stage_parameters["prefetch_experts"] = _plain(prefetch)
         if evict is not None:
             stage_parameters["evict_experts"] = _plain(evict)
-        stage_parameters["expert_selection"] = _plain(selection)
+    specialist = (
+        "recurrent-dynamics" if stage in {"qwen-attention-route", "qwen-layer"} and bool(parameters.get("recurrent", False))
+        else "expert-synthesis" if stage == "qwen-experts"
+        else "execution-choice" if stage == "qwen-head"
+        else "attention-memory"
+    )
+    graph_state = resident.get("graph_sites", {})
+    methods = graph_state.get("methods", {}) if isinstance(graph_state, Mapping) else {}
+    sequence_id = f"{state['identity']['owner_id']}:{state['identity']['member_id']}:{state['identity']['operation_id']}"
+    resident_metadata = resident.get("snapshot", {}).get("metadata", {})
+    resident_metadata = resident_metadata if isinstance(resident_metadata, Mapping) else {}
+    from .graph_site import NEUTRAL_FIELD_EPOCH_SHA256, NEUTRAL_MEMBRANE_PROFILE, is_local_recurrent_row
+    dependencies = {
+        "tensor_names": _plain(parameters.get("tensor_names", {})),
+        "state_effects": _plain(operation.get("state_effects", ())),
+        "architecture": str(model_metadata.get("general.architecture", "")),
+        "membrane_profile": _plain(
+            resident_metadata.get(
+                "membrane_profile",
+                parameters.get("membrane_profile", model_metadata.get("cassifi.membrane_profile", NEUTRAL_MEMBRANE_PROFILE)),
+            )
+        ),
+        "field_epoch_sha256": str(
+            resident_metadata.get(
+                "field_epoch_sha256",
+                parameters.get(
+                    "field_epoch_sha256",
+                    state.get("request", {}).get("prefix_reuse", {}).get("field_epoch_sha256", "")
+                    if isinstance(state.get("request", {}).get("prefix_reuse"), Mapping) else NEUTRAL_FIELD_EPOCH_SHA256,
+                ),
+            )
+        ),
+    }
+    field_epoch = dependencies["field_epoch_sha256"]
+    membrane_profile = dependencies["membrane_profile"]
+    expected_native_state = {
+        "membrane_profile": membrane_profile,
+        "field_epoch_sha256": field_epoch,
+    }
+    eligible = specialist in {"expert-synthesis", "recurrent-dynamics", "attention-memory", "execution-choice"} and isinstance(methods, Mapping) and any(
+        isinstance(method, Mapping) and method.get("admitted") is True
+        and not method.get("backed_off") and method.get("site") == str(parameters.get("op", stage))
+        and method.get("specialist") == specialist and method.get("dependencies") == dependencies
+        and isinstance(method.get("applicability"), Mapping)
+        and isinstance(method.get("method"), Mapping)
+        and (specialist != "recurrent-dynamics" or is_local_recurrent_row(method))
+        and isinstance(method["method"].get("native_state_applicability"), Mapping)
+        and all(method["method"]["native_state_applicability"].get(key) == value
+                for key, value in expected_native_state.items())
+        and method["applicability"].get("source_sha256") == source_sha256
+        and method["applicability"].get("stage") == stage
+        and method["applicability"].get("layer") == parameters.get("layer")
+        and (specialist != "attention-memory"
+             or method["applicability"].get("position") == position)
+        for method in methods.values()
+    )
+    configured_mode = state["request"].get("graph_site_modes", {}).get(
+        specialist, "auto" if specialist in {"expert-synthesis", "recurrent-dynamics"} else "off"
+    )
+    graph_verb = (
+        ("replace" if eligible else "observe") if configured_mode == "auto"
+        else configured_mode if configured_mode == "observe" or eligible else "observe"
+    )
+    graph_site = {
+        "schema": "cassifi.graph-site-request.v1",
+        "verb": graph_verb,
+        "operation_id": operation_id,
+        "source_sha256": source_sha256,
+        "architecture": str(model_metadata.get("general.architecture", "")),
+        "backend": str(resident.get("snapshot", {}).get("metadata", {}).get("backend", "unknown")),
+        "site": str(parameters.get("op", stage)),
+        "stage": stage,
+        "layer": parameters.get("layer"),
+        "position": position,
+        "sequence_id": sequence_id,
+        "intervention_order": graph_cursor,
+        "predecessor_generation": int(resident.get("graph_site_generation", 0)),
+        "predecessor_snapshot_sha256": str(resident.get("snapshot", {}).get("snapshot_sha256", "")),
+        "dependencies": dependencies,
+        "specialist": specialist,
+    }
     request = {
         "schema": RESIDENT_STAGE_REQUEST_SCHEMA,
         "operation_id": operation_id,
@@ -843,13 +1150,17 @@ def _start_resident_stage(state: MutableMapping[str, Any], operation: Mapping[st
             "draw": draw,
         },
         "parameters": stage_parameters,
-        "policies": _plain(resident.get("policies", {})),
+        "policies": _plain({
+            key: value for key, value in resident.get("policies", {}).items()
+            if key != "graph_sites"
+        }),
+        **({"graph_site": graph_site} if configured_mode != "off" else {}),
     }
     request["request_sha256"] = digest_value(request)
     state["operations"][operation_id] = {
         "phase": "proposed",
         "request": request,
-        "result": None,
+        "graph_site": graph_site if configured_mode != "off" else None,
         "request_sha256": request["request_sha256"],
     }
     state["phase"] = "waiting"
@@ -884,20 +1195,40 @@ def _start_native_transformer(
         or any(character not in "0123456789abcdef" for character in source_sha256)
     ):
         raise ModelRuntimeError("native transformer lacks an exact GGUF source identity")
-    operation_id = f"model-native-{state['counters']['operation']}"
+    branch_key = state["branch_stack"][-1] if state["branch_stack"] else "main"
+    native_task_id = f"{state['identity']['owner_id']}:{state['identity']['operation_id']}:{branch_key}"
+    # The owner publishes each resume as ``resident-model-resume:<id>`` in one
+    # owner-wide operation namespace, so the id carries its task identity.
+    operation_id = (
+        f"model-native-{digest_value(native_task_id)[:24]}-{state['counters']['operation']}"
+    )
     state["counters"]["operation"] += 1
     sampler = state["continuation"]["sampler_state"]
     mode = str(sampler.get("mode", "greedy"))
     if mode not in {"greedy", "categorical"}:
         raise ModelRuntimeError("native transformer sampler mode is unsupported")
-    temperature = float(sampler.get("temperature", 1.0))
-    top_k = int(sampler.get("top_k", 0))
+    # The request records the sampler the native C API executes, so owner
+    # replay compares every step exactly: greedy decoding runs in its canonical
+    # form, and categorical temperature is a float32.
+    if mode == "greedy":
+        temperature, top_k = 1.0, 0
+    else:
+        try:
+            temperature = struct.unpack(
+                "<f", struct.pack("<f", float(sampler.get("temperature", 1.0)))
+            )[0]
+        except (OverflowError, struct.error) as exc:
+            raise ModelRuntimeError(
+                "native transformer sampler temperature exceeds float32"
+            ) from exc
+        if not math.isfinite(temperature) or temperature <= 0.0:
+            raise ModelRuntimeError("native transformer sampler temperature is invalid")
+        top_k = int(sampler.get("top_k", 0))
     draw = _rng_uniform(state) if mode == "categorical" else 0.0
-    branch_key = state["branch_stack"][-1] if state["branch_stack"] else "main"
     request = {
         "schema": "cassifi.native-model-token-request.v1",
         "operation_id": operation_id,
-        "native_task_id": f"{state['identity']['owner_id']}:{state['identity']['operation_id']}:{branch_key}",
+        "native_task_id": native_task_id,
         "model_program_id": state["package"]["program"]["program_id"],
         "source_id": parameters.get("source_id"),
         "source_sha256": source_sha256,
@@ -910,6 +1241,40 @@ def _start_native_transformer(
         },
         "attribution": "resident-native-transformer",
     }
+    # A token run lets one owner round admit up to NATIVE_TOKEN_RUN_MAX
+    # consecutive native tokens.  Every position keeps its own operation id
+    # and exact pre-drawn sampler value, so each admitted token replays as the
+    # same row the one-token path would produce.
+    speculation = state.get("speculation")
+    bound = min(
+        NATIVE_TOKEN_RUN_MAX,
+        int(state["request"]["max_new_tokens"]) - len(state["generated_tokens"]),
+    )
+    if (
+        bound > 1
+        and not state["branch_stack"]
+        and not (
+            isinstance(speculation, Mapping) and speculation.get("status") == "active"
+        )
+    ):
+        prefix = operation_id.rsplit("-", 1)[0]
+        counter = int(state["counters"]["operation"])
+        state["counters"]["operation"] = counter + bound - 1
+        scratch = {
+            "continuation": {
+                "rng_state": {"state": state["continuation"]["rng_state"]["state"]}
+            }
+        }
+        request["run"] = {
+            "bound": bound,
+            "operation_ids": [operation_id]
+            + [f"{prefix}-{counter + index}" for index in range(bound - 1)],
+            "draws": [draw]
+            + [
+                _rng_uniform(scratch) if mode == "categorical" else 0.0
+                for _ in range(bound - 1)
+            ],
+        }
     state["operations"][operation_id] = {
         "phase": "proposed",
         "request": request,
@@ -1094,7 +1459,7 @@ def _matrix_vector(matrix_payload: Mapping[str, Any], vector: Sequence[float]) -
     return [math.fsum(matrix[row * shape[1] + column] * vector[column] for column in range(shape[1])) for row in range(shape[0])]
 
 
-def _snapshot(state: Mapping[str, Any]) -> Mapping[str, Any]:
+def _snapshot(state: Mapping[str, Any], *, detach: bool = True) -> Mapping[str, Any]:
     keys = (
         "tensors",
         "memory",
@@ -1112,7 +1477,10 @@ def _snapshot(state: Mapping[str, Any]) -> Mapping[str, Any]:
         "speculation",
         "paused_from",
     )
-    return _plain({key: state.get(key) for key in keys})
+    fields = {key: state.get(key) for key in keys}
+    # A checkpoint hashes these fields immediately; only retained branch
+    # snapshots need a detached copy of the already-owned model state.
+    return _plain(fields) if detach else fields
 
 
 def _begin_branch(state: MutableMapping[str, Any], arguments: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -1247,6 +1615,7 @@ def _apply_expert_learning(
             layer,
             context_key,
             mandatory,
+
             expert_bytes,
             route.get("resident_experts", ()),
             previous_context_key,
@@ -1271,6 +1640,85 @@ def _observe_expert_learning(
     except (TypeError, ValueError, KeyError) as exc:
         raise ModelRuntimeError("resident expert policy observation failed") from exc
 
+
+
+
+
+def _record_graph_site_execution(
+    state: MutableMapping[str, Any],
+    request: Mapping[str, Any],
+    result: Mapping[str, Any],
+) -> None:
+    site = request.get("graph_site")
+    if site is None and not any(result.get(name) is not None for name in (
+        "graph_site_training", "graph_site_observation", "graph_site_abstention",
+    )):
+        return
+    if not isinstance(site, Mapping):
+        raise ModelRuntimeError("resident graph-site request binding is invalid")
+    received = {
+        name: result[name] for name in (
+            "graph_site_training", "graph_site_observation", "graph_site_abstention"
+        ) if result.get(name) is not None
+    }
+    if len(received) > 1:
+        raise ModelRuntimeError("resident graph-site result has conflicting evidence")
+    if not received:
+        if site.get("verb") in {"assist", "replace", "propose"}:
+            raise ModelRuntimeError("resident graph-site intervention lacks executor telemetry")
+        return
+    name, evidence = next(iter(received.items()))
+    if not isinstance(evidence, Mapping):
+        raise ModelRuntimeError("resident graph-site evidence is invalid")
+    binding = evidence.get("invocation")
+    if not isinstance(binding, Mapping):
+        raise ModelRuntimeError("resident graph-site evidence lacks its invocation")
+    invocation_body = {key: value for key, value in binding.items() if key != "invocation_sha256"}
+    if binding.get("invocation_sha256") != digest_value(invocation_body):
+        raise ModelRuntimeError("resident graph-site invocation digest is invalid")
+    expected = {
+        "source_sha256": request.get("source_sha256"),
+        "architecture": site.get("architecture"),
+        "backend": result.get("backend", site.get("backend")),
+        "sequence_id": site.get("sequence_id"),
+        "stage": request.get("stage"),
+        "layer": request.get("layer"),
+        "position": request.get("position"),
+        "request_sha256": request.get("request_sha256"),
+        "site": site.get("site"),
+        "specialist": site.get("specialist"),
+        "intervention_order": site.get("intervention_order"),
+        "predecessor_generation": site.get("predecessor_generation"),
+        "predecessor_sha256": site.get("predecessor_snapshot_sha256"),
+        "dependencies": site.get("dependencies"),
+        "verb": site.get("verb"),
+    }
+    if any(binding.get(key) != value for key, value in expected.items()):
+        raise ModelRuntimeError("resident graph-site evidence binding is stale")
+    if name == "graph_site_training" and (
+        site.get("verb") not in {"observe", "propose", "replace"}
+        or result.get("native_ops_omitted", 0) != 0
+    ):
+        raise ModelRuntimeError("training requires ordinary native graph execution")
+    if name == "graph_site_observation" and (
+        site.get("verb") not in {"assist", "replace", "propose"}
+        or evidence.get("native_ops_omitted") != result.get("native_ops_omitted", 0)
+    ):
+        raise ModelRuntimeError("graph-site intervention telemetry is invalid")
+    try:
+        from .graph_site import acquire_training, record_abstention, record_execution
+        resident = state["resident_model"]
+        graph_state = resident["graph_sites"]
+        if name == "graph_site_training":
+            updated = acquire_training(graph_state, evidence)
+        elif name == "graph_site_observation":
+            updated = record_execution(graph_state, evidence)
+        else:
+            updated = record_abstention(graph_state, evidence)
+        resident["graph_sites"] = updated
+        resident["graph_site_generation"] = int(updated["generation"])
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ModelRuntimeError("resident graph-site evidence admission failed") from exc
 
 
 def _resume_resident_stage(
@@ -1320,6 +1768,7 @@ def _resume_resident_stage(
                 raise ModelRuntimeError("resident head end-of-generation flag is invalid")
         elif token is not None:
             raise ModelRuntimeError("non-sampling prompt head returned a token")
+    _record_graph_site_execution(state, request, result)
     pending["phase"] = "settled"
     pending["result"] = result
     pending["result_sha256"] = supplied_digest
@@ -1356,6 +1805,10 @@ def _resume_resident_stage(
             "backend": result.get("backend"),
         }
         _draft_observe_target(state, int(result["token"]), int(result.get("logical_weight_bytes", 0)))
+        speculation = state.get("speculation")
+        if isinstance(speculation, MutableMapping) and speculation.get("status") == "active":
+            speculation["verified_head_sha256"] = str(request.get("request_sha256", ""))
+            speculation["verified_position"] = int(request["position"])
         _complete_token(
             state,
             int(result["token"]),
@@ -1416,6 +1869,78 @@ def _strip_settled_stage(pending: MutableMapping[str, Any]) -> None:
     pending["request"] = {
         key: request[key] for key in _STAGE_IDENTITY_KEYS if key in request
     }
+
+
+def _resume_native_run(
+    state: MutableMapping[str, Any], arguments: Mapping[str, Any]
+) -> Mapping[str, Any] | None:
+    """Admit a token run as consecutive one-token resumes in position order."""
+
+    operation_id = str(arguments.get("operation_id", ""))
+    result = arguments["result"]
+    steps = result.get("steps")
+    pending = state["operations"].get(operation_id)
+    request = pending.get("request") if isinstance(pending, Mapping) else None
+    run = request.get("run") if isinstance(request, Mapping) else None
+    bound = run.get("bound") if isinstance(run, Mapping) else None
+    if (
+        not isinstance(run, Mapping)
+        or set(result) != {"steps"}
+        or not isinstance(steps, list)
+        or isinstance(bound, bool)
+        or not isinstance(bound, int)
+        or not 1 <= len(steps) <= bound
+        or not isinstance(run.get("operation_ids"), list)
+        or not isinstance(run.get("draws"), list)
+        or len(run["operation_ids"]) != bound
+        or len(run["draws"]) != bound
+        or run["operation_ids"][0] != operation_id
+        or run["draws"][0] != request["sampler"]["draw"]
+    ):
+        raise ModelRuntimeError("native model token run does not match its request")
+    continuation_request = {
+        key: value for key, value in request.items() if key != "run"
+    }
+    categorical = request["sampler"]["mode"] == "categorical"
+    admitted: Mapping[str, Any] | None = None
+    for index, step in enumerate(steps):
+        step_operation_id = run["operation_ids"][index]
+        if index and step_operation_id not in state["operations"]:
+            if state["phase"] != "running":
+                raise ModelRuntimeError(
+                    "native model token run continues past its admitted end"
+                )
+            draw = run["draws"][index]
+            # Advance the continuation RNG exactly as the one-token proposal
+            # of this position would; the pre-drawn value must agree.
+            if categorical and _rng_uniform(state) != draw:
+                raise ModelRuntimeError("native model token run draw is not the continuation draw")
+            step_request = {
+                **_plain(continuation_request),
+                "operation_id": step_operation_id,
+                "tokens": list(state["request"]["prompt_tokens"])
+                + list(state["generated_tokens"]),
+                "sampler": {**_plain(request["sampler"]), "draw": draw},
+            }
+            state["operations"][step_operation_id] = {
+                "phase": "proposed",
+                "request": step_request,
+                "result": None,
+            }
+            state["phase"] = "waiting"
+            state["wait_reason"] = "native-model-token"
+            state["await_target"] = step_operation_id
+            _event(state, "native-model-token-proposed", step_request)
+        admitted = _handle_control(
+            state,
+            {
+                "operation": "resume-native-model",
+                "operation_id": step_operation_id,
+                "result": step,
+            },
+        )
+    return admitted
+
 
 def _handle_control(state: MutableMapping[str, Any], arguments: Mapping[str, Any]) -> Mapping[str, Any] | None:
     operation = arguments.get("operation")
@@ -1495,7 +2020,35 @@ def _handle_control(state: MutableMapping[str, Any], arguments: Mapping[str, Any
         result = arguments.get("result")
         if not isinstance(result, Mapping):
             raise ModelRuntimeError("native model token result must be a mapping")
-        token = result.get("token")
+        if "steps" in result:
+            return _resume_native_run(state, arguments)
+        if result.get("status") == "graph-site-rejected":
+            raise ModelRuntimeError(
+                "refused native graph-site candidate cannot admit a model token"
+            )
+        request = pending.get("request")
+        if not isinstance(request, Mapping):
+            raise ModelRuntimeError("native model token request is unavailable")
+        request_tokens = request.get("tokens")
+        request_sampler = request.get("sampler")
+        if not isinstance(request_tokens, list) or not isinstance(request_sampler, Mapping):
+            raise ModelRuntimeError("native model token request is invalid")
+        identity = state.get("identity")
+        if not isinstance(identity, Mapping) or any(
+            not isinstance(identity.get(name), str) or not identity.get(name)
+            for name in ("owner_id", "member_id", "operation_id")
+        ):
+            raise ModelRuntimeError("native model identity is unavailable")
+        expected_sequence_id = ":".join(
+            str(identity[name]) for name in ("owner_id", "member_id", "operation_id")
+        )
+        graph_provisional = result.get("status") == "model-provisional"
+        token = (
+            result.get("selected_token_id")
+            if graph_provisional
+            else result.get("token")
+        )
+        graph_rejection = result.get("graph_site_rejection")
         token_count = result.get("token_count")
         end_of_generation = result.get("end_of_generation")
         replay_sha256 = result.get("replay_sha256")
@@ -1514,6 +2067,108 @@ def _handle_control(state: MutableMapping[str, Any], arguments: Mapping[str, Any
         )
         tokenizer = state["package"]["tokenizer"]
         vocab_size = int(tokenizer.get("vocab_size", tokenizer.get("token_count", 0)))
+        if graph_provisional:
+            ticket = result.get("graph_site_ticket")
+            receipt = result.get("graph_site_receipt")
+            receipt_sha256 = result.get("graph_site_receipt_sha256")
+            native_receipt_sha256 = result.get(
+                "native_graph_site_receipt_sha256"
+            )
+            wire_sha256 = result.get("graph_receipt_wire_sha256")
+            native_wire_sha256 = result.get(
+                "native_graph_site_receipt_wire_sha256"
+            )
+            if (
+                result.get("accepted") is not False
+                or result.get("provisional") is not True
+                or "token" in result
+                or "accepted_token_id" in result
+                or graph_rejection is not None
+                or not isinstance(ticket, Mapping)
+                or not isinstance(receipt, Mapping)
+                or ticket.get("task_id") != request.get("native_task_id")
+                or ticket.get("operation_id") != operation_id
+                or ticket.get("source_sha256") != request.get("source_sha256")
+                or ticket.get("sampler") != dict(request_sampler)
+                or result.get("task_id") != request.get("native_task_id")
+                or result.get("native_operation_id") != operation_id
+                or result.get("source_sha256") != request.get("source_sha256")
+                or result.get("input_tokens") != request_tokens
+                or result.get("sampler") != dict(request_sampler)
+                or result.get("sequence_id") != ticket.get("sequence_id")
+                or result.get("sequence_id") != expected_sequence_id
+                or result.get("sequence_id") != receipt.get("sequence_id")
+                or result.get("field_candidate_id") != result.get("candidate_id")
+                or result.get("field_candidate_id")
+                != receipt.get("field_candidate_id")
+                or result.get("ticket_id") != ticket.get("ticket_id")
+                or ticket.get("sampler_sha256") != digest_value(dict(request_sampler))
+                or result.get("position") != len(request_tokens)
+                or result.get("input_tokens_sha256")
+                != receipt.get("input_tokens_sha256")
+                or receipt.get("schema")
+                != "cassifi.native-graph-site-receipt.v1"
+                or receipt.get("position") != len(request_tokens)
+                or receipt.get("ticket_sha256") != ticket.get("ticket_sha256")
+                or receipt.get("sampler_sha256")
+                != digest_value(dict(request_sampler))
+                or receipt.get("sampler") != dict(request_sampler)
+                or receipt.get("input_token_count") != len(request_tokens)
+                or receipt.get("admitted") is not True
+                or receipt.get("selected_token_id") != token
+                or receipt.get("task_id") != request.get("native_task_id")
+                or receipt.get("native_operation_id") != operation_id
+                or receipt.get("source_sha256") != request.get("source_sha256")
+                or receipt.get("ticket_id") != ticket.get("ticket_id")
+                or receipt_sha256 != native_receipt_sha256
+                or digest_value(dict(receipt)) != receipt_sha256
+                or not isinstance(wire_sha256, str)
+                or wire_sha256 != native_wire_sha256
+            ):
+                raise ModelRuntimeError(
+                    "provisional native graph-site result disagrees with its request or receipt"
+                )
+        elif graph_rejection is not None:
+            if (
+                not isinstance(graph_rejection, Mapping)
+                or set(graph_rejection)
+                != {"receipt", "receipt_sha256", "wire_sha256"}
+            ):
+                raise ModelRuntimeError("native graph-site rejection evidence is invalid")
+            receipt = graph_rejection.get("receipt")
+            receipt_sha256 = graph_rejection.get("receipt_sha256")
+            wire_sha256 = graph_rejection.get("wire_sha256")
+            if (
+                not isinstance(receipt, Mapping)
+                or receipt.get("schema")
+                != "cassifi.native-graph-site-receipt.v1"
+                or receipt.get("sequence_id") != expected_sequence_id
+                or receipt.get("admitted") is not False
+                or receipt.get("selected_token_id") != -1
+                or receipt.get("task_id") != request.get("native_task_id")
+                or receipt.get("native_operation_id") != operation_id
+                or receipt.get("source_sha256") != request.get("source_sha256")
+                or receipt.get("sampler") != dict(request_sampler)
+                or receipt.get("sampler_sha256") != digest_value(dict(request_sampler))
+                or receipt.get("input_token_count") != len(request_tokens)
+                or not isinstance(receipt.get("sequence_id"), str)
+                or not receipt.get("sequence_id")
+                or not isinstance(receipt.get("refusal"), str)
+                or not receipt.get("refusal")
+                or not isinstance(receipt_sha256, str)
+                or digest_value(dict(receipt)) != receipt_sha256
+                or not isinstance(wire_sha256, str)
+                or len(wire_sha256) != 64
+                or any(character not in "0123456789abcdef" for character in wire_sha256)
+            ):
+                raise ModelRuntimeError(
+                    "native graph-site rejection receipt does not match its request"
+                )
+            graph_rejection = {
+                "receipt": _plain(receipt),
+                "receipt_sha256": receipt_sha256,
+                "wire_sha256": wire_sha256,
+            }
         stage_counts = (
             exact_stages,
             embedding_stages,
@@ -1563,6 +2218,8 @@ def _handle_control(state: MutableMapping[str, Any], arguments: Mapping[str, Any
             "replay_sha256": replay_sha256,
             "stage_trace": stage_trace,
         }
+        if graph_rejection is not None:
+            admitted["graph_site_rejection"] = graph_rejection
         supplied_digest = digest_value(admitted)
         if pending.get("phase") == "settled":
             if pending.get("result_sha256") != supplied_digest:
@@ -1585,7 +2242,6 @@ def _handle_control(state: MutableMapping[str, Any], arguments: Mapping[str, Any
             **_plain(pending["request"]["sampler"]),
             "replay_sha256": replay_sha256,
             "stage_trace": _plain(stage_trace),
-            "executor": "llama.cpp-exact-staged-native",
         }
         _complete_token(
             state,
@@ -1646,7 +2302,6 @@ def _step(state: MutableMapping[str, Any]) -> str:
     if completed and state["phase"] == "running" and operation["op"] != "sample":
         state["graph_cursor"] = cursor + 1
     state["ledger"]["transitions"] += 1
-    state["continuation"]["checkpoint_sha256"] = digest_value(_snapshot(state))
     return "blocked" if state["phase"] in {"waiting", "paused", "resource-paused"} else "done" if state["phase"] == "completed" else "fault" if state["phase"] in {"faulted", "cancelled"} else "running"
 
 
@@ -1658,6 +2313,7 @@ def _initial_resident_policies(model: ModelPackage, owner_id: str) -> Mapping[st
         return {"experts": {}, "drafting": {}}
     try:
         from .draft_learning import initial_policy as initial_draft_policy
+        from .graph_site import initial_state as initial_graph_site_state
         from .expert_learning import initial_state as initial_expert_state
         metadata = model.numerical_profile.get("model_metadata", {})
         layer_ids = [
@@ -1689,9 +2345,64 @@ def _initial_resident_policies(model: ModelPackage, owner_id: str) -> Mapping[st
             source_sha256=source_sha256,
             owner_id=owner_id,
         )
-        return {"experts": experts, "drafting": drafting}
+        return {
+            "experts": experts,
+            "drafting": drafting,
+            "graph_sites": initial_graph_site_state(source_sha256, "unknown"),
+        }
     except (TypeError, ValueError, KeyError) as exc:
         raise ModelRuntimeError("resident model policy initialization failed") from exc
+
+
+def _backend_selection(
+    requested: str,
+    *,
+    has_native: bool,
+    resident_graph: bool,
+    has_resident_qwen: bool,
+    bounded_work: int | None,
+) -> dict[str, Any]:
+    """Resolve one whole-request backend through the measured-cost policy.
+
+    Explicit policies pass through untouched.  ``auto`` consults the shared
+    measured cost ledger and probed capability; without complete measured
+    evidence it keeps the historical default for the graph's lane.  The
+    native Vulkan lane runs only when the native runtime probe reports the
+    model runtime ready; a resident Qwen graph has no measured Vulkan lane
+    at this runtime seam, so it stays on its existing CPU choice unless
+    measured evidence says otherwise.
+    """
+
+    import backend_policy
+
+    capability = backend_policy.observed_capability() or {}
+    if not resident_graph:
+        return {
+            "requested": requested,
+            "selected": "external-model",
+            "reason": "explicit-policy" if requested != backend_policy.AUTO_POLICY
+            else "external-lane-existing-choice",
+            "evidence": None,
+            "candidates": [],
+            "capability": capability,
+        }
+    if has_native:
+        supported = [
+            name for name in ("native-cpu", "vulkan")
+            if name != "vulkan" or capability.get("available")
+        ]
+        default = "vulkan" if "vulkan" in supported else "native-cpu"
+    else:
+        supported = ["logical-cpu"]
+        default = "logical-cpu"
+    return backend_policy.select_backend(
+        requested,
+        supported=supported,
+        default=default,
+        scope="model-transformer",
+        bounded_work=bounded_work,
+        capability=capability,
+    )
 
 
 def initial_state(
@@ -1710,9 +2421,11 @@ def initial_state(
     limits: Mapping[str, int] | None = None,
     backend_policy: str = "auto",
     rng_seed: int = 1,
+    graph_site_modes: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     model = package if isinstance(package, ModelPackage) else ModelPackage.from_dict(package)
-    resident_policies = _initial_resident_policies(model, owner_id)
+    resident_policies = dict(_initial_resident_policies(model, owner_id))
+    graph_sites = resident_policies.pop("graph_sites", {})
     tokens = [_positive(item, "prompt token", allow_zero=True) for item in prompt_tokens]
     if not tokens:
         raise ModelRuntimeError("prompt_tokens cannot be empty")
@@ -1726,6 +2439,13 @@ def initial_state(
         raise ModelRuntimeError("max_new_tokens exceeds model limit")
     if backend_policy not in {"auto", "logical-cpu", "native-cpu", "vulkan", "external-model"}:
         raise ModelRuntimeError("model backend policy is invalid")
+    from .graph_site import SPECIALISTS
+    if not isinstance(graph_site_modes, (Mapping, type(None))):
+        raise ModelRuntimeError("graph-site modes must be a mapping")
+    configured_modes = dict(graph_site_modes or {})
+    if any(name not in SPECIALISTS or mode not in {"auto", "observe", "assist", "replace", "propose", "off"}
+           for name, mode in configured_modes.items()):
+        raise ModelRuntimeError("graph-site modes must name supported specialists and verbs")
     has_external = any(operation["op"] == "external-model" for operation in model.graph)
     has_native = any(operation["op"] == "native-transformer" for operation in model.graph)
     has_resident_qwen = _resident_qwen_graph({"package": {"graph": model.graph}})
@@ -1740,12 +2460,22 @@ def initial_state(
     resident_graph = not has_external
     phase = "running"
     wait_reason = None
-    if has_native:
-        actual = "vulkan" if backend_policy == "auto" else backend_policy
-    elif resident_graph:
-        actual = "logical-cpu" if backend_policy == "auto" else backend_policy
-    else:
-        actual = "external-model"
+    selection = _backend_selection(
+        backend_policy,
+        has_native=has_native,
+        resident_graph=resident_graph,
+        has_resident_qwen=has_resident_qwen,
+        bounded_work=requested_tokens,
+    )
+    actual = selection["selected"]
+    if actual not in {
+        "native-cpu", "native-cpu-continuation", "vulkan", "logical-cpu", "external-model",
+    }:
+        raise ModelRuntimeError("resolved model backend placement is invalid")
+    if has_native and actual in {"logical-cpu", "external-model"}:
+        raise ModelRuntimeError("native transformer requires native-cpu, vulkan, or auto placement")
+    if has_resident_qwen and actual == "external-model":
+        raise ModelRuntimeError("resident Qwen graph cannot use external-model placement")
     runtime_package = model.as_dict()
     runtime_tensors = _plain(model.tensors)
     immutable_tensors = sorted(model.tensors)
@@ -1803,6 +2533,7 @@ def initial_state(
             "max_new_tokens": requested_tokens,
             "stop_tokens": [_positive(item, "stop token", allow_zero=True) for item in stop_tokens],
             "output_tensors": [str(item) for item in output_tensors],
+            "graph_site_modes": configured_modes,
         },
         "current_token": tokens[0] if has_resident_qwen else tokens[-1],
         "generated_tokens": [],
@@ -1817,10 +2548,13 @@ def initial_state(
             "expert_route": None,
             "expert_selection": None,
             "expert_context": {},
+            "graph_sites": graph_sites,
+            "graph_site_generation": 0,
             "draft_target_cost_units": 0,
             "draft_proposal": None,
             "draft_target_tokens": [],
             "draft_comparison": None,
+            "draft_attempts": [],
             "policies": resident_policies,
             "prefix_snapshots": [],
         },
@@ -1844,6 +2578,7 @@ def initial_state(
             "requested": backend_policy,
             "actual": actual,
             "resident": resident_graph and actual != "external-model",
+            "selection": selection,
         },
         "operations": {},
         "paused_from": None,
@@ -1918,9 +2653,11 @@ def advance(
         elif current["phase"] in {"waiting", "paused", "resource-paused"}:
             status = "blocked"
     else:
+        stepped = False
         while work < quantum:
             try:
                 status = _step(current)
+                stepped = True
             except (ModelRuntimeError, ModelRecordError, ArithmeticError, KeyError, IndexError, TypeError, ValueError) as exc:
                 current["continuation"]["pending_deltas"] = []
                 current["active_operation"] = None
@@ -1940,6 +2677,12 @@ def advance(
             work += 1
             if status != "running":
                 break
+        if stepped:
+            # Only the quantum boundary is persisted or resumed, so one
+            # checkpoint identity per advance names the retained state.
+            current["continuation"]["checkpoint_sha256"] = digest_value(
+                _snapshot(current, detach=False)
+            )
     if status == "running":
         status = "yield"
     elif status == "blocked":
@@ -1958,8 +2701,10 @@ def advance(
             ]
         )
     )
-    _retain_events(current)
-    canonical_json_bytes(current)
+    # The owner-held regional KernelResult canonicalizes this same state.
+    # Standalone model advances keep their direct boundary check.
+    if not _owned_state:
+        canonical_json_bytes(current)
     return current, status, max(work, 1 if control is not None else 0), output, events
 
 

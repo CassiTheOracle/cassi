@@ -73,12 +73,6 @@ def _increment(value: int, amount: int, name: str) -> int:
     return value + amount
 
 
-def _copy_state(state: Mapping[str, Any]) -> dict[str, Any]:
-    if not isinstance(state, Mapping):
-        raise ExpertPolicyError("policy state must be a mapping")
-    return _canonical(dict(state))
-
-
 _EXPERT_KEYS = ("uses", "hits", "misses", "load_cost_ns", "prefetches", "evictions")
 
 
@@ -159,7 +153,9 @@ def _validate_transition(row: Mapping[str, Any], *, layer_count: int, expert_cou
 
 
 def _validate_state(value: Mapping[str, Any]) -> dict[str, Any]:
-    state = _copy_state(value)
+    if not isinstance(value, Mapping):
+        raise ExpertPolicyError("policy state must be a mapping")
+    state = value
     required = {
         "schema", "layout", "model_id", "layer_count", "expert_count", "capacity_bytes",
         "max_contexts", "max_evidence", "max_transitions", "epoch", "layers", "methods",
@@ -249,7 +245,7 @@ def _validate_state(value: Mapping[str, Any]) -> dict[str, Any]:
         "evidence": sorted(canonical_evidence, key=lambda row: (row["context_key"], row["layer"], row["expert"])),
         "transitions": sorted(canonical_transitions, key=lambda row: (row["from_context"], row["to_context"], row["layer"], row["expert"])),
     }
-    return _canonical(state)
+    return state
 
 
 def initial_state(
