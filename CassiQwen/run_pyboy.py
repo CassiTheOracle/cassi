@@ -1434,6 +1434,9 @@ def _run(args: argparse.Namespace) -> bool:
                 if receipt.get("disposition") != "delivered" or receipt.get("delivered_count") != 1:
                     raise RuntimeError(f"Surface did not queue {key} {input_state}: {receipt}")
 
+            # The kind of target this press follows: a curious thing, or where the world field pulled.
+            drawn = "thing" if action in uses else (
+                world_field.kind_at(way[2]) if approach and way is not None and action == way[0] else None)
             before = screen
             origin = body if action in WALK_BUTTONS else None
             heading_before = heading
@@ -1462,6 +1465,7 @@ def _run(args: argparse.Namespace) -> bool:
             latest_publication, current_frame = _admitted_capture(broker, binding_id, backend)
             perception = perceive(action, before, after, warped, flicker)
             feel_walk(origin, heading_before, action, perception)
+            world_field.feel(drawn, perception["outcome"] in DISCOVERIES)
             record(action, perception, {
                 "field": {"status": inquiry.get("status"), "reason": inquiry.get("reason"),
                           "fallback": bool(fallback)},

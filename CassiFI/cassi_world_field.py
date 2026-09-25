@@ -92,6 +92,9 @@ class WorldField:
         self._weights = np.zeros((0, 4), dtype=np.float64)
         self._degree = np.ones(0, dtype=np.float64)
         self._novelty = np.zeros(0, dtype=np.float64)
+        self._cell_kinds: list[str | None] = []
+        self._worth_names: list[str] = []
+        self._worth_slots = np.zeros(0, dtype=np.int64)
         self._u = np.zeros(0, dtype=np.float64)
         self._dirty = True
         self._load()
@@ -139,6 +142,9 @@ class WorldField:
         if cell not in self.ground:
             self._dirty = True
         self.ground[cell] = self.ground.get(cell, 0) + 1
+
+    def _patch(self, cell: Cell) -> str | None:
+        return self.scenery.get(cell[0], {}).get((cell[1], cell[2]))
 
     def walkable(self, cell: Cell) -> float | None:
         """Chance the scenery at ``cell`` carries a step; None where the background is unknown."""
@@ -405,4 +411,15 @@ class WorldField:
             "door_patterns": len(self.door_patches),
             "dreams": dict(self.dreams),
             "door_dreams": dict(self.door_dreams),
+            "worth": self.worth_summary(),
         }
+
+    def worth_summary(self) -> dict[str, list[float]]:
+        """Learned worth by family of kinds (door, ground, unknown, thing): [draw-weighted worth, draws]."""
+        families: dict[str, list[float]] = {}
+        for kind, (credit, draws) in self.worth.items():
+            row = families.setdefault(kind.split(":", 1)[0], [0.0, 0.0])
+            row[0] += credit
+            row[1] += draws
+        return {family: [round((credit + WORTH_PRIOR * WORTH_WEIGHT) / (draws + WORTH_WEIGHT), 3), int(draws)]
+                for family, (credit, draws) in sorted(families.items())}
