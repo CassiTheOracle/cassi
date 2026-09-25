@@ -157,57 +157,79 @@ class LocalHiveStore:
 
     def _initialize_schema(self) -> None:
         with self._lock:
-            self._connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS objects (
-                    object_id TEXT PRIMARY KEY,
-                    schema TEXT NOT NULL,
-                    path TEXT NOT NULL UNIQUE,
-                    inserted_ns INTEGER NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS events (
-                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-                    event_id TEXT NOT NULL UNIQUE,
-                    branch TEXT NOT NULL,
-                    generation INTEGER NOT NULL,
-                    event_kind TEXT NOT NULL,
-                    object_id TEXT NOT NULL,
-                    inserted_ns INTEGER NOT NULL,
-                    UNIQUE(branch, event_kind, object_id)
-                );
-                CREATE INDEX IF NOT EXISTS events_branch_generation
-                    ON events(branch, generation, event_kind);
-                CREATE TABLE IF NOT EXISTS sessions (
-                    session_id TEXT PRIMARY KEY,
-                    instance_id TEXT NOT NULL,
-                    manifest_object_id TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    updated_ns INTEGER NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS adoptions (
-                    receipt_id TEXT PRIMARY KEY,
-                    session_id TEXT NOT NULL,
-                    instance_id TEXT NOT NULL,
-                    bundle_id TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    object_id TEXT NOT NULL,
-                    inserted_ns INTEGER NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS adoptions_session
-                    ON adoptions(session_id, inserted_ns);
-                CREATE TABLE IF NOT EXISTS revocations (
-                    bundle_id TEXT PRIMARY KEY,
-                    object_id TEXT NOT NULL,
-                    actor TEXT NOT NULL,
-                    reason TEXT NOT NULL,
-                    inserted_ns INTEGER NOT NULL
-                );
-                """
-            )
+            # Use individual execute calls within a single transaction to avoid
+            # the implicit commit overhead of executescript and reduce overhead
+            # of parsing multiple statements in a single script string.
+            self._connection.execute("BEGIN")
+            try:
+                self._connection.execute("""
+                    CREATE TABLE IF NOT EXISTS meta (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
+                    );
+                """)
+                self._connection.execute("""
+                    CREATE TABLE IF NOT EXISTS objects (
+                        object_id TEXT PRIMARY KEY,
+                        schema TEXT NOT NULL,
+                        path TEXT NOT NULL UNIQUE,
+                        inserted_ns INTEGER NOT NULL
+                    );
+                """)
+                self._connection.execute("""
+                    CREATE TABLE IF NOT EXISTS events (
+                        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_id TEXT NOT NULL UNIQUE,
+                        branch TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        event_kind TEXT NOT NULL,
+                        object_id TEXT NOT NULL,
+                        inserted_ns INTEGER NOT NULL,
+                        UNIQUE(branch, event_kind, object_id)
+                    );
+                """)
+                self._connection.execute("""
+                    CREATE INDEX IF NOT EXISTS events_branch_generation
+                        ON events(branch, generation, event_kind);
+                """)
+                self._connection.execute("""
+                    CREATE TABLE IF NOT EXISTS sessions (
+                        session_id TEXT PRIMARY KEY,
+                        instance_id TEXT NOT NULL,
+                        manifest_object_id TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        updated_ns INTEGER NOT NULL
+                    );
+                """)
+                self._connection.execute("""
+                    CREATE TABLE IF NOT EXISTS adoptions (
+                        receipt_id TEXT PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        instance_id TEXT NOT NULL,
+                        bundle_id TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        object_id TEXT NOT NULL,
+                        inserted_ns INTEGER NOT NULL
+                    );
+                """)
+                self._connection.execute("""
+                    CREATE INDEX IF NOT EXISTS adoptions_session
+                        ON adoptions(session_id, inserted_ns);
+                """)
+                self._connection.execute("""
+                    CREATE TABLE IF NOT EXISTS revocations (
+                        bundle_id TEXT PRIMARY KEY,
+                        object_id TEXT NOT NULL,
+                        actor TEXT NOT NULL,
+                        reason TEXT NOT NULL,
+                        inserted_ns INTEGER NOT NULL
+                    );
+                """)
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
+
             key = self._generation_key(self.branch)
             self._connection.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES(?, ?)",
