@@ -81,7 +81,10 @@ def _digest(value: Any, label: str) -> str:
 def _atomic_json(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     encoded = canonical_json_bytes(value)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    # Use os.urandom for faster random byte generation compared to uuid.uuid4().hex
+    # This maintains uniqueness for atomicity without the overhead of UUID generation.
+    random_suffix = os.urandom(8).hex()
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{random_suffix}.tmp")
     try:
         with temporary.open("wb") as handle:
             handle.write(encoded)
