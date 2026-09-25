@@ -2680,7 +2680,11 @@ class NativeFieldRuntimeClient:
         else:
             prior["model_sha256"] = preflight["model_sha256"]
             prior["tokenizer_sha256"] = preflight["tokenizer_sha256"]
-            prior["input_tokens"] = input_tokens
+            # A ready preflight reads the decode boundary.  After an accepted
+            # token the verified history stays prior input + accepted token, so
+            # the step that follows is checked against the same boundary.
+            if prior.get("accepted_token_id") is None:
+                prior["input_tokens"] = input_tokens
             prior["initialized"] = True
         return preflight
 

@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 RAW_RECORDING_SCHEMA = "cassi.market-raw-recording.v1"
 HEALTH_SCHEMA = "cassi.market-data-health.v1"
 RECONCILIATION_SCHEMA = "cassi.market-reconciliation.v1"
+RETRACTION_SCHEMA = "cassi.market-retraction.v1"
 PAPER_CONSUMER_SCHEMA = "cassi.market-paper-consumer.v1"
 _SUPPORTED_GRANULARITIES = frozenset({60, 300, 900, 3600, 21600, 86400})
 
@@ -291,6 +292,17 @@ class IngestionStore:
                 reconciled_at TEXT NOT NULL,
                 receipt_json TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS retractions (
+                retraction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_id TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                retracted_at TEXT NOT NULL,
+                event_count INTEGER NOT NULL,
+                receipt_json TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS retraction_source_idx
+                ON retractions(source_id, retraction_id);
 
             CREATE TABLE IF NOT EXISTS health_snapshots (
                 snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -565,6 +577,93 @@ class IngestionStore:
         except Exception:
             self._db.execute("ROLLBACK")
             raise
+        return body
+
+    def retract_events(
+        self,
+        *,
+        source_id: str,
+        reason: str,
+        retracted_at: str | None = None,
+    ) -> dict[str, Any]:
+        """Withdraw every canonical event a source was never right to admit.
+
+        Retraction covers sources whose content was not market data at all: a
+        local fixture, a misconfigured adapter.  Captured raw messages stay,
+        because they remain the record of what the pipeline received, and the
+        acceptance counters stay, because the events were admitted before they
+        were withdrawn.  The withdrawal itself is recorded in ``retractions``.
+        """
+        if not isinstance(source_id, str) or not source_id.strip():
+            raise IngestionError("retraction source must be nonempty text")
+        if not isinstance(reason, str) or not reason.strip():
+            raise IngestionError("retraction reason must be nonempty text")
+        stamp = utc_stamp() if retracted_at is None else retracted_at
+        parse_utc(stamp)
+        rows = self._db.execute(
+            "SELECT event_id, natural_key, semantic_sha256, state, observed_at, available_at, document_json "
+            "FROM canonical_events WHERE source_id = ? ORDER BY observed_at, event_id",
+            (source_id,),
+        ).fetchall()
+        events = [
+            {
+                "event_id": str(row["event_id"]),
+                "natural_key": str(row["natural_key"]),
+                "semantic_sha256": str(row["semantic_sha256"]),
+                "state": str(row["state"]),
+                "observed_at": str(row["observed_at"]),
+                "available_at": str(row["available_at"]),
+                "document_sha256": hashlib.sha256(
+                    str(row["document_json"]).encode("utf-8")
+                ).hexdigest(),
+            }
+            for row in rows
+        ]
+        event_ids = [entry["event_id"] for entry in events]
+        body: dict[str, Any] = {
+            "schema": RETRACTION_SCHEMA,
+            "source_id": source_id,
+            "reason": reason,
+            "retracted_at": stamp,
+            "event_count": len(event_ids),
+            "delivery_count": 0,
+            "events": events,
+        }
+        if event_ids:
+            placeholders = ",".join("?" for _ in event_ids)
+            self._db.execute("BEGIN IMMEDIATE")
+            try:
+                cursor = self._db.execute(
+                    f"DELETE FROM deliveries WHERE event_id IN ({placeholders})",
+                    event_ids,
+                )
+                body["delivery_count"] = int(cursor.rowcount)
+                self._db.execute(
+                    f"DELETE FROM accepted_events WHERE event_id IN ({placeholders})",
+                    event_ids,
+                )
+                self._db.execute(
+                    f"DELETE FROM canonical_events WHERE event_id IN ({placeholders})",
+                    event_ids,
+                )
+                body["content_sha256"] = digest_value(body)
+                self._db.execute(
+                    "INSERT INTO retractions(source_id, reason, retracted_at, event_count, receipt_json) "
+                    "VALUES(?, ?, ?, ?, ?)",
+                    (
+                        source_id,
+                        reason,
+                        stamp,
+                        len(event_ids),
+                        canonical_bytes(body).decode("utf-8"),
+                    ),
+                )
+                self._db.execute("COMMIT")
+            except Exception:
+                self._db.execute("ROLLBACK")
+                raise
+        else:
+            body["content_sha256"] = digest_value(body)
         return body
 
     def ingest_bar(

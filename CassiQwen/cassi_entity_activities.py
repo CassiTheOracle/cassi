@@ -7,6 +7,7 @@ import importlib
 import json
 import math
 import os
+import re
 import sys
 import threading
 import time
@@ -21,6 +22,20 @@ class ActivityRefused(RuntimeError):
 
 def _identity(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _venue_number(name: str, value: Any, *, minimum: float = 0.0) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"trading {name} must be numeric")
+    result = float(value)
+    if not math.isfinite(result) or result < minimum:
+        raise ValueError(f"trading {name} must be finite and >= {minimum}")
+    return result
+
+
+def _venue_text(value: float) -> str:
+    text = f"{float(value):.12f}".rstrip("0").rstrip(".")
+    return text or "0"
 
 def _admit_intent(receipt: Path, identity: Mapping[str, Any]) -> bool:
     """Bind a non-replayable action before it can affect a world or field."""
@@ -202,13 +217,49 @@ class TradingActivity:
     activity_id = "trading"
 
     def __init__(self, *, data_home: Path, ingestion_db: Path,
-                 paper_program_id: str | None = None, symbol: str = "BTC-USD") -> None:
+                 paper_program_id: str | None = None, symbol: str = "BTC-USD",
+                 activity_id: str | None = None, bar_hours: float = 1.0,
+                 fee_bps: float = 10.0, spread_bps: float = 5.0,
+                 slippage_bps: float = 5.0, initial_cash: float = 10_000.0,
+                 venue: str = "coinbase-public-paper") -> None:
         self.data_home = Path(data_home).expanduser().resolve()
         self.ingestion_db = Path(ingestion_db).expanduser().resolve()
         self.paper_program_id = paper_program_id
         self.symbol = symbol
+        if activity_id is not None:
+            self.activity_id = activity_id
+        self.bar_hours = _venue_number("bar_hours", bar_hours, minimum=1.0e-9)
+        self.fee_bps = _venue_number("fee_bps", fee_bps)
+        self.spread_bps = _venue_number("spread_bps", spread_bps)
+        self.slippage_bps = _venue_number("slippage_bps", slippage_bps)
+        self.initial_cash = _venue_number("initial_cash", initial_cash, minimum=1.0e-12)
+        if not isinstance(venue, str) or not venue.strip() or len(venue) > 128:
+            raise ValueError("venue must be bounded nonempty text")
+        self.venue = venue
         self.entity: Any | None = None
         self._lock = threading.RLock()
+
+    @property
+    def venue_economics(self) -> dict[str, Any]:
+        """The venue model a hosted paper account is measured against."""
+        return {
+            "venue": self.venue,
+            "bar_hours": self.bar_hours,
+            "fee_bps": self.fee_bps,
+            "spread_bps": self.spread_bps,
+            "slippage_bps": self.slippage_bps,
+            "initial_cash": self.initial_cash,
+        }
+
+    def _venue_arguments(self) -> list[str]:
+        return [
+            "--bar-hours", _venue_text(self.bar_hours),
+            "--fee-bps", _venue_text(self.fee_bps),
+            "--spread-bps", _venue_text(self.spread_bps),
+            "--slippage-bps", _venue_text(self.slippage_bps),
+            "--initial-cash", _venue_text(self.initial_cash),
+            "--venue", self.venue,
+        ]
 
     def attach(self, entity: Any) -> None:
         self.entity = entity
@@ -226,6 +277,7 @@ class TradingActivity:
             ),
             "max_new_bars": 256,
             "paper_program_id": self.paper_program_id,
+            "venue_economics": self.venue_economics,
         }
 
     @staticmethod
@@ -396,7 +448,8 @@ class TradingActivity:
 
             command = ["--data-home", str(self.data_home), "run",
                        "--ingestion-db", str(self.ingestion_db), "--symbol", self.symbol,
-                       "--max-new-bars", str(limit), "--receipt", str(path)]
+                       "--max-new-bars", str(limit), "--receipt", str(path),
+                       *self._venue_arguments()]
             verifier = None
             if operation == "paper-step":
                 paper_id = self.paper_program_id
@@ -455,6 +508,101 @@ class TradingActivity:
         with self._lock:
             return self._run(operation, parameters, program=program, operation_id=operation_id)
 
+
+
+TRADING_PROGRAMS_SCHEMA = "cassi.hosted-trading-programs.v1"
+_ACTIVITY_ID = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+_TRADING_PROGRAM_KEYS = frozenset(
+    {
+        "activity_id",
+        "program_id",
+        "member_home",
+        "ingestion_db",
+        "symbol",
+        "bar_hours",
+        "fee_bps",
+        "spread_bps",
+        "slippage_bps",
+        "initial_cash",
+        "venue",
+    }
+)
+_TRADING_PROGRAM_GRANULARITIES = frozenset({60, 300, 900, 3600, 21600, 86400})
+
+
+def _trading_program_text(entry: Mapping[str, Any], key: str, *, limit: int = 2048) -> str:
+    value = entry.get(key)
+    if not isinstance(value, str) or not value.strip() or len(value) > limit:
+        raise ValueError(f"trading programme {key} must be bounded nonempty text")
+    return value
+
+
+def load_trading_programs(path: Path) -> list[TradingActivity]:
+    """Build one hosted trading activity per entry of an operator manifest.
+
+    The manifest is the operator's authorization of a venue: which member home
+    holds the account, which canonical store feeds it, and what the venue
+    charges.  A field created for a member home keeps the economics it was
+    created with, so a manifest edit changes the account only through a new
+    member home.
+    """
+    document = json.loads(Path(path).expanduser().resolve().read_text(encoding="utf-8"))
+    if not isinstance(document, Mapping) or document.get("schema") != TRADING_PROGRAMS_SCHEMA:
+        raise ValueError(f"trading programme manifest must declare schema {TRADING_PROGRAMS_SCHEMA}")
+    entries = document.get("programs")
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 8:
+        raise ValueError("trading programme manifest requires 1 to 8 programmes")
+    activities: list[TradingActivity] = []
+    seen: dict[str, set[str]] = {"activity_id": set(), "program_id": set(), "member_home": set()}
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"trading programme {index} must be an object")
+        unknown = sorted(set(entry) - _TRADING_PROGRAM_KEYS)
+        if unknown:
+            raise ValueError(f"trading programme {index} has unknown fields: {', '.join(unknown)}")
+        activity_id = _trading_program_text(entry, "activity_id", limit=64)
+        if not _ACTIVITY_ID.match(activity_id):
+            raise ValueError(f"trading programme {index} activity_id must be lower-case text")
+        program_id = _trading_program_text(entry, "program_id", limit=128)
+        member_home = _trading_program_text(entry, "member_home")
+        ingestion_db = _trading_program_text(entry, "ingestion_db")
+        for name, value in (
+            ("activity_id", activity_id),
+            ("program_id", program_id),
+            ("member_home", member_home),
+        ):
+            if value in seen[name]:
+                raise ValueError(f"trading programmes repeat a {name}: {value}")
+            seen[name].add(value)
+        bar_hours = _venue_number("bar_hours", entry.get("bar_hours", 1.0), minimum=1.0e-9)
+        granularity = int(round(bar_hours * 3600.0))
+        if granularity not in _TRADING_PROGRAM_GRANULARITIES:
+            raise ValueError(
+                f"trading programme {activity_id} bar_hours must describe a supported bar "
+                f"duration, not {bar_hours} hours"
+            )
+        venue = entry.get("venue", "coinbase-public-paper")
+        if not isinstance(venue, str) or not venue.strip() or len(venue) > 128:
+            raise ValueError(f"trading programme {activity_id} venue must be bounded nonempty text")
+        store = Path(ingestion_db).expanduser()
+        if not store.is_file():
+            raise ValueError(f"trading programme {activity_id} canonical store does not exist: {store}")
+        activities.append(
+            TradingActivity(
+                data_home=Path(member_home),
+                ingestion_db=store,
+                paper_program_id=program_id,
+                symbol=entry.get("symbol", "BTC-USD"),
+                activity_id=activity_id,
+                bar_hours=bar_hours,
+                fee_bps=_venue_number("fee_bps", entry.get("fee_bps", 10.0)),
+                spread_bps=_venue_number("spread_bps", entry.get("spread_bps", 5.0)),
+                slippage_bps=_venue_number("slippage_bps", entry.get("slippage_bps", 5.0)),
+                initial_cash=_venue_number("initial_cash", entry.get("initial_cash", 10_000.0)),
+                venue=venue,
+            )
+        )
+    return activities
 
 
 _SELF_REWRITE_RUNNERS = {

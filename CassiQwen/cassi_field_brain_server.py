@@ -36,7 +36,12 @@ from cassi_field_brain_entity import (
     TurnNotFound,
     open_local_entity,
 )
-from cassi_entity_activities import NetHackActivity, PCSX2Activity, SelfRewriteActivity, TradingActivity
+from cassi_entity_activities import (  # type: ignore[import-not-found]
+    NetHackActivity,
+    PCSX2Activity,
+    SelfRewriteActivity,
+    load_trading_programs,
+)
 from surface.records import (
     SurfaceAuthorizationError,
     SurfaceCapabilityError,
@@ -1813,6 +1818,19 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(exc)})
 
+def _load_trading_programs(
+    path: Path | None, parser: argparse.ArgumentParser,
+) -> list[Any]:
+    """Read the operator's hosted trading manifest, or offer none."""
+    if path is None:
+        return []
+    try:
+        return load_trading_programs(path)
+    except ValueError as error:
+        parser.error(str(error))
+        raise AssertionError("parser.error does not return") from error
+
+
 def _start_linux_surface(
     config_path: Path,
 ) -> tuple[LinuxSessionSupervisor, LinuxXvncBackend, WslPulseAudioBackend | None]:
@@ -1930,7 +1948,14 @@ def main() -> None:
         help="offer bounded NetHack lives to explicitly scoped research programmes",
     )
     parser.add_argument("--nethack-program", type=Path, help="fixed local NetHack executable")
-    parser.add_argument("--trading-activity-home", type=Path, help="canonical trading member home")
+    parser.add_argument(
+        "--trading-programs",
+        type=Path,
+        help=(
+            "operator manifest of hosted trading programmes: each entry binds a member home, "
+            "a canonical store, one active research programme, and the venue it trades"
+        ),
+    )
     parser.add_argument(
         "--self-rewrite-root",
         type=Path,
@@ -1941,11 +1966,6 @@ def main() -> None:
         choices=("source", "self-host", "workspace", "patchset", "impact"),
         default=None,
         help="fixed rewrite runner variant (default: impact; requires --self-rewrite-root)",
-    )
-    parser.add_argument("--trading-activity-db", type=Path, help="canonical closed-bar ingestion SQLite database")
-    parser.add_argument(
-        "--trading-paper-program-id",
-        help="opt in to simulated paper steps for exactly this active entity programme",
     )
     parser.add_argument(
         "--pcsx2-activity", action="store_true",
@@ -2120,21 +2140,13 @@ def main() -> None:
         parser.error("--enable-desktop-companion requires an interactive Windows session")
     if arguments.nethack_program is not None and not arguments.enable_nethack_activity:
         parser.error("--nethack-program requires --enable-nethack-activity")
-    if (arguments.trading_activity_home is None) != (arguments.trading_activity_db is None):
-        parser.error("--trading-activity-home and --trading-activity-db must be supplied together")
-    if arguments.trading_paper_program_id and arguments.trading_activity_db is None:
-        parser.error("--trading-paper-program-id requires the canonical trading activity")
+    trading_programs = _load_trading_programs(arguments.trading_programs, parser)
     surface_authority = MissionAuthority()
     with ExitStack() as owned:
         activities: list[Any] = []
         if arguments.enable_nethack_activity:
             activities.append(NetHackActivity(program=arguments.nethack_program))
-        if arguments.trading_activity_db is not None:
-            activities.append(TradingActivity(
-                data_home=arguments.trading_activity_home,
-                ingestion_db=arguments.trading_activity_db,
-                paper_program_id=arguments.trading_paper_program_id,
-            ))
+        activities.extend(trading_programs)
         if arguments.pcsx2_activity:
             activities.append(PCSX2Activity(
                 iso_path=pcsx2_iso,

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import signal
 import tempfile
@@ -58,6 +59,23 @@ def _positive_int_tuple(value: str) -> tuple[int, ...]:
         raise argparse.ArgumentTypeError(
             "values must be positive, sorted, and unique"
         )
+    return parsed
+
+
+def _nonnegative_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("value must be a number") from exc
+    if parsed < 0.0 or not math.isfinite(parsed):
+        raise argparse.ArgumentTypeError("value must be a finite, non-negative number")
+    return parsed
+
+
+def _positive_float(value: str) -> float:
+    parsed = _nonnegative_float(value)
+    if parsed <= 0.0:
+        raise argparse.ArgumentTypeError("value must be a positive number")
     return parsed
 
 
@@ -196,6 +214,35 @@ def _parser() -> argparse.ArgumentParser:
         type=_positive_int,
         help="compact semantic panel size in decisions for a new field",
     )
+    run.add_argument(
+        "--bar-hours",
+        type=_positive_float,
+        help="bar duration in hours recorded by a new field (default: 1)",
+    )
+    run.add_argument(
+        "--fee-bps",
+        type=_nonnegative_float,
+        help="venue fee in basis points per side for a new field (default: 10)",
+    )
+    run.add_argument(
+        "--spread-bps",
+        type=_nonnegative_float,
+        help="modelled venue spread in basis points for a new field (default: 5)",
+    )
+    run.add_argument(
+        "--slippage-bps",
+        type=_nonnegative_float,
+        help="modelled execution slippage in basis points per side (default: 5)",
+    )
+    run.add_argument(
+        "--initial-cash",
+        type=_positive_float,
+        help="starting cash for a new paper account (default: 10000)",
+    )
+    run.add_argument(
+        "--venue",
+        help="venue label recorded by a new paper account (default: coinbase-public-paper)",
+    )
 
     status = subparsers.add_parser("status", help="show field, risk, model, and hive state")
     status.add_argument(
@@ -259,6 +306,26 @@ def _atomic_write(path: Path, value: Any) -> None:
     os.replace(temporary, path)
 
 
+def _paper_config(args: argparse.Namespace, granularity: int) -> PaperConfig:
+    """Venue economics for a paper account, defaulting to the dataclass values."""
+    from cassi_paper import PaperConfig  # type: ignore[import-not-found]
+
+    defaults = PaperConfig(timeframe_seconds=granularity)
+    venue = getattr(args, "venue", None)
+    fee_bps = getattr(args, "fee_bps", None)
+    slippage_bps = getattr(args, "slippage_bps", None)
+    initial_cash = getattr(args, "initial_cash", None)
+    return PaperConfig(
+        venue=defaults.venue if not venue else venue,
+        initial_cash=defaults.initial_cash if initial_cash is None else initial_cash,
+        fee_bps=defaults.fee_bps if fee_bps is None else fee_bps,
+        slippage_bps=(
+            defaults.slippage_bps if slippage_bps is None else slippage_bps
+        ),
+        timeframe_seconds=granularity,
+    )
+
+
 def _resident_config(evidence: Path) -> TradingFieldConfig | None:
     with evidence.open(encoding="utf-8") as handle:
         for line in handle:
@@ -279,6 +346,10 @@ def _new_config(
     field_mode_count: int | None,
     semantic_panel_decisions: int | None,
     semantic_panel_actions: tuple[float, ...] | None,
+    bar_hours: float | None = None,
+    fee_bps: float | None = None,
+    spread_bps: float | None = None,
+    slippage_bps: float | None = None,
 ) -> TradingFieldConfig | None:
     requested = {
         "update_thresholds": update_thresholds,
@@ -286,6 +357,10 @@ def _new_config(
         "field_mode_count": field_mode_count,
         "semantic_panel_decisions": semantic_panel_decisions,
         "semantic_panel_actions": semantic_panel_actions,
+        "bar_hours": bar_hours,
+        "fee_bps": fee_bps,
+        "spread_bps": spread_bps,
+        "slippage_bps": slippage_bps,
     }
     evidence = data_home / "trading-evidence.jsonl"
     if evidence.exists():
@@ -334,6 +409,12 @@ def _new_config(
             defaults.semantic_panel_actions
             if semantic_panel_actions is None
             else semantic_panel_actions
+        ),
+        bar_hours=defaults.bar_hours if bar_hours is None else bar_hours,
+        fee_bps=defaults.fee_bps if fee_bps is None else fee_bps,
+        spread_bps=defaults.spread_bps if spread_bps is None else spread_bps,
+        slippage_bps=(
+            defaults.slippage_bps if slippage_bps is None else slippage_bps
         ),
     )
 
@@ -1324,7 +1405,7 @@ def _run_paper_only(
                     field=field,
                     symbol=field.config.symbol,
                     consumer_id=consumer_id,
-                    paper_config=PaperConfig(timeframe_seconds=granularity),
+                    paper_config=_paper_config(args, granularity),
                     paper_state_path=paper_state_path,
                 )
                 consumer.activate()
@@ -1449,6 +1530,10 @@ def run_hosted_trading_field(
         field_mode_count=getattr(args, "field_mode_count", None),
         semantic_panel_decisions=getattr(args, "semantic_panel_decisions", None),
         semantic_panel_actions=getattr(args, "semantic_panel_actions", None),
+        bar_hours=getattr(args, "bar_hours", None),
+        fee_bps=getattr(args, "fee_bps", None),
+        spread_bps=getattr(args, "spread_bps", None),
+        slippage_bps=getattr(args, "slippage_bps", None),
     )
     receipt_path_value = getattr(args, "receipt", None)
     receipt_path = (
@@ -1622,6 +1707,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             field_mode_count=args.field_mode_count,
             semantic_panel_decisions=args.semantic_panel_decisions,
             semantic_panel_actions=args.semantic_panel_actions,
+            bar_hours=args.bar_hours,
+            fee_bps=args.fee_bps,
+            spread_bps=args.spread_bps,
+            slippage_bps=args.slippage_bps,
         )
         with _open_field_session(
             data_home,

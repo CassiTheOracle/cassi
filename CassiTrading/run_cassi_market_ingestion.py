@@ -26,9 +26,21 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode",
-        choices=("once", "live", "replay", "compact"),
+        choices=("once", "live", "replay", "compact", "retract"),
         default="once",
-        help="compact prunes expired liveness rows, thins health history, and rebuilds the file (feed stopped)",
+        help=(
+            "compact prunes expired liveness rows, thins health history, and rebuilds the file "
+            "(feed stopped); retract withdraws every canonical event of one source"
+        ),
+    )
+    parser.add_argument(
+        "--retract-source",
+        help="canonical source_id whose events are withdrawn by --mode retract",
+    )
+    parser.add_argument(
+        "--retract-reason",
+        default="source admitted non-market content",
+        help="operator reason recorded with a retraction",
     )
     parser.add_argument("--db", type=Path, default=Path("_diag/market-ingestion/market.sqlite3"))
     parser.add_argument("--product", default="BTC-USD")
@@ -119,6 +131,28 @@ def _compact(args: argparse.Namespace, store: IngestionStore, config: CoinbaseCo
     return 0
 
 
+def _retract(args: argparse.Namespace, store: IngestionStore) -> int:
+    if not args.retract_source:
+        raise SystemExit("--mode retract requires --retract-source")
+    retraction = store.retract_events(
+        source_id=args.retract_source,
+        reason=args.retract_reason,
+    )
+    receipt = {
+        "schema": "cassi.market-ingestion-command.v1",
+        "mode": "retract",
+        "result": retraction,
+        "db": str(args.db),
+        "external_effect": "none",
+        "authenticated_exchange_calls": 0,
+        "order_submissions": 0,
+    }
+    receipt["content_sha256"] = digest_value(receipt)
+    atomic_write_json(args.receipt, receipt)
+    print(json.dumps(receipt, sort_keys=True))
+    return 0
+
+
 def main() -> int:
     args = parse_args()
     if args.max_messages < 0 or args.max_seconds < 0.0:
@@ -129,6 +163,8 @@ def main() -> int:
         raise SystemExit("--mode replay requires --replay")
     if args.mode != "replay" and args.replay is not None:
         raise SystemExit("--replay is valid only with --mode replay")
+    if args.mode != "retract" and args.retract_source is not None:
+        raise SystemExit("--retract-source is valid only with --mode retract")
     config = CoinbaseConfig(
         product=args.product,
         granularity=args.granularity,
@@ -140,6 +176,8 @@ def main() -> int:
     with IngestionStore(args.db) as store:
         if args.mode == "compact":
             return _compact(args, store, config)
+        if args.mode == "retract":
+            return _retract(args, store)
         service = CoinbaseIngestionService(store, config)
         consumer = _paper_consumer(args, store)
         if args.mode == "replay":

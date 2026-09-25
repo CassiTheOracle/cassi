@@ -18400,7 +18400,9 @@ class FieldIntelligenceOwner:
                 or kind < 0
                 or isinstance(layer, bool)
                 or not isinstance(layer, int)
-                or layer < 0
+                # Execution choice acts on the output head, which the native
+                # graph names layer -1; every other site is a model layer.
+                or (layer != -1 if kind == 6 else layer < 0)
                 or not isinstance(supported, bool)
                 or isinstance(input_width, bool)
                 or not isinstance(input_width, int)
@@ -23820,17 +23822,22 @@ class FieldIntelligenceOwner:
                             "native graph measured layer count",
                             minimum=1,
                         )
+                        head_site = graph_site.get("kind") == 6
                         graph_layer = _integer(
                             graph_site.get("layer"),
                             "native graph selected layer",
-                            minimum=0,
+                            minimum=-1 if head_site else 0,
                         )
                     except (FieldIntelligenceError, TypeError, ValueError) as exc:
                         reject(f"native graph-site model geometry is invalid: {exc}")
                     if (
                         model_embedding_width != expected_embedding_width
                         or model_layer_count != expected_layer_count
-                        or graph_layer >= model_layer_count
+                        or (
+                            graph_layer != -1
+                            if head_site
+                            else graph_layer >= model_layer_count
+                        )
                         or graph_receipt is None
                         or graph_receipt.get("layer") != graph_layer
                     ):
