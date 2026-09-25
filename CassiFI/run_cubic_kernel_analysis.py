@@ -156,35 +156,64 @@ def relation_properties(
     tuples: Sequence[tuple[int, ...]], arity: int
 ) -> dict[str, bool]:
     members = set(tuples)
-    horn = all(
-        tuple(left[i] & right[i] for i in range(arity)) in members
-        for left in tuples
-        for right in tuples
-    )
-    dual_horn = all(
-        tuple(left[i] | right[i] for i in range(arity)) in members
-        for left in tuples
-        for right in tuples
-    )
-    bijunctive = all(
-        tuple(
-            int(left[i] + middle[i] + right[i] >= 2) for i in range(arity)
-        )
-        in members
-        for left in tuples
-        for middle in tuples
-        for right in tuples
-    )
-    affine = all(
-        tuple(left[i] ^ middle[i] ^ right[i] for i in range(arity))
-        in members
-        for left in tuples
-        for middle in tuples
-        for right in tuples
-    )
+
+    # Precompute zero and one tuples for O(1) lookup
+    zero_tuple = (0,) * arity
+    one_tuple = (1,) * arity
+
+    zero_valid = zero_tuple in members
+    one_valid = one_tuple in members
+
+    # Horn: closed under bitwise AND
+    # dual_horn: closed under bitwise OR
+    # We can check these by iterating over all pairs
+    # To speed up, we can use a single pass or optimized loops
+
+    # For horn and dual_horn, we iterate over all pairs (left, right)
+    # and check if the result is in members.
+    # Using itertools.product is generally faster than nested for loops in Python
+
+    from itertools import product
+
+    # Check horn
+    horn = True
+    for left, right in product(tuples, tuples):
+        # Construct the AND tuple
+        and_tuple = tuple(l & r for l, r in zip(left, right))
+        if and_tuple not in members:
+            horn = False
+            break
+
+    # Check dual_horn
+    dual_horn = True
+    for left, right in product(tuples, tuples):
+        # Construct the OR tuple
+        or_tuple = tuple(l | r for l, r in zip(left, right))
+        if or_tuple not in members:
+            dual_horn = False
+            break
+
+    # Check bijunctive: closed under majority function
+    # majority(a, b, c) = 1 if at least two of a,b,c are 1, else 0
+    # This is equivalent to: int(a + b + c >= 2)
+    bijunctive = True
+    for left, middle, right in product(tuples, tuples, tuples):
+        maj_tuple = tuple(int(l + m + r >= 2) for l, m, r in zip(left, middle, right))
+        if maj_tuple not in members:
+            bijunctive = False
+            break
+
+    # Check affine: closed under XOR (addition in GF(2))
+    affine = True
+    for left, middle, right in product(tuples, tuples, tuples):
+        xor_tuple = tuple(l ^ m ^ r for l, m, r in zip(left, middle, right))
+        if xor_tuple not in members:
+            affine = False
+            break
+
     return {
-        "zero_valid": (0,) * arity in members,
-        "one_valid": (1,) * arity in members,
+        "zero_valid": zero_valid,
+        "one_valid": one_valid,
         "horn": horn,
         "dual_horn": dual_horn,
         "bijunctive": bijunctive,
