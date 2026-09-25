@@ -140,31 +140,84 @@ def _class_sizes(values: Iterable[Any]) -> list[int]:
 def _canonical_basis_family(family: Family, order: int) -> Family:
     """Canonicalize a basis hypergraph under all degree-preserving relabelings."""
 
+    # Precompute degrees
     degrees = Counter(vertex for basis in family for vertex in basis)
+
+    # Group vertices by degree
     degree_groups = [
         tuple(vertex for vertex in range(1, order + 1) if degrees[vertex] == degree)
         for degree in sorted(set(degrees.values()))
     ]
+
+    # If no degree groups, return empty family
+    if not degree_groups:
+        return ()
+
+    # Precompute start labels for each group
+    start_labels = []
+    current_label = 1
+    for group in degree_groups:
+        start_labels.append(current_label)
+        current_label += len(group)
+
+    # Convert family to list of lists for mutability/efficiency
+    # Also, we need to sort each basis initially? No, we sort after relabeling.
+    # But we can pre-sort the basis vertices to help with something? No.
+
+    # Precompute the basis as list of lists of vertex indices
+    basis_list = [list(basis) for basis in family]
+
+    # Precompute the number of bases
+    num_bases = len(basis_list)
+
+    # If there are no permutations (e.g., all groups size 1), just compute once
+    # But we still need to find the canonical form.
+
+    # We will iterate over all permutations of degree groups
+    # To speed up, we can use itertools.product
+
+    # Precompute permutations for each group
+    group_perms = [list(itertools.permutations(group)) for group in degree_groups]
+
+    # If any group has size 1, its permutation is just the original tuple
+    # This doesn't change much, but itertools.permutations handles it.
+
     best: Family | None = None
-    for permutations in itertools.product(
-        *(itertools.permutations(group) for group in degree_groups)
-    ):
-        ordered_vertices = tuple(
-            vertex for group in permutations for vertex in group
-        )
-        relabel = {
-            vertex: label for label, vertex in enumerate(ordered_vertices, start=1)
-        }
-        candidate = tuple(
-            sorted(
-                tuple(sorted(relabel[vertex] for vertex in basis))
-                for basis in family
-            )
-        )
+
+    # Iterate over all combinations of permutations
+    for perm_combo in itertools.product(*group_perms):
+        # Build relabel map as a list for fast access
+        # relabel[v] = new_label
+        # We can use a list of size order+1
+        relabel = [0] * (order + 1)
+
+        # Fill relabel map
+        for group_idx, group_perm in enumerate(perm_combo):
+            start = start_labels[group_idx]
+            for i, vertex in enumerate(group_perm):
+                relabel[vertex] = start + i
+
+        # Generate candidate
+        # For each basis, map vertices to labels, sort, and create tuple
+        candidate_bases = []
+        for basis in basis_list:
+            # Map vertices to labels
+            mapped = [relabel[v] for v in basis]
+            # Sort the mapped vertices
+            mapped.sort()
+            candidate_bases.append(tuple(mapped))
+
+        # Sort the list of bases
+        candidate_bases.sort()
+        candidate = tuple(candidate_bases)
+
+        # Update best
         if best is None or candidate < best:
             best = candidate
+
     if best is None:
         raise AssertionError("basis family canonicalization had no permutation")
+
     return best
 
 
