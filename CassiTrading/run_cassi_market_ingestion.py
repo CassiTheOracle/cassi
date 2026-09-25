@@ -26,12 +26,25 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode",
-        choices=("once", "live", "replay", "compact", "retract"),
+        choices=("once", "live", "replay", "compact", "retract", "backfill"),
         default="once",
         help=(
             "compact prunes expired liveness rows, thins health history, and rebuilds the file "
-            "(feed stopped); retract withdraws every canonical event of one source"
+            "(feed stopped); retract withdraws every canonical event of one source; backfill "
+            "admits a downloaded OHLCV file as accepted canonical bars"
         ),
+    )
+    parser.add_argument(
+        "--backfill-csv",
+        type=Path,
+        help="downloaded OHLCV file admitted by --mode backfill",
+    )
+    parser.add_argument(
+        "--backfill-granularity",
+        type=int,
+        choices=(60, 300, 900, 3600, 21600, 86400),
+        default=None,
+        help="bar duration of the backfilled file (default: the feed granularity)",
     )
     parser.add_argument(
         "--retract-source",
@@ -131,6 +144,70 @@ def _compact(args: argparse.Namespace, store: IngestionStore, config: CoinbaseCo
     return 0
 
 
+def _backfill(args: argparse.Namespace, store: IngestionStore, config: CoinbaseConfig) -> int:
+    """Admit a downloaded venue history file as accepted canonical bars.
+
+    Historical bars enter under the venue's own source identity, so a later
+    live reconciliation of the same interval is a duplicate rather than a
+    conflict.  Availability is the bar's close, which is the earliest moment
+    the venue published it.
+    """
+    if args.backfill_csv is None:
+        raise SystemExit("--mode backfill requires --backfill-csv")
+    from cassi_coinbase_ingestion import COINBASE_ADAPTER_VERSION, COINBASE_SOURCE_ID
+    from cassi_trading_foundry import load_bars_csv
+
+    granularity = args.backfill_granularity or args.granularity
+    if granularity not in (60, 300, 900, 3600, 21600, 86400):
+        raise SystemExit("unsupported backfill granularity")
+    bars = load_bars_csv(args.backfill_csv)
+    statuses = {"accepted": 0, "duplicate": 0, "conflict": 0, "promoted": 0}
+    admitted = []
+    for bar in bars:
+        observed = parse_utc(bar.timestamp)
+        available_at = utc_stamp(observed + timedelta(seconds=granularity))
+        result = store.ingest_bar(
+            bar,
+            source_id=COINBASE_SOURCE_ID,
+            source_revision=COINBASE_ADAPTER_VERSION,
+            granularity=granularity,
+            available_at=available_at,
+            raw_id=None,
+            origin="coinbase-rest-candles",
+        )
+        statuses[result.status] = statuses.get(result.status, 0) + 1
+        if result.status in {"accepted", "promoted"}:
+            admitted.append(
+                {
+                    "event_id": result.event_id,
+                    "observed_at": bar.timestamp,
+                    "available_at": available_at,
+                }
+            )
+    receipt = {
+        "schema": "cassi.market-ingestion-command.v1",
+        "mode": "backfill",
+        "result": {
+            "backfilled_at": utc_stamp(),
+            "symbol": config.product,
+            "granularity_seconds": granularity,
+            "source_file": str(args.backfill_csv),
+            "bars_read": len(bars),
+            "statuses": statuses,
+            "first_observed_at": bars[0].timestamp if bars else None,
+            "last_observed_at": bars[-1].timestamp if bars else None,
+        },
+        "db": str(args.db),
+        "external_effect": "none",
+        "authenticated_exchange_calls": 0,
+        "order_submissions": 0,
+    }
+    receipt["content_sha256"] = digest_value(receipt)
+    atomic_write_json(args.receipt, receipt)
+    print(json.dumps(receipt, sort_keys=True))
+    return 0
+
+
 def _retract(args: argparse.Namespace, store: IngestionStore) -> int:
     if not args.retract_source:
         raise SystemExit("--mode retract requires --retract-source")
@@ -165,6 +242,10 @@ def main() -> int:
         raise SystemExit("--replay is valid only with --mode replay")
     if args.mode != "retract" and args.retract_source is not None:
         raise SystemExit("--retract-source is valid only with --mode retract")
+    if args.mode == "backfill" and args.backfill_csv is None:
+        raise SystemExit("--mode backfill requires --backfill-csv")
+    if args.backfill_csv is not None and args.mode != "backfill":
+        raise SystemExit("--backfill-csv is valid only with --mode backfill")
     config = CoinbaseConfig(
         product=args.product,
         granularity=args.granularity,
@@ -178,6 +259,8 @@ def main() -> int:
             return _compact(args, store, config)
         if args.mode == "retract":
             return _retract(args, store)
+        if args.mode == "backfill":
+            return _backfill(args, store, config)
         service = CoinbaseIngestionService(store, config)
         consumer = _paper_consumer(args, store)
         if args.mode == "replay":
