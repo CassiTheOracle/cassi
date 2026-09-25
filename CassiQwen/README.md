@@ -991,8 +991,8 @@ frame deltas plus `INPUT_EVENT`s for the DS2 pad values actually consumed by
 PCSX2. It exposes two Windows named pipes to the current user:
 `\\.\pipe\CassiPCSX2-v1-stream` and `\\.\pipe\CassiPCSX2-v1-control`.
 Native field operations use these pipes, not PINE. PINE remains read-only; only
-the separately authorized `field-act` operation can request bounded virtual
-pad input.
+the separately authorized `field-act` and `field-play` operations can request
+bounded virtual pad input.
 
 ### Build the pinned native PCSX2
 
@@ -1120,11 +1120,43 @@ Its `activity_run` arguments can set an explicit action ceiling:
 }
 ```
 
+`field-play` is the multi-step form of `field-act`: a bounded session in which
+the field chooses and applies its own sequence of pad actions and observes each
+consequence. It needs its own program scope:
+
+```json
+{
+  "allowed_tools": ["activity_run"],
+  "activity_scope": {"activities": {"pcsx2": ["field-play"]}}
+}
+```
+
+```json
+{
+  "activity_id": "pcsx2",
+  "operation": "field-play",
+  "parameters": {
+    "samples": 10,
+    "steps": 8,
+    "timeout_seconds": 420,
+    "max_action_frames": 30
+  }
+}
+```
+
+The session opens one native gate and reuses it across steps, records one
+`play-step` journal row per step (action, mask, terminal receipt, outcome
+observation, novelty, physical override, and the inquiry that chose it), and
+stops with an explicit reason when the pad is taken, the window loses
+foreground, the stream ends, or the step budget is met.
+
 `field-observe` accepts only `samples` and `timeout_seconds`; `field-act`
-accepts those plus `max_action_frames`. Samples default to `16` and are bounded
+accepts those plus `max_action_frames`, and `field-play` accepts those plus
+`steps`. Samples default to `16` and are bounded
 to `1..2048`; timeout defaults to `60` seconds and must be greater than `0` and
-at most `60`; the action-frame ceiling defaults to `2` and is bounded to
-`1..120`. EE-RAM snapshots are spaced two seconds apart to keep complete RAM
+at most `60`, extended to one minute per declared play step (at most `600`); the
+action-frame ceiling defaults to `2` and is bounded to
+`1..120`; `steps` defaults to `8` and is bounded to `1..64`. EE-RAM snapshots are spaced two seconds apart to keep complete RAM
 copies and deltas within the bounded stream, while consumed-pad events remain
 available at the emulator's polling cadence. The default observation therefore
 collects sixteen sparse memory states within its sixty-second deadline. Virtual
@@ -1136,10 +1168,10 @@ or changing game identity closes the action gate.
 
 The field loop is owner-led: CassiFI's persistent temporal memory learns from
 observed input-to-EE-state transitions and selects any action within the
-authorized `field-act` call, without a Qwen call per emulated frame. Qwen may
-guide the research program's higher-level strategy; it does not issue raw
-per-frame button commands. Adaptive state belongs to the CassiFI owner under
-`--data-home` and is keyed to the program and game identity. Exact native
+authorized `field-act` or `field-play` call, without a Qwen call per emulated
+frame. Qwen may guide the research program's higher-level strategy; it does not
+issue raw per-frame button commands. Adaptive state belongs to the CassiFI owner
+under `--data-home` and is keyed to the program and game identity. Exact native
 evidence is separate: each operation receipt under
 `<activity-home>/operations/<sha256>/receipt.json` points to
 `field-evidence/pcsx2-native-field/<run>/`, which retains `stream.frames`,
@@ -1160,6 +1192,16 @@ and the field's own press entered temporal memory as
 pad sample during an armed action cancels the virtual press before it applies
 (`result = Cancelled`, `reason = PhysicalOverride`, zero consumed frames) while
 the human press is learned on its own terms, and the run still completes.
+A play session extends that loop across steps. On an empty memory the field
+explores: it presses the least-tried control, and the consequence it observes
+becomes the goal it acquires toward in the following steps
+(`inquiry: exploring` then `inquiry: acquiring` in the step rows). On the fixed
+disc an eight-step session completed all eight steps with eight distinct
+presses (masks `1` through `128`), each bound to its own previously unseen
+EE-page-signature outcome and entered as its own temporal transition; a session
+started later against the same memory began acquiring from its first step, and
+revisited an already-known outcome rather than a novel one when that is what its
+memory steered toward.
 Virtual input belongs to the foreground game: an action armed while the window
 is in front applies its mask to the emulated pad (a later sample shows Cross
 held) and is cancelled with `reason = NotForeground` once focus leaves, which

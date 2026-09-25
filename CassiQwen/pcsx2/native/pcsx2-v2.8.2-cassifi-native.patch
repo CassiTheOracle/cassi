@@ -1,0 +1,2416 @@
+diff --git a/pcsx2/Achievements.cpp b/pcsx2/Achievements.cpp
+index 58ffb61..4fba9f0 100644
+--- a/pcsx2/Achievements.cpp
++++ b/pcsx2/Achievements.cpp
+@@ -13,6 +13,7 @@
+ #include "IopMem.h"
+ #include "MTGS.h"
+ #include "Memory.h"
++#include "NativeFieldBridge.h"
+ #include "SaveState.h"
+ #include "VMManager.h"
+ #include "vtlb.h"
+@@ -42,6 +43,7 @@
+ #include <functional>
+ #include <limits>
+ #include <map>
++#include <mutex>
+ #include <optional>
+ #include <string>
+ #include <vector>
+@@ -3969,6 +3971,7 @@ void Achievements::RAIntegration::RACallbackWriteMemory(unsigned int address, un
+ 	}
+ 
+ 	u8* ptr = (address < Ps2MemSize::ExposedRam) ? &eeMem->Main[address] : &eeMem->Scratch[address - Ps2MemSize::ExposedRam];
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
+ 	std::memcpy(ptr, &value, sizeof(value));
+ }
+ 
+diff --git a/pcsx2/CMakeLists.txt b/pcsx2/CMakeLists.txt
+index 4652ff9..7b3cc34 100644
+--- a/pcsx2/CMakeLists.txt
++++ b/pcsx2/CMakeLists.txt
+@@ -92,6 +92,7 @@ set(pcsx2Sources
+ 	MMI.cpp
+ 	MTGS.cpp
+ 	MTVU.cpp
++	NativeFieldBridge.cpp
+ 	Patch.cpp
+ 	Pcsx2Config.cpp
+ 	PerformanceMetrics.cpp
+@@ -171,6 +172,7 @@ set(pcsx2Headers
+ 	Mdec.h
+ 	MTGS.h
+ 	MTVU.h
++	NativeFieldBridge.h
+ 	Memory.h
+ 	MemoryTypes.h
+ 	Patch.h
+diff --git a/pcsx2/Counters.cpp b/pcsx2/Counters.cpp
+index 1bb801a..cf4a2fe 100644
+--- a/pcsx2/Counters.cpp
++++ b/pcsx2/Counters.cpp
+@@ -19,6 +19,7 @@
+ #include "SPU2/spu2.h"
+ #include "Recording/InputRecording.h"
+ #include "VMManager.h"
++#include "NativeFieldBridge.h"
+ #include "VUmicro.h"
+ 
+ static const uint EECNT_FUTURE_TARGET = 0x10000000;
+@@ -489,6 +490,7 @@ static __fi void VSyncStart(u64 sCycle)
+ 	// End-of-frame tasks.
+ 	DoFMVSwitch();
+ 	VMManager::Internal::VSyncOnCPUThread();
++	NativeFieldBridge::OnFrameBoundary();
+ 
+ 	// Don't bother throttling if we're going to pause.
+ 	if (!VMManager::Internal::IsExecutionInterrupted())
+diff --git a/pcsx2/DebugTools/DebugInterface.cpp b/pcsx2/DebugTools/DebugInterface.cpp
+index 8d6552f..3ea2568 100644
+--- a/pcsx2/DebugTools/DebugInterface.cpp
++++ b/pcsx2/DebugTools/DebugInterface.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include "DebugInterface.h"
+ #include "Memory.h"
++#include "NativeFieldBridge.h"
+ #include "R5900.h"
+ #include "R5900OpcodeTables.h"
+ #include "Debug.h"
+@@ -17,6 +18,7 @@
+ #include "vtlb.h"
+ 
+ #include "common/StringUtil.h"
++#include <mutex>
+ 
+ R5900DebugInterface r5900Debug;
+ R3000DebugInterface r3000Debug;
+@@ -282,31 +284,47 @@ bool R5900DebugInterface::ReadBytes(u32 address, void* dest, u32 size)
+ 
+ bool R5900DebugInterface::Write8(u32 address, u8 value)
+ {
+-	return isValidAddress(address) && vtlb_memSafeWriteBytes(address, &value, sizeof(value));
++	if (!isValidAddress(address))
++		return false;
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++	return vtlb_memSafeWriteBytes(address, &value, sizeof(value));
+ }
+ 
+ bool R5900DebugInterface::Write16(u32 address, u16 value)
+ {
+-	return isValidAddress(address) && vtlb_memSafeWriteBytes(address, &value, sizeof(value));
++	if (!isValidAddress(address))
++		return false;
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++	return vtlb_memSafeWriteBytes(address, &value, sizeof(value));
+ }
+ 
+ bool R5900DebugInterface::Write32(u32 address, u32 value)
+ {
+-	return isValidAddress(address) && vtlb_memSafeWriteBytes(address, &value, sizeof(value));
++	if (!isValidAddress(address))
++		return false;
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++	return vtlb_memSafeWriteBytes(address, &value, sizeof(value));
+ }
+ 
+ bool R5900DebugInterface::Write64(u32 address, u64 value)
+ {
+-	return isValidAddress(address) && vtlb_memSafeWriteBytes(address, &value, sizeof(value));
++	if (!isValidAddress(address))
++		return false;
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++	return vtlb_memSafeWriteBytes(address, &value, sizeof(value));
+ }
+ 
+ bool R5900DebugInterface::Write128(u32 address, u128 value)
+ {
+-	return isValidAddress(address) && vtlb_memSafeWriteBytes(address, &value, sizeof(value));
++	if (!isValidAddress(address))
++		return false;
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++	return vtlb_memSafeWriteBytes(address, &value, sizeof(value));
+ }
+ 
+ bool R5900DebugInterface::WriteBytes(u32 address, const void* src, u32 size)
+ {
++	std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
+ 	return vtlb_memSafeWriteBytes(address, src, size);
+ }
+ 
+diff --git a/pcsx2/NativeFieldBridge.cpp b/pcsx2/NativeFieldBridge.cpp
+new file mode 100644
+index 0000000..9e9897c
+--- /dev/null
++++ b/pcsx2/NativeFieldBridge.cpp
+@@ -0,0 +1,1978 @@
++// SPDX-License-Identifier: GPL-3.0+
++
++#include "NativeFieldBridge.h"
++
++#include "Common.h"
++#include "Memory.h"
++#include "MemoryTypes.h"
++#include "SIO/Pad/Pad.h"
++#include "SIO/Pad/PadBase.h"
++#include "VMManager.h"
++
++#include "common/Threading.h"
++
++#include <algorithm>
++#include <chrono>
++#include <array>
++#include <atomic>
++#include <condition_variable>
++#include <cstring>
++#include <memory>
++#include <random>
++#include <string>
++#include <thread>
++#include <vector>
++
++#ifdef _WIN32
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif
++#include "common/RedtapeWindows.h"
++#include <Windows.h>
++#include <sddl.h>
++#ifdef _MSC_VER
++#pragma comment(lib, "Advapi32.lib")
++#endif
++#endif
++
++namespace NativeFieldBridge
++{
++namespace
++{
++	constexpr std::uint32_t kPageSize = 4096;
++	constexpr std::uint32_t kHeaderSize = 24;
++	constexpr std::uint32_t kMaxRamSize = 128 * 1024 * 1024;
++	constexpr std::uint16_t kMaxActionFrames = 120;
++	constexpr std::uint32_t kMaxPayload = 8 * 1024 * 1024;
++	constexpr std::uint32_t kBaselinePayload = 1024 * 1024;
++	constexpr std::uint32_t kBaselineFixedBytes = 32;
++	constexpr std::uint32_t kBaselineChunkBytes = kBaselinePayload - kBaselineFixedBytes;
++	constexpr std::uint32_t kMaxPagesPerDelta = 1024;
++	constexpr std::uint32_t kDeltaRecordBytes = 4100;
++	constexpr DWORD kTransferTimeoutMs = 5000;
++	constexpr DWORD kMaxWriteStalls = 6;
++	constexpr std::size_t kSnapshotSlotCount = 3;
++	constexpr std::size_t kCommandQueueSize = 64;
++	constexpr std::size_t kOutputQueueSize = 8192;
++	constexpr std::uint64_t kSnapshotIntervalFrames = 120;
++	constexpr std::size_t kReceiptLimit = 65536;
++	constexpr std::size_t kSerialMax = 256;
++	constexpr std::size_t kTitleMax = 1024;
++	constexpr std::size_t kMaxControlPayload = 56 + kSerialMax;
++
++	enum class StreamType : std::uint16_t
++	{
++		Session = 1,
++		BaselineChunk = 2,
++		Delta = 3,
++		Gap = 4,
++		VMReset = 5,
++		InputEvent = 6,
++		ActionReceipt = 7,
++	};
++
++	enum class ControlType : std::uint16_t
++	{
++		Hello = 0x100,
++		EnableActions = 0x101,
++		Action = 0x102,
++		CancelAction = 0x103,
++	};
++
++	enum class ReceiptResult : std::uint16_t
++	{
++		Completed = 0,
++		Cancelled = 1,
++		Rejected = 2,
++		Enabled = 3,
++		Expired = 4,
++	};
++
++	enum class ReceiptReason : std::uint16_t
++	{
++		None = 0,
++		GateDisabled = 1,
++		WrongGame = 2,
++		NotForeground = 3,
++		PhysicalOverride = 4,
++		Busy = 5,
++		InvalidMask = 6,
++		InvalidDuration = 7,
++		UnsupportedPad = 8,
++		UnknownRequest = 9,
++		ClientDisconnected = 10,
++		VMReset = 11,
++		ControlQueueFull = 12,
++		ActionLimit = 13,
++		NoPadSample = 14,
++		Partial = 15,
++		VMStopped = 16,
++	};
++
++	enum class GapReason : std::uint32_t
++	{
++		SnapshotQueueFull = 1,
++		TooManyChangedPages = 2,
++		OutputQueueFull = 3,
++		VMStopped = 4,
++		CaptureUnavailable = 5,
++	};
++
++	std::mutex s_ee_memory_writer_mutex;
++
++	void PutU16(std::uint8_t* dst, std::uint16_t value)
++	{
++		dst[0] = static_cast<std::uint8_t>(value);
++		dst[1] = static_cast<std::uint8_t>(value >> 8);
++	}
++
++	void PutU32(std::uint8_t* dst, std::uint32_t value)
++	{
++		for (unsigned int i = 0; i < 4; i++)
++			dst[i] = static_cast<std::uint8_t>(value >> (i * 8));
++	}
++
++	void PutU64(std::uint8_t* dst, std::uint64_t value)
++	{
++		for (unsigned int i = 0; i < 8; i++)
++			dst[i] = static_cast<std::uint8_t>(value >> (i * 8));
++	}
++
++	std::uint16_t GetU16(const std::uint8_t* src)
++	{
++		return static_cast<std::uint16_t>(src[0] | (static_cast<std::uint16_t>(src[1]) << 8));
++	}
++
++	std::uint32_t GetU32(const std::uint8_t* src)
++	{
++		return static_cast<std::uint32_t>(src[0]) |
++			(static_cast<std::uint32_t>(src[1]) << 8) |
++			(static_cast<std::uint32_t>(src[2]) << 16) |
++			(static_cast<std::uint32_t>(src[3]) << 24);
++	}
++
++	std::uint64_t GetU64(const std::uint8_t* src)
++	{
++		std::uint64_t value = 0;
++		for (unsigned int i = 0; i < 8; i++)
++			value |= static_cast<std::uint64_t>(src[i]) << (i * 8);
++		return value;
++	}
++
++	void GenerateId(std::array<std::uint8_t, 16>& id)
++	{
++		std::random_device random;
++		for (std::uint8_t& value : id)
++			value = static_cast<std::uint8_t>(random());
++		id[6] = static_cast<std::uint8_t>((id[6] & 0x0f) | 0x40);
++		id[8] = static_cast<std::uint8_t>((id[8] & 0x3f) | 0x80);
++	}
++
++	bool SameId(const std::array<std::uint8_t, 16>& a, const std::uint8_t* b)
++	{
++		return std::memcmp(a.data(), b, a.size()) == 0;
++	}
++
++	bool IsZeroId(const std::array<std::uint8_t, 16>& id)
++	{
++		static constexpr std::array<std::uint8_t, 16> zero = {};
++		return id == zero;
++	}
++
++	std::string BoundedUtf8(std::string value, std::size_t limit)
++	{
++		if (value.size() <= limit)
++			return value;
++		value.resize(limit);
++		while (!value.empty() && (static_cast<unsigned char>(value.back()) & 0xc0) == 0x80)
++			value.pop_back();
++		if (!value.empty())
++		{
++			const unsigned char lead = static_cast<unsigned char>(value.back());
++			if ((lead & 0xe0) == 0xc0 || (lead & 0xf0) == 0xe0 || (lead & 0xf8) == 0xf0)
++				value.pop_back();
++		}
++		return value;
++	}
++
++#ifdef _WIN32
++	constexpr wchar_t kStreamPipeName[] = L"\\\\.\\pipe\\CassiPCSX2-v1-stream";
++	constexpr wchar_t kControlPipeName[] = L"\\\\.\\pipe\\CassiPCSX2-v1-control";
++
++	bool BuildCurrentUserSecurity(PSECURITY_DESCRIPTOR* descriptor)
++	{
++		HANDLE token = nullptr;
++		if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
++			return false;
++
++		DWORD required = 0;
++		GetTokenInformation(token, TokenUser, nullptr, 0, &required);
++		std::vector<std::uint8_t> token_user(required);
++		const bool token_ok = required != 0 && GetTokenInformation(token, TokenUser,
++			token_user.data(), required, &required);
++		CloseHandle(token);
++		if (!token_ok)
++			return false;
++
++		LPWSTR sid_string = nullptr;
++		const auto* user = reinterpret_cast<const TOKEN_USER*>(token_user.data());
++		if (!ConvertSidToStringSidW(user->User.Sid, &sid_string))
++			return false;
++
++		const std::wstring sddl = std::wstring(L"D:P(A;;GA;;;") + sid_string + L")";
++		LocalFree(sid_string);
++		return ConvertStringSecurityDescriptorToSecurityDescriptorW(
++			sddl.c_str(), SDDL_REVISION_1, descriptor, nullptr) != FALSE;
++	}
++
++	HANDLE CreatePipe(const wchar_t* name, DWORD access)
++	{
++		PSECURITY_DESCRIPTOR descriptor = nullptr;
++		if (!BuildCurrentUserSecurity(&descriptor))
++			return INVALID_HANDLE_VALUE;
++
++		SECURITY_ATTRIBUTES security = {};
++		security.nLength = sizeof(security);
++		security.lpSecurityDescriptor = descriptor;
++		HANDLE pipe = CreateNamedPipeW(name, access | FILE_FLAG_OVERLAPPED | FILE_FLAG_FIRST_PIPE_INSTANCE,
++			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
++			1, kBaselinePayload, 4096, 0, &security);
++		LocalFree(descriptor);
++		return pipe;
++	}
++
++	bool IsStopping(HANDLE stop_event)
++	{
++		return WaitForSingleObject(stop_event, 0) == WAIT_OBJECT_0;
++	}
++
++	bool ConnectPipe(HANDLE pipe, HANDLE stop_event)
++	{
++		OVERLAPPED overlapped = {};
++		overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
++		if (!overlapped.hEvent)
++			return false;
++
++		bool connected = false;
++		if (ConnectNamedPipe(pipe, &overlapped))
++		{
++			connected = true;
++		}
++		else
++		{
++			const DWORD error = GetLastError();
++			if (error == ERROR_PIPE_CONNECTED)
++				connected = true;
++			else if (error == ERROR_IO_PENDING)
++			{
++				HANDLE handles[] = {stop_event, overlapped.hEvent};
++				const DWORD wait_result = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
++				if (wait_result == WAIT_OBJECT_0 + 1)
++				{
++					DWORD ignored = 0;
++					connected = GetOverlappedResult(pipe, &overlapped, &ignored, FALSE) != FALSE;
++				}
++				else
++				{
++					CancelIoEx(pipe, &overlapped);
++					WaitForSingleObject(overlapped.hEvent, INFINITE);
++					DWORD ignored = 0;
++					GetOverlappedResult(pipe, &overlapped, &ignored, FALSE);
++				}
++			}
++		}
++
++		CloseHandle(overlapped.hEvent);
++		return connected && !IsStopping(stop_event);
++	}
++
++	bool TransferExact(HANDLE pipe, HANDLE stop_event, void* data, DWORD size, bool writing)
++	{
++		auto* bytes = static_cast<std::uint8_t*>(data);
++		DWORD offset = 0;
++		DWORD stalls = 0;
++		while (offset < size)
++		{
++			if (IsStopping(stop_event))
++				return false;
++
++			OVERLAPPED overlapped = {};
++			overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
++			if (!overlapped.hEvent)
++				return false;
++
++			DWORD transferred = 0;
++			const DWORD remaining = size - offset;
++			const BOOL immediate = writing ? WriteFile(pipe, bytes + offset, remaining, &transferred, &overlapped) :
++				ReadFile(pipe, bytes + offset, remaining, &transferred, &overlapped);
++			bool ok = immediate != FALSE;
++			bool stalled = false;
++			if (!ok && GetLastError() == ERROR_IO_PENDING)
++			{
++				HANDLE handles[] = {stop_event, overlapped.hEvent};
++				const DWORD wait_result = WaitForMultipleObjects(2, handles, FALSE, writing ? kTransferTimeoutMs : INFINITE);
++				if (wait_result == WAIT_OBJECT_0 + 1)
++				{
++					ok = GetOverlappedResult(pipe, &overlapped, &transferred, FALSE) != FALSE;
++				}
++				else
++				{
++					CancelIoEx(pipe, &overlapped);
++					WaitForSingleObject(overlapped.hEvent, INFINITE);
++					DWORD partial = 0;
++					GetOverlappedResult(pipe, &overlapped, &partial, FALSE);
++					transferred = partial;
++					stalled = true;
++				}
++			}
++			CloseHandle(overlapped.hEvent);
++			if (ok && transferred != 0)
++			{
++				offset += transferred;
++				stalls = 0;
++				continue;
++			}
++			// A reader busy between emulated frames stalls the write rather than
++			// leaving the pipe, so a stalled write retries the remaining bytes.
++			if (writing && stalled && !IsStopping(stop_event) && ++stalls <= kMaxWriteStalls)
++				continue;
++			return false;
++		}
++		return true;
++	}
++
++	bool SendFrame(HANDLE pipe, HANDLE stop_event, std::atomic<std::uint64_t>& sequence,
++		std::uint16_t type, const std::uint8_t* payload, std::uint32_t payload_size)
++	{
++		if (payload_size > kMaxPayload)
++			return false;
++		std::array<std::uint8_t, kHeaderSize> header = {};
++		std::memcpy(header.data(), "CASSIIPC", 8);
++		PutU16(header.data() + 8, 1);
++		PutU16(header.data() + 10, type);
++		PutU32(header.data() + 12, payload_size);
++		PutU64(header.data() + 16, sequence.fetch_add(1, std::memory_order_relaxed) + 1);
++		return TransferExact(pipe, stop_event, header.data(), static_cast<DWORD>(header.size()), true) &&
++			(payload_size == 0 || TransferExact(pipe, stop_event,
++				const_cast<std::uint8_t*>(payload), payload_size, true));
++	}
++
++	bool ReadFrame(HANDLE pipe, HANDLE stop_event, std::array<std::uint8_t, kHeaderSize>& header,
++		std::array<std::uint8_t, kMaxControlPayload>& payload, std::uint32_t* payload_size, std::uint64_t* sequence)
++	{
++		if (!TransferExact(pipe, stop_event, header.data(), static_cast<DWORD>(header.size()), false))
++			return false;
++		if (std::memcmp(header.data(), "CASSIIPC", 8) != 0 || GetU16(header.data() + 8) != 1)
++			return false;
++		const std::uint32_t size = GetU32(header.data() + 12);
++		if (size > payload.size())
++			return false;
++		if (size != 0 && !TransferExact(pipe, stop_event, payload.data(), size, false))
++			return false;
++		*payload_size = size;
++		*sequence = GetU64(header.data() + 16);
++		return true;
++	}
++#endif
++
++	struct SnapshotSlot
++	{
++		std::vector<std::uint8_t> bytes;
++		std::uint64_t frame = 0;
++		enum class State : std::uint8_t
++		{
++			Free,
++			Writing,
++			Queued,
++			Worker,
++		};
++		State state = State::Free;
++	};
++
++	struct SnapshotPool
++	{
++		explicit SnapshotPool(std::uint32_t size)
++			: ram_size(size)
++		{
++			for (SnapshotSlot& slot : slots)
++				slot.bytes.resize(size);
++		}
++
++		std::uint32_t ram_size;
++		std::array<SnapshotSlot, kSnapshotSlotCount> slots;
++		std::mutex mutex;
++		std::array<std::size_t, kSnapshotSlotCount> queue = {};
++		std::size_t queue_head = 0;
++		std::size_t queue_count = 0;
++		bool overflow = false;
++		std::uint64_t overflow_first = 0;
++		std::uint64_t overflow_last = 0;
++	};
++
++	struct ControlCommand
++	{
++		std::uint16_t type = 0;
++		std::array<std::uint8_t, 16> session_id = {};
++		std::array<std::uint8_t, 16> stream_id = {};
++		std::array<std::uint8_t, 16> request_id = {};
++		std::uint32_t buttons = 0;
++		std::uint16_t duration = 0;
++		std::uint32_t expected_current_crc = 0;
++		std::uint16_t expected_serial_size = 0;
++		std::array<char, kSerialMax> expected_serial = {};
++	};
++
++	struct OutputMessage
++	{
++		std::uint16_t type = 0;
++		std::uint32_t size = 0;
++		std::uint64_t frame = 0;
++		std::array<std::uint8_t, 64> payload = {};
++	};
++
++	struct ActionRecord
++	{
++		bool used = false;
++		bool terminal = false;
++		bool action = false;
++		std::array<std::uint8_t, 16> request_id = {};
++		std::uint32_t requested_buttons = 0;
++		std::uint32_t applied_buttons = 0;
++		std::uint16_t requested_frames = 0;
++		std::uint16_t consumed_frames = 0;
++		std::uint64_t first_frame = 0;
++		std::uint64_t last_frame = 0;
++		std::uint32_t first_buttons = 0xffffffffu;
++		std::uint32_t last_buttons = 0xffffffffu;
++		std::uint8_t source_bits = 0;
++		std::array<std::uint8_t, 60> receipt = {};
++	};
++
++	class Bridge
++	{
++	public:
++		~Bridge()
++		{
++#ifdef _WIN32
++			StopServer();
++#endif
++		}
++
++		void OnVMStarted()
++		{
++			SetVMIdentity(true, false);
++#ifdef _WIN32
++			StartServer();
++#endif
++		}
++
++		void OnVMStopped()
++		{
++			{
++				std::lock_guard lock(m_state_mutex);
++				m_vm_active = false;
++				m_frame_no.store(0, std::memory_order_release);
++				m_next_snapshot_frame.store(0, std::memory_order_release);
++				m_epoch++;
++				m_transition_reason = static_cast<std::uint32_t>(GapReason::VMStopped);
++			}
++#ifdef _WIN32
++			{
++				std::lock_guard lock(m_pipe_mutex);
++				const HANDLE control = m_control_pipe.load(std::memory_order_acquire);
++				if (control && control != INVALID_HANDLE_VALUE)
++					CancelIoEx(control, nullptr);
++			}
++#endif
++			{
++				std::lock_guard lock(m_controller_mutex);
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::VMStopped, ReceiptResult::Cancelled);
++			}
++			ClearCommands();
++			NotifyWorker();
++		}
++
++		void OnVMReset()
++		{
++			{
++				std::lock_guard lock(m_controller_mutex);
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::VMReset, ReceiptResult::Cancelled);
++			}
++			ClearCommands();
++			SetVMIdentity(true, true);
++			NotifyWorker();
++		}
++
++		void OnGameIdentityChanged()
++		{
++			{
++				std::lock_guard lock(m_controller_mutex);
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::WrongGame, ReceiptResult::Cancelled);
++			}
++			ClearCommands();
++			SetVMIdentity(true, true);
++			NotifyWorker();
++		}
++
++		void OnIpcDisconnected()
++		{
++			std::lock_guard lock(m_controller_mutex);
++			m_action_gate_enabled = false;
++			ClearExpectedIdentity();
++			CancelActive(ReceiptReason::ClientDisconnected, ReceiptResult::Cancelled);
++		}
++		void NotifyWorker()
++		{
++			std::lock_guard lock(m_wait_mutex);
++			m_cv.notify_all();
++		}
++
++		void OnFrameBoundary()
++		{
++			const std::uint64_t frame = m_frame_no.fetch_add(1, std::memory_order_acq_rel) + 1;
++			ExpireAction(frame);
++			if (!m_vm_active.load(std::memory_order_acquire) || !m_stream_connected.load(std::memory_order_acquire))
++				return;
++
++			std::shared_ptr<SnapshotPool> pool;
++			{
++				std::lock_guard lock(m_state_mutex);
++				pool = m_pool;
++			}
++			if (!pool || !eeMem || pool->ram_size != Ps2MemSize::ExposedRam)
++			{
++				SignalGap(frame, static_cast<std::uint32_t>(GapReason::CaptureUnavailable));
++				return;
++			}
++			if (frame < m_next_snapshot_frame.load(std::memory_order_acquire))
++				return;
++			m_next_snapshot_frame.store(frame + kSnapshotIntervalFrames, std::memory_order_release);
++
++			std::size_t slot_index = kSnapshotSlotCount;
++			{
++				std::lock_guard lock(pool->mutex);
++				for (std::size_t i = 0; i < pool->slots.size(); i++)
++				{
++					if (pool->slots[i].state == SnapshotSlot::State::Free)
++					{
++						slot_index = i;
++						pool->slots[i].state = SnapshotSlot::State::Writing;
++						pool->slots[i].frame = frame;
++						break;
++					}
++				}
++				if (slot_index == kSnapshotSlotCount)
++				{
++					if (!pool->overflow)
++					{
++						pool->overflow = true;
++						pool->overflow_first = frame;
++					}
++					pool->overflow_last = frame;
++				}
++			}
++			if (slot_index == kSnapshotSlotCount)
++			{
++				NotifyWorker();
++				return;
++			}
++
++			// VSyncOnCPUThread is the EE execution safe point: guest CPU stores and DMA
++			// work are serialized on this thread. PINE/debugger/RA host pokes take the
++			// same mutex. The worker receives only this immutable owned copy.
++			{
++				std::lock_guard lock(s_ee_memory_writer_mutex);
++				std::memcpy(pool->slots[slot_index].bytes.data(), eeMem->Main, pool->ram_size);
++			}
++			{
++				std::lock_guard lock(pool->mutex);
++				const std::size_t tail = (pool->queue_head + pool->queue_count) % pool->queue.size();
++				pool->queue[tail] = slot_index;
++				pool->queue_count++;
++				pool->slots[slot_index].state = SnapshotSlot::State::Queued;
++			}
++			NotifyWorker();
++		}
++
++		void OnInputPoll()
++		{
++			ControlCommand command;
++			while (PopCommand(&command))
++				ProcessCommand(command);
++		}
++
++		std::uint32_t GetVirtualButtonMask(std::uint8_t unified_slot, bool physical_input_active)
++		{
++			if (unified_slot != 0 || !m_vm_active.load(std::memory_order_acquire))
++				return 0;
++			std::lock_guard lock(m_controller_mutex);
++			if (physical_input_active)
++				return 0;
++			if (!IsForeground())
++			{
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::NotForeground, ReceiptResult::Cancelled);
++				return 0;
++			}
++			ExpireActionLocked(m_frame_no.load(std::memory_order_acquire));
++			if (!m_action_gate_enabled || m_active_action == kNoAction || !IsExpectedIdentity())
++				return 0;
++			return m_receipts[m_active_action].requested_buttons & 0xffffu;
++		}
++
++		void OnPadSample(std::uint8_t unified_slot, bool physical_input_active,
++			std::uint32_t physical_buttons, std::uint32_t actual_buttons,
++			std::uint32_t virtual_mask, std::uint8_t lx, std::uint8_t ly,
++			std::uint8_t rx, std::uint8_t ry)
++		{
++			const std::uint64_t frame = m_frame_no.load(std::memory_order_acquire);
++			std::array<std::uint8_t, 40> payload = {};
++			PutU64(payload.data(), frame);
++			PutU64(payload.data() + 8, m_sample_no.fetch_add(1, std::memory_order_relaxed) + 1);
++			payload[16] = unified_slot;
++			payload[17] = static_cast<std::uint8_t>((physical_input_active ? 1 : 0) | (virtual_mask ? 2 : 0));
++			PutU32(payload.data() + 20, actual_buttons & 0xffffu);
++			PutU32(payload.data() + 24, physical_buttons & 0xffffu);
++			PutU32(payload.data() + 28, virtual_mask & 0xffffu);
++			payload[32] = lx;
++			payload[33] = ly;
++			payload[34] = rx;
++			payload[35] = ry;
++			QueueOutput(static_cast<std::uint16_t>(StreamType::InputEvent), payload.data(), payload.size(), frame);
++
++			std::lock_guard lock(m_controller_mutex);
++			if (m_active_action == kNoAction)
++				return;
++			if (physical_input_active)
++			{
++				CancelActive(ReceiptReason::PhysicalOverride, ReceiptResult::Cancelled,
++					frame, actual_buttons, 1);
++				return;
++			}
++			if (!IsExpectedIdentity())
++			{
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::WrongGame, ReceiptResult::Cancelled);
++				return;
++			}
++			if (!IsForeground())
++			{
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::NotForeground, ReceiptResult::Cancelled,
++					frame, actual_buttons, virtual_mask ? 2 : 0);
++				return;
++			}
++
++			ActionRecord& action = m_receipts[m_active_action];
++			if (!virtual_mask)
++				return;
++			action.applied_buttons |= virtual_mask;
++			m_action_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
++			action.source_bits |= 2;
++			if (action.consumed_frames == 0)
++			{
++				action.first_frame = frame;
++				action.first_buttons = actual_buttons;
++				action.last_frame = frame;
++				action.last_buttons = actual_buttons;
++				action.consumed_frames = 1;
++			}
++			else if (action.last_frame != frame)
++			{
++				action.last_frame = frame;
++				action.last_buttons = actual_buttons;
++				action.consumed_frames++;
++			}
++		}
++
++	private:
++		static constexpr std::size_t kNoAction = static_cast<std::size_t>(-1);
++
++		void SetVMIdentity(bool active, bool reset)
++		{
++			std::shared_ptr<SnapshotPool> pool;
++			const std::uint32_t ram_size = Ps2MemSize::ExposedRam;
++			if (ram_size != 0 && ram_size <= kMaxRamSize && (ram_size % kPageSize) == 0)
++			{
++				pool = std::make_shared<SnapshotPool>(ram_size);
++			}
++
++			{
++				std::lock_guard lock(m_state_mutex);
++				if (IsZeroId(m_session_id))
++					GenerateId(m_session_id);
++				const bool starting_after_stop = active && !m_vm_active.load(std::memory_order_acquire);
++				if (active && (reset || starting_after_stop || m_vm_generation == 0))
++				{
++					++m_vm_generation;
++					if (m_vm_generation == 0)
++						++m_vm_generation;
++				}
++				if (reset || IsZeroId(m_stream_id) || starting_after_stop)
++				{
++					GenerateId(m_stream_id);
++					m_frame_no.store(0, std::memory_order_release);
++					m_next_snapshot_frame.store(0, std::memory_order_release);
++				}
++				m_vm_active.store(active, std::memory_order_release);
++				m_ram_size = ram_size;
++				m_disc_crc = VMManager::GetDiscCRC();
++				m_current_crc = VMManager::GetCurrentCRC();
++				m_serial = BoundedUtf8(VMManager::GetDiscSerial(), kSerialMax);
++				m_title = BoundedUtf8(VMManager::GetTitle(false), kTitleMax);
++				m_pool = std::move(pool);
++				m_epoch++;
++				m_transition_reason = reset ? 1 : (starting_after_stop ? 2 : 0);
++			}
++#ifdef _WIN32
++			{
++				std::lock_guard lock(m_pipe_mutex);
++				const HANDLE control = m_control_pipe.load(std::memory_order_acquire);
++				if (control && control != INVALID_HANDLE_VALUE)
++					CancelIoEx(control, nullptr);
++			}
++#endif
++			NotifyWorker();
++		}
++
++		bool CurrentIdentityMatches(const ControlCommand& command)
++		{
++			if (command.expected_serial_size == 0)
++				return false;
++			std::lock_guard lock(m_state_mutex);
++			return m_vm_active.load(std::memory_order_acquire) &&
++				m_current_crc == command.expected_current_crc &&
++				m_serial.size() == command.expected_serial_size &&
++				std::memcmp(m_serial.data(), command.expected_serial.data(), command.expected_serial_size) == 0;
++		}
++
++		// Requires m_controller_mutex.
++		bool IsExpectedIdentity()
++		{
++			if (!m_expected_identity_valid || m_expected_serial_size == 0)
++				return false;
++			std::lock_guard lock(m_state_mutex);
++			return m_vm_active.load(std::memory_order_acquire) &&
++				m_current_crc == m_expected_current_crc &&
++				m_serial.size() == m_expected_serial_size &&
++				std::memcmp(m_serial.data(), m_expected_serial.data(), m_expected_serial_size) == 0;
++		}
++
++		// Requires m_controller_mutex.
++		void ClearExpectedIdentity()
++		{
++			m_expected_identity_valid = false;
++			m_expected_current_crc = 0;
++			m_expected_serial_size = 0;
++			m_expected_serial.fill(0);
++		}
++
++		bool IsForeground() const
++		{
++#ifdef _WIN32
++			const HWND window = GetForegroundWindow();
++			if (!window)
++				return false;
++			DWORD process_id = 0;
++			GetWindowThreadProcessId(window, &process_id);
++			return process_id == GetCurrentProcessId();
++#else
++			return false;
++#endif
++		}
++
++		std::size_t FindRecord(const std::array<std::uint8_t, 16>& request_id) const
++		{
++			for (std::size_t i = 0; i < m_receipt_count; i++)
++			{
++				if (m_receipts[i].used && m_receipts[i].request_id == request_id)
++					return i;
++			}
++			return kNoAction;
++		}
++
++		std::size_t AllocateRecord(const std::array<std::uint8_t, 16>& request_id, bool action)
++		{
++			if (m_receipt_count >= m_receipts.size())
++				return kNoAction;
++			const std::size_t index = m_receipt_count++;
++			ActionRecord& record = m_receipts[index];
++			record = {};
++			record.used = true;
++			record.action = action;
++			record.request_id = request_id;
++			return index;
++		}
++
++		void QueueReceipt(ActionRecord& record, ReceiptResult result, ReceiptReason reason)
++		{
++			if (record.terminal)
++			{
++				QueueOutput(static_cast<std::uint16_t>(StreamType::ActionReceipt),
++					record.receipt.data(), record.receipt.size(), m_frame_no.load(std::memory_order_relaxed));
++				return;
++			}
++			std::array<std::uint8_t, 60>& payload = record.receipt;
++			payload.fill(0);
++			std::memcpy(payload.data(), record.request_id.data(), record.request_id.size());
++			PutU16(payload.data() + 16, static_cast<std::uint16_t>(result));
++			PutU16(payload.data() + 18, static_cast<std::uint16_t>(reason));
++			PutU32(payload.data() + 20, record.requested_buttons);
++			PutU32(payload.data() + 24, record.applied_buttons);
++			PutU16(payload.data() + 28, record.requested_frames);
++			PutU16(payload.data() + 30, record.consumed_frames);
++			PutU64(payload.data() + 32, record.first_frame);
++			PutU64(payload.data() + 40, record.last_frame);
++			PutU32(payload.data() + 48, record.first_buttons);
++			PutU32(payload.data() + 52, record.last_buttons);
++			payload[56] = record.source_bits;
++			record.terminal = true;
++			QueueOutput(static_cast<std::uint16_t>(StreamType::ActionReceipt),
++				payload.data(), payload.size(), m_frame_no.load(std::memory_order_relaxed));
++		}
++
++		void Reject(const std::array<std::uint8_t, 16>& request_id, ReceiptReason reason,
++			std::uint32_t buttons = 0, std::uint16_t duration = 0, bool action = false)
++		{
++			const std::size_t index = AllocateRecord(request_id, action);
++			if (index == kNoAction)
++			{
++				// The action ledger is bounded. This deterministic rejection does not
++				// apply input, and therefore needs no retained replay state.
++				ActionRecord rejected;
++				rejected.used = true;
++				rejected.request_id = request_id;
++				rejected.requested_buttons = buttons;
++				rejected.requested_frames = duration;
++				rejected.first_buttons = rejected.last_buttons = 0xffffffffu;
++				QueueReceipt(rejected, ReceiptResult::Rejected, ReceiptReason::ActionLimit);
++				return;
++			}
++			ActionRecord& record = m_receipts[index];
++			record.requested_buttons = buttons;
++			record.requested_frames = duration;
++			QueueReceipt(record, ReceiptResult::Rejected, reason);
++		}
++
++		void CancelActive(ReceiptReason reason, ReceiptResult result,
++			std::uint64_t frame = 0, std::uint32_t buttons = 0xffffffffu, std::uint8_t source = 0)
++		{
++			if (m_active_action == kNoAction)
++				return;
++			ActionRecord& action = m_receipts[m_active_action];
++			if (frame != 0)
++			{
++				if (action.consumed_frames == 0)
++				{
++					action.first_frame = frame;
++					action.first_buttons = buttons;
++				}
++				if (action.last_frame != frame)
++					action.last_frame = frame;
++				action.last_buttons = buttons;
++				action.source_bits |= source;
++			}
++			QueueReceipt(action, result, reason);
++			m_active_action = kNoAction;
++		}
++
++		void ExpireActionLocked(std::uint64_t frame)
++		{
++			if (m_action_gate_enabled)
++			{
++				if (!IsExpectedIdentity())
++				{
++					m_action_gate_enabled = false;
++					ClearExpectedIdentity();
++					CancelActive(ReceiptReason::WrongGame, ReceiptResult::Cancelled);
++					return;
++				}
++				if (!IsForeground())
++				{
++					m_action_gate_enabled = false;
++					ClearExpectedIdentity();
++					CancelActive(ReceiptReason::NotForeground, ReceiptResult::Cancelled, frame);
++					return;
++				}
++			}
++			if (m_active_action == kNoAction)
++				return;
++
++			ActionRecord& action = m_receipts[m_active_action];
++			const std::uint64_t expires_at = m_action_start_frame + action.requested_frames;
++			const bool frame_expired = frame >= expires_at;
++			const auto now = std::chrono::steady_clock::now();
++			const bool lease_expired = now >= m_action_deadline || now >= m_action_total_deadline;
++			if (!frame_expired && !lease_expired)
++				return;
++			const ReceiptReason reason = action.consumed_frames == 0 ? ReceiptReason::NoPadSample :
++				(action.consumed_frames < action.requested_frames ? ReceiptReason::Partial : ReceiptReason::None);
++			QueueReceipt(action, reason == ReceiptReason::None ? ReceiptResult::Completed : ReceiptResult::Expired, reason);
++			m_active_action = kNoAction;
++		}
++
++		void ExpireAction(std::uint64_t frame)
++		{
++			std::lock_guard lock(m_controller_mutex);
++			ExpireActionLocked(frame);
++		}
++
++		void ProcessCommand(const ControlCommand& command)
++		{
++			std::lock_guard lock(m_controller_mutex);
++			if (!CommandMatchesCurrentSession(command))
++			{
++				if (command.type == static_cast<std::uint16_t>(ControlType::CancelAction))
++				{
++					const std::size_t old = FindRecord(command.request_id);
++					if (old != kNoAction && m_receipts[old].terminal)
++					{
++						QueueOutput(static_cast<std::uint16_t>(StreamType::ActionReceipt),
++							m_receipts[old].receipt.data(), m_receipts[old].receipt.size(),
++							m_frame_no.load(std::memory_order_relaxed));
++						return;
++					}
++				}
++				Reject(command.request_id, ReceiptReason::VMReset);
++				return;
++			}
++
++			if (command.type == static_cast<std::uint16_t>(ControlType::CancelAction))
++			{
++				const std::size_t existing = FindRecord(command.request_id);
++				if (existing != kNoAction)
++				{
++					ActionRecord& record = m_receipts[existing];
++					if (record.terminal)
++					{
++						QueueOutput(static_cast<std::uint16_t>(StreamType::ActionReceipt),
++							record.receipt.data(), record.receipt.size(), m_frame_no.load(std::memory_order_relaxed));
++					}
++					else if (m_active_action == existing)
++					{
++						CancelActive(ReceiptReason::None, ReceiptResult::Cancelled);
++					}
++					return;
++				}
++				Reject(command.request_id, ReceiptReason::UnknownRequest);
++				return;
++			}
++
++			const std::size_t existing = FindRecord(command.request_id);
++			if (existing != kNoAction)
++			{
++				ActionRecord& record = m_receipts[existing];
++				if (record.terminal)
++					QueueOutput(static_cast<std::uint16_t>(StreamType::ActionReceipt),
++						record.receipt.data(), record.receipt.size(), m_frame_no.load(std::memory_order_relaxed));
++				return;
++			}
++
++			if (command.type == static_cast<std::uint16_t>(ControlType::EnableActions))
++			{
++				if (!CurrentIdentityMatches(command))
++				{
++					m_action_gate_enabled = false;
++					ClearExpectedIdentity();
++					CancelActive(ReceiptReason::WrongGame, ReceiptResult::Cancelled);
++					Reject(command.request_id, ReceiptReason::WrongGame);
++				}
++				else if (!IsForeground())
++				{
++					m_action_gate_enabled = false;
++					ClearExpectedIdentity();
++					CancelActive(ReceiptReason::NotForeground, ReceiptResult::Cancelled);
++					Reject(command.request_id, ReceiptReason::NotForeground);
++				}
++				else
++				{
++					const std::size_t index = AllocateRecord(command.request_id, false);
++					if (index == kNoAction)
++					{
++						Reject(command.request_id, ReceiptReason::ActionLimit);
++					}
++					else
++					{
++						m_expected_current_crc = command.expected_current_crc;
++						m_expected_serial_size = command.expected_serial_size;
++						m_expected_serial = command.expected_serial;
++						m_expected_identity_valid = true;
++						m_action_gate_enabled = true;
++						QueueReceipt(m_receipts[index], ReceiptResult::Enabled, ReceiptReason::None);
++					}
++				}
++				return;
++			}
++
++			if (command.type != static_cast<std::uint16_t>(ControlType::Action))
++				return;
++			if (!m_action_gate_enabled)
++			{
++				Reject(command.request_id, ReceiptReason::GateDisabled, command.buttons, command.duration, true);
++				return;
++			}
++			if (!IsExpectedIdentity())
++			{
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::WrongGame, ReceiptResult::Cancelled);
++				Reject(command.request_id, ReceiptReason::WrongGame, command.buttons, command.duration, true);
++				return;
++			}
++			if (!IsForeground())
++			{
++				m_action_gate_enabled = false;
++				ClearExpectedIdentity();
++				CancelActive(ReceiptReason::NotForeground, ReceiptResult::Cancelled);
++				Reject(command.request_id, ReceiptReason::NotForeground, command.buttons, command.duration, true);
++				return;
++			}
++			if (command.buttons == 0 || (command.buttons & ~0xffffu) != 0)
++			{
++				Reject(command.request_id, ReceiptReason::InvalidMask, command.buttons, command.duration, true);
++				return;
++			}
++			if (command.duration == 0 || command.duration > kMaxActionFrames)
++			{
++				Reject(command.request_id, ReceiptReason::InvalidDuration, command.buttons, command.duration, true);
++				return;
++			}
++			if (m_active_action != kNoAction)
++			{
++				Reject(command.request_id, ReceiptReason::Busy, command.buttons, command.duration, true);
++				return;
++			}
++			PadBase* pad = Pad::GetPad(0);
++			if (!pad || pad->GetType() != Pad::ControllerType::DualShock2)
++			{
++				Reject(command.request_id, ReceiptReason::UnsupportedPad, command.buttons, command.duration, true);
++				return;
++			}
++
++			const std::size_t index = AllocateRecord(command.request_id, true);
++			if (index == kNoAction)
++			{
++				Reject(command.request_id, ReceiptReason::ActionLimit, command.buttons, command.duration, true);
++				return;
++			}
++			ActionRecord& action = m_receipts[index];
++			action.requested_buttons = command.buttons;
++			action.requested_frames = command.duration;
++			m_active_action = index;
++			m_action_start_frame = m_frame_no.load(std::memory_order_acquire);
++			const auto now = std::chrono::steady_clock::now();
++			m_action_deadline = now + std::chrono::milliseconds(500);
++			const std::uint64_t total_lease_ms =
++				(static_cast<std::uint64_t>(action.requested_frames) * 1000 + 14) / 15 + 500;
++			m_action_total_deadline = now + std::chrono::milliseconds(total_lease_ms);
++		}
++
++		bool CommandMatchesCurrentSession(const ControlCommand& command)
++		{
++			std::lock_guard lock(m_state_mutex);
++			return command.session_id == m_session_id && command.stream_id == m_stream_id &&
++				m_vm_active.load(std::memory_order_acquire);
++		}
++
++		bool PushCommand(const ControlCommand& command)
++		{
++			std::lock_guard lock(m_command_mutex);
++			if (m_command_count == m_commands.size())
++				return false;
++			const std::size_t tail = (m_command_head + m_command_count) % m_commands.size();
++			m_commands[tail] = command;
++			m_command_count++;
++			return true;
++		}
++
++		bool PopCommand(ControlCommand* command)
++		{
++			std::lock_guard lock(m_command_mutex);
++			if (m_command_count == 0)
++				return false;
++			*command = m_commands[m_command_head];
++			m_command_head = (m_command_head + 1) % m_commands.size();
++			m_command_count--;
++			return true;
++		}
++
++		void ClearCommands()
++		{
++			std::lock_guard lock(m_command_mutex);
++			m_command_head = 0;
++			m_command_count = 0;
++		}
++
++		void QueueOutput(std::uint16_t type, const std::uint8_t* payload, std::size_t size, std::uint64_t frame)
++		{
++			{
++				std::lock_guard lock(m_output_mutex);
++				if (m_output_count == m_outputs.size())
++				{
++					if (!m_output_overflow)
++						m_output_overflow_first = frame;
++					m_output_overflow = true;
++					m_output_overflow_last = frame;
++				}
++				else
++				{
++					const std::size_t tail = (m_output_head + m_output_count) % m_outputs.size();
++					OutputMessage& message = m_outputs[tail];
++					message.type = type;
++					message.frame = frame;
++					message.size = static_cast<std::uint32_t>(size);
++					std::memcpy(message.payload.data(), payload, size);
++					m_output_count++;
++				}
++			}
++			NotifyWorker();
++		}
++
++		bool PopOutput(OutputMessage* message)
++		{
++			std::lock_guard lock(m_output_mutex);
++			if (m_output_count == 0)
++				return false;
++			*message = m_outputs[m_output_head];
++			m_output_head = (m_output_head + 1) % m_outputs.size();
++			m_output_count--;
++			return true;
++		}
++
++		void DiscardQueuedOutput()
++		{
++			std::lock_guard lock(m_output_mutex);
++			m_output_count = 0;
++			m_output_head = 0;
++			m_output_overflow = false;
++			m_output_overflow_first = m_output_overflow_last = 0;
++		}
++
++		void SignalGap(std::uint64_t frame, std::uint32_t reason)
++		{
++			{
++				std::lock_guard lock(m_gap_mutex);
++				if (!m_manual_gap_pending)
++				{
++					m_manual_gap_pending = true;
++					m_manual_gap_first = frame;
++				}
++				m_manual_gap_last = frame;
++				m_manual_gap_reason = reason;
++			}
++			NotifyWorker();
++		}
++
++		bool PopManualGap(std::uint64_t* first, std::uint64_t* last, std::uint32_t* reason)
++		{
++			std::lock_guard lock(m_gap_mutex);
++			if (!m_manual_gap_pending)
++				return false;
++			*first = m_manual_gap_first;
++			*last = m_manual_gap_last;
++			*reason = m_manual_gap_reason;
++			m_manual_gap_pending = false;
++			return true;
++		}
++
++#ifdef _WIN32
++		void StartServer()
++		{
++			bool expected = false;
++			if (!m_server_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
++				return;
++			m_stop_event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
++			if (!m_stop_event)
++			{
++				m_server_started.store(false, std::memory_order_release);
++				return;
++			}
++			m_stream_thread = std::thread([this]() { StreamServer(); });
++			m_control_thread = std::thread([this]() { ControlServer(); });
++		}
++
++		void StopServer()
++		{
++			if (!m_server_started.exchange(false, std::memory_order_acq_rel))
++				return;
++			if (m_stop_event)
++				SetEvent(m_stop_event);
++			{
++				std::lock_guard lock(m_pipe_mutex);
++				const HANDLE stream = m_stream_pipe.load(std::memory_order_acquire);
++				const HANDLE control = m_control_pipe.load(std::memory_order_acquire);
++				if (stream && stream != INVALID_HANDLE_VALUE)
++					CancelIoEx(stream, nullptr);
++				if (control && control != INVALID_HANDLE_VALUE)
++					CancelIoEx(control, nullptr);
++			}
++			NotifyWorker();
++			if (m_stream_thread.joinable())
++				m_stream_thread.join();
++			if (m_control_thread.joinable())
++				m_control_thread.join();
++			if (m_stop_event)
++			{
++				CloseHandle(m_stop_event);
++				m_stop_event = nullptr;
++			}
++		}
++
++		void StreamServer()
++		{
++			Threading::SetNameOfCurrentThread("Field Bridge Stream");
++			std::vector<std::uint8_t> delta_payload(24 + kMaxPagesPerDelta * kDeltaRecordBytes);
++			std::vector<std::uint8_t> baseline_payload(kBaselinePayload);
++			while (!IsStopping(m_stop_event))
++			{
++				HANDLE pipe = CreatePipe(kStreamPipeName, PIPE_ACCESS_OUTBOUND);
++				if (pipe == INVALID_HANDLE_VALUE)
++				{
++					WaitForSingleObject(m_stop_event, 500);
++					continue;
++				}
++				{
++					std::lock_guard lock(m_pipe_mutex);
++					m_stream_pipe.store(pipe, std::memory_order_release);
++				}
++				if (!ConnectPipe(pipe, m_stop_event))
++				{
++					std::lock_guard lock(m_pipe_mutex);
++					m_stream_pipe.store(INVALID_HANDLE_VALUE, std::memory_order_release);
++					CloseHandle(pipe);
++					continue;
++				}
++				m_next_snapshot_frame.store(m_frame_no.load(std::memory_order_acquire), std::memory_order_release);
++				m_stream_connected.store(true, std::memory_order_release);
++				DiscardQueuedOutput();
++				StreamState worker_state = CaptureStreamState();
++				std::shared_ptr<SnapshotPool> pool = worker_state.pool;
++				std::uint64_t worker_epoch = worker_state.epoch;
++				std::array<std::uint8_t, 16> worker_stream = worker_state.stream_id;
++				std::uint64_t baseline_id = 0;
++				std::size_t current = kSnapshotSlotCount;
++				bool have_baseline = false;
++				bool connected = SendSession(pipe, worker_state);
++				while (connected && !IsStopping(m_stop_event))
++				{
++					if (CurrentEpoch() != worker_epoch)
++					{
++						ReleasePool(pool, current);
++						current = kSnapshotSlotCount;
++						have_baseline = false;
++						StreamState next = CaptureStreamState();
++						if (!next.active)
++						{
++							const auto gap = MakeGapPayload(next.frame, next.frame,
++								static_cast<std::uint32_t>(GapReason::VMStopped));
++							connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++								static_cast<std::uint16_t>(StreamType::Gap), gap.data(), gap.size());
++						}
++						else
++						{
++							if (!IsZeroId(worker_stream))
++							{
++								std::array<std::uint8_t, 56> reset = {};
++								std::memcpy(reset.data(), worker_stream.data(), worker_stream.size());
++								std::memcpy(reset.data() + 16, next.stream_id.data(), next.stream_id.size());
++								PutU64(reset.data() + 32, next.generation);
++								PutU64(reset.data() + 40, next.frame);
++								PutU32(reset.data() + 48, next.transition_reason);
++								connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++									static_cast<std::uint16_t>(StreamType::VMReset), reset.data(), reset.size());
++							}
++							if (connected)
++								connected = SendSession(pipe, next);
++							if (connected)
++								worker_stream = next.stream_id;
++						}
++						pool = next.pool;
++						worker_state = std::move(next);
++						worker_epoch = worker_state.epoch;
++						if (!connected)
++							break;
++					}
++
++					if (!worker_state.active)
++					{
++						std::unique_lock lock(m_wait_mutex);
++						m_cv.wait_for(lock, std::chrono::milliseconds(100), [this, worker_epoch]() {
++							return IsStopping(m_stop_event) || CurrentEpoch() != worker_epoch;
++						});
++						continue;
++					}
++
++					std::uint64_t gap_first = 0;
++					std::uint64_t gap_last = 0;
++					std::uint32_t gap_reason = 0;
++					if (PopManualGap(&gap_first, &gap_last, &gap_reason))
++					{
++						DrainPoolForGap(pool, current, &gap_first, &gap_last);
++						const auto gap = MakeGapPayload(gap_first, gap_last, gap_reason);
++						connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++							static_cast<std::uint16_t>(StreamType::Gap), gap.data(), gap.size());
++						current = kSnapshotSlotCount;
++						have_baseline = false;
++						if (!connected)
++							break;
++					}
++
++					bool event_overflow = false;
++					std::uint64_t event_first = 0;
++					std::uint64_t event_last = 0;
++					{
++						std::lock_guard lock(m_output_mutex);
++						if (m_output_overflow)
++						{
++							event_overflow = true;
++							event_first = m_output_overflow_first;
++							event_last = m_output_overflow_last;
++							for (std::size_t i = 0; i < m_output_count; i++)
++							{
++								const OutputMessage& queued =
++									m_outputs[(m_output_head + i) % m_outputs.size()];
++								event_first = std::min(event_first, queued.frame);
++								event_last = std::max(event_last, queued.frame);
++							}
++							m_output_overflow = false;
++							m_output_overflow_first = m_output_overflow_last = 0;
++							m_output_count = 0;
++							m_output_head = 0;
++						}
++					}
++					if (event_overflow)
++					{
++						const auto gap = MakeGapPayload(event_first, event_last,
++							static_cast<std::uint32_t>(GapReason::OutputQueueFull));
++						connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++							static_cast<std::uint16_t>(StreamType::Gap), gap.data(), gap.size());
++						if (!connected)
++							break;
++					}
++
++					OutputMessage output;
++					if (PopOutput(&output))
++					{
++						connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++							output.type, output.payload.data(), output.size);
++						if (!connected)
++						break;
++					}
++
++					bool processed_snapshot = false;
++					if (pool)
++				{
++					std::uint64_t overflow_first = 0;
++					std::uint64_t overflow_last = 0;
++					bool overflow = false;
++					{
++						std::lock_guard lock(pool->mutex);
++						if (pool->overflow)
++						{
++							overflow = true;
++						pool->overflow = false;
++						overflow_first = pool->overflow_first;
++							overflow_last = pool->overflow_last;
++							pool->overflow_first = pool->overflow_last = 0;
++						}
++					}
++					if (overflow)
++					{
++						DrainPoolForGap(pool, current, &overflow_first, &overflow_last);
++						const auto gap = MakeGapPayload(overflow_first, overflow_last,
++							static_cast<std::uint32_t>(GapReason::SnapshotQueueFull));
++						connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++							static_cast<std::uint16_t>(StreamType::Gap), gap.data(), gap.size());
++						current = kSnapshotSlotCount;
++						have_baseline = false;
++						if (!connected)
++							break;
++					}
++
++					if (current == kSnapshotSlotCount)
++					{
++						current = TakeQueued(pool);
++						if (current != kSnapshotSlotCount)
++						{
++							processed_snapshot = true;
++							baseline_id++;
++							connected = SendBaseline(pipe, pool->slots[current], baseline_id,
++								worker_epoch, baseline_payload);
++							have_baseline = connected;
++							if (!connected)
++								break;
++						}
++					}
++					else
++					{
++						const std::size_t next = TakeQueued(pool);
++						if (next != kSnapshotSlotCount)
++						{
++							processed_snapshot = true;
++							if (!have_baseline)
++							{
++								ReleaseSlot(pool, current);
++								current = next;
++								baseline_id++;
++								connected = SendBaseline(pipe, pool->slots[current], baseline_id,
++									worker_epoch, baseline_payload);
++								have_baseline = connected;
++							}
++							else
++							{
++								const std::uint32_t changed = BuildDelta(pool->slots[current],
++									pool->slots[next], baseline_id, delta_payload);
++								if (changed == UINT32_MAX)
++								{
++									const auto gap = MakeGapPayload(pool->slots[next].frame,
++										pool->slots[next].frame,
++										static_cast<std::uint32_t>(GapReason::TooManyChangedPages));
++									connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++										static_cast<std::uint16_t>(StreamType::Gap), gap.data(), gap.size());
++									ReleaseSlot(pool, current);
++									current = next;
++									baseline_id++;
++									if (connected)
++										connected = SendBaseline(pipe, pool->slots[current], baseline_id,
++											worker_epoch, baseline_payload);
++									have_baseline = connected;
++								}
++								else
++								{
++									connected = SendFrame(pipe, m_stop_event, m_stream_sequence,
++										static_cast<std::uint16_t>(StreamType::Delta),
++										delta_payload.data(), DeltaPayloadSize(changed));
++									ReleaseSlot(pool, current);
++									current = next;
++								}
++							}
++							if (!connected)
++								break;
++						}
++					}
++				}
++					if (!processed_snapshot)
++					{
++						std::unique_lock lock(m_wait_mutex);
++						m_cv.wait_for(lock, std::chrono::milliseconds(100), [this, worker_epoch, pool]() {
++							return IsStopping(m_stop_event) || CurrentEpoch() != worker_epoch ||
++								HasOutput() || HasManualGap() || HasSnapshotWork(pool);
++						});
++					}
++				}
++
++				m_stream_connected.store(false, std::memory_order_release);
++				ReleasePool(pool, current);
++				FlushPool(pool);
++				OnIpcDisconnected();
++				{
++					std::lock_guard lock(m_pipe_mutex);
++					DisconnectNamedPipe(pipe);
++					m_stream_pipe.store(INVALID_HANDLE_VALUE, std::memory_order_release);
++					CloseHandle(pipe);
++				}
++			}
++		}
++
++
++		struct StreamState
++		{
++			std::shared_ptr<SnapshotPool> pool;
++			std::array<std::uint8_t, 16> session_id = {};
++			std::array<std::uint8_t, 16> stream_id = {};
++			std::array<char, kSerialMax> serial = {};
++			std::array<char, kTitleMax> title = {};
++			std::uint64_t epoch = 0;
++			std::uint64_t generation = 0;
++			std::uint64_t frame = 0;
++			std::uint32_t ram_size = 0;
++			std::uint32_t disc_crc = 0;
++			std::uint32_t current_crc = 0;
++			std::uint32_t transition_reason = 0;
++			std::uint16_t serial_size = 0;
++			std::uint16_t title_size = 0;
++			bool active = false;
++		};
++
++		StreamState CaptureStreamState()
++		{
++			StreamState state;
++			std::lock_guard lock(m_state_mutex);
++			state.pool = m_pool;
++			state.session_id = m_session_id;
++			state.stream_id = m_stream_id;
++			state.epoch = m_epoch;
++			state.generation = m_vm_generation;
++			state.frame = m_frame_no.load(std::memory_order_relaxed);
++			state.ram_size = m_ram_size;
++			state.disc_crc = m_disc_crc;
++			state.current_crc = m_current_crc;
++			state.transition_reason = m_transition_reason;
++			state.active = m_vm_active.load(std::memory_order_acquire);
++			state.serial_size = static_cast<std::uint16_t>(m_serial.size());
++			state.title_size = static_cast<std::uint16_t>(m_title.size());
++			std::memcpy(state.serial.data(), m_serial.data(), state.serial_size);
++			std::memcpy(state.title.data(), m_title.data(), state.title_size);
++			return state;
++		}
++		std::uint64_t CurrentEpoch()
++		{
++			std::lock_guard lock(m_state_mutex);
++			return m_epoch;
++		}
++
++
++		bool SendSession(HANDLE pipe, const StreamState& state)
++		{
++			std::array<std::uint8_t, 72 + kSerialMax + kTitleMax> payload = {};
++			std::size_t size = 72;
++			std::memcpy(payload.data(), state.session_id.data(), state.session_id.size());
++			std::memcpy(payload.data() + 16, state.stream_id.data(), state.stream_id.size());
++			PutU64(payload.data() + 32, state.generation);
++			PutU64(payload.data() + 40, state.frame);
++			PutU32(payload.data() + 48, GetCurrentProcessId());
++			PutU32(payload.data() + 52, state.ram_size);
++			PutU32(payload.data() + 56, kPageSize);
++			PutU32(payload.data() + 60, state.disc_crc);
++			PutU32(payload.data() + 64, state.current_crc);
++			PutU16(payload.data() + 68, state.serial_size);
++			PutU16(payload.data() + 70, state.title_size);
++			std::memcpy(payload.data() + size, state.serial.data(), state.serial_size);
++			size += state.serial_size;
++			std::memcpy(payload.data() + size, state.title.data(), state.title_size);
++			size += state.title_size;
++			if (state.ram_size == 0 || state.ram_size > kMaxRamSize ||
++				(state.ram_size % kPageSize) != 0)
++				return false;
++			return SendFrame(pipe, m_stop_event, m_stream_sequence,
++				static_cast<std::uint16_t>(StreamType::Session), payload.data(), static_cast<std::uint32_t>(size));
++		}
++
++		static std::array<std::uint8_t, 24> MakeGapPayload(std::uint64_t first,
++			std::uint64_t last, std::uint32_t reason)
++		{
++			std::array<std::uint8_t, 24> payload = {};
++			PutU64(payload.data(), first);
++			PutU64(payload.data() + 8, last);
++			PutU32(payload.data() + 16, reason);
++			return payload;
++		}
++
++		bool SendBaseline(HANDLE pipe, const SnapshotSlot& slot, std::uint64_t snapshot_id,
++			std::uint64_t expected_epoch, std::vector<std::uint8_t>& payload)
++		{
++			const std::uint32_t count = static_cast<std::uint32_t>(
++				(slot.bytes.size() + kBaselineChunkBytes - 1) / kBaselineChunkBytes);
++			for (std::uint32_t index = 0; index < count; index++)
++			{
++				if (IsStopping(m_stop_event) || CurrentEpoch() != expected_epoch)
++				{
++					Console.Error(fmt::format("Cassi bridge baseline interrupted: chunk={} expected_epoch={} actual_epoch={}",
++						index, expected_epoch, CurrentEpoch()));
++					return false;
++				}
++				const std::uint32_t offset = index * kBaselineChunkBytes;
++				const std::uint32_t bytes = static_cast<std::uint32_t>(
++					std::min<std::size_t>(kBaselineChunkBytes, slot.bytes.size() - offset));
++				PutU64(payload.data(), snapshot_id);
++				PutU64(payload.data() + 8, slot.frame);
++				PutU32(payload.data() + 16, static_cast<std::uint32_t>(slot.bytes.size()));
++				PutU32(payload.data() + 20, offset);
++				PutU16(payload.data() + 24, static_cast<std::uint16_t>(index));
++				PutU16(payload.data() + 26, static_cast<std::uint16_t>(count));
++				PutU32(payload.data() + 28, bytes);
++				std::memcpy(payload.data() + kBaselineFixedBytes, slot.bytes.data() + offset, bytes);
++				if (!SendFrame(pipe, m_stop_event, m_stream_sequence,
++					static_cast<std::uint16_t>(StreamType::BaselineChunk), payload.data(),
++					kBaselineFixedBytes + bytes))
++					return false;
++			}
++			return true;
++		}
++
++		std::uint32_t BuildDelta(const SnapshotSlot& previous, const SnapshotSlot& current,
++			std::uint64_t baseline_id, std::vector<std::uint8_t>& payload)
++		{
++			PutU64(payload.data(), baseline_id);
++			PutU64(payload.data() + 8, current.frame);
++			std::uint32_t count = 0;
++			for (std::uint32_t offset = 0; offset < current.bytes.size(); offset += kPageSize)
++			{
++				const std::uint8_t* const old_page = previous.bytes.data() + offset;
++				const std::uint8_t* const new_page = current.bytes.data() + offset;
++				if (std::memcmp(old_page, new_page, kPageSize) == 0)
++					continue;
++				if (count == kMaxPagesPerDelta)
++					return UINT32_MAX;
++				std::uint8_t* record = payload.data() + 24 + count * kDeltaRecordBytes;
++				PutU32(record, offset / kPageSize);
++				std::memcpy(record + 4, new_page, kPageSize);
++				count++;
++			}
++			PutU32(payload.data() + 16, count);
++			PutU32(payload.data() + 20, kDeltaRecordBytes);
++			return count;
++		}
++
++		static std::uint32_t DeltaPayloadSize(std::uint32_t page_count)
++		{
++			return 24 + page_count * kDeltaRecordBytes;
++		}
++
++		std::size_t TakeQueued(const std::shared_ptr<SnapshotPool>& pool)
++		{
++			if (!pool)
++				return kSnapshotSlotCount;
++			std::lock_guard lock(pool->mutex);
++			if (pool->queue_count == 0)
++				return kSnapshotSlotCount;
++			const std::size_t index = pool->queue[pool->queue_head];
++			pool->queue_head = (pool->queue_head + 1) % pool->queue.size();
++			pool->queue_count--;
++			pool->slots[index].state = SnapshotSlot::State::Worker;
++			return index;
++		}
++
++		bool HasSnapshotWork(const std::shared_ptr<SnapshotPool>& pool)
++		{
++			if (!pool)
++				return false;
++			std::lock_guard lock(pool->mutex);
++			return pool->queue_count != 0 || pool->overflow;
++		}
++		void DrainPoolForGap(const std::shared_ptr<SnapshotPool>& pool, std::size_t current,
++			std::uint64_t* first, std::uint64_t* last)
++		{
++			if (!pool)
++				return;
++			std::lock_guard lock(pool->mutex);
++			bool has_range = *first != 0 || *last != 0;
++			const auto include_frame = [first, last, &has_range](std::uint64_t frame) {
++				if (!has_range)
++				{
++					*first = *last = frame;
++					has_range = true;
++				}
++				else
++				{
++					*first = std::min(*first, frame);
++					*last = std::max(*last, frame);
++				}
++			};
++			if (current < pool->slots.size())
++			{
++				include_frame(pool->slots[current].frame);
++				pool->slots[current].state = SnapshotSlot::State::Free;
++			}
++			while (pool->queue_count != 0)
++			{
++				const std::size_t index = pool->queue[pool->queue_head];
++				pool->queue_head = (pool->queue_head + 1) % pool->queue.size();
++				pool->queue_count--;
++				include_frame(pool->slots[index].frame);
++				pool->slots[index].state = SnapshotSlot::State::Free;
++			}
++			if (pool->overflow)
++			{
++				include_frame(pool->overflow_first);
++				include_frame(pool->overflow_last);
++			}
++			pool->queue_head = 0;
++			pool->overflow = false;
++			pool->overflow_first = pool->overflow_last = 0;
++		}
++
++
++		void ReleaseSlot(const std::shared_ptr<SnapshotPool>& pool, std::size_t index)
++		{
++			if (!pool || index >= pool->slots.size())
++				return;
++			std::lock_guard lock(pool->mutex);
++			pool->slots[index].state = SnapshotSlot::State::Free;
++		}
++
++		void ReleasePool(const std::shared_ptr<SnapshotPool>& pool, std::size_t current)
++		{
++			ReleaseSlot(pool, current);
++			FlushPool(pool);
++		}
++
++		void FlushPool(const std::shared_ptr<SnapshotPool>& pool)
++		{
++			if (!pool)
++				return;
++			std::lock_guard lock(pool->mutex);
++			while (pool->queue_count != 0)
++			{
++				const std::size_t index = pool->queue[pool->queue_head];
++				pool->queue_head = (pool->queue_head + 1) % pool->queue.size();
++				pool->queue_count--;
++				pool->slots[index].state = SnapshotSlot::State::Free;
++			}
++			pool->overflow = false;
++			pool->overflow_first = pool->overflow_last = 0;
++		}
++
++		bool HasOutput()
++		{
++			std::lock_guard lock(m_output_mutex);
++			return m_output_count != 0 || m_output_overflow;
++		}
++
++		bool HasManualGap()
++		{
++			std::lock_guard lock(m_gap_mutex);
++			return m_manual_gap_pending;
++		}
++
++		void ControlServer()
++		{
++			Threading::SetNameOfCurrentThread("Field Bridge Control");
++			while (!IsStopping(m_stop_event))
++			{
++				HANDLE pipe = CreatePipe(kControlPipeName, PIPE_ACCESS_INBOUND);
++				if (pipe == INVALID_HANDLE_VALUE)
++				{
++					WaitForSingleObject(m_stop_event, 500);
++					continue;
++				}
++				{
++					std::lock_guard lock(m_pipe_mutex);
++					m_control_pipe.store(pipe, std::memory_order_release);
++				}
++				if (ConnectPipe(pipe, m_stop_event))
++					ReadControlClient(pipe);
++				{
++					std::lock_guard lock(m_pipe_mutex);
++					m_control_pipe.store(INVALID_HANDLE_VALUE, std::memory_order_release);
++					DisconnectNamedPipe(pipe);
++					CloseHandle(pipe);
++				}
++				OnIpcDisconnected();
++			}
++		}
++
++		bool ReadControlClient(HANDLE pipe)
++		{
++			std::array<std::uint8_t, kHeaderSize> header = {};
++			std::array<std::uint8_t, kMaxControlPayload> payload = {};
++			std::uint32_t size = 0;
++			std::uint64_t sequence = 0;
++			if (!ReadFrame(pipe, m_stop_event, header, payload, &size, &sequence) ||
++				sequence != 1 || GetU16(header.data() + 10) != static_cast<std::uint16_t>(ControlType::Hello) ||
++				size != 44)
++				return false;
++
++			std::array<std::uint8_t, 16> session = {};
++			std::array<std::uint8_t, 16> stream = {};
++			std::memcpy(session.data(), payload.data(), session.size());
++			std::memcpy(stream.data(), payload.data() + 16, stream.size());
++			const std::uint32_t expected_pid = GetU32(payload.data() + 32);
++			const std::uint64_t expected_generation = GetU64(payload.data() + 36);
++			{
++				std::lock_guard lock(m_state_mutex);
++				if (session != m_session_id || stream != m_stream_id ||
++					expected_pid != GetCurrentProcessId() || expected_generation != m_vm_generation ||
++					!m_vm_active.load(std::memory_order_acquire))
++					return false;
++			}
++
++			std::uint64_t previous_sequence = sequence;
++			while (!IsStopping(m_stop_event))
++			{
++				if (!ReadFrame(pipe, m_stop_event, header, payload, &size, &sequence))
++					return false;
++				if (sequence != previous_sequence + 1)
++					return false;
++				previous_sequence = sequence;
++				const std::uint16_t type = GetU16(header.data() + 10);
++				if (type != static_cast<std::uint16_t>(ControlType::EnableActions) &&
++					type != static_cast<std::uint16_t>(ControlType::Action) &&
++					type != static_cast<std::uint16_t>(ControlType::CancelAction))
++					return false;
++				if ((type == static_cast<std::uint16_t>(ControlType::EnableActions) &&
++						(size < 57 || size > kMaxControlPayload)) ||
++					(type == static_cast<std::uint16_t>(ControlType::Action) && size != 56) ||
++					(type == static_cast<std::uint16_t>(ControlType::CancelAction) && size != 48))
++					return false;
++				if (!SameId(session, payload.data()) || !SameId(stream, payload.data() + 16))
++					return false;
++
++				ControlCommand command;
++				command.type = type;
++				command.session_id = session;
++				command.stream_id = stream;
++				std::memcpy(command.request_id.data(), payload.data() + 32, command.request_id.size());
++				if (type == static_cast<std::uint16_t>(ControlType::EnableActions))
++				{
++					command.expected_current_crc = GetU32(payload.data() + 48);
++					command.expected_serial_size = GetU16(payload.data() + 52);
++					if (GetU16(payload.data() + 54) != 0 ||
++						command.expected_serial_size == 0 ||
++						command.expected_serial_size > kSerialMax ||
++						size != 56 + command.expected_serial_size ||
++						std::memchr(payload.data() + 56, 0, command.expected_serial_size) != nullptr)
++						return false;
++					std::memcpy(command.expected_serial.data(), payload.data() + 56,
++						command.expected_serial_size);
++				}
++				if (type == static_cast<std::uint16_t>(ControlType::Action))
++				{
++					command.buttons = GetU32(payload.data() + 48);
++					command.duration = GetU16(payload.data() + 52);
++					if (GetU16(payload.data() + 54) != 0)
++						return false;
++				}
++				if (!PushCommand(command))
++				{
++					std::lock_guard lock(m_controller_mutex);
++					if (type == static_cast<std::uint16_t>(ControlType::CancelAction))
++					{
++						const std::size_t index = FindRecord(command.request_id);
++						if (index != kNoAction && m_active_action == index)
++							CancelActive(ReceiptReason::None, ReceiptResult::Cancelled);
++						else if (index != kNoAction && m_receipts[index].terminal)
++							QueueOutput(static_cast<std::uint16_t>(StreamType::ActionReceipt),
++								m_receipts[index].receipt.data(), m_receipts[index].receipt.size(),
++								m_frame_no.load(std::memory_order_relaxed));
++						else
++							Reject(command.request_id, ReceiptReason::UnknownRequest);
++					}
++					else
++					{
++						Reject(command.request_id, ReceiptReason::ControlQueueFull,
++							command.buttons, command.duration,
++							type == static_cast<std::uint16_t>(ControlType::Action));
++					}
++				}
++			}
++			return true;
++		}
++#endif
++
++		std::mutex m_state_mutex;
++		std::array<std::uint8_t, 16> m_session_id = {};
++		std::array<std::uint8_t, 16> m_stream_id = {};
++		std::string m_serial;
++		std::string m_title;
++		std::uint32_t m_disc_crc = 0;
++		std::uint32_t m_current_crc = 0;
++		std::uint32_t m_ram_size = 0;
++		std::uint64_t m_vm_generation = 0;
++		std::uint64_t m_epoch = 0;
++		std::uint32_t m_transition_reason = 0;
++		std::shared_ptr<SnapshotPool> m_pool;
++		std::atomic_bool m_vm_active{false};
++		std::atomic_bool m_stream_connected{false};
++		std::atomic<std::uint64_t> m_frame_no{0};
++		std::atomic<std::uint64_t> m_next_snapshot_frame{0};
++		std::atomic<std::uint64_t> m_sample_no{0};
++
++		std::mutex m_controller_mutex;
++		std::array<ActionRecord, kReceiptLimit> m_receipts = {};
++		std::size_t m_receipt_count = 0;
++		std::size_t m_active_action = kNoAction;
++		std::uint64_t m_action_start_frame = 0;
++		std::chrono::steady_clock::time_point m_action_deadline = {};
++		std::chrono::steady_clock::time_point m_action_total_deadline = {};
++		bool m_action_gate_enabled = false;
++		bool m_expected_identity_valid = false;
++		std::uint32_t m_expected_current_crc = 0;
++		std::uint16_t m_expected_serial_size = 0;
++		std::array<char, kSerialMax> m_expected_serial = {};
++
++		std::mutex m_command_mutex;
++		std::array<ControlCommand, kCommandQueueSize> m_commands = {};
++		std::size_t m_command_head = 0;
++		std::size_t m_command_count = 0;
++
++		std::mutex m_output_mutex;
++		std::array<OutputMessage, kOutputQueueSize> m_outputs = {};
++		std::size_t m_output_head = 0;
++		std::size_t m_output_count = 0;
++		bool m_output_overflow = false;
++		std::uint64_t m_output_overflow_first = 0;
++		std::uint64_t m_output_overflow_last = 0;
++
++		std::mutex m_gap_mutex;
++		bool m_manual_gap_pending = false;
++		std::uint64_t m_manual_gap_first = 0;
++		std::uint64_t m_manual_gap_last = 0;
++		std::uint32_t m_manual_gap_reason = 0;
++
++		std::mutex m_wait_mutex;
++		std::condition_variable m_cv;
++
++#ifdef _WIN32
++		std::atomic_bool m_server_started{false};
++		HANDLE m_stop_event = nullptr;
++		std::mutex m_pipe_mutex;
++		std::atomic<HANDLE> m_stream_pipe{INVALID_HANDLE_VALUE};
++		std::atomic<HANDLE> m_control_pipe{INVALID_HANDLE_VALUE};
++		std::atomic<std::uint64_t> m_stream_sequence{0};
++		std::thread m_stream_thread;
++		std::thread m_control_thread;
++#endif
++	};
++
++	Bridge s_bridge;
++} // namespace
++
++std::mutex& GetEEMemoryWriterMutex()
++{
++	return s_ee_memory_writer_mutex;
++}
++
++void OnVMStarted()
++{
++	s_bridge.OnVMStarted();
++}
++
++void OnVMStopped()
++{
++	s_bridge.OnVMStopped();
++}
++
++void OnVMReset()
++{
++	s_bridge.OnVMReset();
++}
++
++void OnGameIdentityChanged()
++{
++	s_bridge.OnGameIdentityChanged();
++}
++
++void OnFrameBoundary()
++{
++	s_bridge.OnFrameBoundary();
++}
++
++void OnInputPoll()
++{
++	s_bridge.OnInputPoll();
++}
++
++std::uint32_t GetVirtualButtonMask(std::uint8_t unified_slot, bool physical_input_active)
++{
++	return s_bridge.GetVirtualButtonMask(unified_slot, physical_input_active);
++}
++
++void OnPadSample(std::uint8_t unified_slot, bool physical_input_active,
++	std::uint32_t physical_active_low, std::uint32_t actual_active_low,
++	std::uint32_t virtual_mask, std::uint8_t lx, std::uint8_t ly,
++	std::uint8_t rx, std::uint8_t ry)
++{
++	s_bridge.OnPadSample(unified_slot, physical_input_active, physical_active_low,
++		actual_active_low, virtual_mask, lx, ly, rx, ry);
++}
++} // namespace NativeFieldBridge
+diff --git a/pcsx2/NativeFieldBridge.h b/pcsx2/NativeFieldBridge.h
+new file mode 100644
+index 0000000..568840f
+--- /dev/null
++++ b/pcsx2/NativeFieldBridge.h
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: GPL-3.0+
++
++// Version 1 uses little-endian fields. Every frame starts with:
++//   magic[8] = "CASSIIPC", version:u16, type:u16, payload_bytes:u32, sequence:u64.
++// Stream types: SESSION=1 (72-byte fixed prefix then UTF-8 serial/title),
++// BASELINE_CHUNK=2 (snapshot:u64, frame:u64, ram_bytes:u32, offset:u32,
++// chunk_index:u16, chunk_count:u16, data_bytes:u32, data[]),
++// DELTA=3 (baseline:u64, frame:u64, page_count:u32, record_bytes:u32,
++// then page_index:u32 + 4096 bytes for each page), GAP=4 (first/last frame:u64,
++// reason:u32, reserved:u32), VM_RESET=5 (old/new stream id[16], generation:u64,
++// frame:u64, reason:u32, reserved:u32), INPUT_EVENT=6 (40 bytes),
++// ACTION_RECEIPT=7 (60 bytes).
++// Control types HELLO=0x100 (44 bytes), ENABLE=0x101 (IDs[48], expected_current_crc:u32
++// matching SESSION.current_crc at payload offset 64, serial_bytes:u16, reserved:u16, then
++// UTF-8 serial[1..256]), CANCEL=0x103 (48 bytes), ACTION=0x102 (56 bytes). Commands begin
++// with session_id[16], stream_id[16], request_id[16]; ACTION adds active-high DS2 buttons:u32,
++// frames:u16, reserved:u16. ACTION_RECEIPT result:u16 at 16: 0 completed, 1 cancelled, 2 rejected,
++// 3 gate enabled, 4 expired. reason:u16 at 18: 0 none, 1 gate disabled, 2 wrong game,
++// 3 not foreground, 4 physical override, 5 busy, 6 invalid mask, 7 invalid duration,
++// 8 unsupported pad, 9 unknown request, 10 client disconnected, 11 VM reset,
++// 12 control queue full, 13 action limit, 14 no SIO sample, 15 partial.
++// CANCEL uses the original ACTION request_id; duplicate requests replay the cached terminal receipt.
++
++#pragma once
++
++#include <cstdint>
++#include <mutex>
++
++namespace NativeFieldBridge
++{
++	// Host-side memory pokes use this mutex so frame snapshots cannot race those
++	// external writes. Guest EE stores are serialized by the CPU-thread hook.
++	std::mutex& GetEEMemoryWriterMutex();
++
++	// Lifecycle notifications are synchronized; OnVMReset may run on the
++	// lifecycle caller thread only while EE execution is paused/quiescent.
++	// Frame and input hooks run synchronously on the emulation CPU thread.
++	void OnVMStarted();
++	void OnVMStopped();
++	void OnVMReset();
++	void OnFrameBoundary();
++	void OnGameIdentityChanged();
++	void OnInputPoll();
++
++	// DS2 overlay is a 16-bit active-high mask in PS2 wire button-bit order.
++	std::uint32_t GetVirtualButtonMask(std::uint8_t unified_slot, bool physical_input_active);
++
++	// Called once at the first button byte of each SIO poll command. Both button
++	// words are active-low; virtual_mask is the active-high subset actually used.
++	void OnPadSample(std::uint8_t unified_slot, bool physical_input_active,
++		std::uint32_t physical_active_low, std::uint32_t actual_active_low,
++		std::uint32_t virtual_mask, std::uint8_t lx, std::uint8_t ly,
++		std::uint8_t rx, std::uint8_t ry);
++} // namespace NativeFieldBridge
+diff --git a/pcsx2/PINE.cpp b/pcsx2/PINE.cpp
+index dd4059a..9436a8a 100644
+--- a/pcsx2/PINE.cpp
++++ b/pcsx2/PINE.cpp
+@@ -9,10 +9,12 @@
+ #include "PINE.h"
+ #include "VMManager.h"
+ #include "vtlb.h"
++#include "NativeFieldBridge.h"
+ #include "common/Error.h"
+ #include "common/Threading.h"
+ 
+ #include <atomic>
++#include <mutex>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <span>
+@@ -590,7 +592,10 @@ PINEServer::IPCBuffer PINEServer::ParseCommand(std::span<u8> buf, std::vector<u8
+ 				if (!SafetyChecks(buf_cnt, 1 + 4, ret_cnt, 0, buf_size)) [[unlikely]]
+ 					goto error;
+ 				const u32 a = FromSpan<u32>(buf, buf_cnt);
+-				vtlb_ramWrite<mem8_t>(a, FromSpan<u8>(buf, buf_cnt + 4));
++				{
++					std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++					vtlb_ramWrite<mem8_t>(a, FromSpan<u8>(buf, buf_cnt + 4));
++				}
+ 				buf_cnt += 5;
+ 				break;
+ 			}
+@@ -601,7 +606,10 @@ PINEServer::IPCBuffer PINEServer::ParseCommand(std::span<u8> buf, std::vector<u8
+ 				if (!SafetyChecks(buf_cnt, 2 + 4, ret_cnt, 0, buf_size)) [[unlikely]]
+ 					goto error;
+ 				const u32 a = FromSpan<u32>(buf, buf_cnt);
+-				vtlb_ramWrite<mem16_t>(a, FromSpan<u16>(buf, buf_cnt + 4));
++				{
++					std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++					vtlb_ramWrite<mem16_t>(a, FromSpan<u16>(buf, buf_cnt + 4));
++				}
+ 				buf_cnt += 6;
+ 				break;
+ 			}
+@@ -612,7 +620,10 @@ PINEServer::IPCBuffer PINEServer::ParseCommand(std::span<u8> buf, std::vector<u8
+ 				if (!SafetyChecks(buf_cnt, 4 + 4, ret_cnt, 0, buf_size)) [[unlikely]]
+ 					goto error;
+ 				const u32 a = FromSpan<u32>(buf, buf_cnt);
+-				vtlb_ramWrite<mem32_t>(a, FromSpan<u32>(buf, buf_cnt + 4));
++				{
++					std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++					vtlb_ramWrite<mem32_t>(a, FromSpan<u32>(buf, buf_cnt + 4));
++				}
+ 				buf_cnt += 8;
+ 				break;
+ 			}
+@@ -623,7 +634,10 @@ PINEServer::IPCBuffer PINEServer::ParseCommand(std::span<u8> buf, std::vector<u8
+ 				if (!SafetyChecks(buf_cnt, 8 + 4, ret_cnt, 0, buf_size)) [[unlikely]]
+ 					goto error;
+ 				const u32 a = FromSpan<u32>(buf, buf_cnt);
+-				vtlb_ramWrite<mem64_t>(a, FromSpan<u64>(buf, buf_cnt + 4));
++				{
++					std::lock_guard lock(NativeFieldBridge::GetEEMemoryWriterMutex());
++					vtlb_ramWrite<mem64_t>(a, FromSpan<u64>(buf, buf_cnt + 4));
++				}
+ 				buf_cnt += 12;
+ 				break;
+ 			}
+diff --git a/pcsx2/SIO/Pad/PadDualshock2.cpp b/pcsx2/SIO/Pad/PadDualshock2.cpp
+index 8363a47..70e1c3a 100644
+--- a/pcsx2/SIO/Pad/PadDualshock2.cpp
++++ b/pcsx2/SIO/Pad/PadDualshock2.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include "SIO/Pad/PadDualshock2.h"
+ #include "SIO/Pad/Pad.h"
++#include "NativeFieldBridge.h"
+ #include "SIO/Sio.h"
+ #include "SIO/Sio0.h"
+ 
+@@ -202,7 +203,34 @@ u8 PadDualshock2::ButtonQuery(u8 commandByte)
+ 
+ u8 PadDualshock2::Poll(u8 commandByte)
+ {
+-	const u32 buttons = GetButtons();
++	const u32 physical_buttons = GetButtons();
++	u32 buttons = physical_buttons;
++	if (commandBytesReceived == 3)
++	{
++		const auto [lx, ly] = GetRawLeftAnalog();
++		const auto [rx, ry] = GetRawRightAnalog();
++		const bool physical_input_active =
++			((physical_buttons & 0xffffu) != 0xffffu) ||
++			(GetRawInput(Inputs::PAD_ANALOG) != 0) ||
++			(GetRawInput(Inputs::PAD_PRESSURE) != 0) ||
++			(lx != Pad::ANALOG_NEUTRAL_POSITION) ||
++			(ly != Pad::ANALOG_NEUTRAL_POSITION) ||
++			(rx != Pad::ANALOG_NEUTRAL_POSITION) ||
++			(ry != Pad::ANALOG_NEUTRAL_POSITION);
++		const u32 requested_virtual_mask =
++			NativeFieldBridge::GetVirtualButtonMask(this->unifiedSlot, physical_input_active);
++		const u32 virtual_mask = physical_input_active ? 0 : (requested_virtual_mask & 0xffffu);
++		buttons = physical_buttons & ~virtual_mask;
++		this->pollButtons = buttons;
++		NativeFieldBridge::OnPadSample(this->unifiedSlot, physical_input_active, physical_buttons, buttons,
++			virtual_mask, lx, ly, rx, ry);
++	}
++	else if (commandBytesReceived > 3 && commandBytesReceived <= 20)
++	{
++		// Keep both active-low button bytes consistent even if an action expires
++		// while the current SIO response is still being consumed.
++		buttons = this->pollButtons;
++	}
+ 	u8 largeMotor = 0x00;
+ 	u8 smallMotor = 0x00;
+ 
+diff --git a/pcsx2/SIO/Pad/PadDualshock2.h b/pcsx2/SIO/Pad/PadDualshock2.h
+index 31dbf02..f8e242e 100644
+--- a/pcsx2/SIO/Pad/PadDualshock2.h
++++ b/pcsx2/SIO/Pad/PadDualshock2.h
+@@ -62,6 +62,8 @@ private:
+ 	};
+ 
+ 	u32 buttons = 0xffffffffu;
++	// The virtual overlay is sampled once per SIO poll and held through its response.
++	u32 pollButtons = 0xffffffffu;
+ 	Analogs analogs;
+ 	// Analog button can be held without changing its state.
+ 	// We track here if it is currently held down, to avoid flipping in
+diff --git a/pcsx2/VMManager.cpp b/pcsx2/VMManager.cpp
+index 23c8b44..d4c0b94 100644
+--- a/pcsx2/VMManager.cpp
++++ b/pcsx2/VMManager.cpp
+@@ -24,6 +24,7 @@
+ #include "IopBios.h"
+ #include "MTGS.h"
+ #include "MTVU.h"
++#include "NativeFieldBridge.h"
+ #include "PINE.h"
+ #include "Patch.h"
+ #include "PerformanceMetrics.h"
+@@ -1135,6 +1136,8 @@ void VMManager::UpdateDiscDetails(bool booting)
+ 
+ 		s_title = std::move(title);
+ 	}
++	if (!booting)
++		NativeFieldBridge::OnGameIdentityChanged();
+ 
+ 	Console.WriteLn(Color_StrongGreen,
+ 		fmt::format("Disc changed to {}.", Path::GetFileName(CDVDsys_GetFile(CDVDsys_GetSourceType()))));
+@@ -1179,6 +1182,7 @@ void VMManager::HandleELFChange(bool verbose_patches_if_changed)
+ 	// can flush the JIT, etc. But we need to apply patches for games where the entry
+ 	// point is in the patch (e.g. WRC 4). So. Gross, but the only way to handle it really.
+ 	const u32 crc_to_report = HasBootedELF() ? s_current_crc : 0;
++	NativeFieldBridge::OnGameIdentityChanged();
+ 
+ 	ReportGameChangeToHost();
+ 	Achievements::GameChanged(s_disc_crc, crc_to_report);
+@@ -1628,6 +1632,7 @@ VMBootResult VMManager::Initialize(const VMBootParameters& boot_params, Error* e
+ 
+ 	Console.WriteLn("VM subsystems initialized in %.2f ms", init_timer.GetTimeMilliseconds());
+ 	s_state.store(VMState::Paused, std::memory_order_release);
++	NativeFieldBridge::OnVMStarted();
+ 	Host::OnVMStarted();
+ 	FullscreenUI::OnVMStarted();
+ 	UpdateInhibitScreensaver(EmuConfig.InhibitScreensaver);
+@@ -1650,6 +1655,7 @@ VMBootResult VMManager::Initialize(const VMBootParameters& boot_params, Error* e
+ 
+ void VMManager::Shutdown(bool save_resume_state)
+ {
++	NativeFieldBridge::OnVMStopped();
+ 	// we'll probably already be stopping (this is how Qt calls shutdown),
+ 	// but just in case, so any of the stuff we call here knows we don't have a valid VM.
+ 	s_state.store(VMState::Stopping, std::memory_order_release);
+@@ -1809,6 +1815,7 @@ void VMManager::Reset()
+ 	}
+ 
+ 	ResetFrameLimiter();
++	NativeFieldBridge::OnVMReset();
+ 
+ 	// If we were paused, state won't be resetting, so don't flip back to running.
+ 	if (s_state.load(std::memory_order_acquire) == VMState::Resetting)
+@@ -2926,6 +2933,7 @@ void VMManager::Internal::PollInputOnCPUThread()
+ {
+ 	Host::PumpMessagesOnCPUThread();
+ 	InputManager::PollSources();
++	NativeFieldBridge::OnInputPoll();
+ 
+ 	if (EmuConfig.EnableRecordingTools)
+ 	{
+diff --git a/pcsx2/pcsx2.vcxproj b/pcsx2/pcsx2.vcxproj
+index 5dcf68f..c4ebdca 100644
+--- a/pcsx2/pcsx2.vcxproj
++++ b/pcsx2/pcsx2.vcxproj
+@@ -413,6 +413,7 @@
+     <ClCompile Include="USB\usb-printer\usb-printer.cpp" />
+     <ClCompile Include="USB\USB.cpp" />
+     <ClCompile Include="VMManager.cpp" />
++    <ClCompile Include="NativeFieldBridge.cpp" />
+     <ClCompile Include="windows\Optimus.cpp" />
+     <ClCompile Include="Pcsx2Config.cpp" />
+     <ClCompile Include="SaveState.cpp" />
+@@ -887,6 +888,7 @@
+     <ClInclude Include="Vif_Dynarec.h" />
+     <ClInclude Include="Vif_HashBucket.h" />
+     <ClInclude Include="VMManager.h" />
++    <ClInclude Include="NativeFieldBridge.h" />
+     <ClInclude Include="vtlb.h" />
+     <ClInclude Include="MTVU.h" />
+     <ClInclude Include="VU.h" />
+diff --git a/pcsx2/pcsx2.vcxproj.filters b/pcsx2/pcsx2.vcxproj.filters
+index b9e3c1a..d3283c8 100644
+--- a/pcsx2/pcsx2.vcxproj.filters
++++ b/pcsx2/pcsx2.vcxproj.filters
+@@ -1106,6 +1106,9 @@
+     <ClCompile Include="VMManager.cpp">
+       <Filter>System</Filter>
+     </ClCompile>
++    <ClCompile Include="NativeFieldBridge.cpp">
++      <Filter>System</Filter>
++    </ClCompile>
+     <ClCompile Include="GS\Renderers\HW\GSTextureReplacements.cpp">
+       <Filter>System\Ps2\GS\Renderers\Hardware</Filter>
+     </ClCompile>
+@@ -2061,6 +2064,9 @@
+     <ClInclude Include="VMManager.h">
+       <Filter>System</Filter>
+     </ClInclude>
++    <ClInclude Include="NativeFieldBridge.h">
++      <Filter>System</Filter>
++    </ClInclude>
+     <ClInclude Include="GS\Renderers\HW\GSTextureReplacements.h">
+       <Filter>System\Ps2\GS\Renderers\Hardware</Filter>
+     </ClInclude>
