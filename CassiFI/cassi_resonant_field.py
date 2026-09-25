@@ -4377,34 +4377,50 @@ class _RegionalWaveOperator:
     def step(self, before: np.ndarray, duration: float, *, quiet: bool,
              max_iterations: int, tolerance: float) -> tuple[np.ndarray, dict[str, float]]:
         candidate = before.copy()
+        eps = np.finfo(float).eps
+        atol_inner = tolerance * 0.05
+        rtol_inner = 1e-10
+        sqrt2 = math.sqrt(2.0)
+
+        # Precompute scalar bounds for residual check (done once per outer iteration)
+        before_max = float(np.max(np.abs(before), initial=0.0))
+        duration_max = float(duration)
+
         for iteration in range(max_iterations):
-            gradient = self.energy_gradient(candidate)[1] if quiet else self.discrete_gradient(before, candidate)
-            flow = self.flow(gradient, quiet)
-            if self.device is None:
-                residual = candidate - before - duration * flow
+            # Compute gradient: avoid tuple unpacking overhead
+            if quiet:
+                gradient = self.energy_gradient(candidate)[1]
             else:
-                candidate_device = torch.as_tensor(candidate, dtype=torch.float64, device=self.device)
-                before_device = torch.as_tensor(before, dtype=torch.float64, device=self.device)
-                flow_device = torch.as_tensor(flow, dtype=torch.float64, device=self.device)
-                residual = (candidate_device - before_device - duration * flow_device).cpu().numpy()
-            rounding = 64 * np.finfo(float).eps * (
-                float(np.max(np.abs(candidate), initial=0.0))
-                + float(np.max(np.abs(before), initial=0.0))
-                + duration * max(float(np.max(np.abs(flow), initial=0.0)),
-                                 self.flow_roundoff_gain * self.roundoff_scales(candidate)[0])
-            )
+                gradient = self.discrete_gradient(before, candidate)
+
+            flow = self.flow(gradient, quiet)
+
+            # Vectorized residual calculation
+            residual = candidate - before - duration * flow
+
+            # Compute rounding threshold efficiently using precomputed scalars
+            cand_max = float(np.max(np.abs(candidate), initial=0.0))
+            flow_max = float(np.max(np.abs(flow), initial=0.0))
+            flow_roundoff = self.flow_roundoff_gain * self.roundoff_scales(candidate)[0]
+            rounding = 64.0 * eps * (cand_max + before_max + duration_max * max(flow_max, flow_roundoff))
+
+            # Early exit if converged
             if float(np.max(np.abs(residual), initial=0.0)) <= max(tolerance, rounding):
                 break
-            def jacobian(value: np.ndarray) -> np.ndarray:
+
+            # Define Jacobian application directly
+            def jacobian(value):
                 return value - duration * self.flow(self.derivative(before, candidate, value, quiet), quiet)
+
             if self.device is None:
                 operator = LinearOperator((len(before), len(before)), matvec=jacobian, dtype=np.float64)
-                delta, info = gmres(operator, residual, atol=tolerance * 0.05, rtol=1e-10,
+                delta, info = gmres(operator, residual, atol=atol_inner, rtol=rtol_inner,
                                     restart=min(32, len(before)), maxiter=8)
                 if info != 0:
                     raise ResonantNumericalError("regional nonlinear solve exhausted")
             else:
-                def gpu_jacobian(value: torch.Tensor) -> torch.Tensor:
+                # GPU
+                def gpu_jacobian(value):
                     cpu_value = value.detach().cpu().numpy()
                     return torch.as_tensor(jacobian(cpu_value), dtype=torch.float64, device=self.device)
                 delta_device, gmres_residual, _applications = _torch_gmres(
@@ -4415,9 +4431,12 @@ class _RegionalWaveOperator:
                 if gmres_residual > max(tolerance * 0.05, 1e-11):
                     raise ResonantNumericalError("regional GPU matrix-free Newton solve exhausted")
                 delta = delta_device.cpu().numpy()
+
             candidate -= delta
+
         else:
             raise ResonantNumericalError("regional nonlinear solve exhausted")
+
         start_energy = self.energy_gradient(before)[0]
         end_energy = self.energy_gradient(candidate)[0]
         projected_gradient = self.project(gradient)
