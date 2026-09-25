@@ -6,20 +6,21 @@ an adaptive scheduling choice.  The field owner remains the sole publisher.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import hashlib
 import json
 import math
 import secrets
 import time
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
-
 from cassi_field_computer import ComputerState, PagedComputerState
+from cassi_field_regions import PERSISTENCE_PAGE_WORDS
 from cassi_field_runtime_native import (
     NativeFieldRuntimeClient,
     NativeFieldRuntimeError,
+    NativeGroupRow,
     NativeWordOperation,
 )
 
@@ -219,16 +220,37 @@ def pack_computer_state(
     catalog_sha256: str,
     page_bytes: int = DEFAULT_PAGE_BYTES,
 ) -> PackedFieldImage:
-    # A paged state materialises its whole logical image for this declared read;
-    # the packed transport is page-addressed either way, so both forms pack the
-    # same bytes.
     if not isinstance(state, (ComputerState, PagedComputerState)):
         raise FieldRuntimeError("state must be a ComputerState or PagedComputerState")
-    return pack_field_image(
-        state.field,
+    if isinstance(state, ComputerState):
+        return pack_field_image(
+            state.field,
+            profile_sha256=state.profile_sha256,
+            state_sha256=state_sha256,
+            catalog_sha256=catalog_sha256,
+            page_bytes=page_bytes,
+        )
+    total_words = state.image.profile.total_words
+    packed = bytearray(total_words * 4)
+    for page_index in range(state.image.page_count):
+        page = state.image.page(page_index)
+        if (
+            not np.all(np.isfinite(page))
+            or np.any(page < 0.0)
+            or np.any(page > float(0xFFFFFFFF))
+            or not np.all(page == np.floor(page))
+            or np.any((page == 0.0) & np.signbit(page))
+        ):
+            raise UnsupportedImageEncoding("unsupported-image-encoding: paged u32 word")
+        start = page_index * PERSISTENCE_PAGE_WORDS * 4
+        payload = np.asarray(page, dtype="<u4", order="C").tobytes(order="C")
+        packed[start : start + len(payload)] = payload
+    return PackedFieldImage(
         profile_sha256=state.profile_sha256,
-        state_sha256=state_sha256,
-        catalog_sha256=catalog_sha256,
+        state_sha256=_hex_digest(state_sha256, "state_sha256"),
+        catalog_sha256=_hex_digest(catalog_sha256, "catalog_sha256"),
+        shape=(1, total_words, 1),
+        payload=bytes(packed),
         page_bytes=page_bytes,
     )
 
@@ -254,6 +276,8 @@ class ResidentAttachment:
     fence: int
     image: PackedFieldImage
     placement: str = "native-cpu"
+    device_index: int | None = None
+    device_identity: str | None = None
 
     def descriptor(self) -> dict[str, Any]:
         return {
@@ -262,6 +286,8 @@ class ResidentAttachment:
             "service_generation": self.service_generation,
             "fence": self.fence,
             "placement": self.placement,
+            "device_index": self.device_index,
+            "device_identity": self.device_identity,
             "image": self.image.descriptor(),
         }
 
@@ -281,6 +307,8 @@ class CandidateEpoch:
     errors: tuple[Mapping[str, Any], ...]
     placement: str
     result_sha256: str
+    device_index: int | None = None
+    device_identity: str | None = None
 
     def descriptor(self) -> dict[str, Any]:
         return {
@@ -298,6 +326,8 @@ class CandidateEpoch:
             "errors": [dict(row) for row in self.errors],
             "placement": self.placement,
             "result_sha256": self.result_sha256,
+            "device_index": self.device_index,
+            "device_identity": self.device_identity,
             "transport_sha256": self.image.transport_sha256,
         }
 
@@ -310,6 +340,8 @@ class _CandidateReservation:
     lease_id: str
     predecessor_state_sha256: str
     placement: str
+    device_index: int | None = None
+    device_identity: str | None = None
 
 
 class ResidentFieldRuntime:
@@ -352,6 +384,90 @@ class ResidentFieldRuntime:
         self._owner_candidate: dict[str, str] = {}
         self._settled: dict[str, CandidateEpoch] = {}
         self._lost_generations: set[int] = set()
+        self._device_report: dict[str, Any] | None = None
+
+    def device_report(self) -> Mapping[str, Any] | None:
+        """Structured per-device report for the resident native service.
+
+        ``None`` means no device evidence (no native client or a native
+        build without device fields); unknown budget or identity values
+        inside a report stay explicit ``None``.  Never a cross-API guess.
+        """
+
+        client = self._native_client
+        if client is None:
+            return None
+        if self._device_report is None:
+            self._device_report = client.device_report(refresh=True)
+        return self._device_report
+
+    def probe_vulkan(self) -> Mapping[str, Any]:
+        """Forward an exact native Vulkan probe, including native memory evidence."""
+
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native field runtime is not attached")
+        probe = getattr(client, "probe_vulkan", None)
+        if not callable(probe):
+            raise FieldRuntimeError(
+                "native field runtime does not expose Vulkan probing"
+            )
+        report = probe()
+        if not isinstance(report, Mapping):
+            raise FieldRuntimeError("native Vulkan probe returned an invalid report")
+        device_report = report.get("device_report")
+        if isinstance(device_report, Mapping):
+            self._device_report = device_report
+        return report
+
+    def _device_identity(
+        self, report: Mapping[str, Any] | None
+    ) -> tuple[int | None, str | None]:
+        if not isinstance(report, Mapping):
+            return None, None
+        index = report.get("device_index")
+        identity = report.get("device_identity")
+        return (
+            index if isinstance(index, int) and not isinstance(index, bool) else None,
+            identity if isinstance(identity, str) and identity else None,
+        )
+
+    def _verify_candidate_device(self, reservation: _CandidateReservation) -> None:
+        """Refuse continuation or publication on a different physical device.
+
+        Device evidence is re-queried from the resident service: a cached
+        report captured at candidate begin would always agree with the
+        reservation and could never detect a device change.
+        """
+
+        client = self._native_client
+        if client is None:
+            return
+        report = client.device_report(refresh=True)
+        self._device_report = report
+        if not isinstance(report, Mapping):
+            return
+        index, identity = self._device_identity(report)
+        if (
+            reservation.device_index is not None
+            and index is not None
+            and index != reservation.device_index
+        ):
+            raise FieldRuntimeError(
+                "wrong-device operation refused: candidate was placed on device "
+                f"{reservation.device_index} but the resident service now reports "
+                f"device {index}"
+            )
+        if (
+            reservation.device_identity is not None
+            and identity is not None
+            and identity != reservation.device_identity
+        ):
+            raise FieldRuntimeError(
+                "wrong-device operation refused: candidate was placed on device "
+                f"{reservation.device_identity!r} but the resident service now "
+                f"reports device {identity!r}"
+            )
 
     def _attachment(self, owner_id: str) -> ResidentAttachment:
         attachment = self._attachments.get(owner_id)
@@ -379,21 +495,52 @@ class ResidentFieldRuntime:
         current = self._attachments.get(owner_id)
         if current is not None and fence < current.fence:
             raise StalePublicationFence("attachment fence moved backwards")
+        if (
+            current is not None
+            and current.fence == fence
+            and current.service_generation == self.service_generation
+            and owner_id not in self._owner_candidate
+            and current.image.state_sha256 == state_sha256
+            and current.image.catalog_sha256 == catalog_sha256
+            and current.image.profile_sha256 == state.profile_sha256
+            and current.image.page_bytes == self.page_bytes
+        ):
+            # The service already holds this exact published image at this
+            # fence (attached, or promoted by confirm_publication), so a
+            # refresh keeps it resident and only relabels the placement.
+            if current.placement != placement:
+                current = replace(current, placement=placement)
+                self._attachments[owner_id] = current
+            return current
         image = pack_computer_state(
             state,
             state_sha256=state_sha256,
             catalog_sha256=catalog_sha256,
             page_bytes=self.page_bytes,
         )
+        device_index, device_identity = self._device_identity(
+            self.device_report() if self._native_client is not None else None
+        )
         if self._native_client is not None:
-            native_attachment = self._native_client.attach(
-                owner_id,
-                state.field,
-                profile_sha256=state.profile_sha256,
-                state_sha256=state_sha256,
-                catalog_sha256=catalog_sha256,
-                fence=fence,
-            )
+            if isinstance(state, PagedComputerState):
+                native_attachment = self._native_client.attach_packed(
+                    owner_id,
+                    image.shape,
+                    image.payload,
+                    profile_sha256=state.profile_sha256,
+                    state_sha256=state_sha256,
+                    catalog_sha256=catalog_sha256,
+                    fence=fence,
+                )
+            else:
+                native_attachment = self._native_client.attach(
+                    owner_id,
+                    state.field,
+                    profile_sha256=state.profile_sha256,
+                    state_sha256=state_sha256,
+                    catalog_sha256=catalog_sha256,
+                    fence=fence,
+                )
             if native_attachment["packed_sha256"] != hashlib.sha256(
                 image.payload
             ).hexdigest():
@@ -404,6 +551,8 @@ class ResidentFieldRuntime:
             fence=fence,
             image=image,
             placement=placement,
+            device_index=device_index,
+            device_identity=device_identity,
         )
         self._attachments[owner_id] = attachment
         return attachment
@@ -427,19 +576,39 @@ class ResidentFieldRuntime:
             raise FieldRuntimeError("owner already has an in-flight candidate")
         if not isinstance(lease_id, str) or not lease_id:
             raise FieldRuntimeError("lease_id must be nonempty")
-        actual_placement = placement or attachment.placement
-        if actual_placement not in {"native-cpu", "vulkan"}:
+        requested_placement = placement or attachment.placement
+        if requested_placement not in {
+            "native-cpu",
+            "native-cpu-continuation",
+            "vulkan",
+        }:
             raise FieldRuntimeError("candidate placement is invalid")
+        wire_placement = (
+            "native-cpu"
+            if requested_placement == "native-cpu-continuation"
+            else requested_placement
+        )
         if self._native_client is None:
             candidate_id = secrets.token_hex(16)
+            actual_placement = requested_placement
         else:
             candidate_id = self._native_client.begin_candidate(
                 owner_id,
                 predecessor_state_sha256,
                 fence=fence,
                 lease_id=lease_id,
-                placement=actual_placement,
+                placement=wire_placement,
             )
+            actual_placement = self._native_client.candidate_placement(candidate_id)
+        if actual_placement not in {
+            "native-cpu",
+            "native-cpu-continuation",
+            "vulkan",
+        }:
+            raise FieldRuntimeError("native candidate returned an unknown placement")
+        device_index, device_identity = self._device_identity(
+            self.device_report() if self._native_client is not None else None
+        )
         self._reservations[candidate_id] = _CandidateReservation(
             owner_id=owner_id,
             service_generation=self.service_generation,
@@ -447,6 +616,8 @@ class ResidentFieldRuntime:
             lease_id=lease_id,
             predecessor_state_sha256=predecessor_state_sha256,
             placement=actual_placement,
+            device_index=device_index,
+            device_identity=device_identity,
         )
         self._owner_candidate[owner_id] = candidate_id
         return candidate_id
@@ -456,7 +627,7 @@ class ResidentFieldRuntime:
         candidate_id: str,
         reservation: _CandidateReservation,
         image: PackedFieldImage,
-        state: ComputerState | PagedComputerState,
+        changed_pages: Sequence[int] | None,
     ) -> None:
         client = self._native_client
         if client is None:
@@ -466,31 +637,174 @@ class ResidentFieldRuntime:
             raise FieldRuntimeError("native candidate changed packed image shape")
         old_words = np.frombuffer(predecessor.payload, dtype="<u4")
         new_words = np.frombuffer(image.payload, dtype="<u4")
-        changed = np.flatnonzero(old_words != new_words)
-        if len(changed) > 65_536:
-            raise FieldRuntimeError(
-                "native candidate word delta exceeds epoch operation limit"
+        if changed_pages is None:
+            pages = range((len(old_words) + PERSISTENCE_PAGE_WORDS - 1) // PERSISTENCE_PAGE_WORDS)
+        else:
+            pages = tuple(changed_pages)
+            if any(
+                isinstance(index, bool)
+                or not isinstance(index, int)
+                or index < 0
+                or index * PERSISTENCE_PAGE_WORDS >= len(old_words)
+                for index in pages
+            ) or tuple(sorted(set(pages))) != pages:
+                raise FieldRuntimeError("changed page indices must be unique, sorted, and in range")
+        words_per_page = PERSISTENCE_PAGE_WORDS
+
+        for page in pages:
+            start = page * words_per_page
+            stop = min(len(old_words), start + words_per_page)
+            if np.array_equal(old_words[start:stop], new_words[start:stop]):
+                continue
+            old_payload = predecessor.payload[start * 4 : stop * 4]
+            new_payload = image.payload[start * 4 : stop * 4]
+            page_result = client.apply_candidate_page(
+                candidate_id,
+                page,
+                hashlib.sha256(old_payload).hexdigest(),
+                new_payload,
             )
-        operations = [
-            NativeWordOperation(
-                "compare-set",
-                int(index),
-                int(old_words[index]),
-                int(new_words[index]),
-            )
-            for index in changed
-        ]
-        for start in range(0, len(operations), 16_384):
-            client.apply_word_operations(
-                candidate_id, operations[start : start + 16_384]
-            )
-        exported, metadata = client.export_candidate(candidate_id, image.shape)
-        if metadata["predecessor_state_sha256"] != (
-            reservation.predecessor_state_sha256
-        ):
+            if page_result["placement"] != reservation.placement:
+                reservation.placement = page_result["placement"]
+        # The candidate is u32 words on both sides, so equal canonical float64
+        # digests prove the native image equals the settled payload without
+        # exporting it back through a staging mapping.
+        finalized = client.candidate_digest(candidate_id)
+        if finalized["predecessor_state_sha256"] != reservation.predecessor_state_sha256:
             raise FieldRuntimeError("native candidate predecessor disagrees")
-        if exported.tobytes(order="C") != state.field.tobytes(order="C"):
+        canonical = np.frombuffer(image.payload, dtype="<u4").astype("<f8")
+        if (
+            finalized["canonical_bytes"] != canonical.nbytes
+            or finalized["canonical_bytes_sha256"] != hashlib.sha256(canonical).hexdigest()
+        ):
             raise FieldRuntimeError("native candidate field image disagrees")
+
+    def compute_words(
+        self,
+        candidate_id: str,
+        operations: Iterable[NativeWordOperation],
+    ) -> Mapping[str, Any]:
+        """Run ordered u32 operations against the private native candidate."""
+
+        reservation = self._reservations.get(candidate_id)
+        if reservation is None or reservation.service_generation != self.service_generation:
+            raise StaleRuntimeGeneration("candidate reservation is unknown or stale")
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native computation requires a native field service")
+        self._verify_candidate_device(reservation)
+        result = client.apply_word_operations(candidate_id, operations)
+        if result.get("placement") in {
+            "native-cpu",
+            "native-cpu-continuation",
+            "vulkan",
+        }:
+            reservation.placement = str(result["placement"])
+        return {
+            "candidate_id": candidate_id,
+            "owner_id": reservation.owner_id,
+            "service_generation": reservation.service_generation,
+            "fence": reservation.fence,
+            "lease_id": reservation.lease_id,
+            **result,
+        }
+    def export_candidate_words(
+        self, candidate_id: str, shape: Sequence[int]
+    ) -> tuple[np.ndarray, Mapping[str, Any]]:
+        """Read back an exact private candidate without promoting its cache."""
+
+        reservation = self._reservations.get(candidate_id)
+        if reservation is None or reservation.service_generation != self.service_generation:
+            raise StaleRuntimeGeneration("candidate reservation is unknown or stale")
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native export requires a native field service")
+        image, metadata = client.export_candidate(candidate_id, shape)
+        if metadata.get("predecessor_state_sha256") != reservation.predecessor_state_sha256:
+            raise StalePublicationFence("native export predecessor changed")
+        return image, {
+            **metadata,
+            "candidate_id": candidate_id,
+            "owner_id": reservation.owner_id,
+            "service_generation": reservation.service_generation,
+            "fence": reservation.fence,
+            "lease_id": reservation.lease_id,
+            "placement": reservation.placement,
+        }
+
+
+
+
+    def reduce_candidate(
+        self,
+        candidate_id: str,
+        first_word: int,
+        count: int,
+        *,
+        owner_id: str,
+        fence: int,
+        lease_id: str,
+    ) -> Mapping[str, Any]:
+        """Exact native reduction view of an active candidate's word range.
+
+        The scalar is candidate-bound and uncommitted: it is produced by the
+        resident native service for this candidate only, is never written to
+        the published cache, and stops being queryable the moment the
+        candidate is confirmed through :meth:`confirm_publication`, cancelled,
+        or invalidated by a service-generation change (recovery or device
+        loss).  Visibility therefore stays tied to the existing publication
+        lifecycle; the owner alone decides what to publish.
+        """
+
+        if not isinstance(owner_id, str) or not owner_id:
+            raise FieldRuntimeError("owner_id must be nonempty")
+        if isinstance(first_word, bool) or not isinstance(first_word, int) or first_word < 0:
+            raise FieldRuntimeError("first_word must be a nonnegative word index")
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            raise FieldRuntimeError("count must be a positive word count")
+        reservation = self._reservations.get(candidate_id)
+        if reservation is None or reservation.service_generation != self.service_generation:
+            raise StaleRuntimeGeneration("candidate reservation is unknown or stale")
+        if reservation.owner_id != owner_id:
+            raise StalePublicationFence("candidate owner disagrees")
+        attachment = self._attachment(owner_id)
+        if reservation.fence != fence or attachment.fence != fence:
+            raise StalePublicationFence("candidate reduction fence is stale")
+        if reservation.lease_id != lease_id:
+            raise StalePublicationFence("candidate lease is stale")
+        if attachment.image.state_sha256 != reservation.predecessor_state_sha256:
+            raise StalePublicationFence("resident predecessor changed")
+        word_count = attachment.image.word_count
+        if first_word >= word_count or count > word_count - first_word:
+            raise FieldRuntimeError("reduction range is outside the resident image")
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native reduction requires a native field service")
+        self._verify_candidate_device(reservation)
+        result = client.reduce_candidate(candidate_id, first_word, count)
+        if result["count"] != count:
+            raise FieldRuntimeError("native reduction count disagrees")
+        if result["fence"] != reservation.fence:
+            raise StalePublicationFence("native reduction fence disagrees")
+        if result["predecessor_state_sha256"] != reservation.predecessor_state_sha256:
+            raise StalePublicationFence("native reduction predecessor disagrees")
+        placement = str(result["placement"])
+        if placement not in {"native-cpu", "native-cpu-continuation", "vulkan"}:
+            raise FieldRuntimeError("native reduction returned an unknown placement")
+        reservation.placement = placement
+        return {
+            "candidate_id": candidate_id,
+            "owner_id": reservation.owner_id,
+            "service_generation": reservation.service_generation,
+            "fence": reservation.fence,
+            "lease_id": reservation.lease_id,
+            "predecessor_state_sha256": reservation.predecessor_state_sha256,
+            "first_word": first_word,
+            "count": count,
+            "sum": int(result["sum"]),
+            "status": "reduced",
+            "placement": placement,
+        }
 
     def settle_candidate(
         self,
@@ -503,6 +817,7 @@ class ResidentFieldRuntime:
         dispatches: int,
         events: Sequence[Mapping[str, Any]] = (),
         errors: Sequence[Mapping[str, Any]] = (),
+        changed_pages: Sequence[int] | None = None,
     ) -> CandidateEpoch:
         previous = self._settled.get(candidate_id)
         if previous is not None:
@@ -514,6 +829,7 @@ class ResidentFieldRuntime:
             raise FieldRuntimeError("candidate reservation is unknown")
         if reservation.service_generation != self.service_generation:
             raise StaleRuntimeGeneration("candidate service generation is stale")
+        self._verify_candidate_device(reservation)
         transitions = _positive_int(
             logical_transitions, "logical_transitions", allow_zero=True
         )
@@ -528,7 +844,7 @@ class ResidentFieldRuntime:
             catalog_sha256=catalog_sha256,
             page_bytes=self.page_bytes,
         )
-        self._settle_native_image(candidate_id, reservation, image, state)
+        self._settle_native_image(candidate_id, reservation, image, changed_pages)
         event_rows = tuple(dict(row) for row in events)
         error_rows = tuple(dict(row) for row in errors)
         body = {
@@ -558,6 +874,8 @@ class ResidentFieldRuntime:
             errors=error_rows,
             placement=reservation.placement,
             result_sha256=_digest(body),
+            device_index=reservation.device_index,
+            device_identity=reservation.device_identity,
         )
         self._settled[candidate_id] = candidate
         return candidate
@@ -573,9 +891,10 @@ class ResidentFieldRuntime:
         candidate = self._settled.get(candidate_id)
         if candidate is None:
             raise FieldRuntimeError("candidate has not settled")
-        attachment = self._attachment(candidate.owner_id)
         if candidate.service_generation != self.service_generation:
             raise StaleRuntimeGeneration("candidate service generation is stale")
+        self._verify_candidate_device(candidate)
+        attachment = self._attachment(candidate.owner_id)
         if candidate.fence != fence or attachment.fence != fence:
             raise StalePublicationFence("candidate publication fence is stale")
         if candidate.lease_id != lease_id:
@@ -593,8 +912,85 @@ class ResidentFieldRuntime:
         owner_state_sha256: str,
         fence: int,
         lease_id: str,
+        owner_ack: Mapping[str, Any] | None = None,
+        graph_site_receipt_sha256: str | None = None,
     ) -> Mapping[str, Any]:
-        """Update the disposable cache only after the owner published the state."""
+        """Commit field and provisional model state after owner publication."""
+
+        graph_confirmation = (
+            owner_ack is not None or graph_site_receipt_sha256 is not None
+        )
+        if graph_confirmation:
+            if owner_ack is None or graph_site_receipt_sha256 is None:
+                raise FieldRuntimeError(
+                    "graph publication requires both owner_ack and "
+                    "graph_site_receipt_sha256"
+                )
+            receipt_sha256 = _hex_digest(
+                graph_site_receipt_sha256, "graph_site_receipt_sha256"
+            )
+            if not isinstance(owner_ack, Mapping):
+                raise FieldRuntimeError("owner_ack must be a mapping")
+            if set(owner_ack) != {
+                "accepted_model_step",
+                "accepted_token_id",
+                "native_operation_id",
+                "field_successor_sha256",
+                "native_successor_sha256",
+                "native_graph_site_receipt_sha256",
+                "graph_receipt_wire_sha256",
+                "ticket_id",
+                "field_candidate_id",
+            }:
+                raise FieldRuntimeError(
+                    "owner_ack must contain the exact native graph-site acknowledgement"
+                )
+            if owner_ack.get("accepted_model_step") is not True:
+                raise FieldRuntimeError(
+                    "owner_ack.accepted_model_step must be True"
+                )
+            if owner_ack.get("native_graph_site_receipt_sha256") != receipt_sha256:
+                raise StalePublicationFence(
+                    "owner acknowledgement names a different graph-site receipt"
+                )
+            accepted_token_id = owner_ack.get("accepted_token_id")
+            if (
+                isinstance(accepted_token_id, bool)
+                or not isinstance(accepted_token_id, int)
+                or accepted_token_id < 0
+            ):
+                raise FieldRuntimeError(
+                    "owner_ack.accepted_token_id must be a nonnegative integer"
+                )
+            native_operation_id = owner_ack.get("native_operation_id")
+            if not isinstance(native_operation_id, str) or not native_operation_id:
+                raise FieldRuntimeError(
+                    "owner_ack.native_operation_id must be a nonempty string"
+                )
+            ticket_id = owner_ack.get("ticket_id")
+            if not isinstance(ticket_id, str) or not ticket_id:
+                raise FieldRuntimeError("owner_ack.ticket_id must be a nonempty string")
+            if owner_ack.get("field_candidate_id") != candidate_id:
+                raise StalePublicationFence(
+                    "owner acknowledgement names a different field candidate"
+                )
+            _hex_digest(
+                owner_ack.get("field_successor_sha256"),
+                "owner_ack.field_successor_sha256",
+            )
+            _hex_digest(
+                owner_ack.get("native_successor_sha256"),
+                "owner_ack.native_successor_sha256",
+            )
+            _hex_digest(
+                owner_ack.get("graph_receipt_wire_sha256"),
+                "owner_ack.graph_receipt_wire_sha256",
+            )
+            if self._native_client is None:
+                raise FieldRuntimeError(
+                    "graph publication requires an attached native model runtime"
+                )
+            self._require_graph_site_capabilities(self._native_client)
 
         candidate = self.validate_for_publication(
             candidate_id,
@@ -604,25 +1000,56 @@ class ResidentFieldRuntime:
         )
         if owner_state_sha256 != candidate.image.state_sha256:
             raise StalePublicationFence("owner did not publish candidate successor")
-        if self._native_client is not None:
-            native_confirmation = self._native_client.confirm_cache(
-                candidate_id,
-                candidate.predecessor_state_sha256,
-                owner_state_sha256,
-                fence=fence,
-                lease_id=lease_id,
+        if graph_confirmation and (
+            owner_ack["field_successor_sha256"] != candidate.image.state_sha256
+        ):
+            raise StalePublicationFence(
+                "owner acknowledgement names a different field successor"
             )
+        if self._native_client is not None:
+            if graph_confirmation:
+                native_confirmation = self._native_client.confirm_cache(
+                    candidate_id,
+                    candidate.predecessor_state_sha256,
+                    owner_state_sha256,
+                    fence=fence,
+                    lease_id=lease_id,
+                    graph_site_receipt_sha256=receipt_sha256,
+                    owner_ack=owner_ack,
+                )
+            else:
+                native_confirmation = self._native_client.confirm_cache(
+                    candidate_id,
+                    candidate.predecessor_state_sha256,
+                    owner_state_sha256,
+                    fence=fence,
+                    lease_id=lease_id,
+                )
             if (
                 native_confirmation["state_sha256"] != owner_state_sha256
                 or native_confirmation["fence"] != fence + 1
             ):
                 raise FieldRuntimeError("native cache confirmation disagrees")
+            if graph_confirmation:
+                accepted_model_step = native_confirmation.get("accepted_model_step")
+                if (
+                    native_confirmation.get("accepted_token_id")
+                    != accepted_token_id
+                    or isinstance(accepted_model_step, bool)
+                    or not isinstance(accepted_model_step, int)
+                    or accepted_model_step != 1
+                ):
+                    raise FieldRuntimeError(
+                        "native graph-site confirmation disagrees with owner acknowledgement"
+                    )
         self._attachments[candidate.owner_id] = ResidentAttachment(
             owner_id=candidate.owner_id,
             service_generation=self.service_generation,
             fence=fence + 1,
             image=candidate.image,
             placement=candidate.placement,
+            device_index=candidate.device_index,
+            device_identity=candidate.device_identity,
         )
         self._retire_candidate(candidate_id)
         return {
@@ -634,6 +1061,8 @@ class ResidentFieldRuntime:
             "service_generation": self.service_generation,
             "fence": fence + 1,
             "placement": candidate.placement,
+            "device_index": candidate.device_index,
+            "device_identity": candidate.device_identity,
             "logical_transitions": candidate.logical_transitions,
             "dispatches": candidate.dispatches,
             "result_sha256": candidate.result_sha256,
@@ -690,21 +1119,179 @@ class ResidentFieldRuntime:
             gpu_layers=gpu_layers,
         )
 
+    @staticmethod
+    def _require_graph_site_capabilities(client: Any) -> None:
+        if not callable(getattr(client, "candidate_preflight", None)) or not callable(
+            getattr(client, "rebuild_task_from_owner_history", None)
+        ):
+            raise FieldRuntimeError(
+                "native model runtime does not support graph-site preflight and replay"
+            )
+
+    def candidate_preflight(
+        self,
+        task_id: str,
+        source_sha256: str,
+        tokens: Sequence[int],
+        *,
+        sequence_id: str,
+        sampler: Mapping[str, Any],
+        native_operation_id: str,
+    ) -> Mapping[str, Any]:
+        """Ask the native client to measure the requested owner graph sequence."""
+
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        self._require_graph_site_capabilities(client)
+        if not isinstance(sequence_id, str) or not sequence_id:
+            raise FieldRuntimeError("sequence_id must be a nonempty string")
+        if not isinstance(native_operation_id, str) or not native_operation_id:
+            raise FieldRuntimeError("native_operation_id must be a nonempty string")
+        if not isinstance(sampler, Mapping):
+            raise FieldRuntimeError("sampler must be a mapping")
+        result = client.candidate_preflight(
+            task_id,
+            source_sha256,
+            tokens,
+            sequence_id=sequence_id,
+            sampler=sampler,
+            native_operation_id=native_operation_id,
+        )
+        if not isinstance(result, Mapping):
+            raise FieldRuntimeError(
+                "native graph-site preflight returned an invalid result"
+            )
+        return result
+
+    def rebuild_task_from_owner_history(
+        self,
+        task_id: str,
+        source_sha256: str,
+        model_id: str,
+        tokenizer_id: str,
+        owner_history: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Recreate disposable model state from the owner's accepted history."""
+
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        self._require_graph_site_capabilities(client)
+        if not isinstance(owner_history, Mapping):
+            raise FieldRuntimeError("owner_history must be a mapping")
+        result = client.rebuild_task_from_owner_history(
+            task_id,
+            source_sha256,
+            model_id,
+            tokenizer_id,
+            owner_history,
+        )
+        if not isinstance(result, Mapping):
+            raise FieldRuntimeError(
+                "native owner-history replay returned an invalid result"
+            )
+        return result
+
+    def _require_active_model_candidate(self, candidate_id: str) -> None:
+        reservation = self._reservations.get(candidate_id)
+        if reservation is None:
+            raise FieldRuntimeError("model candidate is not an active field candidate")
+        if reservation.service_generation != self.service_generation:
+            raise StaleRuntimeGeneration("model candidate service generation is stale")
+
     def step_model(
         self,
         task_id: str,
         source_sha256: str,
         tokens: Sequence[int],
         *,
-        sampler_mode: str,
-        temperature: float,
-        top_k: int,
-        draw: float,
+        sampler_mode: str = "greedy",
+        temperature: float = 1.0,
+        top_k: int = 0,
+        draw: float = 0.0,
+        native_operation_id: str | None = None,
+        sequence_id: str | None = None,
+        candidate_id: str | None = None,
+        graph_site_ticket: Mapping[str, Any] | None = None,
+        replay_step: Mapping[str, Any] | None = None,
     ) -> Mapping[str, Any]:
         client = self._native_client
         if client is None:
             raise FieldRuntimeError("native model runtime is not attached")
-        return client.step_model(
+        graph_candidate = candidate_id is not None or graph_site_ticket is not None
+        sequence_bound_candidate = graph_candidate or replay_step is not None
+        if sequence_bound_candidate:
+            if not isinstance(sequence_id, str) or not sequence_id:
+                raise FieldRuntimeError(
+                    "graph-site and replay steps require a nonempty sequence_id"
+                )
+            if native_operation_id is not None:
+                if not isinstance(native_operation_id, str) or not native_operation_id:
+                    raise FieldRuntimeError(
+                        "native_operation_id must be a nonempty string"
+                    )
+        elif sequence_id is not None and (
+            not isinstance(sequence_id, str) or not sequence_id
+        ):
+            # Ordinary steps may name the owner sequence so owner history
+            # can rebuild them beside graph-site steps.
+            raise FieldRuntimeError("sequence_id must be a nonempty string")
+        if (
+            not graph_candidate
+            and native_operation_id is None
+            and replay_step is None
+        ):
+            return client.step_model(
+                task_id,
+                source_sha256,
+                tokens,
+                sampler_mode=sampler_mode,
+                temperature=temperature,
+                top_k=top_k,
+                draw=draw,
+            )
+        if sequence_bound_candidate:
+            self._require_graph_site_capabilities(client)
+        if graph_site_ticket is not None and not isinstance(
+            graph_site_ticket, Mapping
+        ):
+            raise FieldRuntimeError("graph_site_ticket must be a mapping")
+        if replay_step is not None and not isinstance(replay_step, Mapping):
+            raise FieldRuntimeError("replay_step must be a mapping")
+        if candidate_id is not None:
+            if not isinstance(candidate_id, str) or not candidate_id:
+                raise FieldRuntimeError("candidate_id must be a nonempty string")
+            self._require_active_model_candidate(candidate_id)
+        if graph_site_ticket is not None:
+            if candidate_id is None:
+                raise FieldRuntimeError(
+                    "graph-site ticket requires an active field candidate"
+                )
+            if not isinstance(native_operation_id, str) or not native_operation_id:
+                raise FieldRuntimeError(
+                    "graph-site ticket requires a nonempty native_operation_id"
+                )
+            if graph_site_ticket.get("sequence_id") != sequence_id:
+                raise StalePublicationFence(
+                    "graph-site ticket names a different owner sequence"
+                )
+        elif candidate_id is not None and replay_step is None:
+            raise FieldRuntimeError(
+                "field candidate model step requires an owner graph-site ticket"
+            )
+        if replay_step is not None and replay_step.get("sequence_id") != sequence_id:
+            raise StalePublicationFence(
+                "replay step names a different owner sequence"
+            )
+        ticket_id: str | None = None
+        if graph_site_ticket is not None:
+            ticket_id = graph_site_ticket.get("ticket_id")
+            if not isinstance(ticket_id, str) or not ticket_id:
+                raise FieldRuntimeError(
+                    "graph-site ticket must contain a nonempty ticket_id"
+                )
+        result = client.step_model(
             task_id,
             source_sha256,
             tokens,
@@ -712,13 +1299,182 @@ class ResidentFieldRuntime:
             temperature=temperature,
             top_k=top_k,
             draw=draw,
+            native_operation_id=native_operation_id,
+            sequence_id=sequence_id,
+            candidate_id=candidate_id,
+            graph_site_ticket=graph_site_ticket,
+            replay_step=replay_step,
         )
+        if graph_site_ticket is not None:
+            if not isinstance(result, Mapping):
+                raise FieldRuntimeError(
+                    "native graph-site step returned an invalid result"
+                )
+            if result.get("status") == "graph-site-rejected":
+                receipt = result.get("graph_site_receipt")
+                receipt_sha256 = _hex_digest(
+                    result.get("graph_site_receipt_sha256"),
+                    "graph_site_receipt_sha256",
+                )
+                native_receipt_sha256 = _hex_digest(
+                    result.get("native_graph_site_receipt_sha256"),
+                    "native_graph_site_receipt_sha256",
+                )
+                wire_sha256 = _hex_digest(
+                    result.get("graph_receipt_wire_sha256"),
+                    "graph_receipt_wire_sha256",
+                )
+                native_wire_sha256 = _hex_digest(
+                    result.get("native_graph_site_receipt_wire_sha256"),
+                    "native_graph_site_receipt_wire_sha256",
+                )
+                if (
+                    result.get("rejected") is not True
+                    or result.get("attempted") is not True
+                    or result.get("admitted") is not False
+                    or result.get("accepted") is not False
+                    or result.get("provisional") is not False
+                    or result.get("confirmable") is not False
+                    or any(
+                        key in result
+                        for key in ("token", "selected_token_id", "accepted_token_id")
+                    )
+                    or not isinstance(receipt, Mapping)
+                    or receipt.get("schema")
+                    != "cassifi.native-graph-site-receipt.v1"
+                    or receipt.get("admitted") is not False
+                    or receipt.get("selected_token_id") != -1
+                    or receipt.get("field_candidate_id") != candidate_id
+                    or receipt.get("ticket_id") != ticket_id
+                    or receipt.get("sequence_id") != sequence_id
+                    or receipt.get("native_operation_id") != native_operation_id
+                    or result.get("field_candidate_id") != candidate_id
+                    or result.get("ticket_id") != ticket_id
+                    or result.get("sequence_id") != sequence_id
+                    or result.get("native_operation_id") != native_operation_id
+                    or receipt_sha256 != native_receipt_sha256
+                    or _digest(dict(receipt)) != receipt_sha256
+                    or wire_sha256 != native_wire_sha256
+                ):
+                    raise FieldRuntimeError(
+                        "native graph-site refusal receipt does not match its candidate"
+                    )
+                return result
+
+            if (
+                result.get("accepted") is not False
+                or result.get("provisional") is not True
+            ):
+                raise FieldRuntimeError(
+                    "native graph-site step did not return a provisional token"
+                )
+            if "accepted_token_id" in result:
+                raise FieldRuntimeError(
+                    "native graph-site step exposed an accepted token before publication"
+                )
+            selected_token_id = result.get("selected_token_id")
+            if (
+                isinstance(selected_token_id, bool)
+                or not isinstance(selected_token_id, int)
+                or selected_token_id < 0
+            ):
+                raise FieldRuntimeError(
+                    "native graph-site step returned an invalid selected_token_id"
+                )
+            receipt = result.get("graph_site_receipt")
+            if not isinstance(receipt, Mapping):
+                raise FieldRuntimeError(
+                    "native graph-site step omitted its measured receipt"
+                )
+            if receipt.get("schema") != "cassifi.native-graph-site-receipt.v1":
+                raise FieldRuntimeError(
+                    "native graph-site step returned an unknown receipt schema"
+                )
+            if receipt.get("field_candidate_id") != candidate_id:
+                raise StalePublicationFence(
+                    "native graph-site receipt names a different field candidate"
+                )
+            if receipt.get("ticket_id") != ticket_id:
+                raise StalePublicationFence(
+                    "native graph-site receipt names a different owner ticket"
+                )
+            if receipt.get("sequence_id") != sequence_id:
+                raise StalePublicationFence(
+                    "native graph-site receipt names a different owner sequence"
+                )
+            if receipt.get("native_operation_id") != native_operation_id:
+                raise StalePublicationFence(
+                    "native graph-site receipt names a different operation"
+                )
+            receipt_sha256 = _hex_digest(
+                result.get("graph_site_receipt_sha256"),
+                "graph_site_receipt_sha256",
+            )
+            native_receipt_sha256 = _hex_digest(
+                result.get("native_graph_site_receipt_sha256"),
+                "native_graph_site_receipt_sha256",
+            )
+            if (
+                receipt_sha256 != native_receipt_sha256
+                or _digest(receipt) != receipt_sha256
+            ):
+                raise FieldRuntimeError(
+                    "native graph-site step receipt digest disagrees"
+                )
+            if result.get("field_candidate_id", candidate_id) != candidate_id:
+                raise StalePublicationFence(
+                    "native graph-site result names a different field candidate"
+                )
+            if (
+                result.get("native_operation_id", native_operation_id)
+                != native_operation_id
+            ):
+                raise StalePublicationFence(
+                    "native graph-site result names a different operation"
+                )
+            if result.get("provisional") is True:
+                result = dict(result)
+                result.pop("token", None)
+        return result
+
 
     def drop_model_task(self, task_id: str) -> Mapping[str, Any]:
         client = self._native_client
         if client is None:
             raise FieldRuntimeError("native model runtime is not attached")
         return client.drop_model_task(task_id)
+
+    def create_group(self, source_sha256: str, capacity: int) -> Mapping[str, Any]:
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        return client.create_group(source_sha256, capacity)
+
+    def step_group(
+        self, group_id: int, rows: Sequence[NativeGroupRow]
+    ) -> Mapping[str, Any]:
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        return client.step_group(group_id, rows)
+
+    def drop_group(self, group_id: int) -> Mapping[str, Any]:
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        return client.drop_group(group_id)
+
+    def leave_group(self, group_id: int, row: int) -> Mapping[str, Any]:
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        return client.leave_group(group_id, row)
+
+    def join_group(self, group_id: int) -> Mapping[str, Any]:
+        client = self._native_client
+        if client is None:
+            raise FieldRuntimeError("native model runtime is not attached")
+        return client.join_group(group_id)
 
     def recover_native(
         self, native_client: NativeFieldRuntimeClient
@@ -728,6 +1484,8 @@ class ResidentFieldRuntime:
         if not isinstance(native_client, NativeFieldRuntimeClient):
             raise FieldRuntimeError("recovery requires a native runtime client")
         lost = self.service_generation
+        if native_client is self._native_client or native_client.service_generation == lost:
+            raise FieldRuntimeError("recovery requires a distinct native service generation")
         affected = tuple(sorted(self._attachments))
         prior = self._native_client
         if prior is not None and prior is not native_client:
@@ -736,11 +1494,12 @@ class ResidentFieldRuntime:
             except NativeFieldRuntimeError:
                 pass
         self._lost_generations.add(lost)
-        self.service_generation = lost + 1
+        self.service_generation = native_client.service_generation
         self._attachments.clear()
         self._reservations.clear()
         self._owner_candidate.clear()
         self._settled.clear()
+        self._device_report = None
         self._native_client = native_client
         self.instance_id = native_client.instance_id
         self.launch_nonce = native_client.launch_nonce
@@ -764,6 +1523,7 @@ class ResidentFieldRuntime:
                 client.detach(owner_id)
             client.shutdown()
             self._native_client = None
+        self._device_report = None
         self._attachments.clear()
         self._reservations.clear()
         self._owner_candidate.clear()
@@ -783,6 +1543,7 @@ class ResidentFieldRuntime:
         if self._native_client is not None:
             self._native_client.shutdown()
             self._native_client = None
+        self._device_report = None
         self.service_generation += 1
         self._attachments.clear()
         self._reservations.clear()
@@ -800,6 +1561,8 @@ class ResidentFieldRuntime:
         native_status = (
             None if self._native_client is None else self._native_client.status()
         )
+        if isinstance(native_status, Mapping) and "device" in native_status:
+            self._device_report = native_status["device"]
         return {
             "schema": "cassifi.field-runtime-status.v1",
             "instance_id": self.instance_id,
@@ -810,6 +1573,12 @@ class ResidentFieldRuntime:
             "resident_owner_ids": sorted(self._attachments),
             "in_flight_candidate_ids": sorted(self._reservations),
             "lost_generations": sorted(self._lost_generations),
+            "device": self._device_report,
+            "memory_report": (
+                native_status.get("memory_report")
+                if isinstance(native_status, Mapping)
+                else None
+            ),
             "native_service": native_status,
         }
 
@@ -832,6 +1601,7 @@ __all__ = [
     "PUBLICATION_SCHEMA",
     "NativeFieldRuntimeClient",
     "NativeFieldRuntimeError",
+    "NativeGroupRow",
     "NativeWordOperation",
     "CandidateEpoch",
     "PackedFieldImage",

@@ -11,12 +11,12 @@ import ast
 import contextlib
 import hashlib
 import json
+from dataclasses import asdict, dataclass
 import math
 import os
 import re
 import shutil
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
 
@@ -37,7 +37,13 @@ from cassi_field_owner import FieldIntelligenceOwner
 from cassi_field_hive import ExperienceCandidate, ExperienceEvidence, Review
 from cassi_field_input import CODEC_JSON
 from cassi_field_owner import SourceInput
-from cassi_field_program import semantic_program_payload
+from cassi_field_program import (
+    SCHEMA as STRUCTURED_FIELD_PROGRAM_SCHEMA,
+    FieldProgramError,
+    compile_structured_program,
+    regional_scalar_state,
+    semantic_program_payload,
+)
 from cassi_hive_collective import (
     AFFECT_REPORT_SCHEMA,
     AffectReport,
@@ -119,6 +125,19 @@ COLLECTIVE_NEXT_ACTION_SCHEMA = (
     "cassifi.research-organism-collective-next-action.v1"
 )
 COLLECTIVE_METHOD_ADAPTER = "cassi.collective-method"
+ROOT_RESEARCH_METHOD_SCHEMA = (
+    "cassifi.research-organism-root-research-method.v1"
+)
+ROOT_RESEARCH_METHOD_EXECUTION_SCHEMA = (
+    "cassifi.research-organism-root-research-method-execution.v1"
+)
+ROOT_RESEARCH_METHOD_PROPOSAL_SCHEMA = (
+    "cassi.entity.root-research-method-proposal.v1"
+)
+ROOT_GUEST_METHOD_SCHEMA = "cassifi.research-organism-root-guest-method.v1"
+ROOT_GUEST_METHOD_PROPOSAL_SCHEMA = "cassi.entity.root-guest-method-proposal.v1"
+ROOT_GUEST_EXECUTION_SCHEMA = "cassifi.research-organism-root-guest-execution.v1"
+ROOT_GUEST_DERIVATION_SCHEMA = "cassifi.research-organism-root-guest-derivation.v1"
 METHODS_ID = "organism:methods"
 MEMBERS_ID = "organism:members"
 CAMPAIGN_PREFIX = "organism:campaign:"
@@ -127,6 +146,9 @@ AFFECT_PROJECT_ID = "research-organism"
 
 
 _MAX_MEMBERS = 16
+NUMERICAL_INSTRUMENT_STRUCTURED_STATE_SCHEMA = (
+    "cassifi.numerical-instrument-structured-state.v1"
+)
 _MAX_FRONTIER = 128
 _MAX_TRACE = 256
 _MAX_RESULT_BYTES = 1_048_576
@@ -494,7 +516,6 @@ class PublicationLedger:
         )
         return generation
 
-
 class ResearchOrganism:
     """A persistent root field coordinating independently learning members."""
 
@@ -555,6 +576,90 @@ class ResearchOrganism:
             for item in self._cohort()["active_member_ids"]
         )
 
+    def organize_membership(self) -> dict[str, Any]:
+        """Make every authenticated member-to-member collaboration contiguous."""
+        cohort = self._cohort()
+        order = [
+            _identifier(item, "active member_id")
+            for item in cohort["active_member_ids"]
+        ]
+        active = set(order)
+        acknowledged: dict[tuple[str, str], list[str]] = {}
+        with self._open_residencies(include_members=True) as (root, members):
+            for residency in (root, *members.values()):
+                for sender, targets in self._communication_adjacency(
+                    residency
+                ).items():
+                    if sender not in active:
+                        continue
+                    for receiver, edge in targets.items():
+                        if (
+                            receiver not in active
+                            or receiver == sender
+                            or not isinstance(edge, Mapping)
+                        ):
+                            continue
+                        uses = acknowledged.setdefault((sender, receiver), [])
+                        for use in edge.get("uses", []):
+                            if isinstance(use, str) and use not in uses:
+                                uses.append(use)
+        if not acknowledged:
+            return {
+                "organized": False,
+                "reason": "no-authenticated-collaboration",
+            }
+        neighbors: dict[str, set[str]] = {}
+        for left, right in acknowledged:
+            neighbors.setdefault(left, set()).add(right)
+            neighbors.setdefault(right, set()).add(left)
+        position = {member_id: index for index, member_id in enumerate(order)}
+        clusters: list[list[str]] = []
+        seen: set[str] = set()
+        for member_id in order:
+            if member_id not in neighbors or member_id in seen:
+                continue
+            seen.add(member_id)
+            component = [member_id]
+            cursor = 0
+            while cursor < len(component):
+                for linked in sorted(neighbors[component[cursor]]):
+                    if linked not in seen:
+                        seen.add(linked)
+                        component.append(linked)
+                cursor += 1
+            clusters.append(sorted(component, key=position.__getitem__))
+        clusters.sort(key=lambda cluster: min(cluster))
+        use_sha256s = [
+            use
+            for pair in sorted(acknowledged)
+            for use in acknowledged[pair]
+        ]
+        receipt = {
+            "before": list(order),
+            "after": list(order),
+            "clusters": [list(cluster) for cluster in clusters],
+            "use_sha256s": use_sha256s,
+        }
+        if all(
+            position[cluster[-1]] - position[cluster[0]] == len(cluster) - 1
+            for cluster in clusters
+        ):
+            return {"organized": False, "reason": "already-co-located", **receipt}
+        clustered = {member_id for cluster in clusters for member_id in cluster}
+        organized = [
+            member_id for cluster in clusters for member_id in cluster
+        ] + [member_id for member_id in order if member_id not in clustered]
+        _atomic_json(
+            self.cohort_path,
+            {
+                "schema": COHORT_SCHEMA,
+                "generation": int(cohort["generation"]) + 1,
+                "active_member_ids": organized,
+                "migration_id": cohort.get("migration_id"),
+            },
+        )
+        receipt["after"] = organized
+        return {"organized": True, **receipt}
 
     @property
     def root_home(self) -> Path:
@@ -4372,6 +4477,7 @@ class ResearchOrganism:
         resource_allocation_id: str | None = None,
         role: str | None = None,
         capability_ref: Mapping[str, Any] | None = None,
+        hypothetical_alternatives: Sequence[Mapping[str, Any]] = (),
     ) -> dict[str, Any]:
         return {
             "capability_ref": (
@@ -4388,6 +4494,9 @@ class ResearchOrganism:
                 "kind": "Obligation",
             },
             "offer": None if offer is None else offer.as_dict(),
+            "hypothetical_alternatives": [
+                _plain(item) for item in hypothetical_alternatives[:3]
+            ],
             "query": query.as_dict(),
             "request_id": request.request_id,
             "resource_allocation_id": resource_allocation_id,
@@ -4690,7 +4799,9 @@ class ResearchOrganism:
                     "member capability obligation disappeared"
                 )
             payload = _plain(obligation["payload"])
+            learned_intent = None
             if payload.get("state") not in {"fulfilled", "failed"}:
+                use_generation = payload.get("use_generation")
                 payload["state"] = state
                 if response_id is not None:
                     payload["response_id"] = _identifier(
@@ -4709,6 +4820,55 @@ class ResearchOrganism:
                     ),
                     epistemic_kind="derived",
                 )
+                if state == "fulfilled":
+                    intent_ref = dispatch.get("communication_intent_ref")
+                    if (
+                        isinstance(intent_ref, Mapping)
+                        and isinstance(intent_ref.get("id"), str)
+                    ):
+                        intent_record = root._record(intent_ref["id"])
+                        if intent_record is not None:
+                            from cassi_field_communication import (
+                                FieldIntent,
+                                RECORD_RESULT_SCHEMA,
+                            )
+
+                            intent = FieldIntent.from_dict(
+                                intent_record["payload"]["intent"]
+                            )
+                            intent_generation = intent_record["payload"].get(
+                                "owner_generation"
+                            )
+                            delay = 0
+                            if isinstance(use_generation, int) and isinstance(
+                                intent_generation, int
+                            ):
+                                delay = max(0, use_generation - intent_generation)
+                            updated_obligation = member._record(obligation_id)
+                            record_sha256 = _digest(
+                                _plain(updated_obligation["payload"])
+                            )
+                            result_ref = {
+                                "schema": RECORD_RESULT_SCHEMA,
+                                "operation_id": (
+                                    f"organism:capability-record-result:"
+                                    f"{obligation_id}"
+                                ),
+                                "id": obligation_id,
+                                "kind": "Obligation",
+                                "content_version": int(
+                                    updated_obligation["content_version"]
+                                ),
+                                "status": "fulfilled",
+                                "record_sha256": record_sha256,
+                                "output": {"result_sha256": record_sha256},
+                            }
+                            root.acknowledge_communication_use(
+                                intent=intent,
+                                result_ref=result_ref,
+                                delay=delay,
+                            )
+                            learned_intent = intent
             agenda = dict(dispatch.get("agenda", {}))
             agenda["state"] = (
                 "responded" if state == "fulfilled" else "failed"
@@ -4723,6 +4883,25 @@ class ResearchOrganism:
                 record_id=dispatch_id,
                 payload=dispatch,
             )
+            if learned_intent is not None:
+                updated_dispatch = root._record(dispatch_id)
+                root._learn_communication_topology(
+                    f"organism:capability-topology:{obligation_id}",
+                    outcome_ref={
+                        "id": dispatch_id,
+                        "kind": "Obligation",
+                        "content_version": int(
+                            updated_dispatch["content_version"]
+                        ),
+                    },
+                    route=(
+                        f"{learned_intent.sender}->"
+                        f"{learned_intent.receiver}:{learned_intent.kind}"
+                    ),
+                    question_id=dispatch_id,
+                    compiler_family="capability-collaboration",
+                    result_status="observed",
+                )
 
     def advance_collective_capability_programs(
         self,
@@ -4898,6 +5077,7 @@ class ResearchOrganism:
                     agenda_event=agenda_event,
                     field_state_sha256_before=field_state_before,
                 )
+                use_generation = root.owner.state.generation
                 member_obligation = member._record(str(obligation_id))
                 if member_obligation is None:
                     raise OrganismError(
@@ -4909,6 +5089,7 @@ class ResearchOrganism:
                     {
                         "agenda_event": _plain(agenda_event),
                         "agenda_execution": execution,
+                        "use_generation": use_generation,
                         "state": (
                             "failed" if not_composable else "selected"
                         ),
@@ -4977,6 +5158,65 @@ class ResearchOrganism:
                 str(item.get("dispatch_id", "")),
             ),
         )
+
+    def _record_capability_collaboration_intent(
+        self,
+        root: ResearchResidency,
+        *,
+        dispatch_id: str,
+        request_id: str,
+        provider_instance_id: str,
+    ) -> dict[str, Any] | None:
+        """Record a Send FieldIntent from a real member requester to its provider.
+
+        Returns None (recording nothing) when the request was not itself made
+        by an authenticated member -- root-initiated dispatches have no second
+        member endpoint to route between.
+        """
+        request_record_id = f"organism:collaboration-request:{request_id}"
+        request_record = root._record(request_record_id)
+        if request_record is None:
+            return None
+        requester_instance_id = request_record["payload"].get("requester_instance_id")
+        if (
+            not isinstance(requester_instance_id, str)
+            or requester_instance_id not in self._active_member_ids()
+            or requester_instance_id == provider_instance_id
+        ):
+            return None
+        from cassi_field_communication import FieldIntent
+
+        intent = FieldIntent(
+            kind="send",
+            sender=requester_instance_id,
+            receiver=provider_instance_id,
+            payload_ref={
+                "id": request_record_id,
+                "kind": str(request_record["kind"]),
+                "content_version": int(request_record["content_version"]),
+            },
+            dependency_versions=(),
+            urgency="background",
+            consumer_use_id=f"organism:capability-intent:{dispatch_id}",
+        )
+        intent_record_id = f"organism:collaboration-intent:{dispatch_id}"
+        self._write_record(
+            root,
+            record_id=intent_record_id,
+            kind="Event",
+            payload={
+                "schema": "cassifi.research-organism-capability-intent.v1",
+                "intent": intent.as_dict(),
+                "owner_generation": root.owner.state.generation,
+            },
+            epistemic_kind="derived",
+        )
+        intent_record = root._record(intent_record_id)
+        return {
+            "id": intent_record_id,
+            "kind": "Event",
+            "content_version": int(intent_record["content_version"]),
+        }
 
     def _activate_capability_dispatch(
         self,
@@ -5072,18 +5312,25 @@ class ResearchOrganism:
                 )
             payload = _plain(current["payload"])
             if payload.get("state") != "admitted":
-                payload.update(
-                    {
-                        "assignment": assignment.as_dict(),
-                        "assignment_document_id": document_id,
-                        "resource_allocation": {
-                            "id": allocation_id,
-                            "remaining": _plain(allocation["remaining"]),
-                        },
-                        "member_obligation_ref": member_obligation_ref,
-                        "state": "assigned",
-                    }
+                update = {
+                    "assignment": assignment.as_dict(),
+                    "assignment_document_id": document_id,
+                    "resource_allocation": {
+                        "id": allocation_id,
+                        "remaining": _plain(allocation["remaining"]),
+                    },
+                    "member_obligation_ref": member_obligation_ref,
+                    "state": "assigned",
+                }
+                intent_ref = self._record_capability_collaboration_intent(
+                    root,
+                    dispatch_id=record_id,
+                    request_id=str(dispatch["request_id"]),
+                    provider_instance_id=member_id,
                 )
+                if intent_ref is not None:
+                    update["communication_intent_ref"] = intent_ref
+                payload.update(update)
                 self._put_capability_dispatch(
                     root,
                     record_id=record_id,
@@ -5094,6 +5341,206 @@ class ResearchOrganism:
                 "dispatch_id": dispatch["dispatch_id"],
                 "state": "assigned",
             }
+
+    @staticmethod
+    def _communication_adjacency(root: ResearchResidency) -> dict[str, dict[str, Any]]:
+        """Project authenticated actual-use routes into bounded member adjacency."""
+        from cassi_field_communication import ACK_SCHEMA, LOCALITY_SCHEMA
+
+        payload = root._communication_locality()
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("schema") != LOCALITY_SCHEMA
+            or not isinstance(payload.get("routes"), Mapping)
+            or not isinstance(payload.get("observations"), list)
+        ):
+            return {}
+        observations = payload["observations"][-64:]
+        acknowledged: dict[str, tuple[str, Mapping[str, Any]]] = {}
+        for observation in observations:
+            if not isinstance(observation, Mapping):
+                continue
+            use_sha256 = observation.get("use_sha256")
+            route = observation.get("route")
+            if not isinstance(use_sha256, str) or not isinstance(route, str):
+                continue
+            ack = root._record("communication:use:" + use_sha256[:40])
+            ack_payload = ack.get("payload") if isinstance(ack, Mapping) else None
+            if (
+                not isinstance(ack_payload, Mapping)
+                or ack_payload.get("schema") != ACK_SCHEMA
+                or ack_payload.get("status") != "used"
+                or ack_payload.get("use_sha256") != use_sha256
+            ):
+                continue
+            acknowledged[use_sha256] = (route, ack_payload)
+        adjacency: dict[str, dict[str, Any]] = {}
+        for use_sha256, (route, ack_payload) in acknowledged.items():
+            if "->" not in route or ":" not in route:
+                continue
+            sender, remainder = route.split("->", 1)
+            receiver, kind = remainder.rsplit(":", 1)
+            if not sender or not receiver or not kind:
+                continue
+            result_ref = ack_payload.get("result_ref")
+            output = (
+                result_ref.get("output", result_ref)
+                if isinstance(result_ref, Mapping)
+                else None
+            )
+            if not isinstance(output, Mapping):
+                continue
+            edge = adjacency.setdefault(sender, {}).setdefault(
+                receiver,
+                {
+                    "uses": [], "outcomes": [], "kinds": [], "routes": [],
+                    "work_observations": [],
+                },
+            )
+            edge["uses"].append(use_sha256)
+            outcome = output.get("result_sha256")
+            if isinstance(outcome, str) and outcome not in edge["outcomes"]:
+                edge["outcomes"].append(outcome)
+            work_outcome = ack_payload.get("work_outcome")
+            if (
+                isinstance(work_outcome, Mapping)
+                and work_outcome.get("status") == "observed"
+                and isinstance(work_outcome.get("work_unblocked"), bool)
+                and isinstance(work_outcome.get("completed"), bool)
+            ):
+                edge["work_observations"].append({
+                    "use_sha256": use_sha256,
+                    "work_unblocked": work_outcome["work_unblocked"],
+                    "completed": work_outcome["completed"],
+                })
+            if kind not in edge["kinds"]:
+                edge["kinds"].append(kind)
+            if route not in edge["routes"]:
+                edge["routes"].append(route)
+        actual_uses = list(acknowledged.items())
+        for left, right in zip(actual_uses, actual_uses[1:]):
+            left_use, (left_route, left_ack) = left
+            right_use, (right_route, right_ack) = right
+            if (
+                "->" not in left_route
+                or ":" not in left_route
+                or "->" not in right_route
+                or ":" not in right_route
+            ):
+                continue
+            left_sender, left_tail = left_route.split("->", 1)
+            left_receiver = left_tail.rsplit(":", 1)[0]
+            right_sender, right_tail = right_route.split("->", 1)
+            if left_receiver != right_sender:
+                continue
+            left_ref = left_ack.get("result_ref")
+            right_ref = right_ack.get("result_ref")
+            left_output = left_ref.get("output", left_ref) if isinstance(left_ref, Mapping) else None
+            right_output = right_ref.get("output", right_ref) if isinstance(right_ref, Mapping) else None
+            if not isinstance(left_output, Mapping) or not isinstance(right_output, Mapping):
+                continue
+            chain = {
+                "chain_id": _digest({"uses": [left_use, right_use]}),
+                "uses": [left_use, right_use],
+                "outcomes": [
+                    left_output.get("result_sha256"),
+                    right_output.get("result_sha256"),
+                ],
+            }
+            edge = adjacency[left_sender][left_receiver]
+            edge.setdefault("chains", []).append(chain)
+        for targets in adjacency.values():
+            for edge in targets.values():
+                edge["chains"] = edge.get("chains", [])[-64:]
+        return adjacency
+
+    @classmethod
+    def _locality_member_rank(
+        cls,
+        root: ResearchResidency,
+        provider_instance_id: str,
+    ) -> tuple[int, int, float, int]:
+        """Rank Hive providers by observed outcomes, then admitted route hints."""
+        from cassi_field_communication import LOCALITY_SCHEMA, anticipate_routes
+
+        locality = root._communication_locality()
+        route_rank = 4
+        if (
+            isinstance(locality, Mapping)
+            and locality.get("schema") == LOCALITY_SCHEMA
+            and isinstance(locality.get("routes"), Mapping)
+        ):
+            route_names = tuple(locality["routes"])
+            if route_names:
+                anticipated = anticipate_routes(
+                    locality,
+                    route_names,
+                    limit=min(4, len(route_names)),
+                )
+                for index, route in enumerate(anticipated):
+                    if "->" not in route or ":" not in route:
+                        continue
+                    sender, remainder = route.split("->", 1)
+                    receiver = remainder.rsplit(":", 1)[0]
+                    if provider_instance_id in {sender, receiver}:
+                        route_rank = min(route_rank, index)
+        adjacency = cls._communication_adjacency(root)
+        linked: list[tuple[Mapping[str, Any], str]] = []
+        for sender, targets in adjacency.items():
+            for receiver, edge in targets.items():
+                if provider_instance_id in {sender, receiver}:
+                    linked.extend((edge, route) for route in edge.get("routes", []))
+        if not linked:
+            return (3, route_rank, 0.0, 0)
+        topology = root._communication_topology(require_current=True)
+        preferences = (
+            topology.get("routes")
+            if isinstance(topology, Mapping)
+            and isinstance(topology.get("routes"), Mapping)
+            else {}
+        )
+        weighted = [
+            (len(edge.get("uses", [])), preferences.get(route))
+            for edge, route in linked
+        ]
+        observed = [
+            (uses, value)
+            for uses, value in weighted
+            if isinstance(value, Mapping)
+            and isinstance(value.get("successful"), int)
+            and isinstance(value.get("unsuccessful"), int)
+        ]
+        work_observations = [
+            item
+            for edge, _ in linked
+            for item in edge.get("work_observations", [])
+            if isinstance(item, Mapping)
+        ]
+        if not observed:
+            if not work_observations:
+                return (1, route_rank, 0.5, -sum(uses for uses, _ in weighted))
+            unblocked = sum(item.get("work_unblocked") is True for item in work_observations)
+            completed = sum(item.get("completed") is True for item in work_observations)
+            score = (completed + 0.5 * (unblocked - completed) + 1) / (
+                len(work_observations) + 2
+            )
+            category = 0 if completed else (1 if unblocked else 4)
+            return (category, route_rank, -score, -sum(uses for uses, _ in weighted))
+        successes = sum(int(value["successful"]) for _, value in observed)
+        failures = sum(int(value["unsuccessful"]) for _, value in observed)
+        score = (successes + 1) / (successes + failures + 2)
+        if score < 0.5:
+            category = 4
+        elif score > 0.5 and successes:
+            category = 0
+        else:
+            category = 1
+        return (
+            category,
+            route_rank,
+            -score,
+            -sum(uses for uses, _ in weighted),
+        )
 
     def dispatch_collective_capability_gaps(
         self,
@@ -5209,6 +5656,18 @@ class ResearchOrganism:
                             < request.maximum_members
                         )
                     ]
+                    available[:] = [
+                        offer
+                        for _, offer in sorted(
+                            enumerate(available),
+                            key=lambda indexed: (
+                                *self._locality_member_rank(
+                                    root, indexed[1].provider_instance_id
+                                ),
+                                indexed[0],
+                            ),
+                        )
+                    ]
                     if not available:
                         payload = self._capability_dispatch_payload(
                             dispatch_id=dispatch_id,
@@ -5248,6 +5707,19 @@ class ResearchOrganism:
                         raise OrganismError(
                             "selected member capability disappeared"
                         )
+                    hypothetical_alternatives = [
+                        {
+                            "status": "hypothetical-unexecuted",
+                            "offer_id": alternative.offer_id,
+                            "provider_instance_id": alternative.provider_instance_id,
+                            "historical_locality_rank": list(
+                                self._locality_member_rank(
+                                    root, alternative.provider_instance_id
+                                )
+                            ),
+                        }
+                        for alternative in available[1:4]
+                    ]
                     capability_ref = {
                         "content_version": int(
                             capability_record["content_version"]
@@ -5267,6 +5739,7 @@ class ResearchOrganism:
                         resource_allocation_id=f"capability-allocation:{key}",
                         role=role,
                         capability_ref=capability_ref,
+                        hypothetical_alternatives=hypothetical_alternatives,
                     )
                     self._put_capability_dispatch(
                         root,
@@ -6091,11 +6564,13 @@ class ResearchOrganism:
         routed = self.dispatch_collective_capability_gaps()
         admitted = self._reconcile_collective_capability_dispatches()
         rerouted = self.dispatch_collective_capability_gaps()
+        organized = self.organize_membership()
         return {
             "schema": COLLABORATIVE_CAPABILITY_DISPATCH_SCHEMA,
             "admitted": admitted,
             "routed": routed,
             "rerouted": rerouted,
+            "organized": organized,
         }
 
     @staticmethod
@@ -6114,6 +6589,7 @@ class ResearchOrganism:
         execution_id: str,
         bindings: Mapping[str, Any],
         expected_program_ref: Mapping[str, Any] | None = None,
+        maximum_work: int | None = None,
     ) -> dict[str, Any]:
         synthesis_id = _identifier(synthesis_id, "synthesis_id")
         execution_id = _identifier(execution_id, "execution_id")
@@ -6155,6 +6631,20 @@ class ResearchOrganism:
             raise OrganismError(
                 "collective synthesis resident program is malformed"
             ) from exc
+        if maximum_work is None:
+            execution_work_bound = method.maximum_work
+        elif (
+            isinstance(maximum_work, bool)
+            or not isinstance(maximum_work, int)
+            or maximum_work < 1
+        ):
+            raise OrganismError("collaborative execution work bound is invalid")
+        else:
+            execution_work_bound = maximum_work
+        if execution_work_bound < method.maximum_work:
+            raise OrganismError(
+                "collective method exceeds the declared execution work bound"
+            )
         bindings_sha256 = _digest(normalized_bindings)
         method_sha256 = _digest(method.as_dict())
         record_id = f"event:collaboration-execution:{execution_id}"
@@ -6167,6 +6657,8 @@ class ResearchOrganism:
                 or prior.get("method_sha256") != method_sha256
                 or prior.get("program_ref") != program_ref
                 or prior.get("synthesis_id") != synthesis_id
+                or prior.get("maximum_work", method.maximum_work)
+                != execution_work_bound
             ):
                 raise OrganismError(
                     "collaborative execution identity was reused"
@@ -6183,6 +6675,7 @@ class ResearchOrganism:
             "bindings": normalized_bindings,
             "bindings_sha256": bindings_sha256,
             "execution_id": execution_id,
+            "maximum_work": execution_work_bound,
             "method_sha256": method_sha256,
             "outputs": _plain(outputs),
             "program_ref": program_ref,
@@ -6205,8 +6698,11 @@ class ResearchOrganism:
         synthesis_id: str,
         execution_id: str,
         bindings: Mapping[str, Any],
+        *,
+        expected_program_ref: Mapping[str, Any] | None = None,
+        maximum_work: int | None = None,
     ) -> dict[str, Any]:
-        """Execute one resident collaborative method with its declared bound."""
+        """Execute one resident collaborative method within its declared bound."""
 
         with self._open_residencies(include_members=False) as (root, _):
             return self._execute_collective_synthesis(
@@ -6214,7 +6710,1606 @@ class ResearchOrganism:
                 synthesis_id=synthesis_id,
                 execution_id=execution_id,
                 bindings=bindings,
+                expected_program_ref=expected_program_ref,
+                maximum_work=maximum_work,
             )
+
+    @staticmethod
+    def _root_method_value_kind(value: Any) -> str:
+        if isinstance(value, bool):
+            return "boolean"
+        if isinstance(value, int):
+            return "integer"
+        if isinstance(value, float):
+            return "scalar"
+        if isinstance(value, str):
+            return "text"
+        if isinstance(value, Mapping):
+            return "mapping"
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+            if all(
+                isinstance(item, (int, float))
+                and not isinstance(item, bool)
+                and math.isfinite(float(item))
+                for item in value
+            ):
+                return "vector"
+            return "sequence"
+        return "json"
+
+    @staticmethod
+    def _root_method_authorship(root: ResearchResidency) -> dict[str, str]:
+        identity = getattr(root.session, "identity", None)
+        hive = getattr(root.session, "hive", None)
+        owner_instance_id = getattr(identity, "instance_id", None)
+        hive_id = getattr(hive, "hive_id", None)
+        branch = getattr(hive, "branch", None)
+        if any(
+            not isinstance(value, str) or not value
+            for value in (owner_instance_id, hive_id, branch)
+        ):
+            raise OrganismError("root field owner identity is unavailable")
+        return {
+            "owner_instance_id": owner_instance_id,
+            "hive_id": hive_id,
+            "branch": branch,
+            "role": "root-research-brain",
+        }
+
+    @staticmethod
+    def _root_method_sources(
+        sources: Sequence[Mapping[str, Any]],
+    ) -> dict[str, dict[str, Any]]:
+        if (
+            not isinstance(sources, Sequence)
+            or isinstance(sources, (str, bytes))
+            or len(sources) > 64
+        ):
+            raise OrganismError("root research method sources are invalid")
+        normalized: dict[str, dict[str, Any]] = {}
+        required_identity = {
+            "program_id",
+            "key",
+            "kind",
+            "version",
+            "source_refs",
+            "dependencies",
+            "value_sha256",
+        }
+        for raw in sources:
+            if not isinstance(raw, Mapping):
+                raise OrganismError("root research method source is malformed")
+            source_id = _identifier(raw.get("source_id"), "root method source_id")
+            identity = _plain(raw.get("identity"))
+            value = _plain(raw.get("value"))
+            if (
+                not isinstance(identity, dict)
+                or set(identity) != required_identity
+                or not isinstance(identity.get("program_id"), str)
+                or not isinstance(identity.get("key"), str)
+                or not isinstance(identity.get("kind"), str)
+                or not isinstance(identity.get("source_refs"), list)
+                or not isinstance(identity.get("dependencies"), list)
+                or identity.get("value_sha256") != _digest(value)
+                or source_id != _digest(identity)
+            ):
+                raise OrganismError(
+                    "root research method source identity does not match its value"
+                )
+            _identifier(identity["program_id"], "root method source program_id")
+            _text(identity["key"], "root method source key", maximum=512)
+            _text(identity["kind"], "root method source kind", maximum=128)
+            field_revision = raw.get("field_revision")
+            if field_revision is not None:
+                _text(
+                    field_revision,
+                    "root method source field_revision",
+                    maximum=128,
+                )
+            entry = {
+                "source_id": source_id,
+                "identity": identity,
+                "field_revision": field_revision,
+                "value": value,
+            }
+            prior = normalized.get(source_id)
+            if prior is not None and prior != entry:
+                raise OrganismError("root research method source identity collides")
+            normalized[source_id] = entry
+        if len(canonical_json_bytes(normalized)) > _MAX_RESULT_BYTES:
+            raise OrganismError("root research method sources exceed their bound")
+        return dict(sorted(normalized.items()))
+
+    def root_research_method_perspective(
+        self,
+        *,
+        program_id: str,
+        sources: Sequence[Mapping[str, Any]],
+        maximum: int = 8,
+    ) -> dict[str, Any]:
+        """Return retained root methods whose exact input sources are still current."""
+        program_id = _identifier(program_id, "research program_id")
+        if (
+            isinstance(maximum, bool)
+            or not isinstance(maximum, int)
+            or not 1 <= maximum <= 32
+        ):
+            raise OrganismError("root research method maximum is invalid")
+        current_sources = self._root_method_sources(sources)
+        if any(
+            source["identity"]["program_id"] != program_id
+            for source in current_sources.values()
+        ):
+            raise OrganismError(
+                "root research method sources belong to another program"
+            )
+        methods: list[dict[str, Any]] = []
+        with self._open_residencies(include_members=False) as (root, _):
+            root_authorship = self._root_method_authorship(root)
+            records = root._task().get("records", {})
+            if not isinstance(records, Mapping):
+                raise OrganismError("root research method field records are malformed")
+            for record_id in sorted(records):
+                if not isinstance(record_id, str) or not record_id.startswith(
+                    "program:root-research-method:"
+                ):
+                    continue
+                record = root._record(record_id)
+                if record is None or record.get("status") != "active":
+                    continue
+                payload = self._unwrap_program_record(record.get("payload", {}))
+                if not isinstance(payload, Mapping):
+                    continue
+                if (
+                    payload.get("schema") != ROOT_RESEARCH_METHOD_SCHEMA
+                    or payload.get("program_id") != program_id
+                    or payload.get("state") != "retained"
+                    or payload.get("authorship") != root_authorship
+                ):
+                    continue
+                method_payload = payload.get("method")
+                if not isinstance(method_payload, Mapping):
+                    raise OrganismError("retained root research method is malformed")
+                try:
+                    method = ExecutableMethod.from_dict(method_payload)
+                except CollectiveHiveError as exc:
+                    raise OrganismError(
+                        "retained root research method is malformed"
+                    ) from exc
+                method_sha256 = _digest(method.as_dict())
+                if payload.get("method_sha256") != method_sha256:
+                    raise OrganismError(
+                        "retained root research method digest is inconsistent"
+                    )
+                input_sources = payload.get("input_sources")
+                source_observations = payload.get("source_observations")
+                if (
+                    not isinstance(input_sources, Mapping)
+                    or set(input_sources)
+                    != {port.name for port in method.interface.inputs}
+                    or not isinstance(source_observations, Mapping)
+                ):
+                    raise OrganismError(
+                        "retained root research method source bindings are malformed"
+                    )
+                required_ids = {
+                    str(source_id) for source_id in input_sources.values()
+                }
+                if not required_ids:
+                    continue
+                if any(
+                    source_id not in current_sources
+                    or source_id not in source_observations
+                    or not isinstance(source_observations[source_id], Mapping)
+                    or source_observations[source_id].get("identity")
+                    != current_sources[source_id]["identity"]
+                    for source_id in required_ids
+                ):
+                    continue
+                candidate: dict[str, Any] = {
+                    "method_id": payload["method_id"],
+                    "method_sha256": method_sha256,
+                    "program_id": program_id,
+                    "program_ref": self._record_reference(record),
+                    "summary": payload["summary"],
+                    "origin_question_id": payload["question_id"],
+                    "origin_question": payload["question"],
+                    "source_ids": sorted(required_ids),
+                    "source_identity_sha256": payload[
+                        "source_identity_sha256"
+                    ],
+                    "input_ports": [
+                        port.as_dict() for port in method.interface.inputs
+                    ],
+                    "output_ports": [
+                        port.as_dict() for port in method.interface.outputs
+                    ],
+                    "maximum_work": method.maximum_work,
+                    "work": len(method.program.steps),
+                }
+                candidate["candidate_sha256"] = _digest(candidate)
+                methods.append(candidate)
+                if len(methods) >= maximum:
+                    break
+        return {
+            "schema": ROOT_RESEARCH_METHOD_SCHEMA,
+            "program_id": program_id,
+            "methods": methods,
+            "method_count": len(methods),
+        }
+
+    @staticmethod
+    def _root_method_from_proposal(
+        proposal: Mapping[str, Any],
+        *,
+        program_id: str,
+        question_id: str,
+        question: str,
+        sources: Mapping[str, Mapping[str, Any]],
+    ) -> tuple[str, dict[str, Any], ExecutableMethod, dict[str, Any]]:
+        normalized = _plain(proposal)
+        expected = {
+            "schema",
+            "summary",
+            "source_ids",
+            "steps",
+            "assumptions",
+            "preconditions",
+            "effects",
+            "uncertainty",
+        }
+        if not isinstance(normalized, dict) or set(normalized) != expected:
+            raise OrganismError("root research method proposal is malformed")
+        if normalized.get("schema") != ROOT_RESEARCH_METHOD_PROPOSAL_SCHEMA:
+            raise OrganismError("root research method proposal schema is invalid")
+        summary = _text(
+            normalized.get("summary"),
+            "root research method summary",
+            maximum=512,
+        )
+        source_ids = normalized.get("source_ids")
+        raw_steps = normalized.get("steps")
+        if (
+            not isinstance(source_ids, list)
+            or not 1 <= len(source_ids) <= 8
+            or any(
+                not isinstance(source_id, str) or source_id not in sources
+                for source_id in source_ids
+            )
+            or len(set(source_ids)) != len(source_ids)
+            or not isinstance(raw_steps, list)
+            or not 1 <= len(raw_steps) <= 32
+        ):
+            raise OrganismError(
+                "root research method sources or steps exceed their bound"
+            )
+        for name in ("assumptions", "preconditions", "effects"):
+            values = normalized.get(name)
+            if (
+                not isinstance(values, list)
+                or len(values) > 8
+                or any(
+                    not isinstance(value, str)
+                    or not value.strip()
+                    or len(value.encode("utf-8")) > 512
+                    for value in values
+                )
+            ):
+                raise OrganismError(
+                    f"root research method {name} are malformed"
+                )
+        uncertainty = normalized.get("uncertainty")
+        if (
+            isinstance(uncertainty, bool)
+            or not isinstance(uncertainty, (int, float))
+            or not math.isfinite(float(uncertainty))
+            or not 0.0 <= float(uncertainty) <= 1.0
+        ):
+            raise OrganismError("root research method uncertainty is invalid")
+        try:
+            steps: list[PrimitiveStep] = []
+            for raw_step in raw_steps:
+                if (
+                    not isinstance(raw_step, Mapping)
+                    or set(raw_step)
+                    != {"operation", "output", "inputs", "literal"}
+                ):
+                    raise OrganismError(
+                        "root research method step is malformed"
+                    )
+                step = PrimitiveStep.from_dict(dict(raw_step))
+                if step.operation not in {"constant", "convert"} and (
+                    step.literal is not None
+                ):
+                    raise OrganismError(
+                        "root research method step has an unused literal"
+                    )
+                steps.append(step)
+            field_program = FieldProgram(
+                program_id="field-research-method:"
+                + _digest(
+                    {
+                        "program_id": program_id,
+                        "question_id": question_id,
+                        "question_sha256": _digest(question),
+                        "proposal": normalized,
+                    }
+                )[:32],
+                version=1,
+                roles=tuple(source_ids),
+                steps=tuple(steps),
+                outputs=(steps[-1].output,),
+                status="candidate",
+            )
+            interface = MethodInterface(
+                inputs=tuple(
+                    MethodPort(
+                        name=source_id,
+                        value_kind=ResearchOrganism._root_method_value_kind(
+                            sources[source_id]["value"]
+                        ),
+                        representation=str(
+                            sources[source_id]["identity"]["kind"]
+                        ),
+                        unit="1",
+                        symbol=source_id,
+                    )
+                    for source_id in source_ids
+                ),
+                outputs=(
+                    MethodPort(
+                        name=steps[-1].output,
+                        value_kind="json",
+                        representation="field-program-result",
+                        unit="1",
+                        symbol=steps[-1].output,
+                    ),
+                ),
+            )
+            method = ExecutableMethod(
+                program=field_program,
+                interface=interface,
+                assumptions=tuple(
+                    {"statement": item} for item in normalized["assumptions"]
+                ),
+                preconditions=tuple(
+                    {"statement": item}
+                    for item in normalized["preconditions"]
+                ),
+                effects=tuple(normalized["effects"]),
+                maximum_work=len(steps),
+                uncertainty=float(uncertainty),
+            )
+        except (CollectiveHiveError, FieldIntelligenceError, KeyError, TypeError, ValueError) as exc:
+            if isinstance(exc, OrganismError):
+                raise
+            raise OrganismError(
+                "root research method failed typed Hive admission"
+            ) from exc
+        used_source_ids = [str(source_id) for source_id in source_ids]
+        source_observations = {
+            source_id: {
+                "identity": _plain(sources[source_id]["identity"]),
+            }
+            for source_id in used_source_ids
+        }
+        source_identity_sha256 = _digest(
+            {
+                source_id: source_observations[source_id]["identity"]
+                for source_id in sorted(used_source_ids)
+            }
+        )
+        proposal_sha256 = _digest(normalized)
+        method_id = "root-research-method:" + _digest(
+            {
+                "program_id": program_id,
+                "question_id": question_id,
+                "question_sha256": _digest(question),
+                "proposal_sha256": proposal_sha256,
+                "source_identity_sha256": source_identity_sha256,
+            }
+        )[:32]
+        method_payload = method.as_dict()
+        method_sha256 = _digest(method_payload)
+        payload = {
+            "schema": ROOT_RESEARCH_METHOD_SCHEMA,
+            "program_role": "root-authored-research-method",
+            "state": "retained",
+            "method_id": method_id,
+            "method_sha256": method_sha256,
+            "method": method_payload,
+            "summary": summary,
+            "program_id": program_id,
+            "question_id": question_id,
+            "question": question,
+            "question_sha256": _digest(question),
+            "source_identity_sha256": source_identity_sha256,
+            "source_observations": source_observations,
+            "input_sources": {
+                source_id: source_id for source_id in used_source_ids
+            },
+            "proposal_sha256": proposal_sha256,
+            "authorship": {
+                "owner_instance_id": None,
+                "hive_id": "main",
+                "branch": "main",
+                "role": "root-research-brain",
+            },
+        }
+        return method_id, payload, method, source_observations
+
+    def _execute_root_research_method(
+        self,
+        root: ResearchResidency,
+        *,
+        method_record: Mapping[str, Any],
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        sources: Mapping[str, Mapping[str, Any]],
+        prepared_outputs: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        operation_id = _identifier(operation_id, "root method operation_id")
+        payload = self._unwrap_program_record(method_record.get("payload", {}))
+        if payload.get("schema") != ROOT_RESEARCH_METHOD_SCHEMA:
+            raise OrganismError("root research method Program is malformed")
+        method_payload = payload.get("method")
+        if not isinstance(method_payload, Mapping):
+            raise OrganismError("root research method has no typed method")
+        try:
+            method = ExecutableMethod.from_dict(method_payload)
+        except CollectiveHiveError as exc:
+            raise OrganismError("root research method Program is malformed") from exc
+        method_sha256 = _digest(method.as_dict())
+        if (
+            payload.get("method_sha256") != method_sha256
+            or payload.get("program_id") != program_id
+        ):
+            raise OrganismError("root research method identity changed")
+        input_sources = payload.get("input_sources")
+        source_observations = payload.get("source_observations")
+        if (
+            not isinstance(input_sources, Mapping)
+            or set(input_sources) != {port.name for port in method.interface.inputs}
+            or not isinstance(source_observations, Mapping)
+            or any(
+                not isinstance(source_id, str) or source_id not in source_observations
+                for source_id in input_sources.values()
+            )
+        ):
+            raise OrganismError("root research method source bindings are malformed")
+        if payload.get("authorship") != self._root_method_authorship(root):
+            raise OrganismError("root research method belongs to another field owner")
+        bindings: dict[str, Any] = {}
+        source_ids = sorted(set(input_sources.values()))
+        source_provenance: dict[str, Any] = {}
+        for source_id in source_ids:
+            stored = source_observations.get(source_id)
+            if (
+                not isinstance(stored, Mapping)
+                or not isinstance(stored.get("identity"), Mapping)
+            ):
+                raise OrganismError(
+                    "root research method source observations are malformed"
+                )
+            source_provenance[source_id] = {
+                "identity_sha256": _digest(stored["identity"]),
+                "source_refs": _plain(stored["identity"]["source_refs"]),
+                "dependencies": _plain(stored["identity"]["dependencies"]),
+            }
+        for port in method.interface.inputs:
+            source_id = input_sources.get(port.name)
+            if not isinstance(source_id, str) or source_id not in sources:
+                raise OrganismError(
+                    "root research method requires an unavailable source"
+                )
+            stored = source_observations.get(source_id)
+            if (
+                not isinstance(stored, Mapping)
+                or stored.get("identity") != sources[source_id]["identity"]
+            ):
+                raise OrganismError(
+                    "root research method source identity is stale"
+                )
+            bindings[port.name] = sources[source_id]["value"]
+        if len(canonical_json_bytes(bindings)) > _MAX_RESULT_BYTES:
+            raise OrganismError("root research method bindings exceed their bound")
+        source_identity_sha256 = _digest(
+            {
+                source_id: source_observations[source_id]["identity"]
+                for source_id in source_ids
+            }
+        )
+        if payload.get("source_identity_sha256") != source_identity_sha256:
+            raise OrganismError("root research method source digest is inconsistent")
+        program_ref = self._record_reference(method_record)
+        record_id = f"event:root-research-method-execution:{operation_id}"
+        question_sha256 = _digest(question)
+        execution_identity = {
+            "schema": ROOT_RESEARCH_METHOD_EXECUTION_SCHEMA,
+            "operation_id": operation_id,
+            "method_id": payload["method_id"],
+            "method_sha256": method_sha256,
+            "research_program_id": program_id,
+            "question_id": question_id,
+            "question": question,
+            "question_sha256": question_sha256,
+            "source_identity_sha256": source_identity_sha256,
+            "source_ids": source_ids,
+            "source_provenance": source_provenance,
+            "bindings_sha256": _digest(bindings),
+            "program_ref": program_ref,
+            "maximum_work": method.maximum_work,
+            "work": len(method.program.steps),
+            "support_status": "supported",
+        }
+        existing = root._record(record_id)
+        if existing is not None:
+            prior = _plain(existing.get("payload", {}))
+            if any(
+                prior.get(key) != value
+                for key, value in execution_identity.items()
+            ):
+                raise OrganismError(
+                    "root research method execution identity was reused"
+                )
+            outputs = prior.get("outputs")
+            if not isinstance(outputs, Mapping):
+                raise OrganismError("root research method execution is malformed")
+            execution_payload = prior
+            execution_record = existing
+        else:
+            try:
+                outputs = (
+                    _plain(prepared_outputs)
+                    if prepared_outputs is not None
+                    else _plain(method.execute(bindings))
+                )
+            except CollectiveHiveError as exc:
+                raise OrganismError(
+                    "root research method rejected its typed bindings"
+                ) from exc
+            execution_payload = {
+                **execution_identity,
+                "outputs": outputs,
+            }
+            if len(canonical_json_bytes(execution_payload)) > _MAX_RESULT_BYTES:
+                raise OrganismError(
+                    "root research method execution exceeds its result bound"
+                )
+            self._write_record(
+                root,
+                record_id=record_id,
+                kind="Event",
+                payload=execution_payload,
+                epistemic_kind="observed",
+            )
+            execution_record = root._record(record_id)
+            if execution_record is None:
+                raise OrganismError("root research method execution was not recorded")
+        execution_ref = self._record_reference(execution_record)
+        output_observations = [
+            {
+                "subject": f"{operation_id}:output:{name}",
+                "attribute": "root-research-method-output",
+                "value": {"sha256": _digest(value)},
+                "frame": {
+                    "method_id": payload["method_id"],
+                    "method_sha256": method_sha256,
+                    "program_ref": program_ref,
+                },
+            }
+            for name, value in sorted(outputs.items())
+        ]
+        residency_result = {
+            "status": "supported",
+            "summary": (
+                f"Executed retained root research method {payload['method_id']}."
+            ),
+            "outputs": _plain(outputs),
+            "observations": output_observations,
+            "evidence": {
+                **execution_identity,
+                "execution_event_ref": execution_ref,
+            },
+        }
+        assessment = root.record_root_method_assessment(
+            operation_id,
+            result=residency_result,
+            program_ref=program_ref,
+            execution_event_ref=execution_ref,
+        )
+        return {
+            **residency_result,
+            "schema": ROOT_RESEARCH_METHOD_EXECUTION_SCHEMA,
+            "method_id": payload["method_id"],
+            "method_sha256": method_sha256,
+            "program_ref": program_ref,
+            "execution_event_ref": execution_ref,
+            "assessment": assessment,
+        }
+
+    def create_root_research_method(
+        self,
+        *,
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        proposal: Mapping[str, Any],
+        sources: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Admit and execute one bounded method authored by the root research brain."""
+        operation_id = _identifier(operation_id, "root method operation_id")
+        program_id = _identifier(program_id, "research program_id")
+        question_id = _identifier(question_id, "research question_id")
+        question = _text(question, "research method question", maximum=2_000)
+        current_sources = self._root_method_sources(sources)
+        if not current_sources:
+            raise OrganismError("root research method requires selected source records")
+        if any(
+            source["identity"]["program_id"] != program_id
+            for source in current_sources.values()
+        ):
+            raise OrganismError(
+                "root research method sources belong to another program"
+            )
+        if len(canonical_json_bytes(proposal)) > 65_536:
+            raise OrganismError("root research method proposal exceeds its bound")
+        method_id, payload, method, source_observations = (
+            self._root_method_from_proposal(
+                proposal,
+                program_id=program_id,
+                question_id=question_id,
+                question=question,
+                sources=current_sources,
+            )
+        )
+        record_id = f"program:{method_id}"
+        with self._open_residencies(include_members=False) as (root, _):
+            payload["authorship"] = self._root_method_authorship(root)
+            existing = root._record(record_id)
+            prepared_outputs: Mapping[str, Any] | None = None
+            if existing is not None:
+                prior = self._unwrap_program_record(existing.get("payload", {}))
+                if prior != payload:
+                    raise OrganismError(
+                        "root research method identity was reused"
+                    )
+            else:
+                bindings = {
+                    port.name: current_sources[
+                        payload["input_sources"][port.name]
+                    ]["value"]
+                    for port in method.interface.inputs
+                }
+                try:
+                    prepared_outputs = _plain(method.execute(bindings))
+                except CollectiveHiveError as exc:
+                    raise OrganismError(
+                        "root research method rejected its typed bindings"
+                    ) from exc
+                self._write_record(
+                    root,
+                    record_id=record_id,
+                    kind="Program",
+                    payload=payload,
+                    epistemic_kind="asserted",
+                )
+                existing = root._record(record_id)
+                if existing is None:
+                    raise OrganismError("root research method was not admitted")
+            return self._execute_root_research_method(
+                root,
+                method_record=existing,
+                operation_id=operation_id,
+                program_id=program_id,
+                question_id=question_id,
+                question=question,
+                sources=current_sources,
+                prepared_outputs=prepared_outputs,
+            )
+
+    def execute_retained_root_research_method(
+        self,
+        *,
+        method_id: str,
+        method_sha256: str,
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        sources: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Execute an exact retained root method against its unchanged inputs."""
+        method_id = _identifier(method_id, "root research method_id")
+        method_sha256 = _identifier(
+            method_sha256, "root research method_sha256"
+        )
+        if len(method_sha256) != 64:
+            raise OrganismError("root research method digest is invalid")
+        operation_id = _identifier(operation_id, "root method operation_id")
+        program_id = _identifier(program_id, "research program_id")
+        question_id = _identifier(question_id, "research question_id")
+        question = _text(question, "research method question", maximum=2_000)
+        current_sources = self._root_method_sources(sources)
+        if not method_id.startswith("root-research-method:"):
+            raise OrganismError("root research method identity is invalid")
+        with self._open_residencies(include_members=False) as (root, _):
+            record = root._record(f"program:{method_id}")
+            if record is None or record.get("status") != "active":
+                raise OrganismError("retained root research method is unavailable")
+            payload = self._unwrap_program_record(record.get("payload", {}))
+            if (
+                payload.get("schema") != ROOT_RESEARCH_METHOD_SCHEMA
+                or payload.get("method_id") != method_id
+                or payload.get("method_sha256") != method_sha256
+                or payload.get("program_id") != program_id
+                or payload.get("state") != "retained"
+            ):
+                raise OrganismError("retained root research method identity changed")
+            return self._execute_root_research_method(
+                root,
+                method_record=record,
+                operation_id=operation_id,
+                program_id=program_id,
+                question_id=question_id,
+                question=question,
+                sources=current_sources,
+            )
+
+    @staticmethod
+    def _root_guest_kind(value: Any) -> str:
+        if value is None:
+            return "null"
+        if isinstance(value, bool):
+            return "bool"
+        if isinstance(value, (int, float)):
+            return "number"
+        if isinstance(value, str):
+            return "string"
+        if isinstance(value, list):
+            return "list"
+        if isinstance(value, dict):
+            return "dict"
+        raise OrganismError("guest method source is not a JSON value")
+
+    def _root_guest_proposal(
+        self,
+        proposal: Mapping[str, Any],
+        sources: Mapping[str, Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        if not isinstance(proposal, Mapping):
+            raise OrganismError("root guest method proposal is malformed")
+        candidate = _plain(proposal)
+        if set(candidate) != {
+            "schema", "summary", "source_ids", "source", "assumptions",
+            "preconditions", "effects", "uncertainty",
+        } or candidate["schema"] != ROOT_GUEST_METHOD_PROPOSAL_SCHEMA:
+            raise OrganismError("root guest method proposal schema is invalid")
+        _text(candidate["summary"], "root guest summary", maximum=512)
+        code = candidate["source"]
+        if not isinstance(code, str) or not code.strip() or len(code.encode("utf-8")) > 65_536:
+            raise OrganismError("root guest source must be nonempty and at most 65536 bytes")
+        ids = candidate["source_ids"]
+        if (
+            not isinstance(ids, list) or not 1 <= len(ids) <= 8
+            or any(not isinstance(item, str) or item not in sources for item in ids)
+            or len(set(ids)) != len(ids)
+        ):
+            raise OrganismError("root guest source_ids must name 1..8 distinct selected sources")
+        for key in ("assumptions", "preconditions", "effects"):
+            values = candidate[key]
+            if not isinstance(values, list) or len(values) > 8:
+                raise OrganismError(f"root guest {key} is malformed")
+            for item in values:
+                _text(item, f"root guest {key}", maximum=512)
+        uncertainty = candidate["uncertainty"]
+        if (
+            isinstance(uncertainty, bool)
+            or not isinstance(uncertainty, (int, float))
+            or not math.isfinite(float(uncertainty))
+            or not 0 <= float(uncertainty) <= 1
+        ):
+            raise OrganismError("root guest uncertainty is invalid")
+        return candidate
+
+    @staticmethod
+    def _supported_root_guest_methods(
+        root: ResearchResidency,
+    ) -> set[tuple[str, str, str, int]]:
+        """Identify methods supported by an assessment of their origin execution."""
+        supported: set[tuple[str, str, str, int]] = set()
+        for assessment_id in root._task().get("records", {}):
+            if not str(assessment_id).startswith("research:root-method-assessment:"):
+                continue
+            assessment = root._record(assessment_id)
+            if assessment is None or assessment.get("status") != "active":
+                continue
+            payload = assessment.get("payload", {})
+            if not isinstance(payload, Mapping):
+                continue
+            method_id = payload.get("method_id")
+            method_sha256 = payload.get("method_sha256")
+            program_ref = payload.get("program_ref")
+            event_ref = payload.get("execution_event_ref")
+            if (
+                payload.get("schema") != "cassifi.research-residency-root-method-assessment.v1"
+                or payload.get("status") != "supported"
+                or not isinstance(method_id, str)
+                or not isinstance(method_sha256, str)
+                or not isinstance(program_ref, Mapping)
+                or program_ref.get("id") != "program:" + method_id
+                or program_ref.get("kind") != "Program"
+                or not isinstance(program_ref.get("content_version"), int)
+                or not isinstance(event_ref, Mapping)
+            ):
+                continue
+            method_record = root._record(program_ref["id"])
+            event = root._record(event_ref.get("id")) if isinstance(event_ref.get("id"), str) else None
+            if (
+                method_record is None or method_record.get("status") != "active"
+                or event is None or event.get("status") != "active"
+                or any(method_record.get(key) != program_ref.get(key) for key in ("id", "kind", "content_version"))
+                or any(event.get(key) != event_ref.get(key) for key in ("id", "kind", "content_version"))
+            ):
+                continue
+            method_payload = ResearchOrganism._unwrap_program_record(method_record.get("payload", {}))
+            event_payload = event.get("payload", {})
+            identity = event_payload.get("identity", {})
+            if (
+                method_payload.get("schema") != ROOT_GUEST_METHOD_SCHEMA
+                or method_payload.get("method_id") != method_id
+                or method_payload.get("method_sha256") != method_sha256
+                or payload.get("research_program_id") != method_payload.get("program_id")
+                or event_payload.get("status") != "completed"
+                or identity.get("schema") != ROOT_GUEST_EXECUTION_SCHEMA
+                or identity.get("method_id") != method_id
+                or identity.get("method_sha256") != method_sha256
+                or identity.get("program_id") != method_payload.get("program_id")
+                or identity.get("program_ref") != program_ref
+            ):
+                continue
+            supported.add((method_id, method_sha256, program_ref["id"], program_ref["content_version"]))
+        return supported
+
+    def root_guest_method_perspective(
+        self,
+        program_id: str,
+        sources: Sequence[Mapping[str, Any]],
+        maximum: int = 8,
+    ) -> dict[str, Any]:
+        program_id = _identifier(program_id, "research program_id")
+        if isinstance(maximum, bool) or not isinstance(maximum, int) or not 1 <= maximum <= 32:
+            raise OrganismError("root guest maximum is invalid")
+        current = self._root_method_sources(sources)
+        if any(row["identity"]["program_id"] != program_id for row in current.values()):
+            raise OrganismError("root guest sources belong to another program")
+        kinds = [self._root_guest_kind(row["value"]) for row in current.values()]
+        methods: list[dict[str, Any]] = []
+        with self._open_residencies(include_members=False) as (root, _):
+            authorship = self._root_method_authorship(root)
+            records = root._task().get("records", {})
+            supported = self._supported_root_guest_methods(root)
+            for record_id in sorted(records):
+                if not str(record_id).startswith("program:root-guest-method:"):
+                    continue
+                record = root._record(record_id)
+                if record is None or record.get("status") != "active":
+                    continue
+                payload = self._unwrap_program_record(record.get("payload", {}))
+                if (
+                    payload.get("schema") != ROOT_GUEST_METHOD_SCHEMA
+                    or not isinstance(payload.get("program_id"), str)
+                    or payload.get("authorship") != authorship
+                ):
+                    continue
+                self._validate_root_guest_record(payload)
+                program_ref = self._record_reference(record)
+                if (
+                    payload["method_id"], payload["method_sha256"],
+                    program_ref["id"], program_ref["content_version"],
+                ) not in supported:
+                    continue
+                if any(payload["input_signature"].count(kind) > kinds.count(kind)
+                       for kind in set(payload["input_signature"])):
+                    continue
+                row = {
+                    "method_id": payload["method_id"],
+                    "method_sha256": payload["method_sha256"],
+                    "program_id": payload["program_id"],
+                    "program_ref": program_ref,
+                    "summary": payload["summary"],
+                    "input_names": payload["input_names"],
+                    "input_signature": payload["input_signature"],
+                    "source_ids": payload["origin_source_ids"],
+                    "origin_question_id": payload["question_id"],
+                    "assumptions": payload["assumptions"],
+                    "preconditions": payload["preconditions"],
+                    "effects": payload["effects"],
+                    "uncertainty": payload["uncertainty"],
+                }
+                row["candidate_sha256"] = _digest(row)
+                methods.append(row)
+                if len(methods) >= maximum:
+                    break
+        return {
+            "schema": ROOT_GUEST_METHOD_SCHEMA,
+            "program_id": program_id,
+            "methods": methods,
+            "method_count": len(methods),
+        }
+
+    @staticmethod
+    def _validate_root_guest_record(payload: Mapping[str, Any]) -> None:
+        code = payload.get("source")
+        names = payload.get("input_names")
+        kinds = payload.get("input_signature")
+        if (
+            not isinstance(code, str) or not code.strip()
+            or len(code.encode("utf-8")) > 65_536
+            or payload.get("source_sha256") != hashlib.sha256(code.encode("utf-8")).hexdigest()
+            or not isinstance(names, list) or not 1 <= len(names) <= 8
+            or names != [f"input_{index}" for index in range(len(names))]
+            or not isinstance(kinds, list) or len(kinds) != len(names)
+            or any(kind not in {"number", "string", "bool", "list", "dict", "null"} for kind in kinds)
+            or not isinstance(payload.get("origin_sources"), Mapping)
+            or not isinstance(payload.get("authorship"), Mapping)
+        ):
+            raise OrganismError("retained root guest method is malformed")
+        digest_payload = {
+            key: payload[key] for key in (
+                "source", "source_sha256", "input_names", "input_signature",
+                "origin_source_ids", "origin_sources", "program_id", "question_id",
+                "question", "summary", "assumptions", "preconditions", "effects",
+                "uncertainty", "authorship",
+            )
+        }
+        if "produced_by" in payload:
+            produced_by = payload["produced_by"]
+            if (
+                not isinstance(produced_by, Mapping)
+                or set(produced_by) != {
+                    "generator_method_id", "generator_method_sha256",
+                    "generator_program_ref", "generator_execution_event_ref",
+                    "output_sha256",
+                }
+                or any(
+                    not isinstance(produced_by[key], str)
+                    or not produced_by[key]
+                    for key in ("generator_method_id", "generator_method_sha256", "output_sha256")
+                )
+                or any(
+                    not isinstance(produced_by[key], Mapping)
+                    or set(produced_by[key]) != {"id", "kind", "content_version"}
+                    or produced_by[key]["kind"] != kind
+                    or not isinstance(produced_by[key]["content_version"], int)
+                    or produced_by[key]["content_version"] < 1
+                    for key, kind in (
+                        ("generator_program_ref", "Program"),
+                        ("generator_execution_event_ref", "Event"),
+                    )
+                )
+                or any(
+                    not isinstance(produced_by[key], str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", produced_by[key])
+                    for key in ("generator_method_sha256", "output_sha256")
+                )
+                or produced_by["generator_program_ref"]["id"]
+                != "program:" + produced_by["generator_method_id"]
+            ):
+                raise OrganismError("retained root guest method provenance is malformed")
+            digest_payload["produced_by"] = _plain(produced_by)
+        method_sha = _digest(digest_payload)
+        if (
+            payload.get("method_sha256") != method_sha
+            or payload.get("method_id") != "root-guest-method:" + method_sha[:32]
+            or not isinstance(payload.get("program_id"), str)
+            or not isinstance(payload.get("origin_source_ids"), list)
+            or len(payload["origin_source_ids"]) != len(names)
+            or any(not isinstance(source_id, str) for source_id in payload["origin_source_ids"])
+            or len(set(payload["origin_source_ids"])) != len(names)
+            or set(payload["origin_source_ids"]) != set(payload["origin_sources"])
+            or any(
+                not isinstance(source_id, str)
+                or not isinstance(payload["origin_sources"][source_id], Mapping)
+                or not isinstance(payload["origin_sources"][source_id].get("identity"), Mapping)
+                or payload["origin_sources"][source_id]["identity"].get("program_id") != payload["program_id"]
+                or _digest(payload["origin_sources"][source_id]["identity"]) != source_id
+                for source_id in payload["origin_source_ids"]
+            )
+        ):
+            raise OrganismError("retained root guest method digest or origin is inconsistent")
+
+    def _execute_root_guest_method(
+        self,
+        root: ResearchResidency,
+        *,
+        method_record: Mapping[str, Any],
+        payload: Mapping[str, Any],
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        sources: Mapping[str, Mapping[str, Any]],
+        bindings: Mapping[str, str],
+        runtime: Any,
+        member_id: str,
+    ) -> dict[str, Any]:
+        from programs.python.runtime import RuntimeError as GuestRuntimeError, read_global
+
+        names = payload["input_names"]
+        if not isinstance(bindings, Mapping) or set(bindings) != set(names):
+            raise OrganismError("root guest input bindings are incomplete")
+        if len(set(bindings.values())) != len(names):
+            raise OrganismError("root guest input bindings must be distinct")
+        for name, kind in zip(names, payload["input_signature"]):
+            source_id = bindings[name]
+            if not isinstance(source_id, str) or source_id not in sources:
+                raise OrganismError("root guest input source is not selected")
+            if self._root_guest_kind(sources[source_id]["value"]) != kind:
+                raise OrganismError("root guest input source kind is incompatible")
+        program_ref = self._record_reference(method_record)
+        source_ids = [bindings[name] for name in names]
+        provenance = {
+            source_id: {
+                "identity_sha256": _digest(sources[source_id]["identity"]),
+                "source_refs": sources[source_id]["identity"]["source_refs"],
+                "dependencies": sources[source_id]["identity"]["dependencies"],
+                "field_revision": sources[source_id]["field_revision"],
+            }
+            for source_id in source_ids
+        }
+        event_id = f"event:root-guest-method-execution:{operation_id}"
+        identity = {
+            "schema": ROOT_GUEST_EXECUTION_SCHEMA,
+            "operation_id": operation_id,
+            "method_id": payload["method_id"],
+            "method_sha256": payload["method_sha256"],
+            "program_id": program_id,
+            "question_id": question_id,
+            "question": question,
+            "question_sha256": _digest(question),
+            "bindings": dict(bindings),
+            "source_ids": source_ids,
+            "source_provenance": provenance,
+            "source_identity_sha256": _digest(provenance),
+            "program_ref": program_ref,
+            "member_id": member_id,
+        }
+        if program_id != payload["program_id"]:
+            identity["origin_program_id"] = payload["program_id"]
+        existing = root._record(event_id)
+        if existing is not None:
+            prior = existing.get("payload", {})
+            if not isinstance(prior, Mapping) or prior.get("identity") != identity:
+                raise OrganismError("root guest operation identity was reused")
+        else:
+            self._write_record(
+                root, record_id=event_id, kind="Event",
+                payload={"identity": identity, "status": "pending"},
+                epistemic_kind="observed",
+            )
+        task_id = "root-guest:" + hashlib.sha256(operation_id.encode("utf-8")).hexdigest()[:32]
+        if existing is not None and existing["payload"].get("status") in {"faulted", "cancelled"}:
+            return {
+                "status": existing["payload"]["status"],
+                "method_id": payload["method_id"],
+                "method_sha256": payload["method_sha256"],
+                "task_id": task_id,
+                "program_ref": program_ref,
+                "execution_event_ref": self._record_reference(existing),
+                "unfinished_reason": existing["payload"].get("reason"),
+            }
+        if existing is None or existing["payload"].get("status") != "completed":
+            # The scheduler compares the full initial guest state digest on
+            # duplicate task IDs, including the exact admitted input values.
+            # Re-submit only; steps=0 never replays a suspended guest.
+            runtime.start_python(
+                member_id, payload["source"], mode="exec",
+                inputs={name: sources[bindings[name]]["value"] for name in names},
+                capabilities=(), limits={"max_source_bytes": 65_536},
+                operation_id=task_id, task_id=task_id, steps=0,
+            )
+            boundary = runtime.run_to_boundary(member_id, task_id=task_id)
+            status = boundary["view"]["status"]
+            reason = boundary["view"].get("unfinished_reason")
+            if status == "completed":
+                try:
+                    result = read_global(runtime.raw_state(member_id, task_id=task_id), "result")
+                    outputs = {"result": result}
+                    if len(canonical_json_bytes(outputs)) > _MAX_RESULT_BYTES:
+                        raise GuestRuntimeError("root guest result exceeds its bound")
+                except GuestRuntimeError as exc:
+                    status = "faulted"
+                    reason = str(exc)
+                else:
+                    self._write_record(
+                        root, record_id=event_id, kind="Event",
+                        payload={"identity": identity, "status": "completed", "outputs": outputs},
+                        epistemic_kind="observed",
+                    )
+            if status != "completed":
+                if status not in {"running", "paused", "resource-paused", "waiting", "faulted", "cancelled"}:
+                    raise OrganismError("root guest task has an unknown status")
+                self._write_record(
+                    root, record_id=event_id, kind="Event",
+                    payload={"identity": identity, "status": status, "reason": reason},
+                    epistemic_kind="observed",
+                )
+                return {
+                    "status": status, "method_id": payload["method_id"],
+                    "method_sha256": payload["method_sha256"], "task_id": task_id,
+                    "program_ref": program_ref,
+                    "execution_event_ref": self._record_reference(root._record(event_id)),
+                    "unfinished_reason": reason,
+                }
+        event = root._record(event_id)
+        outputs = event["payload"]["outputs"]
+        event_ref = self._record_reference(event)
+        receipt = {
+            "status": "supported",
+            "summary": f"Executed root guest method {payload['method_id']}",
+            "outputs": outputs,
+            "evidence": {
+                "support_status": "supported",
+                "research_program_id": program_id,
+                "question_id": question_id,
+                "question": question,
+                "question_sha256": _digest(question),
+                "method_id": payload["method_id"],
+                "method_sha256": payload["method_sha256"],
+                "source_identity_sha256": identity["source_identity_sha256"],
+                "source_ids": source_ids,
+                "source_provenance": provenance,
+                "program_ref": program_ref,
+            },
+        }
+        assessment = root.record_root_method_assessment(
+            operation_id, result=receipt, program_ref=program_ref,
+            execution_event_ref=event_ref,
+        )
+        return {
+            **receipt, "method_id": payload["method_id"],
+            "origin_program_id": payload["program_id"],
+            "method_sha256": payload["method_sha256"],
+            "program_ref": program_ref, "execution_event_ref": event_ref,
+            "assessment": assessment,
+        }
+
+    def create_root_guest_research_method(
+        self,
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        proposal: Mapping[str, Any],
+        sources: Sequence[Mapping[str, Any]],
+        runtime: Any,
+        member_id: str,
+        *,
+        produced_by: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        operation_id = _identifier(operation_id, "root guest operation_id")
+        program_id = _identifier(program_id, "research program_id")
+        question_id = _identifier(question_id, "research question_id")
+        question = _text(question, "root guest question", maximum=2_000)
+        member_id = _identifier(member_id, "root guest member_id")
+        current = self._root_method_sources(sources)
+        if any(row["identity"]["program_id"] != program_id for row in current.values()):
+            raise OrganismError("root guest sources belong to another program")
+        candidate = self._root_guest_proposal(proposal, current)
+        if produced_by is not None:
+            # The optional lineage is a field-backed generator receipt, never
+            # proposal-authored metadata.
+            produced_by = _plain(produced_by)
+            if (
+                not isinstance(produced_by, dict)
+                or set(produced_by) != {
+                    "generator_method_id", "generator_method_sha256",
+                    "generator_program_ref", "generator_execution_event_ref",
+                    "output_sha256",
+                }
+                or any(
+                    not isinstance(produced_by.get(key), dict)
+                    or set(produced_by[key]) != {"id", "kind", "content_version"}
+                    or not isinstance(produced_by[key].get("id"), str)
+                    for key in ("generator_program_ref", "generator_execution_event_ref")
+                )
+                or any(
+                    not isinstance(produced_by.get(key), str)
+                    for key in ("generator_method_id", "generator_method_sha256", "output_sha256")
+                )
+            ):
+                raise OrganismError("root guest generator provenance is malformed")
+        ids = candidate["source_ids"]
+        names = [f"input_{index}" for index in range(len(ids))]
+        with self._open_residencies(include_members=False) as (root, _):
+            if produced_by is not None:
+                generator_record = root._record(produced_by["generator_program_ref"]["id"])
+                generator_event = root._record(produced_by["generator_execution_event_ref"]["id"])
+                if (
+                    generator_record is None
+                    or generator_event is None
+                    or generator_record.get("status") != "active"
+                    or generator_event.get("status") != "active"
+                    or self._record_reference(generator_record) != produced_by["generator_program_ref"]
+                    or self._record_reference(generator_event) != produced_by["generator_execution_event_ref"]
+                ):
+                    raise OrganismError("root guest generator field references changed")
+                generator_payload = self._unwrap_program_record(generator_record["payload"])
+                event_payload = generator_event["payload"]
+                event_identity = event_payload.get("identity", {})
+                generator_output = event_payload.get("outputs", {}).get("result")
+                if (
+                    generator_payload.get("schema") != ROOT_GUEST_METHOD_SCHEMA
+                    or generator_payload.get("method_id") != produced_by["generator_method_id"]
+                    or generator_payload.get("method_sha256") != produced_by["generator_method_sha256"]
+                    or generator_payload.get("authorship") != self._root_method_authorship(root)
+                    or event_identity.get("program_id") != program_id
+                    or event_identity.get("program_ref") != produced_by["generator_program_ref"]
+                    or event_identity.get("schema") != ROOT_GUEST_EXECUTION_SCHEMA
+                    or event_identity.get("method_id") != produced_by["generator_method_id"]
+                    or event_identity.get("method_sha256") != produced_by["generator_method_sha256"]
+                    or event_identity.get("question_id") != question_id
+                    or event_identity.get("question") != question
+                    or event_payload.get("status") != "completed"
+                    or generator_output != candidate
+                    or _digest(generator_output) != produced_by["output_sha256"]
+                    or event_identity.get("origin_program_id", generator_payload.get("program_id")) != generator_payload.get("program_id")
+                ):
+                    raise OrganismError("root guest generator provenance does not support proposal")
+                self._validate_root_guest_record(generator_payload)
+                if (
+                    generator_payload["program_id"] != program_id
+                    and (
+                        produced_by["generator_method_id"],
+                        produced_by["generator_method_sha256"],
+                        generator_record["id"], generator_record["content_version"],
+                    ) not in self._supported_root_guest_methods(root)
+                ):
+                    raise OrganismError("root guest generator lacks origin support")
+                generator_bindings = event_identity.get("bindings")
+                generator_provenance = event_identity.get("source_provenance")
+                if (
+                    not isinstance(generator_bindings, Mapping)
+                    or not isinstance(generator_provenance, Mapping)
+                    or set(generator_bindings) != set(generator_payload["input_names"])
+                    or event_identity.get("source_ids") != [
+                        generator_bindings[name] for name in generator_payload["input_names"]
+                    ]
+                    or event_identity.get("source_identity_sha256") != _digest(generator_provenance)
+                    or any(
+                        not isinstance(source_id, str)
+                        or source_id not in current
+                        or generator_provenance.get(source_id) != {
+                            "identity_sha256": _digest(current[source_id]["identity"]),
+                            "source_refs": current[source_id]["identity"]["source_refs"],
+                            "dependencies": current[source_id]["identity"]["dependencies"],
+                            "field_revision": current[source_id]["field_revision"],
+                        }
+                        for source_id in generator_bindings.values()
+                    )
+                ):
+                    raise OrganismError("root guest generator source bindings changed")
+            body = {
+                "source": candidate["source"],
+                "source_sha256": hashlib.sha256(candidate["source"].encode("utf-8")).hexdigest(),
+                "input_names": names,
+                "input_signature": [self._root_guest_kind(current[source_id]["value"]) for source_id in ids],
+                "origin_source_ids": ids,
+                "origin_sources": {source_id: {
+                    "identity": current[source_id]["identity"],
+                    "field_revision": current[source_id]["field_revision"],
+                } for source_id in ids},
+                "program_id": program_id,
+                "question_id": question_id,
+                "question": question,
+                "summary": candidate["summary"],
+                "assumptions": candidate["assumptions"],
+                "preconditions": candidate["preconditions"],
+                "effects": candidate["effects"],
+                "uncertainty": candidate["uncertainty"],
+                "authorship": self._root_method_authorship(root),
+            }
+            if produced_by is not None:
+                body["produced_by"] = produced_by
+            method_sha = _digest(body)
+            method_id = "root-guest-method:" + method_sha[:32]
+            payload = {
+                "schema": ROOT_GUEST_METHOD_SCHEMA, "method_id": method_id,
+                "method_sha256": method_sha, **body,
+            }
+            self._validate_root_guest_record(payload)
+            prior_execution = root._record(
+                f"event:root-guest-method-execution:{operation_id}"
+            )
+            if prior_execution is not None:
+                prior_identity = prior_execution.get("payload", {}).get("identity", {})
+                if (
+                    prior_identity.get("method_sha256") != method_sha
+                    or prior_identity.get("method_id") != method_id
+                    or prior_identity.get("program_id") != program_id
+                    or prior_identity.get("question_id") != question_id
+                    or prior_identity.get("question") != question
+                    or prior_identity.get("bindings") != dict(zip(names, ids))
+                ):
+                    raise OrganismError("root guest operation identity was reused")
+            record_id = "program:" + method_id
+            record = root._record(record_id)
+            if record is None:
+                from programs.python.compiler import CompilerError, compile_python
+
+                try:
+                    compile_python(
+                        candidate["source"], mode="exec",
+                        max_source_bytes=65_536,
+                    )
+                except CompilerError as exc:
+                    raise OrganismError("root guest source cannot be compiled") from exc
+                self._write_record(
+                    root, record_id=record_id, kind="Program",
+                    payload=payload, epistemic_kind="asserted",
+                )
+                record = root._record(record_id)
+            elif self._unwrap_program_record(record.get("payload", {})) != payload:
+                raise OrganismError("root guest method identity was reused")
+            return self._execute_root_guest_method(
+                root, method_record=record, payload=payload,
+                operation_id=operation_id, program_id=program_id,
+                question_id=question_id, question=question,
+                sources=current, bindings=dict(zip(names, ids)), runtime=runtime,
+                member_id=member_id,
+            )
+
+    def execute_retained_root_guest_research_method(
+        self,
+        method_id: str,
+        method_sha256: str,
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        sources: Sequence[Mapping[str, Any]],
+        bindings: Mapping[str, str],
+        runtime: Any,
+        member_id: str,
+    ) -> dict[str, Any]:
+        method_id = _identifier(method_id, "root guest method_id")
+        method_sha256 = _identifier(method_sha256, "root guest method_sha256")
+        operation_id = _identifier(operation_id, "root guest operation_id")
+        program_id = _identifier(program_id, "research program_id")
+        question_id = _identifier(question_id, "research question_id")
+        question = _text(question, "root guest question", maximum=2_000)
+        member_id = _identifier(member_id, "root guest member_id")
+        current = self._root_method_sources(sources)
+        if any(row["identity"]["program_id"] != program_id for row in current.values()):
+            raise OrganismError("root guest sources belong to another program")
+        with self._open_residencies(include_members=False) as (root, _):
+            record = root._record("program:" + method_id)
+            if record is None or record.get("status") != "active":
+                raise OrganismError("retained root guest method is unavailable")
+            payload = self._unwrap_program_record(record.get("payload", {}))
+            if (
+                payload.get("schema") != ROOT_GUEST_METHOD_SCHEMA
+                or payload.get("method_id") != method_id
+                or payload.get("method_sha256") != method_sha256
+                or not isinstance(payload.get("program_id"), str)
+                or payload.get("authorship") != self._root_method_authorship(root)
+            ):
+                raise OrganismError("retained root guest method identity changed")
+            self._validate_root_guest_record(payload)
+            if (
+                payload["program_id"] != program_id
+                and (
+                    method_id, method_sha256, record["id"], record["content_version"],
+                ) not in self._supported_root_guest_methods(root)
+            ):
+                raise OrganismError("retained root guest method lacks origin support")
+            return self._execute_root_guest_method(
+                root, method_record=record, payload=payload,
+                operation_id=operation_id, program_id=program_id,
+                question_id=question_id, question=question,
+                sources=current, bindings=bindings, runtime=runtime, member_id=member_id,
+            )
+
+    def derive_root_guest_research_method(
+        self,
+        generator_method_id: str,
+        generator_method_sha256: str,
+        operation_id: str,
+        program_id: str,
+        question_id: str,
+        question: str,
+        sources: Sequence[Mapping[str, Any]],
+        bindings: Mapping[str, str],
+        runtime: Any,
+        member_id: str,
+    ) -> dict[str, Any]:
+        """Run a retained generator, admit only its exact proposal, and run its child."""
+        generator_method_id = _identifier(generator_method_id, "root guest generator method_id")
+        generator_method_sha256 = _identifier(
+            generator_method_sha256, "root guest generator method_sha256"
+        )
+        operation_id = _identifier(operation_id, "root guest derivation operation_id")
+        generator_operation = _identifier(operation_id + ":generator", "generator operation_id")
+        derived_operation = _identifier(operation_id + ":derived", "derived operation_id")
+        program_id = _identifier(program_id, "research program_id")
+        question_id = _identifier(question_id, "research question_id")
+        question = _text(question, "root guest question", maximum=2_000)
+        member_id = _identifier(member_id, "root guest member_id")
+        current = self._root_method_sources(sources)
+        if any(row["identity"]["program_id"] != program_id for row in current.values()):
+            raise OrganismError("root guest sources belong to another program")
+        if not isinstance(bindings, Mapping):
+            raise OrganismError("root guest generator bindings are invalid")
+        selected_bindings = _plain(bindings)
+        if not isinstance(selected_bindings, dict):
+            raise OrganismError("root guest generator bindings are invalid")
+        event_id = f"event:root-guest-method-derivation:{operation_id}"
+        with self._open_residencies(include_members=False) as (root, _):
+            generator_record = root._record("program:" + generator_method_id)
+            if generator_record is None or generator_record.get("status") != "active":
+                raise OrganismError("retained root guest generator is unavailable")
+            generator_payload = self._unwrap_program_record(generator_record.get("payload", {}))
+            if (
+                generator_payload.get("schema") != ROOT_GUEST_METHOD_SCHEMA
+                or generator_payload.get("method_id") != generator_method_id
+                or generator_payload.get("method_sha256") != generator_method_sha256
+                or not isinstance(generator_payload.get("program_id"), str)
+                or generator_payload.get("authorship") != self._root_method_authorship(root)
+            ):
+                raise OrganismError("retained root guest generator identity changed")
+            self._validate_root_guest_record(generator_payload)
+            if (
+                generator_payload["program_id"] != program_id
+                and (
+                    generator_method_id, generator_method_sha256,
+                    generator_record["id"], generator_record["content_version"],
+                ) not in self._supported_root_guest_methods(root)
+            ):
+                raise OrganismError("retained root guest generator lacks origin support")
+            names = generator_payload["input_names"]
+            if (
+                set(selected_bindings) != set(names)
+                or any(not isinstance(value, str) for value in selected_bindings.values())
+                or len(set(selected_bindings.values())) != len(names)
+            ):
+                raise OrganismError("root guest generator bindings are incomplete")
+            for name, kind in zip(names, generator_payload["input_signature"]):
+                source_id = selected_bindings[name]
+                if not isinstance(source_id, str) or source_id not in current:
+                    raise OrganismError("root guest generator source is not selected")
+                if self._root_guest_kind(current[source_id]["value"]) != kind:
+                    raise OrganismError("root guest generator source kind is incompatible")
+            identity = {
+                "schema": ROOT_GUEST_DERIVATION_SCHEMA,
+                "operation_id": operation_id,
+                "generator_method_id": generator_method_id,
+                "generator_method_sha256": generator_method_sha256,
+                "generator_program_ref": self._record_reference(generator_record),
+                "program_id": program_id,
+                "question_id": question_id,
+                "question": question,
+                "bindings": selected_bindings,
+                "selected_sources": {
+                    source_id: {
+                        "identity": row["identity"],
+                        "field_revision": row["field_revision"],
+                    }
+                    for source_id, row in current.items()
+                },
+                "member_id": member_id,
+            }
+            if program_id != generator_payload["program_id"]:
+                identity["origin_program_id"] = generator_payload["program_id"]
+            existing = root._record(event_id)
+            if existing is not None:
+                if existing.get("payload", {}).get("identity") != identity:
+                    raise OrganismError("root guest derivation operation identity was reused")
+            else:
+                self._write_record(
+                    root, record_id=event_id, kind="Event",
+                    payload={"identity": identity, "status": "pending"},
+                    epistemic_kind="observed",
+                )
+
+        generator = self.execute_retained_root_guest_research_method(
+            generator_method_id, generator_method_sha256, generator_operation,
+            program_id, question_id, question, sources, selected_bindings,
+            runtime, member_id,
+        )
+        provenance: dict[str, Any] | None = None
+        if generator["status"] != "supported":
+            with self._open_residencies(include_members=False) as (root, _):
+                self._write_record(
+                    root, record_id=event_id, kind="Event",
+                    payload={"identity": identity, "status": generator["status"],
+                             "generator_execution_event_ref": generator.get("execution_event_ref"),
+                             "reason": generator.get("unfinished_reason")},
+                    epistemic_kind="observed",
+                )
+            return {
+                "status": generator["status"], "generator": generator,
+                "produced_by": None,
+                "unfinished_reason": generator.get("unfinished_reason"),
+            }
+
+        proposal = generator["outputs"]["result"]
+        provenance = {
+            "generator_method_id": generator_method_id,
+            "generator_method_sha256": generator_method_sha256,
+            "generator_program_ref": generator["program_ref"],
+            "generator_execution_event_ref": generator["execution_event_ref"],
+            "output_sha256": _digest(proposal),
+        }
+        try:
+            candidate = self._root_guest_proposal(proposal, current)
+        except OrganismError as exc:
+            with self._open_residencies(include_members=False) as (root, _):
+                self._write_record(
+                    root, record_id=event_id, kind="Event",
+                    payload={"identity": identity, "status": "faulted",
+                             "stage": "proposal-invalid",
+                             "produced_by": provenance, "reason": str(exc)},
+                    epistemic_kind="observed",
+                )
+            return {
+                "status": "faulted", "generator": generator,
+                "produced_by": provenance, "unfinished_reason": str(exc),
+            }
+        with self._open_residencies(include_members=False) as (root, _):
+            existing = root._record(event_id)
+            prior = existing["payload"]
+            if prior.get("produced_by") is not None and prior["produced_by"] != provenance:
+                raise OrganismError("root guest derivation output identity changed")
+            if prior.get("status") == "faulted" and prior.get("stage") == "proposal-invalid":
+                return {
+                    "status": "faulted", "generator": generator,
+                    "produced_by": provenance, "unfinished_reason": prior.get("reason"),
+                }
+            if prior.get("produced_by") is not None:
+                if prior.get("source_ids") != candidate["source_ids"]:
+                    raise OrganismError("root guest derivation proposal identity changed")
+            else:
+                self._write_record(
+                    root, record_id=event_id, kind="Event",
+                    payload={"identity": identity, "status": "proposed",
+                             "produced_by": provenance, "source_ids": candidate["source_ids"]},
+                    epistemic_kind="observed",
+                )
+        try:
+            child = self.create_root_guest_research_method(
+                derived_operation, program_id, question_id, question,
+                candidate, sources, runtime, member_id, produced_by=provenance,
+            )
+        except OrganismError as exc:
+            if str(exc) != "root guest source cannot be compiled":
+                raise
+            with self._open_residencies(include_members=False) as (root, _):
+                self._write_record(
+                    root, record_id=event_id, kind="Event",
+                    payload={"identity": identity, "status": "faulted",
+                             "stage": "proposal-invalid",
+                             "produced_by": provenance, "reason": str(exc)},
+                    epistemic_kind="observed",
+                )
+            return {
+                "status": "faulted", "generator": generator,
+                "produced_by": provenance, "unfinished_reason": str(exc),
+            }
+        with self._open_residencies(include_members=False) as (root, _):
+            self._write_record(
+                root, record_id=event_id, kind="Event",
+                payload={"identity": identity, "status": child["status"],
+                         "produced_by": provenance, "source_ids": candidate["source_ids"],
+                         "child_program_ref": child.get("program_ref"),
+                         "child_execution_event_ref": child.get("execution_event_ref")},
+                epistemic_kind="observed",
+            )
+        return {**child, "generator": generator, "produced_by": provenance}
+
 
     @staticmethod
     def _collective_continuation_operation_id(
@@ -7824,6 +9919,264 @@ class ResearchOrganism:
             for _ in range(steps):
                 result = root.advance()
             return result
+
+    def advance_working_field(
+        self,
+        operation_id: str,
+        *,
+        field_id: str,
+        action: str,
+        update: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Apply one scoped program transition to the canonical root owner."""
+        operation_id = _identifier(operation_id, "working-field operation_id")
+        field_id = _identifier(field_id, "working-field field_id")
+        if not isinstance(action, str) or not isinstance(update, Mapping):
+            raise OrganismError("working-field action and update are required")
+        with self._open_residencies(include_members=False) as (root, _):
+            field = root.advance_working_field(
+                operation_id,
+                field_id=field_id,
+                action=action,
+                update=update,
+            )
+            return {
+                "status": "supported",
+                "field": field,
+                "program_ref": field["program_ref"],
+                "owner_state_sha256": root.owner.state.state_sha256,
+                "generation": root.owner.state.generation,
+            }
+    def numerical_instrument_context(self, program_id: str) -> dict[str, Any]:
+        """Return configured host-owned numerical availability for one program."""
+        program_id = _identifier(program_id, "numerical instrument program_id")
+        with self._open_residencies(include_members=False) as (root, _):
+            report = dict(root.owner.program_resources(program_id))
+            if not report.get("configured"):
+                return {"status": "unconfigured", "program_id": program_id}
+            computer_id = report.get("computer_id")
+            if not isinstance(computer_id, str) or not computer_id:
+                return {"status": "unavailable", "program_id": program_id}
+            return {
+                "status": "available",
+                "program_id": program_id,
+                "limits": asdict(root.owner.resource_limits(computer_id)),
+                "generation": root.owner.state.generation,
+            }
+
+    def submit_numerical_instrument(
+        self,
+        operation_id: str,
+        *,
+        program_id: str,
+        work_id: str,
+        kernel: str,
+        state: Mapping[str, Any],
+        arguments: Mapping[str, Any] | None = None,
+        kind: str | None = None,
+        steps: int = 1,
+        source_revision_ids: Sequence[str] = (),
+        assumptions: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Submit owner state or compile compact structured source for its configured host."""
+        operation_id = _identifier(operation_id, "numerical instrument operation_id")
+        program_id = _identifier(program_id, "numerical instrument program_id")
+        work_id = _identifier(work_id, "numerical instrument work_id")
+        if not work_id.startswith(f"{program_id}:numerical:"):
+            raise OrganismError("numerical work identity must be scoped to its program")
+        with self._open_residencies(include_members=False) as (root, _):
+            report = root.owner.program_resources(program_id)
+            if not report.get("configured"):
+                raise OrganismError("program numerical residency is not configured")
+            computer_id = report.get("computer_id")
+            if not isinstance(computer_id, str) or not computer_id:
+                raise OrganismError("program numerical residency has no host computer")
+            submitted_state = state
+            if state.get("schema") == NUMERICAL_INSTRUMENT_STRUCTURED_STATE_SCHEMA:
+                if set(state) != {"schema", "source"}:
+                    raise OrganismError("structured numerical state has invalid keys")
+                source = state.get("source")
+                if (
+                    not isinstance(source, Mapping)
+                    or source.get("schema") != STRUCTURED_FIELD_PROGRAM_SCHEMA
+                ):
+                    raise OrganismError("structured numerical state source is invalid")
+                computer = next(
+                    (
+                        item
+                        for item in root.owner.state.computers
+                        if item.computer_id == computer_id
+                    ),
+                    None,
+                )
+                if computer is None:
+                    raise OrganismError("program host computer is unavailable")
+                try:
+                    profile = computer._scalar_profile()
+                    compiled = compile_structured_program(
+                        source, max_instructions=profile.program_capacity
+                    )
+                    submitted_state = regional_scalar_state(compiled, profile)
+                except (FieldProgramError, ValueError) as exc:
+                    raise OrganismError(
+                        f"structured numerical state is invalid: {exc}"
+                    ) from exc
+            view = root.owner.submit_numerical_work(
+                work_id,
+                computer_id=computer_id,
+                kernel=kernel,
+                state=submitted_state,
+                arguments=arguments,
+                kind=kind,
+                steps=steps,
+                source_revision_ids=source_revision_ids,
+                assumptions=assumptions,
+            )
+            dependencies = view.get("dependencies")
+            if (
+                not isinstance(dependencies, Mapping)
+                or dependencies.get("computer_id") != computer_id
+            ):
+                raise OrganismError("numerical work is bound to another host computer")
+            return {
+                **dict(view),
+                "program_id": program_id,
+                "submit_operation_id": operation_id,
+                "owner_state_sha256": root.owner.state.state_sha256,
+                "generation": root.owner.state.generation,
+            }
+
+    def collect_numerical_instrument(
+        self, operation_id: str, *, program_id: str, work_id: str,
+        expected_computer_id: str,
+    ) -> dict[str, Any]:
+        """Collect a program-scoped work item using its durable submit identity."""
+        operation_id = _identifier(operation_id, "numerical instrument operation_id")
+        program_id = _identifier(program_id, "numerical instrument program_id")
+        work_id = _identifier(work_id, "numerical instrument work_id")
+        expected_computer_id = _identifier(expected_computer_id, "numerical submit computer_id")
+        if not work_id.startswith(f"{program_id}:numerical:"):
+            raise OrganismError("numerical work identity must be scoped to its program")
+        with self._open_residencies(include_members=False) as (root, _):
+            report = root.owner.program_resources(program_id)
+            if not report.get("configured"):
+                raise OrganismError("program numerical residency is not configured")
+            computer_id = report.get("computer_id")
+            if not isinstance(computer_id, str) or not computer_id:
+                raise OrganismError("program numerical residency has no host computer")
+            if computer_id != expected_computer_id:
+                raise OrganismError("program host computer changed since numerical submission")
+            view = root.owner.collect_numerical_work(work_id, operation_id=operation_id)
+            dependencies = view.get("dependencies")
+            if (
+                not isinstance(dependencies, Mapping)
+                or dependencies.get("computer_id") != computer_id
+            ):
+                raise OrganismError("numerical work is bound to another host computer")
+            artifact = view.get("artifact")
+            if isinstance(artifact, Mapping):
+                artifact_dependencies = artifact.get("dependencies")
+                if (
+                    not isinstance(artifact_dependencies, Mapping)
+                    or artifact_dependencies.get("computer_id") != computer_id
+                ):
+                    raise OrganismError("numerical result belongs to another host computer")
+            return {
+                **dict(view),
+                "program_id": program_id,
+                "owner_state_sha256": root.owner.state.state_sha256,
+                "generation": root.owner.state.generation,
+            }
+
+    def cancel_numerical_instrument(
+        self, operation_id: str, *, program_id: str, work_id: str,
+        expected_computer_id: str,
+    ) -> dict[str, Any]:
+        """Cancel only a program-scoped work item on its configured host."""
+        operation_id = _identifier(operation_id, "numerical instrument operation_id")
+        program_id = _identifier(program_id, "numerical instrument program_id")
+        work_id = _identifier(work_id, "numerical instrument work_id")
+        expected_computer_id = _identifier(expected_computer_id, "numerical submit computer_id")
+        if not work_id.startswith(f"{program_id}:numerical:"):
+            raise OrganismError("numerical work identity must be scoped to its program")
+        with self._open_residencies(include_members=False) as (root, _):
+            report = root.owner.program_resources(program_id)
+            if not report.get("configured"):
+                raise OrganismError("program numerical residency is not configured")
+            computer_id = report.get("computer_id")
+            if not isinstance(computer_id, str) or not computer_id:
+                raise OrganismError("program numerical residency has no host computer")
+            if computer_id != expected_computer_id:
+                raise OrganismError("program host computer changed since numerical submission")
+            view = root.owner.cancel_numerical_work(work_id)
+            dependencies = view.get("dependencies")
+            if (
+                not isinstance(dependencies, Mapping)
+                or dependencies.get("computer_id") != computer_id
+            ):
+                raise OrganismError("numerical work is bound to another host computer")
+            return {
+                **dict(view),
+                "program_id": program_id,
+                "owner_state_sha256": root.owner.state.state_sha256,
+                "generation": root.owner.state.generation,
+            }
+
+    def working_field_circulation_modulation(
+        self, eligible_work_order: Sequence[str]
+    ) -> dict[str, Any] | None:
+        """Read owner-bounded circulation for this exact eligible agenda order."""
+        if (
+            not isinstance(eligible_work_order, (list, tuple))
+            or len(eligible_work_order) > 128
+            or any(not isinstance(item, str) or not item for item in eligible_work_order)
+            or len(set(eligible_work_order)) != len(eligible_work_order)
+        ):
+            raise OrganismError("eligible working-field order is invalid")
+        if not eligible_work_order:
+            return None
+        events = [{"sequence": index} for index in range(len(eligible_work_order))]
+        with self._open_residencies(include_members=False) as (root, _):
+            modulation = root.owner.circulation_modulation(events)
+            return None if modulation is None else _plain(modulation)
+
+    def inspect_embodied_field(self) -> dict[str, Any]:
+        """Expose the current bounded owner projection for source-aware exchange."""
+        with self._open_residencies(include_members=False) as (root, _):
+            return {
+                **_plain(root.owner.inspect_embodied_field()),
+                "owner_state_sha256": root.owner.state.state_sha256,
+                "generation": root.owner.state.generation,
+            }
+
+    def bind_regional_assessment(
+        self,
+        operation_id: str,
+        *,
+        regional_memory: Any,
+        assessment_ref: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Bind an owner-verified regional Assessment to the root field."""
+        operation_id = _identifier(operation_id, "regional assessment operation_id")
+        if not isinstance(assessment_ref, Mapping):
+            raise OrganismError("regional assessment reference must be typed")
+        with self._open_residencies(include_members=False) as (root, _):
+            with root.owner._lock:
+                return root._register_regional_assessment(
+                    operation_id,
+                    regional_memory=regional_memory,
+                    assessment_ref=assessment_ref,
+                )
+
+    def inspect_working_fields(self, *, limit: int = 32) -> dict[str, Any]:
+        """Capture bounded working topology from the canonical root field only."""
+        with self._open_residencies(include_members=False) as (root, _):
+            projection = root.working_fields(limit=limit)
+            return {
+                **projection,
+                "owner_state_sha256": root.owner.state.state_sha256,
+                "generation": root.owner.state.generation,
+            }
 
     def publish_current(self) -> dict[str, Any]:
         with self._open_residencies(include_members=False) as (root, _):

@@ -203,6 +203,24 @@ def sha256_value(value: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
 
 
+def _row_bytes(row: Mapping[str, Any]) -> bytes:
+    """Canonical row bytes; a base64 field tensor is spliced in unscanned.
+
+    Base64 text needs no JSON escaping, so encoding the row with an empty
+    ``field_b64`` and inserting the text yields the canonical bytes directly.
+    """
+    field_b64 = row.get("field_b64")
+    if isinstance(field_b64, str) and len(field_b64) > 4096:
+        raw = canonical_json_bytes({**row, "field_b64": ""})
+        needle = b'"field_b64":""'
+        if raw.count(needle) == 1:
+            return raw.replace(
+                needle, b'"field_b64":"' + field_b64.encode("ascii") + b'"'
+            )
+    return canonical_json_bytes(row)
+
+
+
 def _identifier(value: Any, label: str) -> str:
     if (
         not isinstance(value, str)
@@ -238,6 +256,40 @@ def _finite(value: Any, label: str, *, positive: bool = False) -> float:
             "INVALID_NUMERIC_VALUE", f"{label} must be {qualifier}"
         )
     return result
+
+
+def _method_path(context: Mapping[str, Any], path: str) -> tuple[bool, Any]:
+    current: Any = context
+    for part in path.split("."):
+        if not isinstance(current, Mapping) or part not in current:
+            return False, None
+        current = current[part]
+    return True, current
+
+
+def _method_applicability_matches(
+    applicability: Mapping[str, Any], context: Mapping[str, Any]
+) -> bool:
+    if not isinstance(applicability, Mapping):
+        return False
+    for path, expected in applicability.items():
+        if not isinstance(path, str):
+            return False
+        present, actual = _method_path(context, path)
+        if not present or actual != expected:
+            return False
+    return True
+
+
+def _method_context_accepted(
+    method: Mapping[str, Any], context: Mapping[str, Any]
+) -> bool:
+    encoded = canonical_json_bytes(context)
+    return not any(
+        canonical_json_bytes(row.get("context", {})) == encoded
+        for row in method.get("corrections", ())
+        if isinstance(row, Mapping) and float(row.get("residual", 0.0)) > float(method.get("error_bound", 0.0))
+    )
 
 
 def _json_value(value: Any, label: str) -> Any:
@@ -1776,7 +1828,7 @@ class AtlasState:
     # Entries are (immutable owner, SHA-256 digest, canonical bytes).
     # Owners are retained directly (never a whole AtlasState), so identity
     # remains valid even if an unrelated predecessor is garbage-collected.
-    _page_cache: dict[str, tuple[Any, str, bytes]] = field(
+    _page_cache: dict[str, Any] = field(
         default_factory=dict, init=True, repr=False, compare=False, kw_only=True
     )
 
@@ -2149,7 +2201,22 @@ class AtlasState:
         entry = self._page_cache.get(name)
         if entry is not None and entry[0] is owner:
             return entry[1], entry[2]
-        raw = canonical_json_bytes(self._page_payload(name))
+        if name in {"transition_log", "prepared_queries"}:
+            raw = canonical_json_bytes(self._page_payload(name))
+        else:
+            # Rows are immutable; an unchanged row keeps its encoded bytes, so a
+            # transition re-encodes only the rows it replaced.
+            prior = self._page_cache.get(f"{name}:rows") or {}
+            rows: dict[int, tuple[Any, bytes]] = {}
+            parts: list[bytes] = []
+            for row in owner:
+                hit = rows.get(id(row)) or prior.get(id(row))
+                if hit is None or hit[0] is not row:
+                    hit = (row, _row_bytes(row.as_dict()))
+                rows[id(row)] = hit
+                parts.append(hit[1])
+            raw = b"[" + b",".join(parts) + b"]"
+            self._page_cache[f"{name}:rows"] = rows
         digest = hashlib.sha256(raw).hexdigest()
         self._page_cache[name] = (owner, digest, raw)
         return digest, raw
@@ -4811,6 +4878,886 @@ class FieldAtlas:
             "residual_norm": float(torch.linalg.vector_norm(residual)),
             "values": {name: float(candidate[position]) for position, name in enumerate(order)},
         }
+
+    @staticmethod
+    def _acquired_method_record(
+        state: AtlasState, method_id: str
+    ) -> ComputationRecord | None:
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{method_id}".encode("utf-8")
+        ).hexdigest()
+        return next(
+            (
+                row
+                for row in state.computation_records
+                if row.record_id == record_id
+                and row.operation == "acquired-method"
+            ),
+            None,
+        )
+
+    @staticmethod
+    def _method_source_record(
+        state: AtlasState, source_sha256: str
+    ) -> ComputationRecord | None:
+        source_id = hashlib.sha256(
+            f"cassifi.acquired-method-source.v1:{source_sha256}".encode("ascii")
+        ).hexdigest()
+        return next(
+            (
+                row
+                for row in state.computation_records
+                if row.record_id == source_id
+                and row.operation == "acquired-method-source"
+            ),
+            None,
+        )
+
+    def acquire_reduced_method(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        macro_id: str,
+        method_payload: Mapping[str, Any],
+        source_bytes: bytes,
+        applicability: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_units: str,
+        error_bound: float,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Admit an executable realization of an exact Schur reduction
+        (or a checked native u32 -> u64 sum with no synthetic Schur macro)."""
+        method_id = _identifier(method_id, "method_id")
+        macro_id = _identifier(macro_id, "macro_id")
+        if not isinstance(source_bytes, bytes) or len(source_bytes) > 44 * 1024:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method source bytes exceed the bounded source limit"
+            )
+        payload = _json_value(dict(method_payload), "reduced method payload")
+        payload_kind = payload.get("kind")
+        if payload_kind in {"hive-executable", "native-u32-sum"}:
+            macro = None
+        else:
+            macro = next((row for row in state.macros if row.macro_id == macro_id), None)
+            if macro is None or macro.status != "promoted" or not macro.exact:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "method requires an active exact Schur reduction"
+                )
+        applicability_value = _json_value(dict(applicability), "method applicability")
+        normalized_inputs = _json_value(dict(input_units), "method input units")
+        if not isinstance(normalized_inputs, Mapping) or not normalized_inputs:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method input units must be a nonempty mapping"
+            )
+        for name, unit in normalized_inputs.items():
+            _identifier(name, "method input")
+            _identifier(unit, "method input unit")
+        if payload_kind == "schur-energy":
+            if set(payload) != {"kind", "macro_id"} or payload["macro_id"] != macro_id:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "Schur energy method must name its exact source macro"
+                )
+            argument_units = {
+                name: state.variable(name).unit for name in macro.boundary
+            }
+        elif payload_kind == "semantic-program" and isinstance(
+            payload.get("program"), Mapping
+        ):
+            from cassi_field_program import canonical_semantic_program_payload
+
+            executable = canonical_semantic_program_payload(payload["program"])
+            declared_program_digest = hashlib.sha256(
+                canonical_json_bytes(executable)
+            ).hexdigest()
+            if payload.get("program_sha256") not in {None, declared_program_digest}:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "Schur method executable digest does not match"
+                )
+            argument_units = {
+                name: descriptor["units"]
+                for name, descriptor in executable["arguments"].items()
+                if descriptor["required"]
+            }
+        elif payload_kind == "native-u32-sum":
+            if set(payload) != {
+                "kind", "declared_op", "dtype_in", "dtype_out",
+                "input_count", "source_sha256",
+            }:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum payload must bind its exact canonical form",
+                )
+            if (
+                payload["declared_op"] != "checked_u64_sum_u32"
+                or payload["dtype_in"] != "u32"
+                or payload["dtype_out"] != "u64"
+                or payload["input_count"] != 1
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native sum must declare exactly one checked u32 -> u64 sum",
+                )
+            if payload["source_sha256"] != hashlib.sha256(source_bytes).hexdigest():
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native sum payload digest does not match its executable source",
+                )
+            if len(normalized_inputs) != 1:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum requires exactly one u32 array input",
+                )
+            argument_units = dict(normalized_inputs)
+            for name, unit in normalized_inputs.items():
+                if unit == "u32" or unit == "u64":
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD",
+                        "native u32 sum input must carry a physical unit, not a dtype",
+                    )
+        elif payload_kind == "hive-executable" and isinstance(
+            payload.get("executable_method"), Mapping
+        ):
+            from cassi_hive_collective import CollectiveHiveError, ExecutableMethod
+
+            if set(payload) != {
+                "kind", "executable_method", "program_sha256"
+            }:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "hive executable payload must bind one executable method exactly",
+                )
+            try:
+                executable = ExecutableMethod.from_dict(
+                    dict(payload["executable_method"])
+                )
+            except CollectiveHiveError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", f"executable method is invalid: {exc}"
+                ) from exc
+            if len(executable.interface.outputs) != 1:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "hive executable method must produce exactly one output port",
+                )
+            if not executable.interface.inputs:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "hive executable method requires input ports",
+                )
+            declared_program_digest = executable.program_sha256
+            if payload["program_sha256"] != declared_program_digest:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "hive executable digest does not match"
+                )
+            argument_units = {
+                port.name: port.unit for port in executable.interface.inputs
+            }
+        else:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "Schur method has no executable reduction procedure"
+            )
+        if argument_units != dict(normalized_inputs):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method executable units do not match its declared inputs"
+            )
+        output_unit = _identifier(output_units, "method output unit")
+        declared_error = _finite(error_bound, "method error bound")
+        if declared_error < 0:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method error bound cannot be negative"
+            )
+        if payload_kind == "native-u32-sum":
+            if declared_error != 0.0:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum is exact and requires a zero error bound",
+                )
+            native_input_unit = next(iter(normalized_inputs.values()))
+            if output_units != native_input_unit:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum output must use the same physical unit as its input",
+                )
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+        method = {
+            "applicability": _json_plain(applicability_value),
+            "corrections": [],
+            "dependencies": (
+                {
+                    "macro_id": macro.macro_id,
+                    "macro_version": macro.version,
+                    "parent_chart_versions": [list(row) for row in macro.parent_chart_versions],
+                    "support_event_ids": list(macro.support_event_ids),
+                }
+                if macro is not None
+                else {
+                    "realization": (
+                        "hive-executable"
+                        if payload_kind == "hive-executable"
+                        else "native-u32-sum"
+                    ),
+                    **(
+                        {
+                            "declared_op": payload["declared_op"],
+                            "dtype_in": payload["dtype_in"],
+                            "dtype_out": payload["dtype_out"],
+                            "input_count": payload["input_count"],
+                        }
+                        if payload_kind == "native-u32-sum"
+                        else {}
+                    ),
+                }
+            ),
+            "error_bound": declared_error,
+            "kind": (
+                "hive-executable"
+                if payload_kind == "hive-executable"
+                else "native-u32-sum"
+                if payload_kind == "native-u32-sum"
+                else "schur-reduced"
+            ),
+            "method_id": method_id,
+            "method_payload": _json_plain(payload),
+            **(
+                {}
+                if macro is not None
+                else {"input_units": _json_plain(normalized_inputs)}
+            ),
+            "method_version": 1,
+            "output_unit": output_unit,
+            "schema": "cassifi.acquired-reduced-method.v1",
+            "source_record_id": hashlib.sha256(
+                f"cassifi.acquired-method-source.v1:{source_sha256}".encode("ascii")
+            ).hexdigest(),
+            "source_sha256": source_sha256,
+            "status": "active",
+            "actual_outcomes": 0,
+            "measured_error": 0.0,
+        }
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "acquired method exceeds the typed record limit"
+            )
+        previous = self._acquired_method_record(state, method_id)
+        if previous is None and sum(
+            row.operation == "acquired-method" for row in state.computation_records
+        ) >= 128:
+            raise FieldIntelligenceError(
+                "METHOD_CAPACITY", "field atlas acquired-method capacity is full"
+            )
+        if previous is not None:
+            old = previous.inputs.get("method", {})
+            if old.get("source_sha256") != source_sha256:
+                raise FieldIntelligenceError(
+                    "METHOD_SOURCE_CONFLICT", "method identity already names different source bytes"
+                )
+            method["method_version"] = int(old.get("method_version", 1)) + 1
+            method["corrections"] = list(old.get("corrections", ()))
+            method["actual_outcomes"] = int(old.get("actual_outcomes", 0))
+            method["measured_error"] = float(old.get("measured_error", 0.0))
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{method_id}".encode("utf-8")
+        ).hexdigest()
+        record = ComputationRecord(
+            record_id=record_id,
+            operation="acquired-method",
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="active",
+            elapsed_ns=0,
+            work_units=0,
+        )
+        source_record = self._method_source_record(state, source_sha256)
+        source_records = tuple(state.computation_records)
+        if source_record is None:
+            source_record = ComputationRecord(
+                record_id=method["source_record_id"],
+                operation="acquired-method-source",
+                logical_tick=state.logical_tick,
+                inputs={
+                    "bytes_b64": base64.b64encode(source_bytes).decode("ascii"),
+                    "sha256": source_sha256,
+                },
+                outcome="retained",
+                elapsed_ns=0,
+                work_units=0,
+            )
+            source_records = (*source_records, source_record)
+        records = tuple(record if row.record_id == record_id else row for row in source_records)
+        if not any(row.record_id == record_id for row in source_records):
+            records = (*records, record)
+        successor = state.with_transition(
+            "reduced-method-acquired",
+            {"method_id": method_id, "macro_id": macro_id, "source_sha256": source_sha256},
+            computation_records=records,
+        )
+        return successor, _json_plain(method)
+
+    def acquire_scalar_procedure(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        procedure: Mapping[str, Any],
+        program: Sequence[Sequence[int]],
+        applicability: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_unit: str,
+        error_bound: float = 0.0,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Admit an already-proven transferable scalar block with exact source."""
+        from cassi_field_program import _canonical_transferable_procedure
+
+        try:
+            canonical_procedure = _canonical_transferable_procedure(procedure)
+            canonical_program = _json_value(
+                [list(row) for row in program], "scalar method source program"
+            )
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "scalar procedure or source program is invalid"
+            ) from exc
+        program_sha256 = hashlib.sha256(canonical_json_bytes(canonical_program)).hexdigest()
+        if canonical_procedure.get("evidence_program_sha256") != program_sha256:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "scalar procedure evidence names another program"
+            )
+        source_bytes = canonical_json_bytes(canonical_program)
+        if len(source_bytes) > 44 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "scalar source exceeds bounded source limit")
+        units = _json_value(dict(input_units), "scalar method input units")
+        if not isinstance(units, Mapping) or not units:
+            raise FieldIntelligenceError("INVALID_METHOD", "scalar method input units are invalid")
+        for name, unit in units.items():
+            _identifier(name, "scalar method input")
+            _identifier(unit, "scalar method input unit")
+        output = _identifier(output_unit, "scalar method output unit")
+        declared_error = _finite(error_bound, "scalar method error bound")
+        if declared_error < 0:
+            raise FieldIntelligenceError("INVALID_METHOD", "scalar method error is negative")
+        app = _json_value(dict(applicability), "scalar method applicability")
+        payload = {
+            "kind": "transferable-scalar-procedure",
+            "program_sha256": program_sha256,
+            "procedure": canonical_procedure,
+        }
+        method = {
+            "applicability": _json_plain(app),
+            "corrections": [],
+            "dependencies": {"kind": "scalar-program", "program_sha256": program_sha256},
+            "error_bound": declared_error,
+            "input_units": _json_plain(units),
+            "kind": "scalar-procedure",
+            "method_id": _identifier(method_id, "method_id"),
+            "method_payload": _json_plain(payload),
+            "method_version": 1,
+            "output_unit": output,
+            "schema": "cassifi.acquired-reduced-method.v1",
+            "source_record_id": hashlib.sha256(
+                f"cassifi.acquired-method-source.v1:{hashlib.sha256(source_bytes).hexdigest()}".encode("ascii")
+            ).hexdigest(),
+            "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
+            "status": "active",
+            "actual_outcomes": 0,
+            "measured_error": 0.0,
+        }
+        previous = self._acquired_method_record(state, method["method_id"])
+        if previous is not None:
+            old = previous.inputs.get("method", {})
+            if old.get("source_sha256") != method["source_sha256"]:
+                raise FieldIntelligenceError("METHOD_SOURCE_CONFLICT", "method source conflicts")
+            for name in ("corrections", "actual_outcomes", "measured_error"):
+                method[name] = old.get(name, method[name])
+            method["method_version"] = int(old.get("method_version", 1)) + 1
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "acquired method exceeds typed record limit")
+        if self._acquired_method_record(state, method["method_id"]) is None and sum(
+            row.operation == "acquired-method" for row in state.computation_records
+        ) >= 128:
+            raise FieldIntelligenceError("METHOD_CAPACITY", "field atlas acquired-method capacity is full")
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{method['method_id']}".encode("utf-8")
+        ).hexdigest()
+        record = ComputationRecord(
+            record_id=record_id,
+            operation="acquired-method",
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="active",
+            elapsed_ns=0,
+            work_units=0,
+        )
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+        source_record = self._method_source_record(state, source_sha256)
+        source_records = tuple(state.computation_records)
+        if source_record is None:
+            source_record = ComputationRecord(
+                record_id=method["source_record_id"],
+                operation="acquired-method-source",
+                logical_tick=state.logical_tick,
+                inputs={
+                    "bytes_b64": base64.b64encode(source_bytes).decode("ascii"),
+                    "sha256": source_sha256,
+                },
+                outcome="retained",
+                elapsed_ns=0,
+                work_units=0,
+            )
+            source_records = (*source_records, source_record)
+        records = tuple(
+            record if row.record_id == record_id else row
+            for row in source_records
+        )
+        if not any(row.record_id == record_id for row in source_records):
+            records = (*records, record)
+        successor = state.with_transition(
+            "scalar-method-acquired",
+            {"method_id": method["method_id"], "program_sha256": program_sha256},
+            computation_records=records,
+        )
+        return successor, _json_plain(method)
+
+    def acquire_fused_method(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        fused_program: Mapping[str, Any],
+        source_bytes: bytes,
+        applicability: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_unit: str,
+        error_bound: float,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Admit a bounded ordered composition with retained original procedures."""
+        from cassi_field_program import compose_semantic_programs
+
+        if not isinstance(source_bytes, bytes) or len(source_bytes) > 44 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused source exceeds bounded source limit")
+        if not isinstance(fused_program, Mapping) or fused_program.get("schema") != (
+            "cassifi.fused-semantic-program.v1"
+        ):
+            raise FieldIntelligenceError("INVALID_METHOD", "fused program schema is invalid")
+        components = fused_program.get("components")
+        app = _json_value(dict(applicability), "fused applicability")
+        rebuilt = compose_semantic_programs(components, applicability=app)
+        if canonical_json_bytes(rebuilt) != canonical_json_bytes(fused_program):
+            raise FieldIntelligenceError("INVALID_METHOD", "fused program provenance is inconsistent")
+        units = _json_value(dict(input_units), "fused input units")
+        required_units: dict[str, Any] = {}
+        for component in components:
+            for name, descriptor in component["arguments"].items():
+                if descriptor["required"]:
+                    previous_unit = required_units.get(name)
+                    if previous_unit is not None and previous_unit != descriptor["units"]:
+                        raise FieldIntelligenceError(
+                            "INVALID_METHOD", "fused component argument units conflict"
+                        )
+                    required_units[name] = descriptor["units"]
+        if dict(units) != required_units:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused input units do not match components")
+        for name, unit in units.items():
+            _identifier(name, "fused input")
+            _identifier(unit, "fused input unit")
+        output = _identifier(output_unit, "fused output unit")
+        declared_error = _finite(error_bound, "fused method error")
+        if declared_error < 0:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused method error cannot be negative")
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+        normalized_id = _identifier(method_id, "method_id")
+        method = {
+            "applicability": _json_plain(app),
+            "corrections": [],
+            "dependencies": {
+                "kind": "fused-components",
+                "component_digests": list(fused_program["component_digests"]),
+            },
+            "error_bound": declared_error,
+            "input_units": _json_plain(units),
+            "kind": "fused-procedure",
+            "method_id": normalized_id,
+            "method_payload": {
+                "kind": "cassifi.fused-semantic-program.v1",
+                "program": _json_plain(fused_program),
+            },
+            "method_version": 1,
+            "output_unit": output,
+            "schema": "cassifi.acquired-reduced-method.v1",
+            "source_record_id": hashlib.sha256(
+                f"cassifi.acquired-method-source.v1:{source_sha256}".encode("ascii")
+            ).hexdigest(),
+            "source_sha256": source_sha256,
+            "status": "active",
+            "actual_outcomes": 0,
+            "measured_error": 0.0,
+        }
+        previous = self._acquired_method_record(state, normalized_id)
+        if previous is not None:
+            old = previous.inputs.get("method", {})
+            if old.get("source_sha256") != source_sha256:
+                raise FieldIntelligenceError("METHOD_SOURCE_CONFLICT", "method source conflicts")
+            for name in ("corrections", "actual_outcomes", "measured_error"):
+                method[name] = old.get(name, method[name])
+            method["method_version"] = int(old.get("method_version", 1)) + 1
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused method exceeds typed record limit")
+        if previous is None and sum(
+            row.operation == "acquired-method" for row in state.computation_records
+        ) >= 128:
+            raise FieldIntelligenceError("METHOD_CAPACITY", "field atlas acquired-method capacity is full")
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{normalized_id}".encode("utf-8")
+        ).hexdigest()
+        record = ComputationRecord(
+            record_id=record_id,
+            operation="acquired-method",
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="active",
+            elapsed_ns=0,
+            work_units=0,
+        )
+        source_records = tuple(state.computation_records)
+        if self._method_source_record(state, source_sha256) is None:
+            source_records = (
+                *source_records,
+                ComputationRecord(
+                    record_id=method["source_record_id"],
+                    operation="acquired-method-source",
+                    logical_tick=state.logical_tick,
+                    inputs={
+                        "bytes_b64": base64.b64encode(source_bytes).decode("ascii"),
+                        "sha256": source_sha256,
+                    },
+                    outcome="retained",
+                    elapsed_ns=0,
+                    work_units=0,
+                ),
+            )
+        records = tuple(record if row.record_id == record_id else row for row in source_records)
+        if not any(row.record_id == record_id for row in source_records):
+            records = (*records, record)
+        successor = state.with_transition(
+            "fused-method-acquired",
+            {"method_id": normalized_id, "source_sha256": source_sha256},
+            computation_records=records,
+        )
+        return successor, _json_plain(method)
+
+    def execute_reduced_method(
+        self,
+        state: AtlasState,
+        method: Mapping[str, Any],
+        *,
+        boundary_values: Mapping[str, float],
+        context: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Evaluate a selected exact Schur energy method against its source."""
+        if isinstance(method, Mapping) and method.get("kind") == "native-u32-sum":
+            raise FieldIntelligenceError(
+                "INVALID_METHOD",
+                "native u32 sum executes only through the owner native dispatch",
+            )
+        if (
+            not isinstance(method, Mapping)
+            or method.get("schema") != "cassifi.acquired-reduced-method.v1"
+            or method.get("kind") != "schur-reduced"
+            or method.get("status") != "active"
+        ):
+            raise FieldIntelligenceError("INVALID_METHOD", "selected Schur method is invalid")
+        payload = method.get("method_payload")
+        deps = method.get("dependencies")
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("kind") != "schur-energy"
+            or not isinstance(deps, Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "selected method is not an executable Schur energy"
+            )
+        macro = next(
+            (row for row in state.macros if row.macro_id == deps.get("macro_id")),
+            None,
+        )
+        if (
+            macro is None
+            or macro.macro_id != payload.get("macro_id")
+            or macro.version != deps.get("macro_version")
+            or not macro.valid_for(state, context)
+        ):
+            raise FieldIntelligenceError(
+                "METHOD_GUARD_FAILED", "Schur source or applicability guard has changed"
+            )
+        values = _json_value(dict(boundary_values), "Schur boundary values")
+        current_record = self._acquired_method_record(
+            state, str(method.get("method_id", ""))
+        )
+        current_method = (
+            None if current_record is None else current_record.inputs.get("method")
+        )
+        if (
+            not isinstance(current_method, Mapping)
+            or current_method.get("method_version") != method.get("method_version")
+            or current_method.get("source_sha256") != method.get("source_sha256")
+            or current_method.get("status") != "active"
+            or not _method_applicability_matches(
+                current_method.get("applicability", {}), context
+            )
+            or not _method_context_accepted(current_method, context)
+        ):
+            raise FieldIntelligenceError(
+                "METHOD_GUARD_FAILED", "selected method applicability or revision changed"
+            )
+        if set(values) != set(macro.boundary):
+            raise FieldIntelligenceError(
+                "METHOD_INPUT_MISMATCH", "Schur method requires every exact boundary input"
+            )
+        for name, unit in method["input_units"].items():
+            if state.variable(name).unit != unit:
+                raise FieldIntelligenceError(
+                    "METHOD_UNIT_MISMATCH", f"Schur input unit changed for {name}"
+                )
+            values[name] = _finite(values[name], f"Schur boundary value {name}")
+        ordered = [values[name] for name in macro.boundary]
+        quadratic = math.fsum(
+            ordered[i] * macro.hessian[i][j] * ordered[j]
+            for i in range(len(ordered))
+            for j in range(len(ordered))
+        )
+        result = _finite(
+            0.5 * quadratic
+            + math.fsum(macro.linear[i] * ordered[i] for i in range(len(ordered)))
+            + macro.constant,
+            "Schur reduced energy",
+        )
+        return {
+            "method_id": method["method_id"],
+            "method_version": method["method_version"],
+            "value": result,
+            "unit": method["output_unit"],
+            "error_bound": method["error_bound"],
+            "source_sha256": method["source_sha256"],
+            "support_event_ids": list(macro.support_event_ids),
+            "dependencies": {
+                "macro_id": macro.macro_id,
+                "macro_version": macro.version,
+                "parent_chart_versions": [list(row) for row in macro.parent_chart_versions],
+            },
+        }
+
+    def select_reduced_method(
+        self,
+        state: AtlasState,
+        *,
+        context: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_unit: str,
+        maximum_error: float,
+    ) -> Mapping[str, Any] | None:
+        """Return the newest source-valid compatible admitted method."""
+        context_value = _json_value(dict(context), "method context")
+        units = _json_value(dict(input_units), "method input units")
+        output = _identifier(output_unit, "method output unit")
+        error_limit = _finite(maximum_error, "maximum method error")
+        if error_limit < 0:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "maximum method error cannot be negative"
+            )
+        charts = {row.chart_id: row for row in state.charts}
+        macros = {row.macro_id: row for row in state.macros}
+        candidates: list[Mapping[str, Any]] = []
+        for record in state.computation_records:
+            if record.operation != "acquired-method":
+                continue
+            method = record.inputs.get("method")
+            if not isinstance(method, Mapping) or method.get("status") != "active":
+                continue
+            deps = method.get("dependencies", {})
+            if method.get("kind") == "scalar-procedure":
+                method_payload = method.get("method_payload", {})
+                if (
+                    deps.get("kind") != "scalar-program"
+                    or method_payload.get("program_sha256") != deps.get("program_sha256")
+                ):
+                    continue
+            elif method.get("kind") == "fused-procedure":
+                method_payload = method.get("method_payload", {})
+                fused_program = method_payload.get("program", {})
+                if (
+                    deps.get("kind") != "fused-components"
+                    or method_payload.get("kind") != "cassifi.fused-semantic-program.v1"
+                    or not isinstance(fused_program, Mapping)
+                    or list(fused_program.get("component_digests", ()))
+                    != list(deps.get("component_digests", ()))
+                ):
+                    continue
+                from cassi_field_program import compose_semantic_programs
+
+                try:
+                    rebuilt = compose_semantic_programs(
+                        fused_program["components"],
+                        applicability=method.get("applicability", {}),
+                    )
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if canonical_json_bytes(rebuilt) != canonical_json_bytes(fused_program):
+                    continue
+            elif method.get("kind") == "native-u32-sum":
+                method_payload = method.get("method_payload", {})
+                native_expected = {
+                    "kind", "declared_op", "dtype_in", "dtype_out",
+                    "input_count", "source_sha256",
+                }
+                if (
+                    not isinstance(method_payload, Mapping)
+                    or set(method_payload) != native_expected
+                    or method_payload.get("kind") != "native-u32-sum"
+                    or method_payload.get("declared_op") != "checked_u64_sum_u32"
+                    or method_payload.get("dtype_in") != "u32"
+                    or method_payload.get("dtype_out") != "u64"
+                    or method_payload.get("input_count") != 1
+                    or method_payload.get("source_sha256") != method.get("source_sha256")
+                    or not isinstance(deps, Mapping)
+                    or deps.get("realization") != "native-u32-sum"
+                    or deps.get("declared_op") != method_payload.get("declared_op")
+                    or deps.get("dtype_in") != "u32"
+                    or deps.get("dtype_out") != "u64"
+                    or deps.get("input_count") != 1
+                ):
+                    continue
+            elif method.get("kind") == "schur-reduced":
+                macro = macros.get(deps.get("macro_id"))
+                if (
+                    macro is None
+                    or macro.status != "promoted"
+                    or not macro.exact
+                    or macro.version != deps.get("macro_version")
+                    or list(macro.parent_chart_versions) != [
+                        tuple(row) for row in deps.get("parent_chart_versions", ())
+                    ]
+                    or any(
+                        chart_id not in charts
+                        or charts[chart_id].version != version
+                        or charts[chart_id].status != "active"
+                        for chart_id, version in macro.parent_chart_versions
+                    )
+                ):
+                    continue
+            if (
+                dict(method.get("input_units", {})) != dict(units)
+                or method.get("output_unit") != output
+                or float(method.get("error_bound", math.inf)) > error_limit
+                or not _method_applicability_matches(method.get("applicability", {}), context_value)
+                or not _method_context_accepted(method, context_value)
+            ):
+                continue
+            source_record = next(
+                (
+                    row
+                    for row in state.computation_records
+                    if row.record_id == method.get("source_record_id")
+                    and row.operation == "acquired-method-source"
+                ),
+                None,
+            )
+            if source_record is None:
+                continue
+            try:
+                source = base64.b64decode(
+                    source_record.inputs["bytes_b64"], validate=True
+                )
+            except Exception:
+                continue
+            if (
+                source_record.inputs.get("sha256") != method.get("source_sha256")
+                or hashlib.sha256(source).hexdigest() != method.get("source_sha256")
+            ):
+                continue
+            candidates.append(method)
+        if not candidates:
+            return None
+        selected = max(
+            candidates,
+            key=lambda row: (int(row.get("actual_outcomes", 0)), -float(row.get("measured_error", 0.0)), row["method_id"]),
+        )
+        return _json_plain(selected)
+
+    def record_reduced_method_outcome(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        context: Mapping[str, Any],
+        predicted: float,
+        actual: float,
+        evidence_kind: str,
+        evidence_id: str,
+        source_revision_ids: Sequence[str],
+    ) -> AtlasState:
+        """Correct method error only from a measured, executed outcome."""
+        if evidence_kind != "executed":
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE", "only actual executed outcomes can correct a method"
+            )
+        _identifier(evidence_id, "outcome evidence identity")
+        context_value = _json_plain(_json_value(dict(context), "outcome context"))
+        predicted_value = _finite(predicted, "method predicted outcome")
+        actual_value = _finite(actual, "method actual outcome")
+        residual = abs(actual_value - predicted_value)
+        revisions = sorted({_digest(item, "source revision") for item in source_revision_ids})
+        record = self._acquired_method_record(state, method_id)
+        if record is None:
+            raise FieldIntelligenceError("METHOD_NOT_FOUND", "acquired method does not exist")
+        method = _json_plain(record.inputs["method"])
+        corrections = list(method["corrections"])
+        if any(row.get("evidence_id") == evidence_id for row in corrections):
+            existing = next(row for row in corrections if row.get("evidence_id") == evidence_id)
+            if existing != {
+                "actual": actual_value,
+                "context": context_value,
+                "evidence_id": evidence_id,
+                "predicted": predicted_value,
+                "residual": residual,
+                "source_revision_ids": revisions,
+            }:
+                raise FieldIntelligenceError(
+                    "METHOD_EVIDENCE_CONFLICT", "outcome evidence identity conflicts"
+                )
+            return state
+        corrections.append({
+            "actual": actual_value,
+            "context": context_value,
+            "evidence_id": evidence_id,
+            "predicted": predicted_value,
+            "residual": residual,
+            "source_revision_ids": revisions,
+        })
+        corrections = corrections[-32:]
+        method["corrections"] = corrections
+        method["actual_outcomes"] = int(method["actual_outcomes"]) + 1
+        method["measured_error"] = max(
+            float(method["measured_error"]), residual
+        )
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method correction exceeds the bounded record limit"
+            )
+        updated = replace(
+            record,
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="corrected",
+        )
+        records = tuple(
+            updated if row.record_id == record.record_id else row
+            for row in state.computation_records
+        )
+        return state.with_transition(
+            "reduced-method-outcome-recorded",
+            {"evidence_id": evidence_id, "method_id": method_id, "residual": residual},
+            computation_records=records,
+        )
 
     def derive_schur_reduction(
         self,

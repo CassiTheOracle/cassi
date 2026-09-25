@@ -9,9 +9,22 @@ import json
 import math
 import operator
 import struct
+from collections import OrderedDict
 from functools import reduce
+from threading import RLock
 from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
+
+
+_DECODE_CACHE_MAX_BYTES = 4 * 1024 * 1024
+_DECODE_CACHE_MAX_ENTRY_BYTES = 512 * 1024
+_DECODE_CACHE_MAX_ENTRIES = 64
+_decode_cache: OrderedDict[
+    tuple[Any, ...],
+    tuple[list[tuple[tuple[str | int, ...], dict[str, Any]]], str, tuple[int, ...], int],
+] = OrderedDict()
+_decode_cache_bytes = 0
+_decode_cache_lock = RLock()
 
 
 SOURCE_VIEW_SCHEMA = "cassifi.source-observation-page.v1"
@@ -349,6 +362,67 @@ def _opaque_items(content: bytes) -> tuple[list[tuple[tuple[str | int, ...], dic
     return items, "bytes", (len(content),)
 
 
+def _decode_items(
+    content: bytes,
+    *,
+    content_sha256: str,
+    decoder_codec: str,
+    dtype: str | None,
+    shape: tuple[int, ...],
+    units: tuple[str, ...],
+) -> tuple[list[tuple[tuple[str | int, ...], dict[str, Any]]], str, tuple[int, ...]]:
+    global _decode_cache_bytes
+    key = (content_sha256, decoder_codec, dtype, shape, units)
+    with _decode_cache_lock:
+        cached = _decode_cache.get(key)
+        if cached is not None:
+            _decode_cache.move_to_end(key)
+            return cached[0], cached[1], cached[2]
+
+    if decoder_codec == CODEC_JSON:
+        items, actual_dtype, actual_shape = _json_items(content)
+    elif decoder_codec == CODEC_TEXT:
+        items, actual_dtype, actual_shape = _text_items(content)
+    elif decoder_codec == CODEC_CODE:
+        items, actual_dtype, actual_shape = _code_items(content)
+    elif decoder_codec == CODEC_OPAQUE:
+        items, actual_dtype, actual_shape = _opaque_items(content)
+    else:
+        items, actual_dtype, actual_shape, _ = _numeric_items(
+            content,
+            codec=decoder_codec,
+            dtype=dtype,
+            shape=shape,
+            units=units,
+        )
+
+    estimate = len(content) * 4 + sum(
+        512 + len(path) * 16 for path, _ in items
+    )
+    if estimate <= _DECODE_CACHE_MAX_ENTRY_BYTES:
+        with _decode_cache_lock:
+            previous = _decode_cache.pop(key, None)
+            if previous is not None:
+                _decode_cache_bytes -= previous[3]
+            _decode_cache[key] = (items, actual_dtype, actual_shape, estimate)
+            _decode_cache_bytes += estimate
+            while (
+                _decode_cache_bytes > _DECODE_CACHE_MAX_BYTES
+                or len(_decode_cache) > _DECODE_CACHE_MAX_ENTRIES
+            ):
+                _, evicted = _decode_cache.popitem(last=False)
+                _decode_cache_bytes -= evicted[3]
+    return items, actual_dtype, actual_shape
+
+
+def _copy_value(value: dict[str, Any]) -> dict[str, Any]:
+    # Cached nested coordinates/spans must not be mutable through returned pages.
+    return {
+        key: list(item) if isinstance(item, list) else item
+        for key, item in value.items()
+    }
+
+
 def source_observation_page(
     source: Any,
     *,
@@ -415,22 +489,14 @@ def source_observation_page(
         }
         return {**result, "view_sha256": _digest(result)}
     try:
-        if decoder_codec == CODEC_JSON:
-            items, actual_dtype, actual_shape = _json_items(content)
-        elif decoder_codec == CODEC_TEXT:
-            items, actual_dtype, actual_shape = _text_items(content)
-        elif decoder_codec == CODEC_CODE:
-            items, actual_dtype, actual_shape = _code_items(content)
-        elif decoder_codec == CODEC_OPAQUE:
-            items, actual_dtype, actual_shape = _opaque_items(content)
-        else:
-            items, actual_dtype, actual_shape, _ = _numeric_items(
-                content,
-                codec=decoder_codec,
-                dtype=dtype,
-                shape=normalized_shape,
-                units=normalized_units,
-            )
+        items, actual_dtype, actual_shape = _decode_items(
+            content,
+            content_sha256=base["content_sha256"],
+            decoder_codec=decoder_codec,
+            dtype=dtype,
+            shape=normalized_shape,
+            units=normalized_units,
+        )
     except SourceViewError as exc:
         result = {
             **base,
@@ -456,8 +522,7 @@ def source_observation_page(
             source_id=source_id,
             ordinal=cursor + offset,
             path=path,
-            value=value,
-            units=normalized_units,
+            value=_copy_value(value),
         )
         for offset, (path, value) in enumerate(selected)
     ]

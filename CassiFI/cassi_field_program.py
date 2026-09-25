@@ -1434,28 +1434,56 @@ def compile_regional_program(
 
 def _semantic_program_plain(value: Any, label: str) -> Any:
     try:
-        detached = json.loads(_canonical(value).decode("utf-8"))
+        # Inline canonicalization: json.dumps with specific separators and sort_keys
+        # then immediately decode to str for json.loads
+        canonical_bytes = json.dumps(
+            value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        detached = json.loads(canonical_bytes.decode("utf-8"))
     except (TypeError, ValueError, UnicodeDecodeError) as exc:
         raise FieldProgramError(f"{label} is not canonical JSON") from exc
+
+    # Pre-compiled type tuples for faster isinstance checks
+    _SUPPORTED_TYPES = (bool, int, float, str, type(None))
+    _NUMERIC_TYPES = (int, float, bool) # bool is subclass of int, but we check float for non-finite later
+
     pending = [detached]
     nodes = 0
+
+    # Local lookup for speed
+    _pending_append = pending.append
+    _pending_pop = pending.pop
+    _isinstance = isinstance
+    _isfinite = math.isfinite
+
     while pending:
-        current = pending.pop()
+        current = _pending_pop()
         nodes += 1
         if nodes > _MAX_SOURCE_NODES:
             raise FieldProgramError(f"{label} exceeds the semantic node bound")
-        if isinstance(current, float) and not math.isfinite(current):
-            raise FieldProgramError(f"{label} contains a nonfinite number")
-        if isinstance(current, dict):
-            if any(not isinstance(key, str) for key in current):
-                raise FieldProgramError(f"{label} contains a non-string key")
+
+        if _isinstance(current, float):
+            if not _isfinite(current):
+                raise FieldProgramError(f"{label} contains a nonfinite number")
+
+        if _isinstance(current, dict):
+            # Check all keys are strings
+            for key in current:
+                if not _isinstance(key, str):
+                    raise FieldProgramError(f"{label} contains a non-string key")
+            # Extend with values
             pending.extend(current.values())
-        elif isinstance(current, list):
+        elif _isinstance(current, list):
             pending.extend(current)
-        elif current is not None and not isinstance(
-            current, (bool, int, float, str)
-        ):
-            raise FieldProgramError(f"{label} contains an unsupported value")
+        else:
+            # Check if it's a supported primitive type
+            # Note: bool is subclass of int, so checking int covers bool too if we wanted,
+            # but we need to ensure we don't reject bools.
+            # The original code rejected anything not in (bool, int, float, str) and not None.
+            # We already handled float above.
+            if not _isinstance(current, _SUPPORTED_TYPES):
+                raise FieldProgramError(f"{label} contains an unsupported value")
+
     return detached
 
 
@@ -2458,6 +2486,162 @@ def semantic_program_payload(
             "applicability": dict(applicability or {}),
         }
     )
+
+
+FUSED_SEMANTIC_PROGRAM_SCHEMA = "cassifi.fused-semantic-program.v1"
+
+
+def compose_semantic_programs(
+    programs: Sequence[Mapping[str, Any]],
+    *,
+    applicability: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build a bounded ordered fusion of executable semantic programs.
+
+    Fusion preserves component order and the union of each declared effect
+    footprint.  The original canonical components remain embedded for exact
+    deoptimization when the caller's applicability context no longer matches.
+    """
+    if not 2 <= len(programs) <= 8:
+        raise FieldProgramError("semantic fusion requires two to eight programs")
+    components = [canonical_semantic_program_payload(row) for row in programs]
+    arguments: dict[str, Any] = {}
+    reads: set[str] = set()
+    writes: set[str] = set()
+    emits: set[str] = set()
+    max_work = 0
+    max_horizon = 0
+    max_branches = 1
+    for component in components:
+        for name, descriptor in component["arguments"].items():
+            prior = arguments.get(name)
+            if prior is not None and prior != descriptor:
+                raise FieldProgramError("semantic fusion has incompatible argument units or types")
+            arguments[name] = descriptor
+        reads.update(component["effects"]["reads"])
+        writes.update(component["effects"]["writes"])
+        emits.update(component["effects"]["emits"])
+        max_work += int(component["bounds"]["max_work"])
+        max_horizon += int(component["bounds"]["max_horizon"])
+        max_branches = max(max_branches, int(component["bounds"]["max_branches"]))
+    if max_work > 1_000_000 or max_horizon > 1_000_000:
+        raise FieldProgramError("semantic fusion exceeds executable bounds")
+    app = _semantic_program_plain(dict(applicability), "fusion applicability")
+    if not isinstance(app, dict):
+        raise FieldProgramError("fusion applicability must be a mapping")
+    canonical_app = {
+        _semantic_program_identifier(key, "fusion applicability key"): value
+        for key, value in app.items()
+    }
+    return {
+        "schema": FUSED_SEMANTIC_PROGRAM_SCHEMA,
+        "components": components,
+        "applicability": canonical_app,
+        "effects": {
+            "reads": sorted(reads),
+            "writes": sorted(writes),
+            "emits": sorted(emits),
+        },
+        "bounds": {
+            "max_work": max_work,
+            "max_horizon": max_horizon,
+            "max_branches": max_branches,
+        },
+        "component_digests": [
+            hashlib.sha256(_canonical(component)).hexdigest()
+            for component in components
+        ],
+    }
+
+
+def execute_fused_semantic_program(
+    fused: Mapping[str, Any],
+    state: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any] | None = None,
+    context: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute a fused method or deopt to its retained original procedures."""
+    if (
+        not isinstance(fused, Mapping)
+        or fused.get("schema") != FUSED_SEMANTIC_PROGRAM_SCHEMA
+        or not isinstance(fused.get("components"), list)
+        or not 2 <= len(fused["components"]) <= 8
+    ):
+        raise FieldProgramError("fused semantic program is invalid")
+    components = [
+        canonical_semantic_program_payload(row) for row in fused["components"]
+    ]
+    context_values = _semantic_program_plain(dict(context or {}), "fusion context")
+    action_values = _semantic_program_plain(dict(action or {}), "fusion action")
+    state_values = _semantic_program_plain(dict(state), "fusion state")
+    if not all(isinstance(row, dict) for row in (context_values, action_values, state_values)):
+        raise FieldProgramError("fusion state, action, and context must be mappings")
+    compatible = True
+    for path, expected in fused.get("applicability", {}).items():
+        present, actual = _semantic_lookup(
+            str(path), state_values, action_values, context_values
+        )
+        if not present or actual != expected:
+            compatible = False
+            break
+    work = 0
+    for component in components:
+        outcome = execute_semantic_program(
+            component,
+            state_values,
+            action=action_values,
+            context=context_values,
+        )
+        work += int(outcome.get("work", 0))
+        if outcome.get("status") != "supported":
+            return {
+                **outcome,
+                "execution_path": "deoptimized-originals" if not compatible else "fused-components",
+                "work": work,
+            }
+        state_values = dict(outcome["values"])
+    return {
+        "status": "supported",
+        "values": state_values,
+        "execution_path": "fused-components" if compatible else "deoptimized-originals",
+        "component_digests": list(fused.get("component_digests", ())),
+        "work": work,
+        "effects": dict(fused.get("effects", {})),
+    }
+
+
+def execute_acquired_semantic_method(
+    method: Mapping[str, Any],
+    state: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any] | None = None,
+    context: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute an atlas-selected reduced semantic method with exact fallback."""
+    if (
+        not isinstance(method, Mapping)
+        or method.get("schema") != "cassifi.acquired-reduced-method.v1"
+        or method.get("status") != "active"
+    ):
+        raise FieldProgramError("acquired semantic method is invalid")
+    payload = method.get("method_payload")
+    if not isinstance(payload, Mapping):
+        raise FieldProgramError("acquired semantic method payload is invalid")
+    kind = payload.get("kind")
+    if kind == "semantic-program":
+        program = canonical_semantic_program_payload(payload["program"])
+        expected_digest = hashlib.sha256(_canonical(program)).hexdigest()
+        if payload.get("program_sha256") not in {None, expected_digest}:
+            raise FieldProgramError("acquired semantic method source digest is stale")
+        return execute_semantic_program(
+            program, state, action=action, context=context
+        )
+    if kind == FUSED_SEMANTIC_PROGRAM_SCHEMA:
+        return execute_fused_semantic_program(
+            payload["program"], state, action=action, context=context
+        )
+    raise FieldProgramError("acquired method has no executable semantic program")
 
 
 def _semantic_lookup(
@@ -6223,6 +6407,49 @@ def regional_scalar_state(
     }
 
 
+def execute_acquired_scalar_method(
+    method: Mapping[str, Any],
+    state: Mapping[str, Any],
+    *,
+    quantum: int,
+) -> KernelResult:
+    """Execute an atlas-selected transferable procedure or its original path.
+
+    The existing scalar kernel guards exact program shape and entry control flow;
+    a mismatch therefore executes ordinary scalar instructions without losing
+    their effects or changing the persisted program.
+    """
+    if (
+        not isinstance(method, Mapping)
+        or method.get("schema") != "cassifi.acquired-reduced-method.v1"
+        or method.get("kind") != "scalar-procedure"
+        or method.get("status") != "active"
+    ):
+        raise FieldProgramError("acquired scalar method is invalid")
+    payload = method.get("method_payload")
+    if not isinstance(payload, Mapping) or payload.get("kind") != "transferable-scalar-procedure":
+        raise FieldProgramError("acquired scalar method payload is invalid")
+    if not isinstance(state, Mapping) or state.get("schema") != SCALAR_REGIONAL_STATE_SCHEMA:
+        raise FieldProgramError("regional scalar state is invalid")
+    source_program = [list(row) for row in state.get("program", ())]
+    program_sha256 = hashlib.sha256(_canonical(source_program)).hexdigest()
+    if payload.get("program_sha256") != program_sha256:
+        # A source mismatch is a deoptimization, not permission to transplant
+        # a learned block to another executable program.
+        return scalar_regional_kernel(state, {}, quantum)
+    procedure = _canonical_transferable_procedure(payload.get("procedure"))
+    if procedure.get("evidence_program_sha256") != program_sha256:
+        return scalar_regional_kernel(state, {}, quantum)
+    current = json.loads(_canonical(dict(state)).decode("utf-8"))
+    learning = dict(current["procedure_learning"])
+    rows = list(learning.get("transferable", ()))
+    if not any(row.get("procedure_id") == procedure["procedure_id"] for row in rows):
+        rows.append(procedure)
+    learning["transferable"] = rows[-128:]
+    current["procedure_learning"] = learning
+    return scalar_regional_kernel(current, {}, quantum)
+
+
 __all__ = [
     "COMPILED_REGIONAL_SCHEMA",
     "COMPILED_SCHEMA",
@@ -6243,12 +6470,14 @@ __all__ = [
     "NULLABLE_TABLE_SCHEMA",
     "SURFACE_PROCEDURE_SCHEMA",
     "SEMANTIC_SEQUENCE_SCHEMA",
+    "FUSED_SEMANTIC_PROGRAM_SCHEMA",
     "CompiledFieldProgram",
     "CompiledRegionalProgram",
     "FieldProgramError",
-    "apply_semantic_representation_edits",
-    "canonical_table",
-    "canonical_semantic_representation_edits",
+    "compose_semantic_programs",
+    "execute_acquired_scalar_method",
+    "execute_acquired_semantic_method",
+    "execute_fused_semantic_program",
     "compile_regional_program",
     "compile_structured_program",
     "regional_scalar_state",

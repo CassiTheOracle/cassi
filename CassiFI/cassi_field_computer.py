@@ -638,17 +638,25 @@ class ComputerState:
             or any(character not in "0123456789abcdef" for character in self.profile_sha256)
         ):
             raise FieldComputerError("state profile fingerprint is invalid")
-        # A numpy array's WRITEABLE flag can be re-enabled when it owns its
-        # allocation.  Backing the stored view with immutable ``bytes`` makes
-        # that escape impossible while avoiding a second ndarray allocation.
-        raw = self._field.tobytes(order="C")
-        field = np.frombuffer(raw, dtype=np.float64).reshape(self._field.shape)
-        object.__setattr__(self, "_field", field)
+        # Arrays already backed by immutable bytes are safe to share. This
+        # matters for callers that rebind a validated state: resealing such a
+        # view would otherwise materialise and copy the entire image.
+        backing: Any = self._field
+        while isinstance(backing, np.ndarray):
+            backing = backing.base
+        if not isinstance(backing, bytes) or not self._field.flags.c_contiguous:
+            # A numpy array's WRITEABLE flag can be re-enabled when it owns its
+            # allocation. Backing the stored view with immutable ``bytes``
+            # makes that escape impossible.
+            raw = self._field.tobytes(order="C")
+            field = np.frombuffer(raw, dtype=np.float64).reshape(self._field.shape)
+            object.__setattr__(self, "_field", field)
 
     @property
     def field(self) -> np.ndarray:
-        raw = self._field.tobytes(order="C")
-        return np.frombuffer(raw, dtype=np.float64).reshape(self._field.shape)
+        # The internal tensor is always backed by immutable bytes, so exposing
+        # its read-only view is safe and avoids a redundant full-image copy.
+        return self._field
 
 
     @property
@@ -828,6 +836,8 @@ class FieldComputer:
     def _validated_field_state(
         self,
         field: np.ndarray,
+        *,
+        state_sha256: str | None = None,
     ) -> ComputerState:
         state = ComputerState(
             field.reshape(self.profile.shape),
@@ -838,6 +848,9 @@ class FieldComputer:
             "_validation_token",
             self._validation_token,
         )
+        if state_sha256 is not None:
+            # The transition receipt hashed exactly these words.
+            object.__setattr__(state, "_state_sha256", state_sha256)
         return state
 
     # -- bounded-residency (paged) regional surface ----------------------
@@ -1051,8 +1064,9 @@ class FieldComputer:
         root_sha256: str | None = None,
         max_pages: int = 16,
         continuation: Mapping[str, Any] | None = None,
+        tier_store: Any | None = None,
     ) -> dict[str, Any]:
-        """Move bounded logical pages between storage, RAM, and VRAM.
+        """Move bounded logical pages between RAM, backing storage, and operator-classified NVMe/HDD tiers.
 
         The report is version-bound and resumable: an interrupted move keeps
         its continuation and never publishes a partially moved view.
@@ -1068,6 +1082,7 @@ class FieldComputer:
                 root_sha256=root_sha256,
                 max_pages=max_pages,
                 continuation=continuation,
+                tier_store=tier_store,
             )
         except field_regions.RegionalFieldError as exc:
             raise FieldComputerError(str(exc)) from exc
@@ -1218,14 +1233,11 @@ class FieldComputer:
             "chunks": records,
             "state_sha256": state.image.state_identity_sha256(),
         }
-        if (
-            state.image.state_sha256_kind
-            != field_regions.PAGED_STATE_KIND_FLAT
-        ):
-            descriptor_value["state_sha256_kind"] = (
-                state.image.state_sha256_kind
-            )
+        if state.image.state_sha256_kind != field_regions.PAGED_STATE_KIND_FLAT:
+            descriptor_value["state_sha256_kind"] = state.image.state_sha256_kind
+        if state.image.resident_limit != field_regions.DEFAULT_RESIDENT_PAGES:
             descriptor_value["resident_limit"] = state.image.resident_limit
+        if state.image.dirty_limit != field_regions.DEFAULT_DIRTY_PAGES:
             descriptor_value["dirty_limit"] = state.image.dirty_limit
         return descriptor_value, objects
 
@@ -1362,82 +1374,133 @@ class FieldComputer:
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
         field = state._field
+
+        # Fast checks
         if field.shape != self.profile.shape or field.dtype != np.float64 or not field.flags.c_contiguous:
             raise FieldComputerError("computer field shape or dtype is invalid")
+
+        # Check for non-finite values
         if not np.isfinite(field).all():
             raise FieldComputerError("computer field contains nonfinite values")
+
+        # Check for non-integral values using bitwise trick for float64
+        # If x is integer, x == floor(x)
+        # Alternative: (field.astype(np.int64) == field).all() but this can overflow.
+        # The original np.equal(field, np.floor(field)).all() is likely optimized in numpy.
+        # Let's stick to the original logic but ensure no extra overhead.
         if not np.equal(field, np.floor(field)).all():
             raise FieldComputerError("computer field contains nonintegral values")
+
+        # Reshape and view as 9 planes x mode_count
+        # parts shape: (9, mode_count)
         parts = field.reshape(1, 9, self.profile.mode_count, 1)[0, :, :, 0]
+
         header = parts[_HEADER]
-        if int(header[_H_MAGIC]) != _MAGIC:
+
+        # Extract header fields
+        magic = int(header[_H_MAGIC])
+        if magic != _MAGIC:
             raise FieldComputerError("computer field magic is invalid")
+
         program_length = int(header[_H_PROGRAM_LENGTH])
         if not 1 <= program_length <= self.profile.program_capacity:
             raise FieldComputerError("program length is invalid")
+
         pc = int(header[_H_PC])
         if not 0 <= pc < program_length:
             raise FieldComputerError("program counter is invalid")
+
         accumulator = int(header[_H_ACCUMULATOR])
         if not 0 <= accumulator <= EMPTY:
             raise FieldComputerError("accumulator is invalid")
+
         status = int(header[_H_STATUS])
         reason = int(header[_H_REASON])
+
+        # Status/Reason checks
+        # _STATUS_NAMES and _REASON_NAMES are likely sets or tuples
         if status not in _STATUS_NAMES or reason not in _REASON_NAMES:
             raise FieldComputerError("computer status or reason is invalid")
+
         left_height = int(header[_H_LEFT_HEIGHT])
         right_height = int(header[_H_RIGHT_HEIGHT])
+
         if not 0 <= left_height <= self.profile.stack_capacity:
             raise FieldComputerError("left stack height is invalid")
         if not 0 <= right_height <= self.profile.stack_capacity:
             raise FieldComputerError("right stack height is invalid")
-        if int(header[_H_MAX_STEPS]) != self.profile.max_steps:
+
+        max_steps = self.profile.max_steps
+        if int(header[_H_MAX_STEPS]) != max_steps:
             raise FieldComputerError("state budget does not match computer profile")
+
         transitions = int(header[_H_TRANSITIONS])
-        if not 0 <= transitions <= self.profile.max_steps:
+        if not 0 <= transitions <= max_steps:
             raise FieldComputerError("transition ledger is invalid")
+
+        # Resource ledgers
         for coordinate in (_H_STACK_READS, _H_STACK_WRITES, _H_FIELD_CELLS_COPIED):
-            if int(header[coordinate]) < 0 or int(header[coordinate]) > _SAFE_INTEGER:
+            val = int(header[coordinate])
+            if val < 0 or val > _SAFE_INTEGER:
                 raise FieldComputerError("resource ledger is invalid")
-        for plane in range(5):
-            if np.any(parts[plane, program_length:] != 0):
-                raise FieldComputerError("program padding is noncanonical")
+
+        # Program padding: planes 0-4, indices program_length: must be 0
+        # Using numpy to check all at once
+        if np.any(parts[:5, program_length:] != 0):
+            raise FieldComputerError("program padding is noncanonical")
+
+        # Stack padding
         if np.any(parts[_LEFT_STACK, left_height:] != 0) or np.any(parts[_RIGHT_STACK, right_height:] != 0):
             raise FieldComputerError("stack padding is noncanonical")
-        if left_height and np.any((parts[_LEFT_STACK, :left_height] < 0) | (parts[_LEFT_STACK, :left_height] > 255)):
-            raise FieldComputerError("left stack contains an invalid symbol")
-        if right_height and np.any((parts[_RIGHT_STACK, :right_height] < 0) | (parts[_RIGHT_STACK, :right_height] > 255)):
-            raise FieldComputerError("right stack contains an invalid symbol")
+
+        # Stack symbols range [0, 255]
+        if left_height:
+            left_stack = parts[_LEFT_STACK, :left_height]
+            if np.any((left_stack < 0) | (left_stack > 255)):
+                raise FieldComputerError("left stack contains an invalid symbol")
+        if right_height:
+            right_stack = parts[_RIGHT_STACK, :right_height]
+            if np.any((right_stack < 0) | (right_stack > 255)):
+                raise FieldComputerError("right stack contains an invalid symbol")
+
+        # Metadata padding
         if np.any(parts[_HEADER, _H_COUNT:] != 0):
             raise FieldComputerError("metadata padding is noncanonical")
+
+        # Heat/Aux plane
         heat = parts[_AUX]
-        if (
-            np.any(heat[:program_length] < 0)
-            or np.any(heat[:program_length] > _HEAT_LIMIT)
-            or np.any(heat[program_length:] != 0)
-        ):
+        if np.any(heat[:program_length] < 0) or np.any(heat[:program_length] > _HEAT_LIMIT) or np.any(heat[program_length:] != 0):
             raise FieldComputerError("execution-learning plane is noncanonical")
+
+        # Instruction validation
+        # Extract program instructions as a list of tuples
+        # This is the slow part. We can optimize by avoiding tuple creation if possible,
+        # but _canonical_instruction expects a tuple-like structure.
         program = tuple(
             tuple(int(parts[plane, index]) for plane in range(5))
             for index in range(program_length)
         )
+
         for index, instruction in enumerate(program):
             _canonical_instruction(instruction, program_length, f"program[{index}]")
+
         opcode = program[pc][0]
+
         if status == _RUNNING:
-            if reason != _REASON_NONE or transitions >= self.profile.max_steps:
+            if reason != _REASON_NONE or transitions >= max_steps:
                 raise FieldComputerError("running state has an exhausted budget or reason")
         elif status == _HALTED:
             if reason != _REASON_HALT or opcode != HALT:
                 raise FieldComputerError("halted state is not at a canonical HALT")
         elif status == _EXHAUSTED:
-            if reason == _REASON_STEP_BUDGET and transitions < self.profile.max_steps:
+            if reason == _REASON_STEP_BUDGET and transitions < max_steps:
                 raise FieldComputerError("step-budget exhaustion is premature")
             if reason not in (_REASON_STEP_BUDGET, _REASON_STACK_CAPACITY):
                 raise FieldComputerError("exhausted state has a fault reason")
         elif status == _FAULTED:
             if reason not in (_REASON_PUSH_ACC_EMPTY, _REASON_INVALID_INSTRUCTION, _REASON_INVALID_STATE):
                 raise FieldComputerError("faulted state has a nonfault reason")
+
         object.__setattr__(
             state,
             "_validation_token",
@@ -1463,7 +1526,7 @@ class FieldComputer:
                     }
                 )
             )
-            digest_builder.update(state._field.tobytes(order="C"))
+            digest_builder.update(memoryview(state._field))
             digest = digest_builder.hexdigest()
         object.__setattr__(state, "_state_sha256", digest)
         return digest
@@ -1730,11 +1793,14 @@ class FieldComputer:
                     activity_weight=activity_weight,
                     _input_validated=True,
                     _skip_final_validation=True,
+                    _state_sha256=self._state_digest(state),
                 )
                 successor = (
                     state
                     if field is state._field
-                    else self._validated_field_state(field)
+                    else self._validated_field_state(
+                        field, state_sha256=receipt["state_sha256"]
+                    )
                 )
                 return successor, receipt
             except field_regions.RegionalFieldError as exc:
@@ -1926,8 +1992,11 @@ class FieldComputer:
                     entry=entry,
                     values=replacements,
                     _input_validated=True,
+                    _state_sha256=self._state_digest(state),
                 )
-                return self._validated_field_state(field), receipt
+                return self._validated_field_state(
+                    field, state_sha256=receipt["state_sha256"]
+                ), receipt
             except field_regions.RegionalFieldError as exc:
                 raise FieldComputerError(str(exc)) from exc
         """Start the retained program again while preserving field-owned heat."""
@@ -2063,7 +2132,10 @@ class FieldComputer:
                 raise ValueError("noncanonical base64")
             if len(raw) != profile.state_bytes:
                 raise ValueError("field byte length mismatch")
-            field = np.frombuffer(raw, dtype=np.float64).reshape(profile.shape).copy()
+            # ``raw`` is freshly decoded immutable bytes; the reshaped
+            # read-only view is accepted by ComputerState without a second
+            # whole-image copy (its backing chain already ends in bytes).
+            field = np.frombuffer(raw, dtype=np.float64).reshape(profile.shape)
         except (ValueError, TypeError) as exc:
             raise FieldComputerError("descriptor field encoding is invalid") from exc
         state = ComputerState(field, profile.fingerprint)
@@ -2092,8 +2164,11 @@ class FieldComputer:
             name,
             value,
             _input_validated=True,
+            _state_sha256=self._state_digest(state),
         )
-        return self._validated_field_state(successor), receipt
+        return self._validated_field_state(
+            successor, state_sha256=receipt["state_sha256"]
+        ), receipt
 
     def state_sha256(self, state: ComputerState) -> str:
         self.validate(state)
@@ -2182,6 +2257,58 @@ class FieldComputer:
                 self.profile,
                 self._regional_catalog,
                 event,
+            )
+            return ComputerState(field, self._profile_sha256), receipt
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+
+    def enqueue_event_paged(
+        self,
+        state: PagedComputerState,
+        event: Mapping[str, Any],
+        *,
+        record_audit_digest: bool = False,
+    ) -> tuple[PagedComputerState, dict[str, Any]]:
+        """Admit external work into the paged v3 field-owned event queue."""
+
+        if not self.is_regional:
+            raise FieldComputerError("enqueue_event_paged requires a regional computer")
+        if not isinstance(state, PagedComputerState):
+            raise FieldComputerError("PagedComputerState required")
+        if state.profile_sha256 != self._profile_sha256:
+            raise FieldComputerError("paged state belongs to another profile")
+        try:
+            image, receipt = field_regions.enqueue_event_paged(
+                state.image,
+                event,
+                record_audit_digest=record_audit_digest,
+            )
+        except field_regions.RegionalFieldError as exc:
+            raise FieldComputerError(str(exc)) from exc
+        if image is state.image:
+            return state, receipt
+        return self._paged_state(image), receipt
+
+    def cancel_communication(
+        self,
+        state: ComputerState | PagedComputerState,
+        event_id: int,
+        intent_sha256: str,
+    ) -> tuple[ComputerState | PagedComputerState, dict[str, Any]]:
+        """Retire only the exact pending communication event."""
+        if not self.is_regional:
+            raise FieldComputerError("communication cancellation requires a regional computer")
+        try:
+            if isinstance(state, PagedComputerState):
+                if state.profile_sha256 != self._profile_sha256:
+                    raise FieldComputerError("paged state belongs to another profile")
+                image, receipt = field_regions.cancel_communication_event_paged(
+                    state.image, event_id, intent_sha256,
+                )
+                return self._paged_state(image), receipt
+            field, receipt = field_regions.cancel_communication_event(
+                state._field, self.profile, self._regional_catalog,
+                event_id, intent_sha256,
             )
             return ComputerState(field, self._profile_sha256), receipt
         except field_regions.RegionalFieldError as exc:

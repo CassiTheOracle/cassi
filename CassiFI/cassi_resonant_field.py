@@ -179,6 +179,85 @@ def _torch_gmres(
     return solution, residual_norm, applications
 
 
+def _torch_gmres_batch(
+    matvec: Any,
+    rhs: torch.Tensor,
+    *,
+    tolerance: float,
+    restart: int = 8,
+    max_restarts: int = 8,
+) -> tuple[torch.Tensor, torch.Tensor, int]:
+    """Restarted matrix-free GMRES for independent column right-hand sides."""
+    if rhs.ndim != 2:
+        raise ResonantNumericalError("batched GPU GMRES expects a matrix of column right-hand sides")
+    dimension, count = rhs.shape
+    norm_rhs = torch.linalg.vector_norm(rhs, dim=0)
+    target = torch.maximum(
+        torch.full_like(norm_rhs, float(tolerance) * 0.05),
+        64.0 * torch.finfo(rhs.dtype).eps * torch.maximum(torch.ones_like(norm_rhs), norm_rhs),
+    )
+    solution = torch.zeros_like(rhs)
+    residual_norm = norm_rhs.clone()
+    applications = 0
+    restart = max(1, min(int(restart), dimension))
+    for _ in range(max(1, int(max_restarts))):
+        residual = rhs - matvec(solution)
+        applications += 1
+        beta = torch.linalg.vector_norm(residual, dim=0)
+        residual_norm = beta
+        basis = [residual / torch.clamp(beta, min=torch.finfo(rhs.dtype).tiny)[None, :]]
+        basis[0] = torch.where((beta > target)[None, :], basis[0], torch.zeros_like(basis[0]))
+        hessenberg = torch.zeros((restart + 1, restart, count), dtype=rhs.dtype, device=rhs.device)
+        projected_rhs = torch.zeros((restart + 1, count), dtype=rhs.dtype, device=rhs.device)
+        projected_rhs[0] = beta
+        best = solution.clone()
+        best_norm = residual_norm.clone()
+        for column in range(restart):
+            candidate = matvec(basis[column])
+            applications += 1
+            for row in range(column + 1):
+                coefficient = (basis[row] * candidate).sum(dim=0)
+                hessenberg[row, column] = coefficient
+                candidate = candidate - basis[row] * coefficient[None, :]
+            next_norm = torch.linalg.vector_norm(candidate, dim=0)
+            hessenberg[column + 1, column] = next_norm
+            if column + 1 < restart:
+                basis.append(candidate / torch.clamp(next_norm, min=torch.finfo(rhs.dtype).tiny)[None, :])
+            rows = column + 2
+            matrices = hessenberg[:rows, :column + 1].permute(2, 0, 1)
+            vectors = projected_rhs[:rows].T.unsqueeze(-1)
+            gram = matrices.transpose(1, 2) @ matrices
+            scale = matrices.abs().amax(dim=(1, 2)).clamp_min(1.0)
+            regularizer = 64.0 * torch.finfo(rhs.dtype).eps * scale.square()
+            gram = gram + regularizer[:, None, None] * torch.eye(
+                column + 1, dtype=rhs.dtype, device=rhs.device,
+            )[None, :, :]
+            coefficients = torch.linalg.solve(
+                gram, matrices.transpose(1, 2) @ vectors,
+            ).squeeze(-1)
+            vectors_basis = torch.stack(basis[:column + 1], dim=1).permute(2, 0, 1)
+            trial = solution + torch.bmm(vectors_basis, coefficients.unsqueeze(-1)).squeeze(-1).T
+            trial_residual = rhs - matvec(trial)
+            applications += 1
+            trial_norm = torch.linalg.vector_norm(trial_residual, dim=0)
+            improve = trial_norm < best_norm
+            best = torch.where(improve[None, :], trial, best)
+            best_norm = torch.minimum(best_norm, trial_norm)
+            solved = trial_norm <= target
+            best = torch.where(solved[None, :], trial, best)
+            best_norm = torch.where(solved, trial_norm, best_norm)
+            if bool(solved.all().item()):
+                return trial, trial_norm, applications
+            active = (next_norm > target) & (beta > target)
+            if not bool(active.any().item()):
+                break
+        solution = best
+        residual_norm = best_norm
+        if bool((residual_norm <= target).all().item()):
+            return solution, residual_norm, applications
+    return solution, residual_norm, applications
+
+
 def _finite(a: np.ndarray, name: str) -> None:
     if not np.isfinite(a).all():
         raise ResonantNumericalError(f"{name} contains non-finite values")
@@ -2040,8 +2119,9 @@ class _WaveOperator:
         if inv_mass is None:
             inv_mass = 1 / np.asarray(workspace.profile.inertances)
         inv_mass = np.asarray(inv_mass)
+        mass = 1 / inv_mass if inv_mass.ndim == 1 else np.linalg.inv(inv_mass)
+        self.mass = self.array(mass)
         self.inv_mass = self.array(inv_mass)
-        self.mass = self.array(1 / inv_mass if inv_mass.ndim == 1 else np.linalg.inv(inv_mass))
         weights = workspace.profile.projected_quartic_weights
         self.beta = self.array(workspace.profile.beta * (np.ones(n) if weights is None else weights))
         self.ports = self.array([], integer=True)
@@ -2088,9 +2168,10 @@ class _WaveOperator:
                 conditioner = np.linalg.solve(problem.precision, np.eye(len(ports)))
             self.conditioner = self.array(conditioner)
         matrix = np.asarray(rows).reshape((-1, 4 * n))
+        constraint_inverse = np.linalg.pinv(matrix)
         self.constraints = self.array(matrix)
         self.targets = self.array(targets)
-        self.constraint_inverse = self.array(np.linalg.pinv(matrix))
+        self.constraint_inverse = self.array(constraint_inverse)
         rail_sums = np.zeros(2 * n)
         for source, destination, weight, _ in self.edges:
             rail_sums[source] += abs(weight)
@@ -2099,10 +2180,10 @@ class _WaveOperator:
         if workspace.profile.projected_transport is not None:
             rail_bound = float(np.linalg.norm(workspace.profile.projected_transport, ord=np.inf))
         projection_bound = (
-            1 + float(np.linalg.norm(np.linalg.pinv(matrix), ord=np.inf) * np.linalg.norm(matrix, ord=np.inf))
+            1 + float(np.linalg.norm(constraint_inverse, ord=np.inf) * np.linalg.norm(matrix, ord=np.inf))
             if len(targets) else 1.0
         )
-        mass_bound = float(np.max(1 / inv_mass)) if inv_mass.ndim == 1 else float(np.linalg.norm(np.linalg.inv(inv_mass), ord=np.inf))
+        mass_bound = float(np.max(mass)) if inv_mass.ndim == 1 else float(np.linalg.norm(mass, ord=np.inf))
         conditioner_bound = float(np.linalg.norm(conditioner, ord=np.inf)) if problem is not None else 1.0
         damping_bound = max(
             self.profile.damping,
@@ -2116,7 +2197,9 @@ class _WaveOperator:
     def array(self, value: Any, *, integer: bool = False) -> Any:
         if self.device is None:
             return np.array(value, dtype=np.int64 if integer else np.float64)
-        return torch.tensor(np.asarray(value), dtype=torch.int64 if integer else torch.float64, device=self.device)
+        return torch.as_tensor(
+            np.asarray(value), dtype=torch.int64 if integer else torch.float64, device=self.device
+        )
 
     def cat(self, values: Sequence[Any]) -> Any:
         return np.concatenate(values) if self.device is None else torch.cat(tuple(values))
@@ -2140,15 +2223,23 @@ class _WaveOperator:
         if len(self.ports):
             result[self.ports] = self.k @ value[self.ports]
             if force:
-                result[self.ports] -= self.b
+                result[self.ports] -= self.b[:, None] if value.ndim > 1 else self.b
         return result
 
     def project(self, value: Any) -> Any:
-        return value - self.constraint_inverse @ (self.constraints @ value) if len(self.targets) else value
+        if not len(self.targets):
+            return value
+        residual = self.constraints @ value
+        if value.ndim > 1:
+            return value - self.constraint_inverse @ residual
+        return value - self.constraint_inverse @ residual
 
     def boundary(self, value: Any, tolerance: float) -> Any:
-        result = value + self.constraint_inverse @ (self.targets - self.constraints @ value) if len(self.targets) else value
-        if self.norm(self.constraints @ result - self.targets) > tolerance:
+        if not len(self.targets):
+            return value
+        target = self.targets[:, None] if value.ndim > 1 else self.targets
+        result = value + self.constraint_inverse @ (target - self.constraints @ value)
+        if self.norm(self.constraints @ result - target) > tolerance:
             raise ResonantNumericalError("inconsistent common-coordinate constraints")
         return result
 
@@ -2189,28 +2280,42 @@ class _WaveOperator:
         gradient = self.project(gradient)
         return self.project(self.circulation(gradient) - self.dissipation(gradient, quiet))
 
-    def energy_gradient(self, value: Any) -> tuple[float, Any]:
-        qy, qi, py, pi = value.reshape(4, self.n)
+    def energy_gradient(self, value: Any) -> tuple[Any, Any]:
+        batch = value.ndim > 1
+        qy, qi, py, pi = value.reshape((4, self.n) + value.shape[1:])
         x, d = (qy + qi) / SQRT2, (qy - qi) / SQRT2
         kx = self.semantic(x, force=False)
         semantic = self.semantic(x)
-        relative = self.profile.relative_stiffness * d + self.beta * d ** 3
+        relative = self.profile.relative_stiffness * d + self.beta.reshape((-1,) + (1,) * (d.ndim - 1)) * d ** 3
         p = self.cat((py, pi))
         gp = self.mass_apply(p)
-        energy = 0.5 * (x @ kx + self.profile.relative_stiffness * (d @ d) + p @ gp)
-        energy += (self.beta * d ** 4).sum() / 4
-        if len(self.ports):
-            energy -= self.b @ x[self.ports]
-        return float(energy), self.cat(((semantic + relative) / SQRT2, (semantic - relative) / SQRT2, gp))
+        if batch:
+            energy = 0.5 * ((x * kx).sum(dim=0) + self.profile.relative_stiffness * (d * d).sum(dim=0) + (p * gp).sum(dim=0))
+            energy += (self.beta.reshape((-1, 1)) * d ** 4).sum(dim=0) / 4
+            if len(self.ports):
+                energy -= (self.b[:, None] * x[self.ports]).sum(dim=0)
+        else:
+            energy = 0.5 * (x @ kx + self.profile.relative_stiffness * (d @ d) + p @ gp)
+            energy += (self.beta * d ** 4).sum() / 4
+            if len(self.ports):
+                energy -= self.b @ x[self.ports]
+            energy = float(energy)
+        return energy, self.cat(((semantic + relative) / SQRT2, (semantic - relative) / SQRT2, gp))
 
-    def roundoff_scales(self, value: Any) -> tuple[float, float]:
+    def roundoff_scales(self, value: Any) -> tuple[Any, Any]:
         """Absolute-product bounds retain cancellation hidden by a small energy."""
-        qy, qi, py, pi = abs(value).reshape(4, self.n)
+        batch = value.ndim > 1
+        qy, qi, py, pi = abs(value).reshape((4, self.n) + value.shape[1:])
         common = (qy + qi) / SQRT2
         semantic = self.clone(common)
         if len(self.ports):
-            semantic[self.ports] = self.absolute_k @ common[self.ports] + self.absolute_b
-        relative = self.profile.relative_stiffness * common + self.beta * common ** 3
+            semantic[self.ports] = self.absolute_k @ common[self.ports]
+            if batch:
+                semantic[self.ports] += self.absolute_b[:, None]
+            else:
+                semantic[self.ports] += self.absolute_b
+        beta = self.beta.reshape((-1,) + (1,) * (common.ndim - 1))
+        relative = self.profile.relative_stiffness * common + beta * common ** 3
         momentum = self.cat((py, pi))
         kinetic = (
             self.multiply(self.absolute_inv_mass, momentum)
@@ -2218,18 +2323,83 @@ class _WaveOperator:
         )
         position = (semantic + relative) / SQRT2
         magnitude = self.cat((position, position, kinetic))
+        if batch:
+            return magnitude.abs().amax(dim=0), (abs(value) * magnitude).sum(dim=0)
         return self.norm(magnitude), float(abs(value) @ magnitude)
 
-    def discrete_gradient(self, before: Any, after: Any) -> Any:
-        qy0, qi0, py0, pi0 = before.reshape(4, self.n)
-        qy1, qi1, py1, pi1 = after.reshape(4, self.n)
-        x = (qy0 + qi0 + qy1 + qi1) / (2 * SQRT2)
-        d0, d1 = (qy0 - qi0) / SQRT2, (qy1 - qi1) / SQRT2
-        semantic = self.semantic(x)
-        relative = self.profile.relative_stiffness * (d0 + d1) / 2
-        relative += self.beta * (d1 ** 3 + d1 ** 2 * d0 + d1 * d0 ** 2 + d0 ** 3) / 4
-        return self.cat(((semantic + relative) / SQRT2, (semantic - relative) / SQRT2,
-                         self.mass_apply(self.cat((py0 + py1, pi0 + pi1))) / 2))
+    def step_batch(
+        self, before: Any, duration: Any, *, quiet: bool,
+        max_iterations: int, tolerance: float,
+    ) -> tuple[Any, list[dict[str, float]]]:
+        """Batched GPU Newton updates with independently retiring columns."""
+        if self.device is None or before.ndim != 2:
+            raise ResonantNumericalError("batched stepping requires a column-major GPU state batch")
+        count = int(before.shape[1])
+        durations = duration if isinstance(duration, torch.Tensor) else torch.full(
+            (count,), float(duration), dtype=before.dtype, device=before.device,
+        )
+        durations = durations.reshape(-1)
+        candidate = self.clone(before)
+        residual = torch.zeros_like(candidate)
+        gradient = torch.zeros_like(candidate)
+        converged = torch.zeros((count,), dtype=torch.bool, device=before.device)
+        iterations = torch.zeros((count,), dtype=torch.int64, device=before.device)
+        for iteration in range(max_iterations):
+            gradient = self.energy_gradient(candidate)[1] if quiet else self.discrete_gradient(before, candidate)
+            flow = self.flow(gradient, quiet)
+            residual = candidate - before - durations[None, :] * flow
+            residual_norm = residual.abs().amax(dim=0)
+            candidate_norm = candidate.abs().amax(dim=0)
+            before_norm = before.abs().amax(dim=0)
+            flow_norm = flow.abs().amax(dim=0)
+            round_scale = self.roundoff_scales(candidate)[0]
+            rounding = 64 * np.finfo(float).eps * (
+                candidate_norm + before_norm
+                + durations * torch.maximum(flow_norm, self.flow_roundoff_gain * round_scale)
+            )
+            converged = residual_norm <= torch.maximum(torch.full_like(rounding, tolerance), rounding)
+            iterations = torch.where(converged & (iterations == 0), iteration + 1, iterations)
+            if bool(converged.all().item()):
+                break
+            def jacobian(value: Any) -> Any:
+                return value - durations[None, :] * self.flow(
+                    self.derivative(before, candidate, value, quiet), quiet,
+                )
+            delta, gmres_residual, _ = _torch_gmres_batch(
+                jacobian, residual, tolerance=tolerance,
+                restart=min(8, int(before.shape[0])), max_restarts=8,
+            )
+            if bool((gmres_residual[~converged] > max(tolerance * 0.05, 1e-11)).any().item()):
+                raise ResonantNumericalError("bounded GPU batched matrix-free Newton solve exhausted")
+            candidate = candidate - torch.where(converged[None, :], torch.zeros_like(delta), delta)
+        else:
+            raise ResonantNumericalError("bounded nonlinear solve exhausted")
+        starts, ends = self.energy_gradient(before)[0], self.energy_gradient(candidate)[0]
+        receipts: list[dict[str, float]] = []
+        for column in range(count):
+            before_column, candidate_column = before[:, column], candidate[:, column]
+            gradient_column, residual_column = gradient[:, column], residual[:, column]
+            projected = self.project(gradient_column)
+            step_duration = float(durations[column].item())
+            dissipated = float(step_duration * (projected @ self.dissipation(projected, quiet)))
+            numerical = float((gradient_column - self.discrete_gradient(before_column, candidate_column)) @ (candidate_column - before_column)) if quiet else 0.0
+            residual_work = float(gradient_column @ residual_column)
+            defect = float(ends[column] - starts[column]) + dissipated + numerical - residual_work
+            allowance = max(1e-10, 64 * np.finfo(float).eps * max(
+                1.0, self.roundoff_scales(before_column)[1], self.roundoff_scales(candidate_column)[1],
+            ))
+            if not math.isfinite(defect) or abs(defect) > allowance or numerical < -allowance:
+                raise ResonantNumericalError("transition violates the discrete work balance")
+            receipts.append({
+                "dissipated_work": dissipated,
+                "numerical_dissipated_work": max(0.0, numerical),
+                "energy_roundoff_allowance": allowance,
+                "residual_work": residual_work,
+                "balance_defect": defect,
+                "residual_norm": float(residual_column.abs().max().item()),
+                "iterations": int(iterations[column].item()),
+            })
+        return candidate, receipts
 
     def derivative(self, before: Any, after: Any, value: Any, quiet: bool) -> Any:
         qy, qi, py, pi = value.reshape((4, self.n) + value.shape[1:])
@@ -2237,16 +2407,32 @@ class _WaveOperator:
         q0, i0 = before[:self.n], before[self.n:2 * self.n]
         q1, i1 = after[:self.n], after[self.n:2 * self.n]
         d0, d1 = (q0 - i0) / SQRT2, (q1 - i1) / SQRT2
+        beta = self.beta.reshape((-1,) + (1,) * (d.ndim - 1))
         if quiet:
             factor = 1.0
-            relative = self.profile.relative_stiffness + 3 * self.beta * d1 ** 2
+            relative = self.profile.relative_stiffness + 3 * beta * d1 ** 2
         else:
             factor = 0.5
-            relative = self.profile.relative_stiffness / 2 + self.beta * (3 * d1 ** 2 + 2 * d1 * d0 + d0 ** 2) / 4
+            relative = self.profile.relative_stiffness / 2 + beta * (3 * d1 ** 2 + 2 * d1 * d0 + d0 ** 2) / 4
         semantic = factor * self.semantic(x, force=False)
-        relative = self.multiply(relative, d)
+        relative = relative * d
         return self.cat(((semantic + relative) / SQRT2, (semantic - relative) / SQRT2,
                          factor * self.mass_apply(self.cat((py, pi)))))
+
+
+    def discrete_gradient(self, before: Any, after: Any) -> Any:
+        shape = (4, self.n) + before.shape[1:]
+        qy0, qi0, py0, pi0 = before.reshape(shape)
+        qy1, qi1, py1, pi1 = after.reshape(shape)
+        x = (qy0 + qi0 + qy1 + qi1) / (2 * SQRT2)
+        d0, d1 = (qy0 - qi0) / SQRT2, (qy1 - qi1) / SQRT2
+        semantic = self.semantic(x)
+        beta = self.beta.reshape((-1,) + (1,) * (d1.ndim - 1))
+        relative = self.profile.relative_stiffness * (d0 + d1) / 2
+        relative += beta * (d1 ** 3 + d1 ** 2 * d0 + d1 * d0 ** 2 + d0 ** 3) / 4
+        return self.cat(((semantic + relative) / SQRT2, (semantic - relative) / SQRT2,
+                         self.mass_apply(self.cat((py0 + py1, pi0 + pi1))) / 2))
+
 
     def step(self, before: Any, duration: float, *, quiet: bool, max_iterations: int, tolerance: float) -> tuple[Any, dict[str, float]]:
         candidate = self.clone(before)
@@ -3368,6 +3554,264 @@ def advance_workspace_gpu(workspace: ResonantWorkspace, *, problem: ResonantProb
     return result, receipt
 
 
+def advance_workspace_gpu_cohort(
+    workspaces: Sequence[ResonantWorkspace],
+    *,
+    problem: ResonantProblem | None = None,
+    ticks: int = 1,
+    demand: float = 0.0,
+    source_enabled: bool = True,
+    quiet: bool = False,
+    device: str = "cuda",
+    resources: Any = None,
+) -> tuple[tuple[ResonantWorkspace, ...], dict[str, Any]]:
+    """Advance 1..8 compatible independent workspaces with column-batched GPU arithmetic.
+
+    A cohort shares only fixed operator data. Dynamic state, clocks, activity,
+    work ledgers, convergence and output pages remain per field. If the shared
+    nonlinear transition cannot be accepted, the cohort is retried through the
+    existing exact single-field GPU path and receipts identify that fallback.
+    """
+    if not isinstance(workspaces, Sequence) or isinstance(workspaces, (str, bytes)):
+        raise TypeError("workspaces must be a sequence of ResonantWorkspace values")
+    cohort = tuple(workspaces)
+    if not 1 <= len(cohort) <= 8:
+        raise ResonantNumericalError("GPU cohort capacity is [1,8] fields")
+    if any(not isinstance(item, ResonantWorkspace) for item in cohort):
+        raise TypeError("every cohort member must be ResonantWorkspace")
+    if isinstance(ticks, bool) or not isinstance(ticks, int) or not 0 <= ticks <= 4096:
+        raise ResonantNumericalError("ticks must be an integer in [0,4096]")
+    if not math.isfinite(demand) or not 0 <= demand <= 1:
+        raise ResonantNumericalError("ready demand must be finite and in [0,1]")
+    if any(item.paused and ticks for item in cohort):
+        raise ResonantNumericalError("paused workspace cannot advance")
+    if device == "auto":
+        raise ResonantNumericalError("GPU cohorts require an explicit GPU device; auto fallback is unsupported")
+    try:
+        if torch.device(device).type != "cuda":
+            raise ResonantNumericalError("GPU cohorts require a CUDA-compatible device")
+    except (TypeError, RuntimeError) as exc:
+        raise ResonantNumericalError(f"invalid GPU device {device!r}") from exc
+    first = bind_workspace(cohort[0], problem) if problem is not None else cohort[0]
+    cohort = tuple(bind_workspace(item, problem) for item in cohort) if problem is not None else cohort
+    signature = json.dumps(
+        {"profile": first.profile.as_dict(), "bindings": _jsonable(first.bindings)},
+        sort_keys=True, separators=(",", ":"), allow_nan=False,
+    )
+    if any(
+        json.dumps({"profile": item.profile.as_dict(), "bindings": _jsonable(item.bindings)},
+                   sort_keys=True, separators=(",", ":"), allow_nan=False) != signature
+        for item in cohort
+    ):
+        raise ResonantNumericalError("GPU cohort fields must share profile, bindings, and operator")
+    first.profile.gpu_profile(device)
+    profile = first.profile
+    tolerance = profile.tolerance
+    state_bytes = 4 * profile.port_count * np.dtype(np.float64).itemsize * len(cohort)
+    scratch_bytes = state_bytes * 10
+    manager = _resource_manager(resources)
+    # A one-field cohort deliberately uses the established single-field implementation.
+    if len(cohort) == 1:
+        result, receipt = advance_workspace_gpu(
+            cohort[0], problem=None, ticks=ticks, demand=demand,
+            source_enabled=source_enabled, quiet=quiet, device=device, resources=resources,
+        )
+        return (result,), {
+            "schema": "cassifi.resonant-gpu-cohort-receipt.v1", "accepted": True,
+            "capacity": 8, "field_count": 1, "device": str(torch.device(device)),
+            "execution": "single-field-reference", "field_receipts": [receipt],
+            "state_sha256": [result.state_sha256],
+        }
+    with _gpu_residency(manager, state_bytes=state_bytes, scratch_bytes=scratch_bytes):
+        operator = _WaveOperator(first, problem, device=device, resources=manager)
+        z = torch.as_tensor(
+            np.stack([_state_vector(item) for item in cohort]).T,
+            dtype=torch.float64, device=device,
+        )
+        batch_count = len(cohort)
+        energies = operator.energy_gradient(z)[0]
+        stored = [item.ledger.get("stored_energy") for item in cohort]
+        stored_mask = torch.as_tensor([value is not None for value in stored], dtype=torch.bool, device=device)
+        stored_values = torch.as_tensor([0.0 if value is None else float(value) for value in stored], dtype=torch.float64, device=device)
+        start_energy = torch.where(stored_mask, stored_values, energies)
+        parameter_work = energies - start_energy
+        projected = operator.boundary(z, max(tolerance, 1e-10))
+        boundary_work = operator.energy_gradient(projected)[0] - energies
+        z = projected
+        positive = torch.zeros(batch_count, dtype=torch.float64, device=device)
+        extracted = torch.zeros_like(positive)
+        dissipated = torch.zeros_like(positive)
+        numerical = torch.zeros_like(positive)
+        residual_work = torch.zeros_like(positive)
+        max_residual = torch.zeros_like(positive)
+        subdivisions = [0] * batch_count
+        iterations = [0] * batch_count
+        phases_h = [item.heartbeat_phase for item in cohort]
+        phases_b = [item.breath_phase for item in cohort]
+        heartbeat_cycles = [item.heartbeat_cycles for item in cohort]
+        breath_cycles = [item.breath_cycles for item in cohort]
+        activities = [item.activity for item in cohort]
+        try:
+            for _tick in range(ticks):
+                rates = [0.5 + 1.5 * activities[i] + 0.25 * (1 + math.cos(phases_b[i])) for i in range(batch_count)]
+                accepted = False
+                for level in range(profile.max_subdivisions + 1):
+                    parts = 2 ** level
+                    trial = operator.clone(z)
+                    local_positive = torch.zeros_like(positive)
+                    local_extracted = torch.zeros_like(positive)
+                    local_dissipated = torch.zeros_like(positive)
+                    local_numerical = torch.zeros_like(positive)
+                    local_residual = torch.zeros_like(positive)
+                    local_max = torch.zeros_like(positive)
+                    local_iterations = [0] * batch_count
+                    sub_h = profile.time_step / parts
+                    for sub in range(parts):
+                        mids = [phases_h[i] + (sub + 0.5) * sub_h * profile.heartbeat_frequency for i in range(batch_count)]
+                        phase1 = [phases_h[i] + (sub + 1) * sub_h * profile.heartbeat_frequency for i in range(batch_count)]
+                        phase0 = [phases_h[i] + sub * sub_h * profile.heartbeat_frequency for i in range(batch_count)]
+                        allowances = [
+                            profile.heartbeat_work * (pulse_primitive(phase1[i]) - pulse_primitive(phase0[i]))
+                            if source_enabled and not quiet else 0.0
+                            for i in range(batch_count)
+                        ]
+                        trial_energy = operator.energy_gradient(trial)[0]
+                        allowances = torch.minimum(
+                            torch.as_tensor(allowances, dtype=torch.float64, device=device),
+                            torch.clamp(1e12 - trial_energy, min=0.0),
+                        )
+                        requested = torch.as_tensor(
+                            [sub_h * profile.heartbeat_amplitude * math.sin(mids[i]) ** 2 for i in range(batch_count)],
+                            dtype=torch.float64, device=device,
+                        )
+                        directions = np.zeros((4 * profile.port_count, batch_count), dtype=np.float64)
+                        n = profile.port_count
+                        for i, midpoint in enumerate(mids):
+                            directions[2*n, i] = directions[3*n-1, i] = math.cos(midpoint) / SQRT2
+                            directions[2*n+1, i] = directions[3*n-2, i] = -math.sin(midpoint) / SQRT2
+                        motor = operator.project(torch.as_tensor(directions, dtype=torch.float64, device=device))
+                        mass_motor = operator.mass_apply(motor[2*n:])
+                        momentum = trial[2*n:]
+                        linear = (momentum * mass_motor).sum(dim=0)
+                        quadratic = (motor[2*n:] * mass_motor).sum(dim=0)
+                        root = torch.sqrt(torch.clamp(linear * linear + 2 * quadratic * allowances, min=0.0))
+                        denom = torch.clamp(root + linear, min=torch.finfo(torch.float64).tiny)
+                        limit = torch.where(linear >= 0, 2 * allowances / denom,
+                                            (root - linear) / torch.clamp(quadratic, min=torch.finfo(torch.float64).tiny))
+                        amount = torch.minimum(requested, torch.clamp(limit, min=0.0))
+                        amount = torch.where((allowances > 0) & (quadratic > 0), amount, torch.zeros_like(amount))
+                        work = linear * amount + 0.5 * quadratic * amount * amount
+                        trial = trial + amount[None, :] * motor
+                        local_positive += torch.clamp(work, min=0.0)
+                        local_extracted += torch.clamp(-work, min=0.0)
+                        durations = torch.as_tensor([sub_h * rates[i] for i in range(batch_count)], dtype=torch.float64, device=device)
+                        trial, step_receipts = operator.step_batch(
+                            trial, durations, quiet=quiet, max_iterations=32, tolerance=tolerance,
+                        )
+                        for i, step_receipt in enumerate(step_receipts):
+                            local_dissipated[i] += step_receipt["dissipated_work"]
+                            local_numerical[i] += step_receipt["numerical_dissipated_work"]
+                            local_residual[i] += step_receipt["residual_work"]
+                            local_max[i] = max(float(local_max[i].item()), step_receipt["residual_norm"])
+                            local_iterations[i] += step_receipt["iterations"]
+                    z = trial
+                    positive += local_positive
+                    extracted += local_extracted
+                    dissipated += local_dissipated
+                    numerical += local_numerical
+                    residual_work += local_residual
+                    max_residual = torch.maximum(max_residual, local_max)
+                    for i in range(batch_count):
+                        subdivisions[i] += parts - 1
+                        iterations[i] += local_iterations[i]
+                    accepted = True
+                    break
+                if not accepted:
+                    raise ResonantNumericalError("unresolved numerical work after bounded subdivision rollback")
+                h = profile.time_step
+                for i in range(batch_count):
+                    phases_h[i] += h * profile.heartbeat_frequency
+                    phases_b[i] += h * profile.heartbeat_frequency * (1 / 16 + 3 * activities[i] / 16)
+                    wraps_h, wraps_b = math.floor(phases_h[i] / (2 * math.pi)), math.floor(phases_b[i] / (2 * math.pi))
+                    phases_h[i] -= wraps_h * 2 * math.pi
+                    phases_b[i] -= wraps_b * 2 * math.pi
+                    heartbeat_cycles[i] += wraps_h
+                    breath_cycles[i] += wraps_b
+                    activities[i] = demand + (activities[i] - demand) * math.exp(-h / profile.activity_tau)
+        except (ResonantNumericalError, RuntimeError, np.linalg.LinAlgError):
+            # A cohort that needs divergent rollback uses the established
+            # single-field subdivision policy, never suppressing a failure.
+            fallback_results, fallback_receipts = [], []
+            for item in cohort:
+                result, receipt = advance_workspace_gpu(
+                    item, problem=None, ticks=ticks, demand=demand,
+                    source_enabled=source_enabled, quiet=quiet, device=device, resources=None,
+                )
+                fallback_results.append(result)
+                fallback_receipts.append(receipt)
+            return tuple(fallback_results), {
+                "schema": "cassifi.resonant-gpu-cohort-receipt.v1",
+                "accepted": True, "capacity": 8, "field_count": batch_count,
+                "device": str(torch.device(device)), "execution": "per-field-fallback",
+                "fallback_reason": "cohort nonlinear solve or subdivision was not jointly admissible",
+                "field_receipts": fallback_receipts,
+                "state_sha256": [item.state_sha256 for item in fallback_results],
+            }
+        end_energy = operator.energy_gradient(z)[0]
+        results: list[ResonantWorkspace] = []
+        field_receipts: list[dict[str, Any]] = []
+        scalar_arrays = [
+            parameter_work.detach().cpu().tolist(), boundary_work.detach().cpu().tolist(),
+            positive.detach().cpu().tolist(), extracted.detach().cpu().tolist(),
+            dissipated.detach().cpu().tolist(), numerical.detach().cpu().tolist(),
+            residual_work.detach().cpu().tolist(), max_residual.detach().cpu().tolist(),
+            end_energy.detach().cpu().tolist(), z.detach().cpu().numpy(),
+        ]
+        for i, workspace in enumerate(cohort):
+            parameter_i, boundary_i, pos_i, ext_i, diss_i, num_i, residual_i, max_i, end_i, _ = scalar_arrays
+            defect = end_i[i] - float(start_energy[i].item()) - parameter_i[i] - boundary_i[i] - pos_i[i] + ext_i[i] + diss_i[i] + num_i[i] - residual_i[i]
+            ledger = dict(workspace.ledger)
+            increments = {
+                "positive_heartbeat_work": pos_i[i], "extracted_heartbeat_work": ext_i[i],
+                "dissipated_work": diss_i[i], "numerical_dissipated_work": num_i[i],
+                "residual_work": residual_i[i], "parameter_work": parameter_i[i],
+                "boundary_work": boundary_i[i], "balance_defect": defect,
+            }
+            ledger.update({key: ledger.get(key, 0.0) + value for key, value in increments.items()})
+            ledger["stored_energy"] = end_i[i]
+            page = _page_from_state(
+                workspace, scalar_arrays[-1][:, i], heartbeat_phase=phases_h[i],
+                breath_phase=phases_b[i], activity=activities[i],
+            )
+            result = workspace._copy(
+                field_page=page, field_ticks=workspace.field_ticks + ticks,
+                heartbeat_phase=phases_h[i], heartbeat_cycles=heartbeat_cycles[i],
+                breath_phase=phases_b[i], breath_cycles=breath_cycles[i],
+                activity=activities[i], ledger=ledger,
+                subdivision_ticks=workspace.subdivision_ticks + subdivisions[i],
+            )
+            results.append(result)
+            field_receipts.append({
+                "schema": "cassifi.resonant-advance-receipt.v1", "accepted": True,
+                "ticks": ticks, "field_ticks": result.field_ticks, "evidence_tick": result.evidence_tick,
+                "start_energy": float(start_energy[i].item()), "end_energy": end_i[i],
+                **increments, "maximum_residual_norm": max_i, "subdivisions": subdivisions[i],
+                "nonlinear_iterations": iterations[i], "operator_applications": operator.applications,
+                "arithmetic": "torch-batched-matrix-free-float64", "device": str(device),
+                "state_sha256": result.state_sha256,
+            })
+    return tuple(results), {
+        "schema": "cassifi.resonant-gpu-cohort-receipt.v1", "accepted": True,
+        "capacity": 8, "field_count": len(cohort), "device": str(torch.device(device)),
+        "execution": "column-batched-newton-gmres", "state_batch_shape": [4 * profile.port_count, len(cohort)],
+        "successor_tolerance": {"absolute": 2e-12, "relative": 2e-12},
+        "field_receipts": field_receipts, "state_sha256": [item.state_sha256 for item in results],
+    }
+
+
+
+
+
  
 # The regional lowering below intentionally does not decode or invoke
 # ``ResonantWorkspace``.  It contains a disposable arithmetic view over the
@@ -3401,11 +3845,19 @@ _REGIONAL_LOCAL_KEYS = (
 
 
 def _regional_canonical(value: Any) -> bytes:
-    try:
-        return json.dumps(value, sort_keys=True, separators=(",", ":"),
-                          ensure_ascii=False, allow_nan=False).encode("utf-8")
-    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
-        raise ResonantNumericalError("regional resonant state is not canonical JSON") from exc
+    if isinstance(value, dict):
+        sorted_dict = {k: value[k] for k in sorted(value.keys())}
+        try:
+            return json.dumps(sorted_dict, sort_keys=False, separators=(",", ":"),
+                              ensure_ascii=False, allow_nan=False).encode("utf-8")
+        except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+            raise ResonantNumericalError("regional resonant state is not canonical JSON") from exc
+    else:
+        try:
+            return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                              ensure_ascii=False, allow_nan=False).encode("utf-8")
+        except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+            raise ResonantNumericalError("regional resonant state is not canonical JSON") from exc
 
 
 def _regional_integer(value: Any, name: str, *, minimum: int = 0,
@@ -4809,6 +5261,68 @@ def regional_kernel(state: Any, arguments: Mapping[str, Any], quantum: int) -> f
     bound = _regional_integer(quantum, "regional resonant quantum", minimum=1,
                               maximum=REGIONAL_KERNEL_MAX_WORK)
     current = json.loads(_regional_canonical(state).decode("utf-8"))
+    operation = (
+        arguments.get("operation", arguments.get("op"))
+        if isinstance(arguments, Mapping) else None
+    )
+    if operation == "spectral-feedback":
+        if not isinstance(arguments, Mapping):
+            raise ResonantNumericalError("spectral feedback arguments must be a mapping")
+        if set(arguments) - {
+                "operation", "op", "interface", "appraisal_ref", "progress",
+                "expected_exchange_sha256", "concern_ref", "appraisal_basis",
+                "device", "resource_limits", "resources"}:
+            raise ResonantNumericalError("spectral feedback arguments contain unknown fields")
+        if current["phase"] == "fault":
+            return field_regions.KernelResult(
+                state=current, status="fault", work=0, output=current["result"]
+            )
+        if current["paused"]:
+            return _regional_fault(current, "paused regional task cannot apply spectral feedback", 0)
+        from cassi_circulation import circulation_spectral_feedback
+
+        segment = current.get("circulation")
+        if segment is None:
+            receipt = {
+                "schema": "cassifi.resonant-spectral-feedback.v1",
+                "status": "unavailable",
+                "reason": "regional task has no declared circulation segment",
+                "interface": arguments.get("interface"),
+                "admitted": False, "parameter_work": 0.0,
+            }
+        else:
+            feedback_operator = _RegionalWaveOperator(
+                current["profile"], current["bindings"],
+                _regional_objective_data(current["objective"]),
+            )
+            try:
+                receipt = circulation_spectral_feedback(
+                    segment,
+                    interface=arguments.get("interface"),
+                    appraisal_ref=arguments.get("appraisal_ref"),
+                    progress=arguments.get("progress"),
+                    expected_exchange_sha256=arguments.get("expected_exchange_sha256"),
+                    concern_ref=arguments.get("concern_ref"),
+                    appraisal_basis=arguments.get("appraisal_basis"),
+                    operator=feedback_operator,
+                    words=current["wave_words"]["values"],
+                    quiet=bool(current["request"]["quiet"]),
+                )
+            finally:
+                operator_applications = int(feedback_operator.applications)
+                feedback_operator.close()
+                if operator_applications:
+                    ledger = dict(current["ledger"])
+                    ledger["operator_applications"] = float(
+                        ledger.get("operator_applications", 0.0)
+                    ) + operator_applications
+                    current["ledger"] = ledger
+        _regional_validate_state(current)
+        return field_regions.KernelResult(
+            state=current,
+            status="done" if current["phase"] == "done" else "yield",
+            work=0, output=receipt,
+        )
     if current["phase"] == "done":
         return field_regions.KernelResult(state=current, status="done", work=0, output=current["result"])
     if current["phase"] == "fault":
@@ -5137,14 +5651,36 @@ class ResonantRegionRecord:
             raise ResonantNumericalError("a region cannot be its own parent")
         if self.content_version < 0 or self.numerical_time < 0.0 or not math.isfinite(self.numerical_time):
             raise ResonantNumericalError("region versions and numerical time must be bounded")
+
+        # Cache the identity matrix to avoid repeated creation if called multiple times
+        # However, since we cannot cache across calls with different arguments (though here it's constant),
+        # we just create it locally. np.eye(3) is very fast, but avoiding np.allclose is the key.
+        _I3 = np.eye(3, dtype=np.float64)
+
         for name in ("coarse_coordinates", "detail_coordinates", "coarse_momenta", "detail_momenta"):
             array = _as_f64(getattr(self, name), name=name).reshape(-1)
             array.setflags(write=False)
             object.__setattr__(self, name, array)
+
         frame = _as_f64(self.axial_frame, (3, 3), "axial_frame")
-        if not np.allclose(frame.T @ frame, np.eye(3), atol=2e-10, rtol=0) or np.linalg.det(frame) <= 0.0:
+
+        # Optimized orthogonality and determinant check
+        # np.allclose(frame.T @ frame, np.eye(3), atol=2e-10, rtol=0) is slow due to overhead
+        # We compute the product and check element-wise equality with tolerance
+        frame_T_frame = frame.T @ frame
+        # Check if frame_T_frame is close to identity
+        # np.allclose with rtol=0 is equivalent to: abs(a - b) <= atol
+        # So we check: abs(frame_T_frame - I) <= 2e-10
+        if not np.all(np.abs(frame_T_frame - _I3) <= 2e-10):
             raise ResonantNumericalError("axial_frame must be a proper rotation")
+
+        # Check determinant
+        det = np.linalg.det(frame)
+        if det <= 0.0:
+            raise ResonantNumericalError("axial_frame must be a proper rotation")
+
         object.__setattr__(self, "axial_frame", frame)
+
         if not math.isfinite(float(self.signed_current)) or not math.isfinite(float(self.interface_work)):
             raise ResonantNumericalError("region flow accounts must be finite")
         if self.handedness not in (-1, 0, 1):
@@ -5590,7 +6126,6 @@ def passive_rotation_check(y: Any, rotation: Any, rotation_rate: Any, *, force: 
     vec = _as_f64(y, name="frame coordinates").reshape(-1)
     f = np.zeros_like(vec) if force is None else _as_f64(force, vec.shape, "force")
     full = moving_frame_rhs(vec, rotation, rotation_rate, f, include_frame_motion=True)
-    omitted = moving_frame_rhs(vec, rotation, rotation_rate, f, include_frame_motion=False)
     r = _as_f64(rotation, (vec.size, vec.size), "rotation")
     rd = _as_f64(rotation_rate, (vec.size, vec.size), "rotation_rate")
     expected_motion = -r.T @ rd @ vec
@@ -5628,6 +6163,7 @@ __all__ = [
     "ResonantExchangeStage", "ResonantGeometryRecord",
     "ResonantProfile", "ResonantProblem", "ResonantWorkspace",
     "initial_workspace", "bind_workspace", "apply_pool_impulse",
+    "advance_workspace_gpu_cohort",
     "metric_weighted_transform", "unweighted_transform_error",
     "reciprocal_exchange", "reciprocal_exchange_power", "apply_reciprocal_exchange",
     "transported_phase_mismatch", "constraint_tangent_gradient",

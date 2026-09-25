@@ -36,6 +36,14 @@ from cassi_field_program import (
     semantic_program_payload,
 )
 
+from cassi_field_communication import (
+    ACK_SCHEMA,
+    LOCALITY_SCHEMA,
+    MAX_LOCALITY_OBSERVATIONS,
+    MAX_LOCALITY_ROUTES,
+    FieldCommunicationError,
+    learn_locality,
+)
 import torch
 
 from cassi_field_atlas import (
@@ -125,6 +133,9 @@ COGNITION_REGIONAL_RESULT_SCHEMA = REGIONAL_RESULT_SCHEMA
 SEMANTIC_STATE_SCHEMA = "cassifi.semantic-cognition-state.v1"
 SEMANTIC_RESULT_SCHEMA = "cassifi.semantic-cognition-result.v1"
 MECHANISM_STATE_SCHEMA = "cassifi.mechanism-step-state.v1"
+SEMANTIC_COMMUNICATION_SCHEMA = "cassifi.semantic-communication-state.v1"
+COMMUNICATION_TOPOLOGY_SCHEMA = "cassifi.research-communication-topology.v1"
+COMMUNICATION_TOPOLOGY_ROUTES = 256
 SEMANTIC_MAX_RECORDS = 2_048
 SEMANTIC_MAX_VERSIONS = 8
 SEMANTIC_MAX_TIMELINE = 2_048
@@ -246,6 +257,7 @@ SEMANTIC_OPERATION_NAMES = frozenset(
         "learn-mechanism",
         "learn-parameters",
         "learn-predictive-state",
+        "learn-communication-topology",
         "learn-procedure",
         "invoke-procedure",
         "discover-procedure",
@@ -316,6 +328,7 @@ SEMANTIC_PROGRAM_ROLES = frozenset(
         "plan",
         "reasoning",
         "research-program",
+        "working-field",
     }
 )
 
@@ -389,7 +402,7 @@ def _resolution_floor(
 
 def _json(value: Any, label: str) -> Any:
     try:
-        return __import__("json").loads(canonical_json_bytes(value))
+        return json.loads(canonical_json_bytes(value))
     except Exception as exc:
         raise FieldIntelligenceError(
             "INVALID_TYPED_VALUE", f"{label} must be canonical JSON data"
@@ -5346,6 +5359,674 @@ def _semantic_empty_current() -> dict[str, dict[str, Any]]:
     return {kind: {} for kind in SEMANTIC_RECORD_KINDS}
 
 
+def _semantic_empty_communication_state() -> dict[str, Any]:
+    return {
+        "schema": SEMANTIC_COMMUNICATION_SCHEMA,
+        "locality": {
+            "schema": LOCALITY_SCHEMA,
+            "observations": [],
+            "routes": {},
+        },
+        "topology": _semantic_empty_topology_state(),
+        "last_locality_created_at": 0,
+    }
+
+
+def _semantic_empty_topology_state() -> dict[str, Any]:
+    return {
+        "schema": COMMUNICATION_TOPOLOGY_SCHEMA,
+        "routes": {},
+        "outcomes": [],
+        "dependencies": [],
+    }
+
+
+def _semantic_topology_reference(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "id", "kind", "content_version",
+    }:
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", f"{label} is invalid"
+        )
+    kind = value["kind"]
+    if kind not in SEMANTIC_RECORD_KINDS:
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", f"{label} kind is invalid"
+        )
+    return {
+        "id": _identifier(value["id"], f"{label} identity"),
+        "kind": kind,
+        "content_version": _regional_integer(
+            value["content_version"], f"{label} version", minimum=1
+        ),
+    }
+
+
+def _semantic_validate_topology_state(
+    value: Any,
+    bounds: Mapping[str, int],
+) -> dict[str, Any]:
+    old_keys = {"schema", "routes", "outcomes"}
+    keys = set(value) if isinstance(value, Mapping) else set()
+    if (
+        not isinstance(value, Mapping)
+        or keys not in (old_keys, old_keys | {"dependencies"})
+        or value.get("schema") != COMMUNICATION_TOPOLOGY_SCHEMA
+        or not isinstance(value.get("routes"), Mapping)
+        or not isinstance(value.get("outcomes"), list)
+        or not isinstance(value.get("dependencies", []), list)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", "semantic topology state is invalid"
+        )
+    topology = _regional_plain(dict(value), "semantic topology state")
+    routes: dict[str, dict[str, Any]] = {}
+    for route, raw_row in topology["routes"].items():
+        if (
+            not isinstance(route, str)
+            or not route
+            or len(route.encode("utf-8")) > 256
+            or any(ord(character) < 32 for character in route)
+            or not isinstance(raw_row, Mapping)
+            or set(raw_row) != {
+                "successful", "unsuccessful", "score", "scopes",
+            }
+            or not isinstance(raw_row.get("scopes"), list)
+            or len(raw_row["scopes"]) > 16
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE", "semantic topology route is invalid"
+            )
+        successful = _regional_integer(
+            raw_row["successful"],
+            "semantic topology successful outcomes",
+            maximum=bounds["max_operations"],
+        )
+        unsuccessful = _regional_integer(
+            raw_row["unsuccessful"],
+            "semantic topology unsuccessful outcomes",
+            maximum=bounds["max_operations"],
+        )
+        total = successful + unsuccessful
+        if total < 1 or total > bounds["max_operations"]:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "semantic topology route outcome total is invalid",
+            )
+        score = _finite(raw_row["score"], "semantic topology route score")
+        if score != (successful + 1) / (total + 2):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "semantic topology route score diverges from its counts",
+            )
+        scopes: list[dict[str, str]] = []
+        for raw_scope in raw_row["scopes"]:
+            if (
+                not isinstance(raw_scope, Mapping)
+                or set(raw_scope) != {"question_id", "compiler_family"}
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_SEMANTIC_STATE", "semantic topology scope is invalid"
+                )
+            scope = {
+                "question_id": _identifier(
+                    raw_scope["question_id"], "semantic topology question"
+                ),
+                "compiler_family": _identifier(
+                    raw_scope["compiler_family"], "semantic topology compiler family"
+                ),
+            }
+            if scope in scopes:
+                raise FieldIntelligenceError(
+                    "INVALID_SEMANTIC_STATE", "semantic topology scope is duplicated"
+                )
+            scopes.append(scope)
+        routes[route] = {
+            "successful": successful,
+            "unsuccessful": unsuccessful,
+            "score": score,
+            "scopes": scopes,
+        }
+    if len(routes) > COMMUNICATION_TOPOLOGY_ROUTES:
+        retained_routes = sorted(
+            routes,
+            key=lambda route: (
+                routes[route]["successful"] + routes[route]["unsuccessful"],
+                route,
+            ),
+            reverse=True,
+        )[:COMMUNICATION_TOPOLOGY_ROUTES]
+        routes = {route: routes[route] for route in retained_routes}
+    topology["routes"] = routes
+    if len(topology["outcomes"]) > 64:
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", "semantic topology outcome window is oversized"
+        )
+    seen_operations: set[str] = set()
+    for raw_entry in topology["outcomes"]:
+        required = {
+            "topology_operation_id", "route", "outcome_ref", "result_status",
+            "work_operation_id", "use_sha256s", "question_id", "compiler_family",
+        }
+        if (
+            not isinstance(raw_entry, Mapping)
+            or set(raw_entry) != required
+            or not isinstance(raw_entry.get("use_sha256s"), list)
+            or len(raw_entry["use_sha256s"]) > 64
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE", "semantic topology outcome is invalid"
+            )
+        operation_id = _identifier(
+            raw_entry["topology_operation_id"], "semantic topology operation"
+        )
+        route = raw_entry["route"]
+        if (
+            operation_id in seen_operations
+            or not isinstance(route, str)
+            or not route
+            or len(route.encode("utf-8")) > 256
+            or any(ord(character) < 32 for character in route)
+            or raw_entry["result_status"]
+            not in {"observed", "supported", "failed", "rejected", "support-gap"}
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE", "semantic topology outcome identity is invalid"
+            )
+        seen_operations.add(operation_id)
+        _semantic_topology_reference(
+            raw_entry["outcome_ref"], "semantic topology outcome reference"
+        )
+        _identifier(
+            raw_entry["work_operation_id"], "semantic topology work operation"
+        )
+        _identifier(raw_entry["question_id"], "semantic topology question")
+        _identifier(
+            raw_entry["compiler_family"], "semantic topology compiler family"
+        )
+        use_ids = [
+            _digest(use_sha256, "semantic topology communication use")
+            for use_sha256 in raw_entry["use_sha256s"]
+        ]
+        if len(set(use_ids)) != len(use_ids):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE", "semantic topology use identity is duplicated"
+            )
+    dependencies = [
+        _semantic_topology_reference(ref, "semantic topology dependency")
+        for ref in topology.get("dependencies", [])
+    ]
+    if len(dependencies) > 32 or len({
+        (ref["id"], ref["kind"], ref["content_version"])
+        for ref in dependencies
+    }) != len(dependencies):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", "semantic topology dependencies are invalid"
+        )
+    topology["dependencies"] = dependencies
+    return topology
+
+
+def _semantic_learn_communication_topology(
+    state: dict[str, Any],
+    request: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    _semantic_keys(
+        request,
+        required=(
+            "route", "outcome", "outcome_ref", "result_status",
+            "work_operation_id", "use_sha256s", "question_id",
+            "compiler_family", "dependencies",
+        ),
+    )
+    route = request["route"]
+    if (
+        not isinstance(route, str)
+        or not route
+        or len(route.encode("utf-8")) > 256
+        or any(ord(character) < 32 for character in route)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY", "communication topology route is invalid"
+        )
+    result_status = request["result_status"]
+    expected_outcome = (
+        "successful"
+        if result_status in {"observed", "supported"}
+        else "unsuccessful"
+        if result_status in {"failed", "rejected", "support-gap"}
+        else None
+    )
+    if request["outcome"] != expected_outcome or expected_outcome is None:
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY",
+            "communication topology outcome does not match its result status",
+        )
+    outcome_ref, _ = _semantic_reference(
+        state, request["outcome_ref"], require_current=True
+    )
+    outcome_key = outcome_ref.as_dict()
+    expected_operation_id = (
+        "research:communication-topology-outcome:"
+        + sha256_value({"outcome_ref": outcome_key, "route": route})
+    )
+    if request.get("operation_id") != expected_operation_id:
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY",
+            "communication topology operation identity is invalid",
+        )
+    question_id = _identifier(request["question_id"], "communication question")
+    compiler_family = _identifier(
+        request["compiler_family"], "communication compiler family"
+    )
+    work_operation_id = _identifier(
+        request["work_operation_id"], "communication work operation"
+    )
+    if not isinstance(request["use_sha256s"], list) or not request["use_sha256s"]:
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY",
+            "communication topology requires actual-use observations",
+        )
+    use_sha256s = [
+        _digest(use_sha256, "communication topology use")
+        for use_sha256 in request["use_sha256s"]
+    ]
+    if len(use_sha256s) > 64 or len(set(use_sha256s)) != len(use_sha256s):
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY",
+            "communication topology use window is invalid",
+        )
+    raw_dependencies = request["dependencies"]
+    if (
+        not isinstance(raw_dependencies, list)
+        or not raw_dependencies
+        or len(raw_dependencies) > 32
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY",
+            "communication topology dependencies are invalid",
+        )
+    dependency_refs: list[dict[str, Any]] = []
+    for index, raw_ref in enumerate(raw_dependencies):
+        dependency_ref, dependency = _semantic_reference(
+            state, raw_ref, require_current=True
+        )
+        normalized_ref = dependency_ref.as_dict()
+        if index == 0:
+            if normalized_ref != outcome_key:
+                raise FieldIntelligenceError(
+                    "INVALID_COMMUNICATION_TOPOLOGY",
+                    "communication topology must depend on its exact outcome",
+                )
+        else:
+            payload = dependency.get("payload")
+            observation = (
+                payload.get("locality_observation")
+                if isinstance(payload, Mapping)
+                else None
+            )
+            use_sha256 = (
+                payload.get("use_sha256")
+                if isinstance(payload, Mapping)
+                else None
+            )
+            if (
+                dependency_ref.kind != "Event"
+                or not dependency_ref.id.startswith("communication:use:")
+                or not isinstance(payload, Mapping)
+                or payload.get("status") != "used"
+                or use_sha256 not in use_sha256s
+                or dependency_ref.id != "communication:use:" + use_sha256[:40]
+                or not isinstance(observation, Mapping)
+                or observation.get("route") != route
+                or observation.get("use_sha256") != use_sha256
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_COMMUNICATION_TOPOLOGY",
+                    "communication topology dependency is not an exact route use",
+                )
+        dependency_refs.append(normalized_ref)
+    if len({
+        (ref["id"], ref["kind"], ref["content_version"])
+        for ref in dependency_refs
+    }) != len(dependency_refs):
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_TOPOLOGY",
+            "communication topology dependencies are duplicated",
+        )
+    topology = _semantic_validate_topology_state(
+        state["communication"].get("topology", _semantic_empty_topology_state()),
+        state["bounds"],
+    )
+    routes = dict(topology["routes"])
+    row = dict(routes.get(route, {
+        "successful": 0,
+        "unsuccessful": 0,
+        "score": 0.5,
+        "scopes": [],
+    }))
+    row[expected_outcome] += 1
+    total = row["successful"] + row["unsuccessful"]
+    row["score"] = (row["successful"] + 1) / (total + 2)
+    scopes = list(row["scopes"])
+    scope = {"question_id": question_id, "compiler_family": compiler_family}
+    if scope not in scopes:
+        scopes.append(scope)
+    row["scopes"] = scopes[-16:]
+    if route not in routes and len(routes) >= COMMUNICATION_TOPOLOGY_ROUTES:
+        evict = min(
+            routes,
+            key=lambda key: (
+                routes[key]["successful"] + routes[key]["unsuccessful"],
+                key,
+            ),
+        )
+        del routes[evict]
+    routes[route] = row
+    entry = {
+        "topology_operation_id": expected_operation_id,
+        "route": route,
+        "outcome_ref": outcome_key,
+        "result_status": result_status,
+        "work_operation_id": work_operation_id,
+        "use_sha256s": use_sha256s[-64:],
+        "question_id": question_id,
+        "compiler_family": compiler_family,
+    }
+    updated = {
+        "schema": COMMUNICATION_TOPOLOGY_SCHEMA,
+        "routes": routes,
+        "outcomes": [*topology["outcomes"], entry][-64:],
+        "dependencies": dependency_refs[:1] + dependency_refs[1:][-31:],
+    }
+    state["communication"]["topology"] = _semantic_validate_topology_state(
+        updated, state["bounds"]
+    )
+    return _semantic_result(
+        "learn-communication-topology",
+        "supported",
+        topology_operation_id=expected_operation_id,
+        route=route,
+        outcome_ref=outcome_key,
+        successful=row["successful"],
+        unsuccessful=row["unsuccessful"],
+        score=row["score"],
+    ), len(dependency_refs)
+
+
+def _semantic_apply_communication_ack(
+    communication: dict[str, Any],
+    record: Mapping[str, Any],
+) -> None:
+    payload = record.get("payload")
+    observation = (
+        payload.get("locality_observation")
+        if isinstance(payload, Mapping)
+        else None
+    )
+    if (
+        record.get("kind") != "Event"
+        or not isinstance(payload, Mapping)
+        or payload.get("schema") != ACK_SCHEMA
+        or payload.get("status") != "used"
+        or not isinstance(observation, Mapping)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_ACK",
+            "communication use Event lacks its exact actual-use observation",
+        )
+    use_sha256 = _digest(payload.get("use_sha256"), "communication use identity")
+    if (
+        record.get("id") != "communication:use:" + use_sha256[:40]
+        or observation.get("use_sha256") != use_sha256
+        or observation.get("delay") != payload.get("delay")
+        or not isinstance(observation.get("route"), str)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_ACK",
+            "communication use identity or locality observation differs",
+        )
+    created_at = _regional_integer(
+        record.get("created_at"), "communication use creation time", minimum=1
+    )
+    if created_at <= communication["last_locality_created_at"]:
+        return
+    locality = communication["locality"]
+    if any(
+        isinstance(row, Mapping) and row.get("use_sha256") == use_sha256
+        for row in locality["observations"]
+    ):
+        communication["last_locality_created_at"] = created_at
+        return
+    try:
+        communication["locality"] = learn_locality(
+            locality, use=payload, route=observation["route"]
+        )
+    except FieldCommunicationError as exc:
+        raise FieldIntelligenceError(
+            "INVALID_COMMUNICATION_ACK",
+            "communication locality observation is invalid",
+        ) from exc
+    communication["last_locality_created_at"] = created_at
+
+
+def _semantic_communication_from_records(
+    records: Any,
+    current: Any,
+) -> dict[str, Any]:
+    communication = _semantic_empty_communication_state()
+    histories = records if isinstance(records, Mapping) else {}
+    current_values = (
+        current.get("Value", {})
+        if isinstance(current, Mapping)
+        else {}
+    )
+    locality_ref = (
+        current_values.get("communication:locality")
+        if isinstance(current_values, Mapping)
+        else None
+    )
+    locality_history = histories.get("communication:locality", [])
+    if isinstance(locality_ref, Mapping) and isinstance(locality_history, list):
+        locality_record = next(
+            (
+                row for row in locality_history
+                if isinstance(row, Mapping)
+                and row.get("id") == "communication:locality"
+                and row.get("kind") == "Value"
+                and row.get("content_version") == locality_ref.get("content_version")
+            ),
+            None,
+        )
+        locality_payload = (
+            locality_record.get("payload")
+            if isinstance(locality_record, Mapping)
+            else None
+        )
+        if (
+            isinstance(locality_payload, Mapping)
+            and locality_payload.get("schema") == LOCALITY_SCHEMA
+        ):
+            communication["locality"] = dict(locality_payload)
+            communication["last_locality_created_at"] = _regional_integer(
+                locality_record.get("created_at"),
+                "legacy locality creation time",
+                minimum=1,
+            )
+    topology_ref = (
+        current_values.get("communication:topology")
+        if isinstance(current_values, Mapping)
+        else None
+    )
+    topology_history = histories.get("communication:topology", [])
+    if isinstance(topology_ref, Mapping) and isinstance(topology_history, list):
+        topology_record = next(
+            (
+                row for row in topology_history
+                if isinstance(row, Mapping)
+                and row.get("id") == "communication:topology"
+                and row.get("kind") == "Value"
+                and row.get("content_version") == topology_ref.get("content_version")
+            ),
+            None,
+        )
+        topology_payload = (
+            topology_record.get("payload")
+            if isinstance(topology_record, Mapping)
+            else None
+        )
+        if (
+            isinstance(topology_payload, Mapping)
+            and topology_payload.get("schema") == COMMUNICATION_TOPOLOGY_SCHEMA
+        ):
+            topology_state = dict(topology_payload)
+            topology_state["dependencies"] = [
+                dict(ref)
+                for ref in topology_record.get("dependencies", [])
+                if isinstance(ref, Mapping)
+            ]
+            communication["topology"] = topology_state
+    pending: list[Mapping[str, Any]] = []
+    for identity, history in histories.items():
+        if (
+            not isinstance(identity, str)
+            or not identity.startswith("communication:use:")
+            or not isinstance(history, list)
+            or not history
+        ):
+            continue
+        record = history[0]
+        payload = record.get("payload") if isinstance(record, Mapping) else None
+        if (
+            isinstance(payload, Mapping)
+            and isinstance(payload.get("locality_observation"), Mapping)
+        ):
+            pending.append(record)
+    pending.sort(
+        key=lambda row: (
+            _regional_integer(
+                row.get("created_at"),
+                "legacy communication use creation time",
+                minimum=1,
+            ),
+            str(row.get("id", "")),
+        )
+    )
+    for record in pending:
+        _semantic_apply_communication_ack(communication, record)
+    return communication
+
+
+def _semantic_validate_communication_state(
+    value: Any,
+    bounds: Mapping[str, int],
+) -> dict[str, Any]:
+    expected_keys = {"schema", "locality", "last_locality_created_at"}
+    if (
+        not isinstance(value, Mapping)
+        or set(value) not in (expected_keys, expected_keys | {"topology"})
+        or value.get("schema") != SEMANTIC_COMMUNICATION_SCHEMA
+        or not isinstance(value.get("locality"), Mapping)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", "semantic communication state is invalid"
+        )
+    communication = _regional_plain(
+        dict(value), "semantic communication state"
+    )
+    locality = communication["locality"]
+    locality_keys = set(locality) if isinstance(locality, Mapping) else set()
+    base_keys = {"schema", "observations", "routes"}
+    if (
+        locality_keys not in (base_keys, base_keys | {"last_use_sha256"})
+        or locality.get("schema") != LOCALITY_SCHEMA
+        or not isinstance(locality.get("observations"), list)
+        or len(locality["observations"]) > MAX_LOCALITY_OBSERVATIONS
+        or not isinstance(locality.get("routes"), dict)
+        or len(locality["routes"]) > MAX_LOCALITY_ROUTES
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE", "semantic locality state is invalid"
+        )
+    observed_uses: set[str] = set()
+    for row in locality["observations"]:
+        if not isinstance(row, dict) or set(row) != {
+            "use_sha256", "route", "delay",
+        }:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "semantic locality observation is invalid",
+            )
+        use_sha256 = _digest(row["use_sha256"], "locality use identity")
+        route = row["route"]
+        if (
+            use_sha256 in observed_uses
+            or not isinstance(route, str)
+            or not route
+            or len(route.encode("utf-8")) > 256
+            or any(ord(character) < 32 for character in route)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "semantic locality observation identity or route is invalid",
+            )
+        observed_uses.add(use_sha256)
+        _regional_integer(row["delay"], "locality delay")
+    if locality["observations"]:
+        if locality.get("last_use_sha256") != locality["observations"][-1][
+            "use_sha256"
+        ]:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "semantic locality last-use identity is invalid",
+            )
+    elif "last_use_sha256" in locality:
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_STATE",
+            "empty semantic locality retains a last-use identity",
+        )
+    for route, row in locality["routes"].items():
+        if (
+            not isinstance(route, str)
+            or not route
+            or len(route.encode("utf-8")) > 256
+            or not isinstance(row, dict)
+            or set(row) != {"uses", "delay_mean", "affinity"}
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE", "semantic locality route is invalid"
+            )
+        _regional_integer(
+            row["uses"],
+            "semantic locality route uses",
+            minimum=1,
+            maximum=bounds["max_records"],
+        )
+        delay_mean = _finite(row["delay_mean"], "semantic locality delay mean")
+        if delay_mean < 0.0:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE", "semantic locality delay mean is negative"
+            )
+        affinity = _finite(row["affinity"], "semantic locality affinity")
+        if not 0.0 <= affinity <= 1.0:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_STATE",
+                "semantic locality affinity is outside [0, 1]",
+            )
+    communication["last_locality_created_at"] = _regional_integer(
+        communication["last_locality_created_at"],
+        "semantic locality creation watermark",
+        maximum=bounds["max_operations"],
+    )
+    communication["topology"] = _semantic_validate_topology_state(
+        communication.get("topology", _semantic_empty_topology_state()),
+        bounds,
+    )
+    return communication
+
+
+
+
 def semantic_cognition_state(
     *,
     scope: Mapping[str, Any] | str = "world",
@@ -5366,6 +6047,7 @@ def semantic_cognition_state(
         "invalidation": _semantic_empty_barrier(),
         "records": {},
         "current": _semantic_empty_current(),
+        "communication": _semantic_empty_communication_state(),
         "indexes": {
             "bindings": {},
             "deliveries": {},
@@ -5423,6 +6105,9 @@ def semantic_cognition_state(
         reference = semantic_record_ref(record).as_dict()
         state["current"][record["kind"]][record_id] = reference
         _semantic_reindex_record(state, reference)
+    state["communication"] = _semantic_communication_from_records(
+        state["records"], state["current"]
+    )
     return _canonical_semantic_state(state)
 
 class _CanonicalSemanticState(dict[str, Any]):
@@ -6519,6 +7204,7 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
         "scope",
         "status",
         "time",
+        "communication",
     }
     if isinstance(value, Mapping):
         legacy = dict(value)
@@ -6526,6 +7212,21 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
             legacy["invocation_returns"] = {}
         if "invalidation" not in legacy:
             legacy["invalidation"] = _semantic_empty_barrier()
+        if "communication" not in legacy:
+            legacy["communication"] = _semantic_communication_from_records(
+                legacy.get("records"), legacy.get("current")
+            )
+        elif (
+            isinstance(legacy["communication"], Mapping)
+            and "topology" not in legacy["communication"]
+        ):
+            rebuilt_communication = _semantic_communication_from_records(
+                legacy.get("records"), legacy.get("current")
+            )
+            legacy["communication"] = {
+                **dict(legacy["communication"]),
+                "topology": rebuilt_communication["topology"],
+            }
         value = legacy
     if not isinstance(value, Mapping) or set(value) != required:
         raise FieldIntelligenceError(
@@ -6556,6 +7257,9 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
             "semantic cognition frame must be null, text, or a mapping",
         )
     state["bounds"] = _semantic_bounds(state["bounds"])
+    state["communication"] = _semantic_validate_communication_state(
+        state["communication"], state["bounds"]
+    )
     if (
         not isinstance(state["invocation_returns"], dict)
         or len(state["invocation_returns"]) > state["bounds"]["max_operations"]
@@ -6664,6 +7368,17 @@ def _canonical_semantic_state(value: Mapping[str, Any]) -> dict[str, Any]:
                         "INVALID_SEMANTIC_REFERENCE",
                         "semantic dependency is unavailable or mistyped",
                     ) from exc
+    for dependency in state["communication"]["topology"]["dependencies"]:
+        try:
+            _resolve_canonical_semantic_record(
+                normalized_records,
+                SemanticRef.from_dict(dependency),
+            )
+        except RegionalFieldError as exc:
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_REFERENCE",
+                "semantic topology dependency is unavailable or mistyped",
+            ) from exc
     barrier = state["invalidation"]
     expected_barrier = _semantic_empty_barrier()
     if not isinstance(barrier, dict) or set(barrier) != set(expected_barrier):
@@ -7344,6 +8059,8 @@ def _semantic_append_record(
     histories.setdefault(record_id, []).append(record)
     reference = semantic_record_ref(record).as_dict()
     state["current"][kind][record_id] = reference
+    if kind == "Event" and record_id.startswith("communication:use:"):
+        _semantic_apply_communication_ack(state["communication"], record)
     barrier = state.get("invalidation")
     if isinstance(barrier, dict) and barrier.get("active"):
         dependency_ids = {str(item["id"]) for item in record["dependencies"]}
@@ -26086,6 +26803,34 @@ def _semantic_register(
         if kind == "Event"
         else cast(Any, request.get("valid_time"))
     )
+    if (
+        kind == "Event"
+        and record_id.startswith("communication:use:")
+        and isinstance(prior, Mapping)
+    ):
+        history = state["records"].get(record_id, [])
+        existing = history[-1] if history else None
+        if (
+            not isinstance(existing, Mapping)
+            or existing.get("kind") != kind
+            or existing.get("payload")
+            != _regional_plain(dict(request["payload"]), "semantic payload")
+            or existing.get("status") != str(request.get("status", "active"))
+            or existing.get("epistemic_kind")
+            != str(request.get("epistemic_kind", "asserted"))
+        ):
+            raise FieldIntelligenceError(
+                "SEMANTIC_OPERATION_CONFLICT",
+                "communication use identity was reused with different content",
+            )
+        _semantic_apply_communication_ack(state["communication"], existing)
+        return _semantic_result(
+            "register",
+            "supported",
+            record=dict(prior),
+            invalidation_frontier=[],
+        ), 1
+
     reference = _semantic_append_record(
         state,
         record_id=record_id,
@@ -38321,7 +39066,16 @@ def _semantic_affect_regulation(
                 "context_ref": context_ref,
             },
             "context": {
-                "affect": context,
+                # The complete source-bound context is retained by context_ref.
+                # Procedure operands carry only current bounded quantities;
+                # concern history otherwise eventually exceeds the node bound.
+                "affect": {
+                    key: context[key]
+                    for key in (
+                        "schema", "project_id", "object_id", "evidence_count",
+                        "effective", "regulation",
+                    )
+                },
                 "goal_ref": goal_ref,
             },
         },
@@ -39045,6 +39799,8 @@ CIRCULATION_MODULATION_KEYS = frozenset({
     "authority",
     "scale",
     "values",
+    "spectral_values",
+    "spectral_transfer",
     "coverage",
     "signed_current",
     "handedness",
@@ -39054,25 +39810,34 @@ CIRCULATION_MODULATION_KEYS = frozenset({
 
 
 def _agenda_circulation_modulation(value: Any) -> dict[str, Any]:
-    """Validate one declared eligible-work modulation of a resident flow.
-
-    The block is a bounded priority hint over already eligible work: the agenda
-    applies ``values[sequence]`` to the item at that position of its own
-    declared construction order and records what it applied.  Eligibility,
-    authority, validity, and the existing fairness rule are unchanged, so a
-    strong flow cannot make ineligible work executable or starve a
-    low-activity obligation.
-    """
+    """Validate the bounded eligible-work modulation of a resident flow."""
 
     from cassi_circulation import (
         CIRCULATION_ACTIVITY_SCHEMA,
         CIRCULATION_MODULATION_AUTHORITY,
     )
 
-    if not isinstance(value, Mapping) or set(value) != CIRCULATION_MODULATION_KEYS:
+    owner_metadata_keys = {"enabled", "region_count"}
+    keys = set(value) if isinstance(value, Mapping) else set()
+    if keys not in (
+        CIRCULATION_MODULATION_KEYS,
+        CIRCULATION_MODULATION_KEYS | owner_metadata_keys,
+    ):
         raise FieldIntelligenceError(
             "INVALID_CIRCULATION_MODULATION",
             "circulation modulation keys are invalid",
+        )
+    if keys != CIRCULATION_MODULATION_KEYS:
+        if value["enabled"] is not True:
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                "owner circulation modulation is not enabled",
+            )
+        _regional_integer(
+            value["region_count"],
+            "circulation modulation region count",
+            minimum=1,
+            maximum=256,
         )
     if value["schema"] != CIRCULATION_ACTIVITY_SCHEMA:
         raise FieldIntelligenceError(
@@ -39090,26 +39855,38 @@ def _agenda_circulation_modulation(value: Any) -> dict[str, Any]:
             "INVALID_CIRCULATION_MODULATION",
             "circulation modulation scale must lie in (0, 1]",
         )
-    raw_values = value["values"]
-    if not isinstance(raw_values, Mapping):
+
+    def sequence_values(raw: Any, label: str, limit: float) -> dict[str, float]:
+        if not isinstance(raw, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                f"{label} must be a mapping",
+            )
+        result: dict[str, float] = {}
+        for key, item in raw.items():
+            if isinstance(key, bool) or not isinstance(key, str) or not key.isdigit():
+                raise FieldIntelligenceError(
+                    "INVALID_CIRCULATION_MODULATION",
+                    f"{label} sequences must be nonnegative integers",
+                )
+            adjustment = _finite(item, label)
+            if not -limit <= adjustment <= limit:
+                raise FieldIntelligenceError(
+                    "INVALID_CIRCULATION_MODULATION",
+                    f"{label} values exceed their declared bound",
+                )
+            result[key] = adjustment
+        return result
+
+    values = sequence_values(value["values"], "circulation modulation values", 1.0)
+    spectral_values = sequence_values(
+        value["spectral_values"], "spectral priority values", 0.1
+    )
+    if set(values) != set(spectral_values):
         raise FieldIntelligenceError(
             "INVALID_CIRCULATION_MODULATION",
-            "circulation modulation values must be a mapping",
+            "spectral priority sequences do not match eligible-work sequences",
         )
-    values: dict[str, float] = {}
-    for key, raw in raw_values.items():
-        if isinstance(key, bool) or not isinstance(key, str) or not key.isdigit():
-            raise FieldIntelligenceError(
-                "INVALID_CIRCULATION_MODULATION",
-                "circulation modulation sequences must be nonnegative integers",
-            )
-        adjustment = _finite(raw, "circulation modulation value")
-        if not -1.0 <= adjustment <= 1.0:
-            raise FieldIntelligenceError(
-                "INVALID_CIRCULATION_MODULATION",
-                "circulation modulation values must lie in [-1, 1]",
-            )
-        values[key] = adjustment
     coverage = _finite(value["coverage"], "circulation modulation coverage")
     if not 0.0 <= coverage <= 1.0:
         raise FieldIntelligenceError(
@@ -39130,6 +39907,107 @@ def _agenda_circulation_modulation(value: Any) -> dict[str, Any]:
             "INVALID_CIRCULATION_MODULATION",
             "circulation modulation dependencies are missing",
         )
+
+    transfer = _regional_plain(
+        value["spectral_transfer"], "spectral transfer diagnostics"
+    )
+    required_transfer = {
+        "status", "reason", "region_offsets", "last_exchange",
+        "last_exchange_sha256", "ledger", "basis", "projection",
+        "projection_meaning",
+    }
+    if not isinstance(transfer, Mapping) or set(transfer) != required_transfer:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral transfer diagnostics have an invalid shape",
+        )
+    if transfer["status"] not in {"available", "partial", "unavailable"}:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral transfer status is invalid",
+        )
+    if (
+        transfer["reason"] is not None
+        and (
+            not isinstance(transfer["reason"], str)
+            or len(transfer["reason"]) > 512
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral transfer reason is invalid",
+        )
+    if (
+        transfer["projection"]
+        != "nonsemantic-eligible-work-sequence-quadrature.v1"
+        or transfer["projection_meaning"]
+        != "eligible-work-priority-bias-only"
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral work projection is not the declared nonsemantic bias",
+        )
+    region_offsets = transfer["region_offsets"]
+    if not isinstance(region_offsets, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral regional offsets must be a mapping",
+        )
+    checked_offsets: dict[str, float] = {}
+    for identity, raw in region_offsets.items():
+        if not isinstance(identity, str) or not identity or len(identity) > 256:
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                "spectral region identity is invalid",
+            )
+        offset = _finite(raw, "spectral regional offset")
+        if not -0.1 <= offset <= 0.1:
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                "spectral regional offset exceeds its declared bound",
+            )
+        checked_offsets[identity] = offset
+    exchange = transfer["last_exchange"]
+    exchange_sha256 = transfer["last_exchange_sha256"]
+    if exchange is None:
+        if exchange_sha256 is not None:
+            raise FieldIntelligenceError(
+                "INVALID_CIRCULATION_MODULATION",
+                "spectral exchange digest has no exchange record",
+            )
+    elif (
+        not isinstance(exchange, Mapping)
+        or not isinstance(exchange_sha256, str)
+        or len(exchange_sha256) != 64
+        or sha256_value(dict(exchange)) != exchange_sha256
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral exchange does not match its digest",
+        )
+    if (
+        transfer["basis"] is not None
+        and (
+            not isinstance(transfer["basis"], str)
+            or len(transfer["basis"]) > 128
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral basis is invalid",
+        )
+    ledger = transfer["ledger"]
+    if not isinstance(ledger, Mapping) or len(ledger) > 16:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral ledger is invalid",
+        )
+    if len(canonical_json_bytes(dict(transfer))) > 16_384:
+        raise FieldIntelligenceError(
+            "INVALID_CIRCULATION_MODULATION",
+            "spectral transfer diagnostics exceed their bound",
+        )
+
     return {
         "authority": CIRCULATION_MODULATION_AUTHORITY,
         "coverage": coverage,
@@ -39146,6 +40024,12 @@ def _agenda_circulation_modulation(value: Any) -> dict[str, Any]:
             value["signed_current"], "circulation modulation signed current"
         ),
         "values": values,
+        "spectral_values": spectral_values,
+        "spectral_transfer": {
+            **dict(transfer),
+            "region_offsets": checked_offsets,
+        },
+        "schema": CIRCULATION_ACTIVITY_SCHEMA,
     }
 
 
@@ -39159,6 +40043,7 @@ def _semantic_autonomous_agenda(
         required=(),
         optional=(
             "circulation",
+            "eligible_work_order",
             "goal",
             "max_items",
             "observation_channels",
@@ -39202,6 +40087,34 @@ def _semantic_autonomous_agenda(
         if obligation_prefix is None
         or str(record_id).startswith(obligation_prefix)
     )
+    raw_work_order = request.get("eligible_work_order")
+    if raw_work_order is None:
+        eligible_work_order = None
+    elif not isinstance(raw_work_order, list):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "eligible work order must be a list of current obligation identities",
+        )
+    else:
+        eligible_work_order = [
+            _identifier(identity, "eligible work obligation identity")
+            for identity in raw_work_order
+        ]
+        if (
+            len(eligible_work_order) > int(state["bounds"]["max_alternatives"])
+            or len(set(eligible_work_order)) != len(eligible_work_order)
+            or (
+                obligation_prefix is not None
+                and any(
+                    not identity.startswith(obligation_prefix)
+                    for identity in eligible_work_order
+                )
+            )
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_SEMANTIC_OPERATION",
+                "eligible work order identities are duplicate, unbounded, or out of scope",
+            )
     operation_id = _identifier(
         request.get(
             "operation_id",
@@ -39339,6 +40252,7 @@ def _semantic_autonomous_agenda(
                 },
             }
         )
+    eligible_work_ids: list[str] = []
     for record_id in obligation_ids:
         history = records.get(record_id) if isinstance(records, Mapping) else None
         if not isinstance(history, list) or not history:
@@ -39353,6 +40267,7 @@ def _semantic_autonomous_agenda(
             continue
         if payload.get("state") in {"resolved", "fulfilled", "failed", "cancelled"}:
             continue
+        eligible_work_ids.append(record_id)
         purpose = str(payload.get("purpose", "pending-obligation"))
         base_priority = (
             2.0
@@ -39366,6 +40281,22 @@ def _semantic_autonomous_agenda(
             declared_priority,
             "autonomous agenda obligation priority",
         )
+        prospect = payload.get("expected_contribution")
+        if isinstance(prospect, Mapping) and {
+            "kind", "value", "uncertainty", "cost"
+        } <= set(prospect):
+            value = _finite(prospect["value"], "prospective contribution value")
+            uncertainty = _finite(
+                prospect["uncertainty"], "prospective contribution uncertainty"
+            )
+            cost = _finite(prospect["cost"], "prospective contribution cost")
+            if not 0 <= value <= 1 or not 0 <= uncertainty <= 1 or cost < 0:
+                raise FieldIntelligenceError(
+                    "INVALID_SEMANTIC_OPERATION",
+                    "prospective contribution has out-of-range value, uncertainty or cost",
+                )
+            contribution_priority = 2.0 * value * (1.0 - uncertainty) / (1.0 + cost)
+            priority += contribution_priority
         reference = semantic_record_ref(record).as_dict()
         dependencies.append(reference)
         agenda.append(
@@ -39377,6 +40308,17 @@ def _semantic_autonomous_agenda(
                 "kind": "resolve-obligation",
                 "obligation": reference,
                 "priority": priority,
+                "prospective_contribution": (
+                    {
+                        "kind": prospect["kind"],
+                        "value": value,
+                        "uncertainty": uncertainty,
+                        "cost": cost,
+                        "net_priority": contribution_priority,
+                    } if isinstance(prospect, Mapping) and {
+                        "kind", "value", "uncertainty", "cost"
+                    } <= set(prospect) else None
+                ),
                 "reason": purpose,
                 "request": {
                     "operation": "inspect",
@@ -39384,6 +40326,26 @@ def _semantic_autonomous_agenda(
                 },
             }
         )
+    if (
+        eligible_work_order is not None
+        and (
+            len(eligible_work_order) != len(eligible_work_ids)
+            or set(eligible_work_order) != set(eligible_work_ids)
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "eligible work order does not exactly match current resolve-obligation items",
+        )
+    effective_work_order = (
+        list(eligible_work_ids)
+        if eligible_work_order is None
+        else eligible_work_order
+    )
+    work_sequence_by_id = {
+        identity: sequence
+        for sequence, identity in enumerate(effective_work_order)
+    }
     if not agenda:
         event_ids = current.get("Event", {}) if isinstance(current, Mapping) else {}
         if isinstance(event_ids, Mapping) and event_ids:
@@ -39423,13 +40385,25 @@ def _semantic_autonomous_agenda(
         None if circulation is None else _agenda_circulation_modulation(circulation)
     )
     if modulation is not None:
-        for sequence, item in enumerate(agenda):
-            adjustment = modulation["values"].get(str(sequence), 0.0)
+        for item in agenda:
+            if item.get("kind") != "resolve-obligation":
+                continue
+            reference = item.get("obligation")
+            if not isinstance(reference, Mapping):
+                continue
+            sequence = work_sequence_by_id.get(str(reference.get("id")))
+            if sequence is None:
+                continue
+            sequence_key = str(sequence)
+            adjustment = modulation["values"].get(sequence_key, 0.0)
             if adjustment == 0.0:
                 continue
             item.setdefault("base_priority", item["priority"])
             item["circulation_sequence"] = sequence
             item["circulation_adjustment"] = adjustment
+            item["spectral_adjustment"] = modulation["spectral_values"].get(
+                sequence_key, 0.0
+            )
             item["priority"] += adjustment
     agenda.sort(
         key=lambda item: (
@@ -39463,6 +40437,7 @@ def _semantic_autonomous_agenda(
         }
     status = "supported" if selected is not None else "waiting"
     agenda_payload = {
+        "eligible_work_order": effective_work_order,
         "agenda": agenda,
         "affect": affect,
         "circulation": modulation,
@@ -41714,6 +42689,8 @@ def _semantic_dispatch(
         return _semantic_cancel_action(state, request)
     if operation == "acknowledgment":
         return _semantic_acknowledge(state, request)
+    if operation == "learn-communication-topology":
+        return _semantic_learn_communication_topology(state, request)
     if operation == "register":
         return _semantic_register(state, request)
     if operation == "mechanism-step":
@@ -41827,7 +42804,11 @@ def semantic_cognition_kernel(
     current["status"] = "running"
     cursor = int(continuation["cursor"])
     required = continuation["partial"].get("required_work")
-    if required is not None and cursor + bound < int(required):
+    max_work = int(current["bounds"]["max_work"])
+    if (
+        required is not None
+        and cursor + bound < int(required)
+    ):
         continuation["cursor"] = cursor + bound
         progress = _semantic_result(
             str(request["operation"]),
@@ -41844,9 +42825,10 @@ def semantic_cognition_kernel(
             output=progress,
         )
     working = _regional_plain(current, "semantic working state")
+    finish_immediately = False
     result, work = _semantic_dispatch(working, request)
     work = max(1, int(work))
-    if work > working["bounds"]["max_work"]:
+    if work > max_work:
         result = _semantic_result(
             str(request["operation"]),
             "resource-exhausted",
@@ -41854,8 +42836,9 @@ def semantic_cognition_kernel(
             required_work=work,
         )
         working = _regional_plain(current, "semantic bounded state")
-        work = int(working["bounds"]["max_work"])
-    if cursor + bound < work:
+        work = max_work
+        finish_immediately = True
+    if not finish_immediately and cursor + bound < work:
         continuation["partial"] = {"required_work": work}
         continuation["cursor"] = cursor + bound
         progress = _semantic_result(

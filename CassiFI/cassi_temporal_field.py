@@ -290,6 +290,8 @@ class TemporalField:
     _legacy: bool = field(default=False, repr=False, compare=False)
     _projection_state: int | None = field(default=None, repr=False, compare=False)
     _materializations: tuple[Mapping[str, Any], ...] = field(default=(), repr=False, compare=False)
+    # Frozen instance: digests and encoded bytes are computed once per value.
+    _memo: dict[str, Any] = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         _identifier(self.memory_id, "memory_id")
@@ -592,6 +594,9 @@ class TemporalField:
 
     @property
     def memory_sha256(self) -> str:
+        cached = self._memo.get("memory_sha256")
+        if cached is not None:
+            return cached
         identity: dict[str, Any] = {
             "schema": SCHEMA, "memory_id": self.memory_id, "action_ids": self.action_ids,
             "observation_ids": self.observation_ids, "max_states": self.max_states,
@@ -602,10 +607,14 @@ class TemporalField:
             identity["materializations"] = _plain(self._materializations)
         digest = hashlib.sha256(_canonical(identity))
         digest.update(self._field[0, :2*self.max_states, :])
-        return digest.hexdigest()
+        self._memo["memory_sha256"] = result = digest.hexdigest()
+        return result
 
     @property
     def state_sha256(self) -> str:
+        cached = self._memo.get("state_sha256")
+        if cached is not None:
+            return cached
         identity: dict[str, Any] = {"memory_sha256": self.memory_sha256, "skills": _plain(self._skills)}
         if not self._legacy:
             identity["participant_ids"] = list(self.participant_ids)
@@ -613,13 +622,17 @@ class TemporalField:
             identity["materializations"] = _plain(self._materializations)
         digest = hashlib.sha256(_canonical(identity))
         digest.update(self._field)
-        return digest.hexdigest()
+        self._memo["state_sha256"] = result = digest.hexdigest()
+        return result
 
     def as_dict(self) -> Mapping[str, Any]:
+        field_b64 = self._memo.get("field_b64")
+        if field_b64 is None:
+            self._memo["field_b64"] = field_b64 = base64.b64encode(self._field).decode("ascii")
         result = {"schema": SCHEMA, "memory_id": self.memory_id, "action_ids": list(self.action_ids),
                   "observation_ids": list(self.observation_ids), "max_states": self.max_states,
                   "context": _plain(self.context), "source_revision_ids": list(self.source_revision_ids),
-                  "skills": _plain(self._skills), "field_b64": base64.b64encode(self._field).decode("ascii"),
+                  "skills": _plain(self._skills), "field_b64": field_b64,
                   "state_sha256": self.state_sha256, "memory_sha256": self.memory_sha256}
         if not self._legacy:
             result["participant_ids"] = list(self.participant_ids)
@@ -722,6 +735,15 @@ class TemporalField:
         tensor = self._expand_layout(participants)
         bound = self._replace(tensor=tensor, participants=participants, legacy=False)
         return bound if known_start else bound.reset(participant_id=participant_id, known_start=False)
+
+    def release(self, participant_id: str) -> TemporalField:
+        """Remove one participant lane; learned transitions and skills stay in the shared field."""
+        lane = self._lane(participant_id)
+        if lane == 0:
+            raise TemporalFieldError("participant_id cannot be empty")
+        tensor = np.delete(self._field, lane, axis=0)
+        participants = tuple(item for index, item in enumerate(self._participants) if index != lane)
+        return self._replace(tensor=tensor, participants=participants, legacy=False)
 
     def _history_codes(self, lane: int) -> tuple[list[tuple[int, int]], int]:
         if self._legacy:

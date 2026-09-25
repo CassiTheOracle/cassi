@@ -8,10 +8,12 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import tempfile
 import threading
 import statistics
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping, NoReturn, Protocol, Sequence
@@ -31,6 +33,8 @@ from cassi_field_atlas import (
     QueryResult,
     RelationChart,
     VariableSpec,
+    _method_applicability_matches,
+    _method_context_accepted,
     canonical_json_bytes,
     sha256_value,
     surface_field_inputs,
@@ -46,6 +50,26 @@ from cassi_resonant_field import (
     write_parent_summary as write_parent_summary_workspace,
 )
 from cassi_temporal_field import TemporalField, TemporalFieldError
+from cassi_numerical_schedule import (
+    NUMERICAL_REST_SCHEMA,
+    NUMERICAL_TICK_SCHEMA,
+    NUMERICAL_WAKE_SCHEMA,
+    NumericalScheduleError,
+    advance_clock,
+    canonical_schedule_view,
+    continuation_decision,
+    evidence_digest,
+    new_entry,
+    next_period_tick,
+    normalize_clock,
+    normalize_evidence,
+    normalize_entry,
+    normalize_policy,
+    policy_fingerprint,
+    rest_authorization,
+    retained_bound,
+    wake_reasons,
+)
 from cassi_temporal_inquiry import TemporalInquiryError, choose_temporal_inquiry
 from cassi_field_cognition import (
     ActionDecision,
@@ -67,10 +91,20 @@ from cassi_field_residency import (
 )
 
 from cassi_field_regions import (
+    EMBODIED_ROLE_BINDINGS_SCHEMA,
     INPUT_REGION_PAGE_BYTES,
+    MAX_RESIDENCY_PAGES,
     MAX_INPUT_REGION_BYTES,
     MAX_INPUT_WINDOW_BYTES,
+    EmbodiedRoleBinding,
     ImmutableInputPages,
+    RegionalFieldError,
+    SemanticRef,
+    bind_regional_method_values,
+    bound_u32_range,
+    execute_regional_bound_method,
+    read_bound_object_refs,
+    publish_bound_native_sum,
 )
 
 SOURCE_SCHEMA = "cassifi.exact-source.v1"
@@ -79,12 +113,35 @@ SOURCE_SCHEMA = "cassifi.exact-source.v1"
 MODE_BYTES = 9 * 8
 # One regional page of the persistence layout, in bytes.
 PAGED_PAGE_BYTES = 4096 * 8
+
+
+def _computer_physical_work_bytes(row: Any | None) -> int:
+    if row is None:
+        return 0
+    if not row.is_paged:
+        return row.nbytes
+    image = row.field.image
+    # Only the bounded working pages and their successor occupy RAM; the
+    # remaining logical field lives in the paged backing store.
+    return min(
+        row.nbytes,
+        (image.resident_limit + image.dirty_limit) * PAGED_PAGE_BYTES,
+    )
+
+
 SURFACE_INPUT_PUBLICATION_SCHEMA = "cassifi.surface-input-publication.v1"
 MAX_SURFACE_PINNED_BYTES = 256 * 1024 * 1024
 MAX_SURFACE_PUBLICATIONS = 512
 MAX_SURFACE_PUBLICATIONS_PER_BINDING = 128
 MAX_SURFACE_METADATA_BYTES = 128 * 1024
 CIRCULATION_SCHEMA = "cassifi.circulation-report.v1"
+NUMERICAL_WORK_SCHEMA = "cassifi.numerical-work.v1"
+# Only fixed, bounded, side-effect-free regional numerical kernels may run
+# outside the owner's publication lock.
+_NUMERICAL_WORK_KERNELS = frozenset({
+    "scalar-computer", "numerical.resonant", "numerical.variational",
+})
+
 EVIDENCE_EVENT_SCHEMA = "cassifi.field-evidence-event.v1"
 # The declared event kind of the opt-in evidence variant of the packet read: the
 # read's own recovered deposit admitted as an observation about the world, against
@@ -177,6 +234,9 @@ _TEMPORAL_RECEIPT_KEYS = {
     "reset-temporal": frozenset(
         {"memory_id", "memory_sha256", "state_sha256"}
     ),
+    "retire-temporal": frozenset(
+        {"memory_id", "memory_sha256", "source_revision_ids"}
+    ),
     "condense-temporal-skill": frozenset(
         {
             "bound_memory_sha256",
@@ -189,6 +249,14 @@ _TEMPORAL_RECEIPT_KEYS = {
         }
     ),
     "bind-temporal": frozenset(
+        {
+            "memory_id",
+            "memory_sha256",
+            "participant_id",
+            "state_sha256",
+        }
+    ),
+    "release-temporal": frozenset(
         {
             "memory_id",
             "memory_sha256",
@@ -258,9 +326,38 @@ _TEMPORAL_ADVANCE_RECEIPT_KEYS = (
         }
     ),
 )
+# Transitions whose manifests journal compaction may discard.  Each one is
+# replayed through a path that rejects a compacted operation identity, and its
+# evidence lives in the evidence store, so a superseded checkpoint of these
+# transitions carries no information the live field or evidence lacks.
 _COMPUTATIONAL_TRANSITIONS = frozenset({
     "advance", "think", "advance-temporal", "reset-temporal",
+    "configure-temporal", "bind-temporal", "release-temporal", "learn-temporal", "retire-temporal",
+    "fold-temporal",
 })
+
+
+def _assessed_research_progress(payload: Mapping[str, Any]) -> float:
+    """Project only explicitly assessed result evidence onto the signed feedback axis."""
+
+    if not isinstance(payload, Mapping):
+        return 0.0
+    result_status = payload.get("result_status")
+    if (
+        payload.get("status") == "supported"
+        and result_status in ("observed", "supported")
+    ):
+        return 1.0
+    if (
+        payload.get("status") == "failed"
+        and result_status in ("support-gap", "rejected")
+    ):
+        return -1.0
+    return 0.0
+
+
+_CONTROL_CHARACTER = re.compile(r"[\x00-\x1f]")
+_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
 
 
 def _identifier(value: Any, label: str) -> str:
@@ -268,7 +365,7 @@ def _identifier(value: Any, label: str) -> str:
         not isinstance(value, str)
         or not value
         or len(value.encode("utf-8")) > 512
-        or any(ord(character) < 32 for character in value)
+        or _CONTROL_CHARACTER.search(value) is not None
     ):
         raise FieldIntelligenceError(
             "INVALID_IDENTITY", f"{label} must be bounded nonempty text"
@@ -277,11 +374,7 @@ def _identifier(value: Any, label: str) -> str:
 
 
 def _digest(value: Any, label: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 64
-        or any(character not in "0123456789abcdef" for character in value)
-    ):
+    if not isinstance(value, str) or _SHA256_HEX.fullmatch(value) is None:
         raise FieldIntelligenceError(
             "INVALID_IDENTITY", f"{label} must be a lowercase SHA-256 digest"
         )
@@ -710,6 +803,54 @@ def _put_addressed_object(directory: Path, digest: str, payload: bytes) -> str:
         return digest
     _atomic_write(path, payload)
     return digest
+
+
+_OBJECT_WRITE_WORKERS = 8
+_object_write_pool: ThreadPoolExecutor | None = None
+_object_write_pool_lock = threading.Lock()
+
+
+def _object_writer() -> ThreadPoolExecutor:
+    global _object_write_pool
+    with _object_write_pool_lock:
+        if _object_write_pool is None:
+            _object_write_pool = ThreadPoolExecutor(
+                max_workers=_OBJECT_WRITE_WORKERS,
+                thread_name_prefix="cassifi-object-write",
+            )
+        return _object_write_pool
+
+
+def _put_addressed_objects(
+    directory: Path, items: Sequence[tuple[str, bytes]]
+) -> None:
+    """Publish independent content-addressed objects with overlapped flushes.
+
+    Each object is still flushed before its name appears; the batch returns
+    only after every object is durable, so callers reference none early.
+    """
+
+    if len(items) < 2:
+        for digest, payload in items:
+            _put_addressed_object(directory, digest, payload)
+        return
+    directory.mkdir(parents=True, exist_ok=True)
+    pool = _object_writer()
+    futures = [
+        pool.submit(_put_addressed_object, directory, digest, payload)
+        for digest, payload in items
+    ]
+    failure: BaseException | None = None
+    for future in futures:
+        try:
+            future.result()
+        except BaseException as exc:  # noqa: BLE001 - first failure wins after all settle
+            if failure is None:
+                failure = exc
+    if failure is not None:
+        raise failure
+
+
 
 
 def _put_object(directory: Path, payload: bytes) -> str:
@@ -1575,7 +1716,7 @@ class ExactEvidenceStore:
         try:
             revision_ids = tuple(index["revision_ids"])
             active_ids = set(index["active_revision_ids"])
-            sources: dict[str, StoredSource] = {}
+            sources: dict[str, SourceRevision] = {}
             for revision_id in revision_ids:
                 try:
                     sources[revision_id] = self.source(revision_id)
@@ -2009,9 +2150,11 @@ class AtlasCheckpointStore:
         page_objects_root: Path | None = None,
         initial_state: AtlasState | None = None,
         accept_recorded_catalog: bool = False,
+        transfer_publisher: Callable[[Path, Sequence[tuple[str, bytes]]], None] | None = None,
     ) -> None:
         self.root = Path(root)
         self.limits = limits
+        self.transfer_publisher = transfer_publisher
         self.objects = self.root / "objects"
         self.page_objects_root = (
             None if page_objects_root is None else Path(page_objects_root)
@@ -2078,6 +2221,13 @@ class AtlasCheckpointStore:
                     "fence_generation": fence["generation"],
                 },
             )
+    def _put_checkpoint_objects(self, items: Sequence[tuple[str, bytes]]) -> None:
+        if self.transfer_publisher is not None:
+            self.transfer_publisher(self.objects, items)
+        else:
+            _put_addressed_objects(self.objects, items)
+
+
 
     def _quarantine(self, reason: str, details: Mapping[str, Any]) -> NoReturn:
         payload = {
@@ -2177,62 +2327,113 @@ class AtlasCheckpointStore:
         pages = state.object_pages()
         if not isinstance(pages, Mapping):
             raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page closure is invalid")
+
+        # Cache frequently accessed attributes to avoid repeated lookups
+        verified_objects = self._verified_objects
+        max_state_bytes = self.limits.max_state_bytes
+        objects_dir = self.objects
+        page_objects_root = self.page_objects_root
+
         page_hashes: list[str] = []
         seen_pages: set[str] = set()
         closure_bytes = len(encoded)
-        for page_sha, page in sorted(pages.items()):
-            page_sha = _digest(page_sha, "state page identity")
+
+        # Process pages in a single pass without sorting to save time
+        # Sorting was likely for determinism, but we can achieve determinism by sorting page_hashes at the end
+        # However, the original code sorted pages.items(), which sorts by key (page_sha).
+        # We must maintain the same order of processing to ensure identical behavior if order mattered for side effects,
+        # but here side effects are only in _put_checkpoint_objects which is called later with a list.
+        # The original code iterated sorted(pages.items()), so we must do the same to be safe.
+        # But sorting is O(N log N). If N is small, it's negligible. If N is large, it's significant.
+        # Let's keep the sort to be strictly identical in behavior, but optimize the inner loop.
+
+        sorted_pages = sorted(pages.items())
+
+        for page_sha, page in sorted_pages:
+            # Inline _digest validation for performance
+            if (
+                not isinstance(page_sha, str)
+                or len(page_sha) != 64
+                or any(c not in "0123456789abcdef" for c in page_sha)
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_IDENTITY", "state page identity must be a lowercase SHA-256 digest"
+                )
+
             if page_sha in seen_pages:
                 raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "duplicate state page identity")
             seen_pages.add(page_sha)
+
             if not isinstance(page, bytes):
                 raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page identity is invalid")
-            if (
-                page_sha not in self._verified_objects
-                and hashlib.sha256(page).hexdigest() != page_sha
-            ):
-                raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page identity is invalid")
+
+            if page_sha not in verified_objects:
+                computed_sha = hashlib.sha256(page).hexdigest()
+                if computed_sha != page_sha:
+                    raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "state page identity is invalid")
+                # We verified it, but we don't add to verified_objects yet because it might be in pending
+                # Actually, the original code didn't add to verified_objects here.
+                # It only added after writing. So we just check.
+
             page_hashes.append(page_sha)
             closure_bytes += len(page)
-        descriptor = canonical_json_bytes(
-            {
-                "history_floor": dict(self._history_floor()),
-                "pages": page_hashes,
-                "schema": ROOT_SCHEMA,
-                "state": json.loads(encoded.decode("utf-8")),
-                "state_sha256": state.state_sha256,
-            }
-        )
+
+        # Prepare descriptor
+        # Cache _history_floor result to avoid repeated calls if it were called multiple times,
+        # but it's only called once here.
+        history_floor_data = self._history_floor()
+
+        descriptor_dict = {
+            "history_floor": history_floor_data,
+            "pages": page_hashes,
+            "schema": ROOT_SCHEMA,
+            "state": json.loads(encoded.decode("utf-8")),
+            "state_sha256": state.state_sha256,
+        }
+
+        descriptor = canonical_json_bytes(descriptor_dict)
         closure_bytes += len(descriptor)
-        if closure_bytes > self.limits.max_state_bytes:
+
+        if closure_bytes > max_state_bytes:
             raise FieldIntelligenceError(
                 "STATE_CAPACITY",
                 "reachable field checkpoint closure exceeds its configured byte limit",
-                details={"bytes": closure_bytes, "limit": self.limits.max_state_bytes},
+                details={"bytes": closure_bytes, "limit": max_state_bytes},
             )
-        for page_sha, page in pages.items():
-            page_path = self.objects / page_sha
-            if page_sha not in self._verified_objects or not page_path.exists():
+
+        pending: list[tuple[str, bytes]] = []
+
+        for page_sha, page in sorted_pages:
+            page_path = objects_dir / page_sha
+            if page_sha not in verified_objects or not page_path.exists():
                 linked = False
-                if self.page_objects_root is not None and not page_path.exists():
-                    source = self.page_objects_root / page_sha
+                if page_objects_root is not None and not page_path.exists():
+                    source = page_objects_root / page_sha
                     if source.is_file():
-                        if source.read_bytes() != page:
+                        # Read bytes once
+                        source_bytes = source.read_bytes()
+                        if source_bytes != page:
                             raise FieldIntelligenceError(
                                 "CHECKPOINT_CORRUPT",
                                 "field page backing conflicts with its checkpoint identity",
                             )
                         try:
-                            # The paged store already flushed this immutable object.
-                            # Link the same inode instead of flushing a second copy.
                             os.link(source, page_path)
                             linked = True
                         except OSError:
-                            pass  # Cross-volume/unsupported links keep the copy path.
-                if not linked:
-                    _put_addressed_object(self.objects, page_sha, page)
-                self._verified_objects.add(page_sha)
-        descriptor_sha = _put_object(self.objects, descriptor)
+                            pass
+                if linked:
+                    verified_objects.add(page_sha)
+                else:
+                    pending.append((page_sha, page))
+
+        # Durable writes
+        self._put_checkpoint_objects(pending)
+        verified_objects.update(page_sha for page_sha, _ in pending)
+
+        descriptor_sha = hashlib.sha256(descriptor).hexdigest()
+        self._put_checkpoint_objects(((descriptor_sha, descriptor),))
+
         return descriptor_sha, state.state_sha256
 
     def _hydrate_descriptor(
@@ -2973,7 +3174,15 @@ class AtlasCheckpointStore:
     def _validate_history_chain(
         self,
         current: Mapping[str, Any],
-    ) -> None:
+        *,
+        stop_at: str | None = None,
+    ) -> tuple[list[tuple[str, Mapping[str, Any]]], bool]:
+        """Validate retained links from ``current`` toward the history floor.
+
+        Returns the visited manifests newest first and whether the walk met
+        ``stop_at``, a manifest already validated by an earlier walk; the
+        link into ``stop_at`` is still checked.
+        """
         floor = self._history_floor()
         floor_sha = floor["floor_manifest_sha256"]
         floor_generation = int(floor["floor_generation"])
@@ -2996,7 +3205,11 @@ class AtlasCheckpointStore:
             canonical_json_bytes(dict(cursor))
         ).hexdigest()
         seen = {cursor_sha}
+        visited: list[tuple[str, Mapping[str, Any]]] = []
         while True:
+            if stop_at is not None and cursor_sha == stop_at:
+                return visited, True
+            visited.append((cursor_sha, cursor))
             generation = int(cursor["generation"])
             if floor_sha is not None and cursor_sha == floor_sha:
                 if generation != floor_generation:
@@ -3023,13 +3236,20 @@ class AtlasCheckpointStore:
                 )
             seen.add(parent)
             parent_manifest = self._manifest(parent)
-            if int(parent_manifest["generation"]) != generation - 1:
+            # A folded journal interval commits several temporal advances as
+            # one checkpoint; its generation spans every folded transition.
+            span = 1
+            transition = cursor.get("transition", {})
+            if transition.get("kind") == "fold-temporal":
+                span = len(transition.get("request", {}).get("operation_ids", ()))
+            if span < 1 or int(parent_manifest["generation"]) != generation - span:
                 raise FieldIntelligenceError(
                     "HISTORY_CORRUPT",
                     "retained manifest generations are discontinuous",
                 )
             cursor = parent_manifest
             cursor_sha = parent
+        return visited, False
 
     def _history_floor(self) -> Mapping[str, Any]:
         try:
@@ -3749,6 +3969,23 @@ class AtlasCheckpointStore:
             self.state = self._load_state(self.current_manifest)
             self._validate_history_chain(self.current_manifest)
             return self.state
+
+    def fold_operations(self, operation_ids: Sequence[str]) -> None:
+        """Record operations folded into a later checkpoint behind the replay floor."""
+        with self._lock:
+            floor = dict(self._history_floor())
+            watermarks = dict(floor["watermarks"])
+            for operation_id in operation_ids:
+                producer, _separator, sequence_text = operation_id.rpartition(":")
+                watermarks[producer] = max(int(watermarks.get(producer, -1)), int(sequence_text))
+            if len(floor["discarded_operation_ids"]) + len(watermarks) > self.limits.max_history_entries * 4:
+                raise FieldIntelligenceError(
+                    "HISTORY_CAPACITY",
+                    "replay identities are full; recurring producers must use monotonic producer:sequence IDs",
+                )
+            floor["watermarks"] = watermarks
+            _atomic_write(self.history_floor_path, canonical_json_bytes(floor))
+
     def _retained_manifest(self, manifest_sha256: str) -> Mapping[str, Any]:
         manifest_sha256 = _digest(manifest_sha256, "manifest_sha256")
         manifest = self._manifest(manifest_sha256)
@@ -3871,6 +4108,9 @@ class AtlasCheckpointStore:
         helper = cls.__new__(cls)
         helper.root = root
         helper.limits = limits
+        helper.page_objects_root = None
+        helper.transfer_publisher = None
+        helper._verified_objects = set()
         helper.objects = root / "objects"
         helper.manifests = root / "manifests"
         helper.staging = root / "staging"
@@ -4454,6 +4694,7 @@ class _OwnerTransaction:
             self.owner.checkpoints.recover()
             self.owner.evidence.refresh()
             self.owner.state = self.owner.checkpoints.refresh()
+            self.owner._journal_deferred = {}
         self._cleanup()
 
 
@@ -4523,6 +4764,11 @@ class FieldIntelligenceOwner:
         self.pending_failures_path = self.data_home / "pending-failures"
         self.pending_failures_path.mkdir(parents=True, exist_ok=True)
         self._process_lock = OwnerProcessLock(self.data_home / "OWNER.lock")
+        self.transfer_journal_path = self.data_home / "object-transfers.json"
+        self._transfer_lock = threading.RLock()
+        self._transfer_storage: dict[str, str] | None = None
+        self._transfer_records: dict[str, dict[str, Any]] = {}
+        self._transfer_sequence = 0
         try:
             self.limits = limits or CapacityLimits()
             self.atlas = FieldAtlas()
@@ -4534,6 +4780,7 @@ class FieldIntelligenceOwner:
                 page_objects_root=self.data_home / "objects",
                 initial_state=initial_state,
                 accept_recorded_catalog=True,
+                transfer_publisher=self._publish_owner_objects,
             )
             self.state = self.checkpoints.state
             self.catalog_migration: dict[str, Any] | None = None
@@ -4547,6 +4794,22 @@ class FieldIntelligenceOwner:
                     **drift,
                 }
             self._lock = threading.RLock()
+            self._physical_admission: Any | None = None
+            self._regional_runtimes: dict[str, tuple[Any, str, str]] = {}
+            self._physical_work_local = threading.local()
+            self._physical_work_waits: dict[str, threading.Event] = {}
+            self._resident_stage_waits: dict[str, threading.Event] = {}
+            # Validated retained-chain index and per-task native replay rows;
+            # both extend with new manifests and rebuild on any other change.
+            self._native_replay_chain: dict[str, Any] | None = None
+            self._native_replay_tasks: dict[tuple[str, ...], dict[str, Any]] = {}
+            self._numerical_path = self.data_home / "numerical-work"
+            self._numerical_path.mkdir(exist_ok=True)
+            self._numerical_executor: ThreadPoolExecutor | None = None
+            self._numerical_futures: dict[str, Future[Any]] = {}
+            self._numerical_reservations: dict[str, int] = {}
+            self._numerical_activities: dict[str, str] = {}
+            self._numerical_cancel_events: dict[str, threading.Event] = {}
             self._surface_publications: dict[
                 tuple[str, int], dict[str, Any]
             ] = {}
@@ -4558,7 +4821,9 @@ class FieldIntelligenceOwner:
             self.object_path = self.data_home / "objects"
             ResidencyManager.reset_shared(f"{self.data_home.resolve()}::")
             self._resource_managers: dict[str, ResidencyManager] = {}
+            self._page_tier_stores: dict[tuple[Any, ...], Any] = {}
             self._bind_resource_policy()
+            self._recover_owner_object_transfers()
             self.authority_path = self.data_home / "authority-control.json"
             if not self.authority_path.exists():
                 _atomic_write(
@@ -6298,11 +6563,19 @@ class FieldIntelligenceOwner:
 
     def close(self) -> None:
         with getattr(self, "_lock", threading.RLock()):
+            if getattr(self, "_journal_deferred", None) and hasattr(self, "checkpoints"):
+                self.flush_journal()
             if hasattr(self, "_surface_publications"):
                 self._surface_publications.clear()
                 self._surface_current.clear()
                 self._surface_generation_counters.clear()
                 self._surface_pinned_bytes = 0
+            executor = getattr(self, "_numerical_executor", None)
+            self._numerical_executor = None
+            if executor is not None:
+                executor.shutdown(wait=True, cancel_futures=True)
+            if hasattr(self, "_numerical_futures"):
+                self._numerical_futures.clear()
         self._process_lock.close()
 
     def __enter__(self) -> FieldIntelligenceOwner:
@@ -6643,6 +6916,7 @@ class FieldIntelligenceOwner:
         temporal_memory_sha256: str | None = None,
     ) -> None:
         _identifier(operation_id, "operation_id")
+        self.flush_journal()
         if temporal_memory_sha256 is not None:
             _digest(temporal_memory_sha256, "temporal memory predecessor")
         envelope = {
@@ -7376,6 +7650,7 @@ class FieldIntelligenceOwner:
         event_id: str | None,
         transition: Mapping[str, Any],
     ) -> CheckpointReceipt:
+        self.flush_journal()
         self._assert_publication_order(operation_id)
         self._check_capacity(successor)
         receipt = self.checkpoints.commit(
@@ -7386,6 +7661,39 @@ class FieldIntelligenceOwner:
         )
         self.state = self.checkpoints.state
         return receipt
+
+    def flush_journal(self) -> CheckpointReceipt | None:
+        """Commit deferred temporal advances as one folded checkpoint.
+
+        With ``max_checkpoint_frequency`` above one, sequenced temporal
+        advances update the live field at once and reach disk together every
+        interval, before any other publication, and on close.  A crash loses
+        at most the advances of one open interval.
+        """
+        with self._lock:
+            deferred: dict[str, tuple[str, Mapping[str, Any]]] = getattr(self, "_journal_deferred", {})
+            if not deferred:
+                return None
+            operation_ids = list(deferred)
+            producer, _separator, sequence_text = operation_ids[-1].rpartition(":")
+            request = {"kind": "fold-temporal", "operation_ids": operation_ids}
+            receipt = self.checkpoints.commit(
+                operation_id=f"{producer}-journal:{sequence_text}",
+                successor=self.state,
+                event_id=None,
+                transition={
+                    "kind": "fold-temporal", "request_sha256": sha256_value(request),
+                    "request": request,
+                    "result": {"receipt": {"operation_count": len(operation_ids)}},
+                },
+            )
+            # The folded identities join the replay floor only after the
+            # checkpoint holding their effects is durable.
+            self.checkpoints.fold_operations(operation_ids)
+            self._journal_deferred = {}
+            self.state = self.checkpoints.state
+            return receipt
+
     def _committed_replay(
         self,
         operation_id: str,
@@ -7829,6 +8137,7 @@ class FieldIntelligenceOwner:
                 "defaults": ResourceLimits().as_dict(),
                 "computers": {},
                 "programs": {},
+                "page_tier_roots": {},
             }
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise FieldIntelligenceError(
@@ -7840,7 +8149,12 @@ class FieldIntelligenceOwner:
             )
         computers = row.get("computers") or {}
         programs = row.get("programs") or {}
-        if not isinstance(computers, Mapping) or not isinstance(programs, Mapping):
+        page_tier_roots = row.get("page_tier_roots") or {}
+        if (
+            not isinstance(computers, Mapping)
+            or not isinstance(programs, Mapping)
+            or not isinstance(page_tier_roots, Mapping)
+        ):
             raise FieldIntelligenceError(
                 "RESOURCE_POLICY_CORRUPT", "resource policy indexes are invalid"
             )
@@ -7863,7 +8177,25 @@ class FieldIntelligenceOwner:
                     "policy": policy,
                     "active": bool(value.get("active", False)),
                 }
-        except (ValueError, TypeError) as exc:
+            normalized_page_tier_roots = {}
+            for key, value in page_tier_roots.items():
+                computer_id = _identifier(key, "computer_id")
+                if (
+                    not isinstance(value, Mapping)
+                    or not value
+                    or any(tier not in {"nvme", "hdd"} for tier in value)
+                ):
+                    raise ValueError("page tier roots must map configured tiers")
+                roots = {}
+                for tier, raw_root in value.items():
+                    if not isinstance(raw_root, str) or not raw_root:
+                        raise ValueError("page tier root must be a path string")
+                    root_path = Path(raw_root).expanduser()
+                    if not root_path.is_absolute():
+                        raise ValueError("page tier root must be absolute")
+                    roots[tier] = str(root_path.resolve())
+                normalized_page_tier_roots[computer_id] = roots
+        except (ValueError, TypeError, OSError) as exc:
             raise FieldIntelligenceError(
                 "RESOURCE_POLICY_CORRUPT", "resource policy values are invalid"
             ) from exc
@@ -7872,6 +8204,7 @@ class FieldIntelligenceOwner:
             "defaults": defaults.as_dict(),
             "computers": {key: value.as_dict() for key, value in overrides.items()},
             "programs": normalized_programs,
+            "page_tier_roots": normalized_page_tier_roots,
         }
     def _resource_manager_for(self, computer_id: str) -> ResidencyManager:
         computer_id = _identifier(computer_id, "computer_id")
@@ -7883,6 +8216,10 @@ class FieldIntelligenceOwner:
                 storage_root=self.data_home,
             )
             self._resource_managers[computer_id] = manager
+            for tier, root in self._resource_policy.get(
+                "page_tier_roots", {}
+            ).get(computer_id, {}).items():
+                manager.register_storage(tier, root)
             for program_id, row in self._resource_policy.get("programs", {}).items():
                 if row.get("computer_id") == computer_id:
                     manager.configure_program(
@@ -7893,6 +8230,395 @@ class FieldIntelligenceOwner:
                     if row.get("active"):
                         manager.activate_program(program_id)
         return manager
+
+    def resource_manager(self, computer_id: str) -> ResidencyManager:
+        """Return this computer's existing physical reservation account."""
+
+        with self._lock:
+            return self._resource_manager_for(computer_id)
+
+    @staticmethod
+    def _storage_volume_identity(root: Path | str) -> str:
+        probe = Path(root).resolve()
+        while not probe.exists() and probe.parent != probe:
+            probe = probe.parent
+        return str(probe.stat().st_dev)
+
+    def register_object_storage(
+        self, computer_id: str, tier: str, root: Path | str
+    ) -> str:
+        """Declare the owner's object-store volume as an operator-classified media tier."""
+        computer_id = _identifier(computer_id, "computer_id")
+        if tier not in {"nvme", "hdd"}:
+            raise ValueError("object storage tier must be nvme or hdd")
+        root_path = Path(root).resolve()
+        if root_path != self.data_home.resolve():
+            raise ValueError("object storage root must be this owner's data-home root")
+        page_root = self._resource_policy.get("page_tier_roots", {}).get(
+            computer_id, {}
+        ).get(tier)
+        if (
+            page_root is not None
+            and self._storage_volume_identity(page_root)
+            != self._storage_volume_identity(root_path)
+        ):
+            raise ValueError(
+                "object and page storage roots for one tier must share a physical volume"
+            )
+        manager = self.resource_manager(computer_id)
+        identity = manager.register_storage(tier, root_path)
+        with self._transfer_lock:
+            self._transfer_storage = {
+                "computer_id": computer_id,
+                "tier": tier,
+                "root": str(root_path),
+            }
+            self._persist_owner_transfer_journal()
+        return identity
+
+    def register_page_tier_storage(
+        self, computer_id: str, tier: str, root: Path | str
+    ) -> str:
+        """Persist one operator-classified page-tier root before tier use."""
+
+        computer_id = _identifier(computer_id, "computer_id")
+        if tier not in {"nvme", "hdd"}:
+            raise ValueError("page storage tier must be nvme or hdd")
+        if isinstance(root, str) and not root.strip():
+            raise ValueError("page storage root must not be empty")
+        root_path = Path(root).expanduser().resolve()
+        with self._lock:
+            transfer = self._transfer_storage
+            if (
+                transfer is not None
+                and transfer["computer_id"] == computer_id
+                and transfer["tier"] == tier
+                and self._storage_volume_identity(transfer["root"])
+                != self._storage_volume_identity(root_path)
+            ):
+                raise ValueError(
+                    "object and page storage roots for one tier must share a physical volume"
+                )
+            previous = self._resource_policy
+            roots_by_computer = dict(previous.get("page_tier_roots", {}))
+            roots = dict(roots_by_computer.get(computer_id, {}))
+            roots[tier] = str(root_path)
+            current_roots = previous.get("page_tier_roots", {}).get(
+                computer_id, {}
+            )
+            if (
+                roots != current_roots
+                and any(
+                    key[0] == computer_id for key in self._page_tier_stores
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT",
+                    "page-tier roots cannot change after a store has been used",
+                )
+            manager = self._resource_manager_for(computer_id)
+            identity = manager.register_storage(tier, root_path)
+            roots_by_computer[computer_id] = roots
+            successor = {**previous, "page_tier_roots": roots_by_computer}
+            _atomic_write(self.resource_path, canonical_json_bytes(successor))
+            self._resource_policy = successor
+            return identity
+
+    def _page_tier_store_for(self, computer_id: str, row: Any) -> Any:
+        """Reuse a durable page-tier store bound to this computer's exact roots."""
+
+        from cassi_page_tier_store import PageTierStore
+
+        computer_id = _identifier(computer_id, "computer_id")
+        roots = self._resource_policy.get("page_tier_roots", {}).get(
+            computer_id, {}
+        )
+        if not roots:
+            raise FieldIntelligenceError(
+                "STORAGE_TIER_UNBOUND",
+                "no page-tier roots are configured for this computer",
+            )
+        image = getattr(getattr(row, "field", None), "image", None)
+        program_id = getattr(image, "program_id", None)
+        if program_id is not None:
+            program_id = _identifier(program_id, "program_id")
+        limits = self.resource_limits(computer_id)
+        tier_limits = {
+            tier: int(getattr(limits, f"{tier}_bytes"))
+            for tier in roots
+        }
+        root_key = tuple(sorted(roots.items()))
+        cache_key = (computer_id, root_key)
+        store = self._page_tier_stores.get(cache_key)
+        if store is None:
+            store = PageTierStore(
+                roots.get("nvme"),
+                roots.get("hdd"),
+                limits=tier_limits,
+                resource_manager=self._resource_manager_for(computer_id),
+                program_id=program_id,
+            )
+            self._page_tier_stores[cache_key] = store
+        else:
+            store.limits = tier_limits
+            store.program_id = program_id
+        return store
+
+    def _persist_owner_transfer_journal(self) -> None:
+        records = sorted(
+            self._transfer_records.values(),
+            key=lambda row: (row["sequence"], row["operation_id"]),
+        )
+        completed = [row for row in records if row["state"] in {"visible", "retired"}]
+        keep = {row["operation_id"] for row in completed[-128:]}
+        records = [
+            row for row in records
+            if row["state"] not in {"visible", "retired"} or row["operation_id"] in keep
+        ]
+        self._transfer_records = {row["operation_id"]: row for row in records}
+        if len(records) > 1024:
+            raise FieldIntelligenceError(
+                "TRANSFER_JOURNAL_FULL", "too many unresolved owner object transfers"
+            )
+        _atomic_write(
+            self.transfer_journal_path,
+            canonical_json_bytes({
+                "schema": "cassifi.owner-object-transfer-journal.v1",
+                "storage": self._transfer_storage,
+                "records": records,
+            }),
+        )
+
+    def _load_owner_transfer_journal(self) -> None:
+        if not self.transfer_journal_path.exists():
+            return
+        row = _canonical_read(self.transfer_journal_path)
+        if row.get("schema") != "cassifi.owner-object-transfer-journal.v1":
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "object transfer journal schema is invalid")
+        storage = row.get("storage")
+        if storage is not None:
+            if not isinstance(storage, Mapping):
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "object storage declaration is invalid")
+            computer_id = _identifier(storage.get("computer_id"), "computer_id")
+            tier = storage.get("tier")
+            root = Path(_identifier(storage.get("root"), "storage root")).resolve()
+            if tier not in {"nvme", "hdd"} or root != self.data_home.resolve():
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "object storage declaration differs from owner root")
+            self.resource_manager(computer_id).register_storage(tier, root)
+            self._transfer_storage = {"computer_id": computer_id, "tier": tier, "root": str(root)}
+        records = row.get("records")
+        if not isinstance(records, list) or len(records) > 1024:
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "object transfer journal is unbounded")
+        for record in records:
+            if not isinstance(record, Mapping):
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "object transfer record is invalid")
+            operation_id = _digest(record.get("operation_id"), "transfer operation")
+            digest = _digest(record.get("sha256"), "transfer object digest")
+            size = _integer(record.get("byte_count"), "transfer byte count", minimum=1)
+            sequence = _integer(record.get("sequence"), "transfer sequence", minimum=1)
+            state = record.get("state")
+            if state not in {"intent", "fenced", "visible", "retired"}:
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "object transfer state is invalid")
+            self._transfer_records[operation_id] = {
+                "operation_id": operation_id, "sha256": digest,
+                "byte_count": size, "sequence": sequence, "state": state,
+            }
+            self._transfer_sequence = max(self._transfer_sequence, sequence)
+
+    @staticmethod
+    def _remove_transfer_temps(directory: Path, digest: str) -> None:
+        prefix = f".{digest}."
+        for candidate in directory.iterdir():
+            if not candidate.name.startswith(prefix) or not candidate.name.endswith(".tmp"):
+                continue
+            identity = candidate.name[len(prefix):-4].split(".")
+            if len(identity) != 2 or not all(
+                part.isascii() and part.isdecimal() for part in identity
+            ):
+                continue
+            try:
+                if candidate.is_file():
+                    candidate.unlink()
+            except OSError:
+                continue
+
+    def _recover_owner_object_transfers(self) -> None:
+        self._load_owner_transfer_journal()
+        if self._transfer_storage is None:
+            return
+        manager = self.resource_manager(self._transfer_storage["computer_id"])
+        for record in sorted(self._transfer_records.values(), key=lambda row: row["sequence"]):
+            if record["state"] in {"visible", "retired"}:
+                continue
+            operation_id = record["operation_id"]
+            lease = manager.begin_transfer(
+                operation_id, "ram", self._transfer_storage["tier"], record["byte_count"]
+            )
+            lease.fence("owner-restart-reconciliation")
+            path = self.data_home / "field" / "objects" / record["sha256"]
+            visible = path.is_file()
+            if visible:
+                try:
+                    visible = hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+                except OSError:
+                    visible = False
+            manager.reconcile_transfer(operation_id, observed_visible=visible)
+            self._remove_transfer_temps(path.parent, record["sha256"])
+            record["state"] = "visible" if visible else "retired"
+        self._persist_owner_transfer_journal()
+
+    def _publish_owner_objects(
+        self, directory: Path, items: Sequence[tuple[str, bytes]]
+    ) -> None:
+        for digest, payload in items:
+            if hashlib.sha256(payload).hexdigest() != digest:
+                raise FieldIntelligenceError(
+                    "OBJECT_COLLISION", "object digest does not match payload"
+                )
+        storage = self._transfer_storage
+        if storage is None:
+            _put_addressed_objects(directory, items)
+            return
+        # Journaled transfers keep one deterministic sequence per object.
+        for digest, payload in items:
+            self._publish_journaled_object(directory, storage, digest, payload)
+
+    def _publish_journaled_object(
+        self,
+        directory: Path,
+        storage: Mapping[str, str],
+        digest: str,
+        payload: bytes,
+    ) -> str:
+        operation_id = hashlib.sha256(
+            canonical_json_bytes({"owner": str(self.data_home.resolve()), "sha256": digest})
+        ).hexdigest()
+        with self._transfer_lock:
+            existing = directory / digest
+            if existing.is_file():
+                if hashlib.sha256(existing.read_bytes()).hexdigest() != digest:
+                    raise FieldIntelligenceError("OBJECT_COLLISION", "content-addressed object identity conflicts")
+                return digest
+            record = self._transfer_records.get(operation_id)
+            manager = self.resource_manager(storage["computer_id"])
+            if record is not None:
+                prior = manager.transfer_report().get(operation_id)
+                if record["state"] != "intent" or prior is not None:
+                    raise FieldIntelligenceError(
+                        "TRANSFER_RECONCILED", "object transfer operation was already journaled"
+                    )
+            else:
+                self._transfer_sequence += 1
+                record = {
+                    "operation_id": operation_id, "sha256": digest,
+                    "byte_count": len(payload), "sequence": self._transfer_sequence,
+                    "state": "intent",
+                }
+                self._transfer_records[operation_id] = record
+                self._persist_owner_transfer_journal()
+            lease = manager.begin_transfer(
+                operation_id, "ram", storage["tier"], len(payload)
+            )
+            lease.fence("publication-pending")
+            record["state"] = "fenced"
+            self._persist_owner_transfer_journal()
+            try:
+                _atomic_write(directory / digest, payload)
+                encoded = (directory / digest).read_bytes()
+                if hashlib.sha256(encoded).hexdigest() != digest or encoded != payload:
+                    raise FieldIntelligenceError("OBJECT_COLLISION", "durable object verification failed")
+                manager.reconcile_transfer(operation_id, observed_visible=True)
+                record["state"] = "visible"
+                self._persist_owner_transfer_journal()
+            except BaseException:
+                if getattr(lease, "state", None) not in {"visible", "retired"}:
+                    lease.fence("publication-uncertain")
+                record["state"] = "fenced"
+                self._persist_owner_transfer_journal()
+                raise
+            return digest
+
+
+    def set_physical_admission(self, admission: Any) -> None:
+        """Bind the entity's shared physical admission and durable job journal."""
+
+        with self._lock:
+            self._physical_admission = admission
+            self._register_bound_vram_devices_locked()
+
+    @property
+    def physical_admission(self) -> Any | None:
+        with self._lock:
+            return self._physical_admission
+
+    def _register_bound_vram_devices_locked(self) -> None:
+        """Declare every bound Vulkan runtime's exact device to the admission.
+
+        A device the runtime itself reports is the only admissible evidence;
+        without it, vram work stays parked instead of guessing an adapter.
+        """
+        admission = self._physical_admission
+        manager = getattr(admission, "manager", None) if admission is not None else None
+        register = getattr(manager, "register_vram_device", None)
+        if not callable(register):
+            return
+        for computer_id, binding in tuple(self._regional_runtimes.items()):
+            runtime, _owner_id, placement = binding
+            if placement != "vulkan":
+                continue
+            probe = getattr(runtime, "device_report", None)
+            if not callable(probe):
+                continue
+            try:
+                report = probe()
+            except Exception:
+                # Missing native evidence stays missing; never guess a device.
+                continue
+            if not isinstance(report, Mapping):
+                continue
+            index = report.get("device_index")
+            total = report.get("heap_total_bytes")
+            if (
+                not isinstance(index, int)
+                or isinstance(index, bool)
+                or index < 0
+                or not isinstance(total, int)
+                or isinstance(total, bool)
+                or total < 1
+            ):
+                continue
+            try:
+                register(str(index), total_bytes=total)
+            except ValueError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_COMPUTER",
+                    f"resident service for {computer_id} reports a device "
+                    f"conflicting with the admission's registered capacity: {exc}",
+                ) from exc
+
+    def bind_regional_runtime(
+        self, computer_id: str, runtime: Any, owner_id: str,
+        placement: str,
+    ) -> None:
+        """Associate a computer with its existing resident execution service."""
+        computer_id = _identifier(computer_id, "computer_id")
+        owner_id = _identifier(owner_id, "resident owner_id")
+        if placement not in {"native-cpu", "vulkan"} or not callable(
+            getattr(runtime, "reduce_candidate", None)
+        ):
+            raise FieldIntelligenceError("INVALID_COMPUTER", "native reducer is unavailable")
+        with self._lock:
+            existing = self._regional_runtimes.get(computer_id)
+            if existing is not None and existing[0] is not runtime:
+                raise FieldIntelligenceError("OPERATION_CONFLICT", "computer already has a resident service")
+            self._regional_runtimes[computer_id] = (runtime, owner_id, placement)
+            self._register_bound_vram_devices_locked()
+
+    def unbind_regional_runtime(self, computer_id: str, owner_id: str) -> None:
+        with self._lock:
+            current = self._regional_runtimes.get(computer_id)
+            if current is not None and current[1] == owner_id:
+                del self._regional_runtimes[computer_id]
 
     def _persist_program_policy(self) -> None:
         _atomic_write(self.resource_path, canonical_json_bytes(self._resource_policy))
@@ -8232,14 +8958,15 @@ class FieldIntelligenceOwner:
         with the field's own numbers.
         """
 
-        ceiling = max(
-            1,
-            limits.ram_bytes
-            // PAGED_PAGE_BYTES,
+        ceiling = min(
+            MAX_RESIDENCY_PAGES,
+            max(1, limits.ram_bytes // PAGED_PAGE_BYTES),
         )
         allowance = min(requested_pages, ceiling)
         granted = None
         last: BaseException | None = None
+        from cassi_learning_computer import LearningComputerResidencyWait
+
         for _attempt in range(8):
             try:
                 successor = row.adopt_paged(
@@ -8247,15 +8974,15 @@ class FieldIntelligenceOwner:
                     resource_limits=limits.as_dict(),
                 ).with_object_store(self.object_store())
                 successor.inspect()
-            except Exception as exc:  # noqa: BLE001 - a wait carries the need
+            except LearningComputerResidencyWait as exc:
                 last = exc
-                needed = max(
-                    (int(page) for page in getattr(exc, "pages", ()) or ()),
-                    default=0,
-                )
+                # Page IDs are logical addresses, not a count of pages that
+                # must be resident.  The window and pinned control pages
+                # compete for the same allowance.
+                needed = len(set(exc.pages))
                 if not limits.auto_grow:
                     break
-                wider = min(ceiling, max(allowance * 2, needed + 1))
+                wider = min(ceiling, max(allowance * 2, needed * 2))
                 if wider <= allowance:
                     break
                 granted = {
@@ -8286,6 +9013,8 @@ class FieldIntelligenceOwner:
 
     def _bind_resource_policy(self) -> None:
         """Bind durable policy and one shared manager to reopened paged computers."""
+        for computer_id in self._resource_policy.get("page_tier_roots", {}):
+            self._resource_manager_for(computer_id)
         computers = tuple(self.state.computers)
         if not computers:
             return
@@ -8309,6 +9038,13 @@ class FieldIntelligenceOwner:
                     None,
                 )
                 successor = successor.with_resource_manager(manager, program_id=active)
+                if self._resource_policy.get("page_tier_roots", {}).get(
+                    row.computer_id
+                ):
+                    tier_store = self._page_tier_store_for(
+                        row.computer_id, successor
+                    )
+                    successor._bind_page_tier_store(tier_store)
             except BaseException:
                 rebound.append(row)
                 continue
@@ -9222,6 +9958,1963 @@ class FieldIntelligenceOwner:
             value["generation"] = self.state.generation
             return value
 
+    def _embodied_affect_concerns_by_experience(
+        self, semantic_state: Mapping[str, Any] | None
+    ) -> dict[tuple[str, str, int], tuple[dict[str, Any], ...]]:
+        """Project exact current affect concerns by their typed experiences."""
+
+        if not isinstance(semantic_state, Mapping):
+            return {}
+        from cassi_field_affect import affect_concern_ref, affect_context
+
+        try:
+            context = affect_context(semantic_state)
+        except (FieldIntelligenceError, KeyError, TypeError, ValueError):
+            return {}
+        rows = context.get("concerns") if isinstance(context, Mapping) else None
+        if not isinstance(rows, (list, tuple)):
+            return {}
+        by_experience: dict[tuple[str, str, int], dict[str, dict[str, Any]]] = {}
+        for row in rows:
+            if (
+                not isinstance(row, Mapping)
+                or row.get("schema") != "cassifi.affect-concern.v1"
+                or not isinstance(row.get("project_id"), str)
+            ):
+                continue
+            try:
+                concern_ref = affect_concern_ref(
+                    project_id=row["project_id"],
+                    question_ref=row.get("question_ref"),
+                    object_refs=row.get("object_refs", ()),
+                    goal_ref=row.get("goal_ref"),
+                )
+            except (FieldIntelligenceError, KeyError, TypeError, ValueError):
+                continue
+            if row.get("concern_ref") != concern_ref:
+                continue
+            experience_refs = row.get("experience_refs")
+            if not isinstance(experience_refs, (list, tuple)):
+                continue
+            for raw_reference in experience_refs:
+                try:
+                    reference = SemanticRef.from_dict(raw_reference)
+                except (TypeError, ValueError):
+                    continue
+                key = (reference.id, reference.kind, reference.content_version)
+                by_experience.setdefault(key, {})[concern_ref["concern_id"]] = (
+                    concern_ref
+                )
+        return {
+            key: tuple(rows_by_id[identity] for identity in sorted(rows_by_id))
+            for key, rows_by_id in by_experience.items()
+        }
+
+    def _embodied_affect_concern_for_experience(
+        self,
+        semantic_state: Mapping[str, Any] | None,
+        reference: Mapping[str, Any],
+    ) -> dict[str, Any] | None:
+        try:
+            typed_reference = SemanticRef.from_dict(reference)
+        except (TypeError, ValueError):
+            return None
+        matches = self._embodied_affect_concerns_by_experience(
+            semantic_state
+        ).get(
+            (typed_reference.id, typed_reference.kind, typed_reference.content_version),
+            (),
+        )
+        return dict(matches[0]) if len(matches) == 1 else None
+
+    def _embodied_regional_exchange_meaning(
+        self,
+        state: AtlasState,
+        task: Mapping[str, Any],
+        regional_reports: Sequence[Mapping[str, Any]],
+        *,
+        regional_truncated: bool,
+    ) -> Mapping[str, Any]:
+        """Project source-bound feedback with verified exchange ordering."""
+        current = task.get("current")
+        records = task.get("records")
+        if not isinstance(current, Mapping) or not isinstance(records, Mapping):
+            return {
+                "status": "unavailable", "items": [], "limit": 64,
+                "truncated": regional_truncated,
+                "reason": "the regional work-memory Assessment state is unavailable",
+            }
+        concern_by_experience = self._embodied_affect_concerns_by_experience(task)
+        items: list[dict[str, Any]] = []
+        truncated = bool(regional_truncated)
+        for report in regional_reports:
+            computer_id = report.get("computer_id")
+            spectrum = report.get("spectrum")
+            interfaces = spectrum.get("interfaces") if isinstance(spectrum, Mapping) else None
+            if not isinstance(computer_id, str) or not isinstance(interfaces, Mapping):
+                continue
+            for interface, link, concern_id, appraisal_ref in (
+                (interface, link, concern_id, tuning.get("appraisal_ref"))
+                for interface, link in sorted(interfaces.items())
+                if isinstance(interface, str)
+                and isinstance(link, Mapping)
+                and link.get("status") == "available"
+                for concern_id, tuning in (
+                    link.get("concern_tunings", {}).items()
+                    if isinstance(link.get("concern_tunings"), Mapping)
+                    else ()
+                )
+                if isinstance(tuning, Mapping)
+            ):
+                if (
+                    not isinstance(appraisal_ref, Mapping)
+                    or set(appraisal_ref) != {"operation_id", "assessment_sha256"}
+                ):
+                    continue
+                operation_id = appraisal_ref.get("operation_id")
+                assessment_sha256 = appraisal_ref.get("assessment_sha256")
+                if not isinstance(operation_id, str) or not isinstance(assessment_sha256, str):
+                    continue
+                match: tuple[Mapping[str, Any], Mapping[str, Any]] | None = None
+                for assessment_id, history in records.items():
+                    if not isinstance(history, (list, tuple)) or not history:
+                        continue
+                    record = history[-1]
+                    if (
+                        not isinstance(record, Mapping)
+                        or record.get("kind") != "Assessment"
+                        or record.get("status") != "active"
+                        or record.get("epistemic_kind") != "assessed"
+                    ):
+                        continue
+                    payload = record.get("payload")
+                    method_outcome = payload.get("method_outcome") if isinstance(payload, Mapping) else None
+                    if (
+                        not isinstance(method_outcome, Mapping)
+                        or method_outcome.get("operation_id") != operation_id
+                    ):
+                        continue
+                    try:
+                        if sha256_value(dict(record)) != assessment_sha256:
+                            continue
+                    except (TypeError, ValueError):
+                        continue
+                    assessment_ids = current.get("Assessment")
+                    reference = (
+                        assessment_ids.get(assessment_id)
+                        if isinstance(assessment_ids, Mapping) else None
+                    )
+                    try:
+                        typed_ref = SemanticRef.from_dict(reference)
+                    except (TypeError, ValueError):
+                        continue
+                    if (
+                        typed_ref.id != assessment_id
+                        or typed_ref.kind != "Assessment"
+                        or typed_ref.content_version != record.get("content_version")
+                    ):
+                        continue
+                    match = (typed_ref.as_dict(), record)
+                    break
+                if match is None:
+                    continue
+                assessment_reference, assessment = match
+                payload = assessment.get("payload")
+                source_revision_id = payload.get("source_revision_id") if isinstance(payload, Mapping) else None
+                source_sha256 = payload.get("source_content_sha256") if isinstance(payload, Mapping) else None
+                try:
+                    active_revision_ids = self.evidence.active_revision_ids()
+                    source = self.evidence.source(source_revision_id)
+                    source_bytes = self.evidence.read(source)
+                except (FieldIntelligenceError, OSError, TypeError, ValueError):
+                    continue
+                if (
+                    source_revision_id not in active_revision_ids
+                    or source.status != "active"
+                    or source.content_sha256 != source_sha256
+                    or hashlib.sha256(source_bytes).hexdigest() != source_sha256
+                    or source.source_id != f"entity-research-result:{operation_id}"
+                ):
+                    continue
+                root = next(
+                    (row for row in state.computers if row.computer_id == "research"),
+                    None,
+                )
+                root_task = root._value("task") if root is not None else None
+                root_current = root_task.get("current") if isinstance(root_task, Mapping) else None
+                root_records = root_task.get("records") if isinstance(root_task, Mapping) else None
+                binding_id = (
+                    "event:regional-assessment-binding:"
+                    + hashlib.sha256(
+                        f"entity-research-outcome:{operation_id}".encode("utf-8")
+                    ).hexdigest()[:32]
+                )
+                binding_ref = (
+                    root_current.get("Event", {}).get(binding_id)
+                    if isinstance(root_current, Mapping)
+                    and isinstance(root_current.get("Event"), Mapping)
+                    else None
+                )
+                binding_history = (
+                    root_records.get(binding_id)
+                    if isinstance(root_records, Mapping) else None
+                )
+                binding_record = (
+                    binding_history[-1]
+                    if isinstance(binding_history, (list, tuple)) and binding_history
+                    else None
+                )
+                binding_payload = (
+                    binding_record.get("payload")
+                    if isinstance(binding_record, Mapping) else None
+                )
+                expected_owner_sha256 = hashlib.sha256(
+                    str(Path(self.data_home).resolve()).encode("utf-8")
+                ).hexdigest()
+                if (
+                    not isinstance(binding_ref, Mapping)
+                    or binding_ref.get("id") != binding_id
+                    or binding_ref.get("kind") != "Event"
+                    or not isinstance(binding_record, Mapping)
+                    or binding_ref.get("content_version") != binding_record.get("content_version")
+                    or binding_record.get("id") != binding_id
+                    or binding_record.get("content_version") != binding_ref.get("content_version")
+                    or binding_record.get("kind") != "Event"
+                    or binding_record.get("status") != "active"
+                    or binding_record.get("epistemic_kind") != "derived"
+                    or not isinstance(binding_payload, Mapping)
+                    or binding_payload.get("external_computer_id") != "field-qwen:work-memory"
+                    or binding_payload.get("schema")
+                    != "cassifi.research-organism.regional-assessment-binding.v1"
+                    or binding_payload.get("external_owner_sha256") != expected_owner_sha256
+                    or binding_payload.get("external_assessment_ref") != assessment_reference
+                    or binding_payload.get("result_source") != {
+                        "content_sha256": source_sha256,
+                        "source_id": f"entity-research-result:{operation_id}",
+                        "external_revision": source_revision_id,
+                    }
+                ):
+                    continue
+                concerns = concern_by_experience.get(
+                    (
+                        assessment_reference["id"],
+                        assessment_reference["kind"],
+                        assessment_reference["content_version"],
+                    ),
+                    (),
+                )
+                if len(concerns) != 1 or concerns[0].get("concern_id") != concern_id:
+                    continue
+                concern_ref = dict(concerns[0])
+                concern_tunings = link.get("concern_tunings")
+                tuning = concern_tunings.get(concern_id) if isinstance(concern_tunings, Mapping) else None
+                if (
+                    not isinstance(tuning, Mapping)
+                    or tuning.get("appraisal_ref") != appraisal_ref
+                    or tuning.get("appraisal_basis") != {
+                        "assessment_ref": assessment_reference,
+                        "source_revision_id": source_revision_id,
+                        "source_sha256": source_sha256,
+                    }
+                ):
+                    continue
+                exchange = spectrum.get("last_exchange")
+                if (
+                    not isinstance(exchange, Mapping)
+                    or exchange.get("status") != "available"
+                    or exchange.get("interface") != interface
+                ):
+                    continue
+                regions = spectrum.get("regions") if isinstance(spectrum, Mapping) else None
+                emitter_region_id, separator, receiver_region_id = interface.partition("->")
+                if (
+                    not separator or not emitter_region_id or not receiver_region_id
+                    or not isinstance(regions, Mapping)
+                    or emitter_region_id not in regions or receiver_region_id not in regions
+                ):
+                    continue
+                question_ref = concern_ref.get("question_ref")
+                concern_summary = None
+                if isinstance(question_ref, Mapping):
+                    question_id = question_ref.get("id")
+                    question_kind = question_ref.get("kind")
+                    question_version = question_ref.get("content_version")
+                    current_kind = current.get(question_kind) if isinstance(question_kind, str) else None
+                    question_current = current_kind.get(question_id) if isinstance(current_kind, Mapping) else None
+                    question_history = records.get(question_id) if isinstance(question_id, str) else None
+                    question_record = question_history[-1] if isinstance(question_history, (list, tuple)) and question_history else None
+                    if (
+                        isinstance(question_current, Mapping)
+                        and question_current.get("content_version") == question_version
+                        and isinstance(question_record, Mapping)
+                        and question_record.get("content_version") == question_version
+                        and question_record.get("status") == "active"
+                    ):
+                        question_payload = question_record.get("payload")
+                        if isinstance(question_payload, Mapping):
+                            candidate = question_payload.get("question", question_payload.get("summary"))
+                            if isinstance(candidate, str) and candidate.strip():
+                                concern_summary = candidate
+                if not concern_summary:
+                    assessed_method = payload.get("method_outcome") if isinstance(payload, Mapping) else None
+                    recorded_question = (
+                        assessed_method.get("question")
+                        if isinstance(assessed_method, Mapping) else None
+                    )
+                    if isinstance(recorded_question, str) and recorded_question.strip():
+                        concern_summary = recorded_question
+                if not concern_summary:
+                    continue
+                appraisal_basis = {
+                    "assessment_ref": assessment_reference,
+                    "source_revision_id": source_revision_id,
+                    "source_sha256": source_sha256,
+                }
+                feedback = {
+                    "status": "available",
+                    "concern_ref": concern_ref,
+                    "appraisal_basis": appraisal_basis,
+                    "progress": tuning.get("progress"),
+                    "direction": "improving" if tuning.get("progress", 0.0) > 0 else "obstructed",
+                }
+                timing = "unverified"
+                recorded_feedback = spectrum.get("last_feedback")
+                exchange_history = spectrum.get("history")
+                if (
+                    isinstance(recorded_feedback, Mapping)
+                    and recorded_feedback.get("interface") == interface
+                    and recorded_feedback.get("appraisal_ref") == appraisal_ref
+                    and recorded_feedback.get("concern_ref") == concern_ref
+                    and isinstance(exchange_history, (list, tuple))
+                ):
+                    feedback_digest = sha256_value(dict(recorded_feedback))
+                    exchange_digest = sha256_value(dict(exchange))
+                    feedback_index = next(
+                        (index for index, row in enumerate(exchange_history)
+                         if isinstance(row, Mapping)
+                         and row.get("kind") == "feedback"
+                         and row.get("interface") == interface
+                         and row.get("digest") == feedback_digest),
+                        None,
+                    )
+                    exchange_index = next(
+                        (index for index, row in enumerate(exchange_history)
+                         if isinstance(row, Mapping)
+                         and row.get("kind") == "exchange"
+                         and row.get("interface") == interface
+                         and row.get("digest") == exchange_digest),
+                        None,
+                    )
+                    if feedback_index is not None and exchange_index is not None:
+                        timing = (
+                            "before-feedback" if exchange_index < feedback_index
+                            else "after-feedback" if exchange_index > feedback_index
+                            else "unverified"
+                        )
+                exchange_view = {
+                    "status": "available",
+                    "owner_reported_last_exchange_sha256": sha256_value(dict(exchange)),
+                    "overlap": exchange.get("overlap"),
+                    "effective_weight": exchange.get("effective_weight"),
+                    "measurement_timing": timing,
+                    "feedback": feedback,
+                }
+                items.append({
+                    "computer_id": computer_id,
+                    "interface": interface,
+                    "emitter_region_id": emitter_region_id,
+                    "receiver_region_id": receiver_region_id,
+                    "relation": "assessed-work-tuned-receiver",
+                    "concern_ref": concern_ref,
+                    "concern_summary": concern_summary,
+                    "current_concern_ref": concern_ref,
+                    "assessment_ref": assessment_reference,
+                    "appraisal_basis": appraisal_basis,
+                    "result_source": {
+                        "revision_id": source.revision_id,
+                        "content_sha256": source.content_sha256,
+                        "source_id": source.source_id,
+                        "status": source.status,
+                        "summary": payload.get("summary") if isinstance(payload, Mapping) else None,
+                    },
+                    "last_appraisal_ref": dict(appraisal_ref),
+                    "exchange": exchange_view,
+                    "result_status": payload.get("result_status") if isinstance(payload, Mapping) else None,
+                    "summary": payload.get("summary") if isinstance(payload, Mapping) else None,
+                    "recalled_memories": [],
+                })
+        return {
+            "status": "known" if items else "unavailable",
+            "items": items[:64],
+            "limit": 64,
+            "truncated": truncated or len(items) > 64,
+            "reason": None if items else "no current source-bound regional exchange is available",
+        }
+
+    def _embodied_exchange_meaning(
+        self,
+        state: AtlasState,
+        regional_reports: Sequence[Mapping[str, Any]],
+        *,
+        regional_truncated: bool,
+    ) -> Mapping[str, Any]:
+        """Bind tuned interfaces only to current, hash-verified research records."""
+
+        limit = 64
+        recalled_limit = 16
+        truncated = bool(regional_truncated)
+        candidates: list[tuple[str, str, dict[str, str]]] = []
+        for report in regional_reports:
+            computer_id = report.get("computer_id")
+            spectrum = report.get("spectrum")
+            if not isinstance(computer_id, str) or not isinstance(spectrum, Mapping):
+                continue
+            truncated = truncated or bool(spectrum.get("truncated"))
+            interfaces = spectrum.get("interfaces")
+            if not isinstance(interfaces, Mapping):
+                continue
+            for interface in sorted(interfaces):
+                link = interfaces[interface]
+                appraisal_ref = (
+                    link.get("last_appraisal_ref")
+                    if isinstance(link, Mapping) else None
+                )
+                if (
+                    not isinstance(interface, str)
+                    or not isinstance(link, Mapping)
+                    or link.get("status") != "available"
+                    or not isinstance(appraisal_ref, Mapping)
+                    or set(appraisal_ref) != {"operation_id", "assessment_sha256"}
+                    or not isinstance(appraisal_ref.get("operation_id"), str)
+                    or not isinstance(appraisal_ref.get("assessment_sha256"), str)
+                ):
+                    continue
+                candidates.append((computer_id, interface, dict(appraisal_ref)))
+
+        research = next(
+            (computer for computer in state.computers if computer.computer_id == "research"),
+            None,
+        )
+        regional_memory = next(
+            (
+                computer for computer in state.computers
+                if computer.computer_id == "field-qwen:work-memory"
+            ),
+            None,
+        )
+        regional_task = regional_memory._value("task") if regional_memory is not None else None
+        if isinstance(regional_task, Mapping):
+            return self._embodied_regional_exchange_meaning(
+                state,
+                regional_task,
+                regional_reports,
+                regional_truncated=truncated,
+            )
+        research_task = None if research is None else research._value("task")
+        current = research_task.get("current") if isinstance(research_task, Mapping) else None
+        records = research_task.get("records") if isinstance(research_task, Mapping) else None
+        if not isinstance(current, Mapping) or not isinstance(records, Mapping):
+            return {
+                "status": "unavailable",
+                "items": [],
+                "limit": limit,
+                "truncated": truncated,
+                "reason": "the resident research Assessment and Obligation records are unavailable",
+            }
+        affect_concerns_by_experience = (
+            self._embodied_affect_concerns_by_experience(research_task)
+        )
+
+        def current_record(
+            kind: str, identity: str
+        ) -> tuple[Mapping[str, Any], Mapping[str, Any]] | None:
+            family = current.get(kind)
+            if not isinstance(family, Mapping):
+                return None
+            reference = family.get(identity)
+            history = records.get(identity)
+            if (
+                not isinstance(reference, Mapping)
+                or reference.get("id") != identity
+                or reference.get("kind") != kind
+                or isinstance(reference.get("content_version"), bool)
+                or not isinstance(reference.get("content_version"), int)
+                or not isinstance(history, (list, tuple))
+                or not history
+            ):
+                return None
+            record = history[-1]
+            if (
+                not isinstance(record, Mapping)
+                or record.get("id") != identity
+                or record.get("kind") != kind
+                or isinstance(record.get("content_version"), bool)
+                or not isinstance(record.get("content_version"), int)
+                or record.get("content_version") != reference.get("content_version")
+            ):
+                return None
+            return reference, record
+
+        def resolve_current_reference(
+            reference: Any,
+        ) -> tuple[Mapping[str, Any], Mapping[str, Any]] | None:
+            if (
+                not isinstance(reference, Mapping)
+                or set(reference) != {"id", "kind", "content_version"}
+                or not isinstance(reference.get("id"), str)
+                or not isinstance(reference.get("kind"), str)
+                or isinstance(reference.get("content_version"), bool)
+                or not isinstance(reference.get("content_version"), int)
+            ):
+                return None
+            resolved = current_record(str(reference["kind"]), str(reference["id"]))
+            if (
+                resolved is None
+                or resolved[0].get("content_version") != reference.get("content_version")
+            ):
+                return None
+            return resolved
+
+        def same_reference(left: Any, right: Any) -> bool:
+            return (
+                isinstance(left, Mapping)
+                and isinstance(right, Mapping)
+                and left.get("id") == right.get("id")
+                and left.get("kind") == right.get("kind")
+                and not isinstance(left.get("content_version"), bool)
+                and isinstance(left.get("content_version"), int)
+                and not isinstance(right.get("content_version"), bool)
+                and isinstance(right.get("content_version"), int)
+                and left.get("content_version") == right.get("content_version")
+            )
+
+        mission_row = current_record("Value", "research:mission")
+        catalog_row = current_record("Value", "research:catalog")
+        mission_payload = (
+            mission_row[1].get("payload") if mission_row is not None else None
+        )
+        catalog_payload = (
+            catalog_row[1].get("payload") if catalog_row is not None else None
+        )
+        work_items = catalog_payload.get("work") if isinstance(catalog_payload, Mapping) else None
+        if (
+            mission_row is None
+            or mission_row[1].get("status") != "active"
+            or not isinstance(mission_payload, Mapping)
+            or mission_payload.get("schema") != "cassifi.research-residency.v1"
+            or catalog_row is None
+            or catalog_row[1].get("status") != "active"
+            or not isinstance(work_items, (list, tuple))
+            or len(work_items) > 32
+        ):
+            return {
+                "status": "unavailable",
+                "items": [],
+                "limit": limit,
+                "truncated": truncated,
+                "reason": "the current research mission or work catalog failed its owner-record check",
+            }
+
+        work_by_id = {
+            item.get("id"): item
+            for item in work_items
+            if isinstance(item, Mapping) and isinstance(item.get("id"), str)
+        }
+        source_cache: dict[str, Any] = {}
+        items: list[dict[str, Any]] = []
+        for computer_id, interface, appraisal_ref in candidates:
+            operation_id = appraisal_ref["operation_id"]
+            assessment_id = f"research:outcome:{operation_id}"
+            assessment_row = current_record("Assessment", assessment_id)
+            if assessment_row is None:
+                continue
+            assessment_reference, assessment = assessment_row
+            assessment_payload = assessment.get("payload")
+            if (
+                assessment.get("status") != "active"
+                or assessment.get("epistemic_kind") != "assessed"
+                or not isinstance(assessment_payload, Mapping)
+                or assessment_payload.get("work_operation_id") != operation_id
+            ):
+                continue
+            try:
+                assessment_sha256 = sha256_value(dict(assessment))
+            except (TypeError, ValueError):
+                continue
+            if assessment_sha256 != appraisal_ref["assessment_sha256"]:
+                continue
+
+            question_id = assessment_payload.get("question_id")
+            if not isinstance(question_id, str):
+                continue
+            obligation_row = current_record("Obligation", operation_id)
+            if obligation_row is None:
+                continue
+            obligation_reference, obligation = obligation_row
+            obligation_payload = obligation.get("payload")
+            if (
+                obligation.get("status") not in {"active", "pending", "resolved"}
+                or not isinstance(obligation_payload, Mapping)
+                or obligation_payload.get("question_id") != question_id
+            ):
+                continue
+            work_item = work_by_id.get(question_id)
+            if not isinstance(work_item, Mapping):
+                continue
+            catalog_summary = work_item.get("summary")
+            obligation_summary = obligation_payload.get("summary")
+            if (
+                not isinstance(catalog_summary, str)
+                or not catalog_summary
+                or (
+                    isinstance(obligation_summary, str)
+                    and obligation_summary
+                    and obligation_summary != catalog_summary
+                )
+            ):
+                continue
+            request = work_item.get("request")
+            question = request.get("question") if isinstance(request, Mapping) else None
+            concern_summary = (
+                question
+                if isinstance(question, str) and question
+                else obligation_summary
+                if isinstance(obligation_summary, str) and obligation_summary
+                else catalog_summary
+            )[:256]
+
+            revision_id = assessment_payload.get("source_revision_id")
+            output_sha256 = assessment_payload.get("output_sha256")
+            support_roots = assessment.get("support_roots")
+            if (
+                not isinstance(revision_id, str)
+                or not isinstance(output_sha256, str)
+                or len(output_sha256) != 64
+                or not isinstance(support_roots, (list, tuple))
+                or revision_id not in support_roots
+            ):
+                continue
+            if revision_id not in source_cache:
+                try:
+                    source_cache[revision_id] = self.evidence.source(revision_id)
+                except (FieldIntelligenceError, OSError, TypeError, ValueError):
+                    source_cache[revision_id] = None
+            source = source_cache[revision_id]
+            if (
+                source is None
+                or source.status != "active"
+                or source.revision_id != revision_id
+                or source.content_sha256 != output_sha256
+            ):
+                continue
+
+            spectrum = next(
+                (
+                    row.get("spectrum")
+                    for row in regional_reports
+                    if row.get("computer_id") == computer_id
+                ),
+                None,
+            )
+            regions = spectrum.get("regions") if isinstance(spectrum, Mapping) else None
+            emitter_region_id, separator, receiver_region_id = interface.partition("->")
+            if (
+                not separator
+                or not emitter_region_id
+                or not receiver_region_id
+                or not isinstance(regions, Mapping)
+                or emitter_region_id not in regions
+                or receiver_region_id not in regions
+            ):
+                continue
+
+            recalled_memories: list[dict[str, Any]] = []
+            recalled_seen: set[tuple[str, int]] = set()
+
+            def add_recalled_from_episode(
+                episode: Mapping[str, Any], reason_record_id: str
+            ) -> None:
+                nonlocal truncated
+                payload = episode.get("payload")
+                lifecycle = payload.get("lifecycle") if isinstance(payload, Mapping) else None
+                use_reference = payload.get("use_ref") if isinstance(payload, Mapping) else None
+                use_row = resolve_current_reference(use_reference)
+                use_payload = use_row[1].get("payload") if use_row is not None else None
+                use_episode_ref = (
+                    use_payload.get("episode_ref")
+                    if isinstance(use_payload, Mapping) else None
+                )
+                if (
+                    episode.get("status") != "active"
+                    or not isinstance(payload, Mapping)
+                    or payload.get("memory_role") != "recall-episode"
+                    or not isinstance(lifecycle, Mapping)
+                    or lifecycle.get("used") is not True
+                    or lifecycle.get("settled") is not True
+                    or use_row is None
+                    or use_row[1].get("kind") != "Event"
+                    or use_row[1].get("status") != "active"
+                    or not isinstance(use_payload, Mapping)
+                    or use_payload.get("memory_role") != "recall-use"
+                    or not isinstance(use_episode_ref, Mapping)
+                    or use_episode_ref.get("id") != episode.get("id")
+                    or use_episode_ref.get("kind") != "Event"
+                ):
+                    return
+                selected_refs = use_payload.get("selected_refs")
+                if not isinstance(selected_refs, (list, tuple)):
+                    return
+                if len(selected_refs) > 64:
+                    truncated = True
+                for memory_reference in selected_refs[:64]:
+                    resolved = resolve_current_reference(memory_reference)
+                    if resolved is None:
+                        continue
+                    memory_ref, memory_record = resolved
+                    memory_payload = memory_record.get("payload")
+                    roots = memory_record.get("support_roots")
+                    if (
+                        memory_record.get("status") not in {"active", "resolved"}
+                        or not isinstance(memory_payload, Mapping)
+                        or not isinstance(roots, (list, tuple))
+                    ):
+                        continue
+                    if len(roots) > 8:
+                        truncated = True
+                    active_roots: list[str] = []
+                    for root in roots[:32]:
+                        if not isinstance(root, str):
+                            continue
+                        if root not in source_cache:
+                            try:
+                                source_cache[root] = self.evidence.source(root)
+                            except (FieldIntelligenceError, OSError, TypeError, ValueError):
+                                source_cache[root] = None
+                        root_source = source_cache[root]
+                        if (
+                            root_source is not None
+                            and root_source.status == "active"
+                            and root_source.revision_id == root
+                        ):
+                            active_roots.append(root)
+                            if len(active_roots) == 8:
+                                break
+                    if not active_roots:
+                        continue
+                    result_revision = memory_payload.get("source_revision_id")
+                    result_digest = memory_payload.get("output_sha256")
+                    if memory_record.get("kind") == "Assessment" and isinstance(result_revision, str):
+                        source = source_cache.get(result_revision)
+                        if (result_revision not in active_roots or source is None
+                                or source.content_sha256 != result_digest):
+                            continue
+                    key = (str(memory_ref["id"]), int(memory_ref["content_version"]))
+                    if key in recalled_seen:
+                        continue
+                    if len(recalled_memories) >= recalled_limit:
+                        truncated = True
+                        break
+                    recalled_seen.add(key)
+                    role = memory_payload.get("memory_role")
+                    recalled_memories.append({
+                        "record_ref": {
+                            "id": memory_ref["id"],
+                            "kind": memory_ref["kind"],
+                            "content_version": memory_ref["content_version"],
+                        },
+                        "role": role[:64] if isinstance(role, str) else str(memory_ref["kind"]),
+                        "reason": (
+                            "selected in an owner-held recall episode that was used and settled "
+                            f"for the linked record {reason_record_id}"
+                        )[:256],
+                        "source_revision_ids": active_roots,
+                        **(
+                            {"result_summary": memory_payload["summary"][:256],
+                             "result_status": str(memory_payload.get("result_status", ""))[:64]}
+                            if memory_record.get("kind") == "Assessment"
+                            and isinstance(memory_payload.get("summary"), str)
+                            else {}
+                        ),
+                    })
+
+            for owner_record in (assessment, obligation):
+                dependencies = owner_record.get("dependencies")
+                if not isinstance(dependencies, (list, tuple)):
+                    continue
+                if len(dependencies) > 64:
+                    truncated = True
+                for dependency in dependencies[:64]:
+                    dependency_row = resolve_current_reference(dependency)
+                    if dependency_row is None:
+                        continue
+                    dependency_ref, dependency_record = dependency_row
+                    dependency_payload = dependency_record.get("payload")
+                    role = (
+                        dependency_payload.get("memory_role")
+                        if isinstance(dependency_payload, Mapping) else None
+                    )
+                    episode_row = (
+                        dependency_row if role == "recall-episode" else None
+                    )
+                    if (
+                        episode_row is None
+                        and role in {
+                            "recall-use", "recall-consequence",
+                            "recall-assessment", "recall-outcome",
+                        }
+                        and isinstance(dependency_payload, Mapping)
+                    ):
+                        episode_ref = dependency_payload.get("episode_ref")
+                        episode_id = (
+                            episode_ref.get("id")
+                            if isinstance(episode_ref, Mapping) else None
+                        )
+                        current_episode = (
+                            current_record("Event", episode_id)
+                            if isinstance(episode_id, str) else None
+                        )
+                        if current_episode is not None:
+                            current_episode_payload = current_episode[1].get("payload")
+                            linked_fields = (
+                                ("use_ref",) if role == "recall-use"
+                                else ("outcome_ref",) if role == "recall-consequence"
+                                else ("assessment_ref",) if role == "recall-assessment"
+                                else ("outcome_ref", "assessment_ref")
+                            )
+                            if (
+                                isinstance(current_episode_payload, Mapping)
+                                and any(
+                                    same_reference(
+                                        current_episode_payload.get(field), dependency_ref
+                                    )
+                                    for field in linked_fields
+                                )
+                            ):
+                                episode_row = current_episode
+                    if episode_row is not None:
+                        add_recalled_from_episode(
+                            episode_row[1], str(owner_record.get("id", ""))
+                        )
+                        if len(recalled_memories) >= recalled_limit:
+                            truncated = True
+                            break
+
+            last_exchange = spectrum.get("last_exchange") if isinstance(spectrum, Mapping) else None
+            exchange_value: dict[str, Any] = {
+                "status": "unavailable",
+                "reason": "no owner-reported exchange is available for this interface",
+                "measurement_timing": "unverified",
+                "feedback": {
+                    "status": "unavailable",
+                    "reason": "no current feedback record matches this appraisal",
+                },
+            }
+            feedback = spectrum.get("last_feedback") if isinstance(spectrum, Mapping) else None
+            matching_feedback = (
+                isinstance(feedback, Mapping)
+                and feedback.get("interface") == interface
+                and feedback.get("appraisal_ref") == appraisal_ref
+            )
+            history = spectrum.get("history") if isinstance(spectrum, Mapping) else None
+            feedback_history_index = None
+            if matching_feedback and isinstance(history, (list, tuple)):
+                try:
+                    feedback_digest = sha256_value(dict(feedback))
+                    feedback_history_index = next(
+                        index
+                        for index, row in enumerate(history)
+                        if isinstance(row, Mapping)
+                        and row.get("kind") == "feedback"
+                        and row.get("interface") == interface
+                        and row.get("digest") == feedback_digest
+                    )
+                except (StopIteration, TypeError, ValueError):
+                    feedback_history_index = None
+            feedback_value: dict[str, Any] = (
+                {
+                    "status": "available",
+                    "outcome": feedback.get("outcome"),
+                    "progress": feedback.get("progress"),
+                    "direction": feedback.get("direction"),
+                    "before_shift": feedback.get("before_shift"),
+                    "after_shift": feedback.get("after_shift"),
+                    "state_sha256": feedback.get("state_sha256"),
+                    "concern_ref": feedback.get("concern_ref"),
+                    "appraisal_basis": feedback.get("appraisal_basis"),
+                }
+                if matching_feedback else exchange_value["feedback"]
+            )
+            exchange_value["feedback"] = feedback_value
+            if (
+                isinstance(last_exchange, Mapping)
+                and last_exchange.get("status") == "available"
+                and last_exchange.get("interface") == interface
+            ):
+                try:
+                    exchange_digest = sha256_value(dict(last_exchange))
+                except (TypeError, ValueError):
+                    exchange_digest = None
+                if exchange_digest is not None:
+                    exchange_history_index = None
+                    if isinstance(history, (list, tuple)):
+                        exchange_history_index = next(
+                            (
+                                index
+                                for index, row in enumerate(history)
+                                if isinstance(row, Mapping)
+                                and row.get("kind") == "exchange"
+                                and row.get("interface") == interface
+                                and row.get("digest") == exchange_digest
+                            ),
+                            None,
+                        )
+                    timing = (
+                        "before-feedback"
+                        if exchange_history_index is not None
+                        and feedback_history_index is not None
+                        and exchange_history_index < feedback_history_index
+                        else "after-feedback"
+                        if exchange_history_index is not None
+                        and feedback_history_index is not None
+                        and exchange_history_index > feedback_history_index
+                        else "unverified"
+                    )
+                    exchange_value = {
+                        "status": "available",
+                        "owner_reported_last_exchange_sha256": exchange_digest,
+                        "overlap": last_exchange.get("overlap"),
+                        "effective_weight": last_exchange.get("effective_weight"),
+                        "measurement_timing": timing,
+                        "reason": None,
+                        "feedback": feedback_value,
+                    }
+
+            if len(items) >= limit:
+                truncated = True
+                break
+            try:
+                typed_assessment_ref = SemanticRef.from_dict(assessment_reference)
+            except (TypeError, ValueError):
+                eligible_concern_ref = None
+            else:
+                matching_concerns = affect_concerns_by_experience.get(
+                    (
+                        typed_assessment_ref.id,
+                        typed_assessment_ref.kind,
+                        typed_assessment_ref.content_version,
+                    ),
+                    (),
+                )
+                eligible_concern_ref = (
+                    dict(matching_concerns[0])
+                    if len(matching_concerns) == 1 else None
+                )
+            concern_ref = None
+            appraisal_basis = None
+            if matching_feedback and eligible_concern_ref is not None:
+                stored_concern_ref = feedback.get("concern_ref")
+                stored_basis = feedback.get("appraisal_basis")
+                stored_assessment_ref = (
+                    stored_basis.get("assessment_ref")
+                    if isinstance(stored_basis, Mapping) else None
+                )
+                try:
+                    typed_basis_ref = SemanticRef.from_dict(stored_assessment_ref)
+                except (TypeError, ValueError):
+                    typed_basis_ref = None
+                if (
+                    stored_concern_ref == eligible_concern_ref
+                    and isinstance(stored_basis, Mapping)
+                    and set(stored_basis) == {
+                        "assessment_ref", "source_revision_id", "source_sha256"
+                    }
+                    and typed_basis_ref == typed_assessment_ref
+                    and stored_basis.get("source_revision_id") == revision_id
+                    and stored_basis.get("source_sha256") == output_sha256
+                ):
+                    concern_ref = eligible_concern_ref
+                    appraisal_basis = dict(stored_basis)
+            items.append({
+                "computer_id": computer_id,
+                "interface": interface,
+                "emitter_region_id": emitter_region_id,
+                "receiver_region_id": receiver_region_id,
+                "relation": "assessed-work-tuned-receiver",
+                "obligation_ref": {
+                    "id": obligation_reference["id"],
+                    "kind": obligation_reference["kind"],
+                    "content_version": obligation_reference["content_version"],
+                },
+                "concern_ref": concern_ref,
+                "current_concern_ref": eligible_concern_ref,
+                "appraisal_basis": appraisal_basis,
+                "concern_summary": concern_summary,
+                "assessment_ref": {
+                    "id": assessment_reference["id"],
+                    "kind": assessment_reference["kind"],
+                    "content_version": assessment_reference["content_version"],
+                },
+                "last_appraisal_ref": appraisal_ref,
+                "result_source": {
+                    "revision_id": revision_id,
+                    "content_sha256": output_sha256,
+                    "summary": (
+                        assessment_payload["summary"][:256]
+                        if isinstance(assessment_payload.get("summary"), str) else None
+                    ),
+                    "status": source.status,
+                    "result_status": assessment_payload.get("result_status"),
+                },
+                "recalled_memories": recalled_memories,
+                "exchange": exchange_value,
+            })
+
+        return {
+            "status": "known" if items else "unavailable",
+            "items": items,
+            "limit": limit,
+            "truncated": truncated,
+            "reason": None if items else (
+                "no persisted interface appraisal matches a current Assessment, Obligation, and active archived result"
+            ),
+        }
+
+
+    def _embodied_orientation(
+        self, state: AtlasState, *, limit: int = 16
+    ) -> Mapping[str, Any]:
+        """Project current owner obligations and their exact source lineage."""
+
+        generation = int(state.generation)
+        unknowns: list[str] = []
+        research = next(
+            (row for row in state.computers if row.computer_id == "research"),
+            None,
+        )
+        if research is None:
+            return {
+                "schema": "cassifi.embodied-orientation.v1",
+                "status": "unavailable",
+                "state_generation": generation,
+                "current_concerns": [],
+                "continuations": [],
+                "unknowns": ["the owner has no resident research record store"],
+            }
+        task = research._value("task")
+        current = task.get("current") if isinstance(task, Mapping) else None
+        records = task.get("records") if isinstance(task, Mapping) else None
+        if (
+            not isinstance(task, Mapping)
+            or task.get("schema") != "cassifi.semantic-cognition-state.v1"
+            or not isinstance(current, Mapping)
+            or not isinstance(records, Mapping)
+        ):
+            return {
+                "schema": "cassifi.embodied-orientation.v1",
+                "status": "unavailable",
+                "state_generation": generation,
+                "current_concerns": [],
+                "continuations": [],
+                "unknowns": ["the current research semantic records are unavailable"],
+            }
+
+        def current_record(
+            kind: str, identity: str
+        ) -> tuple[SemanticRef, Mapping[str, Any]] | None:
+            family = current.get(kind)
+            history = records.get(identity)
+            if not isinstance(family, Mapping) or not isinstance(history, (list, tuple)) or not history:
+                return None
+            raw_reference = family.get(identity)
+            if not isinstance(raw_reference, Mapping):
+                return None
+            try:
+                reference = SemanticRef.from_dict(raw_reference)
+            except (TypeError, ValueError):
+                return None
+            row = history[-1]
+            if (
+                reference.id != identity
+                or reference.kind != kind
+                or not isinstance(row, Mapping)
+                or row.get("id") != identity
+                or row.get("kind") != kind
+                or row.get("content_version") != reference.content_version
+            ):
+                return None
+            return reference, row
+
+        mission_row = current_record("Value", "research:mission")
+        catalog_row = current_record("Value", "research:catalog")
+        mission_payload = (
+            mission_row[1].get("payload") if mission_row is not None else None
+        )
+        catalog_payload = (
+            catalog_row[1].get("payload") if catalog_row is not None else None
+        )
+        work_items = (
+            catalog_payload.get("work")
+            if isinstance(catalog_payload, Mapping) else None
+        )
+        if (
+            mission_row is None
+            or mission_row[1].get("status") != "active"
+            or not isinstance(mission_payload, Mapping)
+            or mission_payload.get("schema") != "cassifi.research-residency.v1"
+            or catalog_row is None
+            or catalog_row[1].get("status") != "active"
+            or not isinstance(work_items, (list, tuple))
+            or len(work_items) > 32
+        ):
+            return {
+                "schema": "cassifi.embodied-orientation.v1",
+                "status": "unavailable",
+                "state_generation": generation,
+                "current_concerns": [],
+                "continuations": [],
+                "unknowns": [
+                    "the current research mission or work catalog failed its owner-record check"
+                ],
+            }
+
+        work_by_id = {
+            item.get("id"): item
+            for item in work_items
+            if isinstance(item, Mapping) and isinstance(item.get("id"), str)
+        }
+        obligations = current.get("Obligation")
+        if not isinstance(obligations, Mapping):
+            obligations = {}
+            unknowns.append("the current obligation family is unavailable")
+        concerns: list[dict[str, Any]] = []
+        continuations: list[dict[str, Any]] = []
+        eligible_obligations = []
+        for identity in sorted(
+            identity for identity in obligations if isinstance(identity, str)
+        ):
+            row = current_record("Obligation", identity)
+            if row is not None and row[1].get("status") in {"active", "pending"}:
+                eligible_obligations.append(row)
+        truncated = len(eligible_obligations) > limit
+        for obligation_ref, obligation in eligible_obligations[:limit]:
+            status = obligation["status"]
+            payload = obligation.get("payload")
+            if not isinstance(payload, Mapping):
+                continue
+            question_id = payload.get("question_id")
+            work_item = work_by_id.get(question_id) if isinstance(question_id, str) else None
+            if not isinstance(question_id, str) or not isinstance(work_item, Mapping):
+                continue
+            catalog_summary = work_item.get("summary")
+            obligation_summary = payload.get("summary")
+            if (
+                not isinstance(catalog_summary, str)
+                or not catalog_summary
+                or (
+                    isinstance(obligation_summary, str)
+                    and obligation_summary
+                    and obligation_summary != catalog_summary
+                )
+            ):
+                continue
+            request = work_item.get("request")
+            question = request.get("question") if isinstance(request, Mapping) else None
+            summary = (
+                question if isinstance(question, str) and question
+                else obligation_summary
+                if isinstance(obligation_summary, str) and obligation_summary
+                else catalog_summary
+            )[:256]
+
+            assessment_ref: SemanticRef | None = None
+            source_identity: dict[str, str] | None = None
+            item_unknowns: list[str] = []
+            assessment_id = f"research:outcome:{identity}"
+            assessment_row = current_record("Assessment", assessment_id)
+            if assessment_row is not None:
+                candidate_ref, assessment = assessment_row
+                result = assessment.get("payload")
+                if (
+                    assessment.get("status") == "active"
+                    and assessment.get("epistemic_kind") == "assessed"
+                    and isinstance(result, Mapping)
+                    and result.get("work_operation_id") == identity
+                    and result.get("question_id") == question_id
+                    and isinstance(result.get("source_revision_id"), str)
+                    and isinstance(result.get("output_sha256"), str)
+                    and candidate_ref.id == assessment_id
+                ):
+                    revision_id = result["source_revision_id"]
+                    digest = result["output_sha256"]
+                    roots = assessment.get("support_roots")
+                    try:
+                        source = self.evidence.source(revision_id)
+                    except (FieldIntelligenceError, OSError, TypeError, ValueError):
+                        source = None
+                    if (
+                        isinstance(roots, (list, tuple))
+                        and revision_id in roots
+                        and source is not None
+                        and source.status == "active"
+                        and source.revision_id == revision_id
+                        and source.content_sha256 == digest
+                    ):
+                        assessment_ref = candidate_ref
+                        source_identity = {
+                            "revision_id": revision_id,
+                            "content_sha256": digest,
+                        }
+                    else:
+                        item_unknowns.append(
+                            "the current Assessment source is unavailable or not hash-bound"
+                        )
+                else:
+                    item_unknowns.append(
+                        "the current Assessment does not match this obligation"
+                    )
+            else:
+                item_unknowns.append("no current Assessment is bound to this concern")
+
+            concern = {
+                "obligation_ref": obligation_ref.as_dict(),
+                "question_id": question_id,
+                "status": status,
+                "summary": summary,
+                "assessment_ref": (
+                    assessment_ref.as_dict() if assessment_ref is not None else None
+                ),
+                "source_identity": source_identity,
+                "unknowns": item_unknowns,
+            }
+            concerns.append(concern)
+            if status == "pending" or assessment_ref is None:
+                continuations.append({
+                    "continuation_ref": obligation_ref.as_dict(),
+                    "question_id": question_id,
+                    "status": status,
+                    "summary": summary,
+                    "assessment_ref": (
+                        assessment_ref.as_dict()
+                        if assessment_ref is not None else None
+                    ),
+                    "source_identity": source_identity,
+                    "unknowns": item_unknowns,
+                })
+
+        if truncated:
+            unknowns.append(f"current obligations are bounded to {limit} records")
+        if not concerns and not unknowns:
+            status = "available"
+        else:
+            status = "partial" if unknowns or any(item["unknowns"] for item in concerns) else "available"
+        return {
+            "schema": "cassifi.embodied-orientation.v1",
+            "status": status,
+            "state_generation": generation,
+            "mission_ref": (
+                mission_row[0].as_dict() if mission_row is not None else None
+            ),
+            "catalog_ref": (
+                catalog_row[0].as_dict() if catalog_row is not None else None
+            ),
+            "current_concerns": concerns,
+            "continuations": continuations,
+            "limit": limit,
+            "truncated": truncated,
+            "unknowns": unknowns,
+        }
+
+    def _embodied_role_bindings(
+        self,
+        state: AtlasState,
+        *,
+        region_items: Sequence[Mapping[str, Any]],
+        regional_reports: Sequence[Mapping[str, Any]],
+        semantic_rows: Sequence[Mapping[str, Any]],
+        exchange_meaning: Mapping[str, Any],
+        orientation: Mapping[str, Any],
+        regions_truncated: bool,
+        regional_truncated: bool,
+        semantics_truncated: bool,
+    ) -> Mapping[str, Any]:
+        """Bind functional roles to the current numerical and semantic records."""
+
+        generation = int(state.generation)
+        state_sha256 = state.state_sha256
+        layouts_by_id: dict[str, dict[str, Any]] = {}
+        computer_region_ids: dict[str, list[str]] = {}
+        for item in region_items:
+            if not isinstance(item, Mapping):
+                continue
+            source_region_id = item.get("region_id")
+            if not isinstance(source_region_id, str):
+                continue
+            computer_id = item.get("computer_id")
+            if item.get("kind") == "resonant-workspace":
+                qualified_id = f"owner:{source_region_id}"
+                row = {
+                    "region_id": qualified_id,
+                    "source_region_id": source_region_id,
+                    "kind": item.get("kind"),
+                    "layout_identity": item.get("layout_identity"),
+                    "topology": item.get("topology"),
+                    "pools": item.get("pools"),
+                    "ports_per_pool": item.get("ports_per_pool"),
+                    "coordinate_count": item.get("coordinate_count"),
+                    "port_count": item.get("port_count"),
+                    "oriented_edge_count": item.get("oriented_edge_count"),
+                    "field_time_step": item.get("field_time_step"),
+                    "state_sha256": item.get("state_sha256"),
+                }
+            elif item.get("kind") == "resonant-scale" and isinstance(computer_id, str):
+                qualified_id = f"computer:{computer_id}:region:{source_region_id}"
+                row = {
+                    "region_id": qualified_id,
+                    "source_region_id": source_region_id,
+                    "computer_id": computer_id,
+                    "kind": item.get("kind"),
+                    "parent_id": item.get("parent_id"),
+                    "block": item.get("block"),
+                    "content_version": item.get("content_version"),
+                }
+                computer_region_ids.setdefault(computer_id, []).append(qualified_id)
+            else:
+                continue
+            layouts_by_id[qualified_id] = row
+
+        operators_by_computer: dict[str, Mapping[str, Any]] = {}
+        interfaces_by_computer: dict[str, list[dict[str, Any]]] = {}
+        for report in regional_reports:
+            computer_id = report.get("computer_id")
+            if not isinstance(computer_id, str):
+                continue
+            operator = report.get("operator")
+            if isinstance(operator, Mapping):
+                operators_by_computer[computer_id] = {
+                    "computer_id": computer_id,
+                    "basis": report.get("basis"),
+                    **dict(operator),
+                }
+            spectrum = report.get("spectrum")
+            spectrum_interfaces = (
+                spectrum.get("interfaces") if isinstance(spectrum, Mapping) else None
+            )
+            if not isinstance(spectrum_interfaces, Mapping):
+                continue
+            for interface in sorted(spectrum_interfaces):
+                link = spectrum_interfaces[interface]
+                if not isinstance(interface, str) or not isinstance(link, Mapping):
+                    continue
+                interfaces_by_computer.setdefault(computer_id, []).append({
+                    "computer_id": computer_id,
+                    "interface": interface,
+                    "status": link.get("status"),
+                    "operator_digest": (
+                        spectrum.get("operator_digest")
+                        if isinstance(spectrum, Mapping) else None
+                    ),
+                })
+
+        semantic_refs_by_computer: dict[str, list[SemanticRef]] = {}
+        for row in semantic_rows:
+            if row.get("kind") != "field-binding":
+                continue
+            computer_id = row.get("computer_id")
+            raw_reference = row.get("record_ref")
+            if not isinstance(computer_id, str) or not isinstance(raw_reference, Mapping):
+                continue
+            try:
+                reference = SemanticRef.from_dict(raw_reference)
+            except (TypeError, ValueError):
+                continue
+            semantic_refs_by_computer.setdefault(computer_id, []).append(reference)
+
+        def role(
+            name: str,
+            region_ids: Sequence[str],
+            semantic_refs: Sequence[SemanticRef],
+            operator_rows: Sequence[Mapping[str, Any]],
+            interfaces: Sequence[Mapping[str, Any]],
+            unknowns: Sequence[str],
+        ) -> dict[str, Any]:
+            all_ids = tuple(sorted(set(region_ids)))
+            all_refs = tuple(sorted(
+                set(semantic_refs),
+                key=lambda ref: (ref.kind, ref.id, ref.content_version),
+            ))
+            selected_unknowns = set(unknowns)
+            if len(all_ids) > 64:
+                selected_unknowns.add(f"the {name} region binding is bounded to 64 entries")
+            if len(all_refs) > 64:
+                selected_unknowns.add(f"the {name} semantic refs are bounded to 64 entries")
+            if len(operator_rows) > 64:
+                selected_unknowns.add(f"the {name} operator list is bounded to 64 entries")
+            if len(interfaces) > 64:
+                selected_unknowns.add(f"the {name} interface list is bounded to 64 entries")
+            selected_ids = all_ids[:64]
+            details = tuple(
+                layouts_by_id[region_id]
+                for region_id in selected_ids
+                if region_id in layouts_by_id
+            )
+            if len(details) != len(selected_ids):
+                selected_unknowns.add(
+                    f"the {name} role's numeric layout is unavailable"
+                )
+                selected_ids = tuple(row["region_id"] for row in details)
+            if not selected_ids:
+                status = "unavailable"
+                selected_unknowns.add(f"no current numeric region binds the {name} role")
+            else:
+                status = "partial" if selected_unknowns else "bound"
+            if selected_ids and not details:
+                status = "unavailable"
+                selected_ids = ()
+            selected_unknown_rows = tuple(sorted(selected_unknowns))[:64]
+            return EmbodiedRoleBinding(
+                role=name,
+                status=status,
+                state_generation=generation,
+                state_sha256=state_sha256,
+                region_ids=selected_ids,
+                layout=details,
+                operator=tuple(operator_rows[:64]),
+                semantic_refs=all_refs[:64],
+                interfaces=tuple(interfaces[:64]),
+                unknowns=selected_unknown_rows,
+            ).as_dict()
+
+        owner_region_ids = [
+            region_id
+            for region_id, row in layouts_by_id.items()
+            if row.get("kind") == "resonant-workspace"
+        ]
+        core_refs: list[SemanticRef] = []
+        for key in ("mission_ref", "catalog_ref"):
+            reference = orientation.get(key)
+            if isinstance(reference, Mapping):
+                try:
+                    core_refs.append(SemanticRef.from_dict(reference))
+                except (TypeError, ValueError):
+                    pass
+        for concern in orientation.get("current_concerns", ()):
+            if not isinstance(concern, Mapping):
+                continue
+            for key in ("obligation_ref", "assessment_ref"):
+                reference = concern.get(key)
+                if isinstance(reference, Mapping):
+                    try:
+                        core_refs.append(SemanticRef.from_dict(reference))
+                    except (TypeError, ValueError):
+                        pass
+        core_operators: list[dict[str, Any]] = []
+        if state.resonant_workspace is not None:
+            profile = state.resonant_workspace.profile
+            core_operators.append({
+                "basis": "owner-resonant-workspace-profile",
+                "layout_identity": profile.layout_identity,
+                "topology": profile.topology,
+                "pools": int(profile.pools),
+                "ports_per_pool": int(profile.ports_per_pool),
+                "port_count": int(profile.port_count),
+                "oriented_edge_count": len(profile.edges),
+                "field_time_step": float(profile.time_step),
+                "arithmetic": profile.arithmetic,
+            })
+        core_unknowns: list[str] = []
+        if not owner_region_ids:
+            core_unknowns.append("the owner resonant workspace has no published numeric region")
+        else:
+            core_unknowns.append(
+                "the owner resonant-workspace readout does not publish an operator digest"
+            )
+        if not core_refs:
+            core_unknowns.append("no current typed mission or concern reference is available")
+        core = role(
+            "core",
+            owner_region_ids,
+            core_refs,
+            core_operators,
+            (),
+            core_unknowns,
+        )
+
+        mantle_region_ids = [
+            region_id
+            for computer_id in sorted(computer_region_ids)
+            for region_id in computer_region_ids[computer_id]
+        ]
+        mantle_refs = [
+            reference
+            for computer_id in sorted(computer_region_ids)
+            for reference in semantic_refs_by_computer.get(computer_id, ())
+        ]
+        mantle_operators = [
+            operators_by_computer[computer_id]
+            for computer_id in sorted(computer_region_ids)
+            if computer_id in operators_by_computer
+        ]
+        mantle_interfaces = [
+            interface
+            for computer_id in sorted(computer_region_ids)
+            for interface in interfaces_by_computer.get(computer_id, ())
+        ]
+        mantle_unknowns: list[str] = []
+        if regions_truncated:
+            mantle_unknowns.append("the owner region list is truncated")
+        if regional_truncated:
+            mantle_unknowns.append("the owner regional-operator list is truncated")
+        if semantics_truncated:
+            mantle_unknowns.append("the owner semantic-reference list is truncated")
+        if mantle_region_ids and not mantle_operators:
+            mantle_unknowns.append("no current numerical operator is bound to the working regions")
+        if mantle_region_ids and not mantle_refs:
+            mantle_unknowns.append("no current typed semantic record is bound to the working regions")
+        if mantle_region_ids and not mantle_interfaces:
+            mantle_unknowns.append("no current communication interface is declared for the working regions")
+        mantle = role(
+            "mantle",
+            mantle_region_ids,
+            mantle_refs,
+            mantle_operators,
+            mantle_interfaces,
+            mantle_unknowns,
+        )
+
+        fringe_region_ids: list[str] = []
+        fringe_refs: list[SemanticRef] = []
+        fringe_interfaces: list[dict[str, Any]] = []
+        exchange_items = exchange_meaning.get("items")
+        if isinstance(exchange_items, (list, tuple)):
+            for item in exchange_items:
+                if not isinstance(item, Mapping):
+                    continue
+                exchange = item.get("exchange")
+                computer_id = item.get("computer_id")
+                interface = item.get("interface")
+                if (
+                    not isinstance(exchange, Mapping)
+                    or exchange.get("status") != "available"
+                    or not isinstance(exchange.get("owner_reported_last_exchange_sha256"), str)
+                    or not isinstance(computer_id, str)
+                    or not isinstance(interface, str)
+                ):
+                    continue
+                emitter = item.get("emitter_region_id")
+                receiver = item.get("receiver_region_id")
+                if not isinstance(emitter, str) or not isinstance(receiver, str):
+                    continue
+                emitter_id = f"computer:{computer_id}:region:{emitter}"
+                receiver_id = f"computer:{computer_id}:region:{receiver}"
+                if emitter_id not in layouts_by_id or receiver_id not in layouts_by_id:
+                    continue
+                fringe_region_ids.extend((emitter_id, receiver_id))
+                for key in ("obligation_ref", "assessment_ref"):
+                    reference = item.get(key)
+                    if isinstance(reference, Mapping):
+                        try:
+                            fringe_refs.append(SemanticRef.from_dict(reference))
+                        except (TypeError, ValueError):
+                            pass
+                concern_ref = item.get("concern_ref")
+                if isinstance(concern_ref, Mapping):
+                    concern_references = [
+                        concern_ref.get("question_ref"),
+                        concern_ref.get("goal_ref"),
+                    ]
+                    object_references = concern_ref.get("object_refs")
+                    if isinstance(object_references, (list, tuple)):
+                        concern_references.extend(object_references)
+                    for reference in concern_references:
+                        if not isinstance(reference, Mapping):
+                            continue
+                        try:
+                            fringe_refs.append(SemanticRef.from_dict(reference))
+                        except (TypeError, ValueError):
+                            pass
+                fringe_interfaces.append({
+                    "computer_id": computer_id,
+                    "interface": interface,
+                    "emitter_region_id": emitter_id,
+                    "receiver_region_id": receiver_id,
+                    "exchange": dict(exchange),
+                    "obligation_ref": item.get("obligation_ref"),
+                    "concern_ref": item.get("concern_ref"),
+                    "assessment_ref": item.get("assessment_ref"),
+                    "appraisal_basis": item.get("appraisal_basis"),
+                    "result_source": item.get("result_source"),
+                })
+        fringe_computers = sorted({
+            row.get("computer_id")
+            for row in fringe_interfaces
+            if isinstance(row.get("computer_id"), str)
+        })
+        fringe_operators = [
+            operators_by_computer[computer_id]
+            for computer_id in fringe_computers
+            if computer_id in operators_by_computer
+        ]
+        fringe_unknowns: list[str] = []
+        if not fringe_region_ids:
+            fringe_unknowns.append(
+                "no current owner-verified exchange binds a result to sensory/contact regions"
+            )
+        if regions_truncated:
+            fringe_unknowns.append("the owner region list is truncated")
+        if regional_truncated:
+            fringe_unknowns.append("the owner regional-operator list is truncated")
+        fringe = role(
+            "fringe",
+            fringe_region_ids,
+            fringe_refs,
+            fringe_operators,
+            fringe_interfaces,
+            fringe_unknowns,
+        )
+
+        roles = {
+            "schema": EMBODIED_ROLE_BINDINGS_SCHEMA,
+            "status": (
+                "available"
+                if all(item["status"] == "bound" for item in (core, mantle, fringe))
+                else "partial"
+            ),
+            "state_generation": generation,
+            "state_sha256": state_sha256,
+            "core": core,
+            "mantle": mantle,
+            "fringe": fringe,
+            "unknowns": [
+                f"{name}: {reason}"
+                for name, binding in (
+                    ("core", core), ("mantle", mantle), ("fringe", fringe)
+                )
+                for reason in binding["unknowns"]
+            ],
+        }
+        return roles
+
+    def inspect_embodied_field(self) -> Mapping[str, Any]:
+        """Bounded, read-only view of the owner's declared field and live flow."""
+
+        layout_limit = 64
+        region_limit = 64
+        semantic_limit = 64
+        circulation_limit = 16
+        with self._lock:
+            state = self.state
+            variables = tuple(sorted(state.variables, key=lambda item: item.variable_id))
+            variable_rows = [dict(item.as_dict()) for item in variables[:layout_limit]]
+            profile = (
+                state.resonant_workspace.profile.as_dict()
+                if state.resonant_workspace is not None else None
+            )
+            layout_value = {
+                "declared_variable_count": len(variables),
+                "items": variable_rows,
+                "limit": layout_limit,
+                "truncated": len(variables) > layout_limit,
+                "coordinate_layout": (
+                    {
+                        key: profile[key]
+                        for key in ("layout_identity", "pools", "ports_per_pool",
+                                    "topology", "coordinate_count")
+                        if key in profile
+                    }
+                    if isinstance(profile, Mapping) else None
+                ),
+            }
+            layout = {
+                "status": "known" if variables or profile is not None else "unavailable",
+                "value": layout_value,
+                "reason": None if variables or profile is not None
+                else "the owner has no declared variable or resonant layout",
+            }
+
+            workspace_report: Mapping[str, Any] | None = None
+            workspace_reason: str | None = None
+            if state.resonant_workspace is not None:
+                try:
+                    workspace_report = self.atlas.inspect_resonance(state)
+                except (FieldIntelligenceError, ResonantNumericalError, ValueError, TypeError):
+                    workspace_reason = "resonant workspace inspection is unavailable"
+            region_items: list[dict[str, Any]] = []
+            if workspace_report is not None:
+                region_items.append({
+                    "region_id": "owner-resonance",
+                    "kind": "resonant-workspace",
+                    "status": str(workspace_report.get("status", "ready")),
+                    "state_sha256": str(workspace_report.get("workspace_state_sha256", "")),
+                    "pools": profile.get("pools") if isinstance(profile, Mapping) else None,
+                    "ports_per_pool": (
+                        profile.get("ports_per_pool") if isinstance(profile, Mapping) else None
+                    ),
+                    "coordinate_count": (
+                        profile.get("coordinate_count") if isinstance(profile, Mapping) else None
+                    ),
+                    "port_count": workspace_report.get("port_count"),
+                    "oriented_edge_count": workspace_report.get("oriented_edge_count"),
+                    "field_time_step": workspace_report.get("field_time_step"),
+                    "layout_identity": (
+                        profile.get("layout_identity")
+                        if isinstance(profile, Mapping) else None
+                    ),
+                    "topology": workspace_report.get("topology"),
+                    "field_ticks": workspace_report.get("field_ticks"),
+                    "current_energy": workspace_report.get("energy"),
+                })
+            regional_reports: list[dict[str, Any]] = []
+            for computer in sorted(state.computers, key=lambda item: item.computer_id):
+                inspection = computer.inspect()
+                computer_id = computer.computer_id
+                session = inspection.get("session")
+                task = inspection.get("task")
+                region_items.append({
+                    "region_id": f"computer:{computer_id}",
+                    "kind": "learning-computer",
+                    "computer_id": computer_id,
+                    "status": str(inspection.get("status", "unavailable")),
+                    "state_sha256": computer.state_sha256,
+                    "logical_transition": inspection.get("logical_transition"),
+                })
+                if not (
+                    isinstance(task, Mapping)
+                    and isinstance(task.get("circulation"), Mapping)
+                    and isinstance(session, Mapping)
+                    and session.get("kernel") == REGIONAL_KERNEL_NAME
+                    and task.get("schema") == REGIONAL_STATE_SCHEMA
+                ):
+                    continue
+                segment = task["circulation"]
+                for identity, row in sorted(segment.get("regions", {}).items()):
+                    if not isinstance(row, Mapping):
+                        continue
+                    stale = bool(row.get("stale", True))
+                    item = {
+                        "region_id": str(identity),
+                        "kind": "resonant-scale",
+                        "computer_id": computer_id,
+                        "parent_id": row.get("parent_id"),
+                        "block": list(row.get("coupling_ports", ())),
+                        "content_version": int(row.get("content_version", 0)),
+                        "signed_current": float(row.get("signed_current", 0.0)),
+                        "handedness": int(row.get("handedness", 0)),
+                        "stale": stale,
+                    }
+                    coordinates = row.get("coarse_coordinates")
+                    if (
+                        not stale and isinstance(coordinates, (list, tuple))
+                        and len(coordinates) == 2
+                    ):
+                        item["current_coordinates"] = [
+                            float(coordinates[0]), float(coordinates[1])
+                        ]
+                    region_items.append(item)
+                from cassi_circulation import circulation_readout
+
+                readout = circulation_readout(segment)
+                spectrum = dict(readout.get("spectrum") or {})
+                spectrum_regions = spectrum.get("regions", {})
+                spectrum_interfaces = spectrum.get("interfaces", {})
+                spectrum_summary = {
+                    "schema": spectrum.get("schema"),
+                    "basis": spectrum.get("basis"),
+                    "status": spectrum.get("status", "unavailable"),
+                    "reason": spectrum.get("reason"),
+                    "operator_digest": spectrum.get("operator_digest"),
+                    "regions": {
+                        key: spectrum_regions[key]
+                        for key in sorted(spectrum_regions)[:region_limit]
+                    },
+                    "interfaces": {
+                        key: spectrum_interfaces[key]
+                        for key in sorted(spectrum_interfaces)[:region_limit]
+                    },
+                    "ledger": spectrum.get("ledger"),
+                    "last_exchange": spectrum.get("last_exchange"),
+                    "last_feedback": spectrum.get("last_feedback"),
+                    "history": list(spectrum.get("history", ()))[-32:],
+                    "truncated": (
+                        len(spectrum_regions) > region_limit
+                        or len(spectrum_interfaces) > region_limit
+                    ),
+                }
+                regional_reports.append({
+                    "computer_id": computer_id,
+                    "state_sha256": computer.state_sha256,
+                    "enabled": bool(readout["enabled"]),
+                    "basis": readout["basis"],
+                    "operator": dict(readout["operator"]),
+                    "geometry": dict(readout["geometry"]),
+                    "ledger": dict(readout["ledger"]),
+                    "spectrum": spectrum_summary,
+                })
+            regions_truncated = len(region_items) > region_limit
+            regions = {
+                "status": "known" if region_items else "unavailable",
+                "items": region_items[:region_limit],
+                "limit": region_limit,
+                "truncated": regions_truncated,
+                "reason": None if region_items
+                else "no owner-held resonant regions are currently declared",
+            }
+            regional_truncated = len(regional_reports) > circulation_limit
+            circulation_value = {
+                "workspace": (
+                    {
+                        key: workspace_report[key]
+                        for key in (
+                            "status", "workspace_state_sha256", "field_generation",
+                            "evidence_tick", "field_time_step", "topology",
+                            "field_ticks", "energy", "activity", "counterflow_rail_power",
+                            "common_rail_power", "cycle_power",
+                            "semantic_residual_norm",
+                        )
+                        if key in workspace_report
+                    }
+                    if workspace_report is not None else None
+                ),
+                "regional": regional_reports[:circulation_limit],
+                "limit": circulation_limit,
+                "truncated": regional_truncated,
+            }
+            circulation_known = (
+                workspace_report is not None or bool(regional_reports)
+            )
+            circulation = {
+                "status": "known" if circulation_known else "unavailable",
+                "value": circulation_value,
+                "reason": None if circulation_known else (
+                    workspace_reason or "no current owner-held circulation is available"
+                ),
+            }
+            exchange_meaning = self._embodied_exchange_meaning(
+                state,
+                regional_reports[:circulation_limit],
+                regional_truncated=regional_truncated,
+            )
+
+
+            semantic_rows: list[dict[str, Any]] = [
+                {
+                    "kind": "variable-meaning",
+                    "variable_id": item.variable_id,
+                    "value_kind": item.kind,
+                    "unit": item.unit,
+                    "frame": item.frame,
+                    "lower": item.lower,
+                    "upper": item.upper,
+                    "constant": item.constant,
+                }
+                for item in variables
+            ]
+            semantic_rows.extend(
+                {
+                    "kind": "relation-meaning",
+                    "chart_id": chart.chart_id,
+                    "version": int(chart.version),
+                    "scope": list(chart.scope),
+                    "status": chart.status,
+                    "learning_mode": chart.learning_mode,
+                    "representation_id": chart.representation_id,
+                    "dependencies": list(chart.dependencies),
+                }
+                for chart in sorted(state.charts, key=lambda item: item.chart_id)
+            )
+            semantic_count = len(semantic_rows)
+            for computer in sorted(state.computers, key=lambda row: row.computer_id):
+                task = computer._value("task")
+                if not isinstance(task, Mapping) or task.get("schema") != "cassifi.semantic-cognition-state.v1":
+                    continue
+                current, records = task.get("current"), task.get("records")
+                if not isinstance(current, Mapping) or not isinstance(records, Mapping):
+                    continue
+                for kind, references in sorted(current.items()):
+                    if not isinstance(references, Mapping):
+                        continue
+                    for identity, reference in sorted(references.items()):
+                        history = records.get(identity)
+                        if (
+                            not isinstance(reference, Mapping)
+                            or not isinstance(history, (list, tuple))
+                            or not history
+                            or not isinstance(history[-1], Mapping)
+                        ):
+                            continue
+                        try:
+                            typed_reference = SemanticRef.from_dict(reference)
+                        except (TypeError, ValueError):
+                            continue
+                        record = history[-1]
+                        if (
+                            typed_reference.id != identity
+                            or typed_reference.kind != kind
+                            or record.get("id") != identity
+                            or record.get("kind") != kind
+                            or record.get("content_version") != typed_reference.content_version
+                        ):
+                            continue
+                        semantic_count += 1
+                        if len(semantic_rows) < semantic_limit:
+                            semantic_rows.append({
+                                "kind": "field-binding",
+                                "region_id": f"computer:{computer.computer_id}",
+                                "computer_id": computer.computer_id,
+                                "record_kind": kind,
+                                "record_id": identity,
+                                "record_ref": typed_reference.as_dict(),
+                                "content_version": record.get("content_version"),
+                                "status": record.get("status"),
+                                "epistemic_kind": record.get("epistemic_kind"),
+                            })
+            semantics_truncated = semantic_count > semantic_limit
+            semantics = {
+                "status": "known" if semantic_rows else "unavailable",
+                "items": semantic_rows[:semantic_limit],
+                "limit": semantic_limit,
+                "truncated": semantics_truncated,
+                "reason": None if semantic_rows
+                else "the owner has no declared variable meaning or relation chart",
+            }
+            orientation = self._embodied_orientation(state)
+            roles = self._embodied_role_bindings(
+                state,
+                region_items=regions["items"],
+                regional_reports=circulation_value["regional"],
+                semantic_rows=semantics["items"],
+                exchange_meaning=exchange_meaning,
+                orientation=orientation,
+                regions_truncated=regions_truncated,
+                regional_truncated=regional_truncated,
+                semantics_truncated=semantics_truncated,
+            )
+            sections = (layout, regions, circulation, semantics)
+            partial = (
+                any(
+                    section["status"] == "unavailable"
+                    or bool(section.get("truncated"))
+                    or bool(section.get("value", {}).get("truncated"))
+                    for section in sections
+                )
+                or orientation["status"] != "available"
+                or roles["status"] != "available"
+            )
+            snapshot = {
+                "schema": "cassifi.embodied-field.v1",
+                "status": "partial" if partial else "available",
+                "state_sha256": state.state_sha256,
+                "generation": int(state.generation),
+                "read_only": True,
+                "layout": layout,
+                "regions": regions,
+                "exchange_meaning": exchange_meaning,
+                "circulation": circulation,
+                "semantics": semantics,
+                "roles": roles,
+                "orientation": orientation,
+            }
+            return json.loads(canonical_json_bytes(snapshot).decode("utf-8"))
+
     def write_packet_impulse(
         self,
         operation_id: str,
@@ -10032,7 +12725,10 @@ class FieldIntelligenceOwner:
             memory_id = request.get("memory_id")
             if memory_id is None:
                 memory_id = receipt.get("memory_id")
-            if memory_id is not None:
+            if kind == "retire-temporal":
+                if any(row.memory_id == memory_id for row in successor.temporal_fields):
+                    raise ValueError("retired temporal memory remains in its successor")
+            elif memory_id is not None:
                 if not isinstance(memory_id, str):
                     raise TypeError("temporal receipt memory_id is invalid")
                 memory = successor.temporal(memory_id)
@@ -10141,6 +12837,16 @@ class FieldIntelligenceOwner:
         expected = request.get("expected_state_sha256")
         if expected is not None:
             _digest(expected, "expected state")
+        deferred = getattr(self, "_journal_deferred", {}).get(operation_id)
+        if deferred is not None:
+            if deferred[0] != sha256_value(request):
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT",
+                    "operation identity is already bound to different request semantics",
+                )
+            return {**deferred[1], "checkpoint_receipt": None}
+        if request["kind"] != "advance-temporal":
+            self.flush_journal()
         committed = self._committed_result(
             operation_id,
             expected_kind=str(request["kind"]),
@@ -10227,6 +12933,26 @@ class FieldIntelligenceOwner:
         self, operation_id: str, request: Mapping[str, Any], successor: AtlasState,
         receipt: Mapping[str, Any], *, event_id: str | None = None,
     ) -> Mapping[str, Any]:
+        producer, separator, sequence_text = operation_id.rpartition(":")
+        if (
+            request["kind"] == "advance-temporal"
+            and self.limits.max_checkpoint_frequency > 1
+            and event_id is None
+            and separator and producer and sequence_text.isascii() and sequence_text.isdigit()
+        ):
+            self._assert_publication_order(operation_id)
+            self._check_capacity(successor)
+            result = json.loads(canonical_json_bytes({"receipt": dict(receipt)}))
+            deferred = getattr(self, "_journal_deferred", {})
+            deferred[operation_id] = (sha256_value(request), result)
+            self._journal_deferred = deferred
+            self.state = successor
+            checkpoint = (
+                self.flush_journal()
+                if len(deferred) >= self.limits.max_checkpoint_frequency
+                else None
+            )
+            return {**result, "checkpoint_receipt": None if checkpoint is None else checkpoint.as_dict()}
         result = json.loads(canonical_json_bytes({"receipt": dict(receipt)}))
         checkpoint = self._publish(
             operation_id=operation_id, successor=successor, event_id=event_id,
@@ -10659,6 +13385,43 @@ class FieldIntelligenceOwner:
                 "memory_id": memory_id, "memory_sha256": row.memory_sha256, "state_sha256": row.state_sha256,
             })
 
+    def retire_temporal(
+        self, operation_id: str, *, memory_id: str, expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Release a temporal memory's live pages from the field state.
+
+        The memory's evidence revisions stay in the evidence store; the field
+        stops carrying its learned automaton, so the state closure and every
+        later checkpoint shrink by the memory's size.
+        """
+        with self._lock:
+            request = {
+                "kind": "retire-temporal", "memory_id": _identifier(memory_id, "memory_id"),
+                "expected_state_sha256": expected_state_sha256,
+            }
+            replay = self._temporal_replay(operation_id, request)
+            if replay is not None:
+                return replay
+            row = self.state.temporal(memory_id)
+            for plan in self.state.plans:
+                if (plan.goal.get("kind") == "temporal-task"
+                        and plan.status not in {"completed", "invalidated"}
+                        and any(segment.payload["binding"]["memory_id"] == memory_id
+                                for segment in plan.segments)):
+                    raise FieldIntelligenceError(
+                        "OPERATION_CONFLICT", "an open temporal task still binds this memory")
+            successor = self.state.with_transition(
+                "retire-temporal",
+                {"memory_id": row.memory_id},
+                temporal_fields=tuple(
+                    item for item in self.state.temporal_fields if item.memory_id != row.memory_id
+                ),
+            )
+            return self._publish_temporal(operation_id, request, successor, {
+                "memory_id": row.memory_id, "memory_sha256": row.memory_sha256,
+                "source_revision_ids": list(row.source_revision_ids),
+            })
+
     def condense_temporal_skill(
         self, operation_id: str, *, memory_id: str, skill_id: str,
         goal_observations: Sequence[str], forbidden_observations: Sequence[str] = (),
@@ -11023,6 +13786,27 @@ class FieldIntelligenceOwner:
             row = self._temporal_apply(
                 self._temporal_memory(memory_id).bind, participant_id, known_start=known_start,
             )
+            return self._publish_temporal(operation_id, request, self._temporal_successor(row, request), {
+                "memory_id": memory_id, "participant_id": participant_id,
+                "memory_sha256": row.memory_sha256, "state_sha256": row.state_sha256,
+            })
+
+    def release_temporal(
+        self, operation_id: str, *, memory_id: str, participant_id: str,
+        expected_state_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Drop an idle participant lane whose history is already committed as evidence."""
+        with self._lock:
+            request = {
+                "kind": "release-temporal", "memory_id": _identifier(memory_id, "memory_id"),
+                "participant_id": _identifier(participant_id, "participant_id"),
+                "expected_state_sha256": expected_state_sha256,
+            }
+            replay = self._temporal_replay(operation_id, request)
+            if replay is not None:
+                return replay
+            self._require_temporal_idle(memory_id, participant_id)
+            row = self._temporal_apply(self._temporal_memory(memory_id).release, participant_id)
             return self._publish_temporal(operation_id, request, self._temporal_successor(row, request), {
                 "memory_id": memory_id, "participant_id": participant_id,
                 "memory_sha256": row.memory_sha256, "state_sha256": row.state_sha256,
@@ -13068,6 +15852,1490 @@ class FieldIntelligenceOwner:
                 },
             )
             return {"macro": macro.as_dict(), "receipt": receipt.as_dict()}
+    def _execute_regional_hive_method(
+        self,
+        computer: Any,
+        method: Mapping[str, Any],
+        input_refs: list,
+        binding_ids: Mapping[str, int],
+        method_id: str,
+        method_generation: int,
+        method_source: str,
+    ) -> tuple[Any, dict[str, Any]]:
+        """Lower one admitted Hive ExecutableMethod onto its bound regional computer.
+
+        The method runs through regional field operations near the bound data
+        (never the host Atlas path), the successor computer row is published on
+        the owner boundary, and the output objects are carried by exact object
+        references inside the committed result.
+        """
+
+        from cassi_field_computer import ComputerState, PagedComputerState
+
+        payload = method.get("method_payload") or {}
+        executable_method = payload.get("executable_method")
+        program_sha256 = payload.get("program_sha256")
+        if (
+            not isinstance(executable_method, Mapping)
+            or not isinstance(program_sha256, str)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "hive method payload is missing its executable program"
+            )
+        field = computer.field
+        arguments = {
+            "executable_method": dict(executable_method),
+            "input_refs": list(input_refs),
+            "input_bindings": dict(binding_ids),
+            "method_id": method_id,
+            "method_generation": method_generation,
+            "method_source_sha256": method_source,
+            "program_sha256": program_sha256,
+        }
+        try:
+            if hasattr(field, "image"):
+                image, receipt = execute_regional_bound_method(
+                    field.image, computer.profile, **arguments
+                )
+                successor_field = PagedComputerState(
+                    image, computer.profile.fingerprint
+                )
+            else:
+                successor_array, receipt = execute_regional_bound_method(
+                    field.field, computer.profile, **arguments
+                )
+                successor_field = ComputerState(
+                    successor_array, computer.profile.fingerprint
+                )
+        except RegionalFieldError as exc:
+            raise FieldIntelligenceError("METHOD_REGIONAL_FAULT", str(exc)) from exc
+        successor_row = replace(computer, field=successor_field)
+        computers = tuple(
+            item for item in self.state.computers
+            if item.computer_id != computer.computer_id
+        )
+        successor = self.state.with_transition(
+            "bound-method-executed",
+            {
+                "computer_id": computer.computer_id,
+                "method_id": method_id,
+                "method_generation": method_generation,
+            },
+            computers=(*computers, successor_row),
+        )
+        result = {
+            "status": "executed",
+            "value": receipt["value"],
+            "output_port": receipt["output_port"],
+            "output_object_refs": receipt["output_object_refs"],
+            "output_region": receipt["output_regions"][0],
+            "work": receipt["work"],
+        }
+        return successor, result
+
+    def _execute_bound_native_sum(
+        self,
+        operation_id: str,
+        computer: Any,
+        input_refs: list[Mapping[str, Any]],
+        binding_ids: Mapping[str, int],
+        method_id: str,
+        method_generation: int,
+        method_source: str,
+    ) -> tuple[Any, dict[str, Any]]:
+        """Reduce an exact bound u32 region in its resident candidate."""
+        from cassi_field_computer import ComputerState, PagedComputerState
+        from cassi_field_runtime import FieldRuntimeError
+        from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
+
+        binding = self._regional_runtimes.get(computer.computer_id)
+        if binding is None or len(binding_ids) != 1:
+            raise FieldIntelligenceError(
+                "METHOD_REGIONAL_FAULT", "native method requires one resident input",
+            )
+        runtime, owner_id, placement = binding
+        if getattr(runtime, "_native_client", None) is None:
+            raise FieldIntelligenceError(
+                "METHOD_REGIONAL_FAULT", "native method requires an attached native service",
+            )
+        reference = next(
+            ref for ref in input_refs
+            if ref["object_id"] == next(iter(binding_ids.values()))
+        )
+        field = computer.field
+        regional_field = field.image.view() if hasattr(field, "image") else field.field
+        try:
+            first_word, count = bound_u32_range(
+                regional_field, computer.profile, reference,
+            )
+            prior = runtime._attachments.get(owner_id)
+            if prior is None or prior.image.state_sha256 != computer.state_sha256:
+                if owner_id in runtime._owner_candidate:
+                    raise FieldRuntimeError("resident input has an in-flight candidate")
+                prior = runtime.attach(
+                    owner_id, field,
+                    state_sha256=computer.state_sha256,
+                    catalog_sha256=STANDARD_KERNEL_CATALOG.fingerprint,
+                    fence=0 if prior is None else prior.fence,
+                    placement=placement,
+                )
+            lease_id = f"method:{operation_id}"
+            candidate = runtime.begin_candidate(
+                owner_id,
+                predecessor_state_sha256=computer.state_sha256,
+                fence=prior.fence, lease_id=lease_id,
+                placement=placement,
+            )
+            try:
+                reduced = runtime.reduce_candidate(
+                    candidate, first_word, count,
+                    owner_id=owner_id, fence=prior.fence, lease_id=lease_id,
+                )
+            finally:
+                runtime.cancel_candidate(candidate)
+            arguments = {
+                "input_ref": reference, "value": reduced["sum"],
+                "method_id": method_id,
+                "method_generation": method_generation,
+                "method_source_sha256": method_source,
+            }
+            if hasattr(field, "image"):
+                successor_image, receipt = publish_bound_native_sum(
+                    field.image, computer.profile, **arguments,
+                )
+                successor_field = PagedComputerState(
+                    successor_image, computer.profile.fingerprint,
+                )
+            else:
+                successor_array, receipt = publish_bound_native_sum(
+                    field.field, computer.profile, **arguments,
+                )
+                successor_field = ComputerState(
+                    successor_array, computer.profile.fingerprint,
+                )
+        except (RegionalFieldError, FieldRuntimeError) as exc:
+            raise FieldIntelligenceError("METHOD_REGIONAL_FAULT", str(exc)) from exc
+        successor_row = replace(computer, field=successor_field)
+        computers = tuple(
+            item for item in self.state.computers
+            if item.computer_id != computer.computer_id
+        )
+        successor = self.state.with_transition(
+            "bound-method-executed",
+            {
+                "computer_id": computer.computer_id,
+                "method_id": method_id,
+                "method_generation": method_generation,
+            },
+            computers=(*computers, successor_row),
+        )
+        result = {
+            "status": "executed", "value": receipt["value"],
+            "output_port": receipt["output_port"],
+            "output_object_refs": receipt["output_object_refs"],
+            "output_region": receipt["output_regions"][0],
+            "work": receipt["work"],
+            "placement": reduced["placement"],
+            "resident_predecessor_sha256": reduced["predecessor_state_sha256"],
+            "resident_range": {
+                "first_word": reduced["first_word"], "count": reduced["count"],
+            },
+        }
+        return successor, result
+
+    def _bound_method_physical_resources(
+        self, field_bytes: int, method_kind: str, placement: str | None,
+    ) -> dict[str, int]:
+        # Match native candidate staging or the existing CPU-operation budget.
+        if method_kind == "native-u32-sum":
+            return {
+                "physical_cores": 1,
+                "ram_bytes": field_bytes * 4,
+                "vram_bytes": field_bytes if placement == "vulkan" else 0,
+                "transfer_bytes": field_bytes * 2,
+                "peak_bytes": field_bytes,
+            }
+        return {
+            "physical_cores": 1,
+            "ram_bytes": field_bytes * 2,
+            "vram_bytes": 0,
+            "transfer_bytes": 0,
+            "peak_bytes": field_bytes,
+        }
+
+    def _bound_method_physical_plan(
+        self, normalized: Mapping[str, Any],
+    ) -> dict[str, Any] | None:
+        """Snapshot a guarded bound method's field and placement under the owner lock."""
+        required = {
+            "method_ref", "input_refs", "computer_id",
+            "input_bindings", "action", "context",
+        }
+        if set(normalized) != required:
+            return None
+        method_ref = normalized["method_ref"]
+        context = normalized["context"]
+        refs = normalized["input_refs"]
+        bindings = normalized["input_bindings"]
+        if (
+            not isinstance(method_ref, Mapping)
+            or set(method_ref) != {"method_id", "method_generation", "source_sha256"}
+            or not isinstance(context, Mapping)
+            or not isinstance(refs, list)
+            or not isinstance(bindings, Mapping)
+            or not bindings
+            or len(refs) > 32
+        ):
+            return None
+        try:
+            method_id = _identifier(method_ref["method_id"], "method_id")
+            method_generation = _integer(
+                method_ref["method_generation"], "method_generation", minimum=1,
+            )
+            method_source = _digest(method_ref["source_sha256"], "method source")
+            computer_id = _identifier(normalized["computer_id"], "computer_id")
+            method_bindings = {
+                _identifier(name, "method input name"): _integer(
+                    object_id, "bound object_id", minimum=1,
+                )
+                for name, object_id in bindings.items()
+            }
+            ref_ids: set[int] = set()
+            previous_id = 0
+            for ref in refs:
+                if not isinstance(ref, Mapping) or set(ref) != {
+                    "object_id", "object_version", "source_sha256",
+                }:
+                    return None
+                object_id = _integer(ref["object_id"], "input object_id", minimum=1)
+                if object_id <= previous_id:
+                    return None
+                _integer(
+                    ref["object_version"], "bound object version", minimum=1,
+                    maximum=(1 << 64) - 1,
+                )
+                _digest(ref["source_sha256"], "input source")
+                ref_ids.add(object_id)
+                previous_id = object_id
+        except FieldIntelligenceError:
+            return None
+        if not set(method_bindings.values()) <= ref_ids:
+            return None
+        method_record = self.atlas._acquired_method_record(self.state, method_id)
+        method = (
+            None if method_record is None
+            else method_record.inputs.get("method")
+        )
+        if (
+            not isinstance(method, Mapping)
+            or method.get("status") != "active"
+            or method.get("method_id") != method_id
+            or method.get("method_version") != method_generation
+            or method.get("source_sha256") != method_source
+            or not isinstance(method.get("input_units"), Mapping)
+            or set(method_bindings) != set(method["input_units"])
+            or not _method_applicability_matches(method.get("applicability", {}), context)
+            or not _method_context_accepted(method, context)
+        ):
+            return None
+        computer = next(
+            (row for row in self.state.computers if row.computer_id == computer_id),
+            None,
+        )
+        if computer is None:
+            return None
+        method_kind = str(method.get("kind", ""))
+        runtime_binding = (
+            self._regional_runtimes.get(computer_id)
+            if method_kind == "native-u32-sum"
+            else None
+        )
+        runtime = None if runtime_binding is None else runtime_binding[0]
+        placement = None if runtime_binding is None else runtime_binding[2]
+        field_bytes = _computer_physical_work_bytes(computer)
+        return {
+            "computer_id": computer_id,
+            "computer": computer,
+            "field_bytes": field_bytes,
+            "method_kind": method_kind,
+            "runtime": runtime,
+            "placement": placement,
+            "resources": self._bound_method_physical_resources(
+                field_bytes, method_kind, placement,
+            ),
+            "image": getattr(computer.field, "image", None),
+            "profile": computer.profile,
+            "input_refs": refs,
+        }
+
+    @staticmethod
+    def _bound_method_vram_device(
+        runtime: Any, admission: Any,
+    ) -> str | None:
+        manager = getattr(admission, "manager", None)
+        registered = getattr(manager, "_vram_devices", None)
+        registered = dict(registered) if isinstance(registered, Mapping) else {}
+        report = runtime.device_report()
+        index = report.get("device_index") if isinstance(report, Mapping) else None
+        if isinstance(index, int) and not isinstance(index, bool):
+            key = str(index)
+            if key in registered:
+                return key
+            return key if registered else None
+        devices = sorted(registered)
+        return devices[0] if len(devices) == 1 else None
+
+    def _assert_bound_method_physical_coverage(
+        self, operation_id: str, computer: Any, method: Mapping[str, Any],
+    ) -> None:
+        session = getattr(self._physical_work_local, "bound_method_session", None)
+        if not isinstance(session, Mapping) or session.get("operation_id") != operation_id:
+            if self._physical_admission is not None:
+                raise ResourceWait(
+                    "physical_cores", 1, 0,
+                    reason="physical-admission-required",
+                    continuation_id=operation_id,
+                )
+            return
+        method_kind = str(method.get("kind", ""))
+        if method_kind != session.get("method_kind"):
+            raise ResourceWait(
+                "physical_cores", 1, 0, reason="method-changed-before-execution",
+            )
+        runtime_binding = (
+            self._regional_runtimes.get(computer.computer_id)
+            if method_kind == "native-u32-sum"
+            else None
+        )
+        runtime = None if runtime_binding is None else runtime_binding[0]
+        placement = None if runtime_binding is None else runtime_binding[2]
+        field_bytes = _computer_physical_work_bytes(computer)
+        resources = self._bound_method_physical_resources(
+            field_bytes, method_kind, placement,
+        )
+        admitted = session["resources"]
+        if resources["vram_bytes"] and runtime is not session.get("runtime"):
+            raise ResourceWait(
+                "vram", resources["vram_bytes"], 0,
+                reason="vram-device-changed-before-execution",
+                device=session.get("vram_device"),
+            )
+        for name, requested in resources.items():
+            available = admitted.get(name, 0)
+            if requested > available:
+                raise ResourceWait(
+                    name, requested, available, reason="successor-capacity",
+                )
+
+    def acquired_method_operation(
+        self,
+        operation_id: str,
+        *,
+        action: str,
+        arguments: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Run bound acquired work under the shared physical admission, when attached."""
+        current = getattr(self._physical_work_local, "bound_method_session", None)
+        if (
+            action != "execute-bound"
+            or (
+                isinstance(current, Mapping)
+                and current.get("operation_id") == operation_id
+            )
+        ):
+            return self._acquired_method_operation_unadmitted(
+                operation_id, action=action, arguments=arguments,
+            )
+        operation_id = _identifier(operation_id, "acquired method operation_id")
+        with self._lock:
+            admission = self._physical_admission
+        if admission is None:
+            return self._acquired_method_operation_unadmitted(
+                operation_id, action=action, arguments=arguments,
+            )
+        lock_owned = getattr(self._lock, "_is_owned", None)
+        if callable(lock_owned) and lock_owned():
+            raise ResourceWait(
+                "physical_cores", 1, 0, reason="owner-lock-held",
+                continuation_id=operation_id,
+            )
+        if not isinstance(arguments, Mapping):
+            return self._acquired_method_operation_unadmitted(
+                operation_id, action=action, arguments=arguments,
+            )
+        try:
+            normalized = json.loads(canonical_json_bytes(dict(arguments)))
+            request = {"action": action, "arguments": normalized}
+            if len(canonical_json_bytes(request)) > 5 * 1024 * 1024:
+                return self._acquired_method_operation_unadmitted(
+                    operation_id, action=action, arguments=arguments,
+                )
+        except Exception:
+            return self._acquired_method_operation_unadmitted(
+                operation_id, action=action, arguments=arguments,
+            )
+
+        activity_base = (
+            "acquired-method:"
+            + hashlib.sha256(operation_id.encode("utf-8")).hexdigest()
+        )
+        wait_key = f"acquired-method:{operation_id}"
+        while True:
+            with self._lock:
+                replay = self._committed_result(
+                    operation_id,
+                    expected_kind="acquired-method",
+                    expected_request=request,
+                    expected_result_keys=frozenset({"method", "result"}),
+                    expected_mapping_result_fields=frozenset({"method", "result"}),
+                    require_retained=True,
+                )
+                if replay is not None:
+                    leader = False
+                    waiter = None
+                    plan = None
+                else:
+                    waiter = self._physical_work_waits.get(wait_key)
+                    if waiter is None:
+                        waiter = threading.Event()
+                        self._physical_work_waits[wait_key] = waiter
+                        leader = True
+                        try:
+                            plan = self._bound_method_physical_plan(normalized)
+                        except BaseException:
+                            self._physical_work_waits.pop(wait_key, None)
+                            waiter.set()
+                            raise
+                    else:
+                        leader = False
+                        plan = None
+            if replay is not None:
+                return self._acquired_method_operation_unadmitted(
+                    operation_id, action=action, arguments=normalized,
+                )
+            if not leader:
+                waiter.wait()
+                continue
+            prefetch_image = None if plan is None else plan["image"]
+            prefetch_id: int | None = None
+            try:
+                if plan is None:
+                    return self._acquired_method_operation_unadmitted(
+                        operation_id, action=action, arguments=normalized,
+                    )
+                if prefetch_image is not None:
+                    try:
+                        from cassi_field_regions import prefetch_bound_object_refs
+                        prefetch = prefetch_bound_object_refs(
+                            prefetch_image,
+                            plan["profile"],
+                            plan["input_refs"],
+                            limit=4,
+                        )
+                        prefetch_id = prefetch.get("prefetch_id")
+                    except (RegionalFieldError, ResourceWait):
+                        # Ordinary bound validation/admission reports unavailable pages.
+                        pass
+                resources = plan["resources"]
+                vram_device = None
+                if resources["vram_bytes"]:
+                    vram_device = self._bound_method_vram_device(
+                        plan["runtime"], admission,
+                    )
+                attempt = 0
+                while True:
+                    activity_id = f"{activity_base}:attempt:{attempt}"
+                    status = admission.get_activity_status(activity_id)
+                    if status["status"] == "not-admitted":
+                        break
+                    if status["status"] != "retired":
+                        raise ResourceWait(
+                            "physical_cores", 1, 0,
+                            reason="reconciliation-required",
+                            continuation_id=activity_base,
+                        )
+                    with self._lock:
+                        replay = self._committed_result(
+                            operation_id,
+                            expected_kind="acquired-method",
+                            expected_request=request,
+                            expected_result_keys=frozenset({"method", "result"}),
+                            expected_mapping_result_fields=frozenset({"method", "result"}),
+                            require_retained=True,
+                        )
+                    if replay is not None:
+                        return self._acquired_method_operation_unadmitted(
+                            operation_id, action=action, arguments=normalized,
+                        )
+                    attempt += 1
+                lease = admission.acquire(
+                    activity_id,
+                    priority="background",
+                    continuation_id=activity_base,
+                    resources=resources,
+                    vram_device=vram_device,
+                )
+                previous_session = getattr(
+                    self._physical_work_local, "bound_method_session", None,
+                )
+                previous_active = getattr(self._physical_work_local, "active", False)
+                self._physical_work_local.bound_method_session = {
+                    "operation_id": operation_id,
+                    "method_kind": plan["method_kind"],
+                    "runtime": plan["runtime"],
+                    "resources": resources,
+                    "vram_device": vram_device,
+                }
+                self._physical_work_local.active = True
+                try:
+                    response = self._acquired_method_operation_unadmitted(
+                        operation_id, action=action, arguments=normalized,
+                    )
+                except BaseException:
+                    lease.retire("failed")
+                    raise
+                else:
+                    lease.retire("completed")
+                    return response
+                finally:
+                    self._physical_work_local.bound_method_session = previous_session
+                    self._physical_work_local.active = previous_active
+            finally:
+                try:
+                    if prefetch_id is not None:
+                        settle = getattr(prefetch_image, "settle_prefetch", None)
+                        if callable(settle):
+                            settle(prefetch_id)
+                finally:
+                    with self._lock:
+                        self._physical_work_waits.pop(wait_key, None)
+                        waiter.set()
+
+    def _committed_method_execution_binding(
+        self,
+        execution_operation_id: str,
+    ) -> dict[str, Any]:
+        execution = self._committed_replay(
+            execution_operation_id,
+            require_retained=True,
+        )
+        if execution is None:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "method execution is not committed",
+            )
+        manifest, receipt = execution
+        transition = manifest.get("transition")
+        request = transition.get("request") if isinstance(transition, Mapping) else None
+        arguments = request.get("arguments") if isinstance(request, Mapping) else None
+        committed = transition.get("result") if isinstance(transition, Mapping) else None
+        method = committed.get("method") if isinstance(committed, Mapping) else None
+        outcome = committed.get("result") if isinstance(committed, Mapping) else None
+        if (
+            not isinstance(transition, Mapping)
+            or transition.get("kind") != "acquired-method"
+            or not isinstance(request, Mapping)
+            or request.get("action") not in {"select-execute", "execute-bound"}
+            or not isinstance(arguments, Mapping)
+            or not isinstance(method, Mapping)
+            or not isinstance(outcome, Mapping)
+            or outcome.get("status") not in {"supported", "executed"}
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "referenced operation is not a committed method execution",
+            )
+        method_id = _identifier(method.get("method_id"), "method_id")
+        method_version = _integer(
+            method.get("method_version"),
+            "method_version",
+            minimum=1,
+        )
+        method_source = _digest(method.get("source_sha256"), "method source")
+        method_input_units = method.get("input_units")
+        output_unit = _identifier(method.get("output_unit"), "output_unit")
+        if request["action"] == "select-execute":
+            requested_units = arguments.get("input_units")
+            if (
+                not isinstance(requested_units, Mapping)
+                or arguments.get("output_unit") != output_unit
+                or method_input_units is not None
+                and (
+                    not isinstance(method_input_units, Mapping)
+                    or canonical_json_bytes(dict(method_input_units))
+                    != canonical_json_bytes(dict(requested_units))
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "selected execution request does not match its exact method units",
+                )
+            input_units = dict(requested_units)
+        else:
+            if not isinstance(method_input_units, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "committed bound method omits its input units",
+                )
+            input_units = dict(method_input_units)
+        context = arguments.get("context")
+        if not isinstance(context, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "committed method execution omits its context",
+            )
+        if (
+            outcome.get("method_id") != method_id
+            or outcome.get("method_version") != method_version
+            or outcome.get("source_sha256") != method_source
+            or not isinstance(outcome.get("input_units"), Mapping)
+            or canonical_json_bytes(dict(outcome["input_units"]))
+            != canonical_json_bytes(input_units)
+            or outcome.get("output_unit") != output_unit
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "committed execution does not match its exact method generation and units",
+            )
+        try:
+            predicted = _finite(outcome.get("value"), "method predicted outcome")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "committed method execution has no measured scalar result",
+            ) from exc
+        raw_source_ids = outcome.get("source_revision_ids")
+        if not isinstance(raw_source_ids, list) or not raw_source_ids:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "committed execution omits source revisions",
+            )
+        source_ids = [_digest(item, "method source revision") for item in raw_source_ids]
+        input_refs = outcome.get("input_object_refs", [])
+        if not isinstance(input_refs, list):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "committed method input references are invalid",
+            )
+        expected_source_ids = {method_source}
+        for reference in input_refs:
+            if not isinstance(reference, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "committed method input reference is invalid",
+                )
+            expected_source_ids.add(
+                _digest(reference.get("source_sha256"), "method input source")
+            )
+        if source_ids != sorted(expected_source_ids):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "committed execution source revisions do not match its inputs",
+            )
+        if request["action"] == "select-execute":
+            if (
+                input_refs
+                or not isinstance(arguments.get("input_units"), Mapping)
+                or canonical_json_bytes(dict(arguments["input_units"]))
+                != canonical_json_bytes(dict(input_units))
+                or arguments.get("output_unit") != output_unit
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "selected execution request does not match its method units",
+                )
+        else:
+            method_ref = arguments.get("method_ref")
+            requested_refs = arguments.get("input_refs")
+            if (
+                not isinstance(method_ref, Mapping)
+                or set(method_ref)
+                != {"method_id", "method_generation", "source_sha256"}
+                or method_ref.get("method_id") != method_id
+                or method_ref.get("method_generation") != method_version
+                or method_ref.get("source_sha256") != method_source
+                or not isinstance(requested_refs, list)
+                or canonical_json_bytes(input_refs)
+                != canonical_json_bytes(requested_refs)
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "bound execution request does not match its exact method inputs",
+                )
+        execution_result_sha256 = sha256_value(dict(outcome))
+        event_context = {
+            "context": dict(context),
+            "execution_manifest_sha256": receipt.manifest_sha256,
+            "execution_operation_id": execution_operation_id,
+            "execution_result_sha256": execution_result_sha256,
+            "execution_state_sha256": manifest["state_sha256"],
+            "input_units": dict(input_units),
+            "method_generation": method_version,
+            "method_id": method_id,
+            "method_source_sha256": method_source,
+            "output_unit": output_unit,
+            "predicted_value": predicted,
+            "source_revision_ids": source_ids,
+        }
+        return {
+            "context": dict(context),
+            "event_context": event_context,
+            "event_derivation_roots": tuple(
+                sorted(
+                    {
+                        receipt.manifest_sha256,
+                        execution_result_sha256,
+                        *source_ids,
+                    }
+                )
+            ),
+            "execution_manifest": manifest,
+            "execution_receipt": receipt,
+            "execution_result": dict(outcome),
+            "execution_result_sha256": execution_result_sha256,
+            "input_units": dict(input_units),
+            "method": dict(method),
+            "method_id": method_id,
+            "method_source_sha256": method_source,
+            "method_version": method_version,
+            "output_unit": output_unit,
+            "predicted": predicted,
+            "source_revision_ids": source_ids,
+        }
+
+    def admit_acquired_method_outcome_evidence(
+        self,
+        operation_id: str,
+        *,
+        execution_operation_id: str,
+        source: SourceInput,
+    ) -> Mapping[str, Any]:
+        """Admit exact-record evidence bound to one committed method execution.
+
+        The canonical JSON source content has schema
+        ``cassifi.owner-method-outcome-witness.v1`` and binds ``actual`` to
+        ``execution_operation_id``, its manifest digest, and its result digest.
+        """
+        operation_id = _identifier(operation_id, "method outcome evidence operation_id")
+        execution_operation_id = _identifier(
+            execution_operation_id,
+            "method execution operation_id",
+        )
+        if (
+            not isinstance(source, SourceInput)
+            or source.claim_category != "world-observation"
+            or source.fidelity != "exact-record"
+            or source.parent_revision_id is not None
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "method outcome witness must be a new exact world-observation source",
+            )
+        try:
+            witness = json.loads(source.content.decode("utf-8"))
+            if (
+                not isinstance(witness, Mapping)
+                or canonical_json_bytes(dict(witness)) != source.content
+                or set(witness)
+                != {
+                    "actual",
+                    "execution_manifest_sha256",
+                    "execution_operation_id",
+                    "execution_result_sha256",
+                    "schema",
+                }
+            ):
+                raise ValueError("method outcome witness schema is invalid")
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE",
+                "method outcome witness must be canonical JSON",
+            ) from exc
+        with self._lock:
+            binding = self._committed_method_execution_binding(execution_operation_id)
+            actual = _finite(witness["actual"], "method observed outcome")
+            if (
+                witness["schema"] != "cassifi.owner-method-outcome-witness.v1"
+                or witness["execution_operation_id"] != execution_operation_id
+                or witness["execution_manifest_sha256"]
+                != binding["execution_receipt"].manifest_sha256
+                or witness["execution_result_sha256"]
+                != binding["execution_result_sha256"]
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "method outcome witness does not identify the exact execution",
+                )
+            request = {
+                "execution_operation_id": execution_operation_id,
+                "source": {
+                    "identity": dict(source.revision_identity()),
+                    "revision_id": source.revision_id,
+                },
+            }
+            replay = self._committed_result(
+                operation_id,
+                expected_kind="acquired-method-outcome",
+                expected_request=request,
+                expected_result_keys=frozenset({"event", "source"}),
+                expected_mapping_result_fields=frozenset({"event", "source"}),
+                require_retained=True,
+            )
+            if replay is not None:
+                _, committed, receipt = replay
+                return {
+                    **committed,
+                    "receipt": receipt.as_dict(),
+                    "status": "replayed",
+                }
+            execution_manifest = binding["execution_manifest"]
+            execution_receipt = binding["execution_receipt"]
+            if (
+                self.checkpoints.current_manifest_sha256
+                != execution_receipt.manifest_sha256
+                or self.state.state_sha256 != execution_manifest["state_sha256"]
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD_EVIDENCE",
+                    "method outcome witness must immediately follow its execution",
+                )
+            existing_event = self.evidence.event_for_operation(operation_id)
+            logical_sequence = (
+                existing_event.logical_sequence
+                if existing_event is not None
+                else self.evidence.event_count + 1
+            )
+            event = EvidenceEvent.create(
+                operation_id=operation_id,
+                event_kind="acquired-method-outcome",
+                source_revision_id=source.revision_id,
+                predecessor_state_sha256=execution_manifest["state_sha256"],
+                values={"actual": actual},
+                context=binding["event_context"],
+                epistemic_type="observed",
+                derivation_roots=binding["event_derivation_roots"],
+                logical_sequence=logical_sequence,
+            )
+            if existing_event is not None and existing_event != event:
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT",
+                    "method outcome evidence retry has different semantics",
+                )
+            if existing_event is None:
+                stored = self.evidence.store_source(
+                    source,
+                    reserved_bytes=len(canonical_json_bytes(event.as_dict())),
+                    commit=False,
+                )
+            else:
+                stored = self.evidence.source(existing_event.source_revision_id)
+                if (
+                    existing_event.source_revision_id != source.revision_id
+                    or self.evidence.read(stored) != source.content
+                ):
+                    raise FieldIntelligenceError(
+                        "SOURCE_CONFLICT",
+                        "method outcome retry resolves to different source bytes",
+                    )
+            successor = replace(self.state, generation=self.state.generation + 1)
+            self._check_capacity(successor)
+            if existing_event is None:
+                stored = self.evidence.store_source(
+                    source,
+                    reserved_bytes=len(canonical_json_bytes(event.as_dict())),
+                )
+                event = self.evidence.append_event(event)
+            result = {"event": event.as_dict(), "source": stored.as_dict()}
+            receipt = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=event.event_id,
+                transition={
+                    "kind": "acquired-method-outcome",
+                    "request": request,
+                    "request_sha256": sha256_value(request),
+                    "result": result,
+                },
+            )
+            return {
+                **result,
+                "receipt": receipt.as_dict(),
+                "status": "admitted",
+            }
+
+    def _acquired_method_operation_unadmitted(
+        self,
+        operation_id: str,
+        *,
+        action: str,
+        arguments: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Admit, execute, or correct one source-bound acquired method."""
+        operation_id = _identifier(operation_id, "acquired method operation_id")
+        if action not in {
+            "acquire-reduced", "acquire-fused", "select-execute",
+            "execute-bound", "outcome",
+        }:
+            raise FieldIntelligenceError("INVALID_REQUEST", "unknown acquired method action")
+        if not isinstance(arguments, Mapping):
+            raise FieldIntelligenceError("INVALID_REQUEST", "acquired method arguments must be a mapping")
+        try:
+            normalized = json.loads(canonical_json_bytes(dict(arguments)))
+            request = {"action": action, "arguments": normalized}
+        except Exception as exc:
+            raise FieldIntelligenceError("INVALID_REQUEST", "acquired method arguments must be canonical JSON") from exc
+        if len(canonical_json_bytes(request)) > 5 * 1024 * 1024:
+            raise FieldIntelligenceError("INVALID_REQUEST", "acquired method request exceeds its size bound")
+        with self._lock:
+            replay = self._committed_result(
+                operation_id,
+                expected_kind="acquired-method",
+                expected_request=request,
+                expected_result_keys=frozenset({"method", "result"}),
+                expected_mapping_result_fields=frozenset({"method", "result"}),
+                require_retained=True,
+            )
+            if replay is not None:
+                manifest, committed, replay_receipt = replay
+                response = {**committed, "checkpoint_receipt": replay_receipt.as_dict()}
+                if action == "execute-bound":
+                    replay_method = committed.get("method")
+                    replay_result = committed.get("result")
+                    method_ref = normalized.get("method_ref")
+                    if (
+                        not isinstance(replay_method, Mapping)
+                        or not isinstance(replay_result, Mapping)
+                        or not isinstance(method_ref, Mapping)
+                        or replay_method.get("method_id") != method_ref.get("method_id")
+                        or replay_method.get("method_version") != method_ref.get("method_generation")
+                        or replay_method.get("source_sha256") != method_ref.get("source_sha256")
+                        or replay_result.get("status") not in {"supported", "executed"}
+                    ):
+                        raise FieldIntelligenceError(
+                            "INVALID_METHOD_EVIDENCE",
+                            "committed bound method execution does not match its exact reference",
+                        )
+                    response["result_ref"] = {
+                        "schema": "cassifi.owner-method-result-ref.v1",
+                        "operation_id": operation_id,
+                        "method_id": replay_method["method_id"],
+                        "method_generation": replay_method["method_version"],
+                        "source_sha256": replay_method["source_sha256"],
+                        "result_sha256": sha256_value(replay_result),
+                    }
+                return response
+            event_id: str | None = None
+            method: Mapping[str, Any] = {}
+            result: Mapping[str, Any] = {}
+            if action in {"acquire-reduced", "acquire-fused"}:
+                required = {
+                    "method_id", "macro_id", "method_payload", "source_bytes",
+                    "applicability", "input_units", "output_unit", "error_bound",
+                }
+                if set(normalized) != required:
+                    raise FieldIntelligenceError("INVALID_METHOD", "method acquisition request shape is invalid")
+                source_bytes = normalized["source_bytes"]
+                if not isinstance(source_bytes, str):
+                    raise FieldIntelligenceError("INVALID_METHOD", "method source bytes must be base64 text")
+                try:
+                    raw_source = base64.b64decode(source_bytes, validate=True)
+                except Exception as exc:
+                    raise FieldIntelligenceError("INVALID_METHOD", "method source bytes are invalid") from exc
+                if len(raw_source) > 4 * 1024 * 1024:
+                    raise FieldIntelligenceError("INVALID_METHOD", "method source exceeds its size bound")
+                acquire = (
+                    self.atlas.acquire_reduced_method
+                    if action == "acquire-reduced"
+                    else self.atlas.acquire_fused_method
+                )
+                successor, method = acquire(
+                    self.state,
+                    method_id=normalized["method_id"],
+                    macro_id=normalized["macro_id"],
+                    method_payload=normalized["method_payload"],
+                    source_bytes=raw_source,
+                    applicability=normalized["applicability"],
+                    input_units=normalized["input_units"],
+                    output_units=normalized["output_unit"],
+                    error_bound=normalized["error_bound"],
+                )
+                result = {"status": "acquired", "source_sha256": method["source_sha256"]}
+            elif action == "select-execute":
+                required = {"context", "input_units", "output_unit", "maximum_error", "values", "action"}
+                if set(normalized) != required:
+                    raise FieldIntelligenceError("INVALID_METHOD", "method execution request shape is invalid")
+                context = normalized["context"]
+                values = normalized["values"]
+                if not isinstance(context, Mapping) or not isinstance(values, Mapping):
+                    raise FieldIntelligenceError("INVALID_METHOD", "method context and values must be mappings")
+                selected = self.atlas.select_reduced_method(
+                    self.state, context=context, input_units=normalized["input_units"],
+                    output_unit=normalized["output_unit"], maximum_error=normalized["maximum_error"],
+                )
+                if selected is None:
+                    result = {"status": "no-compatible-method"}
+                else:
+                    from cassi_field_program import execute_acquired_semantic_method
+                    method = selected
+                    if selected.get("kind") == "schur-reduced":
+                        result = self.atlas.execute_reduced_method(
+                            self.state, selected, boundary_values=values, context=context,
+                        )
+                        result = {"status": "executed", **dict(result)}
+                    elif selected.get("kind") == "native-u32-sum":
+                        raise FieldIntelligenceError(
+                            "METHOD_INPUT_MISMATCH",
+                            "native sum requires bound u32 regional input",
+                        )
+                    else:
+                        result = execute_acquired_semantic_method(
+                            selected, values, action=normalized["action"], context=context,
+                        )
+                    if len(canonical_json_bytes(result)) > 64 * 1024:
+                        raise FieldIntelligenceError("INVALID_METHOD", "method result exceeds its size bound")
+                    result = {
+                        **dict(result),
+                        "method_id": selected["method_id"],
+                        "method_version": selected["method_version"],
+                        "source_sha256": selected["source_sha256"],
+                        "source_revision_ids": [selected["source_sha256"]],
+                        "input_units": dict(normalized["input_units"]),
+                        "output_unit": normalized["output_unit"],
+                    }
+            elif action == "execute-bound":
+                required = {
+                    "method_ref", "input_refs", "computer_id",
+                    "input_bindings", "action", "context",
+                }
+                if set(normalized) != required:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD",
+                        "bound method execution request shape is invalid",
+                    )
+                method_ref = normalized["method_ref"]
+                if (
+                    not isinstance(method_ref, Mapping)
+                    or set(method_ref)
+                    != {"method_id", "method_generation", "source_sha256"}
+                ):
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD", "bound method reference shape is invalid"
+                    )
+                method_id = _identifier(method_ref["method_id"], "method_id")
+                method_generation = _integer(
+                    method_ref["method_generation"], "method_generation", minimum=1
+                )
+                method_source = _digest(method_ref["source_sha256"], "method source")
+                context = normalized["context"]
+                method_action = normalized["action"]
+                bindings = normalized["input_bindings"]
+                if (
+                    not isinstance(context, Mapping)
+                    or not isinstance(method_action, Mapping)
+                    or not isinstance(bindings, Mapping)
+                    or not bindings
+                ):
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD",
+                        "bound method context, action, and bindings must be mappings",
+                    )
+                context = json.loads(canonical_json_bytes(dict(context)))
+                method_action = json.loads(canonical_json_bytes(dict(method_action)))
+                bindings = dict(bindings)
+                method_record = self.atlas._acquired_method_record(
+                    self.state, method_id
+                )
+                method = (
+                    None
+                    if method_record is None
+                    else method_record.inputs.get("method")
+                )
+                if (
+                    not isinstance(method, Mapping)
+                    or method.get("status") != "active"
+                    or method.get("method_id") != method_id
+                    or method.get("method_version") != method_generation
+                    or method.get("source_sha256") != method_source
+                    or not isinstance(method.get("input_units"), Mapping)
+                    or set(bindings) != set(method["input_units"])
+                    or not _method_applicability_matches(
+                        method.get("applicability", {}), context
+                    )
+                    or not _method_context_accepted(method, context)
+                ):
+                    raise FieldIntelligenceError(
+                        "METHOD_GUARD_FAILED",
+                        "bound method generation, source, inputs, or applicability changed",
+                    )
+                refs = normalized["input_refs"]
+                if not isinstance(refs, list):
+                    raise FieldIntelligenceError(
+                        "METHOD_INPUT_MISMATCH", "bound input references must be a list"
+                    )
+                ref_ids = {
+                    _integer(ref.get("object_id"), "input object_id", minimum=1)
+                    for ref in refs
+                    if isinstance(ref, Mapping)
+                }
+                if len(ref_ids) != len(refs):
+                    raise FieldIntelligenceError(
+                        "METHOD_INPUT_MISMATCH", "bound input references are invalid"
+                    )
+                binding_ids: dict[str, int] = {}
+                for name, object_id in bindings.items():
+                    binding_ids[
+                        _identifier(name, "method input name")
+                    ] = _integer(object_id, "bound object_id", minimum=1)
+                if not set(binding_ids.values()) <= ref_ids:
+                    raise FieldIntelligenceError(
+                        "METHOD_INPUT_MISMATCH",
+                        "method bindings name objects outside the exact input references",
+                    )
+                computer_id = _identifier(normalized["computer_id"], "computer_id")
+                computer = next(
+                    (
+                        row for row in self.state.computers
+                        if row.computer_id == computer_id
+                    ),
+                    None,
+                )
+                if computer is None:
+                    raise FieldIntelligenceError(
+                        "UNKNOWN_COMPUTER", "bound regional computer is not current"
+                    )
+                regional_field = (
+                    computer.field.image.view()
+                    if hasattr(computer.field, "image")
+                    else computer.field.field
+                )
+                try:
+                    resident_values = read_bound_object_refs(
+                        regional_field, computer.profile, refs
+                    )
+                except RegionalFieldError as exc:
+                    raise FieldIntelligenceError(
+                        "METHOD_INPUT_MISMATCH",
+                        "bound regional input reference is stale or unavailable",
+                    ) from exc
+                values = {
+                    name: resident_values[object_id]
+                    for name, object_id in binding_ids.items()
+                }
+                source_record = next(
+                    (
+                        row for row in self.state.computation_records
+                        if row.record_id == method.get("source_record_id")
+                        and row.operation == "acquired-method-source"
+                    ),
+                    None,
+                )
+                if source_record is None:
+                    raise FieldIntelligenceError(
+                        "METHOD_GUARD_FAILED",
+                        "bound method source dependency is no longer current",
+                    )
+                try:
+                    source = base64.b64decode(
+                        source_record.inputs["bytes_b64"], validate=True
+                    )
+                except Exception as exc:
+                    raise FieldIntelligenceError(
+                        "METHOD_GUARD_FAILED",
+                        "bound method source dependency is invalid",
+                    ) from exc
+                if (
+                    source_record.inputs.get("sha256") != method_source
+                    or hashlib.sha256(source).hexdigest() != method_source
+                ):
+                    raise FieldIntelligenceError(
+                        "METHOD_GUARD_FAILED",
+                        "bound method source dependency changed",
+                    )
+                self._assert_bound_method_physical_coverage(
+                    operation_id, computer, method,
+                )
+                if method.get("kind") == "hive-executable":
+                    successor, result = self._execute_regional_hive_method(
+                        computer, method, refs, binding_ids,
+                        method_id, method_generation, method_source,
+                    )
+                elif method.get("kind") == "native-u32-sum":
+                    successor, result = self._execute_bound_native_sum(
+                        operation_id, computer, refs, binding_ids,
+                        method_id, method_generation, method_source,
+                    )
+                else:
+                    from cassi_field_program import execute_acquired_semantic_method
+
+                    successor = self.state
+                    if method.get("kind") == "schur-reduced":
+                        result = self.atlas.execute_reduced_method(
+                            self.state, method, boundary_values=values, context=context
+                        )
+                        result = {"status": "executed", **dict(result)}
+                    else:
+                        result = execute_acquired_semantic_method(
+                            method, values, action=method_action, context=context
+                        )
+                result = {
+                    **dict(result),
+                    "method_id": method_id,
+                    "method_version": method_generation,
+                    "source_sha256": method_source,
+                    "source_revision_ids": sorted(
+                        {method_source, *(
+                            _digest(ref["source_sha256"], "input source")
+                            for ref in refs
+                        )}
+                    ),
+                    "input_units": dict(method["input_units"]),
+                    "output_unit": method["output_unit"],
+                    "input_object_refs": refs,
+                    "computer_id": computer_id,
+                }
+                if len(canonical_json_bytes(result)) > 64 * 1024:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD", "method result exceeds its size bound"
+                    )
+                method = dict(method)
+            else:
+                required = {"execution_operation_id", "evidence_id"}
+                if set(normalized) != required:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "method outcome request must reference committed execution and evidence",
+                    )
+                execution_id = _identifier(
+                    normalized["execution_operation_id"],
+                    "method execution operation_id",
+                )
+                evidence_id = _digest(normalized["evidence_id"], "method evidence_id")
+                binding = self._committed_method_execution_binding(execution_id)
+                execution_manifest = binding["execution_manifest"]
+                execution_receipt = binding["execution_receipt"]
+                method = binding["method"]
+                expected_context = binding["event_context"]
+                try:
+                    event = self.evidence.active_event(evidence_id)
+                except FieldIntelligenceError as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "method outcome evidence is missing or inactive",
+                    ) from exc
+                evidence_commit = self._committed_replay(
+                    event.operation_id,
+                    require_retained=True,
+                )
+                if evidence_commit is None:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "method outcome evidence has no committed owner receipt",
+                    )
+                evidence_manifest, evidence_receipt = evidence_commit
+                evidence_transition = evidence_manifest.get("transition")
+                evidence_request = (
+                    evidence_transition.get("request")
+                    if isinstance(evidence_transition, Mapping)
+                    else None
+                )
+                event_source = self.evidence.source(event.source_revision_id)
+                source_identity = {
+                    "claim_category": event_source.claim_category,
+                    "codec": event_source.codec,
+                    "content_sha256": event_source.content_sha256,
+                    "fidelity": event_source.fidelity,
+                    "labels": list(event_source.labels),
+                    "media_type": event_source.media_type,
+                    "observed_timestamp": event_source.observed_timestamp,
+                    "parent_revision_id": event_source.parent_revision_id,
+                    "scope": event_source.scope,
+                    "source_id": event_source.source_id,
+                    "span": (
+                        None
+                        if event_source.span is None
+                        else list(event_source.span)
+                    ),
+                }
+                expected_evidence_request = {
+                    "execution_operation_id": execution_id,
+                    "source": {
+                        "identity": source_identity,
+                        "revision_id": event_source.revision_id,
+                    },
+                }
+                try:
+                    witness = json.loads(
+                        self.evidence.read(event_source).decode("utf-8")
+                    )
+                    witness_actual = _finite(
+                        witness.get("actual") if isinstance(witness, Mapping) else None,
+                        "method observed outcome",
+                    )
+                except (FieldIntelligenceError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "method outcome source is not a readable witness record",
+                    ) from exc
+                expected_roots = binding["event_derivation_roots"]
+                if (
+                    event.event_id != evidence_id
+                    or event.event_kind != "acquired-method-outcome"
+                    or event.epistemic_type != "observed"
+                    or event.predecessor_state_sha256
+                    != execution_manifest["state_sha256"]
+                    or dict(event.context) != expected_context
+                    or tuple(event.derivation_roots) != expected_roots
+                    or set(event.values) != {"actual"}
+                    or event_source.claim_category != "world-observation"
+                    or event_source.fidelity != "exact-record"
+                    or event_source.parent_revision_id is not None
+                    or not isinstance(evidence_transition, Mapping)
+                    or evidence_transition.get("kind")
+                    != "acquired-method-outcome"
+                    or evidence_request != expected_evidence_request
+                    or evidence_transition.get("request_sha256")
+                    != sha256_value(expected_evidence_request)
+                    or evidence_manifest.get("event_id") != evidence_id
+                    or evidence_receipt.predecessor_manifest_sha256
+                    != execution_receipt.manifest_sha256
+                    or not isinstance(witness, Mapping)
+                    or canonical_json_bytes(dict(witness))
+                    != self.evidence.read(event_source)
+                    or set(witness)
+                    != {
+                        "actual",
+                        "execution_manifest_sha256",
+                        "execution_operation_id",
+                        "execution_result_sha256",
+                        "schema",
+                    }
+                    or witness.get("schema")
+                    != "cassifi.owner-method-outcome-witness.v1"
+                    or witness.get("execution_operation_id") != execution_id
+                    or witness.get("execution_manifest_sha256")
+                    != execution_receipt.manifest_sha256
+                    or witness.get("execution_result_sha256")
+                    != binding["execution_result_sha256"]
+                    or event.values["actual"] != witness_actual
+                ):
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "observed outcome evidence is not bound to this exact execution",
+                    )
+                actual = witness_actual
+                latest_record = self.atlas._acquired_method_record(
+                    self.state,
+                    binding["method_id"],
+                )
+                latest_method = (
+                    None if latest_record is None else latest_record.inputs.get("method")
+                )
+                if (
+                    not isinstance(latest_method, Mapping)
+                    or latest_method.get("method_version")
+                    != binding["method_version"]
+                    or latest_method.get("source_sha256")
+                    != binding["method_source_sha256"]
+                    or canonical_json_bytes(
+                        latest_method.get("input_units", {})
+                    )
+                    != canonical_json_bytes(
+                        binding["method"].get("input_units", {})
+                    )
+                    or latest_method.get("output_unit") != binding["output_unit"]
+                ):
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "method generation, source, or units changed after execution",
+                    )
+                source_record = next(
+                    (
+                        row
+                        for row in self.state.computation_records
+                        if row.record_id == method.get("source_record_id")
+                        and row.operation == "acquired-method-source"
+                    ),
+                    None,
+                )
+                try:
+                    source_bytes = (
+                        None
+                        if source_record is None
+                        else base64.b64decode(
+                            source_record.inputs["bytes_b64"],
+                            validate=True,
+                        )
+                    )
+                except (KeyError, TypeError, ValueError):
+                    source_bytes = None
+                if (
+                    latest_method.get("source_record_id")
+                    != method.get("source_record_id")
+                    or source_record is None
+                    or source_record.inputs.get("sha256")
+                    != binding["method_source_sha256"]
+                    or source_bytes is None
+                    or hashlib.sha256(source_bytes).hexdigest()
+                    != binding["method_source_sha256"]
+                ):
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "method source dependency changed after execution",
+                    )
+                source_ids = sorted(
+                    {*binding["source_revision_ids"], event.source_revision_id}
+                )
+                successor = self.atlas.record_reduced_method_outcome(
+                    self.state,
+                    method_id=binding["method_id"],
+                    context=binding["context"],
+                    predicted=binding["predicted"],
+                    actual=actual,
+                    evidence_kind="executed",
+                    evidence_id=evidence_id,
+                    source_revision_ids=source_ids,
+                )
+                corrected_record = self.atlas._acquired_method_record(
+                    successor,
+                    binding["method_id"],
+                )
+                if corrected_record is None:
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD_EVIDENCE",
+                        "corrected method record is unavailable",
+                    )
+                method = dict(corrected_record.inputs["method"])
+                event_id = evidence_id
+                result = {
+                    "actual": actual,
+                    "evidence_id": evidence_id,
+                    "execution_operation_id": execution_id,
+                    "residual": abs(actual - binding["predicted"]),
+                    "status": "outcome-recorded",
+                }
+            payload = {"method": dict(method), "result": dict(result)}
+            receipt = self._publish(
+                operation_id=operation_id,
+                successor=successor,
+                event_id=event_id,
+                transition={
+                    "kind": "acquired-method",
+                    "request": request,
+                    "request_sha256": sha256_value(request),
+                    "result": payload,
+                },
+            )
+            response = {**payload, "checkpoint_receipt": receipt.as_dict()}
+            if action == "execute-bound":
+                response["result_ref"] = {
+                    "schema": "cassifi.owner-method-result-ref.v1",
+                    "operation_id": operation_id,
+                    "method_id": method["method_id"],
+                    "method_generation": method["method_version"],
+                    "source_sha256": method["source_sha256"],
+                    "result_sha256": sha256_value(payload["result"]),
+                }
+            return response
 
     def counterfactual_without_chart(
         self,
@@ -13166,6 +17434,1832 @@ class FieldIntelligenceOwner:
             )
 
 
+    @dataclass(frozen=True)
+    class NativeGraphSiteTicket(Mapping[str, Any]):
+        """Read-only owner-issued policy ticket with a JSON wire view."""
+
+        payload_json: str
+
+        def as_dict(self) -> dict[str, Any]:
+            return json.loads(self.payload_json)
+
+        def __getitem__(self, key: str) -> Any:
+            return self.as_dict()[key]
+
+        def __iter__(self):
+            return iter(self.as_dict())
+
+        def __len__(self) -> int:
+            return len(self.as_dict())
+
+    @staticmethod
+    def _native_graph_site_reservation_operation_id(operation_id: str) -> str:
+        return "native-graph-site-ticket-" + sha256_value(
+            {"operation_id": operation_id}
+        )
+
+    def _validate_native_graph_site_ticket(
+        self,
+        ticket: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            normalized = json.loads(
+                canonical_json_bytes(dict(ticket)).decode("utf-8")
+            )
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket is not canonical JSON",
+            ) from exc
+        if (
+            normalized.get("schema")
+            != "cassifi.native-graph-site-program-ticket.v1"
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket schema is unsupported",
+            )
+        ticket_sha256 = normalized.get("ticket_sha256")
+        ticket_id = normalized.get("ticket_id")
+        ticket_sha_preimage = dict(normalized)
+        ticket_sha_preimage.pop("ticket_sha256", None)
+        ticket_id_preimage = dict(ticket_sha_preimage)
+        ticket_id_preimage.pop("ticket_id", None)
+        native_guard = ticket_id_preimage.get("native_guard")
+        if not isinstance(native_guard, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket has no typed native guard",
+            )
+        native_guard_preimage = dict(native_guard)
+        native_guard_preimage.pop("candidate_id", None)
+        ticket_id_preimage["native_guard"] = native_guard_preimage
+        if (
+            not isinstance(ticket_sha256, str)
+            or sha256_value(ticket_sha_preimage) != ticket_sha256
+            or not isinstance(ticket_id, str)
+            or sha256_value(ticket_id_preimage) != ticket_id
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket digest is inconsistent",
+            )
+        try:
+            operation_id = _identifier(
+                normalized.get("operation_id"),
+                "native graph-site operation",
+            )
+            _identifier(normalized.get("computer_id"), "native graph-site computer")
+            _identifier(normalized.get("task_id"), "native graph-site task")
+            _identifier(
+                normalized.get("native_operation_id"),
+                "native graph-site native operation",
+            )
+            for name in (
+                "owner_state_sha256",
+                "owner_manifest_sha256",
+                "field_state_sha256",
+                "graph_predecessor_sha256",
+                "field_epoch_sha256",
+                "native_field_epoch_sha256",
+                "policy_snapshot_sha256",
+                "source_sha256",
+                "model_sha256",
+                "tokenizer_sha256",
+                "native_predecessor_sha256",
+                "native_preflight_sha256",
+                "preflight_sha256",
+                "preflight_input_sha256",
+                "sampler_sha256",
+                "invocation_sha256",
+                "candidate_sha256",
+            ):
+                _digest(normalized.get(name), f"native graph-site {name}")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket identity is incomplete",
+            ) from exc
+        if (
+            normalized.get("reservation_operation_id")
+            != self._native_graph_site_reservation_operation_id(operation_id)
+            or isinstance(normalized.get("owner_generation"), bool)
+            or not isinstance(normalized.get("owner_generation"), int)
+            or normalized["owner_generation"] < 0
+            or isinstance(normalized.get("seq_id"), bool)
+            or not isinstance(normalized.get("seq_id"), int)
+            or normalized["seq_id"] < 0
+            or isinstance(normalized.get("position"), bool)
+            or not isinstance(normalized.get("position"), int)
+            or normalized["position"] < 0
+            or not isinstance(normalized.get("sequence_id"), str)
+            or not normalized["sequence_id"]
+            or normalized.get("request_sha256_pending") is not True
+            or normalized.get("model_id") != normalized.get("model_sha256")
+            or normalized.get("tokenizer_id")
+            != normalized.get("tokenizer_sha256")
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket identity is inconsistent",
+            )
+        sampler = normalized.get("sampler")
+        preflight = normalized.get("preflight")
+        try:
+            if (
+                not isinstance(sampler, Mapping)
+                or set(sampler) != {"mode", "temperature", "top_k", "draw"}
+                or sampler.get("mode") not in {"greedy", "categorical"}
+            ):
+                raise ValueError("sampler tuple is incomplete or unsupported")
+            temperature = _finite(
+                sampler.get("temperature"), "native sampler temperature"
+            )
+            top_k = _integer(sampler.get("top_k"), "native sampler top_k")
+            draw = _finite(sampler.get("draw"), "native sampler draw")
+            if (
+                temperature <= 0
+                or draw < 0
+                or draw >= 1
+                or sha256_value(dict(sampler)) != normalized["sampler_sha256"]
+            ):
+                raise ValueError("sampler tuple digest or values are invalid")
+            if not isinstance(preflight, Mapping):
+                raise ValueError("preflight evidence is missing")
+            preflight_body = {
+                key: value
+                for key, value in preflight.items()
+                if key not in {
+                    "field_epoch_sha256",
+                    "native_field_epoch_sha256",
+                    "preflight_sha256",
+                    "owner_preflight_sha256",
+                }
+            }
+            preflight_body.update(
+                {
+                    "native_field_epoch_sha256":
+                        normalized["native_field_epoch_sha256"],
+                    "native_preflight_sha256":
+                        normalized["native_preflight_sha256"],
+                }
+            )
+            if (
+                sha256_value(preflight_body) != normalized["preflight_sha256"]
+                or preflight.get("sampler") != dict(sampler)
+                or preflight.get("sampler_sha256") != normalized["sampler_sha256"]
+                or preflight.get("task_id") != normalized["task_id"]
+                or preflight.get("native_operation_id")
+                != normalized["native_operation_id"]
+                or preflight.get("source_sha256") != normalized["source_sha256"]
+                or preflight.get("model_sha256") != normalized["model_sha256"]
+                or preflight.get("tokenizer_sha256")
+                != normalized["tokenizer_sha256"]
+                or preflight.get("sequence_id") != normalized["sequence_id"]
+                or preflight.get("seq_id", preflight.get("native_seq_id"))
+                != normalized["seq_id"]
+                or preflight.get("position", preflight.get("next_position"))
+                != normalized["position"]
+                or preflight.get("native_predecessor_sha256")
+                != normalized["native_predecessor_sha256"]
+                or preflight.get(
+                    "native_field_epoch_sha256",
+                    preflight.get("field_epoch_sha256"),
+                )
+                != normalized["native_field_epoch_sha256"]
+                or preflight.get(
+                    "native_preflight_sha256",
+                    preflight.get("preflight_sha256"),
+                )
+                != normalized["native_preflight_sha256"]
+            ):
+                raise ValueError("preflight evidence disagrees with ticket")
+        except (FieldIntelligenceError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket preflight or sampler is inconsistent",
+            ) from exc
+        program = normalized.get("program")
+        candidate = normalized.get("native_candidate")
+        guard = normalized.get("native_guard")
+        if (
+            not isinstance(program, Mapping)
+            or not isinstance(candidate, Mapping)
+            or not isinstance(guard, Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket operator is incomplete",
+            )
+        program_preimage = dict(program)
+        program_candidate_sha256 = program_preimage.pop("candidate_sha256", None)
+        invocation = program.get("invocation")
+        if not isinstance(invocation, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket has no owner invocation",
+            )
+        invocation_preimage = dict(invocation)
+        invocation_sha256 = invocation_preimage.pop("invocation_sha256", None)
+        if (
+            program_candidate_sha256 != normalized["candidate_sha256"]
+            or sha256_value(program_preimage) != normalized["candidate_sha256"]
+            or invocation_sha256 != normalized["invocation_sha256"]
+            or sha256_value(invocation_preimage) != normalized["invocation_sha256"]
+            or program.get("method_key") != normalized.get("method_key")
+            or program.get("method_generation")
+            != normalized.get("method_generation")
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket does not match its owner program",
+            )
+        if (
+            candidate.get("candidate_sha256") != normalized["candidate_sha256"]
+            or candidate.get("invocation_sha256")
+            != normalized["invocation_sha256"]
+            or candidate.get("request_sha256") != ""
+            or candidate.get("request_sha256_pending") is not True
+            or candidate.get("seq_id") != normalized["seq_id"]
+            or candidate.get("sequence_id") != normalized["sequence_id"]
+            or candidate.get("position") != normalized["position"]
+            or candidate.get("source_sha256") != normalized["source_sha256"]
+            or candidate.get("predecessor_sha256")
+            != normalized["graph_predecessor_sha256"]
+            or candidate.get("owner_generation")
+            != normalized["owner_generation"]
+            or candidate.get("intervention_order")
+            != str(normalized.get("intervention_order"))
+            or guard.get("candidate_id") != ticket_id
+            or guard.get("owner_snapshot_sha256")
+            != normalized["field_state_sha256"]
+            or guard.get("field_epoch_sha256")
+            != normalized["field_epoch_sha256"]
+            or guard.get("native_preflight_sha256")
+            != normalized["native_preflight_sha256"]
+            or guard.get("native_predecessor_sha256")
+            != normalized["native_predecessor_sha256"]
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket operator bindings are inconsistent",
+            )
+        return normalized
+    def _validate_native_graph_site_ticket_current(
+        self,
+        ticket: Mapping[str, Any],
+        *,
+        computer_id: str,
+        task_id: str,
+        operation_id: str,
+        expected_state_sha256: str,
+        predecessor_computer_state_sha256: str,
+    ) -> dict[str, Any]:
+        normalized = self._validate_native_graph_site_ticket(ticket)
+        if (
+            normalized.get("computer_id") != computer_id
+            or normalized.get("task_id") != task_id
+            or normalized.get("operation_id") != operation_id
+            or normalized.get("field_state_sha256")
+            != predecessor_computer_state_sha256
+        ):
+            raise FieldIntelligenceError(
+                "LINEAGE_CONFLICT",
+                "native graph-site ticket does not match the candidate lineage",
+            )
+        reservation = self._committed_replay(
+            normalized["reservation_operation_id"],
+            require_retained=True,
+        )
+        if reservation is None:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket reservation is not durable",
+            )
+        reservation_manifest, reservation_checkpoint = reservation
+        transition = reservation_manifest.get("transition")
+        request = (
+            transition.get("request")
+            if isinstance(transition, Mapping)
+            else None
+        )
+        stored_ticket = request.get("ticket") if isinstance(request, Mapping) else None
+        if (
+            not isinstance(transition, Mapping)
+            or transition.get("kind") != "native-graph-site-ticket-reserved"
+            or not isinstance(request, Mapping)
+            or not isinstance(stored_ticket, Mapping)
+            or canonical_json_bytes(dict(stored_ticket))
+            != canonical_json_bytes(normalized)
+            or reservation_checkpoint.predecessor_manifest_sha256
+            != normalized["owner_manifest_sha256"]
+            or reservation_checkpoint.manifest_sha256
+            != self.checkpoints.current_manifest_sha256
+            or reservation_checkpoint.state_sha256 != expected_state_sha256
+            or self.state.generation != normalized["owner_generation"] + 1
+            or self.state.state_sha256 != reservation_checkpoint.state_sha256
+        ):
+            raise FieldIntelligenceError(
+                "LINEAGE_CONFLICT",
+                "native graph-site owner snapshot changed before adoption",
+            )
+        parent = self.checkpoints._retained_manifest(
+            normalized["owner_manifest_sha256"]
+        )
+        if (
+            parent.get("state_sha256") != normalized["owner_state_sha256"]
+            or parent.get("generation") != normalized["owner_generation"]
+        ):
+            raise FieldIntelligenceError(
+                "CHECKPOINT_CORRUPT",
+                "native graph-site ticket owner predecessor is inconsistent",
+            )
+        row = next(
+            (
+                item
+                for item in self.state.computers
+                if item.computer_id == computer_id
+            ),
+            None,
+        )
+        if row is None or row.state_sha256 != normalized["field_state_sha256"]:
+            raise FieldIntelligenceError(
+                "LINEAGE_CONFLICT",
+                "native graph-site computer predecessor changed before adoption",
+            )
+        task_value = row.named_value("task")
+        task_record = (
+            task_value.get("tasks", {}).get(task_id)
+            if isinstance(task_value, Mapping)
+            else None
+        )
+        model_state = (
+            task_record.get("state")
+            if isinstance(task_record, Mapping)
+            else None
+        )
+        if not isinstance(model_state, Mapping):
+            raise FieldIntelligenceError(
+                "LINEAGE_CONFLICT",
+                "native graph-site task state disappeared before adoption",
+            )
+        resident_view = model_state.get("resident_model")
+        retained_view = (
+            task_value.get("model_policies", {}).get(
+                normalized["source_sha256"], {}
+            )
+            if isinstance(task_value, Mapping)
+            else {}
+        )
+        graph_state = (
+            resident_view.get("graph_sites")
+            if isinstance(resident_view, Mapping)
+            else None
+        )
+        if not isinstance(graph_state, Mapping):
+            graph_state = (
+                retained_view.get("graph_sites")
+                if isinstance(retained_view, Mapping)
+                else None
+            )
+        if (
+            not isinstance(graph_state, Mapping)
+            or graph_state.get("source_sha256") != normalized["source_sha256"]
+            or sha256_value(
+                {
+                    "graph_sites": graph_state,
+                    "source_sha256": normalized["source_sha256"],
+                }
+            )
+            != normalized["policy_snapshot_sha256"]
+        ):
+            raise FieldIntelligenceError(
+                "LINEAGE_CONFLICT",
+                "owner graph-site policy changed after ticket reservation",
+            )
+        return normalized
+
+    def _validate_native_graph_site_receipt(
+        self,
+        ticket: Mapping[str, Any],
+        receipt: Mapping[str, Any],
+        receipt_sha256: str,
+        *,
+        graph_receipt_wire_sha256: str,
+    ) -> dict[str, Any]:
+        ticket = self._validate_native_graph_site_ticket(ticket)
+        try:
+            normalized = json.loads(
+                canonical_json_bytes(dict(receipt)).decode("utf-8")
+            )
+            _digest(receipt_sha256, "native graph-site receipt")
+            _digest(graph_receipt_wire_sha256, "native graph-site receipt wire")
+        except (TypeError, ValueError, FieldIntelligenceError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site receipt is not canonical JSON",
+            ) from exc
+        if (
+            normalized.get("schema") != "cassifi.native-graph-site-receipt.v1"
+            or sha256_value(normalized) != receipt_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site receipt digest or schema is invalid",
+            )
+        site = ticket.get("selected_site")
+        sampler = ticket.get("sampler")
+        dependencies = ticket.get("dependencies")
+        if (
+            not isinstance(site, Mapping)
+            or not isinstance(sampler, Mapping)
+            or not isinstance(dependencies, Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket lacks receipt bindings",
+            )
+        receipt_dependencies = normalized.get("dependencies")
+        if receipt_dependencies is None:
+            dependencies_json = normalized.get("dependencies_json")
+            if not isinstance(dependencies_json, str):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site receipt has no dependencies",
+                )
+            try:
+                receipt_dependencies = json.loads(dependencies_json)
+            except ValueError as exc:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site receipt dependencies are invalid",
+                ) from exc
+        if not isinstance(receipt_dependencies, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site receipt dependencies are not an object",
+            )
+        expected = {
+            "ticket_id": ticket["ticket_id"],
+            "ticket_sha256": ticket["ticket_sha256"],
+            "preflight_sha256": ticket["preflight_sha256"],
+            "native_preflight_sha256": ticket["native_preflight_sha256"],
+            "native_operation_id": ticket["native_operation_id"],
+            "source_sha256": ticket["source_sha256"],
+            "model_sha256": ticket["model_sha256"],
+            "tokenizer_sha256": ticket["tokenizer_sha256"],
+            "task_id": ticket["task_id"],
+            "sequence_id": ticket["sequence_id"],
+            "seq_id": ticket["seq_id"],
+            "position": ticket["position"],
+            "stage": site.get("stage"),
+            "layer": site.get("layer"),
+            "site": site.get("site"),
+            "specialist": site.get("specialist"),
+            "invocation_sha256": ticket["invocation_sha256"],
+            "candidate_sha256": ticket["candidate_sha256"],
+            "method_key": ticket["method_key"],
+            "method_generation": ticket["method_generation"],
+            "intervention_order": str(ticket["intervention_order"]),
+            "graph_predecessor_sha256": ticket["graph_predecessor_sha256"],
+            "owner_snapshot_sha256": ticket["field_state_sha256"],
+            "owner_field_epoch_sha256": ticket["field_epoch_sha256"],
+            "native_field_epoch_sha256": ticket["native_field_epoch_sha256"],
+            "native_predecessor_sha256": ticket["native_predecessor_sha256"],
+            "sampler_sha256": ticket["sampler_sha256"],
+            "sampler_mode": sampler["mode"],
+            "sampler_top_k": sampler["top_k"],
+            "owner_generation": ticket["owner_generation"],
+        }
+        for key, value in expected.items():
+            if normalized.get(key) != value:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    f"native graph-site receipt disagrees with ticket field {key}",
+                )
+        try:
+            temperature = _finite(
+                normalized.get("sampler_temperature"),
+                "native graph receipt temperature",
+            )
+            draw = _finite(
+                normalized.get("sampler_draw"),
+                "native graph receipt draw",
+            )
+            if (
+                temperature != sampler["temperature"]
+                or draw != sampler["draw"]
+                or canonical_json_bytes(dict(receipt_dependencies))
+                != canonical_json_bytes(dict(dependencies))
+            ):
+                raise ValueError("native graph sampler/dependencies differ")
+            for name in (
+                "request_sha256",
+                "input_sha256",
+                "output_sha256",
+                "candidate_successor_sha256",
+                "native_successor_sha256",
+            ):
+                _digest(normalized.get(name), f"native graph receipt {name}")
+            if (
+                normalized.get("attempted") not in {True, 1}
+                or normalized.get("admitted") not in {True, 1}
+                or normalized.get("refusal") not in {None, ""}
+            ):
+                raise ValueError("native graph operator was not accepted")
+            _integer(
+                normalized.get("sampler_top_k"),
+                "native graph receipt sampler top_k",
+            )
+            layer = normalized.get("layer")
+            if isinstance(layer, bool) or not isinstance(layer, int):
+                raise ValueError("native graph receipt layer is invalid")
+        except (FieldIntelligenceError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site receipt contains invalid measured output",
+            ) from exc
+        return normalized
+
+
+    def _validate_native_graph_site_step(
+        self,
+        ticket: Mapping[str, Any],
+        receipt: Mapping[str, Any],
+        step: Mapping[str, Any],
+        candidate_row: Any,
+        *,
+        candidate_receipt: Mapping[str, Any],
+        graph_receipt_wire_sha256: str,
+    ) -> dict[str, Any]:
+        """Bind one provisional native step to its owner field successor."""
+        ticket = self._validate_native_graph_site_ticket(ticket)
+        if not isinstance(step, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step must be an object",
+            )
+        try:
+            normalized = json.loads(
+                canonical_json_bytes(dict(step)).decode("utf-8")
+            )
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step is not canonical JSON",
+            ) from exc
+        try:
+            _digest(
+                graph_receipt_wire_sha256,
+                "native graph-site packed receipt wire",
+            )
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site packed receipt digest is invalid",
+            ) from exc
+        if (
+            normalized.get("graph_receipt_wire_sha256")
+            != graph_receipt_wire_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site packed receipt digest differs from step",
+            )
+        if (
+            normalized.get("accepted") is not False
+            or "accepted_token_id" in normalized
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site token must remain provisional until owner commit",
+            )
+        identity = {
+            "native_operation_id": ticket["native_operation_id"],
+            "task_id": ticket["task_id"],
+            "source_sha256": ticket["source_sha256"],
+            "model_id": ticket["model_id"],
+            "tokenizer_id": ticket["tokenizer_id"],
+            "sequence_id": ticket["sequence_id"],
+            "seq_id": ticket["seq_id"],
+            "position": ticket["position"],
+            "native_predecessor_sha256": ticket["native_predecessor_sha256"],
+            "native_preflight_sha256": ticket["native_preflight_sha256"],
+        }
+        for key, value in identity.items():
+            if normalized.get(key) != value:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    f"native graph-site step disagrees with ticket field {key}",
+                )
+        if (
+            not isinstance(receipt, Mapping)
+            or normalized.get("native_successor_sha256")
+            != receipt.get("native_successor_sha256")
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step successor differs from its receipt",
+            )
+        try:
+            input_tokens = normalized.get("input_tokens")
+            if (
+                not isinstance(input_tokens, list)
+                or any(
+                    isinstance(token, bool)
+                    or not isinstance(token, int)
+                    or token < 0
+                    for token in input_tokens
+                )
+            ):
+                raise ValueError("native graph step input tokens are invalid")
+            preflight = ticket.get("preflight")
+            if (
+                not isinstance(preflight, Mapping)
+                or preflight.get("input_tokens") != input_tokens
+            ):
+                raise ValueError("native graph step input differs from ticket preflight")
+            selected_token_id = _integer(
+                normalized.get("selected_token_id"),
+                "native graph provisional selected token",
+            )
+            token_count = _integer(
+                normalized.get("token_count"),
+                "native graph token count",
+            )
+            if token_count != len(input_tokens) + 1:
+                raise ValueError("native graph token count is discontinuous")
+            sampler = normalized.get("sampler")
+            if (
+                not isinstance(sampler, Mapping)
+                or set(sampler) != {"mode", "temperature", "top_k", "draw"}
+                or dict(sampler) != dict(ticket["sampler"])
+                or normalized.get("sampler_sha256") != ticket["sampler_sha256"]
+                or sha256_value(dict(sampler)) != ticket["sampler_sha256"]
+            ):
+                raise ValueError("native graph step sampler differs from ticket")
+            _digest(normalized.get("replay_sha256"), "native graph replay state")
+            _digest(
+                normalized.get("native_successor_sha256"),
+                "native graph provisional successor",
+            )
+            stage_trace = normalized.get("stage_trace")
+            if not isinstance(stage_trace, list) or not stage_trace:
+                raise ValueError("native graph step has no ordered stage trace")
+            canonical_json_bytes(stage_trace)
+        except (FieldIntelligenceError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site provisional step is incomplete",
+            ) from exc
+        if (
+            candidate_row is None
+            or getattr(candidate_row, "computer_id", None)
+            != ticket["computer_id"]
+            or not isinstance(candidate_receipt, Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step has no owner field successor",
+            )
+        candidate_state_sha256 = getattr(candidate_row, "state_sha256", None)
+        try:
+            _digest(candidate_state_sha256, "native graph field successor")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site field successor identity is invalid",
+            ) from exc
+        if (
+            candidate_receipt.get("schema")
+            != "cassifi.learning-computer-invoke-receipt.v1"
+            or candidate_receipt.get("state_sha256") != candidate_state_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step does not bind the complete field successor",
+            )
+        try:
+            task_value = candidate_row.named_value("task")
+        except (AttributeError, FieldIntelligenceError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site field successor has no retained task state",
+            ) from exc
+        task_record = (
+            task_value.get("tasks", {}).get(ticket["task_id"])
+            if isinstance(task_value, Mapping)
+            else None
+        )
+        model_state = (
+            task_record.get("state")
+            if isinstance(task_record, Mapping)
+            else None
+        )
+        model_request = (
+            model_state.get("request")
+            if isinstance(model_state, Mapping)
+            else None
+        )
+        prompt_tokens = (
+            model_request.get("prompt_tokens")
+            if isinstance(model_request, Mapping)
+            else None
+        )
+        generated_tokens = (
+            model_state.get("generated_tokens")
+            if isinstance(model_state, Mapping)
+            else None
+        )
+        if (
+            not isinstance(prompt_tokens, list)
+            or not prompt_tokens
+            or not isinstance(generated_tokens, list)
+            or not generated_tokens
+            or any(
+                isinstance(token, bool) or not isinstance(token, int) or token < 0
+                for token in (*prompt_tokens, *generated_tokens)
+            )
+            or generated_tokens[-1] != selected_token_id
+            or [*prompt_tokens, *generated_tokens[:-1]] != input_tokens
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step tokens disagree with the owner task successor",
+            )
+        if (
+            token_count != len(prompt_tokens) + len(generated_tokens)
+            or (
+                "prompt_tokens" in normalized
+                and normalized["prompt_tokens"] != prompt_tokens
+            )
+            or (
+                "native_graph_site_receipt_sha256" in normalized
+                and normalized["native_graph_site_receipt_sha256"]
+                != sha256_value(dict(receipt))
+            )
+            or (
+                "ticket_id" in normalized
+                and normalized["ticket_id"] != ticket["ticket_id"]
+            )
+            or (
+                "ticket_sha256" in normalized
+                and normalized["ticket_sha256"] != ticket["ticket_sha256"]
+            )
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site step receipt or token references disagree",
+            )
+        normalized.pop("accepted")
+        normalized["native_accepted_before_owner_commit"] = False
+        normalized["owner_accepted"] = True
+        normalized["prompt_tokens"] = list(prompt_tokens)
+        normalized["accepted_token_id"] = selected_token_id
+        normalized["ticket_id"] = ticket["ticket_id"]
+        normalized["ticket_sha256"] = ticket["ticket_sha256"]
+        normalized["native_graph_site_receipt_sha256"] = sha256_value(
+            dict(receipt)
+        )
+        normalized["graph_receipt_wire_sha256"] = graph_receipt_wire_sha256
+        normalized["field_successor_sha256"] = candidate_state_sha256
+        return normalized
+    def issue_native_graph_site_ticket(
+        self,
+        *,
+        computer_id: str,
+        task_id: str,
+        operation_id: str,
+        preflight: Mapping[str, Any],
+    ) -> "FieldIntelligenceOwner.NativeGraphSiteTicket":
+        """Persist and return one exact owner-policy reservation for native work."""
+
+        _identifier(computer_id, "computer_id")
+        _identifier(task_id, "task_id")
+        _identifier(operation_id, "operation_id")
+        if not isinstance(preflight, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight must be an object",
+            )
+        reservation_operation_id = (
+            self._native_graph_site_reservation_operation_id(operation_id)
+        )
+        try:
+            normalized_preflight = json.loads(
+                canonical_json_bytes(dict(preflight)).decode("utf-8")
+            )
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight is not canonical JSON",
+            ) from exc
+        preflight_input_sha256 = sha256_value(normalized_preflight)
+        with self._lock:
+            committed = self._committed_replay(
+                reservation_operation_id, require_retained=True
+            )
+            if committed is not None:
+                manifest, _ = committed
+                transition = manifest.get("transition")
+                request = (
+                    transition.get("request")
+                    if isinstance(transition, Mapping)
+                    else None
+                )
+                ticket = request.get("ticket") if isinstance(request, Mapping) else None
+                if (
+                    not isinstance(transition, Mapping)
+                    or transition.get("kind") != "native-graph-site-ticket-reserved"
+                    or not isinstance(request, Mapping)
+                    or request.get("computer_id") != computer_id
+                    or request.get("task_id") != task_id
+                    or request.get("operation_id") != operation_id
+                    or not isinstance(ticket, Mapping)
+                    or ticket.get("reservation_operation_id")
+                    != reservation_operation_id
+                    or ticket.get("preflight_input_sha256")
+                    != preflight_input_sha256
+                ):
+                    raise FieldIntelligenceError(
+                        "OPERATION_CONFLICT",
+                        "native graph-site operation was reserved for another preflight",
+                    )
+                ticket = self._validate_native_graph_site_ticket_current(
+                    ticket,
+                    computer_id=computer_id,
+                    task_id=task_id,
+                    operation_id=operation_id,
+                    expected_state_sha256=self.state.state_sha256,
+                    predecessor_computer_state_sha256=ticket["field_state_sha256"],
+                )
+                return self.NativeGraphSiteTicket(
+                    canonical_json_bytes(dict(ticket)).decode("utf-8")
+                )
+            ticket = self._build_native_graph_site_ticket(
+                computer_id=computer_id,
+                task_id=task_id,
+                operation_id=operation_id,
+                preflight=normalized_preflight,
+            )
+            if ticket.get("reservation_operation_id") != reservation_operation_id:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site reservation identity is inconsistent",
+                )
+            self._validate_native_graph_site_ticket(ticket)
+            transition = {
+                "kind": "native-graph-site-ticket-reserved",
+                "request": {
+                    "computer_id": computer_id,
+                    "operation_id": operation_id,
+                    "task_id": task_id,
+                    "ticket": ticket,
+                },
+            }
+            successor = self.state.with_transition(
+                "native-graph-site-ticket-reserved",
+                {
+                    "operation_id": operation_id,
+                    "ticket_sha256": ticket["ticket_sha256"],
+                },
+            )
+            self._publish(
+                operation_id=reservation_operation_id,
+                successor=successor,
+                event_id=None,
+                transition=transition,
+            )
+            return self.NativeGraphSiteTicket(
+                canonical_json_bytes(ticket).decode("utf-8")
+            )
+
+    def _build_native_graph_site_ticket(
+        self,
+        *,
+        computer_id: str,
+        task_id: str,
+        operation_id: str,
+        preflight: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            normalized_preflight = json.loads(
+                canonical_json_bytes(dict(preflight)).decode("utf-8")
+            )
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight is not canonical JSON",
+            ) from exc
+        preflight_input_sha256 = sha256_value(normalized_preflight)
+        if normalized_preflight.get("schema") != "cassifi.native-graph-site-preflight.v1":
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight schema is unsupported",
+            )
+        if normalized_preflight.get("task_id") != task_id:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight is not bound to this native task",
+            )
+        raw_sites = normalized_preflight.get("sites")
+        if (
+            not isinstance(raw_sites, (list, tuple))
+            or not raw_sites
+            or len(raw_sites) > 4096
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight site list is invalid",
+            )
+        sites: list[dict[str, Any]] = []
+        seen_sites: set[tuple[int, int, str, str]] = set()
+        for raw_site in raw_sites:
+            if not isinstance(raw_site, Mapping):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site descriptor must be an object",
+                )
+            if any(
+                forbidden in raw_site
+                for forbidden in ("method", "program", "coefficients", "A", "B", "bias")
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "preflight cannot supply graph-site operator coefficients",
+                )
+            descriptor = dict(raw_site)
+            kind = descriptor.get("kind")
+            layer = descriptor.get("layer")
+            supported = descriptor.get("supported")
+            input_width = descriptor.get("input_width")
+            output_width = descriptor.get("output_width")
+            if (
+                isinstance(kind, bool)
+                or not isinstance(kind, int)
+                or kind < 0
+                or isinstance(layer, bool)
+                or not isinstance(layer, int)
+                or layer < 0
+                or not isinstance(supported, bool)
+                or isinstance(input_width, bool)
+                or not isinstance(input_width, int)
+                or input_width < 1
+                or isinstance(output_width, bool)
+                or not isinstance(output_width, int)
+                or output_width < 1
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site descriptor geometry or support marker is invalid",
+                )
+            try:
+                for key in ("stage", "site", "specialist", "input_tensor", "output_tensor"):
+                    _identifier(descriptor.get(key), f"native graph-site {key}")
+                dependency_text = descriptor.get("dependencies_json")
+                if (
+                    not isinstance(dependency_text, str)
+                    or len(dependency_text.encode("utf-8")) > 4096
+                ):
+                    raise ValueError("native graph-site dependencies are unbounded")
+                dependencies = json.loads(dependency_text)
+                if (
+                    not isinstance(dependencies, Mapping)
+                    or canonical_json_bytes(dict(dependencies)).decode("utf-8")
+                    != dependency_text
+                ):
+                    raise ValueError("native graph-site dependencies are not canonical")
+                refusal = descriptor.get("refusal")
+                if not isinstance(refusal, str) or len(refusal.encode("utf-8")) > 4096:
+                    raise ValueError("native graph-site refusal is invalid")
+            except (FieldIntelligenceError, TypeError, ValueError) as exc:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site descriptor identity is invalid",
+                ) from exc
+            identity = (kind, layer, descriptor["stage"], descriptor["site"])
+            if identity in seen_sites:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site preflight repeats a site",
+                )
+            seen_sites.add(identity)
+            descriptor["dependencies"] = dict(dependencies)
+            sites.append(descriptor)
+        source_sha256 = normalized_preflight.get("source_sha256")
+        model_sha256 = normalized_preflight.get("model_sha256")
+        tokenizer_sha256 = normalized_preflight.get("tokenizer_sha256")
+        native_operation_id = normalized_preflight.get("native_operation_id")
+        native_predecessor_sha256 = normalized_preflight.get(
+            "native_predecessor_sha256"
+        )
+        try:
+            _digest(source_sha256, "native graph-site source")
+            _digest(model_sha256, "native graph-site model")
+            _digest(tokenizer_sha256, "native graph-site tokenizer")
+            _identifier(native_operation_id, "native graph-site native operation")
+            _digest(native_predecessor_sha256, "native graph-site predecessor")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight identities are incomplete",
+            ) from exc
+        if model_sha256 != source_sha256 or native_operation_id != operation_id:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight is not bound to the current source or operation",
+            )
+        if (
+            "seq_id" in normalized_preflight
+            and "native_seq_id" in normalized_preflight
+            and normalized_preflight["seq_id"] != normalized_preflight["native_seq_id"]
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site sequence identifiers disagree",
+            )
+        if (
+            "position" in normalized_preflight
+            and "next_position" in normalized_preflight
+            and normalized_preflight["position"] != normalized_preflight["next_position"]
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site positions disagree",
+            )
+        sequence_id = normalized_preflight.get("sequence_id")
+        seq_id = normalized_preflight.get(
+            "seq_id", normalized_preflight.get("native_seq_id")
+        )
+        position = normalized_preflight.get(
+            "position", normalized_preflight.get("next_position")
+        )
+        if (
+            not isinstance(sequence_id, str)
+            or not sequence_id
+            or isinstance(seq_id, bool)
+            or not isinstance(seq_id, int)
+            or seq_id < 0
+            or isinstance(position, bool)
+            or not isinstance(position, int)
+            or position < 0
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site sequence position is invalid",
+            )
+        sampler = normalized_preflight.get("sampler")
+        if not isinstance(sampler, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight has no exact sampler state",
+            )
+        sampler = dict(sampler)
+        if set(sampler) != {"mode", "temperature", "top_k", "draw"}:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site sampler has unsupported state fields",
+            )
+        try:
+            if sampler.get("mode") not in {"greedy", "categorical"}:
+                raise ValueError("unsupported sampler mode")
+            temperature = _finite(
+                sampler.get("temperature"), "native sampler temperature"
+            )
+            if temperature <= 0:
+                raise ValueError("sampler temperature must be positive")
+            top_k = _integer(sampler.get("top_k"), "native sampler top_k")
+            draw = _finite(sampler.get("draw"), "native sampler draw")
+            if draw < 0 or draw >= 1:
+                raise ValueError("sampler draw is outside [0, 1)")
+        except (FieldIntelligenceError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight sampler state is invalid",
+            ) from exc
+        sampler.update(
+            {"temperature": temperature, "top_k": top_k, "draw": draw}
+        )
+        sampler_sha256 = sha256_value(sampler)
+        if (
+            normalized_preflight.get("sampler_sha256") is not None
+            and normalized_preflight["sampler_sha256"] != sampler_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site sampler digest disagrees with its exact tuple",
+            )
+        normalized_preflight["sampler"] = sampler
+        normalized_preflight["sampler_sha256"] = sampler_sha256
+        native_field_epoch_sha256 = normalized_preflight.get(
+            "native_field_epoch_sha256",
+            normalized_preflight.get("field_epoch_sha256"),
+        )
+        try:
+            _digest(
+                native_field_epoch_sha256,
+                "native graph-site native field epoch",
+            )
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight has no CAPI field epoch",
+            ) from exc
+        native_preflight_sha256 = normalized_preflight.get(
+            "native_preflight_sha256",
+            normalized_preflight.get("preflight_sha256"),
+        )
+        try:
+            _digest(native_preflight_sha256, "native CAPI preflight")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight digest is invalid",
+            ) from exc
+        owner_preflight_body = {
+            key: value
+            for key, value in normalized_preflight.items()
+            if key not in {
+                "field_epoch_sha256",
+                "native_field_epoch_sha256",
+                "preflight_sha256",
+                "owner_preflight_sha256",
+            }
+        }
+        owner_preflight_sha256 = sha256_value(
+            {
+                **owner_preflight_body,
+                "native_field_epoch_sha256": native_field_epoch_sha256,
+                "native_preflight_sha256": native_preflight_sha256,
+            }
+        )
+
+        row = next(
+            (
+                candidate
+                for candidate in self.state.computers
+                if candidate.computer_id == computer_id
+            ),
+            None,
+        )
+        if row is None:
+            raise FieldIntelligenceError(
+                "UNKNOWN_COMPUTER", "configure the computer first"
+            )
+        task_value = row.named_value("task")
+        tasks = task_value.get("tasks") if isinstance(task_value, Mapping) else None
+        if not isinstance(tasks, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner has no retained model task table",
+            )
+        matches: list[tuple[str, Mapping[str, Any], Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]] = []
+        for candidate_model_task_id, candidate_record in tasks.items():
+            candidate_state = (
+                candidate_record.get("state")
+                if isinstance(candidate_record, Mapping)
+                else None
+            )
+            candidate_operations = (
+                candidate_state.get("operations")
+                if isinstance(candidate_state, Mapping)
+                else None
+            )
+            candidate_operation = (
+                candidate_operations.get(native_operation_id)
+                if isinstance(candidate_operations, Mapping)
+                else None
+            )
+            candidate_request = (
+                candidate_operation.get("request")
+                if isinstance(candidate_operation, Mapping)
+                else None
+            )
+            if (
+                isinstance(candidate_model_task_id, str)
+                and isinstance(candidate_state, Mapping)
+                and candidate_state.get("await_target") == native_operation_id
+                and isinstance(candidate_operation, Mapping)
+                and candidate_operation.get("phase") == "proposed"
+                and candidate_operation.get("result") is None
+                and isinstance(candidate_request, Mapping)
+                and candidate_request.get("native_task_id") == task_id
+            ):
+                matches.append(
+                    (
+                        candidate_model_task_id,
+                        candidate_record,
+                        candidate_state,
+                        candidate_operation,
+                        candidate_request,
+                    )
+                )
+        if len(matches) != 1:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site task does not resolve to one pending owner model task",
+            )
+        model_task_id, task_record, model_state, pending_operation, pending_request = matches[0]
+        try:
+            _identifier(model_task_id, "native graph-site model task")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site model task identity is invalid",
+            ) from exc
+        runtime_identity = model_state.get("identity")
+        if not isinstance(runtime_identity, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner model task has no retained logical identity",
+            )
+        try:
+            owner_id = _identifier(runtime_identity.get("owner_id"), "model owner")
+            member_id = _identifier(runtime_identity.get("member_id"), "model member")
+            runtime_operation_id = _identifier(
+                runtime_identity.get("operation_id"), "model operation"
+            )
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner model task logical identity is invalid",
+            ) from exc
+        expected_sequence_id = f"{owner_id}:{member_id}:{runtime_operation_id}"
+        if sequence_id != expected_sequence_id or len(sequence_id.encode("utf-8")) > 127:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site logical sequence differs from the owner task",
+            )
+        if (
+            model_state.get("phase") != "waiting"
+            or model_state.get("wait_reason") != "native-model-token"
+            or model_state.get("await_target") != native_operation_id
+            or pending_request.get("schema") != "cassifi.native-model-token-request.v1"
+            or pending_request.get("operation_id") != native_operation_id
+            or pending_request.get("native_task_id") != task_id
+            or pending_request.get("source_sha256") != source_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight differs from the pending native model request",
+            )
+        package = model_state.get("package")
+        package_program = package.get("program") if isinstance(package, Mapping) else None
+        package_graph = package.get("graph") if isinstance(package, Mapping) else None
+        graph_cursor = model_state.get("graph_cursor")
+        if (
+            not isinstance(package_program, Mapping)
+            or pending_request.get("model_program_id") != package_program.get("program_id")
+            or not isinstance(package_graph, list)
+            or isinstance(graph_cursor, bool)
+            or not isinstance(graph_cursor, int)
+            or graph_cursor < 0
+            or graph_cursor >= len(package_graph)
+            or not isinstance(package_graph[graph_cursor], Mapping)
+            or package_graph[graph_cursor].get("op") != "native-transformer"
+            or not isinstance(package_graph[graph_cursor].get("parameters"), Mapping)
+            or package_graph[graph_cursor]["parameters"].get("source_sha256")
+            != source_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight is not at the owner model graph cursor",
+            )
+        try:
+            _digest(
+                package_program.get("tokenizer_sha256"),
+                "owner model package tokenizer",
+            )
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner model package tokenizer identity is invalid",
+            ) from exc
+        model_request = model_state.get("request")
+        prompt_tokens = (
+            model_request.get("prompt_tokens")
+            if isinstance(model_request, Mapping)
+            else None
+        )
+        generated_tokens = model_state.get("generated_tokens")
+        preflight_input_tokens = normalized_preflight.get("input_tokens")
+        pending_tokens = pending_request.get("tokens")
+        if (
+            not isinstance(prompt_tokens, list)
+            or not prompt_tokens
+            or not isinstance(generated_tokens, list)
+            or not isinstance(preflight_input_tokens, list)
+            or not isinstance(pending_tokens, list)
+            or any(
+                isinstance(token, bool) or not isinstance(token, int) or token < 0
+                for token in (*prompt_tokens, *generated_tokens, *preflight_input_tokens)
+            )
+            or [*prompt_tokens, *generated_tokens] != preflight_input_tokens
+            or pending_tokens != preflight_input_tokens
+            or position != len(preflight_input_tokens)
+            or pending_request.get("sampler") != sampler
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site preflight differs from the pending owner token request",
+            )
+        resident_view = model_state.get("resident_model")
+        if (
+            not isinstance(resident_view, Mapping)
+            or resident_view.get("source_sha256") != source_sha256
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site source differs from the owner resident model",
+            )
+        predecessor_generation = resident_view.get("graph_site_generation")
+        if (
+            isinstance(predecessor_generation, bool)
+            or not isinstance(predecessor_generation, int)
+            or predecessor_generation < 0
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site predecessor generation is invalid",
+            )
+        package_numerical_profile = package.get("numerical_profile")
+        package_model_metadata = (
+            package_numerical_profile.get("model_metadata")
+            if isinstance(package_numerical_profile, Mapping)
+            else None
+        )
+        architecture = (
+            package_model_metadata.get("general.architecture")
+            if isinstance(package_model_metadata, Mapping)
+            else None
+        )
+        try:
+            architecture = _identifier(architecture, "owner model architecture")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner model has no verified architecture metadata",
+            ) from exc
+        graph_operation = package_graph[graph_cursor]
+        retained_view = (
+            task_value.get("model_policies", {}).get(source_sha256, {})
+            if isinstance(task_value, Mapping)
+            else {}
+        )
+        graph_state = (
+            resident_view.get("graph_sites")
+            if isinstance(resident_view, Mapping)
+            else None
+        )
+        if not isinstance(graph_state, Mapping):
+            graph_state = (
+                retained_view.get("graph_sites")
+                if isinstance(retained_view, Mapping)
+                else None
+            )
+        if (
+            not isinstance(graph_state, Mapping)
+            or graph_state.get("source_sha256") != source_sha256
+            or not isinstance(graph_state.get("methods"), Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native source has no owner-held graph-site policy",
+            )
+        try:
+            from programs.model.graph_site import native_program_for_site
+        except ImportError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site policy selector is unavailable",
+            ) from exc
+
+        selector_state = {
+            "source_sha256": source_sha256,
+            "graph_sites": graph_state,
+        }
+        selected_program: Mapping[str, Any] | None = None
+        selected_site: Mapping[str, Any] | None = None
+        selected_index: int | None = None
+        selected_invocation: Mapping[str, Any] | None = None
+        method_rows = graph_state["methods"]
+        for site_index, site_record in enumerate(sites):
+            if not isinstance(site_record, Mapping):
+                continue
+            descriptor = site_record.get("graph_site", site_record)
+            if not isinstance(descriptor, Mapping):
+                continue
+            if any(
+                forbidden in site_record
+                for forbidden in ("method", "program", "coefficients", "A", "B", "bias")
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "preflight cannot supply graph-site operator coefficients",
+                )
+            stage = descriptor.get("stage", site_record.get("stage"))
+            layer = descriptor.get("layer", site_record.get("layer"))
+            site_name = descriptor.get("site", site_record.get("site"))
+            specialist = descriptor.get(
+                "specialist", site_record.get("specialist")
+            )
+            dependencies = descriptor.get(
+                "dependencies", site_record.get("dependencies")
+            )
+            if (
+                not isinstance(stage, str)
+                or not isinstance(site_name, str)
+                or not site_name
+                or not isinstance(specialist, str)
+                or not isinstance(dependencies, Mapping)
+            ):
+                continue
+            descriptor_source = descriptor.get("source_sha256", source_sha256)
+            descriptor_sequence = descriptor.get("sequence_id", sequence_id)
+            descriptor_position = descriptor.get("position", position)
+            if (
+                descriptor_source != source_sha256
+                or descriptor_sequence != sequence_id
+                or descriptor_position != position
+            ):
+                continue
+            graph_site_base = {
+                "schema": "cassifi.graph-site-request.v1",
+                "source_sha256": source_sha256,
+                "model_sha256": model_sha256,
+                "tokenizer_sha256": tokenizer_sha256,
+                "architecture": architecture,
+                "native_operation_id": native_operation_id,
+                "sequence_id": sequence_id,
+                "seq_id": seq_id,
+                "position": position,
+                "stage": stage,
+                "layer": layer,
+                "site": site_name,
+                "specialist": specialist,
+                "predecessor_generation": predecessor_generation,
+                "predecessor_snapshot_sha256": row.state_sha256,
+                "intervention_order": graph_cursor,
+                "verb": "replace",
+                "owner_generation": self.state.generation,
+                "native_predecessor_sha256": native_predecessor_sha256,
+                "native_field_epoch_sha256": native_field_epoch_sha256,
+                "native_preflight_sha256": native_preflight_sha256,
+                "sampler": sampler,
+                "sampler_sha256": sampler_sha256,
+                "preflight_sha256": owner_preflight_sha256,
+                "request_sha256": "",
+                "request_sha256_pending": True,
+            }
+            native_request_base = {
+                "source_sha256": source_sha256,
+                "model_sha256": model_sha256,
+                "tokenizer_sha256": tokenizer_sha256,
+                "model_id": model_sha256,
+                "tokenizer_id": tokenizer_sha256,
+                "native_operation_id": native_operation_id,
+                "task_id": task_id,
+                "sequence_id": sequence_id,
+                "seq_id": seq_id,
+                "position": position,
+                "native_predecessor_sha256": native_predecessor_sha256,
+                "native_field_epoch_sha256": native_field_epoch_sha256,
+                "native_preflight_sha256": native_preflight_sha256,
+                "sampler": sampler,
+                "sampler_sha256": sampler_sha256,
+                "preflight_sha256": owner_preflight_sha256,
+                "owner_generation": self.state.generation,
+                "request_sha256": "",
+                "request_sha256_pending": True,
+                "stage": stage,
+                "layer": layer,
+            }
+            guard_keys: dict[str, dict[str, Any]] = {}
+            for policy_row in method_rows.values():
+                if not isinstance(policy_row, Mapping):
+                    continue
+                native_guard = policy_row.get("native_state_applicability")
+                successor_shapes = policy_row.get("successor_shapes")
+                applicability = policy_row.get("applicability")
+                owner_dependencies = policy_row.get("dependencies")
+                if (
+                    not isinstance(native_guard, Mapping)
+                    or not isinstance(successor_shapes, Mapping)
+                    or not isinstance(applicability, Mapping)
+                    or not isinstance(owner_dependencies, Mapping)
+                    or not owner_dependencies
+                ):
+                    continue
+                backend = applicability.get("backend", graph_state.get("backend"))
+                if not isinstance(backend, str) or not backend:
+                    continue
+                # The policy row keeps the convolution history rows as a
+                # per-position null (_policy_layout), but the selector matches
+                # the row against the descriptor's exact geometry. Fill the
+                # null first dim from this descriptor's declared rows so the
+                # concrete and policy forms compare equal after the selector
+                # re-applies the policy layout.
+                materialized_shapes = dict(successor_shapes)
+                conv_descriptor = materialized_shapes.get(
+                    f"conv_history.{layer}"
+                )
+                conv_rows = dependencies.get("conv_history_rows")
+                conv_channels = dependencies.get("conv_history_channels")
+                if (
+                    isinstance(conv_descriptor, Mapping)
+                    and isinstance(conv_descriptor.get("shape"), list)
+                    and len(conv_descriptor["shape"]) == 2
+                    and conv_descriptor["shape"][0] is None
+                    and isinstance(conv_rows, int)
+                    and not isinstance(conv_rows, bool)
+                    and conv_rows >= 1
+                    and isinstance(conv_channels, int)
+                    and not isinstance(conv_channels, bool)
+                    and conv_channels >= 1
+                    and conv_descriptor["shape"][1] == conv_channels
+                ):
+                    materialized_shapes[f"conv_history.{layer}"] = {
+                        **conv_descriptor,
+                        "shape": [conv_rows, conv_channels],
+                    }
+                metadata = {
+                    "backend": backend,
+                    "native_state_applicability": dict(native_guard),
+                    "successor_shapes": materialized_shapes,
+                }
+                candidate_key = sha256_value(
+                    {
+                        "metadata": metadata,
+                        "owner_dependencies": dict(owner_dependencies),
+                    }
+                )
+                guard_keys[candidate_key] = {
+                    "metadata": metadata,
+                    "owner_dependencies": dict(owner_dependencies),
+                }
+            for candidate_key in sorted(guard_keys):
+                selection = guard_keys[candidate_key]
+                metadata = selection["metadata"]
+                owner_dependencies = selection["owner_dependencies"]
+                graph_site_request = {
+                    **graph_site_base,
+                    "backend": metadata["backend"],
+                    "dependencies": owner_dependencies,
+                }
+                native_request = {
+                    **native_request_base,
+                    "backend": metadata["backend"],
+                    "architecture": architecture,
+                    "native_preflight": normalized_preflight,
+                    "native_site": dict(descriptor),
+                    "graph_site": graph_site_request,
+                }
+                program = native_program_for_site(
+                    selector_state,
+                    native_request,
+                    metadata,
+                )
+                if not isinstance(program, Mapping):
+                    continue
+                invocation = program.get("invocation")
+                if not isinstance(invocation, Mapping):
+                    continue
+                if (
+                    invocation.get("source_sha256") != source_sha256
+                    or invocation.get("architecture") != architecture
+                    or invocation.get("backend") != metadata["backend"]
+                    or invocation.get("sequence_id") != sequence_id
+                    or invocation.get("position") != position
+                    or invocation.get("stage") != stage
+                    or invocation.get("layer")
+                    != (None if specialist == "execution-choice" else layer)
+                    or invocation.get("site") != site_name
+                    or invocation.get("specialist") != specialist
+                    or invocation.get("predecessor_generation")
+                    != predecessor_generation
+                    or invocation.get("predecessor_sha256") != row.state_sha256
+                    or invocation.get("intervention_order") != graph_cursor
+                    or invocation.get("verb") != "replace"
+                    or invocation.get("dependencies") != owner_dependencies
+                    or invocation.get("request_sha256") not in {"", None}
+                    or invocation.get("request_sha256_pending") is not True
+                ):
+                    continue
+                selected_program = dict(program)
+                selected_site = {
+                    **dict(site_record),
+                    "graph_site": graph_site_request,
+                    "native_site": dict(descriptor),
+                }
+                selected_index = site_index
+                selected_invocation = dict(invocation)
+                break
+            if selected_program is not None:
+                break
+        if (
+            selected_program is None
+            or selected_site is None
+            or selected_index is None
+            or selected_invocation is None
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "no native preflight site matches an admitted owner graph-site method",
+            )
+
+        native_candidate = selected_program.get("native_candidate")
+        native_guard = selected_program.get("native_guard")
+        if not isinstance(native_candidate, Mapping) or not isinstance(
+            native_guard, Mapping
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner selector did not produce a typed native operator",
+            )
+        native_candidate = dict(native_candidate)
+        native_guard = dict(native_guard)
+        if native_candidate.get("request_sha256") not in {"", None}:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "native graph-site ticket contains a future request digest",
+            )
+        invocation_sha256 = selected_invocation.get("invocation_sha256")
+        candidate_sha256 = selected_program.get("candidate_sha256")
+        try:
+            _digest(invocation_sha256, "owner graph-site invocation")
+            _digest(candidate_sha256, "owner graph-site candidate")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site program has no authenticated digest",
+            ) from exc
+        invocation_preimage = dict(selected_invocation)
+        invocation_preimage.pop("invocation_sha256", None)
+        if sha256_value(invocation_preimage) != invocation_sha256:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site invocation digest is inconsistent",
+            )
+        dependencies = selected_invocation.get("dependencies")
+        if not isinstance(dependencies, Mapping):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site invocation has no exact dependencies",
+            )
+        owner_field_epoch_sha256 = dependencies.get("field_epoch_sha256")
+        try:
+            _digest(owner_field_epoch_sha256, "owner graph-site field epoch")
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site invocation has no owner field epoch",
+            ) from exc
+        graph_predecessor_sha256 = selected_invocation.get("predecessor_sha256")
+        predecessor_generation = selected_invocation.get(
+            "predecessor_generation"
+        )
+        intervention_order = selected_invocation.get("intervention_order")
+        try:
+            _digest(
+                graph_predecessor_sha256,
+                "owner graph-site predecessor snapshot",
+            )
+        except FieldIntelligenceError as exc:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site invocation has no predecessor snapshot",
+            ) from exc
+        if graph_predecessor_sha256 != row.state_sha256:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site predecessor differs from the current computer row",
+            )
+        if (
+            isinstance(predecessor_generation, bool)
+            or not isinstance(predecessor_generation, int)
+            or predecessor_generation < 0
+            or isinstance(intervention_order, bool)
+            or not isinstance(intervention_order, int)
+            or intervention_order < 0
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site generation or intervention order is invalid",
+            )
+        if (
+            selected_program.get("method_key") is None
+            or isinstance(selected_program.get("method_generation"), bool)
+            or not isinstance(selected_program.get("method_generation"), int)
+            or selected_program["method_generation"] < 1
+        ):
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "owner graph-site method reference is invalid",
+            )
+        if native_candidate.get("candidate_sha256") not in {
+            None,
+            candidate_sha256,
+        }:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                "typed native operator disagrees with its owner program digest",
+            )
+        native_candidate.update(
+            {
+                "seq_id": seq_id,
+                "position": position,
+                "owner_generation": self.state.generation,
+                "sequence_id": sequence_id,
+                "source_sha256": source_sha256,
+                "request_sha256": "",
+                "request_sha256_pending": True,
+                "invocation_sha256": invocation_sha256,
+                "candidate_sha256": candidate_sha256,
+                "dependencies_json": canonical_json_bytes(
+                    dict(dependencies)
+                ).decode("utf-8"),
+                "predecessor_generation": predecessor_generation,
+                "predecessor_sha256": graph_predecessor_sha256,
+                "intervention_order": str(intervention_order),
+            }
+        )
+        policy_snapshot_sha256 = sha256_value(
+            {
+                "graph_sites": graph_state,
+                "source_sha256": source_sha256,
+            }
+        )
+        reservation_operation_id = (
+            self._native_graph_site_reservation_operation_id(operation_id)
+        )
+        ticket_body = {
+            "schema": "cassifi.native-graph-site-program-ticket.v1",
+            "operation_id": operation_id,
+            "reservation_operation_id": reservation_operation_id,
+            "computer_id": computer_id,
+            "model_task_id": model_task_id,
+            "task_id": task_id,
+            "owner_generation": self.state.generation,
+            "owner_state_sha256": self.state.state_sha256,
+            "owner_manifest_sha256": self.checkpoints.current_manifest_sha256,
+            "field_state_sha256": row.state_sha256,
+            "graph_predecessor_sha256": graph_predecessor_sha256,
+            "field_epoch_sha256": owner_field_epoch_sha256,
+            "native_field_epoch_sha256": native_field_epoch_sha256,
+            "policy_snapshot_sha256": policy_snapshot_sha256,
+            "source_sha256": source_sha256,
+            "model_id": model_sha256,
+            "tokenizer_id": tokenizer_sha256,
+            "model_sha256": model_sha256,
+            "tokenizer_sha256": tokenizer_sha256,
+            "native_operation_id": native_operation_id,
+            "sequence_id": sequence_id,
+            "seq_id": seq_id,
+            "position": position,
+            "native_predecessor_sha256": native_predecessor_sha256,
+            "native_preflight_sha256": native_preflight_sha256,
+            "preflight_sha256": owner_preflight_sha256,
+            "preflight_input_sha256": preflight_input_sha256,
+            "preflight": normalized_preflight,
+            "sampler": sampler,
+            "sampler_sha256": sampler_sha256,
+            "selected_site_index": selected_index,
+            "selected_site": selected_site,
+            "invocation_sha256": invocation_sha256,
+            "candidate_sha256": candidate_sha256,
+            "method_key": selected_program["method_key"],
+            "method_generation": selected_program["method_generation"],
+            "intervention_order": intervention_order,
+            "dependencies": dict(dependencies),
+            "request_sha256_pending": True,
+            "program": selected_program,
+            "native_candidate": native_candidate,
+            "native_guard": native_guard,
+        }
+        native_guard.update(
+            {
+                "owner_snapshot_sha256": row.state_sha256,
+                "field_epoch_sha256": owner_field_epoch_sha256,
+                "native_preflight_sha256": native_preflight_sha256,
+                "native_predecessor_sha256": native_predecessor_sha256,
+            }
+        )
+        ticket_id_preimage = dict(ticket_body)
+        ticket_id_preimage["native_guard"] = dict(native_guard)
+        ticket_id_preimage["native_guard"].pop("candidate_id", None)
+        ticket_id = sha256_value(ticket_id_preimage)
+        native_guard["candidate_id"] = ticket_id
+        ticket_body["ticket_id"] = ticket_id
+        ticket_body["native_guard"] = native_guard
+        ticket_sha256 = sha256_value(ticket_body)
+        ticket_body["ticket_sha256"] = ticket_sha256
+        if len(canonical_json_bytes(ticket_body)) > self.limits.max_source_bytes:
+            raise FieldIntelligenceError(
+                "WORK_CAPACITY",
+                "native graph-site ticket exceeds the owner source byte limit",
+            )
+        return ticket_body
+
     def execute_resident_model_stage(
         self,
         operation_id: str,
@@ -13177,8 +19271,9 @@ class FieldIntelligenceOwner:
         executor: Any,
         resume_task: bool = False,
         batch_to_token: bool = False,
+        transient_payload: bytes | None = None,
     ) -> Mapping[str, Any]:
-        """Execute one stage or atomic token batch through the owner field."""
+        """Compute a private resident stage and publish against its exact lineage."""
 
         from cassi_learning_computer import (
             LearningComputerCapacityError,
@@ -13209,6 +19304,16 @@ class FieldIntelligenceOwner:
                 "INVALID_COMPUTER",
                 "resident executor source identity disagrees with the stage",
             )
+        ngram_table = getattr(executor, "ngram_table", None)
+        ngram_table_id = None
+        if ngram_table is not None:
+            if not callable(getattr(ngram_table, "lookup", None)):
+                raise FieldIntelligenceError(
+                    "INVALID_COMPUTER", "resident ngram table has no row reader"
+                )
+            ngram_table_id = _digest(
+                getattr(ngram_table, "table_id", None), "ngram table"
+            )
         minimum_modes = getattr(executor, "neural_membrane_mode_count", None)
         if (
             isinstance(minimum_modes, bool)
@@ -13218,6 +19323,38 @@ class FieldIntelligenceOwner:
             raise FieldIntelligenceError(
                 "INVALID_COMPUTER",
                 "resident executor has no bounded neural membrane width",
+            )
+        visual_stage = transient_payload is not None
+        if visual_stage:
+            parameters = request.get("parameters")
+            if (
+                not isinstance(transient_payload, bytes)
+                or resume_task
+                or batch_to_token
+                or request.get("schema")
+                != "cassifi.resident-qwen-visual-stage-request.v1"
+                or request.get("stage") != "qwen-vision"
+                or not isinstance(parameters, Mapping)
+                or parameters.get("sanitized_png_sha256")
+                != hashlib.sha256(transient_payload).hexdigest()
+                or not callable(getattr(executor, "execute_visual_stage", None))
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_COMPUTER",
+                    "visual membrane stage requires one digest-bound transient PNG",
+                )
+        if not visual_stage and any(
+            not callable(getattr(executor, name, None))
+            for name in (
+                "begin_stage_transaction",
+                "seal_stage_transaction",
+                "commit_stage_transaction",
+                "abort_stage_transaction",
+            )
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident executor does not support transactional stage publication",
             )
         if not isinstance(resume_task, bool):
             raise FieldIntelligenceError(
@@ -13250,66 +19387,197 @@ class FieldIntelligenceOwner:
             "resume_task": resume_task,
             "batch_to_token": batch_to_token,
         }
+        if ngram_table_id is not None:
+            request_row["ngram_table_id"] = ngram_table_id
+        if visual_stage:
+            request_row["transient_payload_sha256"] = hashlib.sha256(
+                transient_payload
+            ).hexdigest()
         request_sha256 = hashlib.sha256(
             canonical_json_bytes(request_row)
         ).hexdigest()
-        with self._lock:
-            committed = self._committed_result(
-                operation_id,
-                expected_kind="neural-membrane-stage",
-                expected_request=request_row,
-                expected_result_keys=frozenset(
-                    {
-                        "stage_result",
-                        "membrane_receipt",
-                        *(("resume_receipt",) if resume_task else ()),
-                        *(("stage_results", "membrane_receipts", "resume_receipts") if batch_to_token else ()),
-                    }
-                ),
-                expected_mapping_result_fields=frozenset(
-                    {
-                        "stage_result",
-                        "membrane_receipt",
-                        *(("resume_receipt",) if resume_task else ()),
-                    }
-                ),
-                require_retained=True,
-            )
-            if committed is not None:
-                _manifest, result, checkpoint = committed
-                return {
-                    **result,
-                    "_checkpoint_receipt": checkpoint.as_dict(),
-                }
-            self._assert_publication_order(operation_id)
-            row = next(
-                (
-                    item
-                    for item in self.state.computers
-                    if item.computer_id == computer_id
-                ),
-                None,
-            )
-            if row is None:
-                raise FieldIntelligenceError(
-                    "UNKNOWN_COMPUTER",
-                    "configure the computer first",
+        # Same-operation callers wait for one exact replay while this owner's
+        # mutation lock is released for resident computation.
+        while True:
+            with self._lock:
+                committed = self._committed_result(
+                    operation_id,
+                    expected_kind="neural-membrane-stage",
+                    expected_request=request_row,
+                    expected_result_keys=frozenset(
+                        {
+                            "stage_result",
+                            "membrane_receipt",
+                            *(("resume_receipt",) if resume_task else ()),
+                            *(("stage_results", "membrane_receipts", "resume_receipts") if batch_to_token else ()),
+                        }
+                    ),
+                    expected_mapping_result_fields=frozenset(
+                        {
+                            "stage_result",
+                            "membrane_receipt",
+                            *(("resume_receipt",) if resume_task else ()),
+                        }
+                    ),
+                    require_retained=True,
                 )
-            available_bytes = (
-                self.limits.max_workspace_bytes
-                - self.state.workspace_usage()["workspace_bytes"]
-            )
-            replacement_bytes = available_bytes + row.nbytes
+                if committed is not None:
+                    if visual_stage:
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER",
+                            "a committed visual stage has no transient embeddings to replay",
+                        )
+                    _manifest, result, checkpoint = committed
+                    return {
+                        **result,
+                        "_checkpoint_receipt": checkpoint.as_dict(),
+                    }
+                waiter = self._resident_stage_waits.get(operation_id)
+                leader = waiter is None
+                if leader:
+                    self._assert_publication_order(operation_id)
+                    base_state = self.state
+                    # This immutable row is the candidate's full computer-state
+                    # dependency closure; unrelated computers can still rebase.
+                    row = next(
+                        (
+                            item
+                            for item in base_state.computers
+                            if item.computer_id == computer_id
+                        ),
+                        None,
+                    )
+                    if row is None:
+                        raise FieldIntelligenceError(
+                            "UNKNOWN_COMPUTER",
+                            "configure the computer first",
+                        )
+                    predecessor_row_sha256 = row.state_sha256
+                    resource_limits = self.resource_limits(computer_id)
+                    resource_limits_row = resource_limits.as_dict()
+                    available_bytes = (
+                        self.limits.max_workspace_bytes
+                        - base_state.workspace_usage()["workspace_bytes"]
+                    )
+                    replacement_bytes = available_bytes + row.nbytes
+                    stage_parameters = stage_request.get("parameters")
+                    visual_reference = (
+                        stage_parameters.get("visual_embedding_id")
+                        if not visual_stage and isinstance(stage_parameters, Mapping)
+                        else None
+                    )
+                    waiter = threading.Event()
+                    self._resident_stage_waits[operation_id] = waiter
+            if leader:
+                break
+            assert waiter is not None
+            waiter.wait()
+        executor_stage_ticket = None
+        executor_stage_transaction_open = False
+        try:
+            if not visual_stage:
+                executor_stage_ticket = executor.begin_stage_transaction()
+                executor_stage_transaction_open = True
             stage_results: list[dict[str, Any]] = []
             membrane_receipts: list[dict[str, Any]] = []
             resume_receipts: list[dict[str, Any]] = []
+            rehearsal_receipts: list[dict[str, Any]] = []
+            rehearsal_trials: list[dict[str, Any]] = []
             current_request = stage_request
             current_resident_operation_id = resident_operation_id
             initial_position = stage_request.get("position")
             successor_row = row
+            transient_embeddings = None
             membrane = None
+            seen_stages: set[tuple[Any, Any, Any]] = set()
+            model_cycle = None
+            growth_receipt = None
             try:
-                for _batch_index in range(512):
+                if batch_to_token:
+                    task_value = successor_row.named_value("task")
+                    model_task = (
+                        task_value.get("tasks", {}).get(task_id)
+                        if isinstance(task_value, Mapping)
+                        else None
+                    )
+                    model_state = (
+                        model_task.get("state")
+                        if isinstance(model_task, Mapping)
+                        else None
+                    )
+                    graph = (
+                        model_state.get("package", {}).get("graph")
+                        if isinstance(model_state, Mapping)
+                        else None
+                    )
+                    cursor = (
+                        model_state.get("graph_cursor")
+                        if isinstance(model_state, Mapping)
+                        else None
+                    )
+                    if (
+                        not isinstance(graph, list)
+                        or isinstance(cursor, bool)
+                        or not isinstance(cursor, int)
+                        or not 0 <= cursor < len(graph)
+                    ):
+                        raise LearningComputerError(
+                            "resident token batch has no remaining model graph"
+                        )
+                    remaining_stages = len(graph) - cursor
+                    region = successor_row._region_capacity()["task"]
+                    # A token holds one membrane epoch through every model
+                    # stage. Reserve room for the task's growing stage ledger
+                    # before opening that epoch: its field profile cannot
+                    reserve_words = remaining_stages * 4096
+                    required_words = region["used_words"] + reserve_words
+                    if required_words > region["capacity_words"]:
+                        limits = resource_limits
+                        target_modes = (
+                            successor_row.profile.mode_count * required_words
+                            + region["capacity_words"] - 1
+                        ) // region["capacity_words"]
+                        if (
+                            not limits.auto_grow
+                            or target_modes * 72
+                            > min(replacement_bytes, limits.max_logical_bytes)
+                        ):
+                            raise LearningComputerCapacityError(
+                                "resident token task needs more declared field storage"
+                            )
+                        successor_row, growth_receipt = successor_row.grow(
+                            stack_capacity=target_modes,
+                            resource_limits=limits.as_dict(),
+                        )
+                        if (
+                            successor_row._region_capacity()["task"]["available_words"]
+                            < reserve_words
+                        ):
+                            raise LearningComputerCapacityError(
+                                "resident token task growth left insufficient storage"
+                            )
+                    stage_limit = remaining_stages + 1
+                else:
+                    stage_limit = 1
+                for _batch_index in range(stage_limit):
+                    stage_key = (
+                        current_request.get("position"),
+                        current_request.get("stage"),
+                        current_request.get("layer"),
+                    )
+                    if stage_key in seen_stages:
+                        last_run = resume_receipt.get("run", {}) if resume_receipt else {}
+                        transitions = last_run.get("transition_receipts", [])
+                        last_transition = transitions[-1] if transitions else {}
+                        raise LearningComputerError(
+                            "resident token batch repeated a model stage "
+                            f"(index={_batch_index}, cursor={model_state.get('graph_cursor')}, "
+                            f"stage={stage_key}, regional_status={last_run.get('status')}, "
+                            f"regional_kind={last_transition.get('kind')}, "
+                            f"regional_reason={last_transition.get('reason')}, "
+                            f"regional_fault={last_transition.get('fault_detail')})"
+                        )
+                    seen_stages.add(stage_key)
                     epoch = {
                         "schema": "cassifi.neural-membrane-epoch.v1",
                         "computer_id": computer_id,
@@ -13346,21 +19614,321 @@ class FieldIntelligenceOwner:
                             resource_manager=self._resource_manager_for(computer_id),
                         )
                         successor_row = membrane.computer
-                    raw_stage_result = executor.execute_stage(
-                        current_request,
-                        activation_exchange=membrane.exchange,
-                    )
-                    if not isinstance(raw_stage_result, Mapping):
+                        if ngram_table is not None and not visual_stage:
+                            ngram_state = successor_row.named_value("ngram_readout")
+                            if (
+                                not isinstance(ngram_state, Mapping)
+                                or ngram_state.get("model_id") != source_sha256
+                                or ngram_state.get("table_id") != ngram_table_id
+                            ):
+                                raise LearningComputerError(
+                                    "resident ngram readout is not bound to this model and table"
+                                )
+                            if batch_to_token or current_request.get("stage") == "qwen-head":
+                                if not batch_to_token:
+                                    task_value = successor_row.named_value("task")
+                                    model_task = (
+                                        task_value.get("tasks", {}).get(task_id)
+                                        if isinstance(task_value, Mapping) else None
+                                    )
+                                    model_state = (
+                                        model_task.get("state")
+                                        if isinstance(model_task, Mapping) else None
+                                    )
+                                if not isinstance(model_state, Mapping):
+                                    raise LearningComputerError(
+                                        "resident ngram lookup has no model task"
+                                    )
+                                model_request = model_state.get("request")
+                                prompt_tokens = (
+                                    model_request.get("prompt_tokens")
+                                    if isinstance(model_request, Mapping) else None
+                                )
+                                generated_tokens = model_state.get("generated_tokens")
+                                resident_state = model_state.get("resident_model")
+                                token_index = (
+                                    resident_state.get("token_index")
+                                    if isinstance(resident_state, Mapping) else None
+                                )
+                                if (
+                                    not isinstance(prompt_tokens, list)
+                                    or not prompt_tokens
+                                    or not isinstance(generated_tokens, list)
+                                    or isinstance(token_index, bool)
+                                    or not isinstance(token_index, int)
+                                    or token_index < 0
+                                ):
+                                    raise LearningComputerError(
+                                        "resident ngram prefix cursor is invalid"
+                                    )
+                                if token_index >= len(prompt_tokens) - 1:
+                                    visible = (prompt_tokens + generated_tokens)[:token_index + 1]
+                                    if (
+                                        len(visible) != token_index + 1
+                                        or visible[-1] != current_request.get("token")
+                                        or current_request.get("position") != token_index
+                                    ):
+                                        raise LearningComputerError(
+                                            "resident ngram prefix differs from model cursor"
+                                        )
+                                    table_vector, _row_ids = ngram_table.lookup(visible)
+                                    membrane.configure_ngram_readout(
+                                        ngram_state, table_vector
+                                    )
+                        if batch_to_token:
+                            model_cycle = successor_row.begin_model_cycle(task_id)
+                    if visual_reference is not None:
+                        executor.retain_visual_snapshot(
+                            visual_reference, current_request.get("snapshot")
+                        )
+                    if visual_stage:
+                        raw_stage_result = executor.execute_visual_stage(
+                            current_request,
+                            image_png=transient_payload,
+                            activation_exchange=membrane.exchange,
+                        )
+                        if not isinstance(raw_stage_result, Mapping):
+                            raise LearningComputerError(
+                                "resident visual executor returned a non-object stage result"
+                            )
+                        transient_embeddings = raw_stage_result.get(
+                            "transient_embeddings"
+                        )
+                        durable_stage_result = {
+                            key: value
+                            for key, value in raw_stage_result.items()
+                            if key != "transient_embeddings"
+                        }
+                    else:
+                        # An active model cycle already holds the task's
+                        # runtime state; decoding the task region again for
+                        # every stage would repeat the whole history codec.
+                        task_value = None
+                        if model_cycle is not None:
+                            runtime_state = model_cycle.runtime_state
+                            runtime_task = (
+                                runtime_state.get("tasks", {}).get(task_id)
+                                if isinstance(runtime_state, Mapping)
+                                else None
+                            )
+                            stage_model_state = (
+                                runtime_task.get("state")
+                                if isinstance(runtime_task, Mapping)
+                                else None
+                            )
+                        else:
+                            task_value = successor_row.named_value("task")
+                            model_task = (
+                                task_value.get("tasks", {}).get(task_id)
+                                if isinstance(task_value, Mapping)
+                                else None
+                            )
+                            stage_model_state = (
+                                model_task.get("state")
+                                if isinstance(model_task, Mapping)
+                                else None
+                            )
+                        graph_site_candidate_provider = None
+                        if isinstance(stage_model_state, Mapping):
+                            from programs.model.graph_site import candidate_for_site, candidates_for_site
+
+                            # Task states retain a compact pointer to the
+                            # owner-held model policy. A branch may instead
+                            # hold its own uncommitted graph-site view.
+                            resident_view = stage_model_state.get("resident_model")
+                            policy_view = (
+                                model_cycle.runtime_state
+                                if model_cycle is not None else task_value
+                            )
+                            retained_view = (
+                                policy_view.get("model_policies", {}).get(source_sha256, {})
+                                if isinstance(policy_view, Mapping) else {}
+                            )
+                            selector_state = (
+                                resident_view
+                                if isinstance(resident_view, Mapping)
+                                and isinstance(resident_view.get("graph_sites"), Mapping)
+                                else {"source_sha256": source_sha256,
+                                      "graph_sites": retained_view.get("graph_sites")}
+                            )
+
+                            def graph_site_candidate_provider(
+                                candidate_request: Mapping[str, Any],
+                                arrays: Mapping[str, Any],
+                                metadata: Mapping[str, Any],
+                                *,
+                                _selector_state: Mapping[str, Any] = selector_state,
+                            ) -> Mapping[str, Any] | list[Mapping[str, Any]] | None:
+                                selector = (
+                                    candidates_for_site
+                                    if candidate_request.get("graph_site", {}).get("specialist") == "recurrent-dynamics"
+                                    else candidate_for_site
+                                )
+                                selection = selector(
+                                    _selector_state,
+                                    candidate_request,
+                                    arrays,
+                                    metadata,
+                                )
+                                # Alternatives beyond the chosen candidate are
+                                # hypothetical only: each rehearses on a forked
+                                # preview and never enters the published
+                                # transition result.
+                                rows = (
+                                    list(selection)
+                                    if isinstance(selection, list)
+                                    else [selection]
+                                    if isinstance(selection, Mapping)
+                                    else []
+                                )
+                                for alternative in rows[1:5]:
+                                    if len(rehearsal_trials) >= 4:
+                                        break
+                                    if not isinstance(alternative, Mapping):
+                                        continue
+                                    method_view = alternative.get("method")
+                                    input_view = (
+                                        method_view.get("input")
+                                        if isinstance(method_view, Mapping)
+                                        else None
+                                    )
+                                    input_name = (
+                                        input_view.get("name")
+                                        if isinstance(input_view, Mapping)
+                                        else None
+                                    )
+                                    invocation_view = alternative.get("invocation")
+                                    site_view = (
+                                        invocation_view.get("site")
+                                        if isinstance(invocation_view, Mapping)
+                                        else None
+                                    )
+                                    if (
+                                        not isinstance(input_name, str)
+                                        or input_name not in arrays
+                                        or not isinstance(site_view, str)
+                                        or not site_view
+                                    ):
+                                        continue
+                                    rehearsal_trials.append(
+                                        {
+                                            "site": site_view,
+                                            "activation": np.array(
+                                                arrays[input_name],
+                                                dtype=np.float32,
+                                                copy=True,
+                                            ),
+                                            "method_key": alternative.get(
+                                                "method_key"
+                                            ),
+                                            "method_generation": alternative.get(
+                                                "method_generation"
+                                            ),
+                                            "specialist": invocation_view.get(
+                                                "specialist"
+                                            ),
+                                        }
+                                    )
+                                return selection
+                        # The expert graph site has a neutral, stage-local
+                        # membrane profile. Its observations train the owner
+                        # through the task transition; neither the native
+                        # expert nor an acquired replacement writes membrane
+                        # planes at this site. Other model stages retain their
+                        # ordered membrane exchanges in the same token epoch.
+                        graph_site = current_request.get("graph_site")
+                        dependencies = (
+                            graph_site.get("dependencies")
+                            if isinstance(graph_site, Mapping)
+                            else None
+                        )
+                        from programs.model.graph_site import (
+                            NEUTRAL_FIELD_EPOCH_SHA256,
+                            NEUTRAL_MEMBRANE_PROFILE,
+                        )
+                        neutral_expert_site = (
+                            current_request.get("stage") == "qwen-experts"
+                            and isinstance(dependencies, Mapping)
+                            and dependencies.get("membrane_profile")
+                            == NEUTRAL_MEMBRANE_PROFILE
+                            and dependencies.get("field_epoch_sha256")
+                            == NEUTRAL_FIELD_EPOCH_SHA256
+                        )
+                        raw_stage_result = executor.execute_stage(
+                            current_request,
+                            activation_exchange=(
+                                None if neutral_expert_site else membrane.exchange
+                            ),
+                            stage_transaction=executor_stage_ticket,
+                            graph_site_candidate_provider=graph_site_candidate_provider,
+                        )
+                        if not isinstance(raw_stage_result, Mapping):
+                            raise LearningComputerError(
+                                "resident executor returned a non-object stage result"
+                            )
+                        transaction_receipt = raw_stage_result.get(
+                            "executor_transaction"
+                        )
+                        if (
+                            not isinstance(transaction_receipt, Mapping)
+                            or transaction_receipt.get("schema")
+                            != "cassifi.executor-stage-transaction.v1"
+                            or transaction_receipt.get("ticket")
+                            != executor_stage_ticket
+                        ):
+                            raise LearningComputerError(
+                                "resident executor returned an invalid stage transaction"
+                            )
+                        durable_stage_result = {
+                            key: value
+                            for key, value in raw_stage_result.items()
+                            if key != "executor_transaction"
+                        }
+                    if not isinstance(durable_stage_result, Mapping):
                         raise LearningComputerError(
                             "resident executor returned a non-object stage result"
                         )
-                    stage_result = json.loads(
-                        canonical_json_bytes(
-                            dict(raw_stage_result)
-                        ).decode("utf-8")
+                    if visual_stage:
+                        matrix = np.asarray(transient_embeddings, dtype=np.float32)
+                        if (
+                            matrix.ndim != 2
+                            or matrix.shape[0] < 1
+                            or matrix.shape[1] != 2048
+                            or matrix.size > 1_048_576
+                            or not np.isfinite(matrix).all()
+                        ):
+                            raise LearningComputerError(
+                                "resident visual executor returned invalid transient embeddings"
+                            )
+                        transient_embeddings = np.ascontiguousarray(matrix)
+                        if (
+                            list(transient_embeddings.shape)
+                            != durable_stage_result.get("embedding_shape")
+                            or hashlib.sha256(
+                                transient_embeddings.astype(
+                                    "<f4", copy=False
+                                ).tobytes(order="C")
+                            ).hexdigest()
+                            != durable_stage_result.get("embedding_sha256")
+                        ):
+                            raise LearningComputerError(
+                                "resident visual embeddings disagree with their receipt"
+                            )
+                    stage_result_bytes = canonical_json_bytes(
+                        dict(durable_stage_result)
                     )
-                    stage_result_sha256 = sha256_value(stage_result)
+                    stage_result = json.loads(
+                        stage_result_bytes.decode("utf-8")
+                    )
+                    stage_result_sha256 = hashlib.sha256(
+                        stage_result_bytes
+                    ).hexdigest()
                     stage_results.append(stage_result)
+                    if rehearsal_trials:
+                        rehearsal_receipts.extend(
+                            membrane.rehearse_alternatives(rehearsal_trials)
+                        )
+                        rehearsal_trials.clear()
                     if batch_to_token:
                         membrane.record_stage(
                             epoch=epoch,
@@ -13374,41 +19942,59 @@ class FieldIntelligenceOwner:
                         membrane_receipts.append(dict(membrane_receipt))
                     resume_receipt = None
                     if resume_task:
-                        successor_row, raw_resume_receipt = successor_row.invoke(
-                            arguments={
-                                "operation": "advance-task",
-                                "task_id": task_id,
-                                "quantum": 2 if batch_to_token else 1,
-                                "arguments": {
-                                    "operation": (
-                                        "resume-resident-model-and-advance"
-                                        if batch_to_token else "resume-resident-model"
-                                    ),
-                                    "operation_id": current_resident_operation_id,
-                                    "result": stage_result,
-                                },
+                        resume_arguments = {
+                            "operation": "advance-task",
+                            "task_id": task_id,
+                            "quantum": 2 if batch_to_token else 1,
+                            "arguments": {
+                                "operation": (
+                                    "resume-resident-model-and-advance"
+                                    if batch_to_token else "resume-resident-model"
+                                ),
+                                "operation_id": current_resident_operation_id,
+                                "result": stage_result,
                             },
-                            steps=1,
-                        )
-                        resume_receipt = {
-                            **dict(raw_resume_receipt),
-                            "computer_id": computer_id,
-                            "action": "invoke",
-                            "computer_state_sha256": sha256_value(
-                                successor_row.as_dict()
-                            ),
                         }
                         if batch_to_token:
-                            deferred_state_kind = (
-                                "task-transition-with-deferred-neural-plane"
+                            if model_cycle is None:
+                                raise LearningComputerError(
+                                    "resident token batch has no field-owned task cycle"
+                                )
+                            advanced = model_cycle.advance(
+                                arguments=resume_arguments["arguments"],
+                                quantum=2,
                             )
-                            resume_receipt["state_sha256_kind"] = (
-                                deferred_state_kind
+                            if advanced["phase"] == "faulted":
+                                raise LearningComputerError(
+                                    f"resident stage task fault: {model_cycle.runtime_state['tasks'][task_id]['state'].get('result')}"
+                                )
+                        else:
+                            successor_row, raw_resume_receipt = successor_row.invoke(
+                                arguments=resume_arguments, steps=1
                             )
-                            resume_receipt["computer_state_sha256_kind"] = (
-                                deferred_state_kind
-                            )
-                        resume_receipts.append(resume_receipt)
+                            regional_run = raw_resume_receipt.get("run", {})
+                            if regional_run.get("status") == "faulted":
+                                transitions = regional_run.get("transition_receipts", [])
+                                last_transition = transitions[-1] if transitions else {}
+                                detail = str(
+                                    last_transition.get("fault_detail")
+                                    or regional_run.get("reason")
+                                    or "unknown regional task fault"
+                                )
+                                if "region value exceeds allocated capacity" in detail:
+                                    raise LearningComputerCapacityError(detail)
+                                raise LearningComputerError(
+                                    f"resident stage task fault: {detail}"
+                                )
+                            resume_receipt = {
+                                **dict(raw_resume_receipt),
+                                "computer_id": computer_id,
+                                "action": "invoke",
+                                "computer_state_sha256": sha256_value(
+                                    successor_row.as_dict()
+                                ),
+                            }
+                            resume_receipts.append(resume_receipt)
                     if not batch_to_token:
                         break
 
@@ -13416,7 +20002,7 @@ class FieldIntelligenceOwner:
                     next_operation_id: Any = None
                     next_request: Any = None
                     for _dispatch_index in range(8):
-                        runtime_state = successor_row.named_value("task")
+                        runtime_state = model_cycle.runtime_state
                         task_record = (
                             runtime_state.get("tasks", {}).get(task_id)
                             if isinstance(runtime_state, Mapping)
@@ -13469,13 +20055,8 @@ class FieldIntelligenceOwner:
                             raise LearningComputerError(
                                 "resident token batch has an invalid phase"
                             )
-                        successor_row, _advance_receipt = successor_row.invoke(
-                            arguments={
-                                "operation": "advance-task",
-                                "task_id": task_id,
-                                "quantum": 1,
-                            },
-                            steps=1,
+                        model_cycle.advance(
+                            arguments={}, quantum=1,
                         )
                     else:
                         raise LearningComputerCapacityError(
@@ -13498,13 +20079,32 @@ class FieldIntelligenceOwner:
                     )
                 else:
                     raise LearningComputerCapacityError(
-                        "resident token batch exceeds 512 model stages"
+                        "resident token batch exceeded its model graph stages "
+                        f"(cursor={model_state.get('graph_cursor')}, "
+                        f"position={resident_state.get('position') if isinstance(resident_state, Mapping) else None}, "
+                        f"stage={current_request.get('stage')})"
                     )
                 if batch_to_token:
                     if membrane is None or not stage_results:
                         raise LearningComputerError(
                             "resident token batch finished without a membrane epoch"
                         )
+                    if model_cycle is None:
+                        raise LearningComputerError(
+                            "resident token batch has no field-owned task cycle"
+                        )
+                    successor_row, raw_resume_receipt = model_cycle.finish()
+                    resume_receipt = {
+                        **dict(raw_resume_receipt),
+                        "computer_id": computer_id,
+                        "action": "invoke",
+                        "computer_state_sha256": sha256_value(
+                            successor_row.as_dict()
+                        ),
+                        "state_sha256_kind": "task-transition-with-deferred-neural-plane",
+                        "computer_state_sha256_kind": "task-transition-with-deferred-neural-plane",
+                    }
+                    resume_receipts.append(resume_receipt)
                     successor_row, membrane_receipt = membrane.finish(
                         stage_result_sha256=sha256_value(stage_results[-1]),
                         computer=successor_row,
@@ -13536,70 +20136,1552 @@ class FieldIntelligenceOwner:
             finally:
                 if membrane is not None:
                     membrane.abort()
-            if successor_row.nbytes > replacement_bytes:
-                raise FieldIntelligenceError(
-                    "WORK_CAPACITY",
-                    "neural membrane exceeds the computer workspace limit",
+            # Flush the single snapshot this publication references outside
+            # the owner lock; other computers keep publishing meanwhile.
+            if executor_stage_transaction_open:
+                executor.seal_stage_transaction(executor_stage_ticket)
+            # Rebase only after proving the target row and resource policy are
+            # unchanged; other computers' owner transitions remain compatible.
+            with self._lock:
+                self._assert_publication_order(operation_id)
+                current_state = self.state
+                current_row = next(
+                    (
+                        item
+                        for item in current_state.computers
+                        if item.computer_id == computer_id
+                    ),
+                    None,
                 )
-            computers = tuple(
-                successor_row if item.computer_id == computer_id else item
-                for item in self.state.computers
-            )
-            result = {
-                "stage_result": stage_result,
-                "membrane_receipt": dict(membrane_receipt),
-            }
-            if resume_receipt is not None:
-                result["resume_receipt"] = resume_receipt
-            if batch_to_token:
-                result.update(
+                if (
+                    current_row is None
+                    or current_row.state_sha256 != predecessor_row_sha256
+                ):
+                    raise FieldIntelligenceError(
+                        "LINEAGE_CONFLICT",
+                        "resident stage computer dependencies changed during execution",
+                    )
+                if self.resource_limits(computer_id).as_dict() != resource_limits_row:
+                    raise FieldIntelligenceError(
+                        "LINEAGE_CONFLICT",
+                        "resident stage resource policy changed during execution",
+                    )
+                current_available_bytes = (
+                    self.limits.max_workspace_bytes
+                    - current_state.workspace_usage()["workspace_bytes"]
+                    + current_row.nbytes
+                )
+                if successor_row.nbytes > current_available_bytes:
+                    raise FieldIntelligenceError(
+                        "WORK_CAPACITY",
+                        "neural membrane exceeds the current computer workspace limit",
+                    )
+                computers = tuple(
+                    successor_row if item.computer_id == computer_id else item
+                    for item in current_state.computers
+                )
+                result = {
+                    "stage_result": stage_result,
+                    "membrane_receipt": dict(membrane_receipt),
+                }
+                if resume_receipt is not None:
+                    result["resume_receipt"] = resume_receipt
+                if batch_to_token:
+                    result.update(
+                        {
+                            "stage_results": stage_results,
+                            "membrane_receipts": membrane_receipts,
+                            "resume_receipts": resume_receipts,
+                        }
+                    )
+                successor = current_state.with_transition(
+                    "neural-membrane-stage",
                     {
-                        "stage_results": stage_results,
-                        "membrane_receipts": membrane_receipts,
-                        "resume_receipts": resume_receipts,
-                    }
+                        "computer_id": computer_id,
+                        "task_id": task_id,
+                        "resident_operation_id": resident_operation_id,
+                        "model_source_sha256": source_sha256,
+                        "stage": stage_request.get("stage"),
+                        "stage_count": len(stage_results),
+                        "membrane_state_sha256": membrane_receipt[
+                            "state_sha256"
+                        ],
+                        "site_trace_sha256": membrane_receipt[
+                            "site_trace_sha256"
+                        ],
+                        **(
+                            {"computer_growth": dict(growth_receipt)}
+                            if growth_receipt is not None
+                            else {}
+                        ),
+                    },
+                    computers=computers,
                 )
-            successor = self.state.with_transition(
-                "neural-membrane-stage",
-                {
-                    "computer_id": computer_id,
-                    "task_id": task_id,
-                    "resident_operation_id": resident_operation_id,
-                    "model_source_sha256": source_sha256,
-                    "stage": stage_request.get("stage"),
-                    "stage_count": len(stage_results),
-                    "membrane_state_sha256": membrane_receipt[
-                        "state_sha256"
-                    ],
-                    "site_trace_sha256": membrane_receipt[
-                        "site_trace_sha256"
-                    ],
-                },
-                computers=computers,
+                transition = {
+                    "kind": "neural-membrane-stage",
+                    "request": request_row,
+                    "request_sha256": request_sha256,
+                    "result": result,
+                }
+                checkpoint = self._publish(
+                    operation_id=operation_id,
+                    successor=successor,
+                    event_id=None,
+                    transition=transition,
+                )
+                if executor_stage_transaction_open:
+                    executor.commit_stage_transaction(executor_stage_ticket)
+                    executor_stage_transaction_open = False
+                if visual_reference is not None:
+                    executor.commit_visual_snapshot(visual_reference)
+                return {
+                    **result,
+                    **(
+                        {"_transient_embeddings": transient_embeddings}
+                        if visual_stage
+                        else {}
+                    ),
+                    **(
+                        {"_rehearsal_receipts": rehearsal_receipts}
+                        if rehearsal_receipts
+                        else {}
+                    ),
+                    "_checkpoint_receipt": checkpoint.as_dict(),
+                }
+        finally:
+            try:
+                if executor_stage_transaction_open:
+                    executor.abort_stage_transaction(executor_stage_ticket)
+            finally:
+                with self._lock:
+                    if self._resident_stage_waits.get(operation_id) is waiter:
+                        self._resident_stage_waits.pop(operation_id, None)
+                    waiter.set()
+
+    def _numerical_record_path(self, work_id: str) -> Path:
+        return self._numerical_path / hashlib.sha256(
+            _identifier(work_id, "numerical work ID").encode("utf-8")
+        ).hexdigest()
+
+    def _numerical_record(self, work_id: str) -> dict[str, Any]:
+        path = self._numerical_record_path(work_id)
+        if not path.is_file():
+            raise FieldIntelligenceError("UNKNOWN_WORK", "numerical work is unavailable")
+        return self._numerical_record_by_path(path)
+
+    def _numerical_record_by_path(self, path: Path) -> dict[str, Any]:
+        record = _canonical_read(path)
+        if (
+            not isinstance(record, dict)
+            or record.get("schema") != NUMERICAL_WORK_SCHEMA
+            or not isinstance(record.get("work_id"), str)
+            or self._numerical_record_path(record["work_id"]) != path
+            or record.get("status") not in {"pending", "cancelled", "obsolete", "faulted", "admitted"}
+            or not isinstance(record.get("request"), dict)
+            or not isinstance(record.get("dependencies"), dict)
+            or record.get("request_sha256") != sha256_value(record["request"])
+            or record.get("descriptor_sha256") != sha256_value({
+                "work_id": record["work_id"],
+                "request_sha256": record["request_sha256"],
+                "dependencies": record["dependencies"],
+            })
+        ):
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical work descriptor is invalid")
+        if "schedule_entry" in record:
+            try:
+                entry = normalize_entry(record["schedule_entry"])
+            except (NumericalScheduleError, KeyError, TypeError) as exc:
+                raise FieldIntelligenceError(
+                    "PERSISTENCE_CORRUPT", "numerical schedule entry is invalid",
+                ) from exc
+            if (
+                entry != record["schedule_entry"]
+                or record.get("schedule_sha256") != sha256_value(entry)
+                or entry.get("base_work_id") != record.get("schedule_base_work_id")
+                or entry.get("epoch") != record.get("schedule_epoch")
+                or entry.get("dependency_sha256") != sha256_value(record["dependencies"])
+                or entry.get("source_revision_ids") != record["dependencies"].get("source_revision_ids")
+                or entry.get("arguments") != record["request"].get("arguments")
+                or entry.get("kind") != record["request"].get("kind")
+                or entry.get("assumptions") != record["request"].get("assumptions")
+                or record["dependencies"].get("schedule_base_work_id") != entry.get("base_work_id")
+                or record["dependencies"].get("schedule_epoch") != entry.get("epoch")
+                or record["dependencies"].get("schedule_policy_sha256")
+                != policy_fingerprint(entry.get("policy", {}))
+                or ("schedule_action" in record) != ("schedule_entry" in record)
+                or (record.get("schedule_action") == "restart")
+                != ("schedule_restart_id" in record)
+                or record.get("schedule_action") not in {"submit", "continue", "restart"}
+            ):
+                raise FieldIntelligenceError(
+                    "PERSISTENCE_CORRUPT", "numerical schedule binding is invalid",
+                )
+        elif (
+            "schedule_sha256" in record
+            or "schedule_base_work_id" in record
+            or "schedule_epoch" in record
+            or "schedule_action" in record
+            or "schedule_restart_id" in record
+            or "schedule_policy_sha256" in record["dependencies"]
+        ):
+            raise FieldIntelligenceError(
+                "PERSISTENCE_CORRUPT", "numerical schedule binding is incomplete",
             )
-            transition = {
-                "kind": "neural-membrane-stage",
-                "request": request_row,
-                "request_sha256": request_sha256,
-                "result": result,
+        return record
+
+    def _save_numerical_record(self, record: Mapping[str, Any]) -> None:
+        _atomic_write(
+            self._numerical_record_path(record["work_id"]),
+            canonical_json_bytes(dict(record)),
+        )
+
+    def _numerical_clock_path(self) -> Path:
+        return self._numerical_path / "schedule-clock.json"
+
+    def _load_numerical_clock(self) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        path = self._numerical_clock_path()
+        if not path.is_file():
+            return normalize_clock(None), []
+        value = _canonical_read(path)
+        if not isinstance(value, dict) or value.get("schema") != "cassifi.numerical-clock-owner.v1":
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical clock record is invalid")
+        try:
+            clock = normalize_clock(value.get("clock"))
+        except (NumericalScheduleError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical clock record is invalid") from exc
+        evidence_rows = value.get("accepted_evidence")
+        if not isinstance(evidence_rows, list):
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical evidence history is invalid")
+        unsigned = {"clock": clock, "accepted_evidence": evidence_rows}
+        if value.get("record_sha256") != sha256_value(unsigned) or len(evidence_rows) != clock["tick"]:
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical clock integrity check failed")
+        seen: set[str] = set()
+        normalized_rows: list[dict[str, Any]] = []
+        for tick, raw in enumerate(evidence_rows, 1):
+            if not isinstance(raw, dict) or raw.get("tick") != tick:
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical evidence history is invalid")
+            try:
+                evidence = normalize_evidence(raw.get("evidence"))
+                digest = _digest(raw.get("evidence_sha256"), "numerical evidence digest")
+                generation = _integer(raw.get("owner_generation"), "owner generation", minimum=0)
+            except (FieldIntelligenceError, NumericalScheduleError, TypeError, ValueError) as exc:
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical evidence history is invalid") from exc
+            if digest != evidence_digest(evidence) or digest in seen:
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical evidence history is inconsistent")
+            if tick > 1 and generation < normalized_rows[-1]["owner_generation"]:
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical evidence generation regressed")
+            seen.add(digest)
+            normalized_rows.append({
+                "tick": tick,
+                "evidence": evidence,
+                "evidence_sha256": digest,
+                "owner_generation": generation,
+            })
+        if (
+            (not normalized_rows and clock["last_evidence_sha256"] is not None)
+            or (normalized_rows and (
+                normalized_rows[-1]["evidence_sha256"] != clock["last_evidence_sha256"]
+                or normalized_rows[-1]["owner_generation"] != clock["last_owner_generation"]
+                or normalized_rows[-1]["evidence"]["activity"] != clock["last_activity"]
+            ))
+        ):
+            raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "numerical clock head does not match evidence")
+        return clock, normalized_rows
+
+    def _save_numerical_clock(
+        self, clock: Mapping[str, Any], evidence_rows: Sequence[Mapping[str, Any]],
+    ) -> None:
+        payload = {"clock": dict(clock), "accepted_evidence": [dict(row) for row in evidence_rows]}
+        _atomic_write(
+            self._numerical_clock_path(),
+            canonical_json_bytes({
+                "schema": "cassifi.numerical-clock-owner.v1",
+                **payload,
+                "record_sha256": sha256_value(payload),
+            }),
+        )
+
+    def _numerical_records(self) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for path in self._numerical_path.iterdir():
+            if (
+                path.is_file()
+                and len(path.name) == 64
+                and all(character in "0123456789abcdef" for character in path.name)
+            ):
+                records.append(self._numerical_record_by_path(path))
+        epochs: dict[str, list[int]] = {}
+        for record in records:
+            base = record.get("schedule_base_work_id")
+            if base is not None:
+                epochs.setdefault(base, []).append(record["schedule_epoch"])
+        for base, values in epochs.items():
+            ordered = sorted(values)
+            if ordered != list(range(len(ordered))):
+                raise FieldIntelligenceError(
+                    "PERSISTENCE_CORRUPT", f"numerical schedule epochs are incomplete for {base}",
+                )
+        return records
+
+    def _numerical_schedule_record(self, base_work_id: str) -> dict[str, Any]:
+        matches = [
+            record for record in self._numerical_records()
+            if record.get("schedule_base_work_id") == base_work_id
+        ]
+        if not matches:
+            raise FieldIntelligenceError("UNKNOWN_WORK", "scheduled numerical work is unavailable")
+        matches.sort(key=lambda record: record["schedule_epoch"])
+        return matches[-1]
+
+    def _numerical_schedule_policy(self, policy: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(policy, Mapping):
+            raise FieldIntelligenceError("INVALID_WORK", "numerical schedule policy must be an object")
+        allowed = {
+            "period", "quantum", "rest_policy", "tolerance", "sync_group",
+            "operator_sha256", "activity_floor",
+        }
+        if set(policy) - allowed:
+            raise FieldIntelligenceError("INVALID_WORK", "numerical schedule policy contains unknown fields")
+        try:
+            normalized = normalize_policy(
+                period=policy.get("period"),
+                quantum=policy.get("quantum"),
+                rest_policy=policy.get("rest_policy"),
+                tolerance=policy.get("tolerance"),
+                sync_group=policy.get("sync_group"),
+                operator_sha256=policy.get("operator_sha256"),
+                activity_floor=policy.get("activity_floor", 0.0),
+            )
+        except (NumericalScheduleError, TypeError, ValueError) as exc:
+            raise FieldIntelligenceError("INVALID_WORK", f"invalid numerical schedule policy: {exc}") from exc
+        if normalized["quantum"] > self.limits.max_operator_effort:
+            raise FieldIntelligenceError("WORK_CAPACITY", "schedule quantum exceeds operator effort limit")
+        return normalized
+
+    def _numerical_dependencies(
+        self, row: Any, request: Mapping[str, Any], source_revision_ids: Sequence[str],
+        *, schedule_entry: Mapping[str, Any] | None = None,
+        include_computer_sources: bool = True,
+    ) -> dict[str, Any]:
+        revisions = tuple(sorted({
+            *(_digest(value, "numerical source revision") for value in source_revision_ids),
+            *_regional_source_dependencies(request),
+            *(
+                _regional_source_dependencies(row.inspect())
+                if include_computer_sources else ()
+            ),
+        }))
+        if len(revisions) > self.limits.max_source_work:
+            raise FieldIntelligenceError("WORK_CAPACITY", "numerical dependency closure exceeds owner limit")
+        for revision_id in revisions:
+            self.evidence.read(revision_id)
+        dependency = {
+            "computer_id": row.computer_id,
+            "computer_state_sha256": row.state_sha256,
+            "profile_sha256": row.profile.fingerprint,
+            "source_revision_ids": list(revisions),
+            "kernel": request["kernel"],
+            "input_sha256": sha256_value({
+                "state": request["state"], "arguments": request["arguments"],
+            }),
+            "assumption_sha256": sha256_value(request["assumptions"]),
+        }
+        if schedule_entry is not None:
+            dependency["schedule_base_work_id"] = schedule_entry["base_work_id"]
+            dependency["schedule_epoch"] = schedule_entry["epoch"]
+            dependency["schedule_policy_sha256"] = policy_fingerprint(schedule_entry["policy"])
+        return dependency
+
+    def _numerical_schedule_work_id(self, base_work_id: str, epoch: int) -> str:
+        if epoch == 0:
+            return base_work_id
+        return "numerical-schedule-" + sha256_value({
+            "base_work_id": base_work_id, "epoch": epoch,
+        })
+
+    def _reconcile_numerical_wakes(
+        self, clock: Mapping[str, Any], evidence_rows: Sequence[Mapping[str, Any]],
+    ) -> list[dict[str, Any]]:
+        wakes: list[dict[str, Any]] = []
+        latest_by_base: dict[str, dict[str, Any]] = {}
+        for record in self._numerical_records():
+            base = record.get("schedule_base_work_id")
+            if base is None:
+                continue
+            current = latest_by_base.get(base)
+            if current is None or record["schedule_epoch"] > current["schedule_epoch"]:
+                latest_by_base[base] = record
+        for base, record in latest_by_base.items():
+            entry = record["schedule_entry"]
+            examined = _integer(entry.get("last_examined_tick", 0), "last examined tick", minimum=0)
+            if examined > clock["tick"]:
+                raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "schedule examined a future tick")
+            changed = False
+            for event in evidence_rows[examined:]:
+                evidence = event["evidence"]
+                entry["last_evidence_sha256"] = event["evidence_sha256"]
+                entry["last_evidence_tick"] = event["tick"]
+                if evidence.get("dependency_sha256") is not None:
+                    observed_dependency = evidence["dependency_sha256"]
+                    entry["observed_dependency_sha256"] = observed_dependency
+                    entry["dependency_change_pending"] = (
+                        observed_dependency != entry["dependency_sha256"]
+                    )
+                if evidence.get("operator_sha256") is not None:
+                    observed_operator = evidence["operator_sha256"]
+                    expected_operator = (
+                        entry.get("operator_sha256")
+                        or entry["policy"].get("operator_sha256")
+                    )
+                    entry["observed_operator_sha256"] = observed_operator
+                    entry["operator_change_pending"] = observed_operator != expected_operator
+                changed = True
+                if (
+                    record.get("schedule_cancelled")
+                    or record["status"] in {"cancelled", "faulted", "obsolete"}
+                    or entry["state"] != "resting"
+                ):
+                    continue
+                reasons = wake_reasons(
+                    entry["policy"],
+                    entry=entry,
+                    evidence=evidence,
+                    clock_tick=event["tick"],
+                )
+                if reasons:
+                    receipt = {
+                        "schema": NUMERICAL_WAKE_SCHEMA,
+                        "work_id": record["work_id"],
+                        "base_work_id": base,
+                        "epoch": entry["epoch"],
+                        "tick": event["tick"],
+                        "evidence_sha256": event["evidence_sha256"],
+                        "reasons": list(reasons),
+                    }
+                    entry["state"] = "awake"
+                    entry["last_wake_receipt"] = receipt
+                    wakes.append(receipt)
+            if examined != clock["tick"]:
+                entry["last_examined_tick"] = clock["tick"]
+                changed = True
+            if changed:
+                record["schedule_entry"] = normalize_entry(entry)
+                record["schedule_sha256"] = sha256_value(record["schedule_entry"])
+                self._save_numerical_record(record)
+        return wakes
+
+
+    def _numerical_compatible(self, record: Mapping[str, Any]) -> Any | None:
+        dependency = record["dependencies"]
+        row = next(
+            (item for item in self.state.computers
+             if item.computer_id == dependency["computer_id"]),
+            None,
+        )
+        if (
+            row is None
+            or row.state_sha256 != dependency["computer_state_sha256"]
+            or row.profile.fingerprint != dependency["profile_sha256"]
+        ):
+            return None
+        for revision_id in dependency["source_revision_ids"]:
+            try:
+                # An exact historical revision may still exist, but it is not
+                # an applicable current dependency after supersession.
+                self.evidence.read(revision_id)
+            except FieldIntelligenceError as exc:
+                if exc.code in {"SOURCE_REVOKED", "SOURCE_STALE", "SOURCE_NOT_FOUND"}:
+                    return None
+                raise
+        return row
+
+    def _retire_numerical_futures(self) -> None:
+        """Release completed terminal jobs, retaining submitted work until retirement."""
+        for identity, future in tuple(self._numerical_futures.items()):
+            if future.done() and self._numerical_record(identity)["status"] != "pending":
+                self._numerical_futures.pop(identity, None)
+                self._numerical_reservations.pop(identity, None)
+                self._numerical_activities.pop(identity, None)
+                self._numerical_cancel_events.pop(identity, None)
+
+    def _dispatch_numerical_work(self, record: Mapping[str, Any], row: Any) -> None:
+        self._retire_numerical_futures()
+        work_id = record["work_id"]
+        if work_id in self._numerical_futures:
+            return
+        active = [
+            future for future in self._numerical_futures.values()
+            if not future.done()
+        ]
+        if (
+            len(active) >= min(4, max(2, os.cpu_count() or 1), self.limits.max_prepared_branches)
+            or sum(
+                2 * self._numerical_reservations.get(identity, 0)
+                for identity, future in self._numerical_futures.items()
+                if not future.done()
+            ) + 2 * row.nbytes > self.limits.max_workspace_bytes
+        ):
+            raise FieldIntelligenceError(
+                "WORK_CAPACITY", "numerical worker reservation exceeds owner workspace",
+            )
+        if self._numerical_executor is None:
+            self._numerical_executor = ThreadPoolExecutor(
+                max_workers=min(4, max(2, os.cpu_count() or 1), self.limits.max_prepared_branches),
+                thread_name_prefix="cassifi-numerical",
+            )
+        request = record["request"]
+        if record.get("schedule_action") == "continue":
+            target, kwargs = row.invoke, {
+                "arguments": request["arguments"],
+                "steps": request["steps"],
             }
-            checkpoint = self._publish(
-                operation_id=operation_id,
-                successor=successor,
-                event_id=None,
-                transition=transition,
+        else:
+            target, kwargs = row.submit, {
+                "kernel": request["kernel"],
+                "state": request["state"],
+                "arguments": request["arguments"],
+                "kind": request["kind"],
+                "steps": request["steps"],
+            }
+        admission = self._physical_admission
+        if admission is None:
+            self._numerical_futures[work_id] = self._numerical_executor.submit(
+                target, **kwargs,
+            )
+        else:
+            # The numerical pool runs inside the same physical lane as every
+            # other executor; a retired reservation from an earlier attempt
+            # can never be reused by an identical repeated request.
+            attempt = 0
+            while True:
+                activity_id = f"numerical:{work_id}:attempt:{attempt}"
+                status = admission.get_activity_status(activity_id)["status"]
+                if status == "not-admitted":
+                    break
+                if status != "retired":
+                    raise ResourceWait(
+                        "physical_cores", 1, 0,
+                        reason="reconciliation-required",
+                        continuation_id=f"numerical:{work_id}",
+                    )
+                attempt += 1
+            self._numerical_activities[work_id] = activity_id
+            cancel_event = threading.Event()
+            self._numerical_cancel_events[work_id] = cancel_event
+            self._numerical_futures[work_id] = self._numerical_executor.submit(
+                self._run_numerical_admitted,
+                work_id,
+                activity_id,
+                admission,
+                cancel_event,
+                _computer_physical_work_bytes(row),
+                target,
+                kwargs,
+            )
+        self._numerical_reservations[work_id] = row.nbytes
+
+    def _run_numerical_admitted(
+        self,
+        work_id: str,
+        activity_id: str,
+        admission: Any,
+        cancel_event: threading.Event,
+        resident_bytes: int,
+        target: Any,
+        kwargs: Mapping[str, Any],
+    ) -> Any:
+        """Run one numerical job inside the entity's shared physical lane.
+
+        The admission happens on the worker thread: dispatch itself runs
+        under the owner lock, and a queued physical wait must never hold it.
+        A refusal the physical lane raises before granting charges nothing,
+        and a cancellation that lands before the grant charges nothing.
+        """
+        if cancel_event.is_set():
+            raise RuntimeError("numerical work was cancelled before admission")
+        lease = admission.acquire(
+            activity_id,
+            "background",
+            continuation_id=f"numerical:{work_id}",
+            resources={
+                "physical_cores": 1,
+                "ram_bytes": 2 * resident_bytes,
+                "vram_bytes": 0,
+                "transfer_bytes": 0,
+                "peak_bytes": resident_bytes,
+            },
+        )
+        cancelled = cancel_event.is_set()
+        try:
+            if cancelled:
+                raise RuntimeError("numerical work was cancelled before execution")
+            result = target(**kwargs)
+        except BaseException:
+            lease.retire("cancelled" if cancelled else "failed")
+            raise
+        lease.retire("completed")
+        return result
+
+    def submit_numerical_work(
+        self, work_id: str, *, computer_id: str, kernel: str,
+        state: Mapping[str, Any], arguments: Mapping[str, Any] | None = None,
+        kind: str | None = None, steps: int = 1,
+        source_revision_ids: Sequence[str] = (),
+        assumptions: Mapping[str, Any] | None = None,
+        policy: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Submit one regional quantum, optionally bound to a durable schedule."""
+        return self._submit_numerical_work(
+            work_id, computer_id=computer_id, kernel=kernel, state=state,
+            arguments=arguments, kind=kind, steps=steps,
+            source_revision_ids=source_revision_ids, assumptions=assumptions,
+            policy=policy,
+        )
+
+    def _submit_numerical_work(
+        self, work_id: str, *, computer_id: str, kernel: str,
+        state: Mapping[str, Any], arguments: Mapping[str, Any] | None = None,
+        kind: str | None = None, steps: int = 1,
+        source_revision_ids: Sequence[str] = (),
+        assumptions: Mapping[str, Any] | None = None,
+        policy: Mapping[str, Any] | None = None,
+        schedule_entry_template: Mapping[str, Any] | None = None,
+        schedule_action: str = "submit",
+        restart_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Persist exact inputs before dispatch; only this method creates epochs."""
+        _identifier(work_id, "numerical work ID")
+        _identifier(computer_id, "computer ID")
+        if kernel not in _NUMERICAL_WORK_KERNELS:
+            raise FieldIntelligenceError("INVALID_WORK", "unsupported numerical regional kernel")
+        if schedule_entry_template is not None and policy is None:
+            policy = schedule_entry_template["policy"]
+        normalized_policy = (
+            self._numerical_schedule_policy(policy) if policy is not None else None
+        )
+        if (
+            schedule_entry_template is not None
+            and normalized_policy != schedule_entry_template["policy"]
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_WORK", "restart policy does not match its scheduled epoch",
+            )
+        if normalized_policy is not None:
+            steps = normalized_policy["quantum"]
+        else:
+            steps = _integer(steps, "numerical steps", minimum=1)
+        if steps > self.limits.max_operator_effort:
+            raise FieldIntelligenceError("WORK_CAPACITY", "numerical steps exceed operator limit")
+        if not isinstance(state, Mapping) or (
+            arguments is not None and not isinstance(arguments, Mapping)
+        ) or (assumptions is not None and not isinstance(assumptions, Mapping)):
+            raise FieldIntelligenceError("INVALID_WORK", "numerical inputs must be objects")
+        if isinstance(source_revision_ids, (str, bytes)) or not isinstance(source_revision_ids, Sequence):
+            raise FieldIntelligenceError("INVALID_WORK", "source revisions must be a sequence")
+        request = json.loads(canonical_json_bytes({
+            "kernel": kernel, "state": dict(state), "arguments": dict(arguments or {}),
+            "kind": kind, "steps": steps, "assumptions": dict(assumptions or {}),
+        }).decode("utf-8"))
+        revisions = tuple(sorted({
+            *(_digest(value, "numerical source revision") for value in source_revision_ids),
+            *_regional_source_dependencies(request),
+        }))
+        if len(revisions) > self.limits.max_source_work or len(canonical_json_bytes(request)) > self.limits.max_source_bytes:
+            raise FieldIntelligenceError("WORK_CAPACITY", "numerical inputs exceed owner work limits")
+        if restart_id is not None:
+            _identifier(restart_id, "numerical restart ID")
+        with self._lock:
+            path = self._numerical_record_path(work_id)
+            if path.is_file():
+                existing = self._numerical_record(work_id)
+                existing_entry = existing.get("schedule_entry")
+                if (
+                    existing["request"] != request
+                    or existing["dependencies"]["computer_id"] != computer_id
+                    or not set(revisions).issubset(existing["dependencies"]["source_revision_ids"])
+                    or (normalized_policy is None and existing_entry is not None)
+                    or (normalized_policy is not None and (
+                        existing_entry is None
+                        or existing_entry["policy"] != normalized_policy
+                        or (schedule_entry_template is not None and (
+                            existing_entry["base_work_id"] != schedule_entry_template["base_work_id"]
+                            or existing_entry["epoch"] != schedule_entry_template["epoch"]
+                        ))
+                    ))
+                    or (restart_id is not None and existing.get("schedule_restart_id") != restart_id)
+                ):
+                    raise FieldIntelligenceError("OPERATION_CONFLICT", "numerical work ID has different inputs")
+                return self._numerical_view(existing)
+            pending = sum(
+                self._numerical_record_by_path(item).get("status") == "pending"
+                for item in self._numerical_path.iterdir()
+                if item.is_file() and len(item.name) == 64
+                and all(character in "0123456789abcdef" for character in item.name)
+            )
+            if pending >= self.limits.max_pending_operations:
+                raise FieldIntelligenceError("WORK_CAPACITY", "numerical work queue is full")
+            row = next((item for item in self.state.computers if item.computer_id == computer_id), None)
+            if row is None:
+                raise FieldIntelligenceError("UNKNOWN_COMPUTER", "configure the numerical computer first")
+            if 2 * row.nbytes > self.limits.max_workspace_bytes:
+                raise FieldIntelligenceError(
+                    "WORK_CAPACITY", "numerical worker reservation exceeds owner workspace",
+                )
+            schedule_binding: Mapping[str, Any] | None = schedule_entry_template
+            if normalized_policy is not None and schedule_binding is None:
+                schedule_binding = {
+                    "base_work_id": work_id, "epoch": 0, "policy": normalized_policy,
+                }
+            dependency = self._numerical_dependencies(
+                row, request, revisions, schedule_entry=schedule_binding,
+                include_computer_sources=schedule_action != "restart",
+            )
+            record: dict[str, Any] = {
+                "schema": NUMERICAL_WORK_SCHEMA, "work_id": work_id,
+                "status": "pending", "request": request,
+                "request_sha256": sha256_value(request),
+                "dependencies": dependency,
+            }
+            if normalized_policy is not None:
+                try:
+                    if schedule_entry_template is None:
+                        entry = new_entry(
+                            base_work_id=work_id,
+                            dependency_sha256=sha256_value(dependency),
+                            policy=normalized_policy,
+                            arguments=request["arguments"],
+                            kind=request["kind"],
+                            source_revision_ids=dependency["source_revision_ids"],
+                            assumptions=request["assumptions"],
+                        )
+                        clock, _ = self._load_numerical_clock()
+                        entry["last_examined_tick"] = clock["tick"]
+                    else:
+                        entry = dict(schedule_entry_template)
+                        entry.update({
+                            "dependency_sha256": sha256_value(dependency),
+                            "arguments": request["arguments"],
+                            "kind": request["kind"],
+                            "source_revision_ids": dependency["source_revision_ids"],
+                            "assumptions": request["assumptions"],
+                            "state": "awake",
+                        })
+                    entry = normalize_entry(entry)
+                except (NumericalScheduleError, KeyError, TypeError, ValueError) as exc:
+                    raise FieldIntelligenceError(
+                        "INVALID_WORK", f"invalid durable numerical schedule entry: {exc}",
+                    ) from exc
+                record.update({
+                    "schedule_entry": entry,
+                    "schedule_sha256": sha256_value(entry),
+                    "schedule_base_work_id": entry["base_work_id"],
+                    "schedule_epoch": entry["epoch"],
+                    "schedule_action": schedule_action,
+                })
+                if restart_id is not None:
+                    record["schedule_restart_id"] = restart_id
+            record["descriptor_sha256"] = sha256_value({
+                "work_id": work_id, "request_sha256": record["request_sha256"],
+                "dependencies": dependency,
+            })
+            self._save_numerical_record(record)
+            try:
+                self._dispatch_numerical_work(record, row)
+            except FieldIntelligenceError:
+                # Preserve accepted intent; collection can dispatch after capacity retires.
+                pass
+            return self._numerical_view(record)
+
+
+    @staticmethod
+    def _numerical_view(record: Mapping[str, Any]) -> dict[str, Any]:
+        return {
+            "schema": NUMERICAL_WORK_SCHEMA, "work_id": record["work_id"],
+            "status": record["status"], "dependencies": record["dependencies"],
+            **({"reason": record["reason"]} if "reason" in record else {}),
+            **({"artifact": record["artifact"]} if "artifact" in record else {}),
+            **({"checkpoint_receipt": record["checkpoint_receipt"]}
+               if "checkpoint_receipt" in record else {}),
+            **({"schedule_entry": record["schedule_entry"]}
+               if "schedule_entry" in record else {}),
+            **({"schedule_cancelled": True} if record.get("schedule_cancelled") else {}),
+            **({"schedule_action": record["schedule_action"]}
+               if "schedule_action" in record else {}),
+        }
+
+    def _numerical_current_successor(
+        self, record: Mapping[str, Any],
+    ) -> tuple[Any | None, Mapping[str, Any] | None]:
+        artifact = record.get("artifact")
+        if record.get("status") != "admitted" or not isinstance(artifact, Mapping):
+            return None, None
+        computer_id = record["dependencies"]["computer_id"]
+        row = next(
+            (item for item in self.state.computers if item.computer_id == computer_id),
+            None,
+        )
+        if (
+            row is None
+            or row.state_sha256 != artifact.get("computer_state_sha256")
+            or row.profile.fingerprint != record["dependencies"]["profile_sha256"]
+        ):
+            return None, None
+        for revision_id in record["dependencies"]["source_revision_ids"]:
+            try:
+                self.evidence.read(revision_id)
+            except FieldIntelligenceError as exc:
+                if exc.code in {"SOURCE_REVOKED", "SOURCE_STALE", "SOURCE_NOT_FOUND"}:
+                    return None, None
+                raise
+        task = row.inspect().get("task")
+        return row, task if isinstance(task, Mapping) else None
+
+    def advance_numerical_clock(
+        self, evidence: Mapping[str, Any], *, owner_generation: int | None = None,
+    ) -> Mapping[str, Any]:
+        """Accept one fresh owner-activity observation and wake eligible streams."""
+        with self._lock:
+            clock, history = self._load_numerical_clock()
+            try:
+                normalized = normalize_evidence(evidence)
+                digest = evidence_digest(normalized)
+            except (NumericalScheduleError, TypeError, ValueError) as exc:
+                raise FieldIntelligenceError("INVALID_WORK", f"invalid numerical evidence: {exc}") from exc
+            if any(item["evidence_sha256"] == digest for item in history):
+                raise FieldIntelligenceError(
+                    "EVIDENCE_REPLAY", "numerical activity evidence was already accepted",
+                )
+            generation = (
+                self.state.generation
+                if owner_generation is None
+                else _integer(owner_generation, "owner generation", minimum=0)
+            )
+            if generation != self.state.generation:
+                raise FieldIntelligenceError(
+                    "STALE_EVIDENCE", "numerical activity evidence is not bound to the current owner generation",
+                )
+            try:
+                successor, tick = advance_clock(
+                    clock, normalized, digest, owner_generation=generation,
+                )
+            except NumericalScheduleError as exc:
+                raise FieldIntelligenceError("INVALID_WORK", f"numerical clock rejected evidence: {exc}") from exc
+            history.append({
+                "tick": tick,
+                "evidence": normalized,
+                "evidence_sha256": digest,
+                "owner_generation": generation,
+            })
+            self._save_numerical_clock(successor, history)
+            wakes = self._reconcile_numerical_wakes(successor, history)
+            return {
+                "schema": NUMERICAL_TICK_SCHEMA,
+                "tick": tick,
+                "clock": successor,
+                "evidence_sha256": digest,
+                "owner_generation": generation,
+                "wakes": wakes,
+            }
+
+    def numerical_schedule_view(self) -> Mapping[str, Any]:
+        """Return the clock and the current durable schedule entry per stream."""
+        with self._lock:
+            clock, history = self._load_numerical_clock()
+            self._reconcile_numerical_wakes(clock, history)
+            current: dict[str, dict[str, Any]] = {}
+            for record in self._numerical_records():
+                base = record.get("schedule_base_work_id")
+                if base is None:
+                    continue
+                prior = current.get(base)
+                if prior is None or record["schedule_epoch"] > prior["schedule_epoch"]:
+                    current[base] = record
+            return canonical_schedule_view(
+                clock,
+                {base: record["schedule_entry"] for base, record in current.items()},
+            )
+
+    def decide_numerical_work(self, work_id: str) -> Mapping[str, Any]:
+        """Apply the schedule to one stream and durably dispatch its next quantum."""
+        _identifier(work_id, "numerical work ID")
+        with self._lock:
+            requested = self._numerical_record(work_id)
+            entry = requested.get("schedule_entry")
+            if entry is None:
+                raise FieldIntelligenceError("INVALID_WORK", "numerical work has no bound schedule")
+            record = self._numerical_schedule_record(entry["base_work_id"])
+            clock, history = self._load_numerical_clock()
+            self._reconcile_numerical_wakes(clock, history)
+            record = self._numerical_record(record["work_id"])
+            entry = record["schedule_entry"]
+            policy = entry["policy"]
+            current_row: Any | None = None
+            successor_task: Mapping[str, Any] | None = None
+            record_status = record["status"]
+            if record.get("schedule_cancelled"):
+                record_status = "cancelled"
+            if record_status == "admitted":
+                current_row, successor_task = self._numerical_current_successor(record)
+                if current_row is None:
+                    record_status = "obsolete"
+            decision: dict[str, Any]
+            if (
+                record_status == "admitted"
+                and entry.get("dependency_change_pending") is True
+            ):
+                decision = {
+                    "choice": "restart-required",
+                    "reason": "dependency-changed",
+                    "observed_dependency_sha256": entry.get("observed_dependency_sha256"),
+                }
+            elif (
+                record_status == "admitted"
+                and entry.get("operator_change_pending") is True
+            ):
+                decision = {
+                    "choice": "restart-required",
+                    "reason": "operator-changed",
+                    "observed_operator_sha256": entry.get("observed_operator_sha256"),
+                }
+            elif entry["state"] == "resting" and record_status == "admitted":
+                decision = {"choice": "resting"}
+            else:
+                bound = (
+                    retained_bound(successor_task, policy=policy)
+                    if successor_task is not None
+                    and policy["rest_policy"] == "approximate-bound"
+                    else None
+                )
+                decision = continuation_decision(
+                    policy,
+                    entry=entry,
+                    record_status=record_status,
+                    bound=bound,
+                    activity=clock["last_activity"],
+                    clock_tick=clock["tick"],
+                )
+            entry["last_decision"] = decision
+            record["schedule_entry"] = normalize_entry(entry)
+            record["schedule_sha256"] = sha256_value(record["schedule_entry"])
+            self._save_numerical_record(record)
+            if decision.get("choice") != "run-next":
+                return {
+                    **self._numerical_view(record),
+                    "decision": decision,
+                    "clock_tick": clock["tick"],
+                }
+            if current_row is None or record_status != "admitted":
+                raise FieldIntelligenceError(
+                    "PERSISTENCE_CORRUPT", "schedule selected a continuation without a current successor",
+                )
+            session = current_row.inspect().get("session")
+            if not isinstance(session, Mapping) or session.get("kernel") != record["request"]["kernel"]:
+                decision = {
+                    "choice": "restart-required",
+                    "reason": "resident-kernel-changed",
+                }
+                record["schedule_entry"]["last_decision"] = decision
+                record["schedule_sha256"] = sha256_value(record["schedule_entry"])
+                self._save_numerical_record(record)
+                return {
+                    **self._numerical_view(record),
+                    "decision": decision,
+                    "clock_tick": clock["tick"],
+                }
+            next_epoch = entry["epoch"] + 1
+            successor_entry = dict(entry)
+            successor_entry.update({
+                "epoch": next_epoch,
+                "state": "awake",
+                "next_due_tick": next_period_tick(policy, clock["tick"]),
+                "last_examined_tick": clock["tick"],
+                "dependency_change_pending": False,
+                "operator_change_pending": False,
+                "last_decision": decision,
+                "last_rest_receipt": None,
+                "last_wake_receipt": None,
+            })
+            successor_entry = normalize_entry(successor_entry)
+            previous_entry = dict(record["schedule_entry"])
+            previous_entry["last_decision"] = decision
+            record["schedule_entry"] = normalize_entry(previous_entry)
+            record["schedule_sha256"] = sha256_value(record["schedule_entry"])
+            self._save_numerical_record(record)
+            next_work_id = self._numerical_schedule_work_id(
+                entry["base_work_id"], next_epoch,
+            )
+            request = record["request"]
+            next_work = self._submit_numerical_work(
+                next_work_id,
+                computer_id=record["dependencies"]["computer_id"],
+                kernel=request["kernel"],
+                state=request["state"],
+                arguments=entry["arguments"],
+                kind=entry["kind"],
+                steps=policy["quantum"],
+                source_revision_ids=entry["source_revision_ids"],
+                assumptions=entry["assumptions"],
+                schedule_entry_template=successor_entry,
+                schedule_action="continue",
             )
             return {
-                **result,
-                "_checkpoint_receipt": checkpoint.as_dict(),
+                **next_work,
+                "decision": decision,
+                "clock_tick": clock["tick"],
             }
+
+    def rest_numerical_work(
+        self, work_id: str, *, group_open: tuple[str, ...],
+        successor_task: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Rest only the current collected successor at its policy boundary."""
+        _identifier(work_id, "numerical work ID")
+        if not isinstance(group_open, tuple):
+            raise FieldIntelligenceError("INVALID_WORK", "open synchronization members must be a tuple")
+        if successor_task is not None and not isinstance(successor_task, Mapping):
+            raise FieldIntelligenceError("INVALID_WORK", "successor task must be an object")
+        with self._lock:
+            requested = self._numerical_record(work_id)
+            if requested.get("schedule_entry") is None:
+                raise FieldIntelligenceError("INVALID_WORK", "numerical work has no bound schedule")
+            record = self._numerical_schedule_record(
+                requested["schedule_entry"]["base_work_id"],
+            )
+            clock, history = self._load_numerical_clock()
+            self._reconcile_numerical_wakes(clock, history)
+            record = self._numerical_record(record["work_id"])
+            entry = record["schedule_entry"]
+            row, current_task = self._numerical_current_successor(record)
+            if successor_task is not None and (
+                current_task is None or dict(successor_task) != dict(current_task)
+            ):
+                raise FieldIntelligenceError(
+                    "STALE_SUCCESSOR", "rest target is not the current collected numerical successor",
+                )
+            in_flight = record["status"] == "pending" or (
+                record["work_id"] in self._numerical_futures
+                and not self._numerical_futures[record["work_id"]].done()
+            )
+            record_status = (
+                "cancelled" if record.get("schedule_cancelled") else record["status"]
+            )
+            try:
+                authorization = rest_authorization(
+                    entry["policy"],
+                    record_status=record_status,
+                    in_flight=in_flight,
+                    successor_task=current_task if row is not None else None,
+                    group_open=group_open,
+                )
+            except NumericalScheduleError as exc:
+                raise FieldIntelligenceError("INVALID_WORK", f"invalid numerical rest request: {exc}") from exc
+            receipt = {
+                "schema": NUMERICAL_REST_SCHEMA,
+                "work_id": record["work_id"],
+                "base_work_id": entry["base_work_id"],
+                "epoch": entry["epoch"],
+                "tick": clock["tick"],
+                "policy_sha256": policy_fingerprint(entry["policy"]),
+                "successor_state_sha256": (
+                    record["artifact"].get("computer_state_sha256")
+                    if isinstance(record.get("artifact"), Mapping) else None
+                ),
+                "successor_task_sha256": (
+                    sha256_value(dict(current_task)) if current_task is not None else None
+                ),
+                "group_open": list(group_open),
+                "authorization": authorization,
+            }
+            entry["last_rest_receipt"] = receipt
+            if authorization["allowed"]:
+                entry["state"] = "resting"
+            record["schedule_entry"] = normalize_entry(entry)
+            record["schedule_sha256"] = sha256_value(record["schedule_entry"])
+            self._save_numerical_record(record)
+            return {
+                **self._numerical_view(record),
+                "rest_authorization": authorization,
+                "rest_receipt": receipt,
+            }
+
+    def restart_numerical_work(
+        self, work_id: str, *, restart_id: str, computer_id: str, kernel: str,
+        state: Mapping[str, Any], arguments: Mapping[str, Any] | None = None,
+        kind: str | None = None, source_revision_ids: Sequence[str] = (),
+        assumptions: Mapping[str, Any] | None = None,
+        policy: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Start a new exact epoch with explicitly supplied inputs and revisions."""
+        _identifier(work_id, "numerical work ID")
+        _identifier(restart_id, "numerical restart ID")
+        with self._lock:
+            requested = self._numerical_record(work_id)
+            if requested.get("schedule_entry") is None:
+                raise FieldIntelligenceError("INVALID_WORK", "numerical work has no bound schedule")
+            base_work_id = requested["schedule_entry"]["base_work_id"]
+            matching = [
+                record for record in self._numerical_records()
+                if record.get("schedule_base_work_id") == base_work_id
+                and record.get("schedule_restart_id") == restart_id
+            ]
+            if matching:
+                existing = matching[0]
+                if len(matching) > 1:
+                    raise FieldIntelligenceError("PERSISTENCE_CORRUPT", "restart ID is duplicated")
+                entry = existing["schedule_entry"]
+                replay_policy = (
+                    entry["policy"] if policy is None
+                    else self._numerical_schedule_policy(policy)
+                )
+                if replay_policy != entry["policy"]:
+                    raise FieldIntelligenceError(
+                        "OPERATION_CONFLICT", "restart ID is already bound to another policy",
+                    )
+                return self._submit_numerical_work(
+                    existing["work_id"],
+                    computer_id=computer_id,
+                    kernel=kernel,
+                    state=state,
+                    arguments=arguments,
+                    kind=kind,
+                    source_revision_ids=source_revision_ids,
+                    assumptions=assumptions,
+                    policy=replay_policy,
+                    schedule_entry_template=entry,
+                    schedule_action="restart",
+                    restart_id=restart_id,
+                )
+            latest = self._numerical_schedule_record(base_work_id)
+            if latest["status"] == "pending":
+                raise FieldIntelligenceError(
+                    "WORK_IN_FLIGHT", "collect or cancel the current numerical quantum before restart",
+                )
+            if (
+                computer_id != latest["dependencies"]["computer_id"]
+                or kernel != latest["dependencies"]["kernel"]
+            ):
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT", "restart cannot change the scheduled computer or kernel",
+                )
+            clock, history = self._load_numerical_clock()
+            self._reconcile_numerical_wakes(clock, history)
+            latest = self._numerical_record(latest["work_id"])
+            entry = latest["schedule_entry"]
+            next_epoch = entry["epoch"] + 1
+            selected_policy = (
+                entry["policy"] if policy is None
+                else self._numerical_schedule_policy(policy)
+            )
+            successor_entry = dict(entry)
+            successor_entry.update({
+                "epoch": next_epoch,
+                "policy": selected_policy,
+                "state": "awake",
+                "next_due_tick": next_period_tick(selected_policy, clock["tick"]),
+                "last_examined_tick": clock["tick"],
+                "dependency_change_pending": False,
+                "operator_change_pending": False,
+                "observed_dependency_sha256": None,
+                "observed_operator_sha256": None,
+                "last_decision": {"choice": "restart", "restart_id": restart_id},
+                "last_rest_receipt": None,
+                "last_wake_receipt": None,
+            })
+            successor_entry = normalize_entry(successor_entry)
+            latest_entry = dict(entry)
+            latest_entry["last_decision"] = {
+                "choice": "restart", "restart_id": restart_id,
+            }
+            latest["schedule_entry"] = normalize_entry(latest_entry)
+            latest["schedule_sha256"] = sha256_value(latest["schedule_entry"])
+            self._save_numerical_record(latest)
+            return self._submit_numerical_work(
+                self._numerical_schedule_work_id(base_work_id, next_epoch),
+                computer_id=computer_id,
+                kernel=kernel,
+                state=state,
+                arguments=arguments,
+                kind=kind,
+                source_revision_ids=source_revision_ids,
+                assumptions=assumptions,
+                policy=selected_policy,
+                schedule_entry_template=successor_entry,
+                schedule_action="restart",
+                restart_id=restart_id,
+            )
+
+    def _reconcile_numerical_commit(self, record: dict[str, Any], operation_id: str) -> bool:
+        committed = self._committed_result(
+            operation_id, expected_kind="numerical-work",
+            expected_request={"work_id": record["work_id"], "dependencies": record["dependencies"],
+                              "request_sha256": record["request_sha256"]},
+            expected_result_keys=frozenset({"artifact"}),
+            expected_mapping_result_fields=frozenset({"artifact"}),
+            require_retained=True,
+        )
+        if committed is None:
+            return False
+        _, result, checkpoint = committed
+        record.update(status="admitted", operation_id=operation_id,
+                      artifact=result["artifact"], checkpoint_receipt=checkpoint.as_dict())
+        self._save_numerical_record(record)
+        return True
+
+    def cancel_numerical_work(self, work_id: str) -> Mapping[str, Any]:
+        """Durably fence admission and stop the current scheduled stream epoch."""
+        with self._lock:
+            record = self._numerical_record(work_id)
+            if record.get("schedule_entry") is not None:
+                record = self._numerical_schedule_record(
+                    record["schedule_entry"]["base_work_id"],
+                )
+                work_id = record["work_id"]
+            if record["status"] == "pending" and record.get("operation_id") is not None:
+                self._reconcile_numerical_commit(record, record["operation_id"])
+            if record["status"] == "pending":
+                record["status"] = "cancelled"
+                cancel_event = self._numerical_cancel_events.get(work_id)
+                if cancel_event is not None:
+                    cancel_event.set()
+                future = self._numerical_futures.get(work_id)
+                if future is not None:
+                    future.cancel()
+                admission = self._physical_admission
+                activity_id = self._numerical_activities.get(work_id)
+                if admission is not None and activity_id is not None:
+                    # Wake an attempt still queued in the physical lane; it
+                    # holds nothing, so nothing is returned on its behalf.
+                    admission.cancel_wait(activity_id)
+            if record.get("schedule_entry") is not None:
+                entry = dict(record["schedule_entry"])
+                entry["state"] = "resting"
+                entry["last_decision"] = {"choice": "cancelled"}
+                clock, _ = self._load_numerical_clock()
+                entry["last_examined_tick"] = clock["tick"]
+                record["schedule_entry"] = normalize_entry(entry)
+                record["schedule_sha256"] = sha256_value(record["schedule_entry"])
+                record["schedule_cancelled"] = True
+            self._save_numerical_record(record)
+            self._retire_numerical_futures()
+            return self._numerical_view(record)
+
+    def collect_numerical_work(
+        self, work_id: str, *, operation_id: str,
+    ) -> Mapping[str, Any]:
+        """Admit one exact result against the *current* root and scoped closure."""
+        _identifier(operation_id, "operation_id")
+        with self._lock:
+            record = self._numerical_record(work_id)
+            self._retire_numerical_futures()
+            if record["status"] == "pending" and record.get("operation_id") is not None:
+                self._reconcile_numerical_commit(record, record["operation_id"])
+            if record.get("operation_id") is not None and record["operation_id"] != operation_id:
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT", "numerical result has a different operation ID",
+                )
+            if record["status"] != "pending":
+                if record["status"] == "admitted" and record.get("operation_id") != operation_id:
+                    raise FieldIntelligenceError("OPERATION_CONFLICT", "numerical result has a different operation ID")
+                return self._numerical_view(record)
+            if self._reconcile_numerical_commit(record, operation_id):
+                return self._numerical_view(record)
+            row = self._numerical_compatible(record)
+            if row is None:
+                record.update(status="obsolete", reason="numerical input dependency changed")
+                self._save_numerical_record(record)
+                return self._numerical_view(record)
+            future = self._numerical_futures.get(work_id)
+            if future is None:
+                try:
+                    self._dispatch_numerical_work(record, row)
+                except FieldIntelligenceError as exc:
+                    if exc.code != "WORK_CAPACITY":
+                        raise
+                return self._numerical_view(record)
+            if not future.done():
+                return self._numerical_view(record)
+            try:
+                successor_row, receipt = future.result()
+            except ResourceWait:
+                # The physical lane refused this attempt before charging it.
+                # The work stays pending and re-dispatches on a later collect.
+                self._numerical_futures.pop(work_id, None)
+                self._numerical_reservations.pop(work_id, None)
+                self._numerical_activities.pop(work_id, None)
+                return self._numerical_view(record)
+            except Exception as exc:
+                record.update(status="faulted", reason=f"{type(exc).__name__}: {str(exc)[:512]}")
+                self._save_numerical_record(record)
+                self._numerical_futures.pop(work_id, None)
+                self._numerical_reservations.pop(work_id, None)
+                self._numerical_activities.pop(work_id, None)
+                self._numerical_cancel_events.pop(work_id, None)
+                return self._numerical_view(record)
+            if successor_row.computer_id != row.computer_id or successor_row.nbytes > self.resource_limits(row.computer_id).max_logical_bytes:
+                raise FieldIntelligenceError("WORK_CAPACITY", "numerical successor exceeds its computer policy")
+            available = self.limits.max_workspace_bytes - self.state.workspace_usage()["workspace_bytes"] + row.nbytes
+            if successor_row.nbytes > available:
+                raise FieldIntelligenceError("WORK_CAPACITY", "numerical successor exceeds owner workspace")
+            artifact = {
+                "schema": "cassifi.numerical-result.v1",
+                "work_id": work_id, "dependencies": record["dependencies"],
+                "request_sha256": record["request_sha256"],
+                "computer_state_sha256": successor_row.state_sha256,
+                "receipt": receipt,
+                "request": record["request"],
+                "descriptor_sha256": record["descriptor_sha256"],
+            }
+            artifact["result_sha256"] = sha256_value(artifact)
+            request = {
+                "work_id": work_id, "dependencies": record["dependencies"],
+                "request_sha256": record["request_sha256"],
+            }
+            computers = tuple(item for item in self.state.computers if item.computer_id != row.computer_id)
+            successor = self.state.with_transition(
+                "computer",
+                {"computer_id": row.computer_id, "action": "numerical-work",
+                 "request_sha256": record["request_sha256"],
+                 "result_sha256": artifact["result_sha256"]},
+                computers=(*computers, successor_row),
+            )
+            result = {"artifact": artifact}
+            # Refuse deterministic publication failures before fencing the
+            # descriptor; a later collection may then choose another ID.
+            self._assert_publication_order(operation_id)
+            self._check_capacity(successor)
+            if len(successor.encode()) > self.limits.max_state_bytes:
+                raise FieldIntelligenceError(
+                    "STATE_CAPACITY", "field state exceeds the configured byte limit",
+                )
+            if self.checkpoints.operation_compacted(operation_id):
+                raise FieldIntelligenceError(
+                    "REPLAY_FLOOR", "operation was discarded behind the retained history floor",
+                )
+            record["operation_id"] = operation_id
+            self._save_numerical_record(record)
+            checkpoint = self._publish(
+                operation_id=operation_id, successor=successor, event_id=None,
+                transition={"kind": "numerical-work", "request": request,
+                            "request_sha256": sha256_value(request), "result": result},
+            )
+            record.update(status="admitted", operation_id=operation_id,
+                          artifact=artifact, checkpoint_receipt=checkpoint.as_dict())
+            self._save_numerical_record(record)
+            self._numerical_futures.pop(work_id, None)
+            self._numerical_reservations.pop(work_id, None)
+            return self._numerical_view(record)
+
+    def _consumed_communication_result(
+        self, computer_id: str, event_id: int, intent_sha256: str,
+        *, allow_pending: bool = False,
+    ) -> dict[str, Any] | None:
+        """Find one exact committed RECEIVE after an event leaves its queue."""
+        def transition_receipts(value: Any) -> list[Mapping[str, Any]]:
+            """Collect real regional receipts from every advancing operation shape."""
+            found: list[Mapping[str, Any]] = []
+            if isinstance(value, Mapping):
+                rows = value.get("transition_receipts")
+                if isinstance(rows, list):
+                    found.extend(row for row in rows if isinstance(row, Mapping))
+                for key in ("receipt", "run", "receipts", "result"):
+                    nested = value.get(key)
+                    if isinstance(nested, list):
+                        for item in nested:
+                            found.extend(transition_receipts(item))
+                    elif isinstance(nested, Mapping):
+                        found.extend(transition_receipts(nested))
+            elif isinstance(value, list):
+                for item in value:
+                    found.extend(transition_receipts(item))
+            return found
+
+        floor = self.checkpoints._history_floor()
+        floor_sha = floor["floor_manifest_sha256"]
+        cursor_sha = self.checkpoints.current_manifest_sha256
+        cursor = self.checkpoints.current_manifest
+        while cursor_sha != floor_sha:
+            transition = cursor["transition"]
+            if isinstance(transition, Mapping) and transition.get("kind") == "computer":
+                request = transition.get("request")
+                if isinstance(request, Mapping) and request.get("computer_id") == computer_id:
+                    result = transition.get("result")
+                    receipts = transition_receipts(result)
+                    for receipt in receipts:
+                        if (
+                            receipt.get("event_id") != event_id
+                            or receipt.get("operation") != "RECEIVE"
+                            or receipt.get("disposition") == "fault"
+                        ):
+                            continue
+                        output = receipt.get("output")
+                        if (
+                            not isinstance(output, Mapping)
+                            or output.get("schema") != "cassifi.field-communication-consumption.v1"
+                            or output.get("intent_sha256") != intent_sha256
+                        ):
+                            raise FieldIntelligenceError(
+                                "OPERATION_CONFLICT", "communication event identity differs from committed RECEIVE",
+                            )
+                        return {
+                            "schema": "cassifi.field-communication-result.v1",
+                            "operation_id": cursor["operation_id"],
+                            "event_id": event_id,
+                            "owner_state_sha256": cursor["state_sha256"],
+                            "output": dict(output),
+                        }
+                    # A communication admission may be the outer result receipt,
+                    # or may be nested in an invoke/run result.  Once it is
+                    # found, do not search older commits for a nonexistent use.
+                    admission = (
+                        result.get("receipt")
+                        if isinstance(result, Mapping)
+                        else None
+                    )
+                    if not isinstance(admission, Mapping) or admission.get("event_id") != event_id:
+                        admission = next(
+                            (
+                                item for item in receipts
+                                if item.get("event_id") == event_id
+                                and item.get("operation") != "RECEIVE"
+                            ),
+                            None,
+                        )
+                    if admission is not None:
+                        if admission.get("intent_sha256") != intent_sha256:
+                            raise FieldIntelligenceError(
+                                "OPERATION_CONFLICT", "communication event identity differs from admission",
+                            )
+                        if allow_pending:
+                            return None
+                        break
+            parent = cursor["parent_manifest_sha256"]
+            if parent is None:
+                break
+            cursor_sha = parent
+            cursor = self.checkpoints._manifest(parent)
+        if allow_pending:
+            return None
+        raise FieldIntelligenceError(
+            "OPERATION_CONFLICT",
+            "communication event has no retained committed RECEIVE and is no longer pending",
+        )
 
     def operate_computer(
         self, operation_id: str, *, computer_id: str, action: str,
         arguments: Mapping[str, Any] | None = None,
         expected_state_sha256: str | None = None,
+        _candidate: tuple[Any, Mapping[str, Any]] | None = None,
+        _candidate_predecessor_sha256: str | None = None,
     ) -> Mapping[str, Any]:
-        """Execute one bounded, replay-safe operation on an atlas-owned computer."""
+        """Run computer work under the entity's physical lane, if attached."""
+        call = lambda: self._operate_computer_unadmitted(
+            operation_id, computer_id=computer_id, action=action,
+            arguments=arguments, expected_state_sha256=expected_state_sha256,
+            _candidate=_candidate,
+            _candidate_predecessor_sha256=_candidate_predecessor_sha256,
+        )
+        admission = self._physical_admission
+        if (
+            admission is None
+            or _candidate is not None
+            or action not in {
+                "advance", "authorized-invoke", "call", "invoke",
+                "invoke-settled", "submit", "learn-ngram",
+                "bind-method-inputs",
+            }
+            or getattr(self._physical_work_local, "active", False)
+        ):
+            return call()
+        _identifier(operation_id, "operation_id")
+        activity_base = f"computer:{hashlib.sha256(operation_id.encode('utf-8')).hexdigest()}"
+        while True:
+            with self._lock:
+                committed = self._committed_replay(operation_id, require_retained=True)
+                waiter = self._physical_work_waits.get(operation_id)
+                if committed is None and waiter is None:
+                    waiter = threading.Event()
+                    self._physical_work_waits[operation_id] = waiter
+                    leader = True
+                else:
+                    leader = False
+            if committed is not None:
+                return call()
+            if not leader:
+                waiter.wait()
+                continue
+            try:
+                attempt = 0
+                while True:
+                    activity_id = f"{activity_base}:attempt:{attempt}"
+                    status = admission.get_activity_status(activity_id)
+                    if status["status"] == "not-admitted":
+                        break
+                    if status["status"] != "retired":
+                        raise ResourceWait(
+                            "physical_cores", 1, 0, reason="reconciliation-required",
+                        )
+                    with self._lock:
+                        committed = self._committed_replay(
+                            operation_id, require_retained=True,
+                        )
+                    if committed is not None:
+                        return call()
+                    attempt += 1
+                with self._lock:
+                    row = next(
+                        (item for item in self.state.computers
+                         if item.computer_id == computer_id),
+                        None,
+                    )
+                    resident_bytes = _computer_physical_work_bytes(row)
+                lease = admission.acquire(
+                    activity_id,
+                    priority="background",
+                    continuation_id=activity_base,
+                    resources={
+                        "physical_cores": 1,
+                        "ram_bytes": 2 * resident_bytes,
+                        "vram_bytes": 0,
+                        "transfer_bytes": 0,
+                        "peak_bytes": resident_bytes,
+                    },
+                )
+                try:
+                    with self._lock:
+                        current_row = next(
+                            (item for item in self.state.computers
+                             if item.computer_id == computer_id),
+                            None,
+                        )
+                        current_bytes = _computer_physical_work_bytes(current_row)
+                        if current_bytes > resident_bytes:
+                            raise ResourceWait(
+                                "ram_bytes", 2 * current_bytes, 2 * resident_bytes,
+                                reason="successor-capacity",
+                            )
+                    self._physical_work_local.active = True
+                    result = call()
+                except BaseException:
+                    lease.retire("failed")
+                    raise
+                else:
+                    lease.retire("completed")
+                    return result
+                finally:
+                    self._physical_work_local.active = False
+            finally:
+                with self._lock:
+                    self._physical_work_waits.pop(operation_id, None)
+                    waiter.set()
+
+    def _operate_computer_unadmitted(
+        self, operation_id: str, *, computer_id: str, action: str,
+        arguments: Mapping[str, Any] | None = None,
+        expected_state_sha256: str | None = None,
+        _candidate: tuple[Any, ...] | None = None,
+        _candidate_predecessor_sha256: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Execute or publish one bounded, replay-safe computer operation."""
         from cassi_learning_computer import (
             LearningComputer,
             LearningComputerCapacityError,
@@ -13666,10 +21748,29 @@ class FieldIntelligenceOwner:
             ),
             "residency": (frozenset(), frozenset()),
             "circulation": (frozenset(), frozenset()),
+            "communicate": (
+                frozenset({"intent", "dispatch"}),
+                frozenset({"event"}),
+            ),
+            "cancel-communication": (
+                frozenset({"event_id", "intent_sha256"}), frozenset(),
+            ),
             "resources": (frozenset(), frozenset({"limits"})),
+            "adopt-paged": (frozenset({"resident_pages"}), frozenset()),
+            "bind-method-inputs": (
+                frozenset({"values"}), frozenset({"u32_words"}),
+            ),
             "place": (
                 frozenset({"pages", "tier"}),
                 frozenset({"root_sha256", "max_pages", "continuation"}),
+            ),
+            "enable-ngram": (
+                frozenset({"model_id", "table_id"}),
+                frozenset({"width", "rank"}),
+            ),
+            "learn-ngram": (
+                frozenset({"table_vector", "hidden", "feedback"}),
+                frozenset(),
             ),
         }
         _identifier(operation_id, "operation_id")
@@ -13711,533 +21812,2500 @@ class FieldIntelligenceOwner:
             and isinstance(args.get("arguments"), Mapping)
             and args["arguments"].get("operation") == "revocation"
         )
-        with self._lock:
-            for revision_id in dependencies:
-                source = self.evidence.source(revision_id)
-                if not revocation_notice:
-                    # A dependency is the revision the request was built from,
-                    # so the request verifies against that revision's own
-                    # bytes.  Superseding it later is how the field moves on,
-                    # and reading it as history keeps the integrity and
-                    # revocation checks that make the binding meaningful:
-                    # revoked or deleted bytes still refuse.
-                    self.evidence.read(source, allow_historical=True)
-            request = {
-                "kind": "computer",
-                "computer_id": computer_id,
-                "action": action,
-                "arguments": args,
-                "expected_state_sha256": expected_state_sha256,
-                "evidence_binding": {
-                    "revocation_generation": self.state.revocation_generation,
-                    "source_revision_ids": list(dependencies),
-                },
-            }
-            if len(canonical_json_bytes(request)) > self.limits.max_source_bytes:
+        candidate_row = None
+        candidate_receipt = None
+        native_graph_ticket = None
+        native_graph_receipt = None
+        native_graph_receipt_sha256 = None
+        graph_receipt_wire_sha256 = None
+        native_graph_step = None
+        field_candidate_id = None
+        if _candidate is not None:
+            if (
+                action != "invoke"
+                or expected_state_sha256 is None
+                or not isinstance(_candidate, tuple)
+                or len(_candidate) not in {2, 8}
+            ):
                 raise FieldIntelligenceError(
-                    "WORK_CAPACITY",
-                    "computer request exceeds source byte limit",
+                    "INVALID_COMPUTER", "private candidate requires a bound invoke"
                 )
-            committed = self._committed_result(
-                operation_id, expected_kind="computer", expected_request=request,
-                expected_result_keys=frozenset({"receipt"}),
-                expected_mapping_result_fields=frozenset({"receipt"}), require_retained=True,
+            candidate_row, candidate_receipt = _candidate[:2]
+            if len(_candidate) == 8:
+                (
+                    native_graph_ticket,
+                    native_graph_receipt,
+                    native_graph_receipt_sha256,
+                    graph_receipt_wire_sha256,
+                    field_candidate_id,
+                    native_graph_step,
+                ) = _candidate[2:]
+                if any(
+                    value is None
+                    for value in (
+                        native_graph_ticket,
+                        native_graph_receipt,
+                        native_graph_receipt_sha256,
+                        graph_receipt_wire_sha256,
+                        field_candidate_id,
+                        native_graph_step,
+                    )
+                ):
+                    raise FieldIntelligenceError(
+                        "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                        "native graph-site candidate bundle is incomplete",
+                    )
+            _digest(_candidate_predecessor_sha256, "candidate predecessor")
+            if (
+                not isinstance(candidate_row, LearningComputer)
+                or candidate_row.computer_id != computer_id
+                or not isinstance(candidate_receipt, Mapping)
+                or candidate_receipt.get("schema")
+                != "cassifi.learning-computer-invoke-receipt.v1"
+                or candidate_receipt.get("state_sha256")
+                != candidate_row.state_sha256
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_COMPUTER", "candidate and invoke receipt disagree"
+                )
+            candidate_receipt = dict(candidate_receipt)
+        for revision_id in dependencies:
+            source = self.evidence.source(revision_id)
+            if not revocation_notice:
+                # A dependency is the revision the request was built from,
+                # so the request verifies against that revision's own
+                # bytes.  Superseding it later is how the field moves on,
+                # and reading it as history keeps the integrity and
+                # revocation checks that make the binding meaningful:
+                # revoked or deleted bytes still refuse.
+                self.evidence.read(source, allow_historical=True)
+        request = {
+            "kind": "computer",
+            "computer_id": computer_id,
+            "action": action,
+            "arguments": args,
+            "expected_state_sha256": expected_state_sha256,
+            "evidence_binding": {
+                "revocation_generation": self.state.revocation_generation,
+                "source_revision_ids": list(dependencies),
+            },
+        }
+        if candidate_row is not None:
+            request["candidate"] = {
+                "predecessor_computer_state_sha256":
+                    _candidate_predecessor_sha256,
+                "successor_computer_state_sha256": candidate_row.state_sha256,
+                "receipt_sha256": sha256_value(candidate_receipt),
+            }
+        native_graph_site_ack = None
+        if native_graph_ticket is not None:
+            if (
+                not isinstance(native_graph_receipt, Mapping)
+                or not isinstance(native_graph_step, Mapping)
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site candidate proof is invalid",
+                )
+            native_graph_ticket = self._validate_native_graph_site_ticket(
+                native_graph_ticket
             )
-            if committed is not None:
-                manifest, result, checkpoint = committed
-                retained = self.checkpoints._load_state(manifest)
-                row = next((item for item in retained.computers if item.computer_id == computer_id), None)
-                receipt = result["receipt"]
-                if (row is None or receipt.get("computer_id") != computer_id
-                        or receipt.get("action") != action
-                        or receipt.get("computer_state_sha256") != sha256_value(row.as_dict())):
-                    raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "computer replay differs from its field")
-                return {**result, "checkpoint_receipt": checkpoint.as_dict()}
-            if self.checkpoints.operation_compacted(operation_id):
-                raise FieldIntelligenceError("HISTORY_COMPACTED", "computer operation precedes retained history")
-            if expected_state_sha256 is not None and expected_state_sha256 != self.state.state_sha256:
-                raise FieldIntelligenceError("LINEAGE_CONFLICT", "computer predecessor differs from current field")
-            self._assert_publication_order(operation_id)
-            row = next((item for item in self.state.computers if item.computer_id == computer_id), None)
-            available_bytes = self.limits.max_workspace_bytes - self.state.workspace_usage()["workspace_bytes"]
-            replacement_bytes = available_bytes + (0 if row is None else row.nbytes)
-            try:
-                if action == "configure":
-                    if row is not None:
-                        raise FieldIntelligenceError("OPERATION_CONFLICT", "computer already exists")
-                    requested_profile = args.get("profile")
-                    if isinstance(requested_profile, Mapping):
-                        requested_modes = max(
-                            int(requested_profile.get("mode_count", 0)),
-                            int(requested_profile.get("program_capacity", 0)),
-                            int(requested_profile.get("stack_capacity", 0)),
-                        )
-                        if requested_modes * 9 * 8 > available_bytes:
-                            raise FieldIntelligenceError(
-                                "WORK_CAPACITY",
-                                "computer profile exceeds workspace limit",
-                            )
-                    successor_row = LearningComputer.initial(
-                        computer_id,
-                        profile=args.get("profile"),
-                        max_field_bytes=available_bytes,
+            if (
+                native_graph_ticket.get("operation_id")
+                != native_graph_ticket.get("native_operation_id")
+                or operation_id
+                != "resident-model-resume:"
+                + native_graph_ticket["native_operation_id"]
+            ):
+                raise FieldIntelligenceError(
+                    "LINEAGE_CONFLICT",
+                    "native graph ticket and owner publication operations disagree",
+                )
+            model_task_id = _identifier(
+                native_graph_ticket.get("model_task_id"),
+                "native model task",
+            )
+            invocation = args.get("arguments")
+            native_arguments = (
+                invocation.get("arguments")
+                if isinstance(invocation, Mapping)
+                and invocation.get("operation") == "advance-task"
+                and invocation.get("task_id") == model_task_id
+                else None
+            )
+            native_result = (
+                native_arguments.get("result")
+                if isinstance(native_arguments, Mapping)
+                else None
+            )
+            if (
+                not isinstance(native_arguments, Mapping)
+                or native_arguments.get("operation") != "resume-native-model"
+                or native_arguments.get("operation_id")
+                != native_graph_ticket["native_operation_id"]
+                or not isinstance(native_result, Mapping)
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site proof has no matching model result",
+                )
+            current_row = next(
+                (
+                    item
+                    for item in self.state.computers
+                    if item.computer_id == computer_id
+                ),
+                None,
+            )
+            if current_row is None:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site proof has no current computer state",
+                )
+            current_task_value = current_row.named_value("task")
+            candidate_task_value = candidate_row.named_value("task")
+            current_tasks = (
+                current_task_value.get("tasks")
+                if isinstance(current_task_value, Mapping)
+                else None
+            )
+            candidate_tasks = (
+                candidate_task_value.get("tasks")
+                if isinstance(candidate_task_value, Mapping)
+                else None
+            )
+            current_task_record = (
+                current_tasks.get(model_task_id)
+                if isinstance(current_tasks, Mapping)
+                else None
+            )
+            candidate_task_record = (
+                candidate_tasks.get(model_task_id)
+                if isinstance(candidate_tasks, Mapping)
+                else None
+            )
+            current_model_state = (
+                current_task_record.get("state")
+                if isinstance(current_task_record, Mapping)
+                else None
+            )
+            candidate_model_state = (
+                candidate_task_record.get("state")
+                if isinstance(candidate_task_record, Mapping)
+                else None
+            )
+            current_identity = (
+                current_model_state.get("identity")
+                if isinstance(current_model_state, Mapping)
+                else None
+            )
+            candidate_identity = (
+                candidate_model_state.get("identity")
+                if isinstance(candidate_model_state, Mapping)
+                else None
+            )
+            identity_fields = ("owner_id", "member_id", "operation_id")
+            if (
+                not isinstance(current_identity, Mapping)
+                or any(key not in current_identity for key in identity_fields)
+                or not isinstance(candidate_identity, Mapping)
+                or any(
+                    key not in candidate_identity for key in identity_fields
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site proof has no retained model identity",
+                )
+            current_operations = (
+                current_model_state.get("operations")
+                if isinstance(current_model_state, Mapping)
+                else None
+            )
+            candidate_operations = (
+                candidate_model_state.get("operations")
+                if isinstance(candidate_model_state, Mapping)
+                else None
+            )
+            current_native_operation = (
+                current_operations.get(
+                    native_graph_ticket["native_operation_id"]
+                )
+                if isinstance(current_operations, Mapping)
+                else None
+            )
+            candidate_native_operation = (
+                candidate_operations.get(
+                    native_graph_ticket["native_operation_id"]
+                )
+                if isinstance(candidate_operations, Mapping)
+                else None
+            )
+            current_native_request = (
+                current_native_operation.get("request")
+                if isinstance(current_native_operation, Mapping)
+                else None
+            )
+            candidate_native_request = (
+                candidate_native_operation.get("request")
+                if isinstance(candidate_native_operation, Mapping)
+                else None
+            )
+            if (
+                not isinstance(current_native_request, Mapping)
+                or current_native_request.get("native_task_id")
+                != native_graph_ticket["task_id"]
+                or not isinstance(candidate_native_request, Mapping)
+                or candidate_native_request.get("native_task_id")
+                != native_graph_ticket["task_id"]
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site task does not match its retained model operation",
+                )
+            current_identity_values = tuple(
+                _identifier(current_identity[key], f"model identity {key}")
+                for key in identity_fields
+            )
+            candidate_identity_values = tuple(
+                _identifier(candidate_identity[key], f"model identity {key}")
+                for key in identity_fields
+            )
+            expected_sequence_id = ":".join(current_identity_values)
+            if (
+                dict(candidate_identity) != dict(current_identity)
+                or candidate_identity_values != current_identity_values
+                or native_graph_ticket["sequence_id"] != expected_sequence_id
+                or native_graph_ticket["sequence_id"]
+                == native_graph_ticket["task_id"]
+                or native_result.get("task_id")
+                != native_graph_ticket["task_id"]
+                or native_result.get("sequence_id") != expected_sequence_id
+                or native_result.get("native_operation_id")
+                != native_graph_ticket["native_operation_id"]
+                or native_result.get("ticket_id")
+                != native_graph_ticket["ticket_id"]
+                or native_result.get("field_candidate_id")
+                != field_candidate_id
+                or native_result.get("graph_site_receipt")
+                != native_graph_receipt
+                or native_result.get("graph_site_receipt_sha256")
+                != native_graph_receipt_sha256
+                or native_result.get("native_graph_site_receipt_sha256")
+                != native_graph_receipt_sha256
+                or native_result.get("graph_receipt_wire_sha256")
+                != graph_receipt_wire_sha256
+                or native_result.get("native_graph_site_receipt_wire_sha256")
+                != graph_receipt_wire_sha256
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site proof differs from current model identity or result",
+                )
+            native_step_result_fields = (
+                "native_operation_id",
+                "task_id",
+                "sequence_id",
+                "seq_id",
+                "position",
+                "source_sha256",
+                "selected_token_id",
+                "input_tokens",
+                "input_tokens_sha256",
+                "sampler",
+                "sampler_sha256",
+                "replay_sha256",
+                "token_count",
+                "stage_trace_sha256",
+                "native_preflight_sha256",
+                "native_predecessor_sha256",
+                "native_successor_sha256",
+                "ticket_id",
+                "ticket_sha256",
+                "field_candidate_id",
+                "graph_receipt_wire_sha256",
+            )
+            if (
+                native_result.get("accepted") is not False
+                or native_result.get("provisional") is not True
+                or any(
+                    key not in native_graph_step
+                    or native_graph_step.get(key) != native_result.get(key)
+                    for key in native_step_result_fields
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native provisional step differs from its raw model result",
+                )
+            native_graph_receipt = self._validate_native_graph_site_receipt(
+                native_graph_ticket,
+                native_graph_receipt,
+                native_graph_receipt_sha256,
+                graph_receipt_wire_sha256=graph_receipt_wire_sha256,
+            )
+            if (
+                not isinstance(field_candidate_id, str)
+                or not field_candidate_id
+                or native_graph_receipt.get("field_candidate_id")
+                != field_candidate_id
+                or native_graph_step.get("field_candidate_id")
+                != field_candidate_id
+                or (
+                    "field_successor_sha256" in native_graph_step
+                    and native_graph_step.get("field_successor_sha256")
+                    != candidate_row.state_sha256
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site proof does not bind the physical field candidate",
+                )
+            native_graph_step = self._validate_native_graph_site_step(
+                native_graph_ticket,
+                native_graph_receipt,
+                native_graph_step,
+                candidate_row,
+                candidate_receipt=candidate_receipt,
+                graph_receipt_wire_sha256=graph_receipt_wire_sha256,
+            )
+            native_graph_step["graph_successor_sha256"] = (
+                native_graph_receipt["candidate_successor_sha256"]
+            )
+            native_graph_step["owner_operation_id"] = operation_id
+            request["native_graph_site"] = {
+                "ticket": native_graph_ticket,
+                "receipt": native_graph_receipt,
+                "native_graph_site_receipt_sha256":
+                    native_graph_receipt_sha256,
+                "graph_receipt_wire_sha256":
+                    graph_receipt_wire_sha256,
+                "field_candidate_id": field_candidate_id,
+                "graph_successor_sha256":
+                    native_graph_receipt["candidate_successor_sha256"],
+                "field_successor_sha256": candidate_row.state_sha256,
+                "step": native_graph_step,
+            }
+            native_graph_site_ack = {
+                "accepted_model_step": True,
+                "accepted_token_id": native_graph_step["accepted_token_id"],
+                "native_operation_id": native_graph_step["native_operation_id"],
+                "field_successor_sha256": candidate_row.state_sha256,
+                "native_successor_sha256":
+                    native_graph_receipt["native_successor_sha256"],
+                "native_graph_site_receipt_sha256":
+                    native_graph_receipt_sha256,
+                "graph_receipt_wire_sha256":
+                    graph_receipt_wire_sha256,
+                "ticket_id": native_graph_ticket["ticket_id"],
+                "field_candidate_id": field_candidate_id,
+            }
+        if len(canonical_json_bytes(request)) > self.limits.max_source_bytes:
+            raise FieldIntelligenceError(
+                "WORK_CAPACITY",
+                "computer request exceeds source byte limit",
+            )
+        expected_result_keys = (
+            frozenset(
+                {"receipt", "native_graph_site_step", "accepted_token_id"}
+            )
+            if native_graph_step is not None
+            else frozenset({"receipt"})
+        )
+        expected_mapping_result_fields = (
+            frozenset({"receipt", "native_graph_site_step"})
+            if native_graph_step is not None
+            else frozenset({"receipt"})
+        )
+        committed = self._committed_result(
+            operation_id, expected_kind="computer", expected_request=request,
+            expected_result_keys=expected_result_keys,
+            expected_mapping_result_fields=expected_mapping_result_fields,
+            require_retained=True,
+        )
+        if committed is not None:
+            manifest, result, checkpoint = committed
+            retained = self.checkpoints._load_state(manifest)
+            row = next((item for item in retained.computers if item.computer_id == computer_id), None)
+            receipt = result["receipt"]
+            if (
+                row is None
+                or receipt.get("computer_id") != computer_id
+                or receipt.get("action") != action
+                or (
+                    row.state_sha256 != receipt["computer_logical_state_sha256"]
+                    if "computer_logical_state_sha256" in receipt
+                    else receipt.get("computer_state_sha256") != sha256_value(row.as_dict())
+                )
+            ):
+                raise FieldIntelligenceError("CHECKPOINT_CORRUPT", "computer replay differs from its field")
+            if native_graph_step is not None and (
+                result.get("native_graph_site_step") != native_graph_step
+                or result.get("accepted_token_id")
+                != native_graph_step["accepted_token_id"]
+            ):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT",
+                    "committed native graph-site step differs from its request",
+                )
+            feedback = self._automatic_research_spectral_feedback(
+                computer_id, action, args
+            )
+            receipt = dict(result["receipt"])
+            if feedback is not None:
+                receipt["spectral_feedback"] = feedback
+            published = {
+                **result,
+                "receipt": receipt,
+                "checkpoint_receipt": checkpoint.as_dict(),
+            }
+            if native_graph_site_ack is not None:
+                published["native_graph_site_ack"] = dict(
+                    native_graph_site_ack
+                )
+            return published
+        if native_graph_ticket is not None:
+            self._validate_native_graph_site_ticket_current(
+                native_graph_ticket,
+                computer_id=computer_id,
+                task_id=native_graph_ticket["task_id"],
+                operation_id=native_graph_ticket["operation_id"],
+                expected_state_sha256=self.state.state_sha256,
+                predecessor_computer_state_sha256=(
+                    _candidate_predecessor_sha256
+                ),
+            )
+        if self.checkpoints.operation_compacted(operation_id):
+            raise FieldIntelligenceError("HISTORY_COMPACTED", "computer operation precedes retained history")
+        if (
+            expected_state_sha256 is not None
+            and expected_state_sha256 != self.state.state_sha256
+            and native_graph_ticket is None
+        ):
+            raise FieldIntelligenceError(
+                "LINEAGE_CONFLICT",
+                "computer predecessor differs from current field",
+            )
+        self._assert_publication_order(operation_id)
+        row = next((item for item in self.state.computers if item.computer_id == computer_id), None)
+        available_bytes = self.limits.max_workspace_bytes - self.state.workspace_usage()["workspace_bytes"]
+        replacement_bytes = available_bytes + (0 if row is None else row.nbytes)
+        try:
+            if action == "configure":
+                if row is not None:
+                    raise FieldIntelligenceError("OPERATION_CONFLICT", "computer already exists")
+                requested_profile = args.get("profile")
+                if isinstance(requested_profile, Mapping):
+                    requested_modes = max(
+                        int(requested_profile.get("mode_count", 0)),
+                        int(requested_profile.get("program_capacity", 0)),
+                        int(requested_profile.get("stack_capacity", 0)),
                     )
-                    if successor_row.nbytes > available_bytes:
-                        raise FieldIntelligenceError("WORK_CAPACITY", "computer geometry exceeds workspace limit")
-                    requested_limits = args.get("resource_limits")
-                    if requested_limits is not None:
-                        limits = self.set_resource_limits(computer_id, requested_limits)
-                        if limits.max_logical_bytes < successor_row.nbytes:
-                            raise FieldIntelligenceError(
-                                "WORK_CAPACITY",
-                                "computer geometry exceeds the declared resource limit",
-                            )
-                    else:
-                        limits = self.resource_limits(computer_id)
-                        if limits.max_logical_bytes < successor_row.nbytes:
-                            limits = self.set_resource_limits(
-                                computer_id,
-                                {
-                                    **limits.as_dict(),
-                                    "max_logical_bytes": successor_row.nbytes,
-                                },
-                            )
-                    adoption_decision = None
-                    resident_pages = args.get("resident_pages")
-                    if resident_pages is not None:
-                        requested_pages = _integer(
-                            resident_pages,
-                            "resident pages",
-                            minimum=1,
+                    if requested_modes * 9 * 8 > available_bytes:
+                        raise FieldIntelligenceError(
+                            "WORK_CAPACITY",
+                            "computer profile exceeds workspace limit",
                         )
-                        successor_row, adoption_decision = self._adopt_within_budget(
-                            successor_row,
-                            requested_pages=requested_pages,
-                            limits=limits,
+                successor_row = LearningComputer.initial(
+                    computer_id,
+                    profile=args.get("profile"),
+                    max_field_bytes=available_bytes,
+                )
+                if successor_row.nbytes > available_bytes:
+                    raise FieldIntelligenceError("WORK_CAPACITY", "computer geometry exceeds workspace limit")
+                requested_limits = args.get("resource_limits")
+                if requested_limits is not None:
+                    limits = self.set_resource_limits(computer_id, requested_limits)
+                    if limits.max_logical_bytes < successor_row.nbytes:
+                        raise FieldIntelligenceError(
+                            "WORK_CAPACITY",
+                            "computer geometry exceeds the declared resource limit",
                         )
-                    # The computer is where staged work runs, so it starts
-                    # holding the manager its own declared policy built: an
-                    # image left to make its own manager reserves under the
-                    # placeholder defaults while the declaration sits unused.
-                    successor_row = successor_row.with_resource_manager(
-                        self._resource_manager_for(computer_id)
-                    )
-                    receipt = {
-                        **successor_row.inspect(),
-                        "resource_limits": limits.as_dict(),
-                        **(
-                            {}
-                            if adoption_decision is None
-                            else {"residency_decision": adoption_decision}
-                        ),
-                    }
                 else:
-                    if row is None:
-                        raise FieldIntelligenceError("UNKNOWN_COMPUTER", "configure the computer first")
-                    if action in {
-                        "advance",
-                        "authorized-invoke",
-                        "call",
-                        "invoke",
-                        "invoke-settled",
-                        "submit",
-                    }:
-                        steps = _integer(
-                            args.get(
-                                "steps",
-                                4096 if action == "invoke-settled" else 1,
-                            ),
-                            "steps",
-                            minimum=1,
+                    limits = self.resource_limits(computer_id)
+                    if limits.max_logical_bytes < successor_row.nbytes:
+                        limits = self.set_resource_limits(
+                            computer_id,
+                            {
+                                **limits.as_dict(),
+                                "max_logical_bytes": successor_row.nbytes,
+                            },
                         )
-                        if steps > self.limits.max_operator_effort:
+                adoption_decision = None
+                resident_pages = args.get("resident_pages")
+                if resident_pages is not None:
+                    requested_pages = _integer(
+                        resident_pages,
+                        "resident pages",
+                        minimum=1,
+                    )
+                    successor_row, adoption_decision = self._adopt_within_budget(
+                        successor_row,
+                        requested_pages=requested_pages,
+                        limits=limits,
+                    )
+                # The computer is where staged work runs, so it starts
+                # holding the manager its own declared policy built: an
+                # image left to make its own manager reserves under the
+                # placeholder defaults while the declaration sits unused.
+                successor_row = successor_row.with_resource_manager(
+                    self._resource_manager_for(computer_id)
+                )
+                receipt = {
+                    **successor_row.inspect(),
+                    "resource_limits": limits.as_dict(),
+                    **(
+                        {}
+                        if adoption_decision is None
+                        else {"residency_decision": adoption_decision}
+                    ),
+                }
+            else:
+                if row is None:
+                    raise FieldIntelligenceError("UNKNOWN_COMPUTER", "configure the computer first")
+                if action == "enable-ngram":
+                    successor_row, receipt = row.enable_ngram_readout(**args)
+                elif action == "learn-ngram":
+                    successor_row, receipt = row.learn_ngram_readout(**args)
+                elif action in {
+                    "advance",
+                    "authorized-invoke",
+                    "call",
+                    "invoke",
+                    "invoke-settled",
+                    "submit",
+                }:
+                    steps = _integer(
+                        args.get(
+                            "steps",
+                            4096 if action == "invoke-settled" else 1,
+                        ),
+                        "steps",
+                        minimum=1,
+                    )
+                    if steps > self.limits.max_operator_effort:
+                        raise FieldIntelligenceError(
+                            "WORK_CAPACITY",
+                            "computer batch exceeds operator limit",
+                        )
+                    if action == "call":
+                        args["steps"] = steps
+                        try:
+                            successor_row, receipt = row.call(**args)
+                        except (TypeError, ValueError) as exc:
                             raise FieldIntelligenceError(
-                                "WORK_CAPACITY",
-                                "computer batch exceeds operator limit",
+                                "INVALID_REGIONAL_TASK", str(exc)
+                            ) from exc
+                    elif action == "submit":
+                        args["steps"] = steps
+                        try:
+                            successor_row, receipt = row.submit(**args)
+                        except (TypeError, ValueError) as exc:
+                            raise FieldIntelligenceError(
+                                "INVALID_REGIONAL_TASK", str(exc)
+                            ) from exc
+                    elif action == "authorized-invoke":
+                        grant_value = args["grant"]
+                        if not isinstance(grant_value, Mapping):
+                            raise FieldIntelligenceError(
+                                "AUTHORITY_INVALID",
+                                "computer authority grant must be an object",
                             )
-                        if action == "call":
-                            args["steps"] = steps
-                            try:
-                                successor_row, receipt = row.call(**args)
-                            except (TypeError, ValueError) as exc:
-                                raise FieldIntelligenceError(
-                                    "INVALID_REGIONAL_TASK", str(exc)
-                                ) from exc
-                        elif action == "submit":
-                            args["steps"] = steps
-                            try:
-                                successor_row, receipt = row.submit(**args)
-                            except (TypeError, ValueError) as exc:
-                                raise FieldIntelligenceError(
-                                    "INVALID_REGIONAL_TASK", str(exc)
-                                ) from exc
-                        elif action == "authorized-invoke":
-                            grant_value = args["grant"]
-                            if not isinstance(grant_value, Mapping):
-                                raise FieldIntelligenceError(
-                                    "AUTHORITY_INVALID",
-                                    "computer authority grant must be an object",
-                                )
-                            grant = AuthorityGrant.from_dict(grant_value)
-                            target = _identifier(
-                                args["target"], "computer effect target"
+                        grant = AuthorityGrant.from_dict(grant_value)
+                        target = _identifier(
+                            args["target"], "computer effect target"
+                        )
+                        scope = _identifier(
+                            args["scope"], "computer effect scope"
+                        )
+                        task = row.inspect().get("task")
+                        proposal = (
+                            task.get("continuation", {}).get("proposal")
+                            if isinstance(task, Mapping)
+                            else None
+                        )
+                        event = args["arguments"]
+                        if not isinstance(event, Mapping):
+                            raise FieldIntelligenceError(
+                                "AUTHORITY_REQUIRED",
+                                "authorized computer action must be an object",
                             )
-                            scope = _identifier(
-                                args["scope"], "computer effect scope"
+                        action_operation = event.get("operation")
+                        proposal_id = event.get("proposal_id")
+                        required_status = (
+                            "proposed"
+                            if action_operation == "authorize-action"
+                            else "authorized"
+                        )
+                        if (
+                            action_operation
+                            not in {"authorize-action", "dispatch-action"}
+                            or "authority" in event
+                            or not isinstance(proposal, Mapping)
+                            or proposal.get("proposal_id") != proposal_id
+                            or proposal.get("target") != target
+                            or proposal.get("scope") != scope
+                            or proposal.get("status") != required_status
+                        ):
+                            raise FieldIntelligenceError(
+                                "AUTHORITY_REQUIRED",
+                                "computer action is not bound to the exact "
+                                "pending proposal phase",
                             )
-                            task = row.inspect().get("task")
-                            proposal = (
-                                task.get("continuation", {}).get("proposal")
-                                if isinstance(task, Mapping)
+                        self._validate_grant(
+                            grant,
+                            operation="computer-effect",
+                            target=target,
+                            scope=scope,
+                            consume=False,
+                        )
+                        authority = {
+                            "generation": grant.generation,
+                            "grant_id": grant.grant_id,
+                            "grant_sha256": sha256_value(grant.as_dict()),
+                            "issuer": grant.issuer,
+                            "one_use": grant.one_use,
+                            "operation": grant.operation,
+                            "scope": grant.scope,
+                            "target": grant.target,
+                        }
+                        successor_row, receipt = row._authorized_invoke(
+                            arguments={
+                                **dict(event),
+                                "authority": authority,
+                            },
+                            steps=steps,
+                        )
+                        if action_operation == "dispatch-action":
+                            successor_task = successor_row.inspect().get("task")
+                            successor_continuation = (
+                                successor_task.get("continuation")
+                                if isinstance(successor_task, Mapping)
                                 else None
                             )
-                            event = args["arguments"]
-                            if not isinstance(event, Mapping):
-                                raise FieldIntelligenceError(
-                                    "AUTHORITY_REQUIRED",
-                                    "authorized computer action must be an object",
-                                )
-                            action_operation = event.get("operation")
-                            proposal_id = event.get("proposal_id")
-                            required_status = (
-                                "proposed"
-                                if action_operation == "authorize-action"
-                                else "authorized"
+                            successor_proposal = (
+                                successor_continuation.get("proposal")
+                                if isinstance(successor_continuation, Mapping)
+                                else None
                             )
-                            if (
-                                action_operation
-                                not in {"authorize-action", "dispatch-action"}
-                                or "authority" in event
-                                or not isinstance(proposal, Mapping)
-                                or proposal.get("proposal_id") != proposal_id
-                                or proposal.get("target") != target
-                                or proposal.get("scope") != scope
-                                or proposal.get("status") != required_status
-                            ):
+                            effect_request = (
+                                self._computer_effect_dispatch_request(
+                                    successor_proposal
+                                )
+                            )
+                            if effect_request is None:
                                 raise FieldIntelligenceError(
-                                    "AUTHORITY_REQUIRED",
-                                    "computer action is not bound to the exact "
-                                    "pending proposal phase",
+                                    "INVALID_REGIONAL_TASK",
+                                    "dispatch did not persist its regional proposal",
                                 )
                             self._validate_grant(
                                 grant,
                                 operation="computer-effect",
                                 target=target,
                                 scope=scope,
-                                consume=False,
-                            )
-                            authority = {
-                                "generation": grant.generation,
-                                "grant_id": grant.grant_id,
-                                "grant_sha256": sha256_value(grant.as_dict()),
-                                "issuer": grant.issuer,
-                                "one_use": grant.one_use,
-                                "operation": grant.operation,
-                                "scope": grant.scope,
-                                "target": grant.target,
-                            }
-                            successor_row, receipt = row._authorized_invoke(
-                                arguments={
-                                    **dict(event),
-                                    "authority": authority,
-                                },
-                                steps=steps,
-                            )
-                            if action_operation == "dispatch-action":
-                                successor_task = successor_row.inspect().get("task")
-                                successor_continuation = (
-                                    successor_task.get("continuation")
-                                    if isinstance(successor_task, Mapping)
-                                    else None
-                                )
-                                successor_proposal = (
-                                    successor_continuation.get("proposal")
-                                    if isinstance(successor_continuation, Mapping)
-                                    else None
-                                )
-                                effect_request = (
-                                    self._computer_effect_dispatch_request(
-                                        successor_proposal
-                                    )
-                                )
-                                if effect_request is None:
-                                    raise FieldIntelligenceError(
-                                        "INVALID_REGIONAL_TASK",
-                                        "dispatch did not persist its regional proposal",
-                                    )
-                                self._validate_grant(
-                                    grant,
-                                    operation="computer-effect",
-                                    target=target,
-                                    scope=scope,
-                                    consume=True,
-                                    binding={
-                                        "grant": grant.as_dict(),
-                                        "prediction_id": proposal_id,
-                                        "request": effect_request,
-                                        "request_sha256": sha256_value(
-                                            effect_request
-                                        ),
-                                    },
-                                )
-                        elif action == "invoke-settled":
-                            args["steps"] = steps
-                            try:
-                                successor_row, receipt = row.invoke_settled(
-                                    **args
-                                )
-                            except LearningComputerCapacityError as exc:
-                                raise FieldIntelligenceError(
-                                    "WORK_CAPACITY", str(exc)
-                                ) from exc
-                            except LearningComputerError as exc:
-                                raise FieldIntelligenceError(
-                                    "INVALID_REGIONAL_TASK", str(exc)
-                                ) from exc
-                        elif action == "invoke":
-                            args["steps"] = steps
-                            successor_row, receipt = row.invoke(**args)
-                            acknowledgment = args.get("arguments")
-                            if (
-                                isinstance(acknowledgment, Mapping)
-                                and acknowledgment.get("operation")
-                                == "acknowledgment"
-                                and acknowledgment.get("status")
-                                in {"succeeded", "failed"}
-                                and isinstance(
-                                    acknowledgment.get("proposal_id"), str
-                                )
-                            ):
-                                self._clear_effect_grant_binding(
-                                    acknowledgment["proposal_id"]
-                                )
-                        else:
-                            successor_row, receipt = row.advance(**args)
-                    elif action == "residency":
-                        successor_row, receipt = row, row.residency()
-                    elif action == "resources":
-                        requested = args.get("limits")
-                        if requested is not None:
-                            limits = self.set_resource_limits(computer_id, requested)
-                            try:
-                                successor_row = (
-                                    row.with_resident_limit(
-                                        row.resident_limit,
-                                        resource_limits=limits.as_dict(),
-                                    )
-                                    if row.is_paged
-                                    else row
-                                )
-                            except ResourceWait as exc:
-                                raise FieldIntelligenceError(
-                                    "RESOURCE_WAIT", str(exc)
-                                ) from exc
-                        else:
-                            successor_row = row
-                        receipt = self._resource_view(computer_id, successor_row)
-                    elif action == "place":
-                        pages = args.get("pages")
-                        if isinstance(pages, (str, bytes)) or not isinstance(
-                            pages, Sequence
-                        ):
-                            raise FieldIntelligenceError(
-                                "INVALID_COMPUTER", "placement pages must be a list"
-                            )
-                        tier = args.get("tier")
-                        if tier not in {"ram", "vram", "storage"}:
-                            raise FieldIntelligenceError(
-                                "INVALID_COMPUTER",
-                                "placement tier must be ram, vram, or storage",
-                            )
-                        limits = self.resource_limits(computer_id)
-                        if tier == "vram" and limits.device == "cpu":
-                            raise FieldIntelligenceError(
-                                "AUTHORITY_REQUIRED",
-                                "VRAM placement requires a configured device",
-                            )
-                        try:
-                            report = row.place_pages(
-                                [
-                                    _integer(page, "page index", minimum=0)
-                                    for page in pages
-                                ],
-                                tier,
-                                root_sha256=args.get("root_sha256"),
-                                max_pages=min(
-                                    _integer(
-                                        args.get("max_pages", 16),
-                                        "max_pages",
-                                        minimum=1,
+                                consume=True,
+                                binding={
+                                    "grant": grant.as_dict(),
+                                    "prediction_id": proposal_id,
+                                    "request": effect_request,
+                                    "request_sha256": sha256_value(
+                                        effect_request
                                     ),
-                                    4096,
+                                },
+                            )
+                    elif action == "invoke-settled":
+                        args["steps"] = steps
+                        try:
+                            successor_row, receipt = row.invoke_settled(
+                                **args
+                            )
+                        except LearningComputerCapacityError as exc:
+                            raise FieldIntelligenceError(
+                                "WORK_CAPACITY", str(exc)
+                            ) from exc
+                        except LearningComputerError as exc:
+                            raise FieldIntelligenceError(
+                                "INVALID_REGIONAL_TASK", str(exc)
+                            ) from exc
+                    elif action == "invoke":
+                        args["steps"] = steps
+                        if candidate_row is None:
+                            successor_row, receipt = row.invoke(**args)
+                        else:
+                            if (
+                                row.state_sha256
+                                != _candidate_predecessor_sha256
+                                or candidate_row.profile != row.profile
+                                or candidate_row.is_paged != row.is_paged
+                            ):
+                                raise FieldIntelligenceError(
+                                    "LINEAGE_CONFLICT",
+                                    "private candidate differs from the current computer predecessor",
+                                )
+                            successor_row, receipt = (
+                                candidate_row, candidate_receipt
+                            )
+                        acknowledgment = args.get("arguments")
+                        if (
+                            isinstance(acknowledgment, Mapping)
+                            and acknowledgment.get("operation")
+                            == "acknowledgment"
+                            and acknowledgment.get("status")
+                            in {"succeeded", "failed"}
+                            and isinstance(
+                                acknowledgment.get("proposal_id"), str
+                            )
+                        ):
+                            self._clear_effect_grant_binding(
+                                acknowledgment["proposal_id"]
+                            )
+                    else:
+                        successor_row, receipt = row.advance(**args)
+                elif action == "bind-method-inputs":
+                    from cassi_field_computer import (
+                        ComputerState,
+                        PagedComputerState,
+                    )
+
+                    values = args["values"]
+                    if not isinstance(values, Mapping) or not values:
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER",
+                            "bound method inputs must be a nonempty mapping",
+                        )
+                    try:
+                        if row.is_paged:
+                            image, receipt = bind_regional_method_values(
+                                row.field.image, row.profile, values=values,
+                                u32_words=args.get("u32_words", ()),
+                            )
+                            successor_row = replace(
+                                row,
+                                field=PagedComputerState(
+                                    image, row.profile.fingerprint
                                 ),
-                                continuation=args.get("continuation"),
+                            )
+                        else:
+                            field, receipt = bind_regional_method_values(
+                                row.field.field, row.profile, values=values,
+                                u32_words=args.get("u32_words", ()),
+                            )
+                            successor_row = replace(
+                                row,
+                                field=ComputerState(
+                                    field, row.profile.fingerprint
+                                ),
+                            )
+                    except RegionalFieldError as exc:
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER",
+                            f"bound input binding failed: {exc}",
+                        ) from exc
+                elif action == "adopt-paged":
+                    if row.is_paged:
+                        raise FieldIntelligenceError(
+                            "OPERATION_CONFLICT", "computer already uses bounded residency"
+                        )
+                    limits = self.resource_limits(computer_id)
+                    requested_pages = _integer(
+                        args["resident_pages"], "resident pages", minimum=1
+                    )
+                    successor_row, adoption_decision = self._adopt_within_budget(
+                        row, requested_pages=requested_pages, limits=limits
+                    )
+                    successor_row = successor_row.with_resource_manager(
+                        self._resource_manager_for(computer_id)
+                    )
+                    receipt = {
+                        **successor_row.residency(),
+                        "previous_state_sha256": (
+                            successor_row.field.image.predecessor["state_sha256"]
+                        ),
+                        **(
+                            {}
+                            if adoption_decision is None
+                            else {"residency_decision": adoption_decision}
+                        ),
+                    }
+                elif action == "residency":
+                    successor_row, receipt = row, row.residency()
+                elif action == "resources":
+                    requested = args.get("limits")
+                    if requested is not None:
+                        limits = self.set_resource_limits(computer_id, requested)
+                        try:
+                            successor_row = (
+                                row.with_resident_limit(
+                                    row.resident_limit,
+                                    resource_limits=limits.as_dict(),
+                                )
+                                if row.is_paged
+                                else row
                             )
                         except ResourceWait as exc:
                             raise FieldIntelligenceError(
                                 "RESOURCE_WAIT", str(exc)
                             ) from exc
-                        receipt = {
-                            key: value
-                            for key, value in report.items()
-                            if key != "residency"
-                        }
-                        successor_row = row
-                    elif action == "circulation":
-                        successor_row, receipt = row, self.circulation_diagnostics(
-                            computer_id
-                        )
-                    elif action == "cancel-call":
-                        successor_row, receipt = row.cancel_call(**args)
-                    elif action == "restart":
-                        successor_row, receipt = row.restart(**args)
-                    elif action in ("solve", "continue-solve"):
-                        budget = _integer(
-                            args.get("budget", 2000),
-                            "budget",
-                            minimum=1,
-                        )
-                        if budget > min(
-                            self.limits.max_operator_effort,
-                            self.limits.max_solver_iterations,
-                        ):
-                            raise FieldIntelligenceError(
-                                "WORK_CAPACITY",
-                                "solver budget exceeds its configured limit",
-                            )
-                        solver_bytes = max(1, replacement_bytes)
-                        if action == "solve":
-                            successor_row, receipt = row.solve(
-                                **args,
-                                max_field_bytes=solver_bytes,
-                                lifetime_budget=(
-                                    self.limits.max_solver_iterations
-                                ),
-                            )
-                        else:
-                            successor_row, receipt = (
-                                row.continue_solve(
-                                    **args,
-                                    max_field_bytes=solver_bytes,
-                                )
-                            )
-                    elif action == "load":
-                        if row.nbytes > replacement_bytes:
-                            raise FieldIntelligenceError("WORK_CAPACITY", "computer program exceeds workspace limit")
-                        successor_row, receipt = row.load(**args)
                     else:
-                        if row.nbytes > replacement_bytes:
-                            raise FieldIntelligenceError("WORK_CAPACITY", "computer growth exceeds workspace limit")
-                        limits = self.resource_limits(computer_id)
-                        request = dict(args)
-                        target = max(
-                            int(row.profile.mode_count),
-                            _integer(
-                                request.get("stack_capacity"),
-                                "stack capacity",
-                                minimum=1,
+                        successor_row = row
+                    receipt = self._resource_view(computer_id, successor_row)
+                elif action == "place":
+                    pages = args.get("pages")
+                    if isinstance(pages, (str, bytes)) or not isinstance(
+                        pages, Sequence
+                    ):
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER", "placement pages must be a list"
+                        )
+                    tier = args.get("tier")
+                    if tier not in {"ram", "storage", "nvme", "hdd"}:
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER",
+                            "placement tier must be ram, storage, nvme, or hdd",
+                        )
+                    tier_store = None
+                    if tier in {"nvme", "hdd"} and row.is_paged:
+                        roots = self._resource_policy.get(
+                            "page_tier_roots", {}
+                        ).get(computer_id, {})
+                        if tier not in roots:
+                            raise FieldIntelligenceError(
+                                "STORAGE_TIER_UNBOUND",
+                                f"{tier} page-tier root is not configured for this computer",
+                            )
+                        try:
+                            tier_store = self._page_tier_store_for(
+                                computer_id, row
+                            )
+                        except (OSError, ValueError) as exc:
+                            raise FieldIntelligenceError(
+                                "STORAGE_TIER_UNAVAILABLE",
+                                f"configured page-tier storage is unavailable: {exc}",
+                            ) from exc
+                    from cassi_page_tier_store import PageTierCapacityError
+
+                    try:
+                        report = row.place_pages(
+                            [
+                                _integer(page, "page index", minimum=0)
+                                for page in pages
+                            ],
+                            tier,
+                            root_sha256=args.get("root_sha256"),
+                            max_pages=min(
+                                _integer(
+                                    args.get("max_pages", 16),
+                                    "max_pages",
+                                    minimum=1,
+                                ),
+                                4096,
+                            ),
+                            continuation=args.get("continuation"),
+                            tier_store=tier_store,
+                        )
+                    except PageTierCapacityError as exc:
+                        raise FieldIntelligenceError(
+                            "STORAGE_TIER_CAPACITY",
+                            str(exc),
+                            details={
+                                "tier": exc.tier,
+                                "requested_bytes": exc.requested_bytes,
+                                "used_bytes": exc.used_bytes,
+                                "limit_bytes": exc.limit_bytes,
+                                "continuation": args.get("continuation"),
+                            },
+                        ) from exc
+                    except ResourceWait as exc:
+                        raise FieldIntelligenceError(
+                            "RESOURCE_WAIT", str(exc)
+                        ) from exc
+                    receipt = {
+                        key: value
+                        for key, value in report.items()
+                        if key != "residency"
+                    }
+                    successor_row = row
+                elif action == "communicate":
+                    from cassi_field_communication import FieldIntent
+
+                    intent = FieldIntent.from_dict(args["intent"])
+                    dispatch = args["dispatch"]
+                    if not isinstance(dispatch, Mapping) or set(dispatch) != {
+                        "program_id", "scope_id", "pc", "site", "target_id",
+                    }:
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER",
+                            "communication dispatch needs registered program, scope, pc, site and target",
+                        )
+                    event = intent.regional_event(**dict(dispatch))
+                    if "event" in args and args["event"] != event:
+                        raise FieldIntelligenceError(
+                            "INVALID_COMPUTER",
+                            "communication event differs from its field intent",
+                        )
+                    successor_row, receipt = row.enqueue_event(event)
+                    receipt = {
+                        **dict(receipt),
+                        "intent_sha256": intent.identity,
+                        "consumer_use_id": intent.consumer_use_id,
+                        "receiver": intent.receiver,
+                    }
+                elif action == "cancel-communication":
+                    from cassi_field_regions import communication_event_pending
+                    event_id = _integer(args["event_id"], "communication event ID", minimum=1)
+                    intent_sha256 = args["intent_sha256"]
+                    field = row.field.image if row.is_paged else row.field.field
+                    pending = communication_event_pending(
+                        field, row.profile, event_id, intent_sha256,
+                    )
+                    if pending:
+                        successor_row, cancelled = row.cancel_communication(
+                            event_id=event_id, intent_sha256=intent_sha256,
+                        )
+                        cancellation = {
+                            "schema": "cassifi.field-communication-cancellation.v1",
+                            "status": "cancelled", "event_id": event_id,
+                            "intent_sha256": intent_sha256, "result_ref": None,
+                        }
+                        receipt = {
+                            **dict(cancelled),
+                            "communication_cancellation": cancellation,
+                        }
+                    else:
+                        result_ref = self._consumed_communication_result(
+                            computer_id, event_id, intent_sha256,
+                        )
+                        successor_row = row
+                        receipt = {
+                            "kind": "communication-cancellation",
+                            "communication_cancellation": {
+                                "schema": "cassifi.field-communication-cancellation.v1",
+                                "status": "consumed", "event_id": event_id,
+                                "intent_sha256": intent_sha256,
+                                "result_ref": result_ref,
+                            },
+                        }
+                elif action == "circulation":
+                    successor_row, receipt = row, self.circulation_diagnostics(
+                        computer_id
+                    )
+                elif action == "cancel-call":
+                    successor_row, receipt = row.cancel_call(**args)
+                elif action == "restart":
+                    successor_row, receipt = row.restart(**args)
+                elif action in ("solve", "continue-solve"):
+                    budget = _integer(
+                        args.get("budget", 2000),
+                        "budget",
+                        minimum=1,
+                    )
+                    if budget > min(
+                        self.limits.max_operator_effort,
+                        self.limits.max_solver_iterations,
+                    ):
+                        raise FieldIntelligenceError(
+                            "WORK_CAPACITY",
+                            "solver budget exceeds its configured limit",
+                        )
+                    solver_bytes = max(1, replacement_bytes)
+                    if action == "solve":
+                        successor_row, receipt = row.solve(
+                            **args,
+                            max_field_bytes=solver_bytes,
+                            lifetime_budget=(
+                                self.limits.max_solver_iterations
                             ),
                         )
-                        ceiling = max(
-                            int(row.profile.mode_count),
-                            limits.max_logical_bytes // MODE_BYTES,
+                    else:
+                        successor_row, receipt = (
+                            row.continue_solve(
+                                **args,
+                                max_field_bytes=solver_bytes,
+                            )
                         )
-                        decision = None
-                        if target > ceiling:
-                            if not limits.auto_grow:
-                                raise FieldIntelligenceError(
-                                    "WORK_CAPACITY",
-                                    "grown computer exceeds the declared resource limit",
-                                )
-                            decision = {
-                                "auto_grow": True,
-                                "reason": "declared-logical-ceiling",
-                                "requested_modes": target,
-                                "granted_modes": ceiling,
-                                "ceiling_modes": ceiling,
-                                "max_logical_bytes": limits.max_logical_bytes,
-                            }
-                            request["stack_capacity"] = ceiling
-                        successor_row, receipt = row.grow(
-                            **request, resource_limits=limits.as_dict()
-                        )
-                        if successor_row.nbytes > limits.max_logical_bytes:
+                elif action == "load":
+                    if row.nbytes > replacement_bytes:
+                        raise FieldIntelligenceError("WORK_CAPACITY", "computer program exceeds workspace limit")
+                    successor_row, receipt = row.load(**args)
+                else:
+                    if row.nbytes > replacement_bytes:
+                        raise FieldIntelligenceError("WORK_CAPACITY", "computer growth exceeds workspace limit")
+                    limits = self.resource_limits(computer_id)
+                    request = dict(args)
+                    target = max(
+                        int(row.profile.mode_count),
+                        _integer(
+                            request.get("stack_capacity"),
+                            "stack capacity",
+                            minimum=1,
+                        ),
+                    )
+                    ceiling = max(
+                        int(row.profile.mode_count),
+                        limits.max_logical_bytes // MODE_BYTES,
+                    )
+                    decision = None
+                    if target > ceiling:
+                        if not limits.auto_grow:
                             raise FieldIntelligenceError(
                                 "WORK_CAPACITY",
                                 "grown computer exceeds the declared resource limit",
                             )
-                        if decision is not None:
-                            receipt = {
-                                **dict(receipt),
-                                "residency_decision": decision,
-                            }
-            except FieldIntelligenceError:
-                raise
-            except LearningComputerResidencyWait as exc:
-                widened = self._auto_widen_residency(computer_id, row, exc)
-                if widened is None:
-                    raise FieldIntelligenceError(
-                        "RESIDENCY_WAIT",
-                        f"computer {computer_id} suspended for pages "
-                        f"{list(exc.pages)}: raise the allowance with "
-                        f"configure(resident_pages=...) or a wider residency",
-                    ) from exc
-                # A residency wait commits nothing, so the same action is
-                # re-dispatched against the widened computer under a derived
-                # identity and the decision is reported with the result.
-                result = self.operate_computer(
-                    f"{operation_id}:auto-residency",
-                    computer_id=computer_id,
-                    action=action,
-                    arguments=arguments,
-                )
-                return {
-                    **result,
-                    "receipt": {
-                        **dict(result["receipt"]),
-                        "residency_decision": widened,
-                    },
-                }
-            except ResourceWait:
-                # Physical room, not a task fault.  A wait commits nothing and
-                # the pending work keeps its place, so it must reach the
-                # caller: converting it here would report an unavailable
-                # computer (and, for a resident model, an unavailable brain)
-                # for a condition the request can simply wait out.
-                raise
-            except (TypeError, ValueError) as exc:
-                raise FieldIntelligenceError("INVALID_COMPUTER", str(exc)) from exc
-            if successor_row.nbytes > replacement_bytes:
+                        decision = {
+                            "auto_grow": True,
+                            "reason": "declared-logical-ceiling",
+                            "requested_modes": target,
+                            "granted_modes": ceiling,
+                            "ceiling_modes": ceiling,
+                            "max_logical_bytes": limits.max_logical_bytes,
+                        }
+                        request["stack_capacity"] = ceiling
+                    successor_row, receipt = row.grow(
+                        **request, resource_limits=limits.as_dict()
+                    )
+                    if successor_row.nbytes > limits.max_logical_bytes:
+                        raise FieldIntelligenceError(
+                            "WORK_CAPACITY",
+                            "grown computer exceeds the declared resource limit",
+                        )
+                    if decision is not None:
+                        receipt = {
+                            **dict(receipt),
+                            "residency_decision": decision,
+                        }
+        except FieldIntelligenceError:
+            raise
+        except LearningComputerResidencyWait as exc:
+            widened = self._auto_widen_residency(computer_id, row, exc)
+            if widened is None:
                 raise FieldIntelligenceError(
-                    "WORK_CAPACITY", "computer successor exceeds workspace limit"
-                )
-            receipt = {
-                **dict(receipt), "computer_id": computer_id, "action": action,
-                "computer_state_sha256": sha256_value(successor_row.as_dict()),
-            }
-            computers = tuple(item for item in self.state.computers if item.computer_id != computer_id)
-            learning_applied = isinstance(
-                receipt.get("observation"), Mapping
+                    "RESIDENCY_WAIT",
+                    f"computer {computer_id} suspended for pages "
+                    f"{list(exc.pages)}: raise the allowance with "
+                    f"configure(resident_pages=...) or a wider residency",
+                ) from exc
+            # A residency wait commits nothing, so the same action is
+            # re-dispatched against the widened computer under a derived
+            # identity and the decision is reported with the result.
+            result = self.operate_computer(
+                f"{operation_id}:auto-residency",
+                computer_id=computer_id,
+                action=action,
+                arguments=arguments,
             )
-            successor = self.state.with_transition(
-                "computer",
-                {
-                    "computer_id": computer_id,
-                    "action": action,
-                    "request_sha256": sha256_value(request),
+            return {
+                **result,
+                "receipt": {
+                    **dict(result["receipt"]),
+                    "residency_decision": widened,
                 },
-                computers=(*computers, successor_row),
-                logical_tick=(
-                    self.state.logical_tick + int(learning_applied)
-                ),
+            }
+        except ResourceWait:
+            # Physical room, not a task fault.  A wait commits nothing and
+            # the pending work keeps its place, so it must reach the
+            # caller: converting it here would report an unavailable
+            # computer (and, for a resident model, an unavailable brain)
+            # for a condition the request can simply wait out.
+            raise
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError("INVALID_COMPUTER", str(exc)) from exc
+        if successor_row.nbytes > replacement_bytes:
+            raise FieldIntelligenceError(
+                "WORK_CAPACITY", "computer successor exceeds workspace limit"
             )
-            result = json.loads(canonical_json_bytes({"receipt": receipt}))
-            checkpoint = self._publish(
-                operation_id=operation_id, successor=successor, event_id=None,
-                transition={"kind": "computer", "request": request,
-                            "request_sha256": sha256_value(request), "result": result},
+        receipt = {
+            **dict(receipt), "computer_id": computer_id, "action": action,
+            "computer_state_sha256": sha256_value(successor_row.as_dict()),
+        }
+        if successor_row.is_paged:
+            # Placement provenance may be reconstituted on reopen. The
+            # paged root identity is stable across that reconstitution.
+            receipt["computer_logical_state_sha256"] = successor_row.state_sha256
+        computers = tuple(item for item in self.state.computers if item.computer_id != computer_id)
+        learning_applied = isinstance(
+            receipt.get("observation"), Mapping
+        )
+        successor = self.state.with_transition(
+            "computer",
+            {
+                "computer_id": computer_id,
+                "action": action,
+                "request_sha256": sha256_value(request),
+            },
+            computers=(*computers, successor_row),
+            logical_tick=(
+                self.state.logical_tick + int(learning_applied)
+            ),
+        )
+        result_payload = {"receipt": receipt}
+        if native_graph_step is not None:
+            result_payload.update(
+                {
+                    "native_graph_site_step": native_graph_step,
+                    "accepted_token_id":
+                        native_graph_step["accepted_token_id"],
+                }
             )
-            return {**result, "checkpoint_receipt": checkpoint.as_dict()}
+        result = json.loads(canonical_json_bytes(result_payload))
+        checkpoint = self._publish(
+            operation_id=operation_id, successor=successor, event_id=None,
+            transition={"kind": "computer", "request": request,
+                        "request_sha256": sha256_value(request), "result": result},
+        )
+        published = {**result, "checkpoint_receipt": checkpoint.as_dict()}
+        feedback = self._automatic_research_spectral_feedback(
+            computer_id, action, args
+        )
+        if feedback is not None:
+            published = {
+                **published,
+                "receipt": {**receipt, "spectral_feedback": feedback},
+            }
+        if native_graph_site_ack is not None:
+            published["native_graph_site_ack"] = dict(
+                native_graph_site_ack
+            )
+        return published
+
+    def publish_computer_candidate(
+        self,
+        operation_id: str,
+        *,
+        computer_id: str,
+        action: str,
+        arguments: Mapping[str, Any],
+        expected_state_sha256: str,
+        predecessor_computer_state_sha256: str,
+        candidate_row: Any,
+        candidate_receipt: Mapping[str, Any],
+        field_candidate_id: str | None = None,
+        graph_ticket: Mapping[str, Any] | None = None,
+        native_graph_site_receipt: Mapping[str, Any] | None = None,
+        native_graph_site_receipt_sha256: str | None = None,
+        graph_receipt_wire_sha256: str | None = None,
+        native_graph_site_step: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Commit one private field candidate without repeating its work."""
+
+        candidate = (candidate_row, candidate_receipt)
+        if any(
+            value is not None
+            for value in (
+                field_candidate_id,
+                graph_ticket,
+                native_graph_site_receipt,
+                native_graph_site_receipt_sha256,
+                graph_receipt_wire_sha256,
+                native_graph_site_step,
+            )
+        ):
+            candidate = (
+                candidate_row,
+                candidate_receipt,
+                graph_ticket,
+                native_graph_site_receipt,
+                native_graph_site_receipt_sha256,
+                graph_receipt_wire_sha256,
+                field_candidate_id,
+                native_graph_site_step,
+            )
+        with self._lock:
+            return self.operate_computer(
+                operation_id,
+                computer_id=computer_id,
+                action=action,
+                arguments=arguments,
+                expected_state_sha256=expected_state_sha256,
+                _candidate=candidate,
+                _candidate_predecessor_sha256=predecessor_computer_state_sha256,
+            )
+    def replay_computer_candidate(
+        self,
+        operation_id: str,
+        *,
+        computer_id: str,
+        action: str,
+        arguments: Mapping[str, Any],
+        expected_state_sha256: str,
+        predecessor_computer_state_sha256: str,
+    ) -> Mapping[str, Any] | None:
+        """Read an exact committed candidate before spending another work lease."""
+        _identifier(operation_id, "operation_id")
+        _identifier(computer_id, "computer_id")
+        if action != "invoke" or not isinstance(arguments, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER", "candidate replay requires a bound invoke",
+            )
+        _digest(expected_state_sha256, "expected state")
+        _digest(predecessor_computer_state_sha256, "candidate predecessor")
+        with self._lock:
+            committed = self._committed_replay(operation_id, require_retained=True)
+            if committed is None:
+                return None
+            manifest, checkpoint = committed
+            transition = manifest.get("transition")
+            if not isinstance(transition, Mapping) or transition.get("kind") != "computer":
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT", "candidate identity belongs to another action",
+                )
+            request = transition.get("request")
+            if not isinstance(request, Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "committed candidate request is missing",
+                )
+            expected_fields = {
+                "kind": "computer",
+                "computer_id": computer_id,
+                "action": action,
+                "arguments": dict(arguments),
+                "expected_state_sha256": expected_state_sha256,
+            }
+            if any(
+                key not in request
+                or canonical_json_bytes(request[key]) != canonical_json_bytes(value)
+                for key, value in expected_fields.items()
+            ):
+                raise FieldIntelligenceError(
+                    "OPERATION_CONFLICT", "candidate identity has different request semantics",
+                )
+            candidate = request.get("candidate")
+            if (
+                not isinstance(candidate, Mapping)
+                or candidate.get("predecessor_computer_state_sha256")
+                != predecessor_computer_state_sha256
+                or not isinstance(request.get("evidence_binding"), Mapping)
+                or request["evidence_binding"].get("source_revision_ids")
+                != list(_regional_source_dependencies(dict(arguments)))
+                or transition.get("request_sha256") != sha256_value(request)
+            ):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "committed candidate binding is inconsistent",
+                )
+            result = transition.get("result")
+            if not isinstance(result, Mapping) or not isinstance(result.get("receipt"), Mapping):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "committed candidate receipt is missing",
+                )
+            receipt = result["receipt"]
+            retained = self.checkpoints._load_state(manifest)
+            row = next(
+                (item for item in retained.computers
+                 if item.computer_id == computer_id),
+                None,
+            )
+            if (
+                row is None
+                or row.state_sha256
+                != candidate.get("successor_computer_state_sha256")
+                or receipt.get("computer_id") != computer_id
+                or receipt.get("action") != action
+                or (
+                    row.state_sha256 != receipt["computer_logical_state_sha256"]
+                    if "computer_logical_state_sha256" in receipt
+                    else receipt.get("computer_state_sha256")
+                    != sha256_value(row.as_dict())
+                )
+            ):
+                raise FieldIntelligenceError(
+                    "CHECKPOINT_CORRUPT", "candidate result differs from retained field",
+                )
+            return {
+                "receipt": dict(receipt),
+                "checkpoint_receipt": checkpoint.as_dict(),
+            }
+
+    def _native_replay_chain_index(
+        self, current_sha: str, current: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Return the validated retained chain, walking only new manifests.
+
+        The index rebuilds from the history floor whenever the floor moved or
+        the head no longer descends from the indexed head.
+        """
+        floor = self.checkpoints._history_floor()
+        floor_key = (
+            floor["floor_manifest_sha256"], int(floor["floor_generation"]),
+        )
+        index = self._native_replay_chain
+        if index is not None and index["floor"] != floor_key:
+            index = None
+        if index is not None and index["head_sha"] == current_sha:
+            return index
+        visited, extends = self.checkpoints._validate_history_chain(
+            current, stop_at=None if index is None else index["head_sha"],
+        )
+        if not extends:
+            index = None
+        base = 0 if index is None else len(index["entries"])
+        known_operations = {} if index is None else index["by_operation"]
+        segment = visited[::-1]
+        operations: dict[str, tuple[str, Mapping[str, Any]]] = {}
+        cancellations: list[tuple[int, str, str, str]] = []
+        for offset, (digest, manifest) in enumerate(segment):
+            operation_id = _identifier(
+                manifest.get("operation_id"), "manifest operation",
+            )
+            if operation_id in known_operations or operation_id in operations:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "retained owner history contains duplicate operations",
+                )
+            operations[operation_id] = (digest, manifest)
+            transition = manifest.get("transition")
+            if (
+                not isinstance(transition, Mapping)
+                or transition.get("kind") != "native-graph-site-ticket-cancelled"
+            ):
+                continue
+            request = transition.get("request")
+            if (
+                not isinstance(request, Mapping)
+                or transition.get("request_sha256") != sha256_value(request)
+            ):
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "retained graph-site ticket cancellation is inconsistent",
+                )
+            try:
+                ticket_id = _identifier(
+                    request.get("ticket_id"), "cancelled graph-site ticket",
+                )
+                _digest(
+                    request.get("ticket_sha256"),
+                    "cancelled graph-site ticket digest",
+                )
+                reservation_operation_id = _identifier(
+                    request.get("reservation_operation_id"),
+                    "cancelled graph-site reservation",
+                )
+                native_operation_id = _identifier(
+                    request.get("operation_id"),
+                    "cancelled native graph-site operation",
+                )
+                _identifier(
+                    request.get("computer_id"), "cancelled graph-site computer",
+                )
+                _identifier(request.get("task_id"), "cancelled graph-site task")
+            except (FieldIntelligenceError, TypeError, ValueError) as exc:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "retained graph-site ticket cancellation identity is invalid",
+                ) from exc
+            cancellations.append(
+                (
+                    base + offset,
+                    ticket_id,
+                    reservation_operation_id,
+                    native_operation_id,
+                )
+            )
+        if index is None:
+            self._native_replay_tasks.clear()
+            index = {
+                "floor": floor_key,
+                "head_sha": current_sha,
+                "entries": [],
+                "by_sha": {},
+                "by_operation": {},
+                "cancellations": [],
+                "cancelled_ticket_ids": set(),
+                "cancelled_reservation_operation_ids": set(),
+                "cancelled_native_operation_ids": set(),
+            }
+            self._native_replay_chain = index
+        index["entries"].extend(segment)
+        index["by_sha"].update(segment)
+        index["by_operation"].update(operations)
+        index["cancellations"].extend(cancellations)
+        for _offset, ticket_id, reservation_operation_id, native_operation_id in (
+            cancellations
+        ):
+            index["cancelled_ticket_ids"].add(ticket_id)
+            index["cancelled_reservation_operation_ids"].add(
+                reservation_operation_id,
+            )
+            index["cancelled_native_operation_ids"].add(native_operation_id)
+        index["head_sha"] = current_sha
+        return index
+
+    def native_graph_site_replay_history(
+        self,
+        task_id: str,
+        source_sha256: str,
+        model_id: str,
+        tokenizer_id: str,
+    ) -> Mapping[str, Any]:
+        """Return the committed native token history for one retained task."""
+        task_id = _identifier(task_id, "native graph-site task")
+        source_sha256 = _digest(source_sha256, "native graph-site source")
+        model_id = _digest(model_id, "native graph-site model")
+        tokenizer_id = _digest(tokenizer_id, "native graph-site tokenizer")
+
+        def reject(message: str) -> None:
+            raise FieldIntelligenceError(
+                "NATIVE_GRAPH_SITE_UNAVAILABLE", message,
+            )
+
+        def tokens_from(value: Any, label: str) -> list[int]:
+            if (
+                isinstance(value, (str, bytes, bytearray, Mapping))
+                or not isinstance(value, Sequence)
+                or not value
+            ):
+                reject(f"{label} is not a nonempty token sequence")
+            tokens: list[int] = []
+            for token in value:
+                if (
+                    isinstance(token, bool)
+                    or not isinstance(token, int)
+                    or not 0 <= token <= 0x7FFFFFFF
+                ):
+                    reject(f"{label} contains an invalid token")
+                tokens.append(token)
+            return tokens
+
+        def sampler_from(value: Any, digest: Any) -> tuple[dict[str, Any], str]:
+            if not isinstance(value, Mapping) or set(value) != {
+                "mode", "temperature", "top_k", "draw",
+            }:
+                reject("native graph-site step sampler is incomplete")
+            try:
+                sampler = {
+                    "mode": value["mode"],
+                    "temperature": _finite(
+                        value["temperature"], "native sampler temperature",
+                    ),
+                    "top_k": _integer(value["top_k"], "native sampler top_k"),
+                    "draw": _finite(value["draw"], "native sampler draw"),
+                }
+                sampler_sha256 = _digest(digest, "native sampler")
+            except FieldIntelligenceError as exc:
+                raise FieldIntelligenceError(
+                    "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                    "native graph-site step sampler is invalid",
+                ) from exc
+            if (
+                sampler["mode"] not in {"greedy", "categorical"}
+                or sampler["temperature"] <= 0
+                or sampler["draw"] < 0
+                or sampler["draw"] >= 1
+                or sha256_value(sampler) != sampler_sha256
+            ):
+                reject("native graph-site step sampler digest or values disagree")
+            return sampler, sampler_sha256
+
+        def input_tokens_sha256(tokens: Sequence[int]) -> str:
+            digest = hashlib.sha256()
+            for token in tokens:
+                digest.update(token.to_bytes(4, "little", signed=True))
+            return digest.hexdigest()
+
+        with self._lock:
+            checkpoints = self.checkpoints
+            current_sha, current = checkpoints._load_current()
+            chain = self._native_replay_chain_index(current_sha, current)
+            loaded_states: dict[str, AtlasState] = {}
+
+            def state_at(
+                manifest_sha: str, manifest: Mapping[str, Any],
+            ) -> AtlasState:
+                # The store keeps its head state in memory; older states load
+                # once per call.
+                if manifest_sha == checkpoints.current_manifest_sha256:
+                    return checkpoints.state
+                state = loaded_states.get(manifest_sha)
+                if state is None:
+                    state = checkpoints._load_state(manifest)
+                    loaded_states[manifest_sha] = state
+                return state
+
+            current_state = state_at(current_sha, current)
+            retained_prompt: list[int] | None = None
+            retained_generated_tokens: list[int] | None = None
+            model_task_bindings: set[tuple[str, str]] = set()
+            for computer in current_state.computers:
+                task_value = computer.named_value("task")
+                tasks = task_value.get("tasks") if isinstance(task_value, Mapping) else None
+                if not isinstance(tasks, Mapping):
+                    continue
+                for raw_model_task_id, task_record in tasks.items():
+                    if not isinstance(raw_model_task_id, str) or not raw_model_task_id:
+                        continue
+                    model_state = (
+                        task_record.get("state")
+                        if isinstance(task_record, Mapping)
+                        else None
+                    )
+                    operations = (
+                        model_state.get("operations")
+                        if isinstance(model_state, Mapping)
+                        else None
+                    )
+                    if not isinstance(operations, Mapping):
+                        continue
+                    native_task_match = False
+                    for operation_key, operation in operations.items():
+                        operation_request = (
+                            operation.get("request")
+                            if isinstance(operation, Mapping)
+                            else None
+                        )
+                        if (
+                            isinstance(operation_request, Mapping)
+                            and operation_request.get("native_task_id") == task_id
+                        ):
+                            if operation_request.get("operation_id") != operation_key:
+                                reject("retained native operation request identity is inconsistent")
+                            native_task_match = True
+                    if not native_task_match:
+                        continue
+                    model_task_id = _identifier(
+                        raw_model_task_id, "retained model task",
+                    )
+                    model_task_bindings.add(
+                        (computer.computer_id, model_task_id),
+                    )
+                    model_request = model_state.get("request")
+                    prompt = (
+                        model_request.get("prompt_tokens")
+                        if isinstance(model_request, Mapping)
+                        else None
+                    )
+                    if prompt is not None:
+                        candidate_prompt = tokens_from(prompt, "owner prompt")
+                        if (
+                            retained_prompt is not None
+                            and retained_prompt != candidate_prompt
+                        ):
+                            reject("native graph-site task has conflicting retained prompts")
+                        retained_prompt = candidate_prompt
+                    generated = model_state.get("generated_tokens")
+                    if not isinstance(generated, list):
+                        reject("retained model task has no generated-token state")
+                    candidate_generated_tokens: list[int] = []
+                    for raw_token in generated:
+                        token = _integer(
+                            raw_token, "retained generated token", minimum=0,
+                        )
+                        if token > 0x7FFFFFFF:
+                            reject("retained generated token is outside native range")
+                        candidate_generated_tokens.append(token)
+                    if (
+                        retained_generated_tokens is not None
+                        and retained_generated_tokens != candidate_generated_tokens
+                    ):
+                        reject("native graph-site task has conflicting retained tokens")
+                    retained_generated_tokens = candidate_generated_tokens
+            if len(model_task_bindings) != 1:
+                reject("native task ID does not bind one retained model task")
+            model_computer_id, model_task_id = next(iter(model_task_bindings))
+
+            # Replayed rows are cached per task and extend with each new
+            # manifest; the chain index rebuild clears them.
+            task_key = (
+                task_id,
+                source_sha256,
+                model_id,
+                tokenizer_id,
+                model_computer_id,
+                model_task_id,
+            )
+            task_rows = self._native_replay_tasks.get(task_key)
+            if task_rows is None:
+                task_rows = {
+                    "processed": 0,
+                    "rows": [],
+                    "owner_operation_ids": set(),
+                    "native_operation_ids": set(),
+                    "ticket_ids": set(),
+                    "reservation_operation_ids": set(),
+                    "graph_operation_ids": set(),
+                }
+            start = task_rows["processed"]
+            for (
+                cancelled_at,
+                cancelled_ticket,
+                cancelled_reservation,
+                cancelled_operation,
+            ) in chain["cancellations"]:
+                if cancelled_at >= start and (
+                    cancelled_ticket in task_rows["ticket_ids"]
+                    or cancelled_reservation
+                    in task_rows["reservation_operation_ids"]
+                    or cancelled_operation in task_rows["graph_operation_ids"]
+                ):
+                    reject("cancelled graph-site ticket cannot be adopted")
+            manifests_by_operation = chain["by_operation"]
+            manifests_by_sha = chain["by_sha"]
+            cancelled_ticket_ids = chain["cancelled_ticket_ids"]
+            cancelled_reservation_operation_ids = chain[
+                "cancelled_reservation_operation_ids"
+            ]
+            cancelled_native_operation_ids = chain[
+                "cancelled_native_operation_ids"
+            ]
+
+            def replay_units():
+                # A token run publishes one owner transition for up to eight
+                # consecutive native steps; each step replays as its own row.
+                for unit_sha, unit_manifest in chain["entries"][start:]:
+                    steps = None
+                    try:
+                        steps = unit_manifest["transition"]["request"]["arguments"][
+                            "arguments"
+                        ]["arguments"]["result"]["steps"]
+                    except (KeyError, TypeError):
+                        pass
+                    if isinstance(steps, list) and steps:
+                        for index in range(len(steps)):
+                            yield unit_sha, unit_manifest, index
+                    else:
+                        yield unit_sha, unit_manifest, None
+
+            history_rows: list[tuple[int, dict[str, Any]]] = []
+            owner_operation_ids: set[str] = set()
+            native_operation_ids: set[str] = set()
+            ticket_ids: set[str] = set()
+            reservation_operation_ids: set[str] = set()
+            graph_operation_ids: set[str] = set()
+            for manifest_sha, manifest, run_index in replay_units():
+                transition = manifest.get("transition")
+                if (
+                    not isinstance(transition, Mapping)
+                    or transition.get("kind") != "computer"
+                ):
+                    continue
+                request = transition.get("request")
+                if (
+                    not isinstance(request, Mapping)
+                    or transition.get("request_sha256") != sha256_value(request)
+                ):
+                    reject("committed computer transition request is inconsistent")
+                if (
+                    request.get("kind") != "computer"
+                    or request.get("action") != "invoke"
+                ):
+                    continue
+                # Program invokes publish ``{"arguments": invocation, "steps": n}``.
+                invoke_arguments = request.get("arguments")
+                invocation = (
+                    invoke_arguments.get("arguments")
+                    if isinstance(invoke_arguments, Mapping)
+                    else None
+                )
+                if (
+                    not isinstance(invocation, Mapping)
+                    or invocation.get("operation") != "advance-task"
+                    or invocation.get("task_id") != model_task_id
+                    or request.get("computer_id") != model_computer_id
+                ):
+                    continue
+                native_arguments = invocation.get("arguments")
+                if (
+                    not isinstance(native_arguments, Mapping)
+                    or native_arguments.get("operation") != "resume-native-model"
+                ):
+                    continue
+                native_result = native_arguments.get("result")
+                if not isinstance(native_result, Mapping):
+                    reject("committed native model transition has no raw result")
+                if run_index is not None:
+                    run_steps = native_result.get("steps")
+                    if (
+                        set(native_result) != {"steps"}
+                        or request.get("native_graph_site") is not None
+                        or not isinstance(run_steps, list)
+                        or not isinstance(run_steps[run_index], Mapping)
+                    ):
+                        reject("committed native token run is malformed")
+                    native_result = run_steps[run_index]
+
+                owner_operation_id = _identifier(
+                    manifest.get("operation_id"), "native owner operation",
+                )
+                prefix = "resident-model-resume:"
+                if not owner_operation_id.startswith(prefix):
+                    reject("native owner operation has an invalid identity prefix")
+                native_operation_id = _identifier(
+                    owner_operation_id[len(prefix):], "native operation",
+                )
+                if native_arguments.get("operation_id") != native_operation_id:
+                    reject("native operation ID disagrees with owner operation")
+                operation_state = state_at(manifest_sha, manifest)
+                operation_computer = next(
+                    (
+                        item for item in operation_state.computers
+                        if item.computer_id == model_computer_id
+                    ),
+                    None,
+                )
+                operation_task_value = (
+                    operation_computer.named_value("task")
+                    if operation_computer is not None
+                    else None
+                )
+                operation_tasks = (
+                    operation_task_value.get("tasks")
+                    if isinstance(operation_task_value, Mapping)
+                    else None
+                )
+                operation_task = (
+                    operation_tasks.get(model_task_id)
+                    if isinstance(operation_tasks, Mapping)
+                    else None
+                )
+                operation_model_state = (
+                    operation_task.get("state")
+                    if isinstance(operation_task, Mapping)
+                    else None
+                )
+                operation_records = (
+                    operation_model_state.get("operations")
+                    if isinstance(operation_model_state, Mapping)
+                    else None
+                )
+                operation_record = (
+                    operation_records.get(native_operation_id)
+                    if isinstance(operation_records, Mapping)
+                    else None
+                )
+                if run_index:
+                    run_request = (
+                        operation_record.get("request")
+                        if isinstance(operation_record, Mapping)
+                        else None
+                    )
+                    run_plan = (
+                        run_request.get("run")
+                        if isinstance(run_request, Mapping)
+                        else None
+                    )
+                    run_operation_ids = (
+                        run_plan.get("operation_ids")
+                        if isinstance(run_plan, Mapping)
+                        else None
+                    )
+                    if (
+                        not isinstance(run_operation_ids, list)
+                        or run_index >= len(run_operation_ids)
+                        or run_operation_ids[0] != native_operation_id
+                    ):
+                        reject("committed native token run has no retained plan")
+                    native_operation_id = _identifier(
+                        run_operation_ids[run_index], "native run operation",
+                    )
+                    operation_record = operation_records.get(native_operation_id)
+                native_operation_request = (
+                    operation_record.get("request")
+                    if isinstance(operation_record, Mapping)
+                    else None
+                )
+                if (
+                    not isinstance(native_operation_request, Mapping)
+                    or native_operation_request.get("operation_id")
+                    != native_operation_id
+                    or native_operation_request.get("native_task_id") != task_id
+                ):
+                    reject("native operation request does not bind the API native task")
+                if (
+                    (
+                        not run_index
+                        and (
+                            owner_operation_id in owner_operation_ids
+                            or owner_operation_id in task_rows["owner_operation_ids"]
+                        )
+                    )
+                    or native_operation_id in native_operation_ids
+                    or native_operation_id in task_rows["native_operation_ids"]
+                ):
+                    reject("native replay history contains duplicate operations")
+                owner_operation_ids.add(owner_operation_id)
+                native_operation_ids.add(native_operation_id)
+
+                graph_bundle = request.get("native_graph_site")
+                transition_result = transition.get("result")
+                if not isinstance(transition_result, Mapping):
+                    reject("committed native transition result is missing")
+                if graph_bundle is None:
+                    graph_successor_sha256 = None
+                    field_successor_bundle_sha256 = None
+                    if "native_graph_site_step" in transition_result:
+                        reject("committed graph-site step has no durable ticket bundle")
+                    step_source: Mapping[str, Any] = native_result
+                    graph_ticket = None
+                    graph_receipt = None
+                    graph_receipt_sha256 = None
+                    graph_receipt_wire_sha256 = None
+                else:
+                    if not isinstance(graph_bundle, Mapping):
+                        reject("committed graph-site ticket bundle is malformed")
+                    graph_successor_sha256 = _digest(
+                        graph_bundle.get("graph_successor_sha256"),
+                        "native graph-site candidate successor",
+                    )
+                    field_successor_bundle_sha256 = _digest(
+                        graph_bundle.get("field_successor_sha256"),
+                        "native graph-site field successor",
+                    )
+                    raw_ticket = graph_bundle.get("ticket")
+                    raw_receipt = graph_bundle.get("receipt")
+                    graph_receipt_sha256 = graph_bundle.get(
+                        "native_graph_site_receipt_sha256",
+                    )
+                    graph_receipt_wire_sha256 = _digest(
+                        graph_bundle.get("graph_receipt_wire_sha256"),
+                        "native graph-site wire receipt",
+                    )
+                    raw_step = graph_bundle.get("step")
+                    if (
+                        not isinstance(raw_ticket, Mapping)
+                        or not isinstance(raw_receipt, Mapping)
+                        or not isinstance(raw_step, Mapping)
+                    ):
+                        reject("committed graph-site ticket bundle is incomplete")
+                    graph_ticket = self._validate_native_graph_site_ticket(
+                        raw_ticket,
+                    )
+                    if (
+                        graph_ticket["ticket_id"] in cancelled_ticket_ids
+                        or graph_ticket["reservation_operation_id"]
+                        in cancelled_reservation_operation_ids
+                        or graph_ticket["operation_id"]
+                        in cancelled_native_operation_ids
+                    ):
+                        reject("cancelled graph-site ticket cannot be adopted")
+                    ticket_ids.add(graph_ticket["ticket_id"])
+                    reservation_operation_ids.add(
+                        graph_ticket["reservation_operation_id"],
+                    )
+                    graph_operation_ids.add(graph_ticket["operation_id"])
+                    graph_receipt = self._validate_native_graph_site_receipt(
+                        graph_ticket,
+                        raw_receipt,
+                        graph_receipt_sha256,
+                        graph_receipt_wire_sha256=graph_receipt_wire_sha256,
+                    )
+                    step_graph_successor_values = [
+                        value
+                        for value in (
+                            raw_step.get("graph_successor_sha256"),
+                            raw_step.get("candidate_successor_sha256"),
+                        )
+                        if value is not None
+                    ]
+                    if not step_graph_successor_values:
+                        reject("native graph-site step has no graph successor digest")
+                    if any(
+                        _digest(value, "native graph-site step successor")
+                        != graph_successor_sha256
+                        for value in step_graph_successor_values
+                    ):
+                        reject("native graph-site step successor is inconsistent")
+                    if (
+                        graph_successor_sha256
+                        != graph_receipt["candidate_successor_sha256"]
+                        or field_successor_bundle_sha256
+                        != raw_step.get("field_successor_sha256")
+                    ):
+                        reject("committed graph-site successor bundle is inconsistent")
+                    from cassi_field_runtime_native import (
+                        NativeFieldRuntimeError,
+                        _graph_successor_state_sha256,
+                    )
+                    try:
+                        measured_graph_successor_sha256 = (
+                            _graph_successor_state_sha256(
+                                graph_receipt,
+                                candidate=graph_ticket["native_candidate"],
+                                preflight=graph_ticket["preflight"],
+                            )
+                        )
+                    except (
+                        FieldIntelligenceError,
+                        NativeFieldRuntimeError,
+                        TypeError,
+                        ValueError,
+                    ) as exc:
+                        reject(
+                            "native graph-site successor descriptors are invalid: "
+                            f"{exc}"
+                        )
+                    if measured_graph_successor_sha256 != graph_successor_sha256:
+                        reject(
+                            "native graph-site successor descriptors differ from "
+                            "owner checkpoint"
+                        )
+                    field_candidate_id = graph_bundle.get("field_candidate_id")
+                    if (
+                        not isinstance(field_candidate_id, str)
+                        or not field_candidate_id
+                        or graph_receipt.get("field_candidate_id")
+                        != field_candidate_id
+                        or raw_step.get("field_candidate_id")
+                        != field_candidate_id
+                    ):
+                        reject("graph-site field candidate identity is inconsistent")
+                    if (
+                        not isinstance(transition_result.get("native_graph_site_step"), Mapping)
+                        or canonical_json_bytes(
+                            transition_result["native_graph_site_step"]
+                        ) != canonical_json_bytes(raw_step)
+                        or transition_result.get("accepted_token_id")
+                        != raw_step.get("accepted_token_id")
+                    ):
+                        reject("committed graph-site step echo is inconsistent")
+                    step_source = raw_step
+
+                def step_value(name: str) -> Any:
+                    return (
+                        step_source[name]
+                        if name in step_source
+                        else native_result.get(name)
+                    )
+
+                step_owner_operation_id = step_value("owner_operation_id")
+                if graph_ticket is not None:
+                    if step_owner_operation_id != owner_operation_id:
+                        reject("native graph step owner operation ID is inconsistent")
+                elif (
+                    step_owner_operation_id is not None
+                    and step_owner_operation_id != owner_operation_id
+                ):
+                    reject("native step owner operation ID is inconsistent")
+                step_native_operation_id = step_value("native_operation_id")
+                if step_native_operation_id != native_operation_id:
+                    reject("native step operation ID is inconsistent")
+                step_task_id = step_value("task_id")
+                if step_task_id is not None and step_task_id != task_id:
+                    reject("native step task identity is inconsistent")
+
+                row_source_sha256 = step_value("source_sha256")
+                row_model_id = step_value("model_id")
+                row_tokenizer_id = step_value("tokenizer_id")
+                if graph_ticket is not None:
+                    if row_source_sha256 is None:
+                        row_source_sha256 = graph_ticket["source_sha256"]
+                    if row_model_id is None:
+                        row_model_id = graph_ticket["model_id"]
+                    if row_tokenizer_id is None:
+                        row_tokenizer_id = graph_ticket["tokenizer_id"]
+                model_embedding_width: int | None = None
+                model_layer_count: int | None = None
+                if graph_ticket is not None:
+                    graph_preflight = graph_ticket.get("preflight")
+                    graph_site = graph_ticket.get("selected_site")
+                    if (
+                        not isinstance(graph_preflight, Mapping)
+                        or not isinstance(graph_site, Mapping)
+                    ):
+                        reject("native graph-site ticket has no model geometry")
+                    try:
+                        expected_embedding_width = _integer(
+                            graph_preflight.get("model_embedding_width"),
+                            "native graph model embedding width",
+                            minimum=1,
+                        )
+                        expected_layer_count = _integer(
+                            graph_preflight.get("model_layer_count"),
+                            "native graph model layer count",
+                            minimum=1,
+                        )
+                        model_embedding_width = _integer(
+                            step_value("model_embedding_width"),
+                            "native graph measured embedding width",
+                            minimum=1,
+                        )
+                        model_layer_count = _integer(
+                            step_value("model_layer_count"),
+                            "native graph measured layer count",
+                            minimum=1,
+                        )
+                        graph_layer = _integer(
+                            graph_site.get("layer"),
+                            "native graph selected layer",
+                            minimum=0,
+                        )
+                    except (FieldIntelligenceError, TypeError, ValueError) as exc:
+                        reject(f"native graph-site model geometry is invalid: {exc}")
+                    if (
+                        model_embedding_width != expected_embedding_width
+                        or model_layer_count != expected_layer_count
+                        or graph_layer >= model_layer_count
+                        or graph_receipt is None
+                        or graph_receipt.get("layer") != graph_layer
+                    ):
+                        reject("native graph-site measured model geometry is inconsistent")
+                # Ordinary steps carry no model/tokenizer echo; their source
+                # digest binds the weights, as in the native rebuild.
+                if (
+                    row_source_sha256 != source_sha256
+                    or (
+                        (graph_ticket is not None or row_model_id is not None)
+                        and row_model_id != model_id
+                    )
+                    or (
+                        (graph_ticket is not None or row_tokenizer_id is not None)
+                        and row_tokenizer_id != tokenizer_id
+                    )
+                ):
+                    reject("native step source, model, or tokenizer identity disagrees")
+
+                sequence_id = step_value("sequence_id")
+                seq_id = step_value("seq_id")
+                position = step_value("position")
+                if (
+                    not isinstance(sequence_id, str)
+                    or not sequence_id
+                    or (
+                        graph_ticket is not None
+                        and sequence_id != graph_ticket["sequence_id"]
+                    )
+                    or isinstance(seq_id, bool)
+                    or not isinstance(seq_id, int)
+                    or seq_id < 0
+                    or isinstance(position, bool)
+                    or not isinstance(position, int)
+                    or position < 0
+                ):
+                    reject("native step sequence position is invalid")
+                try:
+                    input_tokens = tokens_from(
+                        step_value("input_tokens"), "native input history",
+                    )
+                    sampler, sampler_sha256 = sampler_from(
+                        step_value("sampler"),
+                        step_value("sampler_sha256"),
+                    )
+                    accepted_token_id = _integer(
+                        step_value("accepted_token_id"),
+                        "native accepted token",
+                    )
+                    token_count = _integer(
+                        step_value("token_count"),
+                        "native token count",
+                        minimum=1,
+                    )
+                    replay_sha256 = _digest(
+                        step_value("replay_sha256"), "native replay",
+                    )
+                    stage_trace_sha256 = step_value("stage_trace_sha256")
+                    stage_trace = step_value("stage_trace")
+                    if isinstance(stage_trace, Mapping):
+                        trace_digest = stage_trace.get("sha256")
+                        if (
+                            stage_trace_sha256 is not None
+                            and stage_trace_sha256 != trace_digest
+                        ):
+                            reject("native stage trace digest is inconsistent")
+                        stage_trace_sha256 = trace_digest
+                    stage_trace_sha256 = _digest(
+                        stage_trace_sha256, "native stage trace",
+                    )
+                except FieldIntelligenceError as exc:
+                    raise FieldIntelligenceError(
+                        "NATIVE_GRAPH_SITE_UNAVAILABLE",
+                        "native replay step contains invalid token evidence",
+                    ) from exc
+                native_request_tokens = tokens_from(
+                    native_operation_request.get("tokens"),
+                    "retained native operation input",
+                )
+                if native_request_tokens != input_tokens:
+                    reject("native replay input differs from retained operation request")
+                native_request_sampler = native_operation_request.get("sampler")
+                if (
+                    not isinstance(native_request_sampler, Mapping)
+                    or canonical_json_bytes(dict(native_request_sampler))
+                    != canonical_json_bytes(sampler)
+                ):
+                    reject("native replay sampler differs from retained operation request")
+                if native_operation_request.get("source_sha256") != source_sha256:
+                    reject("native replay source differs from retained operation request")
+                if (
+                    accepted_token_id < 0
+                    or accepted_token_id > 0x7FFFFFFF
+                    or token_count != len(input_tokens) + 1
+                    or position != len(input_tokens)
+                ):
+                    reject("native replay step counters or position are inconsistent")
+                for token_key in (
+                    "token",
+                    "accepted_token_id",
+                    "selected_token",
+                    "selected_token_id",
+                ):
+                    raw_token = native_result.get(token_key)
+                    if (
+                        raw_token is not None
+                        and _integer(
+                            raw_token,
+                            f"native result {token_key}",
+                            minimum=0,
+                        ) != accepted_token_id
+                    ):
+                        reject("selected token differs from the committed native result")
+                if graph_ticket is not None:
+                    committed_values = {
+                        "native_operation_id": native_operation_id,
+                        "task_id": task_id,
+                        "source_sha256": source_sha256,
+                        "model_id": model_id,
+                        "tokenizer_id": tokenizer_id,
+                        "sequence_id": sequence_id,
+                        "seq_id": seq_id,
+                        "position": position,
+                        "sampler_sha256": sampler_sha256,
+                        "replay_sha256": replay_sha256,
+                        "token_count": token_count,
+                        "stage_trace_sha256": stage_trace_sha256,
+                        "native_predecessor_sha256":
+                            graph_ticket["native_predecessor_sha256"],
+                        "native_preflight_sha256":
+                            graph_ticket["native_preflight_sha256"],
+                        "native_successor_sha256":
+                            graph_receipt["native_successor_sha256"],
+                        "graph_successor_sha256": graph_successor_sha256,
+                        "candidate_successor_sha256": graph_successor_sha256,
+                        "field_successor_sha256":
+                            field_successor_bundle_sha256,
+                    }
+                    for key, expected_value in committed_values.items():
+                        actual_value = native_result.get(key)
+                        if (
+                            actual_value is not None
+                            and (
+                                type(actual_value) is not type(expected_value)
+                                or actual_value != expected_value
+                            )
+                        ):
+                            reject(
+                                f"graph-site {key} differs from the committed native result"
+                            )
+                    raw_input_tokens = native_result.get("input_tokens")
+                    if (
+                        raw_input_tokens is not None
+                        and tokens_from(
+                            raw_input_tokens, "native result input history",
+                        ) != input_tokens
+                    ):
+                        reject("graph-site input tokens differ from native result")
+                    raw_sampler = native_result.get("sampler")
+                    if (
+                        raw_sampler is not None
+                        and (
+                            not isinstance(raw_sampler, Mapping)
+                            or canonical_json_bytes(dict(raw_sampler))
+                            != canonical_json_bytes(sampler)
+                        )
+                    ):
+                        reject("graph-site sampler differs from native result")
+                    raw_trace = native_result.get("stage_trace")
+                    if (
+                        isinstance(raw_trace, Mapping)
+                        and raw_trace.get("sha256") is not None
+                        and raw_trace.get("sha256") != stage_trace_sha256
+                    ):
+                        reject("graph-site stage trace differs from native result")
+                    raw_graph_site = native_result.get("graph_site")
+                    if (
+                        isinstance(raw_graph_site, Mapping)
+                        and raw_graph_site.get("sequence_id") is not None
+                        and raw_graph_site.get("sequence_id") != sequence_id
+                    ):
+                        reject("graph-site sequence identity differs from native result")
+                generation = _integer(
+                    manifest.get("generation"),
+                    "native owner manifest generation",
+                    minimum=0,
+                )
+
+                normalized_step: dict[str, Any] = {
+                    "owner_operation_id": owner_operation_id,
+                    "native_operation_id": native_operation_id,
+                    "task_id": task_id,
+                    "source_sha256": source_sha256,
+                    "generation": generation,
+                    "sequence_id": sequence_id,
+                    "seq_id": seq_id,
+                    "position": position,
+                    "input_tokens": input_tokens,
+                    "input_tokens_sha256": input_tokens_sha256(input_tokens),
+                    "sampler": sampler,
+                    "sampler_sha256": sampler_sha256,
+                    "accepted_token_id": accepted_token_id,
+                    "selected_token": accepted_token_id,
+                    "replay_sha256": replay_sha256,
+                    "token_count": token_count,
+                    "stage_trace_sha256": stage_trace_sha256,
+                }
+                # A fused group row replays as a singleton step with the same
+                # token and replay digest; its stage trace measured the batch.
+                execution = step_value("execution")
+                if execution is not None:
+                    if graph_ticket is not None or execution != "native-group":
+                        reject("native step execution provenance is invalid")
+                    normalized_step["execution"] = execution
+
+                if graph_ticket is not None and graph_receipt is not None:
+                    if (
+                        graph_ticket["operation_id"] != native_operation_id
+                        or graph_ticket["task_id"] != task_id
+                        or graph_ticket.get("model_task_id") != model_task_id
+                        or graph_ticket["sequence_id"] != sequence_id
+                        or graph_ticket["seq_id"] != seq_id
+                        or graph_ticket["position"] != position
+                        or graph_ticket["source_sha256"] != source_sha256
+                        or graph_ticket["model_id"] != model_id
+                        or graph_ticket["tokenizer_id"] != tokenizer_id
+                        or graph_ticket["sampler"] != sampler
+                        or graph_ticket["sampler_sha256"] != sampler_sha256
+                        or graph_receipt["native_operation_id"] != native_operation_id
+                        or graph_receipt["task_id"] != task_id
+                        or graph_receipt["sequence_id"] != sequence_id
+                        or graph_receipt["seq_id"] != seq_id
+                        or graph_receipt["position"] != position
+                        or graph_receipt["source_sha256"] != source_sha256
+                        or graph_receipt["model_sha256"] != model_id
+                        or graph_receipt["tokenizer_sha256"] != tokenizer_id
+                        or graph_receipt["selected_token_id"] != accepted_token_id
+                        or graph_receipt["replay_sha256"] != replay_sha256
+                        or graph_receipt["token_count"] != token_count
+                        or graph_receipt["sampler_sha256"] != sampler_sha256
+                        or graph_receipt["input_token_count"] != len(input_tokens)
+                        or graph_receipt["input_tokens_sha256"]
+                        != input_tokens_sha256(input_tokens)
+                    ):
+                        reject("native graph-site receipt disagrees with replay step")
+                    for receipt_sha in (
+                        native_result.get("native_graph_site_receipt_wire_sha256"),
+                        step_source.get("native_graph_site_receipt_wire_sha256"),
+                    ):
+                        if receipt_sha is not None and receipt_sha != graph_receipt_wire_sha256:
+                            reject("native graph-site wire receipt digest is inconsistent")
+                    if step_source.get("graph_receipt_wire_sha256") != graph_receipt_wire_sha256:
+                        reject("graph-site step wire receipt digest is inconsistent")
+                    json_receipt_sha256 = sha256_value(graph_receipt)
+                    if (
+                        graph_receipt_sha256 != json_receipt_sha256
+                        or (
+                            native_result.get("native_graph_site_receipt_sha256")
+                            is not None
+                            and native_result["native_graph_site_receipt_sha256"]
+                            != json_receipt_sha256
+                        )
+                        or (
+                            step_source.get("native_graph_site_receipt_sha256")
+                            is not None
+                            and step_source["native_graph_site_receipt_sha256"]
+                            != json_receipt_sha256
+                        )
+                    ):
+                        reject("native graph-site JSON receipt digest is inconsistent")
+
+                    reservation_operation_id = graph_ticket[
+                        "reservation_operation_id"
+                    ]
+                    reservation = manifests_by_operation.get(
+                        reservation_operation_id,
+                    )
+                    if reservation is None:
+                        reject("graph-site ticket reservation is not retained")
+                    reservation_sha, reservation_manifest = reservation
+                    reservation_transition = reservation_manifest.get("transition")
+                    reservation_request = (
+                        reservation_transition.get("request")
+                        if isinstance(reservation_transition, Mapping)
+                        else None
+                    )
+                    reservation_parent_sha = reservation_manifest.get(
+                        "parent_manifest_sha256",
+                    )
+                    reservation_parent = manifests_by_sha.get(
+                        reservation_parent_sha,
+                    )
+                    publication_parent_sha = manifest.get(
+                        "parent_manifest_sha256",
+                    )
+                    if (
+                        not isinstance(reservation_transition, Mapping)
+                        or reservation_transition.get("kind")
+                        != "native-graph-site-ticket-reserved"
+                        or not isinstance(reservation_request, Mapping)
+                        or reservation_request.get("ticket") != graph_ticket
+                        or reservation_request.get("operation_id")
+                        != native_operation_id
+                        or reservation_request.get("task_id") != task_id
+                        or reservation_request.get("computer_id")
+                        != request.get("computer_id")
+                        or reservation_parent_sha
+                        != graph_ticket["owner_manifest_sha256"]
+                        or publication_parent_sha != reservation_sha
+                        or reservation_parent is None
+                        or reservation_parent["generation"]
+                        != graph_ticket["owner_generation"]
+                        or reservation_parent["state_sha256"]
+                        != graph_ticket["owner_state_sha256"]
+                    ):
+                        reject("graph-site ticket owner reservation lineage is inconsistent")
+
+                    candidate = request.get("candidate")
+                    if not isinstance(candidate, Mapping):
+                        reject("graph-site field candidate is missing")
+                    field_predecessor_sha256 = _digest(
+                        candidate.get("predecessor_computer_state_sha256"),
+                        "graph-site field predecessor",
+                    )
+                    field_successor_sha256 = _digest(
+                        candidate.get("successor_computer_state_sha256"),
+                        "graph-site field successor",
+                    )
+                    if (
+                        field_predecessor_sha256
+                        != graph_ticket["field_state_sha256"]
+                        or field_predecessor_sha256
+                        != graph_ticket["graph_predecessor_sha256"]
+                        or step_source.get("field_predecessor_sha256")
+                        != field_predecessor_sha256
+                        or step_source.get("field_successor_sha256")
+                        != field_successor_sha256
+                        or field_successor_bundle_sha256 != field_successor_sha256
+                        or step_source.get("native_predecessor_sha256")
+                        != graph_ticket["native_predecessor_sha256"]
+                        or step_source.get("native_preflight_sha256")
+                        != graph_ticket["native_preflight_sha256"]
+                        or step_source.get("native_successor_sha256")
+                        != graph_receipt["native_successor_sha256"]
+                        or step_source.get("ticket_id")
+                        != graph_ticket["ticket_id"]
+                        or step_source.get("ticket_sha256")
+                        != graph_ticket["ticket_sha256"]
+                    ):
+                        reject("graph-site step checkpoint anchors are inconsistent")
+                    retained = state_at(manifest_sha, manifest)
+                    computer_row = next(
+                        (
+                            item for item in retained.computers
+                            if item.computer_id == request.get("computer_id")
+                        ),
+                        None,
+                    )
+                    owner_receipt = transition_result.get("receipt")
+                    if (
+                        computer_row is None
+                        or computer_row.state_sha256 != field_successor_sha256
+                        or not isinstance(owner_receipt, Mapping)
+                        or owner_receipt.get("computer_id")
+                        != request.get("computer_id")
+                        or owner_receipt.get("action") != "invoke"
+                        or (
+                            computer_row.state_sha256
+                            != owner_receipt["computer_logical_state_sha256"]
+                            if "computer_logical_state_sha256" in owner_receipt
+                            else owner_receipt.get("computer_state_sha256")
+                            != sha256_value(computer_row.as_dict())
+                        )
+                    ):
+                        reject("graph-site field successor differs from committed owner state")
+                    normalized_step.update(
+                        {
+                            "graph_site_ticket": graph_ticket,
+                            "graph_site_receipt": graph_receipt,
+                            "graph_receipt_wire_sha256": graph_receipt_wire_sha256,
+                            "model_embedding_width": model_embedding_width,
+                            "model_layer_count": model_layer_count,
+                            "native_graph_site_receipt_wire_sha256":
+                                graph_receipt_wire_sha256,
+                            "native_graph_site_receipt_sha256":
+                                json_receipt_sha256,
+                            "field_candidate_id": field_candidate_id,
+                            "ticket_id": graph_ticket["ticket_id"],
+                            "ticket_sha256": graph_ticket["ticket_sha256"],
+                            "native_predecessor_sha256":
+                                graph_ticket["native_predecessor_sha256"],
+                            "native_successor_sha256":
+                                graph_receipt["native_successor_sha256"],
+                            "native_preflight_sha256":
+                                graph_ticket["native_preflight_sha256"],
+                            "graph_successor_sha256": graph_successor_sha256,
+                            "field_predecessor_sha256":
+                                field_predecessor_sha256,
+                            "field_successor_sha256":
+                                field_successor_sha256,
+                        }
+                    )
+
+                history_rows.append((generation, normalized_step))
+
+            rows = task_rows["rows"]
+            rows.extend(history_rows)
+            rows.sort(key=lambda item: item[0])
+            task_rows["owner_operation_ids"] |= owner_operation_ids
+            task_rows["native_operation_ids"] |= native_operation_ids
+            task_rows["ticket_ids"] |= ticket_ids
+            task_rows["reservation_operation_ids"] |= reservation_operation_ids
+            task_rows["graph_operation_ids"] |= graph_operation_ids
+            task_rows["processed"] = len(chain["entries"])
+            self._native_replay_tasks.pop(task_key, None)
+            self._native_replay_tasks[task_key] = task_rows
+            while len(self._native_replay_tasks) > 64:
+                self._native_replay_tasks.pop(
+                    next(iter(self._native_replay_tasks)),
+                )
+            # Cached rows stay unstamped; each reply stamps its own copies.
+            accepted_steps = [dict(row) for _generation, row in rows]
+            if accepted_steps:
+                prompt_tokens = accepted_steps[0]["input_tokens"]
+                if retained_prompt is not None and retained_prompt != prompt_tokens:
+                    reject("native replay history does not begin at the owner prompt")
+            elif retained_prompt is not None:
+                prompt_tokens = retained_prompt
+            else:
+                reject("native graph-site task has no retained prompt history")
+
+            previous_input: list[int] | None = None
+            previous_token: int | None = None
+            previous_position: int | None = None
+            seen_positions: set[tuple[str, int]] = set()
+            for step in accepted_steps:
+                position = step["position"]
+                identity = (step["sequence_id"], position)
+                if identity in seen_positions:
+                    reject("native replay history contains duplicate positions")
+                seen_positions.add(identity)
+                if (
+                    previous_input is None
+                    and position != len(prompt_tokens)
+                ):
+                    reject("native replay history begins with a position gap")
+                if previous_input is not None and (
+                    step["input_tokens"] != previous_input + [previous_token]
+                    or position != previous_position + 1
+                ):
+                    reject("native replay history contains a token or position gap")
+                previous_input = step["input_tokens"]
+                previous_token = step["accepted_token_id"]
+                previous_position = position
+            if retained_generated_tokens is None:
+                reject("retained model task has no generated-token history")
+            if [
+                step["accepted_token_id"] for step in accepted_steps
+            ] != retained_generated_tokens:
+                reject("native replay history differs from retained generated tokens")
+            for sequence_index, step in enumerate(accepted_steps):
+                step["sequence_index"] = sequence_index
+                step["history_complete"] = True
+
+            return {
+                "schema": "cassifi.native-graph-site-replay-history.v1",
+                "task_id": task_id,
+                "model_task_id": model_task_id,
+                "history_complete": True,
+                "source_sha256": source_sha256,
+                "model_id": model_id,
+                "tokenizer_id": tokenizer_id,
+                "prompt_tokens": prompt_tokens,
+                "accepted_steps": accepted_steps,
+            }
 
     def admit_computer_input(
         self,
@@ -14591,6 +24659,895 @@ class FieldIntelligenceOwner:
                 }
         return None
 
+    def _automatic_research_spectral_feedback(
+        self, computer_id: str, action: str, arguments: Mapping[str, Any]
+    ) -> Mapping[str, Any] | None:
+        """Close an assessed residency choice over its exact spectral exchange."""
+
+        if computer_id != "research" or action not in {"invoke", "invoke-settled"}:
+            return None
+        invocation = arguments.get("arguments")
+        if not isinstance(invocation, Mapping) or invocation.get("operation") != "register":
+            return None
+        record_id = invocation.get("record_id")
+        kind = invocation.get("kind")
+        payload = invocation.get("payload")
+        if (
+            kind != "Assessment"
+            or not isinstance(record_id, str)
+            or not record_id.startswith("research:outcome:")
+            or not isinstance(payload, Mapping)
+        ):
+            return None
+        source_operation_id = payload.get("work_operation_id")
+        if (
+            not isinstance(source_operation_id, str)
+            or record_id != f"research:outcome:{source_operation_id}"
+        ):
+            return None
+
+        research = next(
+            (row for row in self.state.computers if row.computer_id == "research"),
+            None,
+        )
+        if research is None:
+            return None
+        task = research._value("task")
+        if not isinstance(task, Mapping):
+            return None
+        current = task.get("current")
+        records = task.get("records")
+        if not isinstance(current, Mapping) or not isinstance(records, Mapping):
+            return None
+        assessment_history = records.get(record_id)
+        assessment_ids = current.get("Assessment")
+        if (
+            not isinstance(assessment_history, (list, tuple))
+            or not assessment_history
+            or not isinstance(assessment_ids, (Mapping, list, tuple))
+            or record_id not in assessment_ids
+        ):
+            return None
+        assessment = assessment_history[-1]
+        assessment_payload = (
+            assessment.get("payload") if isinstance(assessment, Mapping) else None
+        )
+        if (
+            not isinstance(assessment, Mapping)
+            or assessment.get("kind") != "Assessment"
+            or assessment.get("status") != "active"
+            or assessment.get("epistemic_kind") != "assessed"
+            or not isinstance(assessment_payload, Mapping)
+            or assessment_payload.get("work_operation_id") != source_operation_id
+        ):
+            return None
+        raw_assessment_ref = (
+            assessment_ids.get(record_id)
+            if isinstance(assessment_ids, Mapping) else None
+        )
+        try:
+            assessment_ref = SemanticRef.from_dict(raw_assessment_ref)
+        except (TypeError, ValueError):
+            return None
+        if (
+            isinstance(assessment.get("content_version"), bool)
+            or not isinstance(assessment.get("content_version"), int)
+            or assessment_ref.id != record_id
+            or assessment_ref.kind != "Assessment"
+            or assessment_ref.content_version != assessment.get("content_version")
+        ):
+            return None
+
+        value_ids = current.get("Value")
+        if not isinstance(value_ids, Mapping):
+            return None
+        cursor_ids = [
+            identity for identity in value_ids
+            if isinstance(identity, str) and identity.startswith("research:cursor:")
+        ]
+        if not cursor_ids:
+            return None
+        cursor_history = records.get(max(cursor_ids))
+        if not isinstance(cursor_history, (list, tuple)) or not cursor_history:
+            return None
+        cursor = cursor_history[-1].get("payload")
+        if (
+            not isinstance(cursor, Mapping)
+            or cursor.get("phase") != "admit"
+            or isinstance(cursor.get("sequence"), bool)
+            or not isinstance(cursor.get("sequence"), int)
+            or cursor["sequence"] < 2
+            or isinstance(cursor.get("round"), bool)
+            or not isinstance(cursor.get("round"), int)
+        ):
+            return None
+        selection = cursor.get("selected")
+        question_id = assessment_payload.get("question_id")
+        if (
+            not isinstance(selection, Mapping)
+            or not isinstance(selection.get("id"), str)
+            or selection["id"] != question_id
+            or source_operation_id
+            != f"research:work:{int(cursor['round']):08d}:{selection['id']}"
+        ):
+            return None
+        remaining = cursor.get("remaining")
+        if (
+            not isinstance(remaining, list)
+            or any(not isinstance(item_id, str) for item_id in remaining)
+        ):
+            return None
+        expected_work_order = [
+            f"research:work:{int(cursor['round']):08d}:{item_id}"
+            for item_id in remaining
+        ]
+        selection_identity = f"research:phase:{cursor['sequence'] - 2:012d}:agenda"
+        indexes = task.get("indexes")
+        operations = indexes.get("operations") if isinstance(indexes, Mapping) else None
+        agenda_operation = (
+            operations.get(selection_identity) if isinstance(operations, Mapping) else None
+        )
+        agenda_result = (
+            agenda_operation.get("result")
+            if isinstance(agenda_operation, Mapping) else None
+        )
+        selection_event = (
+            agenda_result.get("event") if isinstance(agenda_result, Mapping) else None
+        )
+        if not isinstance(selection_event, Mapping):
+            return None
+        event_id = selection_event.get("id")
+        event_refs = current.get("Event")
+        event_history = records.get(event_id) if isinstance(event_id, str) else None
+        event_ref = (
+            event_refs.get(event_id) if isinstance(event_refs, Mapping) else None
+        )
+        if (
+            not isinstance(event_refs, Mapping)
+            or not isinstance(event_ref, Mapping)
+            or event_id not in event_refs
+            or not isinstance(event_history, (list, tuple))
+            or not event_history
+        ):
+            return None
+        event = event_history[-1]
+        derivation = event.get("derivation") if isinstance(event, Mapping) else None
+        event_payload = event.get("payload") if isinstance(event, Mapping) else None
+        agenda_record = (
+            event_payload.get("autonomous_agenda")
+            if isinstance(event_payload, Mapping) else None
+        )
+        if (
+            not isinstance(event, Mapping)
+            or event.get("kind") != "Event"
+            or event.get("status") != "active"
+            or event.get("id") != event_id
+            or event.get("content_version") != event_ref.get("content_version")
+            or event_ref.get("id") != event_id
+            or event_ref.get("kind") != "Event"
+            or selection_event.get("kind") != "Event"
+            or selection_event.get("id") != event_id
+            or event_ref.get("content_version")
+            != selection_event.get("content_version")
+            or not isinstance(derivation, Mapping)
+            or derivation.get("operation") != "autonomous-agenda"
+            or derivation.get("operation_id") != selection_identity
+            or not isinstance(agenda_record, Mapping)
+        ):
+            return None
+        agenda = agenda_record.get("agenda")
+        modulation = agenda_record.get("circulation")
+        if not isinstance(agenda, list) or not isinstance(modulation, Mapping):
+            return None
+        if agenda_record.get("eligible_work_order") != expected_work_order:
+            return None
+        obligation_id = (
+            f"research:work:{int(cursor['round']):08d}:{selection['id']}"
+        )
+        selected_work = next(
+            (
+                row for row in agenda
+                if isinstance(row, Mapping)
+                and isinstance(row.get("obligation"), Mapping)
+                and row["obligation"].get("id") == obligation_id
+            ),
+            None,
+        )
+        sequence = (
+            selected_work.get("circulation_sequence")
+            if isinstance(selected_work, Mapping) else None
+        )
+        expected_sequence = (
+            expected_work_order.index(obligation_id)
+            if obligation_id in expected_work_order else None
+        )
+        spectral_values = modulation.get("spectral_values")
+        transfer = modulation.get("spectral_transfer")
+        values = modulation.get("values")
+        dependencies = modulation.get("dependencies")
+        if (
+            sequence != expected_sequence
+            or sequence is None
+            or isinstance(sequence, bool)
+            or not isinstance(sequence, int)
+            or not isinstance(spectral_values, Mapping)
+            or spectral_values.get(str(sequence)) in (None, 0, 0.0)
+            or not isinstance(values, Mapping)
+            or not isinstance(selected_work, Mapping)
+            or selected_work.get("circulation_adjustment")
+            != values.get(str(sequence))
+            or selected_work.get("spectral_adjustment")
+            != spectral_values.get(str(sequence))
+            or not isinstance(transfer, Mapping)
+            or transfer.get("status") != "available"
+            or modulation.get("authority") != "eligible-work-modulation-only"
+            or modulation.get("schema")
+            != "cassifi.resonant-circulation-activity.v2"
+            or transfer.get("projection")
+            != "nonsemantic-eligible-work-sequence-quadrature.v1"
+            or not isinstance(dependencies, Mapping)
+        ):
+            return None
+        exchange = transfer.get("last_exchange")
+        interface = exchange.get("interface") if isinstance(exchange, Mapping) else None
+        exchange_sha256 = transfer.get("last_exchange_sha256")
+        target_computer_id = dependencies.get("computer_id")
+        target_state_sha256 = dependencies.get("state_sha256")
+        if (
+            not isinstance(target_computer_id, str)
+            or not isinstance(target_state_sha256, str)
+            or not isinstance(interface, str)
+            or not isinstance(exchange, Mapping)
+            or exchange.get("status") != "available"
+            or not isinstance(exchange_sha256, str)
+        ):
+            return None
+        return self.apply_circulation_spectral_feedback(
+            f"research:spectral-feedback:{source_operation_id}",
+            computer_id=target_computer_id,
+            source_operation_id=source_operation_id,
+            interface=interface,
+            expected_computer_state_sha256=target_state_sha256,
+            expected_exchange_sha256=exchange_sha256,
+        )
+    def apply_circulation_spectral_feedback(
+        self,
+        operation_id: str,
+        *,
+        computer_id: str,
+        source_operation_id: str,
+        interface: str,
+        expected_computer_state_sha256: str,
+        expected_exchange_sha256: str,
+        concern_ref: Mapping[str, Any] | None = None,
+        assessment_ref: Mapping[str, Any] | None = None,
+        assessment_computer_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Persist feedback only from a current, owner-held assessment."""
+
+        operation_id = _identifier(operation_id, "operation_id")
+        computer_id = _identifier(computer_id, "computer_id")
+        source_operation_id = _identifier(source_operation_id, "source_operation_id")
+        if assessment_computer_id is not None:
+            assessment_computer_id = _identifier(
+                assessment_computer_id, "assessment_computer_id"
+            )
+        expected_computer_state_sha256 = _digest(
+            expected_computer_state_sha256, "expected circulation computer state"
+        )
+        expected_exchange_sha256 = _digest(
+            expected_exchange_sha256, "expected spectral exchange"
+        )
+        if not isinstance(interface, str) or not interface or len(interface) > 256:
+            raise FieldIntelligenceError(
+                "INVALID_REQUEST", "spectral feedback interface is invalid"
+            )
+        if concern_ref is not None and not isinstance(concern_ref, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_REQUEST", "spectral feedback concern reference is invalid"
+            )
+        if assessment_ref is not None and not isinstance(assessment_ref, Mapping):
+            raise FieldIntelligenceError(
+                "INVALID_REQUEST", "spectral feedback Assessment reference is invalid"
+            )
+        with self._lock:
+            target = next(
+                (row for row in self.state.computers if row.computer_id == computer_id),
+                None,
+            )
+            if target is None:
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the target circulation computer is unavailable",
+                    "operation_id": operation_id,
+                    "parameter_work": 0.0,
+                }
+            task = target._value("task")
+            appraisal_computer = next(
+                (
+                    row for row in self.state.computers
+                    if row.computer_id == (
+                        assessment_computer_id
+                        if assessment_ref is not None and assessment_computer_id is not None
+                        else computer_id if assessment_ref is not None
+                        else "research"
+                    )
+                ),
+                None,
+            )
+            if appraisal_computer is None:
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the owner has no resident assessment computer",
+                    "operation_id": operation_id, "parameter_work": 0.0,
+                }
+            appraisal_task = appraisal_computer._value("task")
+            if assessment_ref is not None:
+                try:
+                    requested_ref = SemanticRef.from_dict(assessment_ref)
+                except (TypeError, ValueError):
+                    requested_ref = None
+                assessment_id = requested_ref.id if requested_ref is not None else ""
+            else:
+                requested_ref = None
+                assessment_id = f"research:outcome:{source_operation_id}"
+            if not isinstance(appraisal_task, Mapping):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the assessment state is unavailable",
+                    "operation_id": operation_id, "parameter_work": 0.0,
+                }
+            current = appraisal_task.get("current")
+            records = appraisal_task.get("records")
+            history = records.get(assessment_id) if isinstance(records, Mapping) else None
+            assessment_ids = (
+                current.get("Assessment")
+                if isinstance(current, Mapping) else None
+            )
+            if (
+                not isinstance(assessment_ids, (Mapping, list, tuple))
+                or assessment_id not in assessment_ids
+                or not isinstance(history, (list, tuple))
+                or not history
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the requested appraisal is not in the current Assessment family",
+                    "operation_id": operation_id, "parameter_work": 0.0,
+                }
+            assessment = history[-1]
+            payload = assessment.get("payload") if isinstance(assessment, Mapping) else None
+            entity_assessment = assessment_ref is not None
+            entity_method = payload.get("method_outcome") if entity_assessment and isinstance(payload, Mapping) else None
+            if (
+                not isinstance(assessment, Mapping)
+                or assessment.get("id") != assessment_id
+                or assessment.get("kind") != "Assessment"
+                or assessment.get("status") != "active"
+                or assessment.get("epistemic_kind") != "assessed"
+                or not isinstance(payload, Mapping)
+                or (
+                    entity_assessment
+                    and (
+                        requested_ref is None
+                        or requested_ref.kind != "Assessment"
+                        or requested_ref.content_version != assessment.get("content_version")
+                        or not isinstance(entity_method, Mapping)
+                        or entity_method.get("schema") != "cassi.entity.method-outcome.v1"
+                        or entity_method.get("operation_id") != source_operation_id
+                        or entity_method.get("result_sha256") != payload.get("source_content_sha256")
+                    )
+                )
+                or (
+                    not entity_assessment
+                    and payload.get("work_operation_id") != source_operation_id
+                )
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the current appraisal record failed its identity or status check",
+                    "operation_id": operation_id, "parameter_work": 0.0,
+                }
+            source_revision_id = payload.get("source_revision_id")
+            output_sha256 = (
+                payload.get("source_content_sha256")
+                if entity_assessment else payload.get("output_sha256")
+            )
+            roots = assessment.get("support_roots")
+            if (
+                not isinstance(source_revision_id, str)
+                or not isinstance(output_sha256, str)
+                or len(output_sha256) != 64
+                or not isinstance(roots, (list, tuple))
+                or source_revision_id not in roots
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the current appraisal lacks an exact supported result source",
+                    "operation_id": operation_id, "parameter_work": 0.0,
+                }
+            try:
+                active_revision_ids = self.evidence.active_revision_ids()
+                source = self.evidence.source(source_revision_id)
+                source_bytes = self.evidence.read(source)
+            except FieldIntelligenceError:
+                source = None
+                source_bytes = b""
+                active_revision_ids = set()
+            source_id = (
+                entity_method.get("operation_id")
+                if entity_assessment and isinstance(entity_method, Mapping)
+                else None
+            )
+            if (
+                source is None
+                or (entity_assessment and source_revision_id not in active_revision_ids)
+                or source.status != "active"
+                or source.content_sha256 != output_sha256
+                or hashlib.sha256(source_bytes).hexdigest() != output_sha256
+                or (
+                    entity_assessment
+                    and source.source_id != f"entity-research-result:{source_id}"
+                )
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the appraisal result source is not active and hash-bound",
+                    "operation_id": operation_id, "parameter_work": 0.0,
+                }
+            assessment_reference = (
+                assessment_ids.get(assessment_id)
+                if isinstance(assessment_ids, Mapping) else None
+            )
+            try:
+                typed_assessment_ref = SemanticRef.from_dict(assessment_reference)
+            except (TypeError, ValueError):
+                typed_assessment_ref = None
+            if (
+                typed_assessment_ref is not None
+                and (
+                    isinstance(assessment.get("content_version"), bool)
+                    or not isinstance(assessment.get("content_version"), int)
+                    or typed_assessment_ref.id != assessment_id
+                    or typed_assessment_ref.kind != "Assessment"
+                    or typed_assessment_ref.content_version
+                    != assessment.get("content_version")
+                    or (
+                        requested_ref is not None
+                        and typed_assessment_ref != requested_ref
+                    )
+                )
+            ):
+                typed_assessment_ref = None
+            if typed_assessment_ref is None:
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the current appraisal lacks an exact typed Assessment reference",
+                    "operation_id": operation_id,
+                    "parameter_work": 0.0,
+                }
+            scoped_concern_ref: dict[str, Any] | None = None
+            appraisal_basis: dict[str, Any] | None = None
+            if concern_ref is not None:
+                expected_concern_ref = self._embodied_affect_concern_for_experience(
+                    appraisal_task, typed_assessment_ref.as_dict()
+                )
+                if expected_concern_ref is None or dict(concern_ref) != expected_concern_ref:
+                    return {
+                        "schema": "cassifi.owner-spectral-feedback.v1",
+                        "status": "stale",
+                        "reason": "the requested affect concern is not bound to the current Assessment",
+                        "operation_id": operation_id, "parameter_work": 0.0,
+                    }
+                scoped_concern_ref = expected_concern_ref
+                appraisal_basis = {
+                    "assessment_ref": typed_assessment_ref.as_dict(),
+                    "source_revision_id": source_revision_id,
+                    "source_sha256": source.content_sha256,
+                }
+            assessment_sha256 = sha256_value(dict(assessment))
+            appraisal_ref = {
+                "operation_id": source_operation_id,
+                "assessment_sha256": assessment_sha256,
+            }
+            if entity_assessment:
+                affect_outcome = payload.get("affect_outcome")
+                measurement = (
+                    affect_outcome.get("measurement")
+                    if isinstance(affect_outcome, Mapping) else None
+                )
+                support_status = (
+                    measurement.get("support_status")
+                    if isinstance(measurement, Mapping) else None
+                )
+                expected_progress = {
+                    "observed": 1.0,
+                    "derived": 0.75,
+                    "hypothesis": 0.25,
+                    "no-result": 0.0,
+                    "contradicted": -0.25,
+                }.get(support_status)
+                entity_progress = (
+                    affect_outcome.get("progress")
+                    if isinstance(affect_outcome, Mapping) else None
+                )
+                if (
+                    not isinstance(affect_outcome, Mapping)
+                    or affect_outcome.get("schema") != "cassifi.affect-outcome.v1"
+                    or expected_progress is None
+                    or isinstance(entity_progress, bool)
+                    or not isinstance(entity_progress, (int, float))
+                    or not math.isfinite(float(entity_progress))
+                    or float(entity_progress) != expected_progress
+                    or not isinstance(output_sha256, str)
+                    or output_sha256 != entity_method.get("result_sha256")
+                    or source.content_sha256 != output_sha256
+                ):
+                    return {
+                        "schema": "cassifi.owner-spectral-feedback.v1",
+                        "status": "unavailable",
+                        "reason": "the assessed entity affect outcome is not bounded and source-matched",
+                        "operation_id": operation_id,
+                        "parameter_work": 0.0,
+                    }
+                progress = float(entity_progress)
+                if progress == 0.0:
+                    return {
+                        "schema": "cassifi.owner-spectral-feedback.v1",
+                        "status": "unavailable",
+                        "reason": "the assessed entity outcome carries no spectral feedback",
+                        "operation_id": operation_id,
+                        "parameter_work": 0.0,
+                    }
+            else:
+                progress = _assessed_research_progress(payload)
+            if not isinstance(progress, (int, float)) or not math.isfinite(float(progress)):
+                progress = 0.0
+            segment = task.get("circulation")
+            spectrum = segment.get("spectrum") if isinstance(segment, Mapping) else None
+            if not isinstance(spectrum, Mapping):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the target computer has no circulation spectrum",
+                    "operation_id": operation_id,
+                    "assessment_sha256": assessment_sha256,
+                    "parameter_work": 0.0,
+                }
+            interfaces = spectrum.get("interfaces")
+            link = interfaces.get(interface) if isinstance(interfaces, Mapping) else None
+            if not isinstance(link, Mapping):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the target spectral interface is unavailable",
+                    "operation_id": operation_id,
+                    "assessment_sha256": assessment_sha256,
+                    "parameter_work": 0.0,
+                }
+            if scoped_concern_ref is not None:
+                concern_tunings = link.get("concern_tunings")
+                concern_tuning = (
+                    concern_tunings.get(scoped_concern_ref["concern_id"])
+                    if isinstance(concern_tunings, Mapping) else None
+                )
+                replayed = (
+                    isinstance(concern_tuning, Mapping)
+                    and concern_tuning.get("appraisal_ref") == appraisal_ref
+                )
+            else:
+                replayed = link.get("last_appraisal_ref") == appraisal_ref
+            if replayed:
+                result = {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "replayed",
+                    "reason": "the current assessment was already applied to this interface",
+                    "operation_id": operation_id,
+                    "computer_id": computer_id,
+                    "source_operation_id": source_operation_id,
+                    "assessment_sha256": assessment_sha256,
+                    "progress": progress,
+                    "interface": interface,
+                    "parameter_work": 0.0,
+                }
+                if scoped_concern_ref is not None:
+                    result["concern_ref"] = scoped_concern_ref
+                return result
+            if target.state_sha256 != expected_computer_state_sha256:
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the target circulation computer changed after modulation",
+                    "operation_id": operation_id,
+                    "assessment_sha256": assessment_sha256,
+                    "parameter_work": 0.0,
+                }
+            exchange = spectrum.get("last_exchange")
+            exchange_sha256 = (
+                sha256_value(dict(exchange)) if isinstance(exchange, Mapping) else None
+            )
+            if (
+                not isinstance(exchange, Mapping)
+                or exchange.get("interface") != interface
+                or exchange.get("status") != "available"
+                or exchange_sha256 != expected_exchange_sha256
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the target spectral exchange changed after modulation",
+                    "operation_id": operation_id,
+                    "assessment_sha256": assessment_sha256,
+                    "parameter_work": 0.0,
+                }
+            feedback_arguments: dict[str, Any] = {
+                "operation": "spectral-feedback",
+                "interface": interface,
+                "appraisal_ref": appraisal_ref,
+                "progress": progress,
+                "expected_exchange_sha256": expected_exchange_sha256,
+            }
+            if scoped_concern_ref is not None and appraisal_basis is not None:
+                feedback_arguments["concern_ref"] = scoped_concern_ref
+                feedback_arguments["appraisal_basis"] = appraisal_basis
+            invoked = self.operate_computer(
+                operation_id,
+                computer_id=computer_id,
+                action="invoke",
+                arguments={"arguments": feedback_arguments, "steps": 1},
+                expected_state_sha256=self.state.state_sha256,
+            )
+            invocation_receipt = dict(invoked.get("receipt") or {})
+            run = invocation_receipt.get("run")
+            transitions = run.get("transition_receipts") if isinstance(run, Mapping) else None
+            last_transition = (
+                transitions[-1]
+                if isinstance(transitions, (list, tuple)) and transitions else None
+            )
+            feedback = (
+                last_transition.get("output")
+                if isinstance(last_transition, Mapping) else None
+            )
+            if not isinstance(feedback, Mapping):
+                raise FieldIntelligenceError(
+                    "INVALID_REGIONAL_TASK",
+                    "spectral feedback invocation did not return its owner receipt",
+                )
+            result = {
+                "schema": "cassifi.owner-spectral-feedback.v1",
+                "status": str(feedback.get("status", "unavailable")),
+                "reason": feedback.get("reason"),
+                "operation_id": operation_id,
+                "computer_id": computer_id,
+                "computer_state_sha256": invoked["receipt"].get("computer_state_sha256"),
+                "source_operation_id": source_operation_id,
+                "assessment_sha256": assessment_sha256,
+                "progress": progress,
+                "interface": interface,
+                "feedback": dict(feedback),
+                "parameter_work": float(feedback.get("parameter_work", 0.0)),
+                "checkpoint_receipt": invoked.get("checkpoint_receipt"),
+            }
+            if scoped_concern_ref is not None:
+                result["concern_ref"] = scoped_concern_ref
+                result["appraisal_basis"] = appraisal_basis
+            return result
+
+    def apply_entity_regional_assessment_feedback(
+        self,
+        operation_id: str,
+        *,
+        assessment_ref: Mapping[str, Any],
+        concern_ref: Mapping[str, Any],
+        binding_ref: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Apply a regional outcome only to its current measured spectrum."""
+
+        operation_id = _identifier(operation_id, "operation_id")
+        try:
+            assessment = SemanticRef.from_dict(assessment_ref)
+            concern = dict(concern_ref)
+            binding = SemanticRef.from_dict(binding_ref) if binding_ref is not None else None
+        except (TypeError, ValueError):
+            return {
+                "schema": "cassifi.owner-spectral-feedback.v1",
+                "status": "stale",
+                "reason": "regional feedback references are not exact typed references",
+                "parameter_work": 0.0,
+            }
+        if (
+            assessment.kind != "Assessment"
+            or binding is None
+            or binding.kind != "Event"
+            or not binding.id.startswith("event:regional-assessment-binding:")
+        ):
+            return {
+                "schema": "cassifi.owner-spectral-feedback.v1",
+                "status": "stale",
+                "reason": "regional feedback requires an exact Assessment and binding Event reference",
+                "parameter_work": 0.0,
+            }
+        expected_binding_id = (
+            "event:regional-assessment-binding:"
+            + hashlib.sha256(
+                f"entity-research-outcome:{operation_id}".encode("utf-8")
+            ).hexdigest()[:32]
+        )
+        if binding.id != expected_binding_id:
+            return {
+                "schema": "cassifi.owner-spectral-feedback.v1",
+                "status": "stale",
+                "reason": "the regional binding Event does not match the assessment operation",
+                "parameter_work": 0.0,
+            }
+        with self._lock:
+            memory = next(
+                (
+                    row for row in self.state.computers
+                    if row.computer_id == "field-qwen:work-memory"
+                ),
+                None,
+            )
+            task = memory._value("task") if memory is not None else None
+            if not isinstance(task, Mapping):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the regional work-memory computer is unavailable",
+                    "parameter_work": 0.0,
+                }
+            current = task.get("current")
+            records = task.get("records")
+            current_assessments = current.get("Assessment") if isinstance(current, Mapping) else None
+            history = records.get(assessment.id) if isinstance(records, Mapping) else None
+            current_ref = current_assessments.get(assessment.id) if isinstance(current_assessments, Mapping) else None
+            if (
+                not isinstance(history, (list, tuple))
+                or not history
+                or not isinstance(history[-1], Mapping)
+                or not isinstance(current_ref, Mapping)
+                or current_ref != assessment.as_dict()
+                or history[-1].get("content_version") != assessment.content_version
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the regional Assessment is not current",
+                    "parameter_work": 0.0,
+                }
+            record = history[-1]
+            payload = record.get("payload") if isinstance(record, Mapping) else None
+            method_outcome = payload.get("method_outcome") if isinstance(payload, Mapping) else None
+            if (
+                not isinstance(record, Mapping)
+                or record.get("kind") != "Assessment"
+                or record.get("status") != "active"
+                or record.get("epistemic_kind") != "assessed"
+                or not isinstance(method_outcome, Mapping)
+                or method_outcome.get("schema") != "cassi.entity.method-outcome.v1"
+                or method_outcome.get("operation_id") != operation_id
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the current regional Assessment does not match its source operation",
+                    "parameter_work": 0.0,
+                }
+            root = next(
+                (row for row in self.state.computers if row.computer_id == "research"),
+                None,
+            )
+            root_task = root._value("task") if root is not None else None
+            root_current = root_task.get("current") if isinstance(root_task, Mapping) else None
+            root_records = root_task.get("records") if isinstance(root_task, Mapping) else None
+            root_ref = (
+                root_current.get("Event", {}).get(binding.id)
+                if isinstance(root_current, Mapping)
+                and isinstance(root_current.get("Event"), Mapping)
+                else None
+            )
+            binding_history = (
+                root_records.get(binding.id)
+                if isinstance(root_records, Mapping) else None
+            )
+            binding_record = (
+                binding_history[-1]
+                if isinstance(binding_history, (list, tuple)) and binding_history
+                else None
+            )
+            binding_payload = (
+                binding_record.get("payload")
+                if isinstance(binding_record, Mapping) else None
+            )
+            source_revision_id = payload.get("source_revision_id") if isinstance(payload, Mapping) else None
+            source_sha256 = payload.get("source_content_sha256") if isinstance(payload, Mapping) else None
+            expected_owner_sha256 = hashlib.sha256(
+                str(Path(self.data_home).resolve()).encode("utf-8")
+            ).hexdigest()
+            expected_source = {
+                "content_sha256": source_sha256,
+                "source_id": f"entity-research-result:{operation_id}",
+                "external_revision": source_revision_id,
+            }
+            if (
+                not isinstance(root_ref, Mapping)
+                or root_ref != binding.as_dict()
+                or not isinstance(binding_record, Mapping)
+                or binding_record.get("id") != binding.id
+                or binding_record.get("kind") != "Event"
+                or binding_record.get("status") != "active"
+                or binding_record.get("epistemic_kind") != "derived"
+                or binding_record.get("content_version") != binding.content_version
+                or not isinstance(binding_payload, Mapping)
+                or binding_payload.get("schema")
+                != "cassifi.research-organism.regional-assessment-binding.v1"
+                or binding_payload.get("external_computer_id") != "field-qwen:work-memory"
+                or binding_payload.get("external_owner_sha256") != expected_owner_sha256
+                or binding_payload.get("external_assessment_ref") != assessment.as_dict()
+                or binding_payload.get("result_source") != expected_source
+            ):
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the regional binding Event is not the current verified root pointer",
+                    "parameter_work": 0.0,
+                }
+            expected_concern = self._embodied_affect_concern_for_experience(task, assessment.as_dict())
+            if expected_concern is None or concern != expected_concern:
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "stale",
+                    "reason": "the affect appraisal is not bound to the current regional Assessment",
+                    "parameter_work": 0.0,
+                }
+            candidate = None
+            for target in sorted(self.state.computers, key=lambda row: row.computer_id):
+                target_task = target._value("task")
+                segment = target_task.get("circulation") if isinstance(target_task, Mapping) else None
+                spectrum = segment.get("spectrum") if isinstance(segment, Mapping) else None
+                interfaces = spectrum.get("interfaces") if isinstance(spectrum, Mapping) else None
+                exchange = spectrum.get("last_exchange") if isinstance(spectrum, Mapping) else None
+                interface = exchange.get("interface") if isinstance(exchange, Mapping) else None
+                link = interfaces.get(interface) if isinstance(interfaces, Mapping) else None
+                if (
+                    isinstance(interface, str)
+                    and isinstance(exchange, Mapping)
+                    and exchange.get("status") == "available"
+                    and isinstance(link, Mapping)
+                    and link.get("status") == "available"
+                ):
+                    candidate = (target, interface, exchange)
+                    break
+            if candidate is None:
+                return {
+                    "schema": "cassifi.owner-spectral-feedback.v1",
+                    "status": "unavailable",
+                    "reason": "the regional owner has no available measured spectral exchange",
+                    "parameter_work": 0.0,
+                }
+            target, interface, exchange = candidate
+            result = self.apply_circulation_spectral_feedback(
+                f"entity:spectral-feedback:{operation_id}",
+                computer_id=target.computer_id,
+                source_operation_id=operation_id,
+                interface=interface,
+                expected_computer_state_sha256=target.state_sha256,
+                expected_exchange_sha256=sha256_value(dict(exchange)),
+                concern_ref=concern,
+                assessment_ref=assessment.as_dict(),
+                assessment_computer_id=memory.computer_id,
+            )
+            if binding is not None:
+                result = {**result, "binding_ref": binding.as_dict()}
+            return result
     def inspect_computers(self) -> Mapping[str, Any]:
         with self._lock:
             return {
@@ -16343,6 +27300,10 @@ class FieldIntelligenceSurface:
             self._require(params, required=frozenset({"operation_id", "memory_id", "participant_id"}),
                           optional=frozenset({"known_start", "expected_state_sha256"}))
             result = self.owner.bind_temporal(**dict(params))
+        elif operation == "release_temporal":
+            self._require(params, required=frozenset({"operation_id", "memory_id", "participant_id"}),
+                          optional=frozenset({"expected_state_sha256"}))
+            result = self.owner.release_temporal(**dict(params))
         elif operation == "inquire_temporal":
             self._require(params, required=frozenset({"memory_id", "operations"}),
                           optional=frozenset({"participant_id", "skill_id", "goal_observations", "horizon", "max_nodes", "forbidden_observations"}))
@@ -16650,6 +27611,7 @@ class FieldIntelligenceSurface:
                     "INVALID_REQUEST", "revision kind is unsupported"
                 )
         elif operation == "checkpoint":
+            self.owner.flush_journal()
             self._require(params, required=frozenset())
             result = {
                 "field_generation": self.owner.state.generation,
@@ -16663,6 +27625,7 @@ class FieldIntelligenceSurface:
             }
         elif operation == "recover":
             self._require(params, required=frozenset())
+            self.owner.flush_journal()
             self.owner.checkpoints.recover()
             self.owner.state = self.owner.checkpoints.refresh()
             self.owner._recover_revocation()

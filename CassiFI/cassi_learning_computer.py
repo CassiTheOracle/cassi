@@ -6,7 +6,8 @@ import json
 import math
 import time
 from dataclasses import dataclass, field as dataclass_field, replace
-from typing import Any, Callable, Mapping, Sequence
+from types import MappingProxyType
+from typing import Any, Callable, Iterable, Mapping, Sequence
 import base64
 import numpy as np
 
@@ -43,6 +44,7 @@ from cassi_field_program import (
     regional_scalar_state,
 )
 from cassi_field_regions import RegionalProfile
+from programs.model import ngram_learning as _ngram_learning
 import cassi_field_regions as _regions
 from cassi_field_residency import ResidencyManager, ResourceWait
 from cassi_regional_catalog import STANDARD_KERNEL_CATALOG
@@ -64,6 +66,7 @@ INVOCATION_FRAMES_SCHEMA = "cassifi.learning-computer-invocation-frames.v2"
 PREVIOUS_INVOCATION_FRAMES_SCHEMA = "cassifi.learning-computer-invocation-frames.v1"
 CHILD_RETURN_SCHEMA = "cassifi.learning-computer-child-return.v2"
 PREVIOUS_CHILD_RETURN_SCHEMA = "cassifi.learning-computer-child-return.v1"
+REHEARSAL_SCHEMA = "cassifi.neural-membrane-rehearsal.v1"
 ROOT_RESOURCE_NAMES = (
     "branch_count",
     "evidence_reads",
@@ -74,6 +77,8 @@ ROOT_RESOURCE_NAMES = (
     "work",
 )
 
+NGRAM_READOUT_FIELD_VALUE = "ngram_readout"
+NGRAM_READOUT_MIGRATION_SCHEMA = "cassifi.qwen-ngram-readout-migration.v1"
 
 class LearningComputerError(ValueError):
     """Invalid computer image or operation outside its declared bounds."""
@@ -199,6 +204,19 @@ def _program_and_entries() -> tuple[tuple[dict[str, Any], ...], dict[str, int]]:
     rows[entries[SCALAR_PROCEDURE_KERNEL]]["next"] = copy_rows[
         SCALAR_PROCEDURE_KERNEL
     ]
+    for receiver_name in (
+        "communication_receiver_a",
+        "communication_receiver_b",
+    ):
+        receive_pc = len(rows)
+        rows.append(
+            {
+                "op": "RECEIVE",
+                "target": receiver_name,
+                "next": receive_pc + 1,
+            }
+        )
+        rows.append({"op": "HALT"})
     return tuple(rows), entries
 
 
@@ -349,7 +367,6 @@ def _regional_capacities(
             "frames": scaled(_FRAME_WORDS),
             "task": scaled(_TASK_WORDS),
         }
-
     if max_field_bytes is None:
         workspace_words = regional.total_words
     else:
@@ -363,14 +380,22 @@ def _regional_capacities(
         + (4 * regional.automaton_sites + 8)
         + regional.default_value_words
     )
+    available_words = (
+        workspace_words - arena_start - bootstrap_words - sum(capacities.values())
+    )
+    # The RECEIVE targets scale down with the declared workspace so small
+    # images keep configuring; the historical image keeps the full default.
+    receiver_words = min(regional.default_value_words, available_words // 2)
     if (
         workspace_words < arena_start + bootstrap_words
-        or sum(capacities.values())
-        > workspace_words - arena_start - bootstrap_words
+        or available_words < 0
+        or receiver_words < 1
     ):
         raise LearningComputerError(
             "regional image does not fit the declared workspace"
         )
+    capacities["communication_receiver_a"] = receiver_words
+    capacities["communication_receiver_b"] = receiver_words
     return capacities
 
 
@@ -446,10 +471,68 @@ class NeuralMembraneEpoch:
         self._recorded_site_count = 0
         self._device_session = None
         self._finished = False
+        self._ngram_state: Mapping[str, Any] | None = None
+        self._ngram_table_vector: np.ndarray | None = None
+        self._ngram_applications: list[dict[str, Any]] = []
+        self._ngram_output_hash_by_site: dict[int, str] = {}
+        self._ngram_pre_head: np.ndarray | None = None
+        self._ngram_post_head: np.ndarray | None = None
 
     @property
     def mode_count(self) -> int:
         return self._mode_count
+
+    def configure_ngram_readout(
+        self,
+        state: Mapping[str, Any],
+        table_vector: np.ndarray,
+    ) -> None:
+        """Pin one field-owned readout and table vector for this token epoch."""
+        if self._finished or self._site_count or self._ngram_state is not None:
+            raise LearningComputerError(
+                "n-gram readout must be configured once before neural exchanges"
+            )
+        try:
+            canonical = _ngram_learning.validate_state(state)
+            owned = self.computer.ngram_readout_state()
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError(
+                f"canonical n-gram readout state is unavailable: {exc}"
+            ) from exc
+        if _canonical(canonical) != _canonical(owned):
+            raise LearningComputerError(
+                "configured n-gram readout differs from the canonical field state"
+            )
+        try:
+            raw = np.asarray(table_vector)
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError("n-gram table vector is invalid") from exc
+        if (
+            raw.ndim != 1
+            or raw.size != _ngram_learning.TABLE_VECTOR_SIZE
+            or raw.dtype.kind not in "fiu"
+        ):
+            raise LearningComputerError(
+                "n-gram table vector must be a numeric 2560-value row"
+            )
+        pinned = np.array(raw, dtype=np.float32, copy=True)
+        if not np.isfinite(pinned).all():
+            raise LearningComputerError(
+                "n-gram table vector contains nonfinite values"
+            )
+        pinned.setflags(write=False)
+        self._ngram_state = canonical
+        self._ngram_table_vector = pinned
+
+    @property
+    def ngram_head_vectors(self) -> Mapping[str, np.ndarray] | None:
+        """Return ephemeral pre/post head vectors for owner-side scoring."""
+        if self._ngram_pre_head is None or self._ngram_post_head is None:
+            return None
+        return {
+            "pre_head": self._ngram_pre_head.copy(),
+            "post_head": self._ngram_post_head.copy(),
+        }
 
     def bind_device(self, bank: Any) -> Any:
         """Keep one candidate field resident beside Vulkan weights for this token."""
@@ -464,6 +547,59 @@ class NeuralMembraneEpoch:
             )
         return self._device_session
 
+    def fork_preview(self) -> "_NeuralMembranePreview":
+        """Fork the exact current plane state without finishing this epoch."""
+        if self._finished:
+            raise LearningComputerError("neural membrane epoch is already finished")
+        device_session = None
+        try:
+            if self._device_session is not None:
+                device_session = self._device_session.fork_preview()
+            preview = object.__new__(NeuralMembraneEpoch)
+            preview.profile = self.profile
+            preview._mode_count = self._mode_count
+            preview._planes = self._planes.copy()
+            preview._site_count = self._site_count
+            preview._sites = [dict(row) for row in self._sites]
+            preview._finished = False
+            preview._device_session = device_session
+            preview._ngram_state = (
+                None
+                if self._ngram_state is None
+                else json.loads(
+                    _canonical(dict(self._ngram_state)).decode("utf-8")
+                )
+            )
+            preview._ngram_table_vector = (
+                None
+                if self._ngram_table_vector is None
+                else self._ngram_table_vector.copy()
+            )
+            preview._ngram_applications = [
+                dict(row) for row in self._ngram_applications
+            ]
+            preview._ngram_output_hash_by_site = dict(
+                self._ngram_output_hash_by_site
+            )
+            preview._ngram_pre_head = (
+                None if self._ngram_pre_head is None else self._ngram_pre_head.copy()
+            )
+            preview._ngram_post_head = (
+                None if self._ngram_post_head is None else self._ngram_post_head.copy()
+            )
+            return _NeuralMembranePreview(preview)
+        except Exception as exc:
+            if device_session is not None:
+                try:
+                    device_session.close()
+                except Exception:
+                    pass
+            if isinstance(exc, LearningComputerError):
+                raise
+            raise LearningComputerError(
+                f"cannot obtain an exact neural membrane preview: {exc}"
+            ) from exc
+
     def device_exchange(self, site: str, activation: Any) -> Any:
         """Exchange an opaque Vulkan activation without host materialization."""
         if self._finished or self._device_session is None:
@@ -475,7 +611,17 @@ class NeuralMembraneEpoch:
             or any(ord(character) < 32 for character in site)
         ):
             raise LearningComputerError("neural membrane site must be bounded text")
+        site_index = self._site_count
         output = self._device_session.exchange(site, activation)
+        if site == "head.input" and self._ngram_state is not None:
+            ordinary = self._device_session.download(output)
+            steered = self._apply_ngram_readout(
+                ordinary, site_index=site_index
+            )
+            delta = (steered - ordinary).astype(np.float32, copy=False)
+            output = self._device_session.add(
+                output, self._device_session.upload(delta)
+            )
         self._site_count += 1
         return output
 
@@ -487,6 +633,12 @@ class NeuralMembraneEpoch:
             source = row["input"]
             output = row["output"]
             delta = row["delta"]
+            site_index = len(self._sites)
+            recorded_output_sha256 = self._array_sha256(output)
+            if site_index in self._ngram_output_hash_by_site:
+                recorded_output_sha256 = self._ngram_output_hash_by_site[
+                    site_index
+                ]
             chunk_count = (source.size + self.mode_count - 1) // self.mode_count
             offsets = [
                 int(hashlib.sha256(f"{site}\0{index}".encode("utf-8")).hexdigest()[:16], 16)
@@ -501,7 +653,7 @@ class NeuralMembraneEpoch:
                 "mode_offset": offsets[0],
                 "mode_offsets": offsets,
                 "input_sha256": self._array_sha256(source),
-                "output_sha256": self._array_sha256(output),
+                "output_sha256": recorded_output_sha256,
                 "input_rms": float(np.sqrt(np.mean(np.square(source, dtype=np.float64)))),
                 "device_scale_f32": row["scale"],
                 "maximum_absolute_delta": float(np.max(np.abs(delta), initial=np.float32(0))),
@@ -512,40 +664,90 @@ class NeuralMembraneEpoch:
 
     @staticmethod
     def _array_sha256(value: np.ndarray) -> str:
+        # Hash the contiguous little-endian float32 buffer in place; the
+        # digest equals the one over its ``tobytes`` copy.
         return hashlib.sha256(
-            np.asarray(value, dtype="<f4").tobytes(order="C")
+            np.ascontiguousarray(value, dtype="<f4").reshape(-1).view(np.uint8)
         ).hexdigest()
+
+    def _apply_ngram_readout(
+        self,
+        hidden: np.ndarray,
+        *,
+        site_index: int,
+    ) -> np.ndarray:
+        if self._ngram_state is None or self._ngram_table_vector is None:
+            return hidden
+        source = np.asarray(hidden, dtype=np.float32).reshape(-1)
+        delta = _ngram_learning.readout(
+            self._ngram_state, self._ngram_table_vector, source
+        )
+        output = (source + delta).astype(np.float32, copy=False)
+        if not np.isfinite(output).all():
+            raise LearningComputerError(
+                "n-gram readout produced a nonfinite head activation"
+            )
+        delta_norm = float(np.linalg.norm(delta.astype(np.float64)))
+        if delta_norm > 0.250001:
+            raise LearningComputerError(
+                "n-gram readout exceeded its bounded intervention"
+            )
+        record = {
+            "site_index": site_index,
+            "applied_site": "head.input",
+            "model_id": self._ngram_state["model_id"],
+            "table_id": self._ngram_state["table_id"],
+            "coefficient_revision": self._ngram_state["revision"],
+            "input_sha256": self._array_sha256(source),
+            "output_sha256": self._array_sha256(output),
+            "delta_sha256": self._array_sha256(delta),
+            "delta_l2_norm": delta_norm,
+            "delta_l2_bound": 0.25,
+            "delta_linf": float(
+                np.max(np.abs(delta), initial=np.float32(0.0))
+            ),
+        }
+        self._ngram_applications.append(record)
+        self._ngram_output_hash_by_site[site_index] = record["output_sha256"]
+        self._ngram_pre_head = source.copy()
+        self._ngram_post_head = output.copy()
+        return output
 
     def _exchange_segment(
         self,
         source: np.ndarray,
         destination: slice,
+        output: np.ndarray,
         *,
         scale: np.float32,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        drive = np.tanh(source / scale).astype(np.float32, copy=False)
+    ) -> np.ndarray:
+        # Every step writes its float32 result straight into the plane rows;
+        # each value equals the one from the expression form
+        # ``DECAY * yang + INJECTION * max(drive, 0)`` and
+        # ``gain * scale * (yang - yin)``.
+        drive = self._planes[0, destination]
         yang = self._planes[1, destination]
         yin = self._planes[2, destination]
-        next_yang = (
-            self._DECAY * yang
-            + self._INJECTION * np.maximum(drive, np.float32(0.0))
-        ).astype(np.float32, copy=False)
-        next_yin = (
-            self._DECAY * yin
-            + self._INJECTION * np.maximum(-drive, np.float32(0.0))
-        ).astype(np.float32, copy=False)
+        delta = self._planes[3, destination]
+        np.divide(source, scale, out=drive)
+        np.tanh(drive, out=drive)
+        injected = np.maximum(drive, np.float32(0.0))
+        injected *= self._INJECTION
+        yang *= self._DECAY
+        yang += injected
+        np.negative(drive, out=injected)
+        np.maximum(injected, np.float32(0.0), out=injected)
+        injected *= self._INJECTION
+        yin *= self._DECAY
+        yin += injected
         gain = np.float32(self.profile.neural_membrane_gain_ppm / 1_000_000.0)
-        delta = (gain * scale * (next_yang - next_yin)).astype(
-            np.float32,
-            copy=False,
-        )
-        self._planes[0, destination] = drive
-        self._planes[1, destination] = next_yang
-        self._planes[2, destination] = next_yin
-        self._planes[3, destination] = delta
+        np.subtract(yang, yin, out=delta)
+        delta *= gain * scale
         if self.profile.neural_membrane_gain_ppm == 0:
-            return source, delta
-        return (source + delta).astype(np.float32, copy=False), delta
+            output[...] = source
+        else:
+            np.add(source, delta, out=output)
+        return delta
 
     def exchange(self, site: str, activation: np.ndarray) -> np.ndarray:
         """Let one complete activation vector write and read the field."""
@@ -592,12 +794,11 @@ class NeuralMembraneEpoch:
             offset = int(chunk_sha256[:16], 16) % self.mode_count
             offsets.append(offset)
             first = min(chunk.size, self.mode_count - offset)
-            output[start:start + first], delta_first = (
-                self._exchange_segment(
-                    chunk[:first],
-                    slice(offset, offset + first),
-                    scale=scale,
-                )
+            delta_first = self._exchange_segment(
+                chunk[:first],
+                slice(offset, offset + first),
+                output[start:start + first],
+                scale=scale,
             )
             maximum_absolute_delta = max(
                 maximum_absolute_delta,
@@ -610,12 +811,11 @@ class NeuralMembraneEpoch:
             )
             nonzero_delta += int(np.count_nonzero(delta_first))
             if first < chunk.size:
-                output[start + first:stop], delta_second = (
-                    self._exchange_segment(
-                        chunk[first:],
-                        slice(0, chunk.size - first),
-                        scale=scale,
-                    )
+                delta_second = self._exchange_segment(
+                    chunk[first:],
+                    slice(0, chunk.size - first),
+                    output[start + first:stop],
+                    scale=scale,
                 )
                 maximum_absolute_delta = max(
                     maximum_absolute_delta,
@@ -627,6 +827,10 @@ class NeuralMembraneEpoch:
                     ),
                 )
                 nonzero_delta += int(np.count_nonzero(delta_second))
+        if site == "head.input" and self._ngram_state is not None:
+            output = self._apply_ngram_readout(
+                output, site_index=self._site_count
+            )
         self._sites.append(
             {
                 "site": site,
@@ -644,6 +848,86 @@ class NeuralMembraneEpoch:
         )
         self._site_count += 1
         return output.reshape(original_shape)
+
+    def rehearse_alternatives(
+        self,
+        trials: Sequence[Mapping[str, Any]],
+        *,
+        limit: int = 4,
+    ) -> list[dict[str, Any]]:
+        """Rehearse bounded alternative outcomes on a forked preview only.
+
+        Every trial runs through a detached fork of the current planes and
+        the fork is closed afterwards, so hypothetical outcomes never reach
+        this epoch: its site list, site count and stage records are asserted
+        unchanged before any row is returned.
+        """
+        bounded = list(trials)[: max(0, min(int(limit), 4))]
+        if not bounded:
+            return []
+        sites_before = [dict(row) for row in self._sites]
+        site_count_before = self._site_count
+        recorded_before = self._recorded_site_count
+        records_before = len(self._stage_records)
+        rows: list[dict[str, Any]] = []
+        preview = self.fork_preview()
+        try:
+            for trial in bounded:
+                if not isinstance(trial, Mapping):
+                    raise LearningComputerError(
+                        "neural membrane rehearsal trial must be an object"
+                    )
+                site = trial.get("site")
+                source = np.asarray(
+                    trial.get("activation"), dtype=np.float32
+                ).reshape(-1)
+                output = np.asarray(
+                    preview.exchange(site, source), dtype=np.float32
+                ).reshape(-1)
+                rows.append(
+                    {
+                        "schema": REHEARSAL_SCHEMA,
+                        "status": "hypothetical",
+                        "site": site,
+                        **{
+                            key: trial[key]
+                            for key in (
+                                "method_key",
+                                "method_generation",
+                                "specialist",
+                            )
+                            if key in trial
+                        },
+                        "width": int(source.size),
+                        "input_sha256": self._array_sha256(source),
+                        "output_sha256": self._array_sha256(output),
+                        "input_rms": float(
+                            np.sqrt(np.mean(np.square(source, dtype=np.float64)))
+                        ),
+                        "output_rms": float(
+                            np.sqrt(np.mean(np.square(output, dtype=np.float64)))
+                        ),
+                        "maximum_absolute_delta": float(
+                            np.max(
+                                np.abs(output - source),
+                                initial=np.float32(0.0),
+                            )
+                        ),
+                    }
+                )
+        finally:
+            preview.close_preview()
+        if (
+            len(self._sites) != len(sites_before)
+            or self._sites != sites_before
+            or self._site_count != site_count_before
+            or self._recorded_site_count != recorded_before
+            or len(self._stage_records) != records_before
+        ):
+            raise LearningComputerError(
+                "neural membrane rehearsal altered the epoch it rehearsed"
+            )
+        return rows
 
     def record_stage(
         self,
@@ -854,6 +1138,10 @@ class NeuralMembraneEpoch:
             raise LearningComputerError(
                 "neural membrane successor does not match its epoch computer"
             )
+        if self._ngram_state is not None and not self._ngram_applications:
+            raise LearningComputerError(
+                "configured n-gram readout did not reach head.input"
+            )
         if self._device_session is not None:
             self._planes = self._device_session.finish()
         self._finished = True
@@ -893,10 +1181,69 @@ class NeuralMembraneEpoch:
             "changed_words": changed_words,
             "migration": self.migration,
             "storage": None if storage is None else dict(storage),
+            **(
+                {
+                    "ngram_readout": {
+                        "schema": "cassifi.qwen-ngram-readout-application.v1",
+                        "model_id": self._ngram_state["model_id"],
+                        "table_id": self._ngram_state["table_id"],
+                        "coefficient_revision": self._ngram_state["revision"],
+                        "applied_site": "head.input",
+                        "application_count": len(self._ngram_applications),
+                        "applications": [
+                            dict(row) for row in self._ngram_applications
+                        ],
+                    }
+                }
+                if self._ngram_state is not None
+                else {}
+            ),
         }
         self._close_device_session()
         return successor, receipt
 
+
+
+class _NeuralMembranePreview:
+    """Exchange-only view of a detached neural epoch; it can never publish."""
+
+    __slots__ = ("__epoch", "__closed")
+
+    def __init__(self, epoch: NeuralMembraneEpoch) -> None:
+        self.__epoch = epoch
+        self.__closed = False
+
+    def exchange(self, site: str, activation: Any) -> np.ndarray:
+        if self.__closed:
+            raise LearningComputerError("neural membrane preview is closed")
+        return self.__epoch.exchange(site, activation)
+
+    def close_preview(self) -> None:
+        if self.__closed:
+            return
+        self.__closed = True
+        epoch = self.__epoch
+        epoch._finished = True
+        device_session = epoch._device_session
+        epoch._device_session = None
+        try:
+            if device_session is not None:
+                device_session.close()
+        finally:
+            epoch._planes = np.empty((4, 0), dtype=np.float32)
+            epoch._sites.clear()
+            epoch._ngram_state = None
+            epoch._ngram_table_vector = None
+            epoch._ngram_applications.clear()
+            epoch._ngram_output_hash_by_site.clear()
+            epoch._ngram_pre_head = None
+            epoch._ngram_post_head = None
+
+    def __del__(self) -> None:  # pragma: no cover - interpreter shutdown path
+        try:
+            self.close_preview()
+        except Exception:
+            pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -917,6 +1264,16 @@ class LearningComputer:
         repr=False,
         compare=False,
     )
+    # Dense images are immutable bytes, so their chunk pages are computed once
+    # per computer; each owner publication otherwise re-chunked, recompressed
+    # and rehashed every unchanged computer.
+    _dense_persistence: tuple[Mapping[str, Any], Mapping[str, bytes]] | None = dataclass_field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
+
     def __post_init__(self) -> None:
         if (
             not isinstance(self.computer_id, str)
@@ -1065,6 +1422,14 @@ class LearningComputer:
         )
         return replace(self, field=self._controller()._paged_state(image))
 
+    def _bind_page_tier_store(self, store: Any) -> None:
+        """Bind durable page I/O to this paged image without changing its identity."""
+
+        if not self.is_paged:
+            raise LearningComputerError("computer does not use bounded residency")
+        self.field.image._tier_store = store
+
+
     def place_pages(
         self,
         pages: Sequence[int],
@@ -1073,8 +1438,9 @@ class LearningComputer:
         root_sha256: str | None = None,
         max_pages: int = 16,
         continuation: Mapping[str, Any] | None = None,
+        tier_store: Any | None = None,
     ) -> Mapping[str, Any]:
-        """Move bounded logical pages between storage, RAM, and VRAM.
+        """Move bounded logical pages between RAM, backing storage, and operator-classified NVMe/HDD tiers.
 
         Placement changes where the same committed pages live, never the
         logical image.  The bounded report carries the version binding and a
@@ -1090,6 +1456,7 @@ class LearningComputer:
             root_sha256=root_sha256,
             max_pages=max_pages,
             continuation=continuation,
+            tier_store=tier_store,
         )
 
     def resources(self) -> Mapping[str, Any] | None:
@@ -1426,6 +1793,8 @@ class LearningComputer:
                 "schema": "cassifi.learning-computer-config.v1",
                 "scalar_profile": scalar.as_dict(),
             },
+            "communication_receiver_a": None,
+            "communication_receiver_b": None,
             "outcome": None,
             "result": None,
             "frames": {
@@ -1449,17 +1818,30 @@ class LearningComputer:
         capacities = _regional_capacities(
             regional, values, max_field_bytes=max_field_bytes
         )
-        try:
-            state = machine.initial(
-                _PROGRAM,
-                entry=1,
-                values=values,
-                value_capacities=capacities,
-            )
-        except (TypeError, ValueError) as exc:
-            raise LearningComputerError(
-                "regional image does not fit the declared workspace"
-            ) from exc
+        receiver_names = ("communication_receiver_a", "communication_receiver_b")
+        while True:
+            try:
+                state = machine.initial(
+                    _PROGRAM,
+                    entry=1,
+                    values=values,
+                    value_capacities=capacities,
+                )
+                break
+            except (TypeError, ValueError) as exc:
+                # A compact workspace can hold the image but not the full
+                # RECEIVE scratch beside it: halve both receiver targets and
+                # rebuild.  Historical images fit on the first attempt and
+                # keep the full default capacities (image digest unchanged).
+                if (
+                    "payload arena is exhausted" not in str(exc)
+                    or all(capacities.get(name, 1) <= 1 for name in receiver_names)
+                ):
+                    raise LearningComputerError(
+                        "regional image does not fit the declared workspace"
+                    ) from exc
+                for name in receiver_names:
+                    capacities[name] = max(1, capacities[name] // 2)
         return cls(computer_id, regional, state)
 
     @property
@@ -1488,13 +1870,19 @@ class LearningComputer:
         if self.is_paged:
             descriptor, objects = controller.paged_chunks(self.field)
         else:
-            descriptor, objects = _field_regions.chunked_descriptor(
-                self.field._field,
-                self.profile,
-                STANDARD_KERNEL_CATALOG,
-                _input_validated=True,
-                _state_sha256=controller.state_sha256(self.field),
-            )
+            cached = self._dense_persistence
+            if cached is None:
+                descriptor, objects = _field_regions.chunked_descriptor(
+                    self.field._field,
+                    self.profile,
+                    STANDARD_KERNEL_CATALOG,
+                    _input_validated=True,
+                    _state_sha256=controller.state_sha256(self.field),
+                )
+                cached = (descriptor, MappingProxyType(dict(objects)))
+                object.__setattr__(self, "_dense_persistence", cached)
+            # Callers only read the shared descriptor and page map.
+            descriptor, objects = cached
         return {
             "schema": SCHEMA,
             "computer_id": self.computer_id,
@@ -1516,11 +1904,9 @@ class LearningComputer:
     ) -> LearningComputer:
         """Hydrate one verified computer from its independently addressed pages.
 
-        ``accept_recorded_catalog`` re-identifies a retained dense field whose
-        recorded catalog fingerprint moved while its kernel names stayed the
-        same.  Paged fields keep their recorded identity: re-identifying them
-        needs the paged staging protocol, so this path refuses them by name
-        instead of half-adopting one.
+        A catalog revision re-identifies the recorded image after checking its
+        original digest and every page. Paged fields undergo this full audit
+        once before they are re-encoded under the running catalog.
         """
 
         if (
@@ -1598,14 +1984,29 @@ class LearningComputer:
                     and field_descriptor.get("catalog_sha256")
                     != STANDARD_KERNEL_CATALOG.fingerprint
                 ):
-                    raise LearningComputerError(
-                        "recorded catalog re-identification is unavailable for a paged computer field"
+                    _, field = _field_regions.from_chunked_descriptor(
+                        field_descriptor,
+                        objects,
+                        STANDARD_KERNEL_CATALOG,
+                        accept_recorded_catalog=True,
                     )
-                image = _field_regions.PagedFieldImage.from_chunked_descriptor(
-                    field_descriptor,
-                    objects,
-                    STANDARD_KERNEL_CATALOG,
-                )
+                    image = _field_regions.PagedFieldImage.from_dense(
+                        field,
+                        profile,
+                        STANDARD_KERNEL_CATALOG,
+                        resident_limit=field_descriptor.get(
+                            "resident_limit", _field_regions.DEFAULT_RESIDENT_PAGES
+                        ),
+                        dirty_limit=field_descriptor.get(
+                            "dirty_limit", _field_regions.DEFAULT_DIRTY_PAGES
+                        ),
+                    )
+                else:
+                    image = _field_regions.PagedFieldImage.from_chunked_descriptor(
+                        field_descriptor,
+                        objects,
+                        STANDARD_KERNEL_CATALOG,
+                    )
                 state = machine._paged_state(image)
                 machine.validate_paged(state)
             else:
@@ -1862,6 +2263,197 @@ class LearningComputer:
         """
 
         return self._named_value(name)
+
+    def enable_ngram_readout(
+        self,
+        model_id: str,
+        table_id: str,
+        width: int = 2048,
+        rank: int = 8,
+    ) -> tuple["LearningComputer", dict[str, Any]]:
+        """Opt in to a dedicated, restart-persistent n-gram readout value."""
+        try:
+            state = dict(
+                _ngram_learning.initial_state(
+                    model_id, table_id, width=width, rank=rank
+                )
+            )
+            capacity_words = _ngram_learning.state_capacity_words(state)
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError(
+                f"invalid n-gram readout declaration: {exc}"
+            ) from exc
+        capacities = self._region_capacity()
+        existing = capacities.get(NGRAM_READOUT_FIELD_VALUE)
+        if existing is not None:
+            try:
+                current = _ngram_learning.validate_state(
+                    self.named_value(NGRAM_READOUT_FIELD_VALUE)
+                )
+            except (TypeError, ValueError) as exc:
+                raise LearningComputerError(
+                    "canonical n-gram readout field value is invalid"
+                ) from exc
+            if any(
+                current[key] != state[key]
+                for key in ("model_id", "table_id", "width", "rank")
+            ):
+                raise LearningComputerError(
+                    "n-gram readout is already bound to another model or table"
+                )
+            return self, {
+                "schema": NGRAM_READOUT_MIGRATION_SCHEMA,
+                "kind": "ngram-readout-already-enabled",
+                "computer_id": self.computer_id,
+                "field_value": NGRAM_READOUT_FIELD_VALUE,
+                "changed": False,
+                "model_id": current["model_id"],
+                "table_id": current["table_id"],
+                "revision": current["revision"],
+                "coefficient_sha256": current["coefficients"]["sha256"],
+                "state_sha256": self.state_sha256,
+            }
+        try:
+            if self.is_paged:
+                image, migration = self._bounded(
+                    _regions.declare_named_value_paged,
+                    self.field.image,
+                    NGRAM_READOUT_FIELD_VALUE,
+                    state,
+                    capacity_words,
+                )
+                self._suspend(
+                    migration, resident_limit=self.field.image.resident_limit
+                )
+                field: ComputerState | PagedComputerState = PagedComputerState(
+                    image, self.profile.fingerprint
+                )
+            else:
+                raw_field, migration = _regions.declare_named_value(
+                    self.field._field,
+                    self.profile,
+                    STANDARD_KERNEL_CATALOG,
+                    NGRAM_READOUT_FIELD_VALUE,
+                    state,
+                    capacity_words,
+                )
+                field = ComputerState(raw_field, self.profile.fingerprint)
+        except (_regions.RegionalFieldError, FieldComputerError) as exc:
+            raise LearningComputerCapacityError(
+                f"n-gram readout field allocation failed: {exc}"
+            ) from exc
+        successor = replace(self, field=field)
+        return successor, {
+            "schema": NGRAM_READOUT_MIGRATION_SCHEMA,
+            "kind": "ngram-readout-enabled",
+            "computer_id": self.computer_id,
+            "field_value": NGRAM_READOUT_FIELD_VALUE,
+            "model_id": state["model_id"],
+            "table_id": state["table_id"],
+            "width": state["width"],
+            "rank": state["rank"],
+            "revision": state["revision"],
+            "coefficient_sha256": state["coefficients"]["sha256"],
+            "capacity_words": capacity_words,
+            "predecessor_state_sha256": self.state_sha256,
+            "state_sha256": successor.state_sha256,
+            "field_transition": dict(migration),
+        }
+
+    def ngram_readout_state(self) -> dict[str, Any]:
+        """Read the validated n-gram coefficients from their canonical field slot."""
+        if NGRAM_READOUT_FIELD_VALUE not in self._region_capacity():
+            raise LearningComputerError("n-gram readout is not enabled in this field")
+        try:
+            return _ngram_learning.validate_state(
+                self.named_value(NGRAM_READOUT_FIELD_VALUE)
+            )
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError(
+                "canonical n-gram readout field value is invalid"
+            ) from exc
+
+    def learn_ngram_readout(
+        self,
+        table_vector: Sequence[float] | np.ndarray,
+        hidden: Sequence[float] | np.ndarray,
+        feedback: Mapping[str, Any],
+    ) -> tuple["LearningComputer", dict[str, Any]]:
+        """Learn once from an identified token margin and publish in the field."""
+        current = self.ngram_readout_state()
+        try:
+            raw_table = np.asarray(table_vector)
+            raw_hidden = np.asarray(hidden)
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError(
+                "n-gram learning vectors must be numeric sequences"
+            ) from exc
+        if (
+            raw_table.ndim != 1
+            or raw_table.size != _ngram_learning.TABLE_VECTOR_SIZE
+            or raw_table.dtype.kind not in "fiu"
+            or raw_hidden.ndim != 1
+            or raw_hidden.size != int(current["width"])
+            or raw_hidden.dtype.kind not in "fiu"
+        ):
+            raise LearningComputerError(
+                "n-gram learning vectors have an invalid numeric layout"
+            )
+        try:
+            table_values = np.asarray(raw_table, dtype=np.float32)
+            hidden_values = np.asarray(raw_hidden, dtype=np.float32)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise LearningComputerError(
+                "n-gram learning vectors cannot be represented as float32"
+            ) from exc
+        if not np.isfinite(table_values).all() or not np.isfinite(hidden_values).all():
+            raise LearningComputerError(
+                "n-gram learning vectors contain nonfinite values"
+            )
+        try:
+            updated = dict(
+                _ngram_learning.learn(
+                    current, table_values, hidden_values, feedback
+                )
+            )
+        except (TypeError, ValueError) as exc:
+            raise LearningComputerError(
+                f"n-gram readout learning was rejected: {exc}"
+            ) from exc
+        try:
+            field, transition = self._write_named_value(
+                NGRAM_READOUT_FIELD_VALUE, updated
+            )
+        except (_regions.RegionalFieldError, FieldComputerError) as exc:
+            raise LearningComputerCapacityError(
+                f"n-gram readout field update failed: {exc}"
+            ) from exc
+        successor = replace(self, field=field)
+        last = updated["last_feedback"]
+        return successor, {
+            "schema": NGRAM_READOUT_MIGRATION_SCHEMA,
+            "kind": "ngram-readout-learned",
+            "computer_id": self.computer_id,
+            "field_value": NGRAM_READOUT_FIELD_VALUE,
+            "model_id": updated["model_id"],
+            "table_id": updated["table_id"],
+            "feedback_id": last["id"],
+            "context_sha256": last["context_sha256"],
+            "next_token_id": last["next_token_id"],
+            "competitor_token_id": last["competitor_token_id"],
+            "advantage": last["advantage"],
+            "revision_before": current["revision"],
+            "revision_after": updated["revision"],
+            "coefficient_sha256_before": current["coefficients"]["sha256"],
+            "coefficient_sha256_after": updated["coefficients"]["sha256"],
+            "predecessor_state_sha256": self.state_sha256,
+            "state_sha256": successor.state_sha256,
+            "field_transition": dict(transition),
+        }
+    def begin_model_cycle(self, task_id: str) -> ResidentModelCycle:
+        """Advance the resident model graph privately until its token boundary."""
+        return ResidentModelCycle(self, task_id)
+
 
     def inspect(self) -> dict[str, Any]:
         machine = self._inspect()
@@ -2892,8 +3484,10 @@ class LearningComputer:
             or local.state_sha256 == original.state_sha256
             or self._settled_no_progress(receipt)
         ):
+            transitions = receipt.get("run", {}).get("transition_receipts", [])
+            blocked = transitions[-1].get("blocked_reasons") if transitions else None
             raise LearningComputerError(
-                "settled invocation made no regional progress"
+                f"settled invocation made no regional progress (blocked={blocked})"
             )
         receipts = [dict(receipt)]
         while True:
@@ -2930,8 +3524,10 @@ class LearningComputer:
                 or local.state_sha256 == previous_hash
                 or self._settled_no_progress(receipt)
             ):
+                transitions = receipt.get("transition_receipts", [])
+                blocked = transitions[-1].get("blocked_reasons") if transitions else None
                 raise LearningComputerError(
-                    "settled invocation made no regional progress"
+                    f"settled invocation made no regional progress (blocked={blocked})"
                 )
             self._check_settled_capacity(
                 before_capacity,
@@ -3019,6 +3615,52 @@ class LearningComputer:
             "kernel": kernel,
             "admission": admission,
             "run": run,
+            "state_sha256": successor.state_sha256,
+        }
+
+    def enqueue_event(
+        self, event: Mapping[str, Any]
+    ) -> tuple[LearningComputer, Mapping[str, Any]]:
+        """Admit a versioned runnable event through this computer's one queue."""
+
+        if not isinstance(event, Mapping):
+            raise LearningComputerError("regional event must be an object")
+        try:
+            if self.is_paged:
+                state, receipt = self._bounded(
+                    self._controller().enqueue_event_paged, self.field, event
+                )
+            else:
+                state, receipt = self._controller().enqueue_event(self.field, event)
+            successor = replace(self, field=state)
+        except FieldComputerError as exc:
+            raise LearningComputerError(f"event admission failed: {exc}") from exc
+        return successor, {
+            **receipt,
+            "computer_id": self.computer_id,
+            "state_sha256": successor.state_sha256,
+        }
+
+    def cancel_communication(
+        self, *, event_id: int, intent_sha256: str,
+    ) -> tuple[LearningComputer, Mapping[str, Any]]:
+        """Commit cancellation of one still-pending field communication."""
+        try:
+            if self.is_paged:
+                state, receipt = self._bounded(
+                    self._controller().cancel_communication,
+                    self.field, event_id, intent_sha256,
+                )
+            else:
+                state, receipt = self._controller().cancel_communication(
+                    self.field, event_id, intent_sha256,
+                )
+        except FieldComputerError as exc:
+            raise LearningComputerError(f"communication cancellation failed: {exc}") from exc
+        successor = replace(self, field=state)
+        return successor, {
+            **receipt,
+            "computer_id": self.computer_id,
             "state_sha256": successor.state_sha256,
         }
 
@@ -3516,3 +4158,98 @@ class LearningComputer:
                 "continued source differs from retained solver source"
             )
         return self._run_solver(source, budget=budget)
+
+
+class ResidentModelCycle:
+    """One field-owned task cycle with a single regional write at the boundary.
+
+    The existing program and model kernels still choose and admit every stage.
+    Only the repeated full-field serialization between stages is deferred; the
+    owner keeps the neural membrane candidate private over the same interval.
+    """
+
+    def __init__(self, computer: LearningComputer, task_id: str) -> None:
+        from programs.runtime.kernel import REGIONAL_KERNEL_NAME, REGIONAL_STATE_SCHEMA
+
+        session, task = (
+            computer.named_value("session"),
+            computer.named_value("task"),
+        )
+        model_task = task.get("tasks", {}).get(task_id) if isinstance(task, Mapping) else None
+        if (
+            not isinstance(session, Mapping)
+            or session.get("kernel") != REGIONAL_KERNEL_NAME
+            or not isinstance(task, dict)
+            or task.get("schema") != REGIONAL_STATE_SCHEMA
+            or not isinstance(model_task, dict)
+            or model_task.get("kind") != "model"
+            or not isinstance(model_task.get("state"), dict)
+        ):
+            raise LearningComputerError("resident model cycle has no field-owned model task")
+        self._computer = computer
+        self._task_id = task_id
+        self._task = task
+        self._work = 0
+        self._dispatches = 0
+        self._closed = False
+
+    @property
+    def runtime_state(self) -> Mapping[str, Any]:
+        return self._task
+
+    def advance(
+        self, *, arguments: Mapping[str, Any], quantum: int
+    ) -> Mapping[str, Any]:
+        from programs.runtime.kernel import _advance_task
+
+        if self._closed:
+            raise LearningComputerError("resident model cycle has already committed")
+        if not isinstance(arguments, Mapping) or not isinstance(quantum, int) or isinstance(quantum, bool) or quantum < 1:
+            raise LearningComputerError("resident model cycle requires typed positive work")
+        try:
+            _, work, _ = _advance_task(
+                self._task, self._task_id,
+                arguments=arguments, quantum=quantum, project=False,
+            )
+        except (ResourceWait, LearningComputerResidencyWait):
+            raise
+        except ValueError as exc:
+            raise LearningComputerError(f"resident model cycle fault: {exc}") from exc
+        self._work += work
+        self._dispatches += 1
+        model_task = self._task["tasks"][self._task_id]
+        return {
+            "status": model_task["status"],
+            "phase": model_task["state"]["phase"],
+            "work": work,
+        }
+
+    def finish(self) -> tuple[LearningComputer, Mapping[str, Any]]:
+        from programs.runtime.kernel import REGIONAL_KERNEL_NAME
+
+        if self._closed or not self._dispatches:
+            raise LearningComputerError("resident model cycle has no unsettled work")
+        try:
+            state, _ = self._computer._write_named_value("task", self._task)
+            successor = replace(self._computer, field=state)
+            session = successor.named_value("session")
+            task_status = self._task["tasks"][self._task_id]["status"]
+            if session.get("status") != task_status:
+                state, _ = successor._write_named_value(
+                    "session", {**session, "status": task_status},
+                )
+                successor = replace(successor, field=state)
+        except (ResourceWait, LearningComputerResidencyWait):
+            raise
+        except ValueError as exc:
+            if "region value exceeds allocated capacity" in str(exc):
+                raise LearningComputerCapacityError(str(exc)) from exc
+            raise LearningComputerError(f"resident model cycle commit failed: {exc}") from exc
+        self._closed = True
+        return successor, {
+            "schema": "cassifi.learning-computer-invoke-receipt.v1",
+            "kernel": REGIONAL_KERNEL_NAME,
+            "admission": {"task_id": self._task_id, "dispatches": self._dispatches},
+            "run": {"status": task_status, "work": self._work},
+            "state_sha256": successor.state_sha256,
+        }

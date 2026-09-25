@@ -12,7 +12,8 @@ from typing import Any
 
 from cassi_field_atlas import FieldIntelligenceError, sha256_value
 
-AFFECT_CONTEXT_SCHEMA = "cassifi.affect-context.v2"
+AFFECT_CONTEXT_SCHEMA = "cassifi.affect-context.v3"
+AFFECT_CONCERN_SCHEMA = "cassifi.affect-concern.v1"
 AFFECT_APPRAISAL_SCHEMA = "cassifi.affect-appraisal.v2"
 AFFECT_REGULATION_SCHEMA = "cassifi.affect-regulation.v2"
 AFFECT_OUTCOME_SCHEMA = "cassifi.affect-outcome.v1"
@@ -347,6 +348,126 @@ def projection_key(
     })
 
 
+def affect_concern_ref(
+    *, project_id: str, question_ref: Mapping[str, Any] | None,
+    object_refs: Sequence[Mapping[str, Any]], goal_ref: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Build the stable, version-aware identity of one bound concern."""
+    if not isinstance(project_id, str) or not project_id:
+        raise FieldIntelligenceError("INVALID_AFFECT", "affect concern project_id is invalid")
+    question = _reference(question_ref, "affect concern question_ref", nullable=True)
+    objects = _references(object_refs, "affect concern object_refs")
+    goal = _reference(goal_ref, "affect concern goal_ref", nullable=True)
+    objects.sort(key=lambda ref: (ref["id"], ref["kind"], ref["content_version"]))
+    unique: dict[tuple[str, str, int], dict[str, Any]] = {
+        (ref["id"], ref["kind"], ref["content_version"]): ref for ref in objects
+    }
+    objects = list(unique.values())
+    identity = {
+        "project_id": project_id,
+        "question_id": None if question is None else question["id"],
+        "object_ids": sorted({ref["id"] for ref in objects}),
+        "goal_id": None if goal is None else goal["id"],
+    }
+    return {
+        "concern_id": sha256_value(identity),
+        "project_id": project_id,
+        "question_ref": question,
+        "object_refs": objects,
+        "goal_ref": goal,
+    }
+
+
+def affect_concern_id(
+    *, project_id: str, question_ref: Mapping[str, Any] | None,
+    object_refs: Sequence[Mapping[str, Any]], goal_ref: Mapping[str, Any] | None,
+) -> str:
+    return str(affect_concern_ref(
+        project_id=project_id, question_ref=question_ref,
+        object_refs=object_refs, goal_ref=goal_ref,
+    )["concern_id"])
+
+
+def _unique_refs(refs: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    unique = {
+        (ref["id"], ref["kind"], ref["content_version"]): dict(ref)
+        for ref in refs
+    }
+    return [unique[key] for key in sorted(unique)]
+
+
+def _concern_projection(rows: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, tuple[dict[str, Any], list[Mapping[str, Any]]]] = {}
+    for row in rows:
+        value = row["payload"]["affect_appraisal"]
+        concern_ref = affect_concern_ref(
+            project_id=value["project_id"],
+            question_ref=value.get("question_ref"),
+            object_refs=value.get("object_refs", []),
+            goal_ref=value.get("goal_ref"),
+        )
+        slot = grouped.get(concern_ref["concern_id"])
+        if slot is None:
+            grouped[concern_ref["concern_id"]] = (concern_ref, [row])
+        else:
+            slot[1].append(row)
+
+    projections: list[dict[str, Any]] = []
+    for concern_id in sorted(grouped):
+        concern_ref, source_rows = grouped[concern_id]
+        live_rows = _deduplicate(source_rows)
+        layer = _dimension_layer(live_rows)
+        effective_dimensions: dict[str, dict[str, Any]] = {}
+        for name in AFFECT_SIGNAL_NAMES:
+            fast, slow = layer["fast"][name], layer["slow"][name]
+            if fast["status"] != "known" or slow["status"] != "known":
+                effective_dimensions[name] = unknown_signal(name)
+                continue
+            basis = _unique_refs([*fast["basis_refs"], *slow["basis_refs"]])
+            effective_dimensions[name] = known_signal(
+                name, 0.65 * fast["value"] + 0.35 * slow["value"], basis,
+            )
+        appraisal_refs = [
+            {"id": row["id"], "kind": row["kind"],
+             "content_version": int(row["content_version"])}
+            for row in live_rows
+        ]
+        experience_refs = [
+            row["payload"]["affect_appraisal"]["experience_ref"]
+            for row in live_rows
+        ]
+        evidence_refs = [
+            ref
+            for row in live_rows
+            for signal in validate_signals(
+                row["payload"]["affect_appraisal"]["signals"]
+            ).values()
+            if signal["status"] == "known"
+            for ref in signal["basis_refs"]
+        ]
+        projections.append({
+            "schema": AFFECT_CONCERN_SCHEMA,
+            **concern_ref,
+            "concern_ref": dict(concern_ref),
+            "fast": layer["fast"],
+            "slow": layer["slow"],
+            "timescales": {
+                "immediate": layer["fast"],
+                "ongoing": layer["slow"],
+            },
+            "effective_dimensions": effective_dimensions,
+            "appraisal_refs": _unique_refs(appraisal_refs),
+            "experience_refs": _unique_refs(experience_refs),
+            "evidence_refs": _unique_refs(evidence_refs),
+            "experience_keys": sorted({
+                row["payload"]["affect_appraisal"]["experience_key"]
+                for row in live_rows
+            }),
+            "count": len(live_rows),
+        })
+    return projections
+
+
 def _dimension_layer(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
     fast = {name: {"status": "unknown", "value": None, "basis_refs": []} for name in AFFECT_SIGNAL_NAMES}
     slow = {name: {"status": "unknown", "value": None, "basis_refs": []} for name in AFFECT_SIGNAL_NAMES}
@@ -464,6 +585,7 @@ def affect_context(
         "layers": dimensions,
         "effective": effective,
         "effective_dimensions": effective_dimensions,
+        "concerns": _concern_projection(rows),
         "regulation": {
             "mode": mode,
             "strength": min(1.0, len(selected["local"] or selected["project"] or selected["global"]) / 4.0),

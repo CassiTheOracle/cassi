@@ -66,14 +66,21 @@ from cassi_resonant_field import (
     uniform_axial_divergence,
 )
 
-CIRCULATION_SCHEMA = "cassifi.resonant-circulation.v1"
+CIRCULATION_SCHEMA = "cassifi.resonant-circulation.v2"
+_LEGACY_CIRCULATION_SCHEMA = "cassifi.resonant-circulation.v1"
 CIRCULATION_STAGE_SCHEMA = "cassifi.resonant-circulation-stage.v1"
-CIRCULATION_READOUT_SCHEMA = "cassifi.resonant-circulation-readout.v1"
-CIRCULATION_ACTIVITY_SCHEMA = "cassifi.resonant-circulation-activity.v1"
+CIRCULATION_READOUT_SCHEMA = "cassifi.resonant-circulation-readout.v2"
+CIRCULATION_ACTIVITY_SCHEMA = "cassifi.resonant-circulation-activity.v2"
 CIRCULATION_MODULATION_AUTHORITY = "eligible-work-modulation-only"
 CIRCULATION_ATTENTION_SCHEMA = "cassifi.resonant-attention.v1"
 CIRCULATION_ROTATION_SCHEMA = "cassifi.resonant-frame-change.v1"
 CIRCULATION_BASIS_VERSION = "block-haar-v1"
+SPECTRAL_STATE_SCHEMA = "cassifi.resonant-spectrum.v3"
+_PREVIOUS_SPECTRAL_STATE_SCHEMA = "cassifi.resonant-spectrum.v2"
+_LEGACY_SPECTRAL_STATE_SCHEMA = "cassifi.resonant-spectrum.v1"
+SPECTRAL_BASIS_VERSION = "operator-projected-block-haar.v2"
+_PREVIOUS_SPECTRAL_BASIS_VERSION = "operator-projected-block-haar.v2"
+_LEGACY_SPECTRAL_BASIS_VERSION = "operator-projected-block-haar.v1"
 CIRCULATION_REGION_SCOPE = "resonant-scale"
 CIRCULATION_STEP = 0.05
 CIRCULATION_REMAINDER_FRACTION = 0.05
@@ -82,11 +89,17 @@ CIRCULATION_ATTENTION_STAGES = 32
 CIRCULATION_DEFAULT_PASSES = 1
 CIRCULATION_MAX_PASSES = 4096
 CIRCULATION_VIEW_SOURCE = "rebuilt-on-refresh"
+SPECTRAL_BANDWIDTH_RATIO = 0.25
+SPECTRAL_MAX_LOG_SHIFT = math.log(2.0)
+SPECTRAL_HISTORY_LIMIT = 32
+SPECTRAL_CONCERN_LIMIT = 128
 
 _CIRCULATION_KEYS = frozenset({
     "schema", "enabled", "basis", "views", "blocks", "regions", "edges",
     "stages", "geometry", "operator", "attention", "continuation", "ledger",
+    "spectrum",
 })
+_LEGACY_CIRCULATION_KEYS = _CIRCULATION_KEYS - {"spectrum"}
 _VIEW_KEYS = frozenset({"detail", "source"})
 _CIRCULATION_LEDGER_KEYS = (
     "stages", "exchanges", "alignments", "derived_updates", "parameter_work",
@@ -121,9 +134,54 @@ _REGION_KEYS = frozenset({
     "numerical_time", "integration_phase", "unfinished_work",
     "resource_accounts", "interface_work", "stale",
 })
+_SPECTRUM_KEYS = frozenset({
+    "schema", "basis", "status", "reason", "operator_digest", "regions",
+    "interfaces", "ledger", "last_exchange", "last_feedback", "history",
+    "compatibility",
+})
+_SPECTRAL_REGION_KEYS = frozenset({
+    "status", "reason", "frequencies", "coarse_mode", "detail_mode",
+    "coarse_weight", "detail_weight", "basis_sha256", "operator_residual",
+})
+_SPECTRAL_INTERFACE_KEYS = frozenset({
+    "status", "reason", "emitter_mode", "receiver_mode", "emitter_log_shift",
+    "receiver_log_shift", "bandwidth_ratio", "tuning_updates",
+    "last_appraisal_ref", "concern_tunings",
+})
+_LEGACY_SPECTRAL_INTERFACE_KEYS = _SPECTRAL_INTERFACE_KEYS - {"concern_tunings"}
+_SPECTRAL_TUNING_KEYS = frozenset({
+    "concern_ref", "appraisal_ref", "appraisal_basis", "progress",
+    "receiver_log_shift", "updates", "parameter_work", "operator_digest",
+})
+_SPECTRAL_LEDGER_KEYS = frozenset({
+    "exchanges", "transfer_work", "feedback_updates", "tuning_parameter_work",
+})
+_SPECTRAL_EXCHANGE_KEYS = frozenset({
+    "interface", "status", "reason", "emitter_mode", "receiver_mode",
+    "emitter_frequency", "receiver_frequency", "log_mismatch", "bandwidth",
+    "overlap", "base_weight", "effective_weight", "physical_transfer_work",
+    "parameter_work", "basis_sha256", "state_sha256",
+    "effective_receiver_log_shift", "concern_ids", "operator_residual",
+})
+_LEGACY_SPECTRAL_EXCHANGE_KEYS = _SPECTRAL_EXCHANGE_KEYS - {
+    "effective_receiver_log_shift", "concern_ids", "operator_residual",
+}
+_SPECTRAL_FEEDBACK_KEYS = frozenset({
+    "interface", "appraisal_ref", "outcome", "progress", "before_shift",
+    "after_shift", "source_frequency", "receiver_frequency", "direction",
+    "parameter_work", "state_sha256", "concern_ref", "appraisal_basis",
+    "operator_digest", "operator_residual", "effective_before_shift",
+    "effective_after_shift", "mismatch_before", "mismatch_after",
+    "potential_before", "potential_after",
+})
+_LEGACY_SPECTRAL_FEEDBACK_KEYS = _SPECTRAL_FEEDBACK_KEYS - {
+    "concern_ref", "appraisal_basis", "operator_digest", "operator_residual",
+    "effective_before_shift", "effective_after_shift", "mismatch_before",
+    "mismatch_after", "potential_before", "potential_after",
+}
 _STAGE_KEYS = frozenset({"version", "parent_version", "child_version", "digest"})
 _PHASES = ("refresh", "exchange", "align", "close")
-# Declared relative scales of the canonical metric structure, one per kind.
+# Declared relative scales of the canonical metric, one per kind.
 _EDGE_SCALES = {"intra": 0.5, "intra-closed": 0.35, "neck": 0.7, "circuit": 1.0}
 
 _EPSILON = float(np.finfo(np.float64).eps)
@@ -491,6 +549,524 @@ def _operator_rows(profile: Mapping[str, Any], operator: _RegionalWaveOperator,
         )
     return table["edges"]
 
+def _initial_spectrum(region_ids: Sequence[str],
+                      edges: Sequence[tuple[str, str]]) -> dict[str, Any]:
+    reason = "the active operator spectrum is measured before exchange"
+    return {
+        "schema": SPECTRAL_STATE_SCHEMA,
+        "basis": SPECTRAL_BASIS_VERSION,
+        "status": "pending",
+        "reason": reason,
+        "operator_digest": None,
+        "regions": {
+            identity: {
+                "status": "pending", "reason": reason, "frequencies": [],
+                "coarse_mode": None, "detail_mode": None,
+                "coarse_weight": 0.0, "detail_weight": 0.0,
+                "basis_sha256": None, "operator_residual": None,
+            }
+            for identity in region_ids
+        },
+        "interfaces": {
+            f"{parent}->{child}": {
+                "status": "pending", "reason": reason, "emitter_mode": None,
+                "receiver_mode": None, "emitter_log_shift": 0.0,
+                "receiver_log_shift": 0.0,
+                "bandwidth_ratio": SPECTRAL_BANDWIDTH_RATIO,
+                "tuning_updates": 0, "last_appraisal_ref": None,
+                "concern_tunings": {},
+            }
+            for parent, child in edges
+        },
+        "ledger": {
+            "exchanges": 0.0, "transfer_work": 0.0,
+            "feedback_updates": 0.0, "tuning_parameter_work": 0.0,
+        },
+        "last_exchange": None,
+        "last_feedback": None,
+        "history": [],
+        "compatibility": None,
+    }
+
+
+def _spectral_operator_digest(operator: _RegionalWaveOperator,
+                              circulation_operator: Mapping[str, Any]) -> str:
+    """Hash the local Hamiltonian Hessian and inverse-mass dependencies."""
+
+    arrays = {
+        name: _digest(np.asarray(getattr(operator, name), dtype=np.float64).tolist())
+        for name in ("transport", "inv_mass", "beta", "k")
+    }
+    arrays["ports"] = _digest(np.asarray(operator.ports, dtype=np.int64).tolist())
+    arrays["constraints"] = _digest(
+        np.asarray(operator.constraints, dtype=np.float64).tolist()
+    )
+    arrays["targets"] = _digest(np.asarray(operator.targets, dtype=np.float64).tolist())
+    return _digest({
+        "circulation_operator": circulation_operator["digest"],
+        "arrays": arrays,
+        "relative_stiffness": float(operator.profile["relative_stiffness"]),
+        "constraint_count": int(len(operator.targets)),
+        "basis": SPECTRAL_BASIS_VERSION,
+    })
+
+
+def _canonicalize_projected_modes(
+    eigenvalues: np.ndarray, eigenvectors: np.ndarray, mass_root: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Give numerically degenerate modes a deterministic channel-aware basis."""
+
+    values = np.asarray(eigenvalues, dtype=np.float64).copy()
+    vectors = np.asarray(eigenvectors, dtype=np.float64).copy()
+    tolerance = 64.0 * _EPSILON * max(
+        1.0, float(np.max(np.abs(values), initial=0.0))
+    )
+    scale = max(
+        float(np.linalg.norm(mass_root, ord=2)),
+        float(np.finfo(np.float64).tiny),
+    )
+    projection_floor = 64.0 * _EPSILON * scale
+    inv_sqrt_two = 1.0 / math.sqrt(2.0)
+    targets = np.asarray([
+        [inv_sqrt_two, inv_sqrt_two, 0.0, 0.0],
+        [0.0, 0.0, inv_sqrt_two, inv_sqrt_two],
+        [inv_sqrt_two, -inv_sqrt_two, 0.0, 0.0],
+        [0.0, 0.0, inv_sqrt_two, -inv_sqrt_two],
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ], dtype=np.float64)
+    start = 0
+    while start < len(values):
+        end = start + 1
+        while end < len(values) and abs(float(values[end] - values[end - 1])) <= tolerance:
+            end += 1
+        rank = end - start
+        subspace = vectors[:, start:end].copy()
+        if rank > 1:
+            basis: list[np.ndarray] = []
+            for target in targets:
+                coefficients = subspace.T @ mass_root @ target
+                for prior in basis:
+                    coefficients -= prior * float(prior @ coefficients)
+                norm = float(np.linalg.norm(coefficients))
+                if norm > projection_floor:
+                    basis.append(coefficients / norm)
+                    if len(basis) == rank:
+                        break
+            if len(basis) != rank:
+                raise ResonantNumericalError(
+                    "degenerate projected modes lack a canonical basis"
+                )
+            vectors[:, start:end] = subspace @ np.column_stack(basis)
+            values[start:end] = float(np.mean(values[start:end]))
+        for mode in range(start, end):
+            position = mass_root @ vectors[:, mode]
+            pivot = int(np.argmax(np.abs(position)))
+            if position[pivot] < 0.0:
+                vectors[:, mode] *= -1.0
+        start = end
+    return values, vectors
+
+
+def _projected_region_spectrum(operator: _RegionalWaveOperator, words: np.ndarray,
+                               first: int, last: int) -> dict[str, Any]:
+    """Project exact local energy curvature and inverse mass onto Haar modes."""
+
+    if len(operator.targets) or np.any(np.asarray(operator.constraints) != 0.0):
+        raise ResonantNumericalError(
+            "active affine constraints have no declared projected spectral basis"
+        )
+    count = int(operator.n)
+    if not 0 <= first < last <= count:
+        raise ResonantNumericalError("spectral region bounds are outside the operator")
+    coarse, detail = _circulation_basis(last - first)
+    spatial = (coarse, detail)
+    q_basis: list[tuple[int, int]] = [
+        (spatial_index, lane)
+        for spatial_index in range(2) for lane in range(2)
+    ]
+    current = _as_f64(words, (4 * count,), "spectral wave words")
+    relative_state = (current[:count] - current[count:2 * count]) / math.sqrt(2.0)
+    relative_curvature = (
+        float(operator.profile["relative_stiffness"])
+        + 3.0 * np.asarray(operator.beta, dtype=np.float64) * relative_state ** 2
+    )
+    hessian = np.zeros((4, 4), dtype=np.float64)
+    inverse_mass = np.zeros((4, 4), dtype=np.float64)
+
+    def q_projection(y: np.ndarray, i: np.ndarray) -> np.ndarray:
+        return np.asarray([
+            float(direction @ lane[first:last])
+            for direction in spatial for lane in (y, i)
+        ], dtype=np.float64)
+
+    def p_projection(momentum: np.ndarray) -> np.ndarray:
+        py, pi = momentum[:count], momentum[count:]
+        return np.asarray([
+            float(direction @ lane[first:last])
+            for direction in spatial for lane in (py, pi)
+        ], dtype=np.float64)
+
+    for column, (spatial_index, lane) in enumerate(q_basis):
+        dy = np.zeros(count, dtype=np.float64)
+        di = np.zeros(count, dtype=np.float64)
+        if lane == 0:
+            dy[first:last] = spatial[spatial_index]
+        else:
+            di[first:last] = spatial[spatial_index]
+        common = (dy + di) / math.sqrt(2.0)
+        relative = (dy - di) / math.sqrt(2.0)
+        semantic = np.asarray(operator.semantic(common, force=False), dtype=np.float64)
+        operator.applications += 1
+        rel_gradient = relative_curvature * relative
+        grad_y = (semantic + rel_gradient) / math.sqrt(2.0)
+        grad_i = (semantic - rel_gradient) / math.sqrt(2.0)
+        hessian[:, column] = q_projection(grad_y, grad_i)
+
+        momentum = np.zeros(2 * count, dtype=np.float64)
+        if lane == 0:
+            momentum[first:last] = spatial[spatial_index]
+        else:
+            momentum[count + first:count + last] = spatial[spatial_index]
+        inverse_mass[:, column] = p_projection(np.asarray(
+            operator.mass_apply(momentum), dtype=np.float64
+        ))
+        operator.applications += 1
+
+    hessian = (hessian + hessian.T) * 0.5
+    inverse_mass = (inverse_mass + inverse_mass.T) * 0.5
+    mass_values, mass_vectors = np.linalg.eigh(inverse_mass)
+    mass_tolerance = 64.0 * _EPSILON * max(
+        1.0, float(np.max(np.abs(mass_values), initial=0.0))
+    )
+    if float(np.min(mass_values)) <= mass_tolerance:
+        raise ResonantNumericalError(
+            "projected inverse mass is not positive definite"
+        )
+    mass_root = (mass_vectors * np.sqrt(mass_values)) @ mass_vectors.T
+    dynamical = mass_root @ hessian @ mass_root
+    dynamical = (dynamical + dynamical.T) * 0.5
+    eigenvalues, eigenvectors = np.linalg.eigh(dynamical)
+    tolerance = 64.0 * _EPSILON * max(
+        1.0, float(np.max(np.abs(eigenvalues), initial=0.0))
+    )
+    if float(np.min(eigenvalues)) <= tolerance:
+        raise ResonantNumericalError(
+            "projected active energy curvature is not positive definite"
+        )
+    eigenvalues, eigenvectors = _canonicalize_projected_modes(
+        eigenvalues, eigenvectors, mass_root
+    )
+    residual_matrix = dynamical @ eigenvectors - eigenvectors * eigenvalues[None, :]
+    operator_residual = float(
+        np.linalg.norm(residual_matrix, ord=2)
+        / max(1.0, float(np.linalg.norm(dynamical, ord=2)))
+    )
+    if not math.isfinite(operator_residual) or operator_residual > 1e-10:
+        raise ResonantNumericalError("projected operator eigensolve residual is too large")
+    frequencies = np.sqrt(eigenvalues)
+    positions = mass_root @ eigenvectors
+    coarse_weights: list[float] = []
+    detail_weights: list[float] = []
+    for mode in range(4):
+        q = positions[:, mode]
+        norm = max(float(q @ q), 1e-300)
+        coarse_common = (q[0] + q[1]) / math.sqrt(2.0)
+        detail_common = (q[2] + q[3]) / math.sqrt(2.0)
+        coarse_weights.append(float(min(1.0, coarse_common * coarse_common / norm)))
+        detail_weights.append(float(min(1.0, detail_common * detail_common / norm)))
+    coarse_mode = int(np.argmax(coarse_weights))
+    detail_mode = int(np.argmax(detail_weights))
+    if max(coarse_weights) < 0.25 or max(detail_weights) < 0.25:
+        raise ResonantNumericalError(
+            "projected local modes do not resolve coarse and detail channels"
+        )
+    basis_digest = _digest({
+        "hessian": hessian.tolist(),
+        "inverse_mass": inverse_mass.tolist(),
+        "frequencies": frequencies.tolist(),
+        "mode_vectors": eigenvectors.tolist(),
+        "operator_residual": operator_residual,
+    })
+    return {
+        "status": "available", "reason": None,
+        "frequencies": [float(value) for value in frequencies],
+        "coarse_mode": coarse_mode, "detail_mode": detail_mode,
+        "coarse_weight": float(coarse_weights[coarse_mode]),
+        "detail_weight": float(detail_weights[detail_mode]),
+        "basis_sha256": basis_digest,
+        "operator_residual": operator_residual,
+    }
+
+
+def _append_spectral_history(spectrum: dict[str, Any],
+                             event: Mapping[str, Any]) -> None:
+    history = list(spectrum["history"])
+    history.append(_plain(event))
+    spectrum["history"] = history[-SPECTRAL_HISTORY_LIMIT:]
+
+
+def _upgrade_spectrum(spectrum: Mapping[str, Any]) -> dict[str, Any]:
+    """Upgrade persisted spectral state while retaining supported attribution."""
+    upgraded = _plain(spectrum)
+    version = upgraded.get("schema")
+    basis = upgraded.get("basis")
+    if (version, basis) not in {
+        (SPECTRAL_STATE_SCHEMA, SPECTRAL_BASIS_VERSION),
+        (_PREVIOUS_SPECTRAL_STATE_SCHEMA, _PREVIOUS_SPECTRAL_BASIS_VERSION),
+        (_LEGACY_SPECTRAL_STATE_SCHEMA, _LEGACY_SPECTRAL_BASIS_VERSION),
+    }:
+        raise ResonantNumericalError("spectral state schema or basis version is invalid")
+    if version == SPECTRAL_STATE_SCHEMA:
+        return upgraded
+    for row in upgraded["interfaces"].values():
+        row.setdefault("concern_tunings", {})
+    if isinstance(upgraded.get("last_exchange"), Mapping):
+        upgraded["last_exchange"].setdefault("effective_receiver_log_shift", None)
+        upgraded["last_exchange"].setdefault("concern_ids", [])
+        upgraded["last_exchange"].setdefault("operator_residual", None)
+    if isinstance(upgraded.get("last_feedback"), Mapping):
+        upgraded["last_feedback"].update({
+            "concern_ref": None,
+            "appraisal_basis": None,
+            "operator_digest": upgraded.get("operator_digest"),
+            "operator_residual": None,
+            "effective_before_shift": None,
+            "effective_after_shift": None,
+            "mismatch_before": None,
+            "mismatch_after": None,
+            "potential_before": None,
+            "potential_after": None,
+        })
+    upgraded["schema"] = SPECTRAL_STATE_SCHEMA
+    upgraded["basis"] = SPECTRAL_BASIS_VERSION
+    return upgraded
+
+
+def _ensure_spectrum(segment: dict[str, Any], operator: _RegionalWaveOperator,
+                     words: np.ndarray) -> dict[str, Any]:
+    """Initialize or invalidate the persisted basis before an exchange."""
+
+    spectrum = segment.get("spectrum")
+    upgraded = False
+    if spectrum is None:
+        spectrum = _initial_spectrum(
+            tuple(segment["regions"]),
+            tuple(tuple(edge) for edge in segment["edges"]),
+        )
+        segment["spectrum"] = spectrum
+    elif isinstance(spectrum, Mapping):
+        upgraded = spectrum.get("schema") != SPECTRAL_STATE_SCHEMA
+        spectrum = _upgrade_spectrum(spectrum)
+        segment["spectrum"] = spectrum
+    else:
+        raise ResonantNumericalError("spectral state is invalid")
+    signature = _spectral_operator_digest(operator, segment["operator"])
+    if (
+        not upgraded and spectrum["operator_digest"] == signature
+        and spectrum["status"] != "pending"
+    ):
+        return spectrum
+    prior_digest = spectrum["operator_digest"]
+    compatible = prior_digest in (None, signature)
+    operator_reason = None
+    region_rows: dict[str, Any] = {}
+    for identity, raw in _sorted_regions(segment):
+        first, last = _block_span(raw)
+        try:
+            region_rows[identity] = _projected_region_spectrum(
+                operator, words, first, last
+            )
+        except (ResonantNumericalError, np.linalg.LinAlgError) as exc:
+            region_rows[identity] = {
+                "status": "unavailable", "reason": str(exc), "frequencies": [],
+                "coarse_mode": None, "detail_mode": None,
+                "coarse_weight": 0.0, "detail_weight": 0.0,
+                "basis_sha256": None, "operator_residual": None,
+            }
+            operator_reason = str(exc)
+    interfaces: dict[str, Any] = {}
+    for parent, child in (tuple(edge) for edge in segment["edges"]):
+        key = f"{parent}->{child}"
+        prior = spectrum["interfaces"].get(key, {})
+        emitter = region_rows[parent]
+        receiver = region_rows[child]
+        if emitter["status"] == "available" and receiver["status"] == "available":
+            interfaces[key] = {
+                "status": "available", "reason": None,
+                "emitter_mode": int(emitter["coarse_mode"]),
+                "receiver_mode": int(receiver[
+                    "detail_mode" if parent == child else "coarse_mode"
+                ]),
+                "emitter_log_shift": (
+                    float(prior.get("emitter_log_shift", 0.0)) if compatible else 0.0
+                ),
+                "receiver_log_shift": (
+                    float(prior.get("receiver_log_shift", 0.0)) if compatible else 0.0
+                ),
+                "bandwidth_ratio": float(prior.get(
+                    "bandwidth_ratio", SPECTRAL_BANDWIDTH_RATIO
+                )),
+                "tuning_updates": (
+                    int(prior.get("tuning_updates", 0)) if compatible else 0
+                ),
+                "last_appraisal_ref": (
+                    _plain(prior["last_appraisal_ref"])
+                    if compatible and prior.get("last_appraisal_ref") is not None
+                    else None
+                ),
+                "concern_tunings": (
+                    _plain(prior.get("concern_tunings", {}))
+                    if compatible else {}
+                ),
+            }
+        else:
+            reason = emitter["reason"] or receiver["reason"]
+            interfaces[key] = {
+                "status": "unavailable", "reason": reason,
+                "emitter_mode": None, "receiver_mode": None,
+                "emitter_log_shift": 0.0, "receiver_log_shift": 0.0,
+                "bandwidth_ratio": SPECTRAL_BANDWIDTH_RATIO,
+                "tuning_updates": 0, "last_appraisal_ref": None,
+                "concern_tunings": {},
+            }
+    available = sum(row["status"] == "available" for row in region_rows.values())
+    status = ("available" if available == len(region_rows) else
+              "partial" if available else "unavailable")
+    if status == "available":
+        reason = None
+    elif status == "partial":
+        reason = "one or more regional operator spectra are unavailable"
+    else:
+        reason = operator_reason or "no regional operator spectrum is available"
+    spectrum.update({
+        "schema": SPECTRAL_STATE_SCHEMA, "basis": SPECTRAL_BASIS_VERSION,
+        "status": status, "reason": reason, "operator_digest": signature,
+        "regions": region_rows, "interfaces": interfaces,
+    })
+    if not compatible:
+        spectrum["last_exchange"] = None
+        spectrum["last_feedback"] = None
+        spectrum["compatibility"] = {
+            "from_operator_digest": prior_digest,
+            "to_operator_digest": signature,
+            "reason": "operator basis changed; spectral tuning was reset",
+        }
+    return spectrum
+
+
+
+def _effective_receiver_log_shift(link: Mapping[str, Any]) -> float:
+    """Bound the base shift plus independent concern-specific shifts."""
+    shift = float(link["receiver_log_shift"])
+    tunings = link.get("concern_tunings", {})
+    if isinstance(tunings, Mapping):
+        shift += sum(
+            float(tuning["receiver_log_shift"])
+            for tuning in tunings.values()
+        )
+    return max(-SPECTRAL_MAX_LOG_SHIFT, min(SPECTRAL_MAX_LOG_SHIFT, shift))
+
+
+def _spectral_exchange_factor(segment: dict[str, Any],
+                              operator: _RegionalWaveOperator, words: np.ndarray,
+                              parent: str, child: str) -> dict[str, Any]:
+    spectrum = _ensure_spectrum(segment, operator, words)
+    key = f"{parent}->{child}"
+    link = spectrum["interfaces"][key]
+    if link["status"] != "available":
+        return {"status": "unavailable", "reason": link["reason"],
+                "factor": 1.0, "interface": key}
+    fresh: dict[str, dict[str, Any]] = {}
+    for identity in {parent, child}:
+        first, last = _block_span(segment["regions"][identity])
+        try:
+            fresh[identity] = _projected_region_spectrum(
+                operator, words, first, last
+            )
+        except (ResonantNumericalError, np.linalg.LinAlgError) as exc:
+            link["status"], link["reason"] = "unavailable", str(exc)
+            return {"status": "unavailable", "reason": str(exc),
+                    "factor": 1.0, "interface": key}
+        spectrum["regions"][identity] = fresh[identity]
+    emitter = fresh[parent]
+    receiver = fresh[child]
+    emitter_mode = int(emitter["coarse_mode"])
+    receiver_mode = int(receiver[
+        "detail_mode" if parent == child else "coarse_mode"
+    ])
+    effective_receiver_shift = _effective_receiver_log_shift(link)
+    emitter_frequency = float(emitter["frequencies"][emitter_mode]) * math.exp(
+        float(link["emitter_log_shift"])
+    )
+    receiver_frequency = float(receiver["frequencies"][receiver_mode]) * math.exp(
+        effective_receiver_shift
+    )
+    mismatch = math.log(emitter_frequency / receiver_frequency)
+    bandwidth = float(link["bandwidth_ratio"])
+    overlap = 1.0 / (1.0 + (mismatch / bandwidth) ** 2)
+    operator_residual = max(
+        float(emitter["operator_residual"]), float(receiver["operator_residual"])
+    )
+    basis_sha = _digest({
+        "emitter": emitter["basis_sha256"], "receiver": receiver["basis_sha256"],
+        "operator": spectrum["operator_digest"],
+        "operator_residual": operator_residual,
+    })
+    return {
+        "status": "available", "reason": None, "interface": key,
+        "factor": float(overlap), "emitter_mode": emitter_mode,
+        "receiver_mode": receiver_mode, "emitter_frequency": emitter_frequency,
+        "receiver_frequency": receiver_frequency, "log_mismatch": mismatch,
+        "bandwidth": bandwidth, "overlap": float(overlap),
+        "basis_sha256": basis_sha,
+        "effective_receiver_log_shift": effective_receiver_shift,
+        "concern_ids": sorted(link.get("concern_tunings", {})),
+        "operator_residual": operator_residual,
+    }
+
+def _record_spectral_exchange(segment: dict[str, Any], trace: Mapping[str, Any], *,
+                              base_weight: float, effective_weight: float,
+                              physical_transfer_work: float,
+                              words: np.ndarray) -> dict[str, Any]:
+    spectrum = segment["spectrum"]
+    ledger = dict(spectrum["ledger"])
+    ledger["exchanges"] = float(ledger["exchanges"]) + 1.0
+    ledger["transfer_work"] = float(ledger["transfer_work"]) + float(
+        physical_transfer_work
+    )
+    spectrum["ledger"] = ledger
+    available = trace["status"] == "available"
+    record = {
+        "interface": str(trace["interface"]),
+        "status": "available" if available else "unavailable",
+        "reason": None if available else str(trace["reason"]),
+        "emitter_mode": trace.get("emitter_mode"),
+        "receiver_mode": trace.get("receiver_mode"),
+        "emitter_frequency": trace.get("emitter_frequency"),
+        "receiver_frequency": trace.get("receiver_frequency"),
+        "log_mismatch": trace.get("log_mismatch"),
+        "bandwidth": float(trace.get("bandwidth", SPECTRAL_BANDWIDTH_RATIO)),
+        "overlap": float(trace.get("overlap", 1.0)),
+        "base_weight": float(base_weight),
+        "effective_weight": float(effective_weight),
+        "physical_transfer_work": float(physical_transfer_work),
+        "parameter_work": 0.0,
+        "basis_sha256": trace.get("basis_sha256"),
+        "state_sha256": _digest(words.tolist()),
+        "effective_receiver_log_shift": trace.get("effective_receiver_log_shift"),
+        "concern_ids": list(trace.get("concern_ids", [])),
+        "operator_residual": trace.get("operator_residual"),
+    }
+    spectrum["last_exchange"] = record
+    _append_spectral_history(spectrum, {
+        "kind": "exchange", "digest": _digest(record),
+        "interface": record["interface"], "sequence": int(ledger["exchanges"]),
+    })
+    return record
+
 
 def _interface_weights(rows: Sequence[Any], profile: Mapping[str, Any],
                        blocks: Mapping[str, tuple[int, int]], parent: str,
@@ -628,8 +1204,9 @@ def initial_circulation(profile: Mapping[str, Any], *, enabled: bool = False,
         )
         regions[identity] = _persisted(_record_payload(record))
     operator = _operator_edges(selected)
+    edges = circulation_interfaces(selected)
     stages: dict[str, Any] = {}
-    for parent, child in circulation_interfaces(selected):
+    for parent, child in edges:
         stage = ResonantExchangeStage.bind(f"{parent}@0", f"{child}@0", version="stage-0")
         stages[f"{parent}->{child}"] = {
             "version": stage.version, "parent_version": stage.parent_version,
@@ -643,10 +1220,11 @@ def initial_circulation(profile: Mapping[str, Any], *, enabled: bool = False,
         "views": {"detail": CIRCULATION_VIEW_SOURCE, "source": "state.wave_words"},
         "blocks": [list(block) for block in blocks],
         "regions": regions,
-        "edges": [list(edge) for edge in circulation_interfaces(selected)],
+        "edges": [list(edge) for edge in edges],
         "stages": stages,
         "geometry": geometry,
         "operator": _operator_record(operator),
+        "spectrum": _initial_spectrum(tuple(regions), edges),
         "attention": {
             "target": None, "admitted_stage": None, "progress": 0.0,
             "remaining": 0, "settled": True, "entry_threshold": 0.25,
@@ -695,12 +1273,399 @@ def circulation_take_pending(segment: dict[str, Any]) -> int:
     return int(continuation["pending"])
 
 
+
+
+def _validate_semantic_ref(value: Any, label: str, *, nullable: bool = False) -> None:
+    if value is None and nullable:
+        return
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"id", "kind", "content_version"}
+        or not isinstance(value.get("id"), str)
+        or not isinstance(value.get("kind"), str)
+        or isinstance(value.get("content_version"), bool)
+        or not isinstance(value.get("content_version"), int)
+        or value["content_version"] < 1
+    ):
+        raise ResonantNumericalError(f"{label} is not a versioned semantic reference")
+
+
+def _validate_concern_ref(value: Any) -> dict[str, Any]:
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {
+            "concern_id", "project_id", "question_ref", "object_refs", "goal_ref",
+        }
+        or not isinstance(value.get("project_id"), str)
+        or not value["project_id"]
+        or not isinstance(value.get("concern_id"), str)
+        or len(value["concern_id"]) != 64
+    ):
+        raise ResonantNumericalError("spectral concern reference is invalid")
+    question_ref, goal_ref = value["question_ref"], value["goal_ref"]
+    _validate_semantic_ref(question_ref, "spectral concern question_ref", nullable=True)
+    _validate_semantic_ref(goal_ref, "spectral concern goal_ref", nullable=True)
+    object_refs = value["object_refs"]
+    if not isinstance(object_refs, Sequence) or isinstance(object_refs, (str, bytes)):
+        raise ResonantNumericalError("spectral concern object_refs are invalid")
+    checked_objects = []
+    for ref in object_refs:
+        _validate_semantic_ref(ref, "spectral concern object_ref")
+        checked_objects.append(dict(ref))
+    keys = [(ref["id"], ref["kind"], ref["content_version"]) for ref in checked_objects]
+    if keys != sorted(set(keys)):
+        raise ResonantNumericalError("spectral concern object_refs must be sorted and unique")
+    identity = {
+        "project_id": value["project_id"],
+        "question_id": None if question_ref is None else question_ref["id"],
+        "object_ids": sorted({ref["id"] for ref in checked_objects}),
+        "goal_id": None if goal_ref is None else goal_ref["id"],
+    }
+    if _digest(identity) != value["concern_id"]:
+        raise ResonantNumericalError("spectral concern identity does not match its bindings")
+    return _plain(value)
+
+
+def _validate_appraisal_basis(value: Any) -> dict[str, Any]:
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"assessment_ref", "source_revision_id", "source_sha256"}
+        or not isinstance(value.get("source_revision_id"), str)
+        or not value["source_revision_id"]
+        or not isinstance(value.get("source_sha256"), str)
+        or len(value["source_sha256"]) != 64
+    ):
+        raise ResonantNumericalError("spectral appraisal basis is invalid")
+    _validate_semantic_ref(value["assessment_ref"], "spectral assessment_ref")
+    if value["assessment_ref"]["kind"] != "Assessment":
+        raise ResonantNumericalError("spectral appraisal basis must bind an Assessment")
+    return _plain(value)
+def _validate_spectrum(segment: Mapping[str, Any]) -> None:
+    spectrum = segment["spectrum"]
+    if not isinstance(spectrum, Mapping) or set(spectrum) != _SPECTRUM_KEYS:
+        raise ResonantNumericalError("spectral state keys are invalid")
+    schema = spectrum["schema"]
+    basis = spectrum["basis"]
+    if (schema, basis) not in {
+        (SPECTRAL_STATE_SCHEMA, SPECTRAL_BASIS_VERSION),
+        (_PREVIOUS_SPECTRAL_STATE_SCHEMA, _PREVIOUS_SPECTRAL_BASIS_VERSION),
+        (_LEGACY_SPECTRAL_STATE_SCHEMA, _LEGACY_SPECTRAL_BASIS_VERSION),
+    }:
+        raise ResonantNumericalError("spectral state schema or basis version is invalid")
+    current_schema = schema == SPECTRAL_STATE_SCHEMA
+    legacy_modes = schema == _LEGACY_SPECTRAL_STATE_SCHEMA
+    if spectrum["status"] not in {"pending", "available", "partial", "unavailable"}:
+        raise ResonantNumericalError("spectral state status is invalid")
+    if spectrum["reason"] is not None and not isinstance(spectrum["reason"], str):
+        raise ResonantNumericalError("spectral state reason is invalid")
+    operator_digest = spectrum["operator_digest"]
+    if operator_digest is not None and (
+            not isinstance(operator_digest, str) or len(operator_digest) != 64):
+        raise ResonantNumericalError("spectral operator digest is invalid")
+    regions = spectrum["regions"]
+    if not isinstance(regions, Mapping) or set(regions) != set(segment["regions"]):
+        raise ResonantNumericalError("spectral region rows are incomplete")
+    for identity, row in regions.items():
+        region_keys = _SPECTRAL_REGION_KEYS if current_schema else (
+            _SPECTRAL_REGION_KEYS - {"operator_residual"}
+        )
+        if not isinstance(row, Mapping) or set(row) != region_keys:
+            raise ResonantNumericalError("spectral region keys are invalid")
+        status = row["status"]
+        if status not in {"pending", "available", "unavailable"}:
+            raise ResonantNumericalError("spectral region status is invalid")
+        if row["reason"] is not None and not isinstance(row["reason"], str):
+            raise ResonantNumericalError("spectral region reason is invalid")
+        frequencies = row["frequencies"]
+        if not isinstance(frequencies, list):
+            raise ResonantNumericalError("spectral frequencies are invalid")
+        if status == "available":
+            if len(frequencies) != 4:
+                raise ResonantNumericalError("available spectrum requires four modes")
+            checked = [_number(value, "spectral frequency", minimum=0.0)
+                       for value in frequencies]
+            if (any(value <= 0.0 for value in checked)
+                    or any(left > right for left, right in zip(checked, checked[1:]))
+                    or (legacy_modes and any(
+                        left >= right for left, right in zip(checked, checked[1:])
+                    ))):
+                raise ResonantNumericalError("spectral frequencies are not positive and ordered")
+            for key in ("coarse_mode", "detail_mode"):
+                _integer(row[key], f"spectral {key}", maximum=3)
+            for key in ("coarse_weight", "detail_weight"):
+                _number(row[key], f"spectral {key}", minimum=0.0, maximum=1.0)
+            if not isinstance(row["basis_sha256"], str) or len(row["basis_sha256"]) != 64:
+                raise ResonantNumericalError("spectral region basis digest is invalid")
+            if current_schema:
+                _number(row["operator_residual"], "spectral operator residual",
+                        minimum=0.0, maximum=1e-10)
+        elif (frequencies or row["coarse_mode"] is not None
+              or row["detail_mode"] is not None or row["basis_sha256"] is not None):
+            raise ResonantNumericalError("unavailable spectral region carries active modes")
+        if current_schema and status != "available" and row["operator_residual"] is not None:
+            raise ResonantNumericalError("unavailable spectrum carries an operator residual")
+    interfaces = spectrum["interfaces"]
+    expected_interfaces = {f"{parent}->{child}"
+                           for parent, child in map(tuple, segment["edges"])}
+    if not isinstance(interfaces, Mapping) or set(interfaces) != expected_interfaces:
+        raise ResonantNumericalError("spectral interface rows are incomplete")
+    for key, row in interfaces.items():
+        interface_keys = _SPECTRAL_INTERFACE_KEYS if current_schema else (
+            _SPECTRAL_INTERFACE_KEYS - {"concern_tunings"}
+        )
+        if not isinstance(row, Mapping) or set(row) != interface_keys:
+            raise ResonantNumericalError("spectral interface keys are invalid")
+        status = row["status"]
+        if status not in {"pending", "available", "unavailable"}:
+            raise ResonantNumericalError("spectral interface status is invalid")
+        if row["reason"] is not None and not isinstance(row["reason"], str):
+            raise ResonantNumericalError("spectral interface reason is invalid")
+        for name in ("emitter_log_shift", "receiver_log_shift"):
+            _number(row[name], f"spectral {name}",
+                    minimum=-SPECTRAL_MAX_LOG_SHIFT,
+                    maximum=SPECTRAL_MAX_LOG_SHIFT)
+        _number(row["bandwidth_ratio"], "spectral bandwidth ratio",
+                minimum=1e-6, maximum=1.0)
+        _integer(row["tuning_updates"], "spectral tuning updates")
+        if status == "available":
+            _integer(row["emitter_mode"], "spectral emitter mode", maximum=3)
+            _integer(row["receiver_mode"], "spectral receiver mode", maximum=3)
+            if regions[key.split("->")[0]]["status"] != "available":
+                raise ResonantNumericalError("spectral emitter mode has no basis")
+            if regions[key.split("->")[1]]["status"] != "available":
+                raise ResonantNumericalError("spectral receiver mode has no basis")
+        elif row["emitter_mode"] is not None or row["receiver_mode"] is not None:
+            raise ResonantNumericalError("unavailable spectral interface carries active modes")
+        ref = row["last_appraisal_ref"]
+        if current_schema:
+            concern_tunings = row["concern_tunings"]
+            if (
+                not isinstance(concern_tunings, Mapping)
+                or len(concern_tunings) > SPECTRAL_CONCERN_LIMIT
+            ):
+                raise ResonantNumericalError("spectral concern tunings exceed their bound")
+            for concern_id, tuning in concern_tunings.items():
+                if not isinstance(tuning, Mapping) or set(tuning) != _SPECTRAL_TUNING_KEYS:
+                    raise ResonantNumericalError("spectral concern tuning is invalid")
+                concern_ref = _validate_concern_ref(tuning["concern_ref"])
+                if concern_ref["concern_id"] != concern_id:
+                    raise ResonantNumericalError("spectral concern tuning identity changed")
+                appraisal = tuning["appraisal_ref"]
+                if (
+                    not isinstance(appraisal, Mapping)
+                    or set(appraisal) != {"operation_id", "assessment_sha256"}
+                    or not isinstance(appraisal["operation_id"], str)
+                    or not appraisal["operation_id"]
+                    or not isinstance(appraisal["assessment_sha256"], str)
+                    or len(appraisal["assessment_sha256"]) != 64
+                ):
+                    raise ResonantNumericalError("spectral concern appraisal reference is invalid")
+                _validate_appraisal_basis(tuning["appraisal_basis"])
+                _number(tuning["progress"], "spectral concern progress",
+                        minimum=-1.0, maximum=1.0)
+                _number(tuning["receiver_log_shift"], "spectral concern receiver shift",
+                        minimum=-SPECTRAL_MAX_LOG_SHIFT,
+                        maximum=SPECTRAL_MAX_LOG_SHIFT)
+                _integer(tuning["updates"], "spectral concern tuning updates", minimum=1)
+                _number(tuning["parameter_work"], "spectral concern parameter work")
+                if (
+                    not isinstance(tuning["operator_digest"], str)
+                    or len(tuning["operator_digest"]) != 64
+                ):
+                    raise ResonantNumericalError("spectral concern operator digest is invalid")
+        if ref is not None:
+            if (not isinstance(ref, Mapping)
+                    or set(ref) != {"operation_id", "assessment_sha256"}
+                    or not isinstance(ref["operation_id"], str)
+                    or not ref["operation_id"]
+                    or not isinstance(ref["assessment_sha256"], str)
+                    or len(ref["assessment_sha256"]) != 64):
+                raise ResonantNumericalError("spectral appraisal reference is invalid")
+    ledger = spectrum["ledger"]
+    if not isinstance(ledger, Mapping) or set(ledger) != _SPECTRAL_LEDGER_KEYS:
+        raise ResonantNumericalError("spectral ledger keys are invalid")
+    for field in ("last_exchange", "last_feedback"):
+        allowed = (
+            (_SPECTRAL_EXCHANGE_KEYS if field == "last_exchange"
+             else _SPECTRAL_FEEDBACK_KEYS)
+            if current_schema else
+            (_LEGACY_SPECTRAL_EXCHANGE_KEYS if field == "last_exchange"
+             else _LEGACY_SPECTRAL_FEEDBACK_KEYS)
+        )
+        record = spectrum[field]
+        if record is None:
+            continue
+        if not isinstance(record, Mapping) or set(record) != allowed:
+            raise ResonantNumericalError(f"spectral {field} record is invalid")
+        if record["interface"] not in expected_interfaces:
+            raise ResonantNumericalError(f"spectral {field} interface is invalid")
+        if not isinstance(record["state_sha256"], str) or len(record["state_sha256"]) != 64:
+            raise ResonantNumericalError(f"spectral {field} state digest is invalid")
+        parameter_work = _number(
+            record["parameter_work"], f"spectral {field} parameter work"
+        )
+        if field == "last_exchange":
+            if parameter_work != 0.0:
+                raise ResonantNumericalError("spectral exchange cannot claim tuning work")
+            if record["status"] not in {"available", "unavailable"}:
+                raise ResonantNumericalError("spectral exchange status is invalid")
+            for name in ("base_weight", "effective_weight"):
+                _number(record[name], f"spectral exchange {name}", minimum=0.0)
+            _number(record["physical_transfer_work"], "spectral physical transfer work")
+            _number(record["overlap"], "spectral overlap", minimum=0.0, maximum=1.0)
+            _number(record["bandwidth"], "spectral bandwidth", minimum=1e-6, maximum=1.0)
+            if record["status"] == "available":
+                _integer(record["emitter_mode"], "spectral emitter mode", maximum=3)
+                _integer(record["receiver_mode"], "spectral receiver mode", maximum=3)
+                _number(record["emitter_frequency"], "spectral emitter frequency",
+                        minimum=1e-300)
+                _number(record["receiver_frequency"], "spectral receiver frequency",
+                        minimum=1e-300)
+                _number(record["log_mismatch"], "spectral log mismatch")
+                if not isinstance(record["basis_sha256"], str) or len(record["basis_sha256"]) != 64:
+                    raise ResonantNumericalError("spectral exchange basis digest is invalid")
+            elif not isinstance(record["reason"], str) or not record["reason"]:
+                raise ResonantNumericalError("unavailable spectral exchange needs a reason")
+            if current_schema:
+                residual = record["operator_residual"]
+                if residual is not None:
+                    _number(residual, "spectral exchange operator residual",
+                            minimum=0.0, maximum=1e-10)
+                effective_shift = record["effective_receiver_log_shift"]
+                if effective_shift is not None:
+                    _number(effective_shift, "spectral exchange receiver shift",
+                            minimum=-SPECTRAL_MAX_LOG_SHIFT,
+                            maximum=SPECTRAL_MAX_LOG_SHIFT)
+                concern_ids = record["concern_ids"]
+                if (
+                    not isinstance(concern_ids, list)
+                    or len(concern_ids) > SPECTRAL_CONCERN_LIMIT
+                    or any(not isinstance(value, str) or len(value) != 64
+                           for value in concern_ids)
+                    or len(concern_ids) != len(set(concern_ids))
+                ):
+                    raise ResonantNumericalError("spectral exchange concern IDs are invalid")
+        else:
+            ref = record["appraisal_ref"]
+            if (
+                not isinstance(ref, Mapping)
+                or set(ref) != {"operation_id", "assessment_sha256"}
+                or not isinstance(ref["operation_id"], str)
+                or not ref["operation_id"]
+                or not isinstance(ref["assessment_sha256"], str)
+                or len(ref["assessment_sha256"]) != 64
+            ):
+                raise ResonantNumericalError("spectral feedback appraisal reference is invalid")
+            if record["outcome"] not in {"progress", "obstruction", "no-progress"}:
+                raise ResonantNumericalError("spectral feedback outcome is invalid")
+            _number(
+                record["progress"], "spectral feedback progress",
+                minimum=-1.0 if current_schema else 0.0, maximum=1.0,
+            )
+            for name in ("before_shift", "after_shift"):
+                _number(record[name], f"spectral feedback {name}",
+                        minimum=-SPECTRAL_MAX_LOG_SHIFT,
+                        maximum=SPECTRAL_MAX_LOG_SHIFT)
+            _number(record["source_frequency"], "spectral source frequency", minimum=1e-300)
+            _number(record["receiver_frequency"], "spectral receiver frequency", minimum=1e-300)
+            if record["direction"] not in {"toward", "away"}:
+                raise ResonantNumericalError("spectral feedback direction is invalid")
+            if current_schema:
+                concern_ref, appraisal_basis = (
+                    record["concern_ref"], record["appraisal_basis"]
+                )
+                if (concern_ref is None) != (appraisal_basis is None):
+                    raise ResonantNumericalError(
+                        "spectral feedback concern and appraisal basis must be paired"
+                    )
+                if concern_ref is not None:
+                    _validate_concern_ref(concern_ref)
+                    _validate_appraisal_basis(appraisal_basis)
+                digest = record["operator_digest"]
+                if digest is not None and (
+                    not isinstance(digest, str) or len(digest) != 64
+                ):
+                    raise ResonantNumericalError("spectral feedback operator digest is invalid")
+                residual = record["operator_residual"]
+                if residual is not None:
+                    _number(residual, "spectral feedback operator residual",
+                            minimum=0.0, maximum=1e-10)
+                for name in ("effective_before_shift", "effective_after_shift"):
+                    value = record[name]
+                    if value is not None:
+                        _number(value, f"spectral feedback {name}",
+                                minimum=-SPECTRAL_MAX_LOG_SHIFT,
+                                maximum=SPECTRAL_MAX_LOG_SHIFT)
+                for name in ("mismatch_before", "mismatch_after"):
+                    value = record[name]
+                    if value is not None:
+                        _number(value, f"spectral feedback {name}")
+                for name in ("potential_before", "potential_after"):
+                    value = record[name]
+                    if value is not None:
+                        _number(value, f"spectral feedback {name}", minimum=0.0)
+    feedback_record = spectrum["last_feedback"]
+    if current_schema and isinstance(feedback_record, Mapping):
+        feedback_link = interfaces[feedback_record["interface"]]
+        if feedback_record["operator_digest"] not in (None, operator_digest):
+            raise ResonantNumericalError("spectral feedback operator basis changed")
+        feedback_concern = feedback_record["concern_ref"]
+        if feedback_concern is None:
+            if feedback_link["last_appraisal_ref"] != feedback_record["appraisal_ref"]:
+                raise ResonantNumericalError("unscoped spectral feedback reference changed")
+        else:
+            tuning = feedback_link["concern_tunings"].get(
+                feedback_concern["concern_id"]
+            )
+            if (
+                not isinstance(tuning, Mapping)
+                or tuning["appraisal_ref"] != feedback_record["appraisal_ref"]
+                or tuning["appraisal_basis"] != feedback_record["appraisal_basis"]
+                or tuning["operator_digest"] != feedback_record["operator_digest"]
+            ):
+                raise ResonantNumericalError("spectral feedback concern attribution changed")
+    history = spectrum["history"]
+    if not isinstance(history, list) or len(history) > SPECTRAL_HISTORY_LIMIT:
+        raise ResonantNumericalError("spectral history exceeds its declared bound")
+    for row in history:
+        if (not isinstance(row, Mapping)
+                or set(row) != {"kind", "digest", "interface", "sequence"}):
+            raise ResonantNumericalError("spectral history row is invalid")
+        if row["kind"] not in {"exchange", "feedback"}:
+            raise ResonantNumericalError("spectral history kind is invalid")
+        if row["interface"] not in expected_interfaces:
+            raise ResonantNumericalError("spectral history interface is invalid")
+        _integer(row["sequence"], "spectral history sequence")
+        if not isinstance(row["digest"], str) or len(row["digest"]) != 64:
+            raise ResonantNumericalError("spectral history digest is invalid")
+    compatibility = spectrum["compatibility"]
+    if compatibility is not None:
+        if (not isinstance(compatibility, Mapping)
+                or set(compatibility) != {
+                    "from_operator_digest", "to_operator_digest", "reason"
+                }
+                or not isinstance(compatibility["to_operator_digest"], str)
+                or len(compatibility["to_operator_digest"]) != 64
+                or not isinstance(compatibility["reason"], str)):
+            raise ResonantNumericalError("spectral compatibility record is invalid")
+        old_digest = compatibility["from_operator_digest"]
+        if old_digest is not None and (
+                not isinstance(old_digest, str) or len(old_digest) != 64):
+            raise ResonantNumericalError("spectral prior operator digest is invalid")
+
+
 def validate_circulation(segment: Any) -> None:
     """Validate one canonical circulation segment."""
 
-    if not isinstance(segment, Mapping) or set(segment) != _CIRCULATION_KEYS:
+    if not isinstance(segment, Mapping):
         raise ResonantNumericalError("circulation segment keys are invalid")
-    if segment["schema"] != CIRCULATION_SCHEMA:
+    schema = segment.get("schema")
+    expected_keys = (_CIRCULATION_KEYS if schema == CIRCULATION_SCHEMA
+                     else _LEGACY_CIRCULATION_KEYS
+                     if schema == _LEGACY_CIRCULATION_SCHEMA else frozenset())
+    if set(segment) != expected_keys:
+        raise ResonantNumericalError("circulation segment keys are invalid")
+    if schema not in {CIRCULATION_SCHEMA, _LEGACY_CIRCULATION_SCHEMA}:
         raise ResonantNumericalError("circulation segment schema is invalid")
     if segment["basis"] != CIRCULATION_BASIS_VERSION:
         raise ResonantNumericalError("circulation basis version is invalid")
@@ -853,6 +1818,250 @@ def validate_circulation(segment: Any) -> None:
     if set(stages) != {f"{parent}->{child}"
                        for parent, child in circulation_interfaces(declared)}:
         raise ResonantNumericalError("circulation interface records are incomplete")
+    if schema == CIRCULATION_SCHEMA:
+        _validate_spectrum(segment)
+
+
+def circulation_spectral_feedback(
+    segment: dict[str, Any], *, interface: str,
+    appraisal_ref: Mapping[str, Any], progress: float,
+    expected_exchange_sha256: str,
+    concern_ref: Mapping[str, Any] | None = None,
+    appraisal_basis: Mapping[str, Any] | None = None,
+    operator: _RegionalWaveOperator | None = None,
+    words: Sequence[float] | np.ndarray | None = None,
+    quiet: bool = False,
+) -> dict[str, Any]:
+    """Tune a receiver channel only from a current operator and bound appraisal."""
+
+    if segment.get("schema") != CIRCULATION_SCHEMA or "spectrum" not in segment:
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "unavailable",
+            "reason": "circulation has no migrated spectral state",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+        }
+    if (concern_ref is None) != (appraisal_basis is None):
+        raise ResonantNumericalError(
+            "spectral feedback concern and appraisal basis must be supplied together"
+        )
+    checked_concern = (
+        None if concern_ref is None else _validate_concern_ref(concern_ref)
+    )
+    checked_basis = (
+        None if appraisal_basis is None else _validate_appraisal_basis(appraisal_basis)
+    )
+    if (
+        not isinstance(interface, str)
+        or interface not in segment["spectrum"]["interfaces"]
+    ):
+        raise ResonantNumericalError("spectral feedback interface is unknown")
+    if (
+        not isinstance(appraisal_ref, Mapping)
+        or set(appraisal_ref) != {"operation_id", "assessment_sha256"}
+        or not isinstance(appraisal_ref["operation_id"], str)
+        or not appraisal_ref["operation_id"]
+        or not isinstance(appraisal_ref["assessment_sha256"], str)
+        or len(appraisal_ref["assessment_sha256"]) != 64
+    ):
+        raise ResonantNumericalError("spectral feedback appraisal reference is invalid")
+    measured_progress = _number(
+        progress, "spectral feedback progress", minimum=-1.0, maximum=1.0
+    )
+    if (
+        not isinstance(expected_exchange_sha256, str)
+        or len(expected_exchange_sha256) != 64
+    ):
+        raise ResonantNumericalError("spectral feedback exchange digest is invalid")
+    if not isinstance(quiet, bool):
+        raise ResonantNumericalError("spectral feedback quiet mode must be boolean")
+    if operator is None or words is None:
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "unavailable",
+            "reason": "current operator and field words are required for feedback",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+        }
+    vector = _as_f64(words, (4 * operator.n,), "spectral wave words")
+    spectrum = _ensure_spectrum(segment, operator, vector)
+    validate_circulation(segment)
+    link = spectrum["interfaces"][interface]
+    reference = _plain(appraisal_ref)
+    previous_concern = (
+        link["concern_tunings"].get(checked_concern["concern_id"])
+        if checked_concern is not None else None
+    )
+    if (
+        previous_concern is not None
+        and previous_concern["appraisal_ref"] == reference
+    ) or (
+        checked_concern is None and link["last_appraisal_ref"] == reference
+    ):
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "duplicate", "reason": "appraisal was already applied",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+        }
+    exchange = spectrum["last_exchange"]
+    if (
+        link["status"] != "available" or exchange is None
+        or exchange["status"] != "available"
+    ):
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "unavailable",
+            "reason": link["reason"] or "no verified spectral exchange is available",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+        }
+    current_digest = _digest(exchange)
+    if exchange["interface"] != interface or current_digest != expected_exchange_sha256:
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "stale",
+            "reason": "target spectral exchange changed before appraisal",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+        }
+    if measured_progress == 0.0:
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "unchanged", "reason": "zero progress carries no tuning direction",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+            "exchange_sha256": current_digest,
+        }
+
+    parent, child = interface.split("->", 1)
+    trace = _spectral_exchange_factor(segment, operator, vector, parent, child)
+    if trace["status"] != "available":
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "unavailable", "reason": trace["reason"],
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+        }
+    spectrum = segment["spectrum"]
+    link = spectrum["interfaces"][interface]
+    mismatch_before = float(trace["log_mismatch"])
+    bandwidth = float(trace["bandwidth"])
+    effective_before = float(trace["effective_receiver_log_shift"])
+    before_shift = (
+        float(previous_concern["receiver_log_shift"])
+        if previous_concern is not None
+        else 0.0 if checked_concern is not None
+        else float(link["receiver_log_shift"])
+    )
+    receiver_frequency = float(trace["receiver_frequency"])
+    source_frequency = float(trace["emitter_frequency"])
+    profile = operator.profile
+    time_step = float(profile["time_step"])
+    damping = float(
+        profile["quiet_damping"] if quiet else profile["damping"]
+    )
+    response_rate = math.hypot(damping, receiver_frequency)
+    response = time_step * response_rate / (1.0 + time_step * response_rate)
+    after_shift = max(
+        -SPECTRAL_MAX_LOG_SHIFT,
+        min(SPECTRAL_MAX_LOG_SHIFT,
+            before_shift + response * measured_progress * mismatch_before),
+    )
+    effective_after = max(
+        -SPECTRAL_MAX_LOG_SHIFT,
+        min(SPECTRAL_MAX_LOG_SHIFT, effective_before + after_shift - before_shift),
+    )
+    if after_shift == before_shift or effective_after == effective_before:
+        return {
+            "schema": "cassifi.resonant-spectral-feedback.v1",
+            "status": "unchanged", "reason": "bounded tuning produced no measurable shift",
+            "interface": interface, "admitted": False, "parameter_work": 0.0,
+            "exchange_sha256": current_digest,
+        }
+    region = spectrum["regions"][child]
+    receiver_mode = int(link["receiver_mode"])
+    receiver_base_frequency = float(region["frequencies"][receiver_mode])
+    tuned_receiver_frequency = receiver_base_frequency * math.exp(effective_after)
+    mismatch_after = math.log(source_frequency / tuned_receiver_frequency)
+    potential_before = 0.5 * (mismatch_before / bandwidth) ** 2
+    potential_after = 0.5 * (mismatch_after / bandwidth) ** 2
+    parameter_work = potential_before - potential_after
+    direction = "toward" if measured_progress > 0.0 else "away"
+    if checked_concern is None:
+        link["receiver_log_shift"] = float(after_shift)
+    else:
+        tunings = dict(link["concern_tunings"])
+        tunings[checked_concern["concern_id"]] = {
+            "concern_ref": checked_concern,
+            "appraisal_ref": reference,
+            "appraisal_basis": checked_basis,
+            "progress": measured_progress,
+            "receiver_log_shift": float(after_shift),
+            "updates": 1 if previous_concern is None else (
+                int(previous_concern["updates"]) + 1
+            ),
+            "parameter_work": parameter_work + (
+                0.0 if previous_concern is None
+                else float(previous_concern["parameter_work"])
+            ),
+            "operator_digest": spectrum["operator_digest"],
+        }
+        link["concern_tunings"] = tunings
+    link["tuning_updates"] = int(link["tuning_updates"]) + 1
+    link["last_appraisal_ref"] = reference
+    ledger = dict(spectrum["ledger"])
+    ledger["feedback_updates"] = float(ledger["feedback_updates"]) + 1.0
+    ledger["tuning_parameter_work"] = (
+        float(ledger["tuning_parameter_work"]) + parameter_work
+    )
+    spectrum["ledger"] = ledger
+    state_sha256 = _digest({
+        "operator_digest": spectrum["operator_digest"],
+        "regions": spectrum["regions"],
+        "interfaces": spectrum["interfaces"],
+        "last_exchange": exchange,
+    })
+    record = {
+        "interface": interface,
+        "appraisal_ref": reference,
+        "outcome": "progress" if measured_progress > 0.0 else "obstruction",
+        "progress": measured_progress,
+        "before_shift": before_shift,
+        "after_shift": float(after_shift),
+        "source_frequency": source_frequency,
+        "receiver_frequency": tuned_receiver_frequency,
+        "direction": direction,
+        "parameter_work": parameter_work,
+        "state_sha256": state_sha256,
+        "concern_ref": checked_concern,
+        "appraisal_basis": checked_basis,
+        "operator_digest": spectrum["operator_digest"],
+        "operator_residual": float(trace["operator_residual"]),
+        "effective_before_shift": effective_before,
+        "effective_after_shift": effective_after,
+        "mismatch_before": mismatch_before,
+        "mismatch_after": mismatch_after,
+        "potential_before": potential_before,
+        "potential_after": potential_after,
+    }
+    spectrum["last_feedback"] = record
+    _append_spectral_history(spectrum, {
+        "kind": "feedback", "digest": _digest(record),
+        "interface": interface, "sequence": int(ledger["feedback_updates"]),
+    })
+    validate_circulation(segment)
+    return {
+        "schema": "cassifi.resonant-spectral-feedback.v1",
+        "status": "updated", "reason": None, "interface": interface,
+        "admitted": True, "progress": measured_progress,
+        "direction": direction, "before_shift": before_shift,
+        "after_shift": float(after_shift),
+        "effective_before_shift": effective_before,
+        "effective_after_shift": effective_after,
+        "source_frequency": source_frequency,
+        "receiver_frequency": tuned_receiver_frequency,
+        "mismatch_before": mismatch_before, "mismatch_after": mismatch_after,
+        "potential_before": potential_before, "potential_after": potential_after,
+        "operator_digest": spectrum["operator_digest"],
+        "operator_residual": float(trace["operator_residual"]),
+        "parameter_work": parameter_work,
+        "exchange_sha256": current_digest, "state_sha256": state_sha256,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -889,6 +2098,24 @@ def circulation_geometry(segment: Mapping[str, Any]) -> dict[str, Any]:
         result["axial_pitch"] = float((record.axial_speed / record.omega) * (math.pi / 2.0))
     return result
 
+
+def circulation_spectrum_readout(segment: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the resident, bounded operator-spectral state without mutation."""
+
+    spectrum = segment.get("spectrum")
+    if spectrum is None:
+        return {
+            "schema": SPECTRAL_STATE_SCHEMA,
+            "basis": SPECTRAL_BASIS_VERSION,
+            "status": "unavailable",
+            "reason": "legacy circulation has not been migrated by a writable unit",
+            "operator_digest": None, "regions": {}, "interfaces": {},
+            "ledger": {"exchanges": 0.0, "transfer_work": 0.0,
+                       "feedback_updates": 0.0, "tuning_parameter_work": 0.0},
+            "last_exchange": None, "last_feedback": None, "history": [],
+            "compatibility": None,
+        }
+    return _plain(spectrum)
 
 def circulation_readout(segment: Mapping[str, Any]) -> dict[str, Any]:
     """Read-only picture of the resident circulation and its work accounts."""
@@ -927,6 +2154,7 @@ def circulation_readout(segment: Mapping[str, Any]) -> dict[str, Any]:
             "edge_count": int(segment["operator"]["edge_count"]),
             "dependencies": _plain(segment["operator"]["dependencies"]),
         },
+        "spectrum": circulation_spectrum_readout(segment),
         "alignment": circulation_alignment(segment),
         "attention": _plain(segment["attention"]),
         "continuation": _plain(segment["continuation"]),
@@ -995,6 +2223,119 @@ def _modulation_values(regions: Sequence[Any],
     return output
 
 
+def _spectral_priority_offsets(segment: Mapping[str, Any],
+                               events: Sequence[Mapping[str, Any]]) -> tuple[
+                                   dict[int, float], dict[str, Any]
+                               ]:
+    """Project verified spectral overlap to bounded eligible-work priority.
+
+    Explicit ``region_id`` rows use that declared region's mean interface
+    overlap.  Unbound work rows use the last verified exchange and a stable
+    sequence quadrature; this is a nonsemantic eligible-work bias, not a claim
+    that a work item belongs to a region.
+    """
+
+    spectrum = segment.get("spectrum")
+    if not isinstance(spectrum, Mapping):
+        return {}, {"status": "unavailable",
+                    "reason": "legacy circulation has no persisted spectrum",
+                    "region_offsets": {}, "last_exchange": None,
+                    "last_exchange_sha256": None, "ledger": {},
+                    "basis": None,
+                    "projection": "nonsemantic-eligible-work-sequence-quadrature.v1",
+                    "projection_meaning": "eligible-work-priority-bias-only"}
+    regions = spectrum.get("regions")
+    links = spectrum.get("interfaces")
+    if not isinstance(regions, Mapping) or not isinstance(links, Mapping):
+        return {}, {"status": "unavailable",
+                    "reason": "circulation spectrum has no regional interface map",
+                    "region_offsets": {}, "last_exchange": None,
+                    "last_exchange_sha256": None,
+                    "ledger": _plain(spectrum.get("ledger", {})),
+                    "basis": spectrum.get("basis"),
+                    "projection": "nonsemantic-eligible-work-sequence-quadrature.v1",
+                    "projection_meaning": "eligible-work-priority-bias-only"}
+    by_region: dict[str, list[float]] = {}
+    for key, link in links.items():
+        if not isinstance(link, Mapping) or link.get("status") != "available":
+            continue
+        parent, separator, child = str(key).partition("->")
+        if not separator or parent not in regions or child not in regions:
+            continue
+        emitter, receiver = regions[parent], regions[child]
+        try:
+            emitter_mode = int(link["emitter_mode"])
+            receiver_mode = int(link["receiver_mode"])
+            source_frequency = float(emitter["frequencies"][emitter_mode]) * math.exp(
+                float(link["emitter_log_shift"])
+            )
+            target_frequency = float(receiver["frequencies"][receiver_mode]) * math.exp(
+                float(link["receiver_log_shift"])
+            )
+            bandwidth = float(link["bandwidth_ratio"])
+            if (source_frequency <= 0.0 or target_frequency <= 0.0
+                    or not math.isfinite(source_frequency)
+                    or not math.isfinite(target_frequency)
+                    or not 0.0 < bandwidth <= 1.0):
+                continue
+            mismatch = math.log(source_frequency / target_frequency)
+            overlap = 1.0 / (1.0 + (mismatch / bandwidth) ** 2)
+        except (KeyError, IndexError, TypeError, ValueError, OverflowError):
+            continue
+        score = 2.0 * overlap - 1.0
+        for identity in {parent, child}:
+            by_region.setdefault(identity, []).append(score)
+    offsets_by_region = {
+        identity: 0.1 * (sum(scores) / len(scores))
+        for identity, scores in by_region.items() if scores
+    }
+
+    exchange = spectrum.get("last_exchange")
+    exchange_sha256 = _digest(exchange) if isinstance(exchange, Mapping) else None
+    exchange_score = None
+    if isinstance(exchange, Mapping) and exchange.get("status") == "available":
+        try:
+            overlap = float(exchange["overlap"])
+            if math.isfinite(overlap) and 0.0 <= overlap <= 1.0:
+                exchange_score = 2.0 * overlap - 1.0
+        except (KeyError, TypeError, ValueError, OverflowError):
+            exchange_score = None
+
+    adjustments: dict[int, float] = {}
+    for row in events:
+        identity = row.get("region_id")
+        sequence = int(row["sequence"])
+        if identity is None:
+            phase = (1.0, 0.0, -1.0, 0.0)[sequence % 4]
+            adjustment = (
+                0.1 * float(exchange_score) * phase
+                if exchange_score is not None else 0.0
+            )
+        else:
+            scores = by_region.get(str(identity), ())
+            adjustment = 0.1 * (sum(scores) / len(scores)) if scores else 0.0
+        adjustments[sequence] = float(max(-0.1, min(0.1, adjustment)))
+    return adjustments, {
+        "status": (
+            "available" if exchange_score is not None else
+            str(spectrum.get("status", "unavailable"))
+        ),
+        "reason": (
+            None if exchange_score is not None else
+            "no current verified spectral exchange is available"
+        ),
+        "region_offsets": offsets_by_region,
+        "last_exchange": _plain(exchange) if isinstance(exchange, Mapping) else None,
+        "last_exchange_sha256": exchange_sha256,
+        "ledger": _plain(spectrum.get("ledger", {})),
+        "basis": spectrum.get("basis"),
+        "projection": "nonsemantic-eligible-work-sequence-quadrature.v1",
+        "projection_meaning": "eligible-work-priority-bias-only",
+    }
+
+
+
+
 def circulation_activity(segment: Mapping[str, Any],
                          events: Sequence[Mapping[str, Any]], *,
                          scale: float = 1.0) -> dict[str, Any]:
@@ -1008,9 +2349,17 @@ def circulation_activity(segment: Mapping[str, Any],
         kappa=float(geometry["kappa"]), omega=float(geometry["omega"]),
         flow_handedness=int(geometry["handedness"]), scale=float(scale),
     )
+    spectral_values, spectral_transfer = _spectral_priority_offsets(segment, events)
+    gain = math.tanh(float(scale)) * float(geometry["coverage"])
+    for sequence, adjustment in spectral_values.items():
+        spectral_values[sequence] = adjustment * gain
+        values[sequence] = float(max(-1.0, min(1.0,
+                                              values.get(sequence, 0.0) + spectral_values[sequence])))
     return {
         "schema": CIRCULATION_ACTIVITY_SCHEMA,
         "values": values,
+        "spectral_values": spectral_values,
+        "spectral_transfer": spectral_transfer,
         "coverage": float(geometry["coverage"]),
         "signed_current": float(geometry["signed_current"]),
         "handedness": int(geometry["handedness"]),
@@ -1055,6 +2404,10 @@ def circulation_modulation(segment: Mapping[str, Any],
         "scale": float(scale),
         "values": {str(sequence): float(value)
                    for sequence, value in sorted(activity["values"].items())},
+        "spectral_values": {str(sequence): float(value)
+                            for sequence, value in sorted(
+                                activity["spectral_values"].items())},
+        "spectral_transfer": activity["spectral_transfer"],
         "coverage": activity["coverage"],
         "signed_current": activity["signed_current"],
         "handedness": activity["handedness"],
@@ -1063,6 +2416,7 @@ def circulation_modulation(segment: Mapping[str, Any],
             "basis": segment["basis"],
             "pass": int(segment["continuation"]["pass"]),
             "operator_digest": operator["digest"],
+            "spectrum_sha256": _digest(segment.get("spectrum", {})),
             "operator_residual": float(operator["residual"]),
             "operator_edges": int(operator["edge_count"]),
             "stages": {edge: row["digest"]
@@ -1279,7 +2633,9 @@ def _exchange_unit(segment: dict[str, Any], profile: Mapping[str, Any],
     child_first, child_last = blocks[child]
     parent_direction = np.asarray(interface["parent_direction"], dtype=np.float64)
     child_direction = np.asarray(interface["child_direction"], dtype=np.float64)
-    weight = float(interface["weight"])
+    base_weight = float(interface["weight"])
+    spectral_trace = _spectral_exchange_factor(segment, operator, words, parent, child)
+    weight = base_weight * float(spectral_trace["factor"])
     lanes = []
     pairing = 0.0
     for position_lane, momentum_lane in ((0, 2), (1, 3)):
@@ -1343,6 +2699,10 @@ def _exchange_unit(segment: dict[str, Any], profile: Mapping[str, Any],
     ledger["interface_allowance"] = max(ledger["interface_allowance"], float(allowance))
     ledger["interface_remainder"] = max(ledger["interface_remainder"], float(remainder))
     segment["ledger"] = ledger
+    spectral_record = _record_spectral_exchange(
+        segment, spectral_trace, base_weight=base_weight,
+        effective_weight=weight, physical_transfer_work=change, words=words,
+    )
     exchange_index = int(ledger["exchanges"])
     for identity in (parent, child):
         raw = dict(segment["regions"][identity])
@@ -1376,6 +2736,7 @@ def _exchange_unit(segment: dict[str, Any], profile: Mapping[str, Any],
         "remainder": float(remainder), "allowance_met": allowance_met,
         "transfer_scale": float(weight * pairing * step),
         "first_order_work": float(first_order), "transfer_work": float(change),
+        "spectral": _plain(spectral_record),
         "stage": binding["stage"].digest, "rebound": bool(binding["rebound"]),
         "parent_position_shift": float(shift["parent_position"]),
         "child_momentum_shift": float(shift["child_momentum"]),
@@ -1521,6 +2882,11 @@ def circulation_unit(state: dict[str, Any], *,
     """Execute one bounded circulation unit over the canonical task state."""
 
     segment = state["circulation"]
+    if segment["schema"] == _LEGACY_CIRCULATION_SCHEMA:
+        segment["schema"] = CIRCULATION_SCHEMA
+        segment["spectrum"] = _initial_spectrum(
+            tuple(segment["regions"]), tuple(tuple(edge) for edge in segment["edges"])
+        )
     profile = state["profile"]
     words = np.asarray(state["wave_words"]["values"], dtype=np.float64)
     selected = operator if operator is not None else _RegionalWaveOperator(
@@ -1636,3 +3002,157 @@ def circulation_frame_change(segment: dict[str, Any], rotation: Any) -> dict[str
             or report["handedness_before"] != report["handedness_after"]):
         raise ResonantNumericalError("a passive frame change altered a scalar readout")
     return report
+def working_field_exchange_view(
+    embodied_snapshot: Mapping[str, Any],
+    selected_field: Mapping[str, Any],
+    *,
+    limit: int = 8,
+) -> dict[str, Any]:
+    """Return bounded owner-verified exchanges relevant to one working concern.
+
+    The embodied snapshot is the owner's read-only projection.  This helper
+    joins only its already source-verified exchange items to their exact
+    regional operator reports; it neither reads nor retains field state.
+    """
+
+    bound = _integer(limit, "working-field exchange limit", minimum=1, maximum=64)
+    concern_ref = selected_field.get("concern_ref")
+    unavailable = {
+        "status": "unavailable",
+        "concern_ref": _plain(concern_ref) if isinstance(concern_ref, Mapping) else None,
+        "items": [],
+        "limit": bound,
+        "truncated": False,
+        "reason": "selected working field has no exact semantic concern reference",
+    }
+    def exact_ref(value: Any) -> bool:
+        return isinstance(value, Mapping) and {
+            "id", "kind", "content_version"
+        }.issubset(value)
+
+    nested_refs = (
+        concern_ref.get("question_ref"),
+        concern_ref.get("goal_ref"),
+        *(concern_ref.get("object_refs", ()) if isinstance(
+            concern_ref.get("object_refs", ()), (list, tuple)
+        ) else ()),
+    ) if isinstance(concern_ref, Mapping) else ()
+    if not isinstance(concern_ref, Mapping) or not any(exact_ref(ref) for ref in nested_refs):
+        return unavailable
+
+    exchange_meaning = embodied_snapshot.get("exchange_meaning")
+    if not isinstance(exchange_meaning, Mapping):
+        unavailable["reason"] = "owner exchange projection is unavailable"
+        return unavailable
+    raw_items = exchange_meaning.get("items")
+    regional_by_computer: dict[str, Mapping[str, Any]] = {}
+
+    if not isinstance(raw_items, (list, tuple)):
+        unavailable["reason"] = "owner exchange projection has no item list"
+        return unavailable
+
+    circulation = embodied_snapshot.get("circulation")
+    circulation_value = (
+        circulation.get("value") if isinstance(circulation, Mapping) else None
+    )
+    regional_reports = (
+        circulation_value.get("regional")
+        if isinstance(circulation_value, Mapping) else None
+    )
+    if isinstance(regional_reports, (list, tuple)):
+        for report in regional_reports:
+            if isinstance(report, Mapping) and isinstance(report.get("computer_id"), str):
+                regional_by_computer[report["computer_id"]] = report
+
+
+    if exchange_meaning.get("status") != "known":
+        unavailable["reason"] = exchange_meaning.get("reason") or (
+            "owner exchange projection is unavailable"
+        )
+        unavailable["truncated"] = bool(exchange_meaning.get("truncated"))
+        return unavailable
+    matching: list[dict[str, Any]] = []
+    for item in raw_items:
+        if not isinstance(item, Mapping) or item.get("concern_ref") != concern_ref:
+            continue
+        basis = item.get("appraisal_basis")
+        assessment_ref = item.get("assessment_ref")
+        source = item.get("result_source")
+        appraisal = item.get("last_appraisal_ref")
+        exchange = item.get("exchange")
+        if (
+            item.get("current_concern_ref") != concern_ref
+            or not isinstance(basis, Mapping)
+            or set(basis) != {"assessment_ref", "source_revision_id", "source_sha256"}
+            or basis.get("assessment_ref") != assessment_ref
+            or not isinstance(assessment_ref, Mapping)
+            or not {"id", "kind", "content_version"}.issubset(assessment_ref)
+            or not isinstance(basis.get("source_revision_id"), str)
+            or not isinstance(basis.get("source_sha256"), str)
+            or not isinstance(source, Mapping)
+            or source.get("revision_id") != basis.get("source_revision_id")
+            or source.get("content_sha256") != basis.get("source_sha256")
+            or not isinstance(appraisal, Mapping)
+            or not isinstance(appraisal.get("operation_id"), str)
+            or not isinstance(appraisal.get("assessment_sha256"), str)
+            or not isinstance(exchange, Mapping)
+            or exchange.get("status") != "available"
+            or not isinstance(exchange.get("owner_reported_last_exchange_sha256"), str)
+        ):
+            continue
+
+        computer_id = item.get("computer_id")
+        interface = item.get("interface")
+        regional = regional_by_computer.get(computer_id) if isinstance(computer_id, str) else None
+        spectrum = regional.get("spectrum") if isinstance(regional, Mapping) else None
+        spectrum_interfaces = spectrum.get("interfaces") if isinstance(spectrum, Mapping) else None
+        spectrum_interface = (
+            spectrum_interfaces.get(interface)
+            if isinstance(spectrum_interfaces, Mapping) and isinstance(interface, str)
+            else None
+        )
+        feedback = exchange.get("feedback")
+        if (
+            not isinstance(feedback, Mapping)
+            or feedback.get("status") != "available"
+            or feedback.get("concern_ref") != concern_ref
+            or feedback.get("appraisal_basis") != basis
+        ):
+            feedback = {
+                "status": "unavailable",
+                "reason": "no feedback matches this concern and appraisal",
+            }
+        matching.append({
+            "computer_id": computer_id,
+            "interface": interface,
+            "emitter_region_id": item.get("emitter_region_id"),
+            "receiver_region_id": item.get("receiver_region_id"),
+            "obligation_ref": item.get("obligation_ref"),
+            "concern_ref": item.get("concern_ref"),
+            "assessment_ref": assessment_ref,
+            "appraisal_basis": basis,
+            "last_appraisal_ref": appraisal,
+            "result_source": source,
+            "exchange": exchange,
+            "feedback": feedback,
+            "spectrum_interface": (
+                spectrum_interface if isinstance(spectrum_interface, Mapping)
+                else {"status": "unavailable", "reason": (
+                    "operator-projected spectrum interface is unavailable"
+                )}
+            ),
+        })
+
+    was_truncated = bool(exchange_meaning.get("truncated")) or (
+        isinstance(circulation_value, Mapping)
+        and bool(circulation_value.get("truncated"))
+    )
+    unavailable.update({
+        "status": "known" if matching else "unavailable",
+        "items": matching[:bound],
+        "truncated": was_truncated or len(matching) > bound,
+        "reason": None if matching else (
+            "no owner exchange has a current exact concern, appraisal, and source identity"
+        ),
+    })
+    return unavailable
