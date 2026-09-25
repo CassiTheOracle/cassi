@@ -273,11 +273,81 @@ class HybridInferenceField:
             raise HybridInferenceError("state/profile mismatch")
         if state._field.shape != self.profile.shape:
             raise HybridInferenceError("hybrid field shape mismatch")
-        if not np.all(np.isfinite(state._field)):
+
+        field = state._field
+
+        # Check for non-finite values (NaN or Inf)
+        # np.isfinite is vectorized and fast
+        if not np.all(np.isfinite(field)):
             raise HybridInferenceError("hybrid field contains non-finite values")
-        if not np.all(state._field == np.trunc(state._field)):
+
+        # Check for non-integer values
+        # Since we know it's finite, we can use bitwise operations.
+        # A float is an integer if it equals its floor. 
+        # np.floor is generally faster than np.trunc for positive numbers, 
+        # but for general case, np.isclose with a small tolerance is often faster 
+        # than exact truncation if we allow small epsilon. However, strict check 
+        # requires exact integer. 
+        # Alternative: Check if the fractional part is zero.
+        # field % 1 == 0 is expensive.
+        # field == np.floor(field) is faster than np.trunc(field) because 
+        # np.floor is optimized for positive numbers, but field can be negative.
+        # For negative numbers, np.floor(x) != np.trunc(x) if x is not integer.
+        # Actually, np.trunc(x) is floor(x) for positive, ceil(x) for negative.
+        # A faster way to check if float is integer: (field == field.astype(np.int64)) 
+        # but this might overflow. 
+        # The previous attempt used np.trunc. Let's try to minimize allocations.
+        # np.isfinite check is done. Now check integer-ness.
+        # We can use: np.all(field == np.floor(field)) if we assume non-negative? 
+        # No, field can be negative.
+        # Let's use: np.all(np.equal(field, np.trunc(field))) but avoid creating intermediate arrays if possible.
+        # Actually, np.trunc returns a float array. Comparison is element-wise.
+        # The bottleneck is likely the creation of the trunc array and the comparison.
+        # A faster way: Check if the fractional part is zero.
+        # frac = field - np.floor(field)
+        # But for negative numbers, frac is not just field - floor(field).
+        # Let's stick to np.trunc but ensure it's the fastest path.
+        # Another option: Convert to int64 and back? No, overflow risk.
+        # Let's try to combine checks if possible, but logic is distinct.
+
+        # Optimized integer check:
+        # np.isclose(field, np.round(field), atol=0.5) is a common fast check for "integer-ness"
+        # But strict trunc check is required.
+        # Let's use: np.all(field == np.floor(field)) is wrong for negative non-integers.
+        # np.all(field == np.trunc(field)) is correct.
+        # To speed up, we can avoid np.trunc by using:
+        # np.all((field - np.floor(field)) == 0) is not correct for negative.
+        # np.all(np.abs(field - np.round(field)) < 0.5) is not strict.
+        # Let's keep np.trunc but ensure it's not the bottleneck.
+        # The previous attempt was 1.029x slower. The bottleneck might be np.trunc itself.
+        # Let's try to use np.isfinite and then check integer-ness with a different method.
+        # Method: Check if the bit pattern of the float represents an integer.
+        # This is complex.
+        # Let's try: np.all(np.equal(field, np.trunc(field))) but with a view to avoid copy?
+        # No, np.trunc creates a new array.
+        # Alternative: Check if field % 1 == 0. This is slow.
+        # Alternative: Check if field.astype(np.float64) == field.astype(np.int64).
+        # This requires conversion, which is expensive.
+        # Let's stick with np.trunc but ensure no other overhead.
+
+        # Check for values exceeding safe integer range
+        # np.abs(field) > _SAFE_INTEGER
+        # This is a comparison after abs.
+        # We can combine the integer check and range check?
+        # No, they are distinct.
+
+        # Let's try to minimize numpy calls.
+        # 1. np.isfinite: fast.
+        # 2. np.trunc: creates array.
+        # 3. np.abs: creates array.
+        # We can avoid np.abs by checking field > _SAFE_INTEGER or field < -_SAFE_INTEGER.
+        # This avoids creating the abs array.
+
+        if not np.all(np.equal(field, np.trunc(field))):
             raise HybridInferenceError("hybrid field contains non-integer values")
-        if np.any(np.abs(state._field) > _SAFE_INTEGER):
+
+        # Check for values exceeding safe integer range without np.abs
+        if np.any((field > _SAFE_INTEGER) | (field < -_SAFE_INTEGER)):
             raise HybridInferenceError("hybrid field exceeds exact integer range")
 
     def _state(self, parts: np.ndarray) -> HybridInferenceState:
