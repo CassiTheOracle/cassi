@@ -137,6 +137,104 @@ def normalize_operations(value: Any) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, slots=True)
+class SurfaceSourceDescriptor:
+    """A discoverable source whose binding epoch may not exist yet."""
+
+    backend_id: str
+    source_id: str
+    source_instance: str
+    environment_incarnation: str
+    operations: tuple[str, ...]
+    source_epoch: int | None = None
+    geometry_revision: int | None = None
+    width: int | None = None
+    height: int | None = None
+    capture_state: str | None = None
+    input_state: str | None = None
+    backend_version: str | None = None
+    input_domain: str | None = None
+    input_domain_epoch: int | None = None
+    focus_epoch: int | None = None
+
+    @classmethod
+    def from_mapping(
+        cls,
+        value: Mapping[str, Any],
+        *,
+        backend_id: str,
+    ) -> "SurfaceSourceDescriptor":
+        if not isinstance(value, Mapping):
+            raise SurfaceValidationError("backend source descriptor must be an object")
+        actual_backend = _text(value.get("backend_id", backend_id), "backend_id", 128)
+        if actual_backend != backend_id:
+            raise SurfaceValidationError("source descriptor backend_id does not match the registered backend")
+        source_id = _text(value.get("source_id"), "source_id", 256)
+        instance = _text(value.get("source_instance"), "source_instance", MAX_IDENTIFIER)
+        environment = _text(value.get("environment_incarnation"), "environment_incarnation", MAX_IDENTIFIER)
+
+        def optional_uint(key: str, maximum: int, *, minimum: int = 0) -> int | None:
+            raw = value.get(key)
+            return None if raw is None else _uint(
+                raw, f"source descriptor {key}", maximum, minimum=minimum
+            )
+
+        def optional_text(key: str, maximum: int = MAX_TEXT) -> str | None:
+            raw = value.get(key)
+            return None if raw is None else _text(raw, f"source descriptor {key}", maximum)
+
+        width_value = value.get("width")
+        height_value = value.get("height")
+        if (width_value is None) != (height_value is None):
+            raise SurfaceValidationError("source descriptor dimensions must both be present or absent")
+        width = None if width_value is None else _uint(width_value, "source descriptor width", MAX_DIMENSION)
+        height = None if height_value is None else _uint(height_value, "source descriptor height", MAX_DIMENSION)
+        if width is not None and bool(width) != bool(height):
+            raise SurfaceValidationError("source descriptor dimensions must both be zero or both be positive")
+        return cls(
+            actual_backend,
+            source_id,
+            instance,
+            environment,
+            normalize_operations(value.get("operations", ())),
+            optional_uint("source_epoch", (1 << 63) - 1, minimum=1),
+            optional_uint("geometry_revision", (1 << 63) - 1),
+            width,
+            height,
+            optional_text("capture_state", 64),
+            optional_text("input_state", 64),
+            optional_text("backend_version", 128),
+            optional_text("input_domain", MAX_IDENTIFIER),
+            optional_uint("input_domain_epoch", (1 << 63) - 1),
+            optional_uint("focus_epoch", (1 << 63) - 1),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "backend_id": self.backend_id,
+            "source_id": self.source_id,
+            "source_instance": self.source_instance,
+            "environment_incarnation": self.environment_incarnation,
+            "operations": list(self.operations),
+        }
+        for key in (
+            "source_epoch",
+            "geometry_revision",
+            "width",
+            "height",
+            "capture_state",
+            "input_state",
+            "backend_version",
+            "input_domain",
+            "input_domain_epoch",
+            "focus_epoch",
+        ):
+            value = getattr(self, key)
+            if value is not None:
+                result[key] = value
+        return result
+
+
+@dataclass(frozen=True, slots=True)
 class SurfaceBinding:
     backend_id: str
     source_id: str

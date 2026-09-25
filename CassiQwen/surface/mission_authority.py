@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 import threading
 import time
@@ -23,6 +22,12 @@ _SOURCE_FIELDS = (
     "source_epoch",
     "environment_incarnation",
     "geometry_revision",
+)
+_STABLE_SOURCE_FIELDS = (
+    "backend_id",
+    "source_id",
+    "source_instance",
+    "environment_incarnation",
 )
 
 
@@ -78,33 +83,29 @@ class _Approval:
     expires_ns: int
     deadline_monotonic_ns: int
     max_updates: int
+    max_lease_ns: int
 
 
 class MissionAuthority:
-    """Separate human-token gate and mission-window authorizer.
+    """Loopback-owned, source-bound approval windows for Surface operations.
 
-    The long-lived human token is held only in this server-side object. Normal
-    grant proposals are authorized from immutable, bounded, in-memory approval
-    records; human takeover is authorized only while a token-authenticated
-    one-shot request is in flight.
+    Local same-origin consent creates exact, bounded in-memory mission
+    approvals. Human takeover is separately confirmed at its point of use.
     """
 
-    def __init__(self, human_token: str) -> None:
-        if not isinstance(human_token, str) or len(human_token) < 32:
-            raise ValueError("Surface human token must contain at least 32 characters")
-        self._human_token = human_token
+    def __init__(self) -> None:
         self._lock = threading.RLock()
-        self._approvals: dict[tuple[str, str], _Approval] = {}
+        self._approvals: dict[tuple[str, ...], _Approval] = {}
         self._pending_takeovers: dict[tuple[str, str], _Approval] = {}
         self._entity: Any | None = None
+
+    @staticmethod
+    def _key(program_id: str, source: Mapping[str, Any]) -> tuple[str, ...]:
+        return (program_id, *(_identifier(source.get(name), name) for name in _STABLE_SOURCE_FIELDS))
 
     def bind_entity(self, entity: Any) -> None:
         self._entity = entity
 
-    def verify_token(self, supplied: str | None) -> bool:
-        if not isinstance(supplied, str):
-            return False
-        return hmac.compare_digest(supplied, self._human_token)
 
     @staticmethod
     def _active_program(entity: Any, program_id: str) -> Mapping[str, Any]:
@@ -153,8 +154,14 @@ class MissionAuthority:
         if duration_ns <= 0 or duration_ns > _MAX_WINDOW_NS:
             raise ValueError("mission approval expiry must be within the next 24 hours")
         max_updates = _integer(request.get("max_updates"), "max_updates", 1, _MAX_UPDATES)
+        max_lease_seconds = _integer(
+            request.get("max_lease_seconds"),
+            "max_lease_seconds",
+            1,
+            _MAX_GRANT_NS // 1_000_000_000,
+        )
         approval = _Approval(
-            program_id=source_program_id(request),
+            program_id=_identifier(request.get("program_id"), "program_id"),
             generation=generation,
             mission_sha256=digest,
             source=dict(source),
@@ -162,8 +169,9 @@ class MissionAuthority:
             expires_ns=expires_ns,
             deadline_monotonic_ns=time.monotonic_ns() + duration_ns,
             max_updates=max_updates,
+            max_lease_ns=max_lease_seconds * 1_000_000_000,
         )
-        key = (approval.program_id, source["binding_id"])
+        key = self._key(approval.program_id, source)
         with self._lock:
             self._approvals[key] = approval
         return {
@@ -175,6 +183,7 @@ class MissionAuthority:
             "operations": list(operations),
             "expires_ns": expires_ns,
             "max_updates": max_updates,
+            "max_lease_seconds": max_lease_seconds,
         }
 
     def _matching_approval(self, proposal: Mapping[str, Any]) -> _Approval:
@@ -183,9 +192,16 @@ class MissionAuthority:
         binding_id = proposal.get("binding_id")
         if not isinstance(mission_id, str) or not isinstance(binding_id, str):
             raise PermissionError("Surface proposal has no approved mission and binding identity")
-        key = (mission_id, binding_id)
-        with self._lock:
-            approval = self._approvals.get(key) if purpose == "surface-grant" else self._pending_takeovers.get(key)
+        if purpose == "surface-grant":
+            key = self._key(mission_id, proposal)
+            with self._lock:
+                approval = self._approvals.get(key)
+        elif purpose == "surface-human-control":
+            key = (mission_id, binding_id)
+            with self._lock:
+                approval = self._pending_takeovers.get(key)
+        else:
+            raise PermissionError("unsupported Surface authorization purpose")
         if approval is None:
             raise PermissionError("no active host approval matches this Surface mission and source")
         now_wall = time.time_ns()
@@ -199,22 +215,23 @@ class MissionAuthority:
         if purpose == "surface-grant":
             if proposal.get("mission_id") != approval.program_id:
                 raise PermissionError("Surface proposal belongs to another mission")
-        for key_name in _SOURCE_FIELDS:
+        fields = _SOURCE_FIELDS
+        for key_name in fields:
             if proposal.get(key_name) != approval.source.get(key_name):
                 raise PermissionError("the Surface source identity changed after approval")
         if self._entity is None:
             raise PermissionError("the host Surface authority is not attached to its entity")
         program = self._active_program(self._entity, approval.program_id)
         if program.get("generation") != approval.generation or _mission_digest(program) != approval.mission_sha256:
-            with self._lock:
-                self._approvals.pop((approval.program_id, approval.source["binding_id"]), None)
+            if purpose == "surface-grant":
+                with self._lock:
+                    if self._approvals.get(key) is approval:
+                        self._approvals.pop(key, None)
             raise PermissionError("the active mission changed after host approval")
-        current = self._entity.inspect_surface_binding(approval.source["binding_id"], program_id=approval.program_id)
+        current = self._entity.inspect_surface_binding(binding_id, program_id=approval.program_id)
         if not isinstance(current, Mapping) or current.get("detached") is True or any(
-            current.get(key_name) != approval.source.get(key_name) for key_name in _SOURCE_FIELDS
+            current.get(key_name) != approval.source.get(key_name) for key_name in fields
         ):
-            with self._lock:
-                self._approvals.pop((approval.program_id, approval.source["binding_id"]), None)
             raise PermissionError("the approved source binding is no longer current")
         requested = _operations(proposal.get("operations"))
         if not set(requested).issubset(approval.operations):
@@ -222,6 +239,8 @@ class MissionAuthority:
         requested_expiry = _integer(proposal.get("expires_ns"), "expires_ns", 1)
         if requested_expiry <= now_mono or requested_expiry > approval.deadline_monotonic_ns:
             raise PermissionError("Surface broker lease exceeds the host approval window")
+        if purpose == "surface-grant" and requested_expiry - now_mono > approval.max_lease_ns:
+            raise PermissionError("Surface broker lease exceeds the locally approved lease duration")
         scope = proposal.get("scope")
         if not isinstance(scope, Mapping):
             raise PermissionError("Surface grant proposal has no exact scope")
@@ -245,7 +264,7 @@ class MissionAuthority:
     def __call__(self, proposal: Mapping[str, Any]) -> Mapping[str, Any]:
         if not isinstance(proposal, Mapping):
             raise PermissionError("invalid Surface authorization proposal")
-        approval = self._matching_approval(proposal)
+        self._matching_approval(proposal)
         operations = _operations(proposal.get("operations"))
         scope = proposal.get("scope")
         if not isinstance(scope, Mapping):
@@ -253,10 +272,22 @@ class MissionAuthority:
         return {"approved": True, "operations": list(operations), "scope": dict(scope)}
 
     def status(self, program_id: str, binding_id: str) -> Mapping[str, Any]:
-        key = (_identifier(program_id, "program_id"), _identifier(binding_id, "binding_id"))
+        program_id = _identifier(program_id, "program_id")
+        binding_id = _identifier(binding_id, "binding_id")
+        if self._entity is None:
+            raise PermissionError("the host Surface authority is not attached to its entity")
+        current = self._entity.inspect_surface_binding(binding_id, program_id=program_id)
+        program = self._active_program(self._entity, program_id)
+        key = self._key(program_id, current)
         with self._lock:
             approval = self._approvals.get(key)
-            if approval is not None and (time.time_ns() >= approval.expires_ns or time.monotonic_ns() >= approval.deadline_monotonic_ns):
+            if approval is not None and (
+                time.time_ns() >= approval.expires_ns
+                or time.monotonic_ns() >= approval.deadline_monotonic_ns
+                or program.get("generation") != approval.generation
+                or _mission_digest(program) != approval.mission_sha256
+                or any(current.get(name) != approval.source.get(name) for name in _SOURCE_FIELDS)
+            ):
                 self._approvals.pop(key, None)
                 approval = None
         if approval is None:
@@ -272,20 +303,33 @@ class MissionAuthority:
             "operations": sorted(approval.operations),
             "expires_ns": approval.expires_ns,
             "max_updates": approval.max_updates,
+            "max_lease_seconds": approval.max_lease_ns // 1_000_000_000,
         }
 
     def revoke_approval(self, program_id: str, binding_id: str) -> bool:
-        key = (_identifier(program_id, "program_id"), _identifier(binding_id, "binding_id"))
+        program_id = _identifier(program_id, "program_id")
+        binding_id = _identifier(binding_id, "binding_id")
+        current = None
+        if self._entity is not None:
+            try:
+                current = self._entity.inspect_surface_binding(binding_id, program_id=program_id)
+            except Exception:
+                # Emergency revocation still removes the original approval if its binding vanished.
+                pass
+        current_key = self._key(program_id, current) if isinstance(current, Mapping) else None
         with self._lock:
-            approval = self._approvals.pop(key, None)
-            self._pending_takeovers.pop(key, None)
-        return approval is not None
+            keys = [
+                key for key, approval in self._approvals.items()
+                if approval.program_id == program_id and (
+                    key == current_key or approval.source.get("binding_id") == binding_id
+                )
+            ]
+            for key in keys:
+                self._approvals.pop(key, None)
+            self._pending_takeovers.pop((program_id, binding_id), None)
+        return bool(keys)
 
-    def take_control(
-        self, entity: Any, request: Mapping[str, Any], human_token: str | None
-    ) -> Mapping[str, Any]:
-        if not self.verify_token(human_token):
-            raise PermissionError("a valid separate human Surface token is required")
+    def take_control(self, entity: Any, request: Mapping[str, Any]) -> Mapping[str, Any]:
         program_id = _identifier(request.get("program_id"), "program_id")
         binding_id = _identifier(request.get("binding_id"), "binding_id")
         program, source, generation, digest = self._current_source(entity, request, require_visible_identity=True)
@@ -305,6 +349,7 @@ class MissionAuthority:
             expires_ns=expires_ns,
             deadline_monotonic_ns=time.monotonic_ns() + duration_ns,
             max_updates=_MAX_UPDATES,
+            max_lease_ns=duration_ns,
         )
         key = (program_id, binding_id)
         with self._lock:
@@ -324,5 +369,3 @@ class MissionAuthority:
                     self._pending_takeovers.pop(key, None)
 
 
-def source_program_id(request: Mapping[str, Any]) -> str:
-    return _identifier(request.get("program_id"), "program_id")

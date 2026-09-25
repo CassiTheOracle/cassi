@@ -15,7 +15,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 from secrets import token_urlsafe
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
 from .records import (
     MAX_ACCESSIBILITY_BYTES,
@@ -33,6 +33,7 @@ from .records import (
     ObservationPublication,
     SurfaceAuthorizationError,
     SurfaceBinding,
+    SurfaceSourceDescriptor,
     SurfaceCapabilityError,
     SurfaceConflictError,
     SurfaceError,
@@ -52,8 +53,12 @@ _OPERATION_LEDGER_RESERVE = 64 << 10
 _MAX_BINDINGS = 1024
 _MAX_BACKENDS = 64
 _MAX_PUBLICATIONS_PER_BINDING = 4
-_MAX_PAGE_READ_BYTES = 4 << 20
+_MAX_VOLATILE_BYTES = MAX_FRAME_BYTES
+_MAX_VOLATILE_CAPTURES = 32
+_VOLATILE_TTL_NS = 60_000_000_000
+_MAX_DEMONSTRATION_EVENTS = 256
 _PAGE_COPY_BYTES = 1 << 20
+_MAX_PAGE_READ_BYTES = 1 << 20
 _MAX_GRANT_TTL_NS = 3_600_000_000_000
 _MAX_CONTROL_DURATION_NS = 300_000_000_000
 _DEFAULT_HEARTBEAT_NS = 3_000_000_000
@@ -75,6 +80,24 @@ class _Publication:
     geometry_revision: int
 
 
+
+@dataclass(slots=True)
+class _VolatileCapture:
+    binding_id: str
+    source_id: str
+    source_instance: str
+    source_epoch: int
+    environment_incarnation: str
+    geometry_revision: int
+    binding: SurfaceBinding
+    modalities: tuple[str, ...]
+    sample_sequence: int
+    expires_ns: int
+    captured_at_ns: int
+    byte_length: int
+    captured: dict[str, Any]
+
+
 @dataclass(slots=True)
 class _BindingState:
     binding_id: str
@@ -86,10 +109,15 @@ class _BindingState:
     state: str = "bound"
     inhibited: bool = False
     human_control: bool = False
-    detached: bool = False
+    authority_epoch: int = 0
+    follow_foreground: bool = False
+    demonstration: bool = False
+    last_demo_sequence: int = 0
     last_sequence: int = 0
     capture_required_after_generation: int | None = None
-
+    capture_required_after_ns: int = 0
+    detached: bool = False
+    backend_unbound: bool = False
 
 @dataclass(slots=True)
 class _Grant:
@@ -146,6 +174,8 @@ class SurfaceBroker:
         self._closed = False
         self._bind_lock = threading.RLock()
         self._source_bindings: dict[tuple[str, str], str] = {}
+        self._volatile_captures: OrderedDict[str, _VolatileCapture] = OrderedDict()
+        self._volatile_bytes = 0
         self._replay_ledger()
         self._recover_inflight()
         self._watchdog = threading.Thread(target=self._watchdog_loop, name="cassi-surface-watchdog", daemon=True)
@@ -212,9 +242,9 @@ class SurfaceBroker:
         for source in values:
             if not isinstance(source, Mapping):
                 raise SurfaceValidationError("backend source descriptor must be an object")
-            record = SurfaceBinding.from_mapping(source, backend_id=backend_id)
-            safe = record.to_dict("")
-            for key in ("modalities", "capture_modalities", "operation_states", "channel_states", "limits"):
+            record = SurfaceSourceDescriptor.from_mapping(source, backend_id=backend_id)
+            safe = record.to_dict()
+            for key in ("modalities", "capture_modalities", "operation_states", "channel_states", "limits", "status", "reason", "transport"):
                 if key in source:
                     extra = json_value(source[key], max_bytes=16 << 10, label=f"source {key}")
                     if key in {"modalities", "capture_modalities"}:
@@ -268,19 +298,540 @@ class SurfaceBroker:
             return view | {"state": state.state, "input_domain": domain}
 
 
+    def foreground_binding(self, binding_ids: Iterable[str]) -> str | None:
+        """Return the one supplied binding the backend currently reports foreground."""
+        if isinstance(binding_ids, (str, bytes, Mapping)):
+            raise SurfaceValidationError("binding_ids must be a bounded collection of binding IDs")
+        try:
+            ids = tuple(dict.fromkeys(self._required_text(value, "binding_id", 192)
+                                      for value in binding_ids))
+        except TypeError as exc:
+            raise SurfaceValidationError("binding_ids must be a bounded collection of binding IDs") from exc
+        if not ids or len(ids) > 128:
+            raise SurfaceValidationError("binding_ids must contain 1..128 distinct binding IDs")
+        matches: list[str] = []
+        for binding_id in ids:
+            state = self._binding_state(binding_id)
+            with state.lock:
+                if state.detached or state.backend_unbound:
+                    continue
+                inspect = getattr(state.backend, "foreground_binding", None)
+                if not callable(inspect):
+                    return None
+                try:
+                    result = inspect(state.backend_binding)
+                except Exception:
+                    return None
+                if not isinstance(result, bool):
+                    return None
+                if result:
+                    matches.append(binding_id)
+        if matches:
+            return matches[0] if len(matches) == 1 else None
+        # A closed selected window and an unfocused selected window both fail the
+        # foreground check. Revalidate only on that path so source loss is
+        # surfaced instead of silently waiting for a window that cannot return.
+        for binding_id in ids:
+            state = self._binding_state(binding_id)
+            with state.lock:
+                if not state.detached and not state.backend_unbound:
+                    self._refresh_source_binding(state)
+        return None
+
+    def set_follow_foreground(self, binding_id: str, enabled: bool) -> dict[str, Any]:
+        if not isinstance(enabled, bool):
+            raise SurfaceValidationError("enabled must be a boolean")
+        state = self._binding_state(binding_id)
+        with state.lock:
+            self._ensure_attached(state)
+            method = getattr(state.backend, "set_follow_foreground", None)
+            if not callable(method):
+                raise SurfaceCapabilityError("backend does not support bound foreground gating")
+            if not enabled and state.demonstration:
+                self.set_demonstration(binding_id, False)
+            previous_follow = state.follow_foreground
+            state.follow_foreground = enabled
+            try:
+                result = method(state.backend_binding, enabled)
+            except Exception as exc:
+                state.follow_foreground = previous_follow or enabled
+                state.inhibited = True
+                state.state = "neutralization-pending"
+                raise SurfaceWaitError({"kind": "foreground-gate", "reason": "backend did not confirm foreground gating",
+                                        "binding_id": binding_id, "error": self._exception_reason(exc)}) from exc
+            if (not isinstance(result, Mapping) or result.get("confirmed") is not True
+                    or result.get("enabled") is not enabled):
+                state.inhibited = True
+                state.follow_foreground = previous_follow or enabled
+                state.state = "neutralization-pending"
+                raise SurfaceWaitError({"kind": "foreground-gate", "reason": "backend returned no matching foreground-gate receipt",
+                                        "binding_id": binding_id})
+            if not enabled:
+                state.demonstration = False
+                self._discard_volatile(binding_id)
+            return json_value(dict(result), max_bytes=MAX_DETAIL_BYTES, label="foreground-gate receipt")
+
+    def set_demonstration(self, binding_id: str, enabled: bool) -> dict[str, Any]:
+        if not isinstance(enabled, bool):
+            raise SurfaceValidationError("enabled must be a boolean")
+        state = self._binding_state(binding_id)
+        with state.lock:
+            self._ensure_attached(state)
+            if enabled and not state.follow_foreground:
+                raise SurfaceAuthorizationError("demonstration events require bound foreground gating")
+            method = getattr(state.backend, "set_demonstration", None)
+            if not callable(method):
+                raise SurfaceCapabilityError("backend does not support scoped demonstration events")
+            previous_demonstration = state.demonstration
+            state.demonstration = enabled
+            try:
+                result = method(state.backend_binding, enabled)
+            except Exception as exc:
+                state.demonstration = previous_demonstration or enabled
+                state.inhibited = True
+                state.state = "neutralization-pending"
+                raise SurfaceWaitError({"kind": "demonstration", "reason": "backend did not confirm demonstration state",
+                                        "binding_id": binding_id, "error": self._exception_reason(exc)}) from exc
+            if (not isinstance(result, Mapping) or result.get("confirmed") is not True
+                    or result.get("enabled") is not enabled):
+                state.inhibited = True
+                state.demonstration = previous_demonstration or enabled
+                state.state = "neutralization-pending"
+                raise SurfaceWaitError({"kind": "demonstration", "reason": "backend returned no matching demonstration receipt",
+                                        "binding_id": binding_id})
+            return json_value(dict(result), max_bytes=MAX_DETAIL_BYTES, label="demonstration receipt")
+
+    def _stop_observation_backend(self, state: _BindingState) -> dict[str, Any]:
+        self._discard_volatile(state.binding_id)
+        failures: list[str] = []
+        if state.backend_unbound:
+            state.demonstration = False
+            state.follow_foreground = False
+            return {"confirmed": True, "demonstration": False, "follow_foreground": False}
+        if state.demonstration:
+            method = getattr(state.backend, "set_demonstration", None)
+            try:
+                result = method(state.backend_binding, False) if callable(method) else None
+            except Exception as exc:
+                result = None
+                failures.append(self._exception_reason(exc))
+            if isinstance(result, Mapping) and result.get("confirmed") is True and result.get("enabled") is False:
+                state.demonstration = False
+            else:
+                failures.append("demonstration stop was not confirmed")
+        if state.follow_foreground:
+            method = getattr(state.backend, "set_follow_foreground", None)
+            try:
+                result = method(state.backend_binding, False) if callable(method) else None
+            except Exception as exc:
+                result = None
+                failures.append(self._exception_reason(exc))
+            if isinstance(result, Mapping) and result.get("confirmed") is True and result.get("enabled") is False:
+                state.follow_foreground = False
+                state.demonstration = False
+            else:
+                failures.append("foreground-gate stop was not confirmed")
+        return {"confirmed": not failures, "demonstration": not state.demonstration,
+                "follow_foreground": not state.follow_foreground, "detail": failures[:4]}
+
+    def capture_volatile(self, binding_id: str, channels: Any = ("pixels", "accessibility")) -> dict[str, Any]:
+        """Capture a bounded, broker-only sample without field admission."""
+        state = self._binding_state(binding_id)
+        with state.lock:
+            self._ensure_attached(state)
+            self._refresh_source_binding(state, capture=True)
+            if state.inhibited:
+                raise SurfaceWaitError({"kind": "foreground", "reason": "companion source gate is inhibited",
+                                        "binding_id": binding_id})
+            if not state.follow_foreground:
+                raise SurfaceAuthorizationError("companion capture requires explicit bound foreground following")
+            if self.foreground_binding((binding_id,)) != binding_id:
+                raise SurfaceWaitError({"kind": "foreground", "reason": "capture waits for the approved bound foreground source",
+                                        "binding_id": binding_id})
+            if state.record.capture_state not in {"live", "available", "supported"}:
+                raise SurfaceCapabilityError(f"capture is {state.record.capture_state}")
+            requested = self._normalize_modalities(channels)
+            if not requested or "audio" in requested:
+                raise SurfaceAuthorizationError("volatile capture accepts pixels and accessibility only")
+            available = set(self._available_modalities(state))
+            unsupported = set(requested) - available
+            if unsupported:
+                raise SurfaceCapabilityError(f"source does not advertise modalities: {', '.join(sorted(unsupported))}")
+            capture_binding = dict(state.backend_binding)
+            capture_binding["_surface_requested_modalities"] = tuple(sorted(requested))
+            try:
+                captured = state.backend.capture(capture_binding)
+            except SurfaceWaitError as exc:
+                if exc.details.get("kind") == "frame-pending":
+                    raise
+                raise SurfaceWaitError({"kind": "capture", "reason": "backend volatile capture did not complete",
+                                        "binding_id": binding_id, "error": self._exception_reason(exc)}) from exc
+            except Exception as exc:
+                raise SurfaceWaitError({"kind": "capture", "reason": "backend volatile capture did not complete",
+                                        "binding_id": binding_id, "error": self._exception_reason(exc)}) from exc
+            if not isinstance(captured, Mapping):
+                raise SurfaceValidationError("backend capture result must be an object")
+            captured = dict(captured)
+            captured.pop("audio", None)
+            if "pixels" not in requested:
+                captured.pop("pixels", None)
+                captured["pixel_format"] = "none"
+            if "accessibility" not in requested:
+                captured.pop("accessibility", None)
+                captured.pop("screen_text", None)
+            publication = ObservationPublication.from_capture(binding_id, state.record, captured)
+            if not publication.has_pixels:
+                raise SurfaceCapabilityError("volatile preview requires actual pixel bytes")
+            if publication.delta:
+                raise SurfaceCapabilityError("volatile samples must own complete pixel bytes")
+            safe_events, event_coverage = self._safe_demonstration_batch(state, captured)
+            captured["demonstration_events"] = safe_events
+            captured["demonstration_coverage"] = event_coverage
+            token = token_urlsafe(32)
+            size = len(publication.pixel_bytes or b"")
+            if publication.accessibility is not None:
+                size += len(canonical_json(publication.accessibility))
+            if publication.screen_text is not None:
+                size += len(publication.screen_text.encode("utf-8"))
+            if size > _MAX_VOLATILE_BYTES:
+                raise SurfaceWaitError({"kind": "volatile-capacity", "reason": "sample exceeds the broker volatile-byte allowance",
+                                        "binding_id": binding_id, "byte_length": size})
+            captured_at_ns = time.monotonic_ns()
+            sample = _VolatileCapture(
+                binding_id=binding_id, source_id=publication.source_id,
+                source_instance=publication.source_instance, source_epoch=publication.source_epoch,
+                environment_incarnation=publication.environment_incarnation,
+                geometry_revision=publication.geometry_revision, binding=state.record,
+                modalities=tuple(requested), sample_sequence=publication.sequence,
+                expires_ns=captured_at_ns + _VOLATILE_TTL_NS, captured_at_ns=captured_at_ns,
+                byte_length=size, captured=captured,
+            )
+            self._store_volatile_capture(token, sample)
+            if safe_events:
+                state.last_demo_sequence = max(state.last_demo_sequence, safe_events[-1]["sequence"])
+            metadata = {key: value for key, value in captured.items()
+                        if key not in {"pixels", "audio", "demonstration_events", "demonstration_coverage"}}
+            metadata = json_value(metadata, max_bytes=MAX_METADATA_BYTES, label="volatile capture metadata")
+            return {
+                "capture_id": token,
+                "binding_id": binding_id,
+                "source_id": publication.source_id,
+                "source_instance": publication.source_instance,
+                "source_epoch": publication.source_epoch,
+                "environment_incarnation": publication.environment_incarnation,
+                "geometry_revision": publication.geometry_revision,
+                "sequence": publication.sequence,
+                "sample_time_ns": publication.sample_time_ns,
+                "receipt_time_ns": publication.receipt_time_ns,
+                "width": publication.width,
+                "height": publication.height,
+                "pixel_format": publication.pixel_format,
+                "coverage": publication.coverage,
+                "sha256": hashlib.sha256(publication.pixel_bytes).hexdigest(),
+                "byte_length": len(publication.pixel_bytes),
+                "pixels": publication.pixel_bytes,
+                "accessibility": publication.accessibility,
+                "screen_text": publication.screen_text,
+                "metadata": metadata,
+                "demonstration_events": safe_events,
+                "demonstration_coverage": event_coverage,
+                "expires_ns": sample.expires_ns,
+            }
+
+    def admit_volatile(self, binding_id: str, capture_id: str) -> dict[str, Any]:
+        """Admit the exact bounded sample previously returned by capture_volatile."""
+        capture_id = self._required_text(capture_id, "capture_id", 128)
+        state = self._binding_state(binding_id)
+        with state.lock:
+            self._ensure_attached(state)
+            sample = self._volatile_capture(binding_id, capture_id)
+            result = self._capture(binding_id, channels=sample.modalities, _volatile_capture=sample)
+            self._drop_volatile_capture(capture_id, binding_id=binding_id)
+            return result
+
+    def discard_volatile(self, binding_id: str, capture_id: str | None = None) -> dict[str, Any]:
+        binding_id = self._required_text(binding_id, "binding_id", 192)
+        if capture_id is not None:
+            capture_id = self._required_text(capture_id, "capture_id", 128)
+        removed, byte_length = self._discard_volatile(binding_id, capture_id)
+        return {"binding_id": binding_id, "discarded": removed, "byte_length": byte_length}
+
+    def unbind(self, binding_id: str) -> dict[str, Any]:
+        """Stop native source resources while retaining field-owned generations."""
+        state = self._binding_state(binding_id)
+        with state.lock:
+            if state.backend_unbound:
+                return {"binding_id": binding_id, "unbound": True,
+                        "retained_generations": list(state.publications)}
+            stopped = self._stop_observation_backend(state)
+            neutral = self._neutralize_backend(state)
+            neutral["confirmed"] = neutral["confirmed"] and stopped["confirmed"]
+            if not neutral["confirmed"]:
+                raise SurfaceWaitError({"kind": "neutralization", "reason": "source unbind waits for confirmed stop",
+                                        "binding_id": binding_id, "detail": neutral})
+            method = getattr(state.backend, "unbind", None)
+            if not callable(method):
+                raise SurfaceCapabilityError("backend does not support releasing bound native observation resources")
+            try:
+                result = method(state.backend_binding)
+            except Exception as exc:
+                raise SurfaceWaitError({"kind": "source-unbind", "reason": "backend unbind did not complete",
+                                        "binding_id": binding_id, "error": self._exception_reason(exc)}) from exc
+            if not isinstance(result, Mapping) or not (
+                    result.get("unbound") is True or result.get("confirmed") is True):
+                raise SurfaceWaitError({"kind": "source-unbind", "reason": "backend did not confirm native unbind",
+                                        "binding_id": binding_id})
+            state.backend_unbound = True
+            state.detached = True
+            state.inhibited = False
+            state.state = "detached"
+            self._discard_volatile(binding_id)
+            with self._lock:
+                key = (state.record.backend_id, state.record.source_id)
+                if self._source_bindings.get(key) == binding_id:
+                    self._source_bindings.pop(key, None)
+            return {"binding_id": binding_id, "unbound": True,
+                    "retained_generations": list(state.publications)}
+
+    def preview_source(self, backend_id: str, source_id: str) -> dict[str, Any]:
+        """Preview one listed source using a transient native bind, never field-admit."""
+        backend_id = self._required_text(backend_id, "backend_id", 128)
+        source_id = self._required_text(source_id, "source_id", 256)
+        with self._lock:
+            self._assert_open()
+            backend = self._backend(backend_id)
+            if (backend_id, source_id) in self._source_bindings:
+                raise SurfaceConflictError("source is already attached; preview would disturb its live binding")
+        source = next((item for item in self._list_sources_from(backend_id, backend)
+                       if item.get("source_id") == source_id), None)
+        if source is None:
+            raise SurfaceCapabilityError("source is no longer in the current backend inventory")
+        expected_instance = source.get("source_instance")
+        if not isinstance(expected_instance, str) or not expected_instance:
+            raise SurfaceCapabilityError("backend inventory does not expose an exact source instance")
+        unbind = getattr(backend, "unbind", None)
+        if not callable(unbind):
+            raise SurfaceCapabilityError("backend cannot release a transient preview binding")
+        raw_binding = backend.bind(source_id)
+        try:
+            if not isinstance(raw_binding, Mapping):
+                raise SurfaceValidationError("backend returned a malformed transient binding")
+            record = SurfaceBinding.from_mapping(raw_binding, backend_id=backend_id, source_id=source_id)
+            if record.source_instance != expected_instance:
+                raise SurfaceConflictError("source identity changed between preview inventory and transient bind")
+            captured = backend.capture(dict(raw_binding))
+            if not isinstance(captured, Mapping):
+                raise SurfaceValidationError("backend capture result must be an object")
+            publication = ObservationPublication.from_capture("preview", record, captured)
+            if not publication.has_pixels:
+                raise SurfaceCapabilityError("backend has no live pixel preview for this source")
+            metadata = {key: value for key, value in captured.items() if key not in {"pixels", "audio"}}
+            metadata = json_value(metadata, max_bytes=MAX_METADATA_BYTES, label="preview metadata")
+        finally:
+            try:
+                released = unbind(raw_binding)
+            except Exception as exc:
+                raise SurfaceWaitError({"kind": "source-unbind", "reason": "transient preview binding release failed",
+                                        "backend_id": backend_id, "source_id": source_id,
+                                        "error": self._exception_reason(exc)}) from exc
+            if (not isinstance(released, Mapping)
+                    or not (released.get("unbound") is True or released.get("confirmed") is True)):
+                raise SurfaceWaitError({"kind": "source-unbind", "reason": "transient preview binding was not released",
+                                        "backend_id": backend_id, "source_id": source_id})
+        return {
+            "backend_id": backend_id,
+            "source_id": publication.source_id,
+            "source_instance": publication.source_instance,
+            "source_epoch": publication.source_epoch,
+            "environment_incarnation": publication.environment_incarnation,
+            "geometry_revision": publication.geometry_revision,
+            "sequence": publication.sequence,
+            "sample_time_ns": publication.sample_time_ns,
+            "receipt_time_ns": publication.receipt_time_ns,
+            "width": publication.width,
+            "height": publication.height,
+            "pixel_format": publication.pixel_format,
+            "coverage": publication.coverage,
+            "pixels": publication.pixel_bytes,
+            "sha256": hashlib.sha256(publication.pixel_bytes).hexdigest(),
+            "byte_length": len(publication.pixel_bytes),
+            "metadata": metadata,
+        }
+
+    def _expire_volatile_locked(self) -> None:
+        now = time.monotonic_ns()
+        while self._volatile_captures:
+            capture_id, sample = next(iter(self._volatile_captures.items()))
+            if sample.expires_ns > now:
+                break
+            self._volatile_captures.pop(capture_id)
+            self._volatile_bytes -= sample.byte_length
+
+    def _store_volatile_capture(self, capture_id: str, sample: _VolatileCapture) -> None:
+        if sample.byte_length > _MAX_VOLATILE_BYTES:
+            raise SurfaceWaitError({"kind": "volatile-capacity", "reason": "sample exceeds volatile byte allowance",
+                                    "binding_id": sample.binding_id, "byte_length": sample.byte_length})
+        with self._lock:
+            self._expire_volatile_locked()
+            while (len(self._volatile_captures) >= _MAX_VOLATILE_CAPTURES
+                   or self._volatile_bytes + sample.byte_length > _MAX_VOLATILE_BYTES):
+                _, evicted = self._volatile_captures.popitem(last=False)
+                self._volatile_bytes -= evicted.byte_length
+            self._volatile_captures[capture_id] = sample
+            self._volatile_bytes += sample.byte_length
+
+    def _volatile_capture(self, binding_id: str, capture_id: str) -> _VolatileCapture:
+        with self._lock:
+            self._expire_volatile_locked()
+            sample = self._volatile_captures.get(capture_id)
+            if sample is None:
+                raise SurfaceCapabilityError("volatile sample is unavailable, expired, or evicted")
+            if sample.binding_id != binding_id:
+                raise SurfaceAuthorizationError("volatile sample belongs to another source binding")
+            return sample
+
+    def _drop_volatile_capture(self, capture_id: str, *, binding_id: str | None = None) -> bool:
+        with self._lock:
+            sample = self._volatile_captures.get(capture_id)
+            if sample is None or (binding_id is not None and sample.binding_id != binding_id):
+                return False
+            self._volatile_captures.pop(capture_id, None)
+            self._volatile_bytes -= sample.byte_length
+            return True
+
+    def _discard_volatile(self, binding_id: str, capture_id: str | None = None) -> tuple[int, int]:
+        with self._lock:
+            self._expire_volatile_locked()
+            removed = 0
+            byte_length = 0
+            for token, sample in list(self._volatile_captures.items()):
+                if sample.binding_id != binding_id or (capture_id is not None and token != capture_id):
+                    continue
+                self._volatile_captures.pop(token, None)
+                self._volatile_bytes -= sample.byte_length
+                removed += 1
+                byte_length += sample.byte_length
+            return removed, byte_length
+
+    def _safe_demonstration_batch(
+        self, state: _BindingState, captured: Mapping[str, Any],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        raw_coverage = captured.get("demonstration_coverage")
+        if not state.demonstration:
+            return [], {"enabled": False, "complete": True, "lost_count": 0}
+        if not isinstance(raw_coverage, Mapping):
+            return [], {"enabled": False, "complete": False, "lost_count": 0,
+                        "reason": "backend did not report demonstration coverage"}
+        coverage = json_value(raw_coverage, max_bytes=MAX_DETAIL_BYTES, label="demonstration coverage")
+        events_value = captured.get("demonstration_events", [])
+        if not isinstance(events_value, (list, tuple)) or len(events_value) > _MAX_DEMONSTRATION_EVENTS:
+            raise SurfaceValidationError("demonstration events must be a bounded ordered list")
+        allowed_kinds = {"click", "drag", "scroll", "shortcut"}
+        allowed_keys = {
+            "escape", "tab", "enter", "backspace", "delete", "insert", "home", "end",
+            "pageup", "pagedown", "left", "right", "up", "down", "printscreen",
+            "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
+            "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24",
+            "printable-key-omitted",
+        }
+        events: list[dict[str, Any]] = []
+        previous_sequence = 0
+        for raw in events_value:
+            if not isinstance(raw, Mapping):
+                raise SurfaceValidationError("demonstration event must be an object")
+            event = json_value(raw, max_bytes=MAX_DETAIL_BYTES, label="demonstration event")
+            if (event.get("source_id") != state.record.source_id
+                    or event.get("source_instance") != state.record.source_instance
+                    or event.get("source_epoch") != state.record.source_epoch
+                    or event.get("geometry_revision") != state.record.geometry_revision):
+                raise SurfaceConflictError("demonstration event source identity or geometry changed")
+            if event.get("kind") not in allowed_kinds:
+                raise SurfaceValidationError("demonstration event kind is unsupported")
+            sequence = self._positive_int(event.get("sequence"), "demonstration event sequence")
+            if sequence <= previous_sequence:
+                raise SurfaceValidationError("demonstration event sequence is not strictly ordered")
+            previous_sequence = sequence
+            self._positive_int(event.get("time_ns"), "demonstration event time")
+            if (event.get("focus_epoch") != state.record.focus_epoch
+                    or event.get("input_domain_epoch") != state.record.input_domain_epoch):
+                raise SurfaceConflictError("demonstration event focus or input-domain epoch changed")
+            detail = event.get("detail", {})
+            if not isinstance(detail, Mapping):
+                raise SurfaceValidationError("demonstration event detail must be an object")
+            if any(key in detail for key in ("vk", "scan_code", "unicode", "text", "typed_text", "character")):
+                raise SurfaceValidationError("demonstration event contains prohibited key or text detail")
+            if event["kind"] == "shortcut" and detail.get("key") not in allowed_keys:
+                raise SurfaceValidationError("demonstration shortcut contains an unsupported key identity")
+            if sequence > state.last_demo_sequence:
+                events.append(event)
+        if coverage.get("enabled") not in {True, False} or not isinstance(coverage.get("complete"), bool):
+            raise SurfaceValidationError("demonstration coverage must report enabled and completeness")
+        lost_count = coverage.get("lost_count", 0)
+        if isinstance(lost_count, bool) or not isinstance(lost_count, int) or lost_count < 0:
+            raise SurfaceValidationError("demonstration loss count must be a nonnegative integer")
+        if coverage.get("enabled") is not True:
+            return [], coverage
+        return events, coverage
+
+    def _refresh_volatile_binding(self, state: _BindingState, sample: _VolatileCapture) -> None:
+        revalidate = getattr(state.backend, "revalidate", None)
+        if not callable(revalidate):
+            raise SurfaceCapabilityError("backend does not support read-only source revalidation")
+        try:
+            result = revalidate(state.backend_binding)
+        except Exception as exc:
+            raise SurfaceWaitError({"kind": "source-revalidate", "reason": "pinned source revalidation did not complete",
+                                    "binding_id": state.binding_id, "error": self._exception_reason(exc)}) from exc
+        if not isinstance(result, Mapping) or result.get("supported") is not True or result.get("valid") is not True:
+            raise SurfaceConflictError("pinned sample source is no longer valid")
+        current = SurfaceBinding.from_mapping(result, backend_id=state.record.backend_id,
+                                              source_id=state.record.source_id)
+        if (current.source_id != sample.source_id or current.source_instance != sample.source_instance
+                or current.source_epoch != sample.source_epoch
+                or current.environment_incarnation != sample.environment_incarnation):
+            self._stop_observation_backend(state)
+            state.state = "stale"
+            self._invalidate_binding_grants(state, reason="volatile-source-identity-changed")
+            neutral = self._neutralize_backend(state)
+            state.inhibited = not neutral["confirmed"]
+            raise SurfaceConflictError("pinned sample source identity or epoch changed")
+        old = state.record
+        state.backend_binding = dict(result)
+        state.record = current
+        geometry_changed = current.geometry_revision != old.geometry_revision
+        authority_changed = (current.focus_epoch != old.focus_epoch
+                            or current.input_domain_epoch != old.input_domain_epoch
+                            or current.input_domain != old.input_domain
+                            or current.input_state != old.input_state)
+        if geometry_changed or authority_changed:
+            self._require_fresh_capture(state)
+            self._invalidate_binding_grants(state, reason="volatile-source-generation-changed")
+            neutral = self._neutralize_backend(state)
+            state.inhibited = not neutral["confirmed"]
+            state.human_control = current.input_state == "suspended"
+            state.state = "human-control" if state.human_control else (
+                "observation-only" if neutral["confirmed"] else "neutralization-pending")
+
     # ---- live observation data path -----------------------------------
 
     def capture(self, binding_id: str, *, mission_id: str | None = None,
                 grant_id: str | None = None, channels: Any | None = None) -> dict[str, Any]:
-        """Capture only the requested, authorized channels into one field-owned generation."""
+        return self._capture(binding_id, mission_id=mission_id, grant_id=grant_id, channels=channels)
+
+    def _capture(self, binding_id: str, *, mission_id: str | None = None,
+                 grant_id: str | None = None, channels: Any | None = None,
+                 _volatile_capture: _VolatileCapture | None = None) -> dict[str, Any]:
+        """Admit either a current capture or the exact, immutable pinned sample."""
         if self._field_owner is None:
             raise SurfaceCapabilityError("field owner is unavailable; observations cannot be published")
         if (mission_id is None) != (grant_id is None):
             raise SurfaceValidationError("mission_id and grant_id must be supplied together")
         state = self._binding_state(binding_id)
         with state.lock:
-            self._ensure_attached(state)
-            self._refresh_source_binding(state, capture=True)
+            if _volatile_capture is not None:
+                self._refresh_volatile_binding(state, _volatile_capture)
+            else:
+                self._refresh_source_binding(state, capture=True)
             if state.record.capture_state not in {"live", "available", "supported"}:
                 if state.record.capture_state in {"pending", "starting", "awaiting-baseline", "warming"}:
                     raise SurfaceWaitError({"kind": "capture", "reason": f"capture is {state.record.capture_state}",
@@ -293,61 +844,66 @@ class SurfaceBroker:
                 raise SurfaceCapabilityError(f"source does not advertise modalities: {', '.join(sorted(unsupported))}")
             if not requested:
                 raise SurfaceAuthorizationError("observation channel scope is empty")
-
             audio_grant: _Grant | None = None
             audio_status: dict[str, str] | None = None
             effective = set(requested)
-            if "audio" in requested:
-                if mission_id is not None and grant_id is not None:
-                    try:
-                        audio_grant = self._audio_capture_grant(state, mission_id, grant_id)
-                    except SurfaceError:
+            if _volatile_capture is not None:
+                if requested != _volatile_capture.modalities or "audio" in requested:
+                    raise SurfaceAuthorizationError("pinned sample modality scope cannot be changed")
+                captured = dict(_volatile_capture.captured)
+            else:
+                if "audio" in requested:
+                    if mission_id is not None and grant_id is not None:
+                        try:
+                            audio_grant = self._audio_capture_grant(state, mission_id, grant_id)
+                        except SurfaceError:
+                            if requested == ("audio",):
+                                raise
+                            effective.discard("audio")
+                            audio_status = {"status": "not-authorized"}
+                    else:
                         if requested == ("audio",):
-                            raise
+                            raise SurfaceAuthorizationError("audio-only observation requires an explicit audio.capture grant")
                         effective.discard("audio")
                         audio_status = {"status": "not-authorized"}
-                else:
-                    if requested == ("audio",):
-                        raise SurfaceAuthorizationError("audio-only observation requires an explicit audio.capture grant")
-                    effective.discard("audio")
+                if not effective:
+                    raise SurfaceAuthorizationError("no requested observation channel is authorized")
+                capture_binding = dict(state.backend_binding)
+                capture_binding["_surface_requested_modalities"] = tuple(sorted(effective))
+                capture_binding["_surface_audio_enabled"] = audio_grant is not None and "audio" in effective
+                if audio_grant is not None and "audio" in effective:
+                    capture_binding["_surface_capture_authorization"] = self._capture_authorization_context(state, audio_grant)
+                try:
+                    captured = state.backend.capture(capture_binding)
+                except Exception as exc:
+                    raise SurfaceWaitError({"kind": "capture", "reason": "backend capture did not complete", "binding_id": binding_id,
+                                            "error": self._exception_reason(exc)}) from exc
+                if not isinstance(captured, Mapping):
+                    raise SurfaceValidationError("backend capture result must be an object")
+                captured = dict(captured)
+                if "pixels" not in effective:
+                    captured.pop("pixels", None)
+                if "accessibility" not in effective:
+                    captured.pop("accessibility", None)
+                    captured.pop("screen_text", None)
+                if "audio" not in effective:
+                    captured.pop("audio", None)
+                raw_audio = captured.get("audio")
+                if raw_audio is not None and not isinstance(raw_audio, Mapping):
+                    raise SurfaceValidationError("audio capture result must be an object")
+                has_audio_bytes = isinstance(raw_audio, Mapping) and isinstance(raw_audio.get("samples"), bytes)
+                if has_audio_bytes and (audio_grant is None or not self._capture_grant_is_current(state, audio_grant)):
+                    captured.pop("audio", None)
                     audio_status = {"status": "not-authorized"}
-            if not effective:
-                raise SurfaceAuthorizationError("no requested observation channel is authorized")
-            capture_binding = dict(state.backend_binding)
-            capture_binding["_surface_requested_modalities"] = tuple(sorted(effective))
-            capture_binding["_surface_audio_enabled"] = audio_grant is not None and "audio" in effective
-            if audio_grant is not None and "audio" in effective:
-                capture_binding["_surface_capture_authorization"] = self._capture_authorization_context(state, audio_grant)
+                elif "audio" in effective and audio_grant is not None and not has_audio_bytes:
+                    audio_status = self._safe_audio_status(captured.get("audio_status"), fallback="unavailable")
+                if "audio" in effective and audio_status is None and not has_audio_bytes:
+                    audio_status = self._safe_audio_status(captured.get("audio_status"), fallback="unavailable")
+                if audio_status is not None and "audio" in effective:
+                    captured["audio_status"] = audio_status
             try:
-                captured = state.backend.capture(capture_binding)
-            except Exception as exc:
-                raise SurfaceWaitError({"kind": "capture", "reason": "backend capture did not complete", "binding_id": binding_id,
-                                        "error": self._exception_reason(exc)}) from exc
-            if not isinstance(captured, Mapping):
-                raise SurfaceValidationError("backend capture result must be an object")
-            captured = dict(captured)
-            if "pixels" not in effective:
-                captured.pop("pixels", None)
-            if "accessibility" not in effective:
-                captured.pop("accessibility", None)
-                captured.pop("screen_text", None)
-            if "audio" not in effective:
-                captured.pop("audio", None)
-            raw_audio = captured.get("audio")
-            if raw_audio is not None and not isinstance(raw_audio, Mapping):
-                raise SurfaceValidationError("audio capture result must be an object")
-            has_audio_bytes = isinstance(raw_audio, Mapping) and isinstance(raw_audio.get("samples"), bytes)
-            if has_audio_bytes and (audio_grant is None or not self._capture_grant_is_current(state, audio_grant)):
-                captured.pop("audio", None)
-                audio_status = {"status": "not-authorized"}
-            elif "audio" in effective and audio_grant is not None and not has_audio_bytes:
-                audio_status = self._safe_audio_status(captured.get("audio_status"), fallback="unavailable")
-            if "audio" in effective and audio_status is None and not has_audio_bytes:
-                audio_status = self._safe_audio_status(captured.get("audio_status"), fallback="unavailable")
-            if audio_status is not None and "audio" in effective:
-                captured["audio_status"] = audio_status
-            try:
-                publication = ObservationPublication.from_capture(binding_id, state.record, captured)
+                publication = ObservationPublication.from_capture(
+                    binding_id, _volatile_capture.binding if _volatile_capture is not None else state.record, captured)
             except SurfaceConflictError:
                 state.state = "stale"
                 state.inhibited = True
@@ -454,12 +1010,17 @@ class SurfaceBroker:
                         )
                     )
                     if same_sample:
-                        if (state.capture_required_after_generation is not None
+                        if (_volatile_capture is None and state.capture_required_after_generation is not None
                                 and previous.generation <= state.capture_required_after_generation):
                             raise SurfaceConflictError("a new source sample is required before control")
                         if audio_bytes is not None and not self._capture_grant_is_current(state, audio_grant):
                             raise SurfaceAuthorizationError("audio.capture grant expired before publication delivery")
-                        return json_value(old, max_bytes=MAX_METADATA_BYTES, label="publication metadata")
+                        result = json_value(old, max_bytes=MAX_METADATA_BYTES, label="publication metadata")
+                        if _volatile_capture is not None:
+                            result["demonstration_events"] = _volatile_capture.captured.get("demonstration_events", [])
+                            result["demonstration_coverage"] = _volatile_capture.captured.get(
+                                "demonstration_coverage", {"enabled": False, "complete": True, "lost_count": 0})
+                        return result
                     raise SurfaceConflictError("source reused an observation sequence for different content or scope")
             while len(state.publications) >= _MAX_PUBLICATIONS_PER_BINDING:
                 old_generation = next(iter(state.publications))
@@ -552,13 +1113,20 @@ class SurfaceBroker:
                     raise SurfaceWaitError({"kind": "field-audio", "reason": "expired audio publication could not be released",
                                             "binding_id": binding_id, "generation": generation})
                 raise SurfaceAuthorizationError("audio.capture grant expired before publication became available")
-            if (state.capture_required_after_generation is not None
-                    and generation <= state.capture_required_after_generation):
+            requires_fresh = (state.capture_required_after_generation is not None
+                              and generation <= state.capture_required_after_generation)
+            stale_volatile = (_volatile_capture is not None
+                              and (_volatile_capture.captured_at_ns <= state.capture_required_after_ns
+                                   or publication.sequence <= state.last_sequence))
+            if requires_fresh and _volatile_capture is None:
                 if generation not in state.publications and not self._release_generation(binding_id, generation):
                     raise SurfaceWaitError({"kind": "publication-freshness",
                                             "reason": "reused field generation could not be released",
                                             "binding_id": binding_id, "generation": generation})
                 raise SurfaceConflictError("a fresh field-owned observation is required before control")
+            if _volatile_capture is not None and (requires_fresh or stale_volatile):
+                state.capture_required_after_generation = max(
+                    state.capture_required_after_generation or 0, generation)
             field_metadata = {"publication": self._safe_field_admission(admission or audio_admission or {})}
             if audio_admission is not None:
                 field_metadata["audio"] = self._safe_field_admission(audio_admission)
@@ -588,7 +1156,12 @@ class SurfaceBroker:
                                                           publication.height, publication.pixel_format,
                                                           publication.source_epoch, publication.geometry_revision)
             state.last_sequence = max(state.last_sequence, publication.sequence)
-            return json_value(published_metadata, max_bytes=MAX_METADATA_BYTES, label="publication metadata")
+            result = json_value(published_metadata, max_bytes=MAX_METADATA_BYTES, label="publication metadata")
+            if _volatile_capture is not None:
+                result["demonstration_events"] = _volatile_capture.captured.get("demonstration_events", [])
+                result["demonstration_coverage"] = _volatile_capture.captured.get(
+                    "demonstration_coverage", {"enabled": False, "complete": True, "lost_count": 0})
+            return result
 
     def _refresh_source_binding(self, state: _BindingState, *, capture: bool = True) -> SurfaceBinding:
         """Use a read-only provider revalidation; never acquire another session."""
@@ -623,31 +1196,34 @@ class SurfaceBroker:
         except SurfaceError:
             raise
         old = state.record
-        if (current.source_instance != old.source_instance
+        if (current.source_id != old.source_id
+                or current.source_instance != old.source_instance
                 or current.environment_incarnation != old.environment_incarnation
-                or current.source_epoch != old.source_epoch
-                or current.geometry_revision != old.geometry_revision):
+                or current.source_epoch != old.source_epoch):
             state.state = "stale"
-            self._invalidate_binding_grants(state, reason="source-epoch-or-geometry-changed")
+            self._invalidate_binding_grants(state, reason="source-identity-or-epoch-changed")
             neutral = self._neutralize_backend(state)
             state.inhibited = not neutral["confirmed"]
-            raise SurfaceConflictError("source, environment, epoch, or geometry changed; bind the source again")
+            raise SurfaceConflictError("source identity, environment, or epoch changed; bind the source again")
+        geometry_changed = current.geometry_revision != old.geometry_revision
         authority_changed = (current.focus_epoch != old.focus_epoch
                             or current.input_domain_epoch != old.input_domain_epoch
                             or current.input_domain != old.input_domain
                             or current.input_state != old.input_state)
         state.backend_binding = dict(result)
         state.record = current
-        if authority_changed:
+        if geometry_changed or authority_changed:
             self._require_fresh_capture(state)
-            self._invalidate_binding_grants(state, reason="focus-or-input-domain-epoch-changed")
+            reason = ("source-geometry-changed" if geometry_changed and not authority_changed
+                      else "focus-or-input-domain-epoch-changed")
+            self._invalidate_binding_grants(state, reason=reason)
             neutral = self._neutralize_backend(state)
             state.inhibited = not neutral["confirmed"]
             state.human_control = current.input_state == "suspended"
             state.state = ("human-control" if state.human_control else
                            "observation-only" if neutral["confirmed"] else "neutralization-pending")
             if not capture:
-                raise SurfaceConflictError("focus or input-domain epoch changed at final dispatch fence")
+                raise SurfaceConflictError("source geometry or authority changed at final dispatch fence")
         return current
 
 
@@ -1133,6 +1709,7 @@ class SurfaceBroker:
         with state.lock:
             self._ensure_attached(state)
             self._refresh_source_binding(state, capture=False)
+            authority_epoch = state.authority_epoch
             if state.inhibited or state.state in {"paused", "reconciliation-required", "neutralization-pending",
                                                    "input-suspended", "stale", "lost"}:
                 raise SurfaceWaitError({"kind": "control-state", "reason": f"binding is {state.state}",
@@ -1186,6 +1763,8 @@ class SurfaceBroker:
         current_epoch: int | None = None
         reserved_domain = False
         with state.lock:
+            if state.authority_epoch != authority_epoch:
+                raise SurfaceAuthorizationError("source authority changed during host approval")
             self._ensure_attached(state)
             self._refresh_source_binding(state, capture=False)
             if self._input_domain(state.record) != domain:
@@ -1264,6 +1843,17 @@ class SurfaceBroker:
             self._watch.notify_all()
             return {"binding_id": binding_id, "grant_id": grant_id, "sequence": sequence,
                     "lease_deadline_ns": grant.lease_deadline_ns, "state": "active"}
+
+    def relinquish(self, binding_id: str, grant_id: str) -> dict[str, Any]:
+        """End the holder's own control stream now through the watchdog's expiry path."""
+        now = time.monotonic_ns()
+        with self._watch:
+            grant = self._grants.get(grant_id)
+            if grant is None or not grant.active or grant.binding_id != binding_id:
+                return {"binding_id": binding_id, "grant_id": grant_id, "state": "inactive"}
+            grant.lease_deadline_ns = min(grant.lease_deadline_ns, now)
+            self._watch.notify_all()
+            return {"binding_id": binding_id, "grant_id": grant_id, "state": "relinquished"}
 
     def submit_intent(self, intent: Mapping[str, Any]) -> dict[str, Any]:
         parsed = ControlIntent.from_mapping(intent)
@@ -1931,6 +2521,7 @@ class SurfaceBroker:
         latest = max(state.publications, default=0)
         previous = state.capture_required_after_generation or 0
         state.capture_required_after_generation = max(previous, latest)
+        state.capture_required_after_ns = max(state.capture_required_after_ns, time.monotonic_ns())
 
     def _maybe_block_on_outcome(self, state: _BindingState, outcome: Mapping[str, Any]) -> None:
         if outcome.get("disposition") in {"unknown", "partially-delivered"}:
@@ -1945,6 +2536,7 @@ class SurfaceBroker:
     def revoke(self, binding_id: str) -> dict[str, Any]:
         state = self._binding_state(binding_id)
         with state.lock:
+            state.authority_epoch += 1
             self._invalidate_binding_grants(state, reason="revoked")
             neutral = self._neutralize_backend(state)
             state.inhibited = not neutral["confirmed"]
@@ -1966,6 +2558,7 @@ class SurfaceBroker:
             self._ensure_attached(state)
             self._refresh_source_binding(state, capture=False)
             domain = self._input_domain(state.record)
+            authority_epoch = state.authority_epoch
             if state.record.input_state not in {"available", "live", "supported"}:
                 raise SurfaceCapabilityError(f"human input is {state.record.input_state}")
         human_operations = normalize_operations(operations) if operations is not None else tuple(
@@ -2002,6 +2595,8 @@ class SurfaceBroker:
         approved = self._ask_authorizer(proposal)
         approved_operations, approved_scope = self._approved_decision(approved, human_operations, scope)
         with state.lock:
+            if state.authority_epoch != authority_epoch + 1:
+                raise SurfaceAuthorizationError("source authority changed during human takeover approval")
             self._ensure_attached(state)
             self._refresh_source_binding(state, capture=False)
             if self._input_domain(state.record) != domain:
@@ -2048,6 +2643,7 @@ class SurfaceBroker:
     def release_human(self, binding_id: str) -> dict[str, Any]:
         state = self._binding_state(binding_id)
         with state.lock:
+            state.authority_epoch += 1
             self._invalidate_binding_grants(state, reason="human-control-released")
             neutral = self._neutralize_backend(state)
             state.human_control = False

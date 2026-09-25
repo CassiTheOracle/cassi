@@ -3,11 +3,12 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const state = {
-  token: "",
   connected: false,
   entityId: "cassi",
   programs: [],
   programId: "",
+  pendingProgramAdmission: null,
+  programAdmissionInFlight: false,
   program: null,
   ownerSha: "",
   workspace: null,
@@ -17,6 +18,19 @@ const state = {
   eventCursor: 0,
   events: [],
   eventAbort: null,
+  embodiedField: {
+    latest: null,
+    latestAt: "",
+    error: "",
+    loading: false,
+    mode: "live",
+    frozen: null,
+    replayId: "",
+    captures: [],
+    selectedRegionKey: "",
+    selectedExchangeMeaningKey: "",
+    zoom: 1,
+  },
   surface: {
     descriptor: null,
     descriptorProgramId: "",
@@ -31,6 +45,8 @@ const state = {
     mode: "disconnected",
     viewerMode: "observing",
     timer: null,
+    authorityTimer: null,
+    authorityCheckedAt: 0,
     grantTimer: null,
     polling: false,
     captureCurrent: false,
@@ -45,6 +61,8 @@ const state = {
     annotations: [],
     drag: null,
     pendingOperationId: "",
+    humanAuthorityConfigured: false,
+    missionAuthority: null,
   },
   toastTimer: null,
 };
@@ -66,6 +84,84 @@ function now() {
 function requestId(prefix) {
   return `${prefix}:${crypto.randomUUID()}`;
 }
+
+function conciseTitle(brief) {
+  const normalized = brief.replace(/\s+/gu, " ").trim();
+  const firstSentence = normalized.split(/(?<=[.!?])\s+/u, 1)[0] || normalized;
+  if (firstSentence.length <= 96) return firstSentence;
+  return `${firstSentence.slice(0, 93).trimEnd()}…`;
+}
+
+const RESEARCH_SURFACE_PROFILES = {
+  "dedicated-linux-desktop": {
+    label: "Cassi's dedicated Linux desktop",
+    surface_scope: {
+      sources: [{
+        backend_id: "linux-xvnc-rfb",
+        source_id: "cassi-surface-01",
+        observation: ["pixels"],
+        operations: [
+          "keyboard.key",
+          "keyboard.text",
+          "pointer.absolute",
+          "pointer.button",
+          "pointer.wheel",
+        ],
+      }],
+    },
+  },
+};
+
+function programAdmissionForBrief(brief, context, useLinuxDesktop) {
+  const profile = useLinuxDesktop
+    ? RESEARCH_SURFACE_PROFILES["dedicated-linux-desktop"]
+    : null;
+  const signature = JSON.stringify([brief, context, profile?.label ?? null]);
+  if (state.pendingProgramAdmission?.signature === signature) {
+    return state.pendingProgramAdmission;
+  }
+  const programId = `research-${crypto.randomUUID().replaceAll("-", "")}`;
+  const mission = [
+    brief,
+    context ? `Additional guidance:\n${context}` : "",
+    profile
+      ? `Working environment: ${profile.label}. Use only this exact source scope; computer input still requires the separate mission approval.`
+      : "",
+  ].filter(Boolean).join("\n\n");
+  const admission = {
+    signature,
+    programId,
+    body: {
+      request_id: requestId("create-program"),
+      program_id: programId,
+      project_id: programId,
+      title: conciseTitle(brief),
+      mission,
+      initial_question: brief,
+      observed_at: now(),
+      deliverable: {
+        artifact: "research-deliverable.json",
+        sections_key: "sections",
+        sections: [
+          "answer",
+          "sources",
+          "method",
+          "reproducible_result",
+          "what_the_result_supports",
+          "remaining_uncertainty",
+          "next_investigation",
+        ],
+        document_schema: "cassi.research.deliverable.v1",
+        identity_key: "program_id",
+        identity_value: programId,
+      },
+      ...(profile ? {surface_scope: profile.surface_scope} : {}),
+    },
+  };
+  state.pendingProgramAdmission = admission;
+  return admission;
+}
+
 
 function text(value, fallback = "") {
   return typeof value === "string" ? value : fallback;
@@ -105,10 +201,9 @@ async function inlineJson(name, value) {
 }
 
 async function api(path, options = {}) {
-  if (!state.token) throw new Error("Connect with the entity token first.");
   const headers = new Headers(options.headers || {});
-  headers.set("authorization", `Bearer ${state.token}`);
   headers.set("accept", options.accept || "application/json");
+
   if (options.body !== undefined) headers.set("content-type", "application/json; charset=utf-8");
   const response = await fetch(path, {
     method: options.method || "GET",
@@ -129,10 +224,9 @@ async function api(path, options = {}) {
 }
 
 async function apiBinaryPage(path, options = {}) {
-  if (!state.token) throw new Error("Connect with the entity token first.");
   const headers = new Headers(options.headers || {});
-  headers.set("authorization", `Bearer ${state.token}`);
   headers.set("accept", "application/octet-stream");
+
   headers.set("x-cassi-surface-client", "research-workspace");
   const response = await fetch(path, {
     method: "GET",
@@ -174,13 +268,6 @@ function setConnected(connected, label) {
 async function handleError(error, {refresh = true} = {}) {
   if (error?.name === "AbortError") return;
   if (error instanceof ApiError) {
-    if (error.status === 401) {
-      state.token = "";
-      setConnected(false, "Authorization required");
-      disconnectSurfaceLocal();
-      toast("The bearer token was rejected. It was removed from memory.", "error");
-      return;
-    }
     if (error.status === 409 || /stale/i.test(error.message)) {
       toast("The field advanced before this command. The current revision is being reloaded; review it before retrying.", "warn");
       if (refresh && state.programId) await refreshProgramViews().catch(() => {});
@@ -612,7 +699,7 @@ function stopEvents() {
 
 function startEvents() {
   stopEvents();
-  if (!state.token || !state.programId) return;
+  if (!state.connected || !state.programId) return;
   const controller = new AbortController();
   state.eventAbort = controller;
   eventLoop(controller, state.programId);
@@ -621,7 +708,7 @@ function startEvents() {
 async function eventLoop(controller, programId) {
   let delay = 500;
   $("#events-state").textContent = "connected";
-  while (!controller.signal.aborted && state.programId === programId && state.token) {
+  while (!controller.signal.aborted && state.programId === programId && state.connected) {
     try {
       const raw = await api(`/v1/programs/${encodeURIComponent(programId)}/events/stream?after=${state.eventCursor}&wait=20`, {raw: true, accept: "text/event-stream", signal: controller.signal});
       for (const event of parseSse(raw)) {
@@ -724,6 +811,7 @@ function surfaceRequest(path, body = {}, method = "POST") {
     headers: {"x-cassi-surface-client": "research-workspace"},
   });
 }
+
 
 function stopSurfacePolling() {
   clearInterval(state.surface.timer);
@@ -1034,7 +1122,7 @@ function renderSurfaceProgramContext() {
 function updateSurfaceControls() {
   const surface = state.surface;
   const hasBinding = Boolean(surface.bindingId);
-  const bound = Boolean(state.connected && state.token && hasBinding);
+  const bound = Boolean(state.connected && hasBinding);
   const program = programValue(state.program || {});
   const activeProgram = String(program.status || "").toLowerCase() === "active";
   const operation = $("#surface-operation")?.value || "";
@@ -1049,8 +1137,12 @@ function updateSurfaceControls() {
     && generation !== null && String(surface.frameGeneration) === String(generation);
   const programMatchesBinding = !surface.bindingProgramId || surface.bindingProgramId === state.programId;
   const currentObservation = bound && programMatchesBinding && !surface.staleBinding && geometryValid && pixelsCurrent;
-  const canAssist = bound && programMatchesBinding && !surface.staleBinding && !surface.pendingOperationId && ["observing", "assisting"].includes(surface.mode);
-  const canDelegate = currentObservation && !surface.safetyBlocked && activeProgram && !surface.pendingOperationId
+  const authorityExpiryNs = Number(surface.missionAuthority?.expires_ns);
+  const authorityFresh = surface.missionAuthority?.active === true && Number.isFinite(authorityExpiryNs)
+    && authorityExpiryNs > Number(BigInt(Date.now()) * 1_000_000n);
+  const canAssist = bound && programMatchesBinding && !surface.staleBinding && !surface.pendingOperationId
+    && ["observing", "assisting", "delegated", "human-control"].includes(surface.mode);
+  const canDelegate = currentObservation && authorityFresh && !surface.safetyBlocked && activeProgram && !surface.pendingOperationId
     && ["observing", "assisting"].includes(surface.mode);
   let scopeMatches = false;
   if (surface.activeGrant?.scope) {
@@ -1062,18 +1154,37 @@ function updateSurfaceControls() {
   const grantUsable = currentObservation && surface.mode === "delegated" && grantFresh && scopeMatches
     && surface.grantProgramId === state.programId;
   const selectedOperations = selectedSurfaceOperations();
-  $("#surface-refresh-sources").disabled = !state.connected || !state.token || !state.programId;
+  const grantUpdates = Number($("#surface-grant-updates").value);
+  const grantDuration = Number(new FormData($("#surface-intent-form")).get("grant_duration"));
+  const approvedUpdates = Number($("#surface-authority-updates").value);
+  const approvalDuration = Number($("#surface-authority-duration").value);
+  $("#surface-approve-authority").disabled = !currentObservation || !activeProgram || !surface.humanAuthorityConfigured
+    || !selectedOperations.length || selectedOperations.length > 16
+    || !Number.isInteger(grantUpdates) || grantUpdates < 1 || grantUpdates > approvedUpdates
+    || !Number.isInteger(approvedUpdates) || approvedUpdates < 1 || approvedUpdates > 4096
+    || !Number.isInteger(approvalDuration) || approvalDuration < 60 || approvalDuration > 86400
+    || !Number.isInteger(grantDuration) || grantDuration < 10 || grantDuration > 3600;
+  $("#surface-grant-updates").max = String(Math.min(4096, surface.missionAuthority?.max_updates || 4096));
+  $("#surface-intent-form input[name='grant_duration']").max = String(
+    Math.min(3600, surface.missionAuthority?.max_lease_seconds || 3600)
+  );
+  $("#surface-refresh-sources").disabled = !state.connected || !state.programId;
   $("#surface-backend").disabled = !state.connected || !state.programId || hasBinding;
   $("#surface-source").disabled = !state.connected || !state.programId || hasBinding;
   $("#surface-bind").disabled = !state.connected || !state.programId || hasBinding || !selectedSurfaceSource() || !supportedStatus(selectedSurfaceBackend());
   $("#surface-grant-operations").disabled = !currentObservation || !activeProgram || Boolean(surface.pendingOperationId);
-  $("#surface-operation").disabled = !currentObservation || !operationRows().some((row) => surfaceOperationToken(row) && supportedStatus(row));
+  const selectedLeaseApproved = selectedOperations.length > 0
+    && selectedOperations.every((item) => surface.missionAuthority?.operations?.includes(item));
+  const leaseDurationApproved = Number.isInteger(grantDuration) && grantDuration >= 10
+    && grantDuration <= Number(surface.missionAuthority?.max_lease_seconds || 0);
+  $("#surface-delegate").disabled = !canDelegate || !selectedLeaseApproved
+    || !Number.isInteger(grantUpdates) || grantUpdates < 1
+    || grantUpdates > Number(surface.missionAuthority?.max_updates || 0)
+    || !leaseDurationApproved;
   $("#surface-assist").disabled = !canAssist;
-  $("#surface-delegate").disabled = !canDelegate;
+  $("#surface-operation").disabled = !grantUsable || $("#surface-operation").options.length <= 1;
   $("#surface-submit-intent").disabled = !grantUsable || !operationAllowed || !currentObservation || Boolean(surface.pendingOperationId) || surface.safetyBlocked === true;
-  $("#surface-pause").disabled = !bound || surface.mode === "paused";
-  $("#surface-neutralize").disabled = !bound;
-  $("#surface-take-control").disabled = !currentObservation || !activeProgram
+  $("#surface-take-control").disabled = !currentObservation || !activeProgram || !surface.humanAuthorityConfigured
     || !["observing", "assisting"].includes(surface.mode) || !selectedOperations.length || surface.safetyBlocked === true;
   $("#surface-release-human").disabled = !bound || surface.mode !== "human-control";
   $("#surface-resume").disabled = !bound || surface.mode !== "paused";
@@ -1081,7 +1192,7 @@ function updateSurfaceControls() {
   $("#surface-clear-annotation").disabled = !surface.annotations.length;
   $("#surface-annotate-point").disabled = !currentObservation;
   $("#surface-annotate-region").disabled = !currentObservation;
-  $("#surface-reconcile-submit").disabled = !state.connected || !state.token || !surface.operationProgramId || !surface.pendingOperationId;
+  $("#surface-reconcile-submit").disabled = !state.connected || !surface.operationProgramId || !surface.pendingOperationId;
   if (surface.pendingOperationId) $("#surface-reconcile").classList.remove("hidden");
   else $("#surface-reconcile").classList.add("hidden");
 }
@@ -1179,10 +1290,14 @@ function adoptSurfaceBinding(binding, {reconnecting = false} = {}) {
   surface.geometryValid = metadataValid;
   surface.safetyBlocked = !metadataValid || !bindingMode || binding.inhibited === true
     || ["human-control", "delegated"].includes(bindingMode);
-  surface.annotations = surface.annotations.filter((annotation) => Boolean(annotation.request_id && annotation.program_id));
-  setSurfaceMode(bindingMode || "disconnected");
-  $("#surface-connection").textContent = `Source binding ${bindingId} · program ${state.programId}.`;
-  renderSurfaceBinding();
+  surface.staleBinding = !metadataValid || !bindingMode || bindingMode === "disconnected";
+  surface.publication = null;
+  surface.captureCurrent = false;
+  clearTimeout(surface.authorityTimer);
+  surface.authorityTimer = null;
+  surface.humanAuthorityConfigured = false;
+  surface.missionAuthority = null;
+  $("#surface-human-authority-status").textContent = "Checking host mission approval for this source binding.";
   renderSurfaceAnnotations();
   if (!reconnecting && (!observing || !metadataValid)) {
     surfaceMessage("The entity returned a binding without complete source identity or confirmed observing mode. Control is disabled; inspect or release this binding.", "error");
@@ -1198,30 +1313,19 @@ function adoptSurfaceBinding(binding, {reconnecting = false} = {}) {
 
 function startSurfacePolling() {
   stopSurfacePolling();
-  if (!state.connected || !state.token || !state.surface.bindingId) return;
+  if (!state.connected || !state.surface.bindingId) return;
+  state.surface.authorityCheckedAt = Date.now();
   void refreshSurfaceStatus().catch((error) => handleError(error, {refresh: false}));
   state.surface.timer = setInterval(() => {
-    if (!document.hidden) void refreshSurfaceCapture({quiet: true});
+    if (document.hidden) return;
+    void refreshSurfaceCapture({quiet: true});
+    if (Date.now() - state.surface.authorityCheckedAt >= 5000) {
+      state.surface.authorityCheckedAt = Date.now();
+      void refreshSurfaceAuthorityStatus().catch((error) => handleError(error, {refresh: false}));
+    }
   }, 1200);
 }
 
-function disconnectSurfaceLocal() {
-  stopSurfacePolling();
-  clearSurfaceGrant();
-  state.surface.epoch += 1;
-  clearSurfaceFrame();
-  state.surface.publication = null;
-  state.surface.captureCurrent = false;
-  state.surface.annotationMode = "";
-  state.surface.drag = null;
-  setSurfaceMode("disconnected");
-  $("#surface-connection").textContent = state.surface.bindingId
-    ? "Viewer authorization unavailable. Binding remains at the entity; reauthorize to inspect or release it. Environment left running."
-    : "Viewer disconnected; environment left running.";
-  renderSurfaceBinding();
-  renderSurfaceAnnotations();
-  updateSurfaceControls();
-}
 
 function cleanSurfaceValue(value) {
   return String(value ?? "").trim();
@@ -1281,7 +1385,7 @@ async function readSurfacePixels(bindingId, publication, generation) {
   const maximum = Number.isSafeInteger(declaredLimit) && declaredLimit > 0 ? Math.min(declaredLimit, 64 * 1024 * 1024) : 64 * 1024 * 1024;
   if (total > maximum) throw new Error(`The ${total.toLocaleString()}-byte surface exceeds the viewer's declared ${maximum.toLocaleString()}-byte frame bound.`);
   const chunks = [];
-  const pageSize = 4 * 1024 * 1024;
+  const pageSize = 1024 * 1024;
   for (let offset = 0; offset < total; offset += pageSize) {
     const length = Math.min(pageSize, total - offset);
     const query = new URLSearchParams({program_id: state.surface.bindingProgramId, offset: String(offset), length: String(length)});
@@ -1433,7 +1537,7 @@ async function refreshSurfaceCapture({quiet = false, retryPixels = false} = {}) 
   const surface = state.surface;
   const bindingId = surface.bindingId;
   const token = surface.epoch;
-  if (!bindingId || !state.connected || !state.token || surface.polling || document.hidden) return;
+  if (!bindingId || !state.connected || surface.polling || document.hidden) return;
   surface.polling = true;
   try {
     const query = new URLSearchParams({program_id: surface.bindingProgramId});
@@ -1814,6 +1918,7 @@ function surfaceMissionScope() {
     attention: cleanSurfaceValue(form.get("attention")),
     expected_consequence: cleanSurfaceValue(form.get("expected_consequence")),
     uncertainty: cleanSurfaceValue(form.get("uncertainty")),
+    max_updates: Number(form.get("grant_updates")),
   };
 }
 
@@ -1830,6 +1935,136 @@ function selectedSurfaceOperations() {
 
 function surfaceExpiryNs(durationSeconds) {
   return Number(BigInt(Date.now() + Math.round(durationSeconds * 1000)) * 1_000_000n);
+}
+async function surfaceMissionIdentity() {
+  const program = programValue(state.program || {});
+  if (!state.programId || String(program.status || "").toLowerCase() !== "active") {
+    throw new Error("Surface approval requires the selected existing active program.");
+  }
+  const generation = Number(program.generation);
+  if (!Number.isSafeInteger(generation) || generation < 0) throw new Error("The active program has no valid generation.");
+  const binding = state.surface.binding || {};
+  const identity = {
+    program_id: state.programId,
+    program_generation: generation,
+    mission_sha256: await sha256(stableJson({
+      title: String(program.title || ""),
+      mission: String(program.mission || ""),
+      generation,
+    })),
+    binding_id: state.surface.bindingId,
+    backend_id: surfaceBackendId(binding),
+    source_id: surfaceSourceId(binding),
+    source_instance: binding.source_instance,
+    source_epoch: binding.source_epoch,
+    environment_incarnation: binding.environment_incarnation,
+    geometry_revision: binding.geometry_revision,
+  };
+  if (!identity.binding_id || !identity.backend_id || !identity.source_id
+      || !identity.source_instance || identity.source_epoch === undefined || identity.source_epoch === null
+      || !identity.environment_incarnation || identity.geometry_revision === undefined || identity.geometry_revision === null) {
+    throw new Error("The current source binding has no complete dynamic identity to approve.");
+  }
+  return identity;
+}
+
+async function refreshSurfaceAuthorityStatus() {
+  const surface = state.surface;
+  if (!state.connected || !surface.bindingId || surface.bindingProgramId !== state.programId) {
+    clearTimeout(surface.authorityTimer);
+    surface.authorityTimer = null;
+    surface.humanAuthorityConfigured = false;
+    surface.missionAuthority = null;
+    $("#surface-human-authority-status").textContent = "Select the program that owns a current source binding.";
+    updateSurfaceControls();
+    return null;
+  }
+  const programId = state.programId;
+  const bindingId = surface.bindingId;
+  const query = new URLSearchParams({program_id: programId, binding_id: bindingId});
+  const result = await api(`/v1/surface/mission-authority/status?${query}`);
+  if (state.programId !== programId || surface.bindingId !== bindingId) return null;
+  clearTimeout(surface.authorityTimer);
+  surface.authorityTimer = null;
+  surface.authorityCheckedAt = Date.now();
+  surface.humanAuthorityConfigured = result?.configured === true;
+  let currentIdentity = null;
+  if (result?.active === true) {
+    try { currentIdentity = await surfaceMissionIdentity(); } catch { /* A non-active or incomplete program cannot match a mission window. */ }
+  }
+  const authorityFields = ["program_id", "program_generation", "mission_sha256",
+    "backend_id", "source_id", "source_instance", "environment_incarnation"];
+  const identityMatches = currentIdentity && authorityFields.every((field) =>
+    String(result[field]) === String(currentIdentity[field]));
+  surface.missionAuthority = result?.active === true && identityMatches ? result : null;
+  if (!surface.humanAuthorityConfigured) {
+    $("#surface-human-authority-status").textContent = "Mission authority is unavailable in this local entity process.";
+  } else if (surface.missionAuthority) {
+    const expires = new Date(Number(result.expires_ns) / 1e6).toLocaleString();
+    $("#surface-human-authority-status").textContent = `Locally approved for ${JSON.stringify(result.program_id)} generation ${result.program_generation} · source ${JSON.stringify(result.backend_id)}/${JSON.stringify(result.source_id)} (instance ${JSON.stringify(result.source_instance)}, epoch ${result.source_epoch}, geometry ${result.geometry_revision}) · operations ${result.operations.join(", ")} · max ${result.max_lease_seconds}s / ${result.max_updates} updates per lease · expires ${expires}.`;
+  } else if (result?.active === true) {
+    $("#surface-human-authority-status").textContent = "A prior approval exists but no longer matches the current mission or exact source binding.";
+  } else {
+    $("#surface-human-authority-status").textContent = "No locally approved mission window is active for this exact program and source.";
+  }
+  if (surface.missionAuthority) {
+    const approved = surface.missionAuthority;
+    const delay = Math.max(0, Number(approved.expires_ns) / 1e6 - Date.now());
+    surface.authorityTimer = setTimeout(() => {
+      if (surface.missionAuthority !== approved) return;
+      surface.missionAuthority = null;
+      $("#surface-human-authority-status").textContent = "The host mission approval window has expired.";
+      updateSurfaceControls();
+    }, delay);
+  }
+  updateSurfaceControls();
+  return result;
+}
+
+async function approveSurfaceMission() {
+  const surface = state.surface;
+  if (surface.bindingProgramId !== state.programId || surface.staleBinding) throw new Error("Approval requires a current source bound to the selected program.");
+  if (surface.humanAuthorityConfigured !== true) throw new Error("This entity has no configured host Surface authority.");
+  const operations = selectedSurfaceOperations();
+  if (!operations.length || operations.length > 16) throw new Error("Select 1–16 exact supported operations for the mission approval.");
+  const form = new FormData($("#surface-intent-form"));
+  const duration = Number(form.get("authority_duration"));
+  const maxUpdates = Number(form.get("authority_max_updates"));
+  const grantDuration = Number(form.get("grant_duration"));
+  if (!Number.isInteger(duration) || duration < 60 || duration > 86400) throw new Error("Mission approval window must be 60–86400 seconds.");
+  if (!Number.isInteger(maxUpdates) || maxUpdates < 1 || maxUpdates > 4096) throw new Error("Approved broker update limit must be 1–4096.");
+  if (!Number.isInteger(grantDuration) || grantDuration < 10 || grantDuration > 3600) throw new Error("Broker lease duration must be 10–3600 seconds.");
+  const identity = await surfaceMissionIdentity();
+  const expiresNs = surfaceExpiryNs(duration);
+  const program = programValue(state.program || {});
+  const expiryText = new Date(expiresNs / 1e6).toLocaleString();
+  const detail = [
+    `Program: ${JSON.stringify(identity.program_id)} · ${JSON.stringify(String(program.title || ""))}`,
+    `Mission: ${JSON.stringify(String(program.mission || ""))}`,
+    `Generation: ${identity.program_generation} · SHA-256: ${identity.mission_sha256}`,
+    `Backend/source: ${JSON.stringify(identity.backend_id)} / ${JSON.stringify(identity.source_id)}`,
+    `Instance: ${JSON.stringify(identity.source_instance)} · epoch: ${identity.source_epoch}`,
+    `Environment: ${JSON.stringify(identity.environment_incarnation)} · geometry: ${identity.geometry_revision}`,
+    `Exact operations: ${operations.join(", ")}`,
+    `Approval window: ${duration} seconds, until ${expiryText}`,
+    `Maximum broker lease: ${grantDuration} seconds and ${maxUpdates} updates.`,
+    "This approval authorizes repeat bounded broker grants only for this unchanged mission and exact source identity. Revoke remains available.",
+  ].join("\n");
+  if (!window.confirm(`Approve this scoped Surface mission window locally?\n\n${detail}`)) return null;
+  const result = await surfaceRequest("/v1/surface/mission-authority/approve", {
+    ...identity,
+    operations,
+    expires_ns: expiresNs,
+    max_updates: maxUpdates,
+    max_lease_seconds: grantDuration,
+  });
+  surface.humanAuthorityConfigured = true;
+  surface.missionAuthority = null;
+  $("#surface-human-authority-status").textContent = "Local consent recorded; checking the active mission window.";
+  updateSurfaceControls();
+  await refreshSurfaceAuthorityStatus();
+  surfaceMessage("The exact mission/source/operation window is locally approved. Bounded grants may renew until expiry; no actuator token is exposed to the field.");
+  return result;
 }
 
 function boundSurfaceConfirmation(action, detail = "") {
@@ -1868,48 +2103,86 @@ function showSurfaceControlStatus(action, result) {
   }
 }
 
-async function requestSurfaceControl(action) {
+async function requestSurfaceControl(action, {revokeMissionApproval = true} = {}) {
   const surface = state.surface;
   if (!surface.bindingId) throw new Error("Bind a surface source first.");
   const bindingId = surface.bindingId;
-  let path = `/v1/surface/bindings/${encodeURIComponent(bindingId)}/${action}`;
+  const revokeMission = action === "revoke" && revokeMissionApproval;
   if (!surface.bindingProgramId) throw new Error("The binding has no recoverable program scope; do not issue source controls.");
-  if (action !== "take-control") {
+  let path = `/v1/surface/bindings/${encodeURIComponent(bindingId)}/${action}`;
+  if (revokeMission) {
+    path = "/v1/surface/mission-authority/revoke";
+  } else if (action !== "take-control") {
     const query = new URLSearchParams({program_id: surface.bindingProgramId});
     path += `?${query}`;
   }
-  let body = {};
-  let duration = null;
-  if (action === "take-control") {
-    const program = programValue(state.program || {});
-    const operations = selectedSurfaceOperations();
-    if (String(program.status || "").toLowerCase() !== "active") throw new Error("Human control requires the active existing program mission.");
-    if (surface.bindingProgramId !== state.programId) throw new Error("Human control requires the same program that owns this source binding.");
-    if (surface.staleBinding) throw new Error("This source binding is stale; human control is blocked.");
-    const publication = surface.publication || {};
-    const generation = surfaceGeneration(publication);
-    if (surface.safetyBlocked || !["observing", "assisting"].includes(surface.mode)
-        || surface.captureCurrent !== true || !surface.frameUrl || surface.sourceEpochValid !== true
-        || surface.geometryValid !== true || generation === null
-        || String(surface.frameGeneration) !== String(generation)) {
-      throw new Error("Human control requires a safe, current source publication in an observing or assisting mode.");
+  let body = revokeMission
+    ? {program_id: surface.bindingProgramId, binding_id: bindingId}
+    : {};
+
+  let result;
+  try {
+    if (action === "take-control") {
+      const program = programValue(state.program || {});
+      if (surface.humanAuthorityConfigured !== true) throw new Error("Local Surface mission authority is unavailable.");
+      const operations = selectedSurfaceOperations();
+      if (String(program.status || "").toLowerCase() !== "active") throw new Error("Human control requires the active existing program mission.");
+      if (surface.bindingProgramId !== state.programId) throw new Error("Human control requires the same program that owns this source binding.");
+      if (surface.staleBinding) throw new Error("This source binding is stale; human control is blocked.");
+      const publication = surface.publication || {};
+      const generation = surfaceGeneration(publication);
+      if (surface.safetyBlocked || !["observing", "assisting"].includes(surface.mode)
+          || surface.captureCurrent !== true || !surface.frameUrl || surface.sourceEpochValid !== true
+          || surface.geometryValid !== true || generation === null
+          || String(surface.frameGeneration) !== String(generation)) {
+        throw new Error("Human control requires a safe, current source publication in an observing or assisting mode.");
+      }
+      if (!operations.length || operations.length > 16) throw new Error("Select 1–16 exact supported operations for the human-control lease.");
+      const duration = Number(new FormData($("#surface-intent-form")).get("grant_duration"));
+      if (!Number.isInteger(duration) || duration < 10 || duration > 3600) throw new Error("Human-control duration must be 10–3600 seconds.");
+      const expiresNs = surfaceExpiryNs(duration);
+      const identity = await surfaceMissionIdentity();
+      body = {...identity, operations, expires_ns: expiresNs};
+      const mission = [
+        `Program: ${JSON.stringify(identity.program_id)} · ${JSON.stringify(String(program.title || ""))}`,
+        `Mission: ${JSON.stringify(String(program.mission || ""))}`,
+        `Generation: ${identity.program_generation} · SHA-256: ${identity.mission_sha256}`,
+        `Backend/source: ${JSON.stringify(identity.backend_id)} / ${JSON.stringify(identity.source_id)}`,
+        `Instance: ${JSON.stringify(identity.source_instance)} · epoch: ${identity.source_epoch}`,
+        `Environment: ${JSON.stringify(identity.environment_incarnation)} · geometry: ${identity.geometry_revision}`,
+        `Exact operations: ${operations.join(", ")}`,
+        `Human-control lease: ${duration} seconds, until ${new Date(expiresNs / 1e6).toLocaleString()}`,
+      ].join("\n");
+      if (!window.confirm(`Approve this one-time human-control request?\n\n${mission}`)) return null;
+      result = await surfaceRequest("/v1/surface/mission-authority/take-control", body);
+    } else {
+      const descriptions = {
+        pause: "Pause brokered control and neutralize broker-owned inputs. The environment itself remains running.",
+        revoke: revokeMission
+          ? "Revoke the mission approval and current control authority, then attempt emergency neutralization. The environment remains running."
+          : "Revoke only the current broker grant and neutralize broker-owned input. The host-approved mission window remains active.",
+        "release-human": "End the human-control lease. No previous delegated grant will be restored.",
+        resume: "Resume observation only. A fresh host-approved mission window is required before any new delegated operation.",
+      };
+      if (!window.confirm(boundSurfaceConfirmation(descriptions[action] || action))) return null;
+      if (action === "revoke") {
+        clearSurfaceGrant(surface);
+        surface.safetyBlocked = true;
+        setSurfaceMode("paused");
+        if (revokeMission) {
+          clearTimeout(surface.authorityTimer);
+          surface.authorityTimer = null;
+          surface.missionAuthority = null;
+          $("#surface-human-authority-status").textContent = "Mission approval revoked; checking broker neutralization.";
+        }
+        updateSurfaceControls();
+      }
+      result = await surfaceRequest(path, body);
     }
-    if (!operations.length || operations.length > 16) throw new Error("Select 1–16 exact supported operations for the human-control lease.");
-    duration = Number(new FormData($("#surface-intent-form")).get("grant_duration"));
-    if (!Number.isInteger(duration) || duration < 10 || duration > 3600) throw new Error("Human-control duration must be 10–3600 seconds.");
-    const expiresNs = surfaceExpiryNs(duration);
-    body = {program_id: state.programId, operations, expires_ns: expiresNs};
-    if (!window.confirm(boundSurfaceConfirmation("request human control", `Program: ${JSON.stringify(state.programId)}\nAllowed operations: ${operations.join(", ")}\nLease: ${duration} seconds\nThis request requires a separate host Surface authorizer. The viewer does not hold an actuator credential.`))) return null;
-  } else {
-    const descriptions = {
-      pause: "Pause brokered control and neutralize broker-owned inputs. The environment itself remains running.",
-      revoke: "Revoke the current control authority and attempt emergency neutralization. The environment remains running.",
-      "release-human": "End the human-control lease. No previous delegated grant will be restored.",
-      resume: "Resume observation only. A fresh host-authorized grant is required before any new delegated operation.",
-    };
-    if (!window.confirm(boundSurfaceConfirmation(descriptions[action] || action))) return null;
+  } catch (error) {
+    if (revokeMission) updateSurfaceControls();
+    throw error;
   }
-  const result = await surfaceRequest(path, body);
   const status = surfaceControlResult(result, action);
   const authoritativeMode = surfaceBindingMode(status.record);
   if (action === "pause") {
@@ -1917,6 +2190,12 @@ async function requestSurfaceControl(action) {
     setSurfaceMode("paused");
   } else if (action === "revoke") {
     clearSurfaceGrant(surface);
+    if (revokeMission) {
+      clearTimeout(surface.authorityTimer);
+      surface.authorityTimer = null;
+      surface.missionAuthority = null;
+      $("#surface-human-authority-status").textContent = "No host-authorized mission window is active for this exact program and source.";
+    }
     setSurfaceMode(status.confirmed === true ? "observing" : "paused");
   } else if (action === "take-control") {
     clearSurfaceGrant(surface);
@@ -1948,7 +2227,7 @@ async function enterSurfaceAssisting() {
     const result = await requestSurfaceControl("release-human");
     if (!result || surface.safetyBlocked) return;
   } else if (surface.activeGrant || surface.mode === "delegated") {
-    const result = await requestSurfaceControl("revoke");
+    const result = await requestSurfaceControl("revoke", {revokeMissionApproval: false});
     if (!result || surface.safetyBlocked) return;
   }
   if (!["observing", "assisting"].includes(surface.mode)) throw new Error("The current control mode must be safely released before assisting.");
@@ -1970,16 +2249,41 @@ async function enterSurfaceDelegated() {
     throw new Error("A current displayed publication with matching source epoch and geometry is required.");
   }
   if (surface.activeGrant) throw new Error("A delegated grant is already active. Revoke it before requesting another.");
+  const approval = surface.missionAuthority;
+  if (!approval || approval.active !== true) throw new Error("Approve this exact mission and source with the host before requesting a delegated lease.");
+  const identity = await surfaceMissionIdentity();
+  const identityFields = ["program_id", "program_generation", "mission_sha256",
+    "backend_id", "source_id", "source_instance", "environment_incarnation"];
+  if (!identityFields.every((field) => String(approval[field]) === String(identity[field]))) {
+    surface.missionAuthority = null;
+    updateSurfaceControls();
+    throw new Error("The approved mission or exact source identity has changed; inspect and approve its current identity again.");
+  }
+  const approvalExpiresNs = Number(approval.expires_ns);
+  const remainingSeconds = Math.floor((approvalExpiresNs / 1e6 - Date.now()) / 1000);
+  if (!Number.isFinite(approvalExpiresNs) || remainingSeconds < 10) {
+    surface.missionAuthority = null;
+    $("#surface-human-authority-status").textContent = "The host mission approval window has expired or has less than ten seconds remaining.";
+    updateSurfaceControls();
+    throw new Error("The host mission approval has expired or cannot fit another bounded lease.");
+  }
   const operations = selectedSurfaceOperations();
   if (!operations.length || operations.length > 16) throw new Error("Select 1–16 exact supported operation tokens; grants never default to all operations.");
-  const duration = Number(new FormData($("#surface-intent-form")).get("grant_duration"));
-  if (!Number.isInteger(duration) || duration < 10 || duration > 3600) throw new Error("Grant duration must be 10–3600 seconds.");
+  if (!operations.every((operation) => approval.operations.includes(operation))) {
+    throw new Error("Selected lease operations must be a subset of the operations approved for this mission window.");
+  }
+  const form = new FormData($("#surface-intent-form"));
+  const requestedDuration = Number(form.get("grant_duration"));
+  if (!Number.isInteger(requestedDuration) || requestedDuration < 10 || requestedDuration > 3600) throw new Error("Grant duration must be 10–3600 seconds.");
+  const duration = Math.min(requestedDuration, remainingSeconds);
   const scope = validateBoundedJson(surfaceMissionScope());
   if (!scope.target || !scope.objective || !scope.expected_consequence) throw new Error("Target, objective, and expected consequence must be explicit before delegation.");
+  if (!Number.isInteger(scope.max_updates) || scope.max_updates < 1 || scope.max_updates > approval.max_updates) {
+    throw new Error(`Updates per lease must be 1–${approval.max_updates}, the host-approved bound.`);
+  }
   const expiresNs = surfaceExpiryNs(duration);
   const request = {binding_id: surface.bindingId, operations, expires_ns: expiresNs, scope};
-  if (!window.confirm(`Request a host-authorized delegated lease for the existing mission ${JSON.stringify(state.programId)}?\n\nExact supported operations: ${operations.join(", ")}\nDuration: ${duration} seconds\nTarget: ${JSON.stringify(scope.target)}\nExpected consequence: ${JSON.stringify(scope.expected_consequence)}\n\nSelecting delegated requests this finite scope; it does not grant unlimited authority. The entity's separate host authorizer must approve it.`)) return null;
-  const response = await surfaceRequest(`/v1/surface/missions/${encodeURIComponent(state.programId)}/grant`, request);
+  const response = await surfaceRequest(`/v1/surface/mission/${encodeURIComponent(state.programId)}/grant`, request);
   const record = surfaceRecord(response);
   const grant = response?.grant || record.grant || record;
   const grantId = surfaceText(grant.grant_id, surfaceText(grant.id, surfaceText(response?.grant_id, "")));
@@ -1987,7 +2291,7 @@ async function enterSurfaceDelegated() {
     clearSurfaceGrant(surface);
     setSurfaceMode("observing");
     $("#surface-authority").textContent = "Grant response had no usable receipt ID; no intent can be submitted.";
-    surfaceMessage("The host-authorized grant response did not include a usable grant ID. No action was submitted; inspect or revoke authority before proceeding.", "error");
+    surfaceMessage("The host-approved grant response did not include a usable grant ID. No action was submitted; inspect or revoke authority before proceeding.", "error");
     return response;
   }
   clearSurfaceGrant(surface);
@@ -1999,11 +2303,11 @@ async function enterSurfaceDelegated() {
     if (surface.activeGrant?.grant_id !== grantId) return;
     clearSurfaceGrant(surface);
     if (surface.bindingId) setSurfaceMode("observing");
-    surfaceMessage("The delegated lease expired. No further operation will be submitted; request fresh host authorization if needed.", "warn");
+    surfaceMessage("The delegated lease expired. No further operation will be submitted; the host-approved mission window remains available for another bounded lease.", "warn");
   }, Math.max(0, expiresNs / 1e6 - Date.now()));
-  $("#surface-authority").textContent = `Delegated lease · ${operations.length} operation(s) · expires ${new Date(expiresNs / 1e6).toLocaleTimeString()}`;
+  $("#surface-authority").textContent = `Delegated lease · ${operations.length} approved operation(s) · ${scope.max_updates} updates · expires ${new Date(expiresNs / 1e6).toLocaleTimeString()}`;
   setSurfaceMode("delegated");
-  surfaceMessage("Host-authorized delegated scope is active. Each operation still requires an explicit brokered intent and a fresh confirmation.");
+  surfaceMessage(`A ${duration}-second bounded lease was issued under the existing host-approved mission window. Further leases remain constrained to the approved operations and update cap.`);
   return response;
 }
 
@@ -2015,13 +2319,13 @@ async function submitSurfaceIntent() {
   const scope = surfaceMissionScope();
   const operation = $("#surface-operation").value;
   if (surface.mode !== "delegated" || !surface.activeGrant || surface.grantProgramId !== state.programId) {
-    throw new Error("Observation and assisting modes send no application input. Request a host-authorized delegated lease first.");
+    throw new Error("Observation and assisting modes send no application input. Request a bounded broker lease under the current host-approved mission window first.");
   }
   const expiresNs = Number(surface.activeGrant.expires_ns);
   if (!Number.isFinite(expiresNs) || expiresNs <= Number(BigInt(Date.now()) * 1_000_000n)) {
     clearSurfaceGrant(surface);
     setSurfaceMode("observing");
-    throw new Error("The delegated lease is expired or has no valid expiry. Request fresh host authorization.");
+    throw new Error("The delegated lease is expired or has no valid expiry. Request another bounded broker lease under the current host approval.");
   }
   if (String(program.status || "").toLowerCase() !== "active") throw new Error("The current program is no longer active.");
   if (surface.safetyBlocked) throw new Error("Control is blocked because neutralization was not confirmed.");
@@ -2051,9 +2355,6 @@ async function submitSurfaceIntent() {
     expected_source_epoch: publication.source_epoch,
     expected_geometry_revision: publication.geometry_revision,
   };
-  const confirmation = boundSurfaceConfirmation("submit this brokered operation",
-    `Program: ${JSON.stringify(state.programId)}\nOperation: ${operation}\nTarget: ${JSON.stringify(scope.target)}\nPayload: ${compactJson(payload, 600)}\n\nThis is an at-most-once delivery attempt. Unknown or partial results will not be replayed automatically.`);
-  if (!window.confirm(confirmation)) return null;
   surface.pendingOperationId = operationId;
   surface.activeOperationId = operationId;
   surface.operationProgramId = state.programId;
@@ -2168,6 +2469,7 @@ async function refreshSurfaceStatus() {
   const tasks = [];
   if (state.surface.bindingId) {
     await refreshSurfaceBinding();
+    tasks.push(refreshSurfaceAuthorityStatus());
     if (state.surface.activeOperationId) tasks.push(inspectSurfaceOperation());
     state.surface.failedGeneration = "";
     tasks.push(refreshSurfaceCapture({quiet: false, retryPixels: true}));
@@ -2195,6 +2497,10 @@ async function detachSurfaceViewer() {
     throw new Error(`The entity did not confirm safe source release${result.detail ? `: ${result.detail}` : ""}. The binding remains visible for inspection; no further control is sent.`);
   }
   stopSurfacePolling();
+  clearTimeout(surface.authorityTimer);
+  surface.authorityTimer = null;
+  surface.missionAuthority = null;
+  $("#surface-human-authority-status").textContent = "Source binding released; no mission approval is active in this viewer.";
   clearSurfaceGrant(surface);
   surface.epoch += 1;
   clearSurfaceFrame();
@@ -2287,6 +2593,10 @@ function finishSurfaceRegion(event) {
 
 $("#surface-backend").addEventListener("change", () => action("Surface sources loaded.", loadSurfaceSources, {refresh: false}));
 $("#surface-source").addEventListener("change", updateSurfaceControls);
+$("#surface-operation-options").addEventListener("change", updateSurfaceControls);
+$("#surface-intent-form").addEventListener("input", updateSurfaceControls);
+$("#surface-intent-form").addEventListener("change", updateSurfaceControls);
+$("#surface-approve-authority").addEventListener("click", () => action("Host-approved Surface mission window established.", approveSurfaceMission, {refresh: false}));
 $("#surface-refresh-sources").addEventListener("click", () => action("Surface sources refreshed.", loadSurfaceSources, {refresh: false}));
 $("#surface-bind").addEventListener("click", () => action("Source bound in observing mode.", bindSurfaceSource, {refresh: false}));
 $("#surface-refresh-status").addEventListener("click", () => action("Surface status refreshed.", refreshSurfaceStatus, {refresh: false}));
@@ -2327,13 +2637,11 @@ $("#surface-annotation-list").addEventListener("click", (event) => {
 });
 $("#surface-intent-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  action("Brokered intent submitted.", submitSurfaceIntent, {refresh: false});
+  action("Brokered operation intent submitted.", submitSurfaceIntent, {refresh: false});
 });
-$("#surface-intent-form").addEventListener("input", updateSurfaceControls);
 $("#surface-operation").addEventListener("change", updateSurfaceControls);
-$("#surface-operation-options").addEventListener("change", updateSurfaceControls);
 $("#surface-assist").addEventListener("click", () => action("Assisting mode entered.", enterSurfaceAssisting, {refresh: false}));
-$("#surface-delegate").addEventListener("click", () => action("Delegated scope requested.", enterSurfaceDelegated, {refresh: false}));
+$("#surface-delegate").addEventListener("click", () => action("Bounded delegated lease requested.", enterSurfaceDelegated, {refresh: false}));
 $("#surface-pause").addEventListener("click", () => action("Surface control paused.", () => requestSurfaceControl("pause"), {refresh: false}));
 $("#surface-neutralize").addEventListener("click", () => action("Surface authority revoked.", () => requestSurfaceControl("revoke"), {refresh: false}));
 $("#surface-take-control").addEventListener("click", () => action("Human control requested.", () => requestSurfaceControl("take-control"), {refresh: false}));
@@ -2354,18 +2662,944 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-$("#connect-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const input = $("#api-token");
-  const proposed = input.value.trim();
-  if (proposed.length < 32) return;
-  state.token = proposed;
-  input.value = "";
+
+function embodiedFieldView() {
+  const field = state.embodiedField;
+  if (field.mode === "frozen" && field.frozen) return {...field.frozen, mode: "frozen"};
+  if (field.mode === "replay") {
+    const record = field.captures.find((item) => item.id === field.replayId);
+    if (record) return {snapshot: record.snapshot, sampledAt: record.sampledAt, record, mode: "replay"};
+    field.mode = "live";
+    field.replayId = "";
+  }
+  return field.latest ? {snapshot: field.latest, sampledAt: field.latestAt, mode: "live"} : null;
+}
+
+function embodiedJson(value, limit = 8_000) {
+  if (value === undefined) return "Unavailable";
+  let rendered;
+  try { rendered = JSON.stringify(value, null, 2); } catch { return "Value unavailable"; }
+  if (rendered === undefined) return "Unavailable";
+  return rendered.length > limit ? `${rendered.slice(0, limit)}\n… clipped for display` : rendered;
+}
+
+function embodiedScalar(value, fallback = "not reported") {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "object") return embodiedJson(value, 800);
+  return String(value);
+}
+
+function embodiedErrorMessage(error) {
+  const message = error?.message || String(error);
+  if (/^\s*</u.test(message)) {
+    const status = Number.isInteger(error?.status) ? ` (HTTP ${error.status})` : "";
+    return `Entity API returned an HTML error page${status}.`;
+  }
+  return message;
+}
+
+function embodiedTime(value) {
+  if (!value) return "Unavailable";
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? String(value) : date.toLocaleString();
+}
+
+function embodiedRegionIdentity(region, index) {
+  const id = region?.region_id ?? region?.id ?? region?.name;
+  return {
+    key: id === undefined || id === null ? `record:${index}` : `id:${String(id)}`,
+    id,
+    label: id === undefined || id === null ? `Identifier unavailable · record ${index + 1}` : String(id),
+  };
+}
+
+function embodiedSectionState(section) {
+  return typeof section?.status === "string" ? section.status : "unavailable";
+}
+
+function embodiedNumbers(value, prefix = "", output = []) {
+  if (output.length >= 128) return output;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    output.push({path: prefix || "value", value});
+  } else if (Array.isArray(value)) {
+    value.forEach((item, index) => embodiedNumbers(item, `${prefix}[${index}]`, output));
+  } else if (value && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      embodiedNumbers(item, prefix ? `${prefix}.${key}` : key, output);
+      if (output.length >= 128) break;
+    }
+  }
+  return output;
+}
+
+function renderEmbodiedCirculation(section) {
+  const note = $("#embodied-circulation-note");
+  const signs = $("#embodied-circulation-signs");
+  const raw = $("#embodied-circulation");
+  const stateName = embodiedSectionState(section);
+  $("#embodied-circulation-state").textContent = stateName;
+  signs.replaceChildren();
+  if (stateName !== "known" || section?.value === null || section?.value === undefined) {
+    note.textContent = section?.reason || "Signed circulation is unavailable.";
+    raw.textContent = section?.reason || "Unavailable";
+    return;
+  }
+
+  const value = section.value;
+  raw.textContent = embodiedJson(value);
+  const conventionEntry = value && typeof value === "object" && !Array.isArray(value)
+    ? Object.entries(value).find(([key]) => /sign.?convention|direction.?convention|positive.?direction|orientation/i.test(key))
+    : null;
+  note.textContent = conventionEntry
+    ? `Signed orientation follows the owner-reported ${conventionEntry[0]}: ${embodiedScalar(conventionEntry[1])}.`
+    : "Signs are preserved as reported. Positive and negative orientation is shown without inferring unreported source/destination directions.";
+
+  const signed = embodiedNumbers(value).filter(({path}) => /(?:^|\.)(?:signed_current|signed_flow|signed_flux|signed_transport|signed_exchange|outward_current|return_current)$/i.test(path));
+  if (!signed.length) {
+    const empty = document.createElement("p");
+    empty.className = "quiet";
+    empty.textContent = "No signed flow/current scalar is identified in this readout; inspect the full owner-reported circulation data below.";
+    signs.append(empty);
+    return;
+  }
+  for (const row of signed.slice(0, 48)) {
+    const sign = row.value > 0 ? "positive" : row.value < 0 ? "negative" : "zero";
+    const item = document.createElement("div");
+    item.className = "embodied-sign-row";
+    item.dataset.sign = sign;
+    const path = document.createElement("code");
+    path.textContent = row.path;
+    const amount = document.createElement("strong");
+    amount.textContent = `${row.value > 0 ? "+" : ""}${String(row.value)} · ${sign} orientation`;
+    item.append(path, amount);
+    signs.append(item);
+  }
+}
+
+function embodiedCoordinates(region) {
+  const coordinates = region?.current_coordinates;
+  if (Array.isArray(coordinates) && coordinates.length >= 2
+      && Number.isFinite(coordinates[0]) && Number.isFinite(coordinates[1])) {
+    return {x: coordinates[0], y: coordinates[1], axes: ["current_coordinates[0]", "current_coordinates[1]"]};
+  }
+  const nested = coordinates && typeof coordinates === "object" && !Array.isArray(coordinates)
+    ? coordinates.coordinates ?? coordinates.position
+    : null;
+  if (Array.isArray(nested) && nested.length >= 2
+      && Number.isFinite(nested[0]) && Number.isFinite(nested[1])) {
+    return {x: nested[0], y: nested[1], axes: ["current_coordinates.coordinates[0]", "current_coordinates.coordinates[1]"]};
+  }
+  if (coordinates && typeof coordinates === "object" && !Array.isArray(coordinates)) {
+    const entries = Object.entries(coordinates).filter(([, value]) => typeof value === "number" && Number.isFinite(value));
+    const x = entries.find(([key]) => key.toLowerCase() === "x") || entries[0];
+    const y = entries.find(([key]) => key.toLowerCase() === "y") || entries.find((entry) => entry !== x);
+    if (x && y) return {x: x[1], y: y[1], axes: [x[0], y[0]]};
+  }
+  return null;
+}
+
+function embodiedSvg(name, attributes = {}, content = "") {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, String(value));
+  if (content) node.textContent = content;
+  return node;
+}
+
+function renderEmbodiedMap(regions, selected, layout) {
+  const svg = $("#embodied-map");
+  const empty = $("#embodied-map-empty");
+  const zoomIn = $("#embodied-zoom-in");
+  const zoomOut = $("#embodied-zoom-out");
+  const zoomReset = $("#embodied-zoom-reset");
+  const points = regions.map((region, index) => ({
+    region,
+    ...embodiedRegionIdentity(region, index),
+    coordinates: embodiedCoordinates(region),
+  })).filter((item) => item.coordinates);
+  svg.replaceChildren();
+  if (!points.length) {
+    svg.classList.add("hidden");
+    empty.classList.remove("hidden");
+    empty.textContent = regions.length
+      ? "Owner-reported regions do not include a common pair of numeric current_coordinates; no spatial projection is drawn."
+      : "No regional coordinates are available to project.";
+    zoomIn.disabled = true;
+    zoomOut.disabled = true;
+    zoomReset.disabled = true;
+    $("#embodied-map-caption").textContent = "No anatomy, connections, or motion are inferred.";
+    return;
+  }
+  svg.classList.remove("hidden");
+  empty.classList.add("hidden");
+  zoomIn.disabled = false;
+  zoomOut.disabled = false;
+  zoomReset.disabled = false;
+
+  let lowX = Infinity;
+  let highX = -Infinity;
+  let lowY = Infinity;
+  let highY = -Infinity;
+  for (const point of points) {
+    lowX = Math.min(lowX, point.coordinates.x);
+    highX = Math.max(highX, point.coordinates.x);
+    lowY = Math.min(lowY, point.coordinates.y);
+    highY = Math.max(highY, point.coordinates.y);
+  }
+  const baseWidth = (highX - lowX) || 1;
+  const baseHeight = (highY - lowY) || 1;
+  const zoom = state.embodiedField.zoom;
+  const selectedPoint = points.find((point) => point.key === state.embodiedField.selectedRegionKey);
+  const centerX = selectedPoint?.coordinates.x ?? (lowX + highX) / 2;
+  const centerY = selectedPoint?.coordinates.y ?? (lowY + highY) / 2;
+  const width = baseWidth * 1.2 / zoom;
+  const height = baseHeight * 1.2 / zoom;
+  const minX = centerX - width / 2;
+  const minY = centerY - height / 2;
+  const plot = {left: 68, top: 28, width: 610, height: 310};
+  const mapX = (value) => plot.left + (value - minX) / width * plot.width;
+  const mapY = (value) => plot.top + (minY + height - value) / height * plot.height;
+
+  for (let tick = 0; tick <= 4; tick += 1) {
+    const x = plot.left + plot.width * tick / 4;
+    const y = plot.top + plot.height * tick / 4;
+    const xValue = minX + width * tick / 4;
+    const yValue = minY + height * (4 - tick) / 4;
+    svg.append(
+      embodiedSvg("line", {x1: x, y1: plot.top, x2: x, y2: plot.top + plot.height, class: tick === 0 ? "field-axis" : "field-tick"}),
+      embodiedSvg("line", {x1: plot.left, y1: y, x2: plot.left + plot.width, y2: y, class: tick === 4 ? "field-axis" : "field-tick"}),
+      embodiedSvg("text", {x, y: plot.top + plot.height + 18, "text-anchor": "middle"}, String(Number(xValue.toPrecision(6)))),
+      embodiedSvg("text", {x: plot.left - 8, y: y + 4, "text-anchor": "end"}, String(Number(yValue.toPrecision(6)))),
+    );
+  }
+  const firstAxes = points[0].coordinates.axes;
+  const declaredAxes = layout?.value?.coordinate_axes ?? layout?.value?.axes;
+  const axisName = (index) => Array.isArray(declaredAxes) && declaredAxes[index]
+    ? embodiedScalar(declaredAxes[index])
+    : firstAxes[index];
+  svg.append(
+    embodiedSvg("text", {x: plot.left + plot.width / 2, y: 385, "text-anchor": "middle", class: "field-axis-label"}, axisName(0)),
+    embodiedSvg("text", {x: 14, y: plot.top + plot.height / 2, "text-anchor": "middle", transform: `rotate(-90 14 ${plot.top + plot.height / 2})`, class: "field-axis-label"}, axisName(1)),
+  );
+  for (const point of points) {
+    const group = embodiedSvg("g", {
+      "data-field-map-key": point.key,
+      tabindex: "0",
+      role: "button",
+      "aria-label": `Select owner-reported region ${point.label}, coordinates ${point.coordinates.x}, ${point.coordinates.y}`,
+    });
+    group.append(
+      embodiedSvg("circle", {
+        cx: mapX(point.coordinates.x),
+        cy: mapY(point.coordinates.y),
+        r: point.key === state.embodiedField.selectedRegionKey ? 8 : 6,
+        class: `field-region-point${point.key === state.embodiedField.selectedRegionKey ? " selected" : ""}`,
+      }),
+      embodiedSvg("text", {
+        x: mapX(point.coordinates.x) + 9,
+        y: mapY(point.coordinates.y) - 8,
+        class: "field-region-label",
+      }, point.label.slice(0, 28)),
+    );
+    svg.append(group);
+  }
+  $("#embodied-map-caption").textContent = `Static projection of the first two numeric values in owner-reported current_coordinates (${axisName(0)}, ${axisName(1)}). Point positions use those values; no anatomy, connections, or motion are inferred.`;
+}
+
+function renderEmbodiedRegions(snapshot) {
+  const section = snapshot?.regions;
+  const list = $("#embodied-regions");
+  const select = $("#embodied-region-select");
+  const detail = $("#embodied-region-detail");
+  const note = $("#embodied-region-note");
+  const regions = embodiedSectionState(section) === "known" && Array.isArray(section?.items)
+    ? section.items
+    : [];
+  list.replaceChildren();
+  select.replaceChildren();
+  $("#embodied-region-count").textContent = section?.truncated === true
+    ? `${regions.length}+ regions`
+    : `${regions.length} regions`;
+  select.disabled = regions.length === 0;
+  if (!regions.length) {
+    const option = new Option(section?.reason || "No regions reported", "");
+    select.append(option);
+    detail.textContent = section?.reason || "No regional values were returned by the owner.";
+    note.textContent = section?.reason || (embodiedSectionState(section) === "known" ? "No regional records were returned." : "Regional data is unavailable.");
+    renderEmbodiedMap([], null, snapshot?.layout);
+    return null;
+  }
+  const entries = regions.map((region, index) => ({region, ...embodiedRegionIdentity(region, index)}));
+  if (!entries.some((entry) => entry.key === state.embodiedField.selectedRegionKey)) {
+    state.embodiedField.selectedRegionKey = entries[0].key;
+  }
+  const truncatedNote = section?.truncated === true
+    ? `Showing ${regions.length} owner-reported records; the snapshot declares a limit of ${embodiedScalar(section.limit)}.`
+    : `Showing ${regions.length} owner-reported regional record${regions.length === 1 ? "" : "s"}.`;
+  note.textContent = truncatedNote;
+
+  for (const entry of entries) {
+    const option = new Option(entry.label, entry.key);
+    select.append(option);
+    const card = document.createElement("article");
+    card.className = `embodied-region-card${entry.key === state.embodiedField.selectedRegionKey ? " selected" : ""}`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.embodiedRegionKey = entry.key;
+    button.textContent = entry.label;
+    const values = document.createElement("pre");
+    values.textContent = embodiedJson(entry.region, 1_800);
+    card.append(button, values);
+    list.append(card);
+  }
+  select.value = state.embodiedField.selectedRegionKey;
+  const selected = entries.find((entry) => entry.key === state.embodiedField.selectedRegionKey);
+  detail.textContent = embodiedJson(selected.region, 12_000);
+  renderEmbodiedMap(regions, selected, snapshot?.layout);
+  return selected.region;
+}
+
+function renderEmbodiedSemantics(snapshot, selectedRegion) {
+  const section = snapshot?.semantics;
+  const list = $("#embodied-meanings");
+  const note = $("#embodied-meaning-note");
+  const stateName = embodiedSectionState(section);
+  $("#embodied-meaning-state").textContent = stateName;
+  list.replaceChildren();
+  if (stateName !== "known") {
+    note.textContent = section?.reason || "Semantic bindings are unavailable.";
+    return;
+  }
+  const items = Array.isArray(section?.items) ? section.items : [];
+  if (!items.length) {
+    note.textContent = "No semantic bindings were returned for this snapshot.";
+    return;
+  }
+  const regionId = selectedRegion?.region_id ?? selectedRegion?.id ?? selectedRegion?.name;
+  const matching = regionId === undefined || regionId === null ? [] : items.filter((item) => {
+    const references = [
+      item?.region_id, item?.region_ref, item?.region, item?.payload?.region_id,
+      item?.payload?.region_ref,
+    ].filter((value) => value !== undefined && value !== null);
+    return references.some((value) => String(value) === String(regionId));
+  });
+  const displayItems = matching.length ? matching : items;
+  note.textContent = matching.length
+    ? `Showing ${matching.length} binding record${matching.length === 1 ? "" : "s"} explicitly linked to this region.`
+    : selectedRegion
+      ? "No binding declares a link to this region; the returned semantic records are shown without assigning them to it."
+      : "No region is selected; returned semantic records are shown without assigning them to a region.";
+  for (const item of displayItems) {
+    const card = document.createElement("article");
+    card.className = "embodied-meaning";
+    const heading = document.createElement("h4");
+    heading.textContent = [item?.record_id ?? item?.variable_id ?? item?.chart_id ?? item?.id,
+      item?.record_kind ?? item?.kind, item?.status]
+      .filter((value) => value !== undefined && value !== null)
+      .map((value) => embodiedScalar(value)).join(" · ") || "Binding identifier unavailable";
+    const payload = item?.payload;
+    const meaning = [item?.meaning, item?.label, item?.description, payload?.meaning, payload?.label, payload?.description, payload?.text]
+      .find((value) => typeof value === "string" && value.trim());
+    const copy = document.createElement("p");
+    copy.textContent = meaning
+      ? meaning
+      : item?.kind === "field-binding"
+        ? `${item.epistemic_kind ?? "Unknown epistemic status"} · version ${item.content_version ?? "unavailable"}. Reference metadata only; content stays with the owner.`
+        : payload === undefined || payload === null
+          ? "Only the declared meaning metadata is available."
+          : "No separate meaning text is declared; the reported payload is available below.";
+    card.append(heading, copy);
+    if (payload !== undefined) {
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "Reported binding payload";
+      const pre = document.createElement("pre");
+      pre.textContent = embodiedJson(payload, 5_000);
+      details.append(summary, pre);
+      card.append(details);
+    }
+    list.append(card);
+  }
+  if (section?.truncated === true) {
+    const truncation = document.createElement("p");
+    truncation.className = "quiet";
+    truncation.textContent = `Semantic records are bounded at ${embodiedScalar(section.limit)}; additional records are not shown.`;
+    list.append(truncation);
+  }
+}
+
+function embodiedExchangeMeaningReferenceValid(reference) {
+  return Boolean(reference && typeof reference === "object" && !Array.isArray(reference)
+    && (typeof reference.id === "string" || typeof reference.id === "number")
+    && String(reference.id).trim()
+    && typeof reference.kind === "string" && reference.kind.trim()
+    && reference.content_version !== null && reference.content_version !== undefined);
+}
+function embodiedExchangeConcernValid(reference) {
+  return Boolean(reference && typeof reference === "object" && !Array.isArray(reference)
+    && Object.keys(reference).length === 5
+    && typeof reference.concern_id === "string" && reference.concern_id.trim()
+    && typeof reference.project_id === "string" && reference.project_id.trim()
+    && (reference.question_ref === null || embodiedExchangeMeaningReferenceValid(reference.question_ref))
+    && Array.isArray(reference.object_refs)
+    && reference.object_refs.every(embodiedExchangeMeaningReferenceValid)
+    && (reference.goal_ref === null || embodiedExchangeMeaningReferenceValid(reference.goal_ref)));
+}
+function embodiedExchangeAppraisalValid(reference) {
+  return Boolean(reference && typeof reference === "object" && !Array.isArray(reference)
+    && typeof reference.operation_id === "string" && reference.operation_id.trim()
+    && typeof reference.assessment_sha256 === "string"
+    && /^[a-f0-9]{64}$/iu.test(reference.assessment_sha256));
+}
+
+
+function embodiedExchangeMeaningItemValid(item) {
+  const token = (value) => (typeof value === "string" && value.trim()) || (typeof value === "number" && Number.isFinite(value));
+  const source = item?.result_source;
+  const sourceValid = source === null || Boolean(source && typeof source === "object" && !Array.isArray(source)
+    && token(source.revision_id)
+    && typeof source.content_sha256 === "string" && /^[a-f0-9]{64}$/iu.test(source.content_sha256)
+    && source.status === "active"
+    && (source.summary == null || typeof source.summary === "string"));
+  const recalledValid = Array.isArray(item?.recalled_memories)
+    && item.recalled_memories.every((memory) => embodiedExchangeMeaningReferenceValid(memory?.record_ref)
+      && typeof memory.role === "string" && typeof memory.reason === "string"
+      && Array.isArray(memory.source_revision_ids)
+      && memory.source_revision_ids.every((id) => typeof id === "string")
+      && (memory.result_summary === undefined || typeof memory.result_summary === "string")
+      && (memory.result_status === undefined || typeof memory.result_status === "string"));
+  return Boolean(item && typeof item === "object" && !Array.isArray(item)
+    && token(item.computer_id) && typeof item.interface === "string" && item.interface.trim()
+    && token(item.emitter_region_id) && token(item.receiver_region_id)
+    && item.relation === "assessed-work-tuned-receiver"
+    && (embodiedExchangeConcernValid(item.concern_ref) || embodiedExchangeMeaningReferenceValid(item.concern_ref))
+    && typeof item.concern_summary === "string" && item.concern_summary.trim()
+    && embodiedExchangeMeaningReferenceValid(item.assessment_ref)
+    && sourceValid && recalledValid
+    && embodiedExchangeAppraisalValid(item.last_appraisal_ref)
+    && (item.exchange?.status === "available" || item.exchange?.status === "unavailable")
+    && ["before-feedback", "after-feedback", "unverified"].includes(item.exchange.measurement_timing)
+    && (item.exchange.status !== "available"
+      || embodiedExchangeConcernValid(item.concern_ref)
+      || item.exchange.measurement_timing === "before-feedback"));
+}
+
+function embodiedExchangeConcernText(reference) {
+  return embodiedExchangeConcernValid(reference)
+    ? `Concern ${embodiedScalar(reference.concern_id)} · project ${embodiedScalar(reference.project_id)}`
+    : embodiedExchangeMeaningReferenceText(reference);
+}
+function embodiedExchangeMeaningText(value, limit = 2_400) {
+  const text = typeof value === "string" ? value : embodiedScalar(value, "not reported");
+  return text.length > limit ? `${text.slice(0, limit)}\n… clipped for display` : text;
+}
+
+function embodiedExchangeMeaningReferenceText(reference) {
+  return `ID ${embodiedScalar(reference.id)} · kind ${embodiedScalar(reference.kind)} · content version ${embodiedScalar(reference.content_version)}`;
+}
+
+function appendEmbodiedExchangeMeaningFact(list, label, value) {
+  const row = document.createElement("div");
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const detail = document.createElement("dd");
+  detail.textContent = embodiedExchangeMeaningText(value);
+  row.append(term, detail);
+  list.append(row);
+}
+
+function appendEmbodiedExchangeMeaningSection(card, title) {
+  const section = document.createElement("section");
+  section.className = "embodied-exchange-section";
+  const heading = document.createElement("h5");
+  heading.textContent = title;
+  section.append(heading);
+  card.append(section);
+  return section;
+}
+
+function embodiedExchangeMeaningMatchesRegion(item, region) {
+  if (!region) return true;
+  const id = region.region_id ?? region.id ?? region.name;
+  if (id === undefined || id === null) return false;
+  return [item.emitter_region_id, item.receiver_region_id].some((regionId) => String(regionId) === String(id));
+}
+function embodiedExchangeMeaningKey(item, index) {
+  return JSON.stringify([
+    index, item.computer_id, item.interface, item.emitter_region_id, item.receiver_region_id,
+    item.concern_ref.concern_id ?? item.concern_ref.id, item.assessment_ref.id,
+    item.assessment_ref.content_version, item.result_source?.revision_id ?? null,
+    item.last_appraisal_ref.operation_id,
+  ]);
+}
+function renderEmbodiedExchangeMeaning(snapshot, selectedRegion) {
+  const section = snapshot?.exchange_meaning;
+  const select = $("#embodied-exchange-meaning-select");
+  const detail = $("#embodied-exchange-meaning-detail");
+  const note = $("#embodied-exchange-meaning-note");
+  const status = embodiedSectionState(section);
+  $("#embodied-exchange-meaning-state").textContent = status;
+  select.replaceChildren();
+  detail.replaceChildren();
+  const unavailableOption = (label) => {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = label;
+    select.append(option);
+    select.disabled = true;
+  };
+
+  if (status !== "known" && status !== "partial") {
+    unavailableOption("No linked assessed exchange");
+    const unavailableNotes = [section?.reason
+      ? embodiedExchangeMeaningText(section.reason, 800)
+      : "Assessment-linked exchange context is unavailable; no concern, source, recall, tuning, or measurement is inferred."];
+    if (section?.truncated === true) {
+      unavailableNotes.push(`The owner snapshot is truncated at ${embodiedScalar(section.limit)} exchange records; additional records are not shown.`);
+    }
+    note.textContent = unavailableNotes.join(" ");
+    return;
+  }
+
+  const items = Array.isArray(section?.items) ? section.items : [];
+  const validItems = items.map((item, index) => ({item, index}))
+    .filter((entry) => embodiedExchangeMeaningItemValid(entry.item))
+    .map((entry) => ({...entry, key: embodiedExchangeMeaningKey(entry.item, entry.index)}));
+  const invalidCount = items.length - validItems.length;
+  const matching = validItems.filter(({item}) => embodiedExchangeMeaningMatchesRegion(item, selectedRegion));
+  const noteParts = [];
+  if (matching.length) {
+    noteParts.push(selectedRegion
+      ? `Showing ${matching.length} owner-recorded exchange${matching.length === 1 ? "" : "s"} explicitly naming this region as emitter or receiver.`
+      : `No region is selected; showing ${matching.length} owner-recorded exchange${matching.length === 1 ? "" : "s"} with their explicit emitter and receiver identifiers.`);
+  } else {
+    noteParts.push(selectedRegion
+      ? "No provenance-bound exchange explicitly names this region as its emitter or receiver. No concern, result source, recalled memory, or tuning is assigned to it."
+      : "No valid provenance-bound exchange records are available to select.");
+  }
+  if (section?.reason) noteParts.push(embodiedExchangeMeaningText(section.reason, 800));
+  if (section?.truncated === true) {
+    noteParts.push(`The owner snapshot is truncated at ${embodiedScalar(section.limit)} exchange records; additional records are not shown.`);
+  }
+  if (invalidCount) noteParts.push(`${invalidCount} record${invalidCount === 1 ? " was" : "s were"} omitted because required provenance links or values were missing or malformed.`);
+  note.textContent = noteParts.join(" ");
+
+  if (!matching.length) {
+    unavailableOption(selectedRegion ? "No exchange linked to selected region" : "No provenance-bound exchange available");
+    return;
+  }
+
+  for (const entry of matching) {
+    const option = document.createElement("option");
+    option.value = entry.key;
+    const interfaceName = embodiedExchangeMeaningText(entry.item.interface, 48);
+    const concern = embodiedExchangeMeaningText(entry.item.concern_summary, 92).replace(/\s+/gu, " ");
+    option.textContent = `${interfaceName} · ${concern} · emitter ${embodiedExchangeMeaningText(entry.item.emitter_region_id, 40)} → receiver ${embodiedExchangeMeaningText(entry.item.receiver_region_id, 40)}`;
+    select.append(option);
+  }
+  const chosen = matching.find((entry) => entry.key === state.embodiedField.selectedExchangeMeaningKey) || matching[0];
+  state.embodiedField.selectedExchangeMeaningKey = chosen.key;
+  select.value = chosen.key;
+  select.disabled = false;
+
+  const item = chosen.item;
+  const card = document.createElement("article");
+  card.className = "embodied-exchange-card";
+  const heading = document.createElement("h4");
+  heading.textContent = embodiedExchangeMeaningText(item.interface, 240);
+  const relation = document.createElement("p");
+  relation.textContent = "Current tuning provenance: assessed work tuned the explicitly named receiver. This provenance is separate from the measured circulation values and does not assign semantic content to a signed current.";
+  const provenance = document.createElement("dl");
+  provenance.className = "embodied-exchange-provenance";
+  appendEmbodiedExchangeMeaningFact(provenance, "Computer", item.computer_id);
+  appendEmbodiedExchangeMeaningFact(provenance, "Interface", item.interface);
+  appendEmbodiedExchangeMeaningFact(provenance, "Emitter region ID", item.emitter_region_id);
+  appendEmbodiedExchangeMeaningFact(provenance, "Receiver region ID", item.receiver_region_id);
+  appendEmbodiedExchangeMeaningFact(provenance, "Concern identity", embodiedExchangeConcernText(item.concern_ref));
+  appendEmbodiedExchangeMeaningFact(provenance, "Assessment reference", embodiedExchangeMeaningReferenceText(item.assessment_ref));
+  appendEmbodiedExchangeMeaningFact(provenance, "Last appraisal operation", item.last_appraisal_ref.operation_id);
+  appendEmbodiedExchangeMeaningFact(provenance, "Assessment SHA-256 at feedback", item.last_appraisal_ref.assessment_sha256);
+  card.append(heading, relation, provenance);
+
+  const concern = appendEmbodiedExchangeMeaningSection(card, "Recorded concern / question");
+  const concernCopy = document.createElement("p");
+  concernCopy.textContent = embodiedExchangeMeaningText(item.concern_summary);
+  concern.append(concernCopy);
+
+  const result = appendEmbodiedExchangeMeaningSection(card, "Archived result source");
+  const concernBindings = document.createElement("pre");
+  concernBindings.textContent = embodiedExchangeMeaningText(JSON.stringify(item.concern_ref), 1_200);
+  concern.append(concernBindings);
+
+  const feedback = appendEmbodiedExchangeMeaningSection(card, "Measured feedback tuning");
+  const feedbackFacts = document.createElement("dl");
+  feedbackFacts.className = "embodied-exchange-provenance";
+  appendEmbodiedExchangeMeaningFact(feedbackFacts, "Feedback status", item.exchange.feedback?.status ?? "not reported");
+  appendEmbodiedExchangeMeaningFact(feedbackFacts, "Tuning progress", item.exchange.feedback?.progress ?? "not reported");
+  appendEmbodiedExchangeMeaningFact(feedbackFacts, "Tuning direction", item.exchange.feedback?.direction ?? "not reported");
+  appendEmbodiedExchangeMeaningFact(feedbackFacts, "Appraisal assessment SHA-256", item.last_appraisal_ref.assessment_sha256);
+  feedback.append(feedbackFacts);
+  if (item.result_source === null) {
+    const missing = document.createElement("p");
+    missing.textContent = "No archived result source is linked to this Assessment.";
+    result.append(missing);
+  } else {
+    const sourceFacts = document.createElement("dl");
+    sourceFacts.className = "embodied-exchange-provenance";
+    appendEmbodiedExchangeMeaningFact(sourceFacts, "Revision ID", item.result_source.revision_id);
+    appendEmbodiedExchangeMeaningFact(sourceFacts, "Content SHA-256", item.result_source.content_sha256);
+    appendEmbodiedExchangeMeaningFact(sourceFacts, "Source status", item.result_source.status);
+    result.append(sourceFacts);
+    if (typeof item.result_source.summary === "string" && item.result_source.summary.trim()) {
+      const summary = document.createElement("p");
+      summary.textContent = embodiedExchangeMeaningText(item.result_source.summary);
+      result.append(summary);
+    }
+  }
+
+  const recall = appendEmbodiedExchangeMeaningSection(card, "Actual recalled memory references");
+  if (!item.recalled_memories.length) {
+    const none = document.createElement("p");
+    none.textContent = "No recalled memory references are linked in these field records. Memory relevance is not inferred.";
+    recall.append(none);
+  } else {
+    const memories = document.createElement("div");
+    memories.className = "embodied-exchange-memory-list";
+    for (const memory of item.recalled_memories) {
+      const memoryCard = document.createElement("article");
+      memoryCard.className = "embodied-exchange-memory";
+      const memoryRef = document.createElement("p");
+      memoryRef.textContent = `Record reference: ${embodiedExchangeMeaningReferenceText(memory.record_ref)}`;
+      const role = document.createElement("p");
+      role.textContent = `Recorded role: ${embodiedExchangeMeaningText(memory.role, 500)}`;
+      const reason = document.createElement("p");
+      reason.textContent = `Recorded link reason: ${embodiedExchangeMeaningText(memory.reason, 800)}`;
+      memoryCard.append(memoryRef, role, reason);
+      if (memory.result_summary) {
+        const resultSummary = document.createElement("p");
+        resultSummary.textContent = `Recalled result: ${embodiedExchangeMeaningText(memory.result_summary, 500)}`;
+        memoryCard.append(resultSummary);
+      }
+      if (memory.result_status) {
+        const resultStatus = document.createElement("p");
+        resultStatus.textContent = `Recorded outcome: ${embodiedExchangeMeaningText(memory.result_status, 64)}`;
+        memoryCard.append(resultStatus);
+      }
+      if (memory.source_revision_ids.length) {
+        const source = document.createElement("p");
+        source.textContent = `Active source revision: ${memory.source_revision_ids.join(", ")}`;
+        memoryCard.append(source);
+      }
+      memories.append(memoryCard);
+    }
+    recall.append(memories);
+  }
+
+  const measurement = appendEmbodiedExchangeMeaningSection(card, "Last measured exchange · field-reported");
+  measurement.classList.add("embodied-exchange-measurement");
+  const measurementState = document.createElement("p");
+  measurementState.textContent = `Measurement status: ${item.exchange.status}.`;
+  measurement.append(measurementState);
+  if (item.exchange.status === "available") {
+    const measurementFacts = document.createElement("dl");
+    measurementFacts.className = "embodied-exchange-provenance";
+    appendEmbodiedExchangeMeaningFact(measurementFacts, "Last-exchange SHA-256", item.exchange.owner_reported_last_exchange_sha256 ?? "not reported");
+    appendEmbodiedExchangeMeaningFact(measurementFacts, "Overlap", item.exchange.overlap ?? "not reported");
+    appendEmbodiedExchangeMeaningFact(measurementFacts, "Effective weight", item.exchange.effective_weight ?? "not reported");
+    appendEmbodiedExchangeMeaningFact(measurementFacts, "Relative to linked feedback", item.exchange.measurement_timing);
+    measurement.append(measurementFacts);
+    const timing = document.createElement("p");
+    timing.textContent = item.exchange.measurement_timing === "before-feedback"
+      ? "This exchange was measured before the linked feedback."
+      : item.exchange.measurement_timing === "after-feedback"
+        ? "A later circulation pass measured this exchange after the linked feedback."
+        : "The recorded history cannot establish this exchange's order relative to feedback.";
+    measurement.append(timing);
+  } else {
+    const unavailable = document.createElement("p");
+    unavailable.textContent = typeof item.exchange.reason === "string" && item.exchange.reason.trim()
+      ? embodiedExchangeMeaningText(item.exchange.reason, 800)
+      : "No last-exchange measurement is available for this interface and Assessment. The signed circulation readout remains separate.";
+    measurement.append(unavailable);
+  }
+  detail.append(card);
+}
+
+function renderEmbodiedCaptureControls() {
+  const captures = state.embodiedField.captures;
+  const fill = (selectId, emptyLabel, preferredId) => {
+    const select = $(selectId);
+    const previous = select.value;
+    select.replaceChildren();
+    if (!captures.length) {
+      select.append(new Option(emptyLabel, ""));
+      select.disabled = true;
+      return;
+    }
+    for (const record of captures) {
+      const hash = record.snapshot?.state_sha256;
+      const label = `${embodiedTime(record.capturedAt)} · ${typeof hash === "string" ? hash.slice(0, 10) : "state id unavailable"}`;
+      select.append(new Option(label, record.id));
+    }
+    const desired = captures.some((record) => record.id === previous)
+      ? previous
+      : captures.some((record) => record.id === preferredId)
+        ? preferredId
+        : captures.at(-1).id;
+    select.value = desired;
+    select.disabled = false;
+  };
+  fill("#embodied-replay-select", "No captures yet", state.embodiedField.replayId || captures.at(-1)?.id);
+  fill("#embodied-compare-a", "No captures yet", captures[0]?.id);
+  fill("#embodied-compare-b", "No captures yet", captures.at(-1)?.id);
+  $("#embodied-capture-count").textContent = `${captures.length} captures`;
+  const selectedReplayIndex = captures.findIndex((record) => record.id === $("#embodied-replay-select").value);
+  $("#embodied-replay-show").disabled = captures.length === 0;
+  $("#embodied-replay-previous").disabled = selectedReplayIndex <= 0;
+  $("#embodied-replay-next").disabled = selectedReplayIndex < 0 || selectedReplayIndex >= captures.length - 1;
+  const compareA = $("#embodied-compare-a").value;
+  const compareB = $("#embodied-compare-b").value;
+  $("#embodied-compare-run").disabled = captures.length < 2 || !compareA || !compareB || compareA === compareB;
+}
+
+function renderEmbodiedField() {
+  const field = state.embodiedField;
+  const view = embodiedFieldView();
+  const refresh = $("#embodied-field-refresh");
+  refresh.disabled = !state.connected || field.loading;
+  $("#embodied-field-capture").disabled = !view;
+  $("#embodied-field-freeze").disabled = !view;
+  $("#embodied-field-freeze").textContent = field.mode === "frozen" ? "Resume live display" : "Freeze current view";
+  renderEmbodiedCaptureControls();
+  if (!view) {
+    $("#embodied-field-status").textContent = field.error
+      ? `Snapshot unavailable: ${field.error}`
+      : field.loading ? "Reading the canonical owner field…" : "No field snapshot is available yet.";
+    $("#embodied-field-hash").textContent = "Unavailable";
+    $("#embodied-field-generation").textContent = "Unavailable";
+    $("#embodied-field-sample-time").textContent = "Unavailable";
+    $("#embodied-layout-state").textContent = "Unavailable";
+    $("#embodied-layout-note").textContent = "Layout is unavailable until an owner snapshot is read.";
+    $("#embodied-layout").textContent = field.error || "Waiting for owner data…";
+    renderEmbodiedCirculation(null);
+    $("#embodied-region-count").textContent = "0 regions";
+    renderEmbodiedRegions(null);
+    renderEmbodiedExchangeMeaning(null, null);
+    $("#embodied-meaning-state").textContent = "Unavailable";
+    $("#embodied-meaning-note").textContent = "Meaning is unavailable until the owner snapshot is read.";
+    $("#embodied-meanings").replaceChildren();
+    return;
+  }
+
+  const snapshot = view.snapshot;
+  const viewLabel = view.mode === "frozen"
+    ? `Frozen sample · received ${embodiedTime(view.sampledAt)}`
+    : view.mode === "replay"
+      ? `Replay · captured ${embodiedTime(view.record.capturedAt)} · sampled ${embodiedTime(view.sampledAt)}`
+      : `Live sample · received ${embodiedTime(view.sampledAt)}`;
+  const newerLiveSample = view.mode !== "live" && field.latestAt && field.latestAt !== view.sampledAt;
+  const pinnedNotice = newerLiveSample
+    ? ` A newer live sample was received at ${embodiedTime(field.latestAt)}; the pinned display is unchanged.`
+    : "";
+  const snapshotStatus = snapshot.status === "partial" ? "Partial snapshot. " : "";
+  $("#embodied-field-status").textContent = field.error
+    ? `Refresh failed; showing the last ${view.mode} sample. ${field.error}`
+    : snapshot.status === "unavailable"
+      ? `Canonical owner inspection is unavailable; unavailable sections and reasons are shown below. ${viewLabel}${pinnedNotice}`
+      : `${snapshotStatus}${viewLabel}${pinnedNotice}`;
+  $("#embodied-field-hash").textContent = embodiedScalar(snapshot.state_sha256, "Unavailable");
+  $("#embodied-field-generation").textContent = embodiedScalar(snapshot.generation, "Unavailable");
+  $("#embodied-field-sample-time").textContent = viewLabel;
+
+  const layout = snapshot.layout;
+  const layoutState = embodiedSectionState(layout);
+  $("#embodied-layout-state").textContent = layoutState;
+  $("#embodied-layout-note").textContent = layoutState === "known"
+    ? "Owner-declared layout and interpretation. Values are not converted into invented anatomy."
+    : layout?.reason || "Layout is unavailable.";
+  $("#embodied-layout").textContent = layoutState === "known" ? embodiedJson(layout.value, 10_000) : layout?.reason || "Unavailable";
+  renderEmbodiedCirculation(snapshot.circulation);
+  const selectedRegion = renderEmbodiedRegions(snapshot);
+  renderEmbodiedExchangeMeaning(snapshot, selectedRegion);
+  renderEmbodiedSemantics(snapshot, selectedRegion);
+}
+
+async function refreshEmbodiedField() {
+  const field = state.embodiedField;
+  if (field.loading) return;
+  field.loading = true;
+  field.error = "";
+  renderEmbodiedField();
   try {
-    const health = await api("/v1/health");
-    state.entityId = text(health?.entity?.entity_id, text(health?.entity?.identity?.entity_id, "cassi"));
-    setConnected(true, "Entity online");
+    const snapshot = await api("/v1/embodied-field");
+    if (!snapshot || snapshot.schema !== "cassifi.embodied-field.v1") {
+      throw new Error("the entity returned an unsupported embodied-field snapshot schema");
+    }
+    field.latest = snapshot;
+    field.latestAt = new Date().toISOString();
+    field.error = "";
+  } catch (error) {
+    field.error = embodiedErrorMessage(error);
+  } finally {
+    field.loading = false;
+    renderEmbodiedField();
+  }
+}
+
+function toggleEmbodiedFreeze() {
+  const field = state.embodiedField;
+  if (field.mode === "frozen") {
+    field.mode = "live";
+    field.frozen = null;
+  } else {
+    const view = embodiedFieldView();
+    if (!view) return;
+    field.frozen = {
+      snapshot: JSON.parse(JSON.stringify(view.snapshot)),
+      sampledAt: view.sampledAt,
+    };
+    field.mode = "frozen";
+    field.replayId = "";
+  }
+  renderEmbodiedField();
+}
+
+function captureEmbodiedView() {
+  const view = embodiedFieldView();
+  if (!view) return;
+  const record = {
+    id: crypto.randomUUID(),
+    capturedAt: new Date().toISOString(),
+    sampledAt: view.sampledAt,
+    snapshot: JSON.parse(JSON.stringify(view.snapshot)),
+  };
+  const captures = state.embodiedField.captures;
+  captures.push(record);
+  if (captures.length > 24) {
+    const removed = captures.shift();
+    if (state.embodiedField.replayId === removed.id) {
+      state.embodiedField.mode = "live";
+      state.embodiedField.replayId = "";
+    }
+  }
+  renderEmbodiedCaptureControls();
+  $("#embodied-history-note").textContent = `${captures.length} bounded capture${captures.length === 1 ? "" : "s"} retained in this browser page only. Replay is stepwise and does not interpolate states.`;
+}
+
+function showEmbodiedReplay(recordId) {
+  const field = state.embodiedField;
+  const record = field.captures.find((item) => item.id === recordId);
+  if (!record) return;
+  field.mode = "replay";
+  field.frozen = null;
+  field.replayId = record.id;
+  $("#embodied-replay-select").value = record.id;
+  renderEmbodiedField();
+}
+
+function stepEmbodiedReplay(step) {
+  const captures = state.embodiedField.captures;
+  const currentId = state.embodiedField.mode === "replay"
+    ? state.embodiedField.replayId
+    : $("#embodied-replay-select").value;
+  const currentIndex = captures.findIndex((record) => record.id === currentId);
+  const target = captures[currentIndex + step];
+  if (target) showEmbodiedReplay(target.id);
+}
+
+function embodiedSnapshotQuantities(snapshot) {
+  const values = [];
+  const skip = /(^|\\.)(id|region_id|generation|content_version|index|timestamp|observed_at|captured_at|time)$/i;
+  for (const [index, region] of (Array.isArray(snapshot?.regions?.items) ? snapshot.regions.items : []).entries()) {
+    const identity = embodiedRegionIdentity(region, index);
+    for (const row of embodiedNumbers(region, `regions.${identity.label}`)) {
+      if (!skip.test(row.path)) values.push(row);
+      if (values.length >= 128) return values;
+    }
+  }
+  for (const row of embodiedNumbers(snapshot?.circulation?.value, "circulation")) {
+    if (!skip.test(row.path)) values.push(row);
+    if (values.length >= 128) break;
+  }
+  return values;
+}
+
+function compareEmbodiedSnapshots() {
+  const left = state.embodiedField.captures.find((record) => record.id === $("#embodied-compare-a").value);
+  const right = state.embodiedField.captures.find((record) => record.id === $("#embodied-compare-b").value);
+  const output = $("#embodied-comparison");
+  output.replaceChildren();
+  if (!left || !right) {
+    output.textContent = "Choose two captured snapshots to compare.";
+    return;
+  }
+  if (left.id === right.id) {
+    output.textContent = "Choose two different captured snapshots.";
+    return;
+  }
+  const summary = document.createElement("p");
+  summary.className = "quiet";
+  summary.textContent = `A ${embodiedTime(left.capturedAt)} · ${embodiedScalar(left.snapshot.state_sha256, "state id unavailable")}  |  B ${embodiedTime(right.capturedAt)} · ${embodiedScalar(right.snapshot.state_sha256, "state id unavailable")}`;
+  output.append(summary);
+  const leftValues = new Map(embodiedSnapshotQuantities(left.snapshot).map((row) => [row.path, row.value]));
+  const rightValues = new Map(embodiedSnapshotQuantities(right.snapshot).map((row) => [row.path, row.value]));
+  const paths = [...new Set([...leftValues.keys(), ...rightValues.keys()])].slice(0, 128);
+  if (paths.length) {
+    const table = document.createElement("table");
+    const head = document.createElement("thead");
+    const header = document.createElement("tr");
+    for (const title of ["Owner-reported quantity", "A", "B", "B − A"]) {
+      const cell = document.createElement("th");
+      cell.textContent = title;
+      header.append(cell);
+    }
+    head.append(header);
+    const body = document.createElement("tbody");
+    for (const path of paths) {
+      const row = document.createElement("tr");
+      const pathCell = document.createElement("td");
+      pathCell.textContent = path;
+      const a = leftValues.get(path);
+      const b = rightValues.get(path);
+      const aCell = document.createElement("td");
+      aCell.textContent = a === undefined ? "not reported" : String(a);
+      const bCell = document.createElement("td");
+      bCell.textContent = b === undefined ? "not reported" : String(b);
+      const delta = document.createElement("td");
+      delta.textContent = a === undefined || b === undefined ? "not comparable" : String(b - a);
+      row.append(pathCell, aCell, bCell, delta);
+      body.append(row);
+    }
+    table.append(head, body);
+    output.append(table);
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "quiet";
+    empty.textContent = "Neither capture reports comparable numeric regional or circulation quantities.";
+    output.append(empty);
+  }
+  for (const [label, record] of [["Snapshot A data", left], ["Snapshot B data", right]]) {
+    const details = document.createElement("details");
+    const summaryNode = document.createElement("summary");
+    summaryNode.textContent = label;
+    const pre = document.createElement("pre");
+    pre.textContent = embodiedJson(record.snapshot, 18_000);
+    details.append(summaryNode, pre);
+    output.append(details);
+  }
+}
+
+function chooseEmbodiedRegion(key) {
+  state.embodiedField.selectedRegionKey = key;
+  renderEmbodiedField();
+}
+
+async function connectLocalWorkspace() {
+  setConnected(false, "Connecting to local entity");
+  try {
     await loadPrograms();
+    setConnected(true, "Entity online");
+    void refreshEmbodiedField();
+    startEvents();
     if (state.surface.bindingId) {
       if (!state.surface.timer) startSurfacePolling();
     } else if (state.programId && state.surface.descriptorProgramId !== state.programId) {
@@ -2373,11 +3607,16 @@ $("#connect-form").addEventListener("submit", async (event) => {
     } else if (!state.programId) {
       surfaceMessage("Connected. Select an existing program to discover its mission-scoped surface sources.", "warn");
     }
-    if (state.connected) toast("Connected. The token is held in memory only.");
   } catch (error) {
+    setConnected(false, "Local entity unavailable");
+    state.embodiedField.error = `Entity connection unavailable: ${embodiedErrorMessage(error)}`;
+    state.embodiedField.loading = false;
+    renderEmbodiedField();
     await handleError(error, {refresh: false});
   }
-});
+}
+
+void connectLocalWorkspace();
 
 $("#refresh-programs").addEventListener("click", () => action("Program list refreshed.", loadPrograms, {refresh: false}));
 $("#program-list").addEventListener("click", (event) => {
@@ -2387,31 +3626,41 @@ $("#program-list").addEventListener("click", (event) => {
 
 $("#program-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (state.programAdmissionInFlight) return;
   const formElement = event.currentTarget;
   const form = new FormData(formElement);
-  const programId = String(form.get("program_id")).trim();
-  await action("Research program created.", async () => {
-    await api("/v1/programs", {method: "POST", body: {
-      request_id: requestId("create-program"),
-      program_id: programId,
-      project_id: programId,
-      title: String(form.get("title")).trim(),
-      mission: String(form.get("mission")).trim(),
-      initial_question: String(form.get("initial_question")).trim(),
-      cycle_limit: Number(form.get("cycle_limit")),
-      responsibility: {
-        affected: csv(form.get("affected")),
-        intended_benefit: String(form.get("intended_benefit")).trim() || "Not stated; no benefit is inferred from the research request.",
-        possible_burdens: csv(form.get("possible_burdens")),
-        decision_owner: String(form.get("decision_owner")).trim(),
-        review_question: String(form.get("review_question")).trim(),
-      },
-      observed_at: now(),
-    }});
-    formElement.reset();
-    await loadPrograms();
-    await selectProgram(programId);
-  }, {refresh: false});
+  const brief = String(form.get("brief") || "").trim();
+  const context = String(form.get("context") || "").trim();
+  const useLinuxDesktop = formElement.elements.linux_desktop.checked;
+  if (!brief) {
+    toast("Write a short research brief to begin.", "warn");
+    return;
+  }
+  const admission = programAdmissionForBrief(brief, context, useLinuxDesktop);
+  const submitButton = $('button[type="submit"]', formElement);
+  state.programAdmissionInFlight = true;
+  submitButton.disabled = true;
+  try {
+    await action("Research project opened.", async () => {
+      await api("/v1/programs", {method: "POST", body: admission.body});
+      await loadPrograms();
+      await selectProgram(admission.programId);
+      if (state.pendingProgramAdmission === admission) {
+        state.pendingProgramAdmission = null;
+      }
+      if (
+        String(formElement.elements.brief.value).trim() === brief
+        && String(formElement.elements.context.value).trim() === context
+        && formElement.elements.linux_desktop.checked === useLinuxDesktop
+      ) {
+        formElement.reset();
+      }
+      return {program_id: admission.programId};
+    }, {refresh: false});
+  } finally {
+    state.programAdmissionInFlight = false;
+    submitButton.disabled = false;
+  }
 });
 
 $("#consequence-form").addEventListener("submit", async (event) => {
@@ -2645,3 +3894,47 @@ window.addEventListener("beforeunload", () => {
   if (state.surface.frameUrl) URL.revokeObjectURL(state.surface.frameUrl);
 });
 renderEvents();
+$("#field-viewer-link").addEventListener("click", () => {
+  $("#embodied-field-view").scrollIntoView({behavior: "smooth", block: "start"});
+});
+$("#embodied-field-refresh").addEventListener("click", () => void refreshEmbodiedField());
+$("#embodied-field-freeze").addEventListener("click", toggleEmbodiedFreeze);
+$("#embodied-field-capture").addEventListener("click", captureEmbodiedView);
+$("#embodied-region-select").addEventListener("change", (event) => chooseEmbodiedRegion(event.currentTarget.value));
+$("#embodied-exchange-meaning-select").addEventListener("change", (event) => {
+  state.embodiedField.selectedExchangeMeaningKey = event.currentTarget.value;
+  renderEmbodiedField();
+});
+$("#embodied-regions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-embodied-region-key]");
+  if (button) chooseEmbodiedRegion(button.dataset.embodiedRegionKey);
+});
+$("#embodied-map").addEventListener("click", (event) => {
+  const point = event.target.closest("[data-field-map-key]");
+  if (point) chooseEmbodiedRegion(point.dataset.fieldMapKey);
+});
+$("#embodied-map").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const point = event.target.closest("[data-field-map-key]");
+  if (!point) return;
+  event.preventDefault();
+  chooseEmbodiedRegion(point.dataset.fieldMapKey);
+});
+$("#embodied-zoom-in").addEventListener("click", () => {
+  state.embodiedField.zoom = Math.min(8, state.embodiedField.zoom * 1.5);
+  renderEmbodiedField();
+});
+$("#embodied-zoom-out").addEventListener("click", () => {
+  state.embodiedField.zoom = Math.max(.5, state.embodiedField.zoom / 1.5);
+  renderEmbodiedField();
+});
+$("#embodied-zoom-reset").addEventListener("click", () => {
+  state.embodiedField.zoom = 1;
+  renderEmbodiedField();
+});
+$("#embodied-replay-show").addEventListener("click", () => showEmbodiedReplay($("#embodied-replay-select").value));
+$("#embodied-replay-previous").addEventListener("click", () => stepEmbodiedReplay(-1));
+$("#embodied-replay-next").addEventListener("click", () => stepEmbodiedReplay(1));
+$("#embodied-compare-run").addEventListener("click", compareEmbodiedSnapshots);
+$("#embodied-compare-a").addEventListener("change", renderEmbodiedCaptureControls);
+$("#embodied-compare-b").addEventListener("change", renderEmbodiedCaptureControls);

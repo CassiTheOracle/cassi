@@ -22,6 +22,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from .records import SurfaceWaitError
+
 
 _MAX_HEADER_BYTES = 1 << 20
 _MAX_FRAME_BYTES = 64 << 20
@@ -435,7 +437,8 @@ class WindowsBackend:
             operation: {"status": "unavailable", "reason": reason}
             for operation in (
                 "visual.window", "visual.display", "accessibility.tree",
-                "binding.revalidate", "semantic_target.revalidate",
+                "binding.revalidate", "binding.foreground", "binding.follow_foreground",
+                "binding.demonstration", "binding.unbind", "semantic_target.revalidate",
                 "accessibility.invoke", "accessibility.set_value", "accessibility.select",
                 "accessibility.toggle", "accessibility.expand", "accessibility.focus",
                 "keyboard.key", "keyboard.text", "pointer.absolute", "pointer.relative",
@@ -471,6 +474,9 @@ class WindowsBackend:
             expected = result.get("width", 0) * result.get("height", 0) * 4
             if result.get("pixel_format") != "BGRA8" or len(pixels) != expected:
                 raise WindowsSurfaceError("native helper pixel payload disagrees with its reported format and dimensions")
+        elif result.get("capture_state") == "waiting_for_frame":
+            raise SurfaceWaitError({"kind": "frame-pending",
+                                    "reason": str(result.get("reason") or "waiting for a fresh Windows capture frame")})
         elif result.get("capture_state") == "live":
             raise WindowsSurfaceError("native helper reported a live image without pixel bytes")
         elif result.get("accessibility") is None and result.get("screen_text") is None:
@@ -493,6 +499,46 @@ class WindowsBackend:
         ):
             return {"supported": False, "valid": False, "reason": "native helper returned a malformed revalidation receipt"}
         return current
+
+    def foreground_binding(self, binding: Mapping[str, Any]) -> bool:
+        if not isinstance(binding, Mapping):
+            raise TypeError("binding must be a mapping")
+        response, payload = self._request({"op": "foreground_binding", "binding": dict(binding)})
+        foreground = response.get("foreground_binding")
+        if payload or not isinstance(foreground, dict) or not isinstance(foreground.get("foreground"), bool):
+            raise WindowsSurfaceError("native helper returned a malformed foreground receipt")
+        return foreground["foreground"]
+
+    def set_follow_foreground(self, binding: Mapping[str, Any], enabled: bool) -> dict[str, Any]:
+        if not isinstance(binding, Mapping) or not isinstance(enabled, bool):
+            raise TypeError("binding must be a mapping and enabled must be a boolean")
+        response, payload = self._request({
+            "op": "set_follow_foreground", "binding": dict(binding), "enabled": enabled,
+        })
+        receipt = response.get("follow_foreground")
+        if payload or not isinstance(receipt, dict):
+            raise WindowsSurfaceError("native helper returned a malformed foreground-gate receipt")
+        return receipt
+
+    def set_demonstration(self, binding: Mapping[str, Any], enabled: bool) -> dict[str, Any]:
+        if not isinstance(binding, Mapping) or not isinstance(enabled, bool):
+            raise TypeError("binding must be a mapping and enabled must be a boolean")
+        response, payload = self._request({
+            "op": "set_demonstration", "binding": dict(binding), "enabled": enabled,
+        })
+        receipt = response.get("demonstration")
+        if payload or not isinstance(receipt, dict):
+            raise WindowsSurfaceError("native helper returned a malformed demonstration receipt")
+        return receipt
+
+    def unbind(self, binding: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(binding, Mapping):
+            raise TypeError("binding must be a mapping")
+        response, payload = self._request({"op": "unbind", "binding": dict(binding)})
+        receipt = response.get("unbound")
+        if payload or not isinstance(receipt, dict) or receipt.get("unbound") is not True:
+            raise WindowsSurfaceError("native helper did not confirm source unbind")
+        return receipt
 
     def revalidate_target(
         self, binding: Mapping[str, Any], semantic_target: Mapping[str, Any],

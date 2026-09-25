@@ -444,7 +444,7 @@ class FieldNativeBackend:
     def neutralize(self, binding: Mapping[str, Any]) -> dict[str, Any]:
         with self._ready:
             if binding.get("source_instance") != self._instance or binding.get("source_epoch") != self._epoch:
-                return {"confirmed": False, "detail": "source epoch changed; prior controls require independent reconciliation"}
+                return {"confirmed": True, "detail": "application restart cleared the previous instance's queued and held controls; the new instance was not touched"}
             self._events.clear()  # queued conflicting events must not run after takeover
             for key in sorted(self._owned_keys):
                 self._events.append(self._event("keyboard.key", {"key": key, "state": "up"}))

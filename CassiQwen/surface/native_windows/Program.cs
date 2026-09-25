@@ -27,6 +27,8 @@ internal static class Program
     private const int MaxTreeTextChars = 16_384;
     private const int MaxNodeTextChars = 1_024;
     private const int MaxInputEvents = 128;
+    private const int MaxDemonstrationEvents = 256;
+    private const int MaxDemonstrationScopes = 32;
     private const uint PipeOptionsCurrentUserOnly = 0x20000000;
 
     private static readonly string EnvironmentIncarnation = Guid.NewGuid().ToString("N");
@@ -34,6 +36,7 @@ internal static class Program
     private static readonly object StateLock = new();
     private static readonly Dictionary<string, SourceIdentity> Catalog = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, BoundSource> Bindings = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> SourceInstances = new(StringComparer.Ordinal);
     private static readonly EventMonitor Events = new();
     private static readonly string UserSid = WindowsIdentity.GetCurrent().User?.Value ?? "unknown";
     private static readonly int SessionId = Process.GetCurrentProcess().SessionId;
@@ -132,6 +135,16 @@ internal static class Program
                 return (Ok(("sources", (object)EnumerateSources())), null);
             case "bind":
                 return (Ok(("binding", (object)Bind(RequiredString(root, "source_id")))), null);
+            case "foreground_binding":
+                return (Ok(("foreground_binding", (object)ForegroundBinding(RequiredObject(root, "binding")))), null);
+            case "set_follow_foreground":
+                return (Ok(("follow_foreground", (object)SetFollowForeground(
+                    RequiredObject(root, "binding"), RequiredBoolean(root, "enabled")))), null);
+            case "set_demonstration":
+                return (Ok(("demonstration", (object)SetDemonstration(
+                    RequiredObject(root, "binding"), RequiredBoolean(root, "enabled")))), null);
+            case "unbind":
+                return (Ok(("unbound", (object)Unbind(RequiredObject(root, "binding")))), null);
             case "capture":
                 return HandleCapture(RequiredObject(root, "binding"));
             case "revalidate_target":
@@ -286,6 +299,8 @@ internal static class Program
             if (Bindings.TryGetValue(stale, out BoundSource? binding))
                 binding.MarkLost("source disappeared from the interactive session");
         }
+        foreach (string stale in SourceInstances.Keys.Where(key => !seen.Contains(key)).ToArray())
+            SourceInstances.Remove(stale);
         result.Sort((left, right) => string.CompareOrdinal((string)left["label"]!, (string)right["label"]!));
         return result;
     }
@@ -333,6 +348,12 @@ internal static class Program
             ["protected_or_excluded"] = protectedCapture,
             ["bounds"] = Bounds(identity.Left, identity.Top, identity.Width, identity.Height),
             ["dpi"] = identity.Dpi,
+            ["source_instance"] = bound?.SourceInstance ?? EnsureSourceInstance(sourceId),
+            ["environment_incarnation"] = EnvironmentIncarnation,
+            ["source_epoch"] = bound?.SourceEpoch ?? 1L,
+            ["geometry_revision"] = bound?.GeometryRevision ?? 1L,
+            ["width"] = bound?.Width ?? identity.Width,
+            ["height"] = bound?.Height ?? identity.Height,
             ["modalities"] = modalities,
             ["capture"] = Capability(captureAvailable ? "available" : "unavailable", captureReason),
             ["accessibility"] = Capability(accessibilityAvailable ? "available" : identity.IsWindow && bound is null ? "conditional" : "unavailable",
@@ -343,6 +364,8 @@ internal static class Program
     }
     private static bool AccessibilityLive(BoundSource source)
     {
+        if (source.FollowForeground && !IsForegroundSource(source.Identity))
+            return false;
         if (source.Lost || source.UiaTimedOut || !source.UiaAvailable || !source.Identity.IsWindow ||
             source.Identity.SessionId != SessionId || !IsInputDesktopUsable() ||
             !IsWindow(source.Identity.Hwnd) || !IsWindowVisible(source.Identity.Hwnd) ||
@@ -354,7 +377,8 @@ internal static class Program
     private static bool ProbeAccessibility(BoundSource source)
     {
         source.UiaAvailable = false;
-        if (source.UiaTimedOut || source.Lost || !source.Identity.IsWindow ||
+        if ((source.FollowForeground && !IsForegroundSource(source.Identity)) ||
+            source.UiaTimedOut || source.Lost || !source.Identity.IsWindow ||
             source.Identity.SessionId != SessionId || !IsInputDesktopUsable() ||
             !IsWindow(source.Identity.Hwnd) || !IsWindowVisible(source.Identity.Hwnd) ||
             IsIconic(source.Identity.Hwnd) || IsProtectedCaptureWindow(source.Identity.Hwnd))
@@ -392,8 +416,7 @@ internal static class Program
         BoundSource? source = Bindings.Values.FirstOrDefault(item => item.SourceId == sourceId && !item.Lost);
         if (source is null)
         {
-            source = new BoundSource(sourceId, identity, EnvironmentIncarnation, Events);
-            Bindings[source.SourceInstance] = source;
+            source = new BoundSource(sourceId, identity, EnvironmentIncarnation, Events, EnsureSourceInstance(sourceId));
         }
         UpdateGeometry(source);
         if (identity.IsWindow)
@@ -437,10 +460,12 @@ internal static class Program
             }
         }
         ProbeAccessibility(source);
+        Bindings[source.SourceInstance] = source;
         return BindingDescription(source);
     }
     private static Dictionary<string, object?>? CaptureAccessibility(BoundSource source) =>
-        source.Identity.IsWindow && source.UiaAvailable && !source.UiaTimedOut ? AccessibilitySnapshot(source) : null;
+        source.Identity.IsWindow && source.UiaAvailable && !source.UiaTimedOut &&
+            (!source.FollowForeground || IsForegroundSource(source.Identity)) ? AccessibilitySnapshot(source) : null;
 
     private static Dictionary<string, object?> BindingDescription(BoundSource source)
     {
@@ -454,10 +479,12 @@ internal static class Program
         bool protectedCapture = source.Identity.IsWindow && IsProtectedCaptureWindow(source.Identity.Hwnd);
         bool visible = !source.Identity.IsWindow || IsWindowVisible(source.Identity.Hwnd);
         bool minimized = source.Identity.IsWindow && IsIconic(source.Identity.Hwnd);
-        bool captureLive = !source.Lost && inputDesktop && CaptureSupported && D3DDevice is not null &&
+        bool foregroundAvailable = !source.FollowForeground || IsForegroundSource(source.Identity);
+        bool captureLive = !source.Lost && inputDesktop && foregroundAvailable && CaptureSupported && D3DDevice is not null &&
             source.Item is not null && source.CaptureUnavailable is null && !protectedCapture && visible && !minimized;
         bool accessibilityLive = AccessibilityLive(source);
         string captureReason = source.Lost ? source.LossReason ?? "source is lost" :
+            source.FollowForeground && !foregroundAvailable ? "bound foreground source is no longer active" :
             !inputDesktop ? "the active input desktop is unavailable" :
             !CaptureSupported ? "Windows Graphics Capture is unavailable" :
             D3DDevice is null ? D3DCreateFailure ?? "hardware Direct3D 11 device is unavailable" :
@@ -492,12 +519,124 @@ internal static class Program
             ["operations"] = operations,
             ["capture_state"] = captureLive ? "available" : "unavailable",
             ["capture_reason"] = captureLive ? null : captureReason,
+            ["follow_foreground"] = source.FollowForeground,
+            ["demonstration"] = source.Demonstration,
+            ["foreground_available"] = foregroundAvailable,
             ["input_state"] = inputAvailable ? "available" : source.Lost || !IsInputDesktopUsable() || !Events.InputHooksAvailable ? "unavailable" : "suspended",
             ["input_reason"] = inputAvailable ? null : inputReason,
             ["source_kind"] = source.Identity.IsWindow ? "window" : "display",
             ["bounds"] = Bounds(source.Identity.Left, source.Identity.Top, source.Identity.Width, source.Identity.Height),
             ["coordinate_space"] = DpiPhysical ? "source-local-physical-pixels" : "capture-pixels; pointer absolute unavailable",
             ["capture_border"] = "system-controlled",
+        };
+    }
+
+    private static bool IsForegroundSource(SourceIdentity identity)
+    {
+        if (!IsInputDesktopUsable())
+            return false;
+        IntPtr foreground = GetForegroundWindow();
+        IntPtr root = foreground == IntPtr.Zero ? IntPtr.Zero : GetAncestor(foreground, GA_ROOT);
+        if (root == IntPtr.Zero)
+            root = foreground;
+        if (identity.IsWindow)
+            return root == identity.Hwnd || foreground == identity.Hwnd ||
+                (identity.Hwnd != IntPtr.Zero && foreground != IntPtr.Zero && IsChild(identity.Hwnd, foreground));
+        if (root == IntPtr.Zero || !GetWindowRect(root, out RECT foregroundRect))
+            return false;
+        return foregroundRect.Left < identity.Left + identity.Width && foregroundRect.Right > identity.Left
+            && foregroundRect.Top < identity.Top + identity.Height && foregroundRect.Bottom > identity.Top;
+    }
+
+    private static Dictionary<string, object?> ForegroundBinding(JsonElement bindingJson)
+    {
+        BoundSource source = FindBinding(bindingJson);
+        bool foreground = !source.Lost && IsForegroundSource(source.Identity);
+        return new Dictionary<string, object?>
+        {
+            ["foreground"] = foreground,
+            ["source_instance"] = source.SourceInstance,
+            ["focus_epoch"] = Events.FocusEpoch,
+        };
+    }
+
+    private static Dictionary<string, object?> SetFollowForeground(JsonElement bindingJson, bool enabled)
+    {
+        BoundSource source = FindBinding(bindingJson);
+        if (!enabled)
+        {
+            Dictionary<string, object?> demonstration = SetDemonstration(bindingJson, false);
+            if (demonstration.GetValueOrDefault("confirmed") is not true)
+                return new Dictionary<string, object?> { ["confirmed"] = false, ["enabled"] = false };
+            source.FollowForeground = false;
+            return new Dictionary<string, object?>
+            {
+                ["confirmed"] = true, ["enabled"] = false, ["source_instance"] = source.SourceInstance,
+                ["demonstration"] = demonstration,
+            };
+        }
+        if (!EnsureCurrent(source, bindingJson, requireGeometry: false, out string error))
+            return new Dictionary<string, object?> { ["confirmed"] = false, ["enabled"] = false, ["reason"] = error };
+        source.FollowForeground = true;
+        return new Dictionary<string, object?>
+        {
+            ["confirmed"] = true, ["enabled"] = true, ["source_instance"] = source.SourceInstance,
+            ["focus_epoch"] = Events.FocusEpoch,
+        };
+    }
+
+    private static Dictionary<string, object?> SetDemonstration(JsonElement bindingJson, bool enabled)
+    {
+        BoundSource source = FindBinding(bindingJson);
+        if (!enabled)
+        {
+            var stopped = Events.RemoveDemonstration(source);
+            source.Demonstration = false;
+            return new Dictionary<string, object?>
+            {
+                ["confirmed"] = true, ["enabled"] = false, ["source_instance"] = source.SourceInstance,
+                ["events"] = stopped.Events, ["coverage"] = stopped.Coverage,
+            };
+        }
+        if (!source.FollowForeground || source.Lost || !Events.InputHooksAvailable)
+            return new Dictionary<string, object?>
+            {
+                ["confirmed"] = false, ["enabled"] = false,
+                ["reason"] = !source.FollowForeground
+                    ? "demonstration requires an active bound foreground gate"
+                    : "foreground-scoped physical input hooks are unavailable",
+            };
+        if (!EnsureCurrent(source, bindingJson, requireGeometry: false, out string error))
+            return new Dictionary<string, object?> { ["confirmed"] = false, ["enabled"] = false, ["reason"] = error };
+        if (!Events.EnableDemonstration(source))
+            return new Dictionary<string, object?>
+            {
+                ["confirmed"] = false, ["enabled"] = false,
+                ["reason"] = "bounded demonstration event scope could not be enabled",
+            };
+        return new Dictionary<string, object?>
+        {
+            ["confirmed"] = true, ["enabled"] = true, ["source_instance"] = source.SourceInstance,
+            ["geometry_revision"] = source.GeometryRevision,
+            ["coverage"] = Events.DemonstrationStatus(source),
+        };
+    }
+
+    private static Dictionary<string, object?> Unbind(JsonElement bindingJson)
+    {
+        BoundSource source = FindBinding(bindingJson);
+        Dictionary<string, object?> stop = SetFollowForeground(bindingJson, false);
+        if (stop.GetValueOrDefault("confirmed") is not true)
+            return new Dictionary<string, object?> { ["unbound"] = false, ["source_instance"] = source.SourceInstance };
+        Dictionary<string, object?> neutralization = Neutralize(source, requireBinding: false);
+        if (neutralization.GetValueOrDefault("confirmed") is not true)
+            return new Dictionary<string, object?> { ["unbound"] = false, ["neutralization"] = neutralization };
+        source.Dispose();
+        Bindings.Remove(source.SourceInstance);
+        return new Dictionary<string, object?>
+        {
+            ["unbound"] = true, ["source_instance"] = source.SourceInstance,
+            ["demonstration"] = stop.GetValueOrDefault("demonstration"),
         };
     }
 
@@ -508,6 +647,15 @@ internal static class Program
             return (Ok(("capture", (object)UnavailableCapture(source, error))), null);
         if (!IsInputDesktopUsable())
             return (Ok(("capture", (object)UnavailableCapture(source, "input desktop changed or is not WinSta0\\Default"))), null);
+        long focusFence = Events.FocusEpoch;
+        long inputEpochFence = GetLong(bindingJson, "input_domain_epoch");
+        if (source.FollowForeground &&
+            (focusFence != GetLong(bindingJson, "focus_epoch") ||
+             Events.HumanState(source.Identity).Epoch != inputEpochFence))
+            return (Ok(("capture", (object)UnavailableCapture(source,
+                "foreground or physical-input epoch changed before capture"))), null);
+        if (source.FollowForeground && !IsForegroundSource(source.Identity))
+            return (Ok(("capture", (object)UnavailableCapture(source, "bound foreground source is not active"))), null);
         if (source.Identity.IsWindow && (IsIconic(source.Identity.Hwnd) || !IsWindowVisible(source.Identity.Hwnd)))
             return (Ok(("capture", (object)UnavailableCapture(source, IsIconic(source.Identity.Hwnd)
                 ? "window is minimized; no fresh frame is assumed" : "window is not visible"))), null);
@@ -520,11 +668,9 @@ internal static class Program
             CaptureResources resources = source.GetCaptureResources();
             resources.Start();
             if (!resources.FrameArrived.WaitOne(TimeSpan.FromMilliseconds(900)))
-            {
-                source.CaptureUnavailable = "no Windows Graphics Capture frame arrived before the bounded deadline";
-                source.DisposeCaptureResources();
-                return (Ok(("capture", (object)UnavailableCapture(source, source.CaptureUnavailable))), null);
-            }
+                return (Ok(("capture", (object)UnavailableCapture(source,
+                    "no new Windows Graphics Capture frame arrived before the bounded deadline", "waiting_for_frame"))), null);
+            resources.FrameArrived.Reset();
             byte[]? pixels = null;
             long sampleTicks = 0;
             int width = 0, height = 0;
@@ -563,13 +709,17 @@ internal static class Program
                 break;
             }
             if (pixels is null)
-            {
-                source.CaptureUnavailable = "WGC supplied no newer frame before the bounded deadline; stale pixels were not reused";
-                source.DisposeCaptureResources();
-                return (Ok(("capture", (object)UnavailableCapture(source, source.CaptureUnavailable))), null);
-            }
+                return (Ok(("capture", (object)UnavailableCapture(source,
+                    "Windows Graphics Capture has not supplied a newer frame; stale pixels were not reused",
+                    "waiting_for_frame"))), null);
             source.CaptureUnavailable = null;
             Dictionary<string, object?>? accessibility = CaptureAccessibility(source);
+            if (source.FollowForeground &&
+                (Events.FocusEpoch != focusFence || !IsForegroundSource(source.Identity) ||
+                 Events.HumanState(source.Identity).Epoch != inputEpochFence))
+                return (Ok(("capture", (object)UnavailableCapture(source,
+                    "foreground or physical-input epoch changed during the bounded capture; the sample was discarded"))), null);
+            var demonstration = Events.CaptureDemonstration(source, focusFence, inputEpochFence);
             List<Dictionary<string, object?>> events = Events.Since(source.Identity.Hwnd, source.Identity.IsWindow, source.LastEventSequence);
             if (events.Count > 0)
                 source.LastEventSequence = Math.Max(source.LastEventSequence, events.Max(item => Convert.ToInt64(item["sequence"], CultureInfo.InvariantCulture)));
@@ -601,6 +751,8 @@ internal static class Program
                 ["accessibility"] = accessibility,
                 ["accessibility_sample_time_ns"] = accessibility is null ? null : accessibility.GetValueOrDefault("sample_time_ns"),
                 ["accessibility_provider"] = accessibility is null ? null : "Windows UI Automation",
+                ["demonstration_events"] = demonstration.Events,
+                ["demonstration_coverage"] = demonstration.Coverage,
                 ["events"] = events,
                 ["provenance"] = "Windows.Graphics.Capture",
             };
@@ -614,7 +766,7 @@ internal static class Program
         }
     }
 
-    private static Dictionary<string, object?> UnavailableCapture(BoundSource source, string reason)
+    private static Dictionary<string, object?> UnavailableCapture(BoundSource source, string reason, string state = "unavailable")
     {
         Dictionary<string, object?>? accessibility = CaptureAccessibility(source);
         if (accessibility is not null)
@@ -626,7 +778,7 @@ internal static class Program
             ["source_epoch"] = source.SourceEpoch,
             ["environment_incarnation"] = EnvironmentIncarnation,
             ["geometry_revision"] = source.GeometryRevision,
-            ["capture_state"] = source.Lost ? "lost" : "unavailable",
+            ["capture_state"] = source.Lost ? "lost" : state,
             ["reason"] = reason,
             ["width"] = source.Width,
             ["height"] = source.Height,
@@ -647,6 +799,8 @@ internal static class Program
             ["accessibility"] = accessibility,
             ["accessibility_sample_time_ns"] = accessibility is null ? null : accessibility.GetValueOrDefault("sample_time_ns"),
             ["accessibility_provider"] = accessibility is null ? null : "Windows UI Automation",
+            ["demonstration_events"] = new List<Dictionary<string, object?>>(),
+            ["demonstration_coverage"] = Events.DemonstrationStatus(source, markMissing: true),
             ["events"] = Events.Since(source.Identity.Hwnd, source.Identity.IsWindow, source.LastEventSequence),
             ["provenance"] = "Windows.Graphics.Capture unavailable; no synthetic image substituted",
         };
@@ -942,12 +1096,19 @@ internal static class Program
             return TargetInvalid("UI Automation runtime_id was not present in the most recent snapshot for this source");
         IntPtr sourceHwnd = source.Identity.Hwnd;
         int sourceProcessId = source.Identity.ProcessId;
+        long focusFence = Events.FocusEpoch;
         var outcome = RunUiaBounded(() =>
         {
+            if (source.FollowForeground &&
+                (Events.FocusEpoch != focusFence || !IsForegroundSource(source.Identity)))
+                return "focus_changed";
             AutomationElement root = AutomationElement.FromHandle(sourceHwnd);
             if (root.Current.ProcessId != sourceProcessId)
                 return "source_stale";
-            return FindByRuntimeId(root, runtimeId) is null ? "stale" : "found";
+            string result = FindByRuntimeId(root, runtimeId) is null ? "stale" : "found";
+            return source.FollowForeground &&
+                (Events.FocusEpoch != focusFence || !IsForegroundSource(source.Identity))
+                    ? "focus_changed" : result;
         }, 600);
         if (outcome.TimedOut)
         {
@@ -962,6 +1123,9 @@ internal static class Program
             lock (source.NodeLock) source.NodeRuntimeIds.Clear();
             return TargetInvalid($"UI Automation target validation failed: {outcome.Error}");
         }
+        if (outcome.Value == "focus_changed" || source.FollowForeground &&
+            (Events.FocusEpoch != focusFence || !IsForegroundSource(source.Identity)))
+            return TargetInvalid("foreground changed during UI Automation target validation");
         if (outcome.Value == "source_stale")
         {
             source.UiaAvailable = false;
@@ -989,7 +1153,7 @@ internal static class Program
 
     private static Dictionary<string, object?> Neutralize(BoundSource source, bool requireBinding)
     {
-        if (requireBinding && source.Lost)
+        if (requireBinding && source.Lost && (source.OwnedKeys.Count != 0 || source.OwnedButtons.Count != 0))
             return new Dictionary<string, object?> { ["confirmed"] = false, ["detail"] = source.LossReason };
         if (SessionId == 0 || !IsInputDesktopUsable())
             return new Dictionary<string, object?>
@@ -1193,6 +1357,7 @@ internal static class Program
                 ["truncated"] = false, ["sample_time_ns"] = MonotonicNs(),
             };
         }
+        long focusFence = Events.FocusEpoch;
         if (!AccessibilityLive(source))
         {
             source.UiaAvailable = false;
@@ -1204,7 +1369,13 @@ internal static class Program
                 ["truncated"] = false, ["sample_time_ns"] = MonotonicNs(),
             };
         }
-        var outcome = RunUiaBounded(() => BuildAccessibilityTree(source), 600);
+        var outcome = RunUiaBounded(() =>
+        {
+            if (source.FollowForeground &&
+                (Events.FocusEpoch != focusFence || !IsForegroundSource(source.Identity)))
+                return null;
+            return BuildAccessibilityTree(source);
+        }, 600);
         if (outcome.TimedOut)
         {
             source.UiaTimedOut = true;
@@ -1213,6 +1384,18 @@ internal static class Program
             return new Dictionary<string, object?>
             {
                 ["status"] = "timed_out", ["reason"] = "Windows UI Automation provider exceeded 600 ms; no previous tree is reused",
+                ["provider"] = "Windows UI Automation", ["nodes"] = Array.Empty<object>(),
+                ["truncated"] = false, ["sample_time_ns"] = MonotonicNs(),
+            };
+        }
+        if (source.FollowForeground &&
+            (Events.FocusEpoch != focusFence || !IsForegroundSource(source.Identity)))
+        {
+            source.UiaAvailable = false;
+            lock (source.NodeLock) source.NodeRuntimeIds.Clear();
+            return new Dictionary<string, object?>
+            {
+                ["status"] = "unavailable", ["reason"] = "foreground changed during UI Automation; no snapshot was returned",
                 ["provider"] = "Windows UI Automation", ["nodes"] = Array.Empty<object>(),
                 ["truncated"] = false, ["sample_time_ns"] = MonotonicNs(),
             };
@@ -1737,6 +1920,16 @@ internal static class Program
         return (identity.IsWindow ? "win-" : "display-") + Convert.ToHexString(digest.AsSpan(0, 16)).ToLowerInvariant();
     }
 
+    private static string EnsureSourceInstance(string sourceId)
+    {
+        if (!SourceInstances.TryGetValue(sourceId, out string? instance))
+        {
+            instance = Guid.NewGuid().ToString("N");
+            SourceInstances[sourceId] = instance;
+        }
+        return instance;
+    }
+
     private static GraphicsCaptureItem CreateWindowCaptureItem(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero || !IsWindow(hwnd))
@@ -1993,6 +2186,14 @@ internal static class Program
         return value.GetString()!;
     }
 
+    private static bool RequiredBoolean(JsonElement parent, string name)
+    {
+        if (!parent.TryGetProperty(name, out JsonElement value)
+            || value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+            throw new ArgumentException($"{name} must be a boolean");
+        return value.GetBoolean();
+    }
+
     private static string? GetString(JsonElement parent, string name)
     {
         return parent.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
@@ -2149,7 +2350,7 @@ internal static class Program
     private sealed class BoundSource : IDisposable
     {
         public string SourceId { get; }
-        public string SourceInstance { get; } = Guid.NewGuid().ToString("N");
+        public string SourceInstance { get; }
         public long SourceEpoch { get; } = 1;
         public string EnvironmentIncarnation { get; }
         public SourceIdentity Identity { get; set; }
@@ -2160,6 +2361,12 @@ internal static class Program
         public CaptureResources? Resources { get; set; }
         public string? CaptureUnavailable { get; set; }
         public bool Lost { get; private set; }
+        public bool FollowForeground { get; set; }
+        public bool Demonstration { get; set; }
+        public bool DemonstrationIncomplete { get; set; }
+        public long DemonstrationLostCount { get; set; }
+        public long DemonstrationMissingIntervals { get; set; }
+        public string? DemonstrationStopReason { get; set; }
         public string? LossReason { get; private set; }
         public long CaptureSequence { get; set; }
         public long? LastSampleNs { get; set; }
@@ -2172,9 +2379,10 @@ internal static class Program
         public HashSet<string> OwnedButtons { get; } = new(StringComparer.Ordinal);
         private readonly EventMonitor _events;
 
-        public BoundSource(string sourceId, SourceIdentity identity, string environment, EventMonitor events)
+        public BoundSource(string sourceId, SourceIdentity identity, string environment, EventMonitor events, string sourceInstance)
         {
-            SourceId = sourceId; Identity = identity; EnvironmentIncarnation = environment; _events = events;
+            SourceId = sourceId; SourceInstance = sourceInstance; Identity = identity;
+            EnvironmentIncarnation = environment; _events = events;
             Width = identity.Width; Height = identity.Height;
             _events.AddBoundSource(identity);
             AddEvent("bound", new Dictionary<string, object?> { ["kind"] = identity.IsWindow ? "window" : "display" });
@@ -2193,6 +2401,7 @@ internal static class Program
                 Width = width; Height = height;
             }
             GeometryRevision++;
+            _events.InvalidateDemonstrationGeometry(this);
             NodeRuntimeIds.Clear();
             DisposeCaptureResources();
             AddEvent("geometry_changed", new Dictionary<string, object?> { ["revision"] = GeometryRevision, ["width"] = Width, ["height"] = Height });
@@ -2212,6 +2421,8 @@ internal static class Program
         {
             if (Lost) return;
             Lost = true; LossReason = reason;
+            FollowForeground = false; Demonstration = false;
+            _events.RemoveBoundSource(this);
             AddEvent("source_lost", new Dictionary<string, object?> { ["reason"] = reason });
             DisposeCaptureResources();
             Item = null;
@@ -2226,6 +2437,8 @@ internal static class Program
         }
         public void Dispose()
         {
+            FollowForeground = false; Demonstration = false;
+            _events.RemoveBoundSource(this);
             DisposeCaptureResources();
             Item = null;
             foreach (int key in OwnedKeys.ToArray()) OwnedKeys.Remove(key);
@@ -2290,6 +2503,11 @@ internal static class Program
         private readonly HashSet<IntPtr> _boundWindows = new();
         private readonly Dictionary<IntPtr, RECT> _boundDisplays = new();
         private readonly Dictionary<(IntPtr Handle, bool IsWindow), HumanActivity> _humanActivity = new();
+        private const int MaxDemonstrationScopes = 32;
+        private const int MaxDemonstrationEvents = 256;
+        private readonly Dictionary<string, DemonstrationScope> _demonstrations = new(StringComparer.Ordinal);
+        private bool _shiftDown, _controlDown, _altDown, _windowsDown;
+        private readonly HashSet<uint> _demonstrationDownKeys = new();
         private readonly ManualResetEventSlim _ready = new(false);
         private readonly Thread _thread;
         private readonly WinEventProc _winEventProc;
@@ -2339,6 +2557,172 @@ internal static class Program
                     _boundDisplays[identity.Monitor] = rect;
             }
         }
+
+        public void RemoveBoundSource(BoundSource source)
+        {
+            RetireDemonstration(source, "source binding released");
+            lock (_lock)
+            {
+                if (source.Identity.IsWindow)
+                    _boundWindows.Remove(source.Identity.Hwnd);
+                else
+                    _boundDisplays.Remove(source.Identity.Monitor);
+                _humanActivity.Remove((source.Identity.IsWindow ? source.Identity.Hwnd : source.Identity.Monitor,
+                    source.Identity.IsWindow));
+            }
+        }
+
+        public bool EnableDemonstration(BoundSource source)
+        {
+            if (!InputHooksAvailable || source.Lost || !source.FollowForeground)
+                return false;
+            long focusEpoch = FocusEpoch;
+            lock (_lock)
+            {
+                if (_demonstrations.TryGetValue(source.SourceInstance, out DemonstrationScope? existing))
+                    return ReferenceEquals(existing.Source, source) &&
+                        existing.GeometryRevision == source.GeometryRevision && source.Demonstration;
+                if (!_running || !InputHooksAvailable || source.Lost || !source.FollowForeground ||
+                    _demonstrations.Count >= MaxDemonstrationScopes)
+                    return false;
+                _demonstrations[source.SourceInstance] = new DemonstrationScope(
+                    source, focusEpoch, source.GeometryRevision);
+                source.Demonstration = true;
+                return true;
+            }
+        }
+
+        public (List<Dictionary<string, object?>> Events, Dictionary<string, object?> Coverage)
+            RemoveDemonstration(BoundSource source)
+        {
+            lock (_lock)
+            {
+                if (!_demonstrations.Remove(source.SourceInstance, out DemonstrationScope? scope))
+                {
+                    source.Demonstration = false;
+                    return (new(), DemonstrationCoverageLocked(source, null));
+                }
+                source.Demonstration = false;
+                List<Dictionary<string, object?>> events = scope.Events.ToList();
+                Dictionary<string, object?> coverage = DemonstrationCoverageLocked(source, scope);
+                source.DemonstrationLostCount = 0;
+                source.DemonstrationMissingIntervals = 0;
+                source.DemonstrationIncomplete = false;
+                source.DemonstrationStopReason = null;
+                return (events, coverage);
+            }
+        }
+
+        public void InvalidateDemonstrationGeometry(BoundSource source) =>
+            RetireDemonstration(source, "source geometry changed");
+
+        public (List<Dictionary<string, object?>> Events, Dictionary<string, object?> Coverage)
+            CaptureDemonstration(BoundSource source, long expectedFocusEpoch, long expectedInputEpoch)
+        {
+            bool foreground = source.FollowForeground && IsForegroundSource(source.Identity);
+            lock (_lock)
+            {
+                if (!_demonstrations.TryGetValue(source.SourceInstance, out DemonstrationScope? scope))
+                {
+                    source.Demonstration = false;
+                    return (new(), DemonstrationCoverageLocked(source, null));
+                }
+                if (!source.Demonstration || source.Lost || !source.FollowForeground ||
+                    scope.GeometryRevision != source.GeometryRevision)
+                {
+                    RetireDemonstrationLocked(source, scope, "source geometry or identity changed");
+                    return (new(), DemonstrationCoverageLocked(source, null));
+                }
+                if (!foreground)
+                {
+                    if (scope.WasForeground)
+                        scope.MissingIntervals++;
+                    scope.WasForeground = false;
+                    scope.Gesture = null;
+                    return (new(), DemonstrationCoverageLocked(source, scope));
+                }
+                scope.WasForeground = true;
+                var events = new List<Dictionary<string, object?>>(scope.Events.Count);
+                while (scope.Events.TryDequeue(out Dictionary<string, object?>? item))
+                {
+                    if (!Equals(item.GetValueOrDefault("focus_epoch"), expectedFocusEpoch) ||
+                        !Equals(item.GetValueOrDefault("input_domain_epoch"), expectedInputEpoch))
+                    {
+                        scope.LostCount++;
+                        continue;
+                    }
+                    events.Add(item);
+                }
+                Dictionary<string, object?> coverage = DemonstrationCoverageLocked(source, scope);
+                scope.LostCount = 0;
+                scope.MissingIntervals = 0;
+                source.DemonstrationLostCount = 0;
+                source.DemonstrationMissingIntervals = 0;
+                source.DemonstrationIncomplete = false;
+                source.DemonstrationStopReason = null;
+                return (events, coverage);
+            }
+        }
+
+        public Dictionary<string, object?> DemonstrationStatus(BoundSource source, bool markMissing = false)
+        {
+            lock (_lock)
+            {
+                _demonstrations.TryGetValue(source.SourceInstance, out DemonstrationScope? scope);
+                if (markMissing && scope is not null && scope.WasForeground)
+                {
+                    scope.MissingIntervals++;
+                    scope.WasForeground = false;
+                    scope.Gesture = null;
+                }
+                return DemonstrationCoverageLocked(source, scope);
+            }
+        }
+
+        private void RetireDemonstration(BoundSource source, string reason)
+        {
+            lock (_lock)
+            {
+                if (_demonstrations.TryGetValue(source.SourceInstance, out DemonstrationScope? scope))
+                    RetireDemonstrationLocked(source, scope, reason);
+                else
+                    source.Demonstration = false;
+            }
+        }
+
+        private void RetireDemonstrationLocked(BoundSource source, DemonstrationScope scope, string reason)
+        {
+            _demonstrations.Remove(source.SourceInstance);
+            source.Demonstration = false;
+            source.DemonstrationIncomplete = true;
+            source.DemonstrationLostCount += scope.LostCount + scope.Events.Count + 1;
+            source.DemonstrationMissingIntervals += scope.MissingIntervals;
+            source.DemonstrationStopReason = reason;
+            scope.Events.Clear();
+            scope.Gesture = null;
+        }
+
+        private Dictionary<string, object?> DemonstrationCoverageLocked(
+            BoundSource source, DemonstrationScope? scope)
+        {
+            long lost = source.DemonstrationLostCount + (scope?.LostCount ?? 0);
+            long missing = source.DemonstrationMissingIntervals + (scope?.MissingIntervals ?? 0);
+            bool enabled = scope is not null && source.Demonstration && source.FollowForeground && !source.Lost;
+            return new Dictionary<string, object?>
+            {
+                ["enabled"] = enabled,
+                ["complete"] = !source.DemonstrationIncomplete && lost == 0 && missing == 0,
+                ["lost_count"] = lost,
+                ["missing_intervals"] = missing,
+                ["source_instance"] = source.SourceInstance,
+                ["source_epoch"] = source.SourceEpoch,
+                ["geometry_revision"] = scope?.GeometryRevision ?? source.GeometryRevision,
+                ["focus_epoch"] = scope?.FocusEpoch ?? FocusEpoch,
+                ["event_focus_epoch"] = FocusEpoch,
+                ["reason"] = source.DemonstrationStopReason,
+            };
+        }
+ 
 
         public long WindowIncarnation(IntPtr hwnd)
         {
@@ -2436,6 +2820,7 @@ internal static class Program
                         _focusEpoch++;
                     }
                 }
+                MarkDemonstrationFocusGaps();
             }
             if (eventType == EVENT_OBJECT_DESTROY && hwnd != IntPtr.Zero && idObject == 0 && idChild == 0)
             {
@@ -2448,6 +2833,10 @@ internal static class Program
                         _windowGenerations.Remove(_generationOrder.Dequeue());
                 }
             }
+            if (eventType == EVENT_OBJECT_DESTROY && hwnd != IntPtr.Zero && idObject == 0 && idChild == 0)
+                RetireWindowDemonstrations(hwnd, "source window was destroyed");
+            if (eventType == EVENT_OBJECT_LOCATIONCHANGE && hwnd != IntPtr.Zero && idObject == 0 && idChild == 0)
+                InvalidateResizedWindowDemonstrations(hwnd);
             string kind = eventType switch
             {
                 EVENT_SYSTEM_FOREGROUND => "foreground_changed",
@@ -2458,6 +2847,57 @@ internal static class Program
             Record(kind, hwnd, true, new Dictionary<string, object?> { ["event_id"] = eventType, ["object_id"] = idObject, ["child_id"] = idChild });
         }
 
+        private void MarkDemonstrationFocusGaps()
+        {
+            List<DemonstrationScope> scopes;
+            lock (_lock)
+                scopes = _demonstrations.Values.ToList();
+            foreach (DemonstrationScope scope in scopes)
+            {
+                bool foreground = scope.Source.FollowForeground && IsForegroundSource(scope.Source.Identity);
+                lock (_lock)
+                {
+                    if (!_demonstrations.TryGetValue(scope.Source.SourceInstance, out DemonstrationScope? active) ||
+                        !ReferenceEquals(active, scope))
+                        continue;
+                    if (scope.WasForeground && !foreground)
+                    {
+                        scope.MissingIntervals++;
+                        scope.LostCount += scope.Events.Count;
+                        scope.Events.Clear();
+                        scope.Gesture = null;
+                    }
+                    scope.WasForeground = foreground;
+                }
+            }
+        }
+
+        private void RetireWindowDemonstrations(IntPtr hwnd, string reason)
+        {
+            List<DemonstrationScope> scopes;
+            lock (_lock)
+                scopes = _demonstrations.Values.ToList();
+            foreach (DemonstrationScope scope in scopes)
+                if (scope.Source.Identity.IsWindow && scope.Source.Identity.Hwnd == hwnd)
+                    RetireDemonstration(scope.Source, reason);
+        }
+
+        private void InvalidateResizedWindowDemonstrations(IntPtr hwnd)
+        {
+            List<DemonstrationScope> scopes;
+            lock (_lock)
+                scopes = _demonstrations.Values.ToList();
+            foreach (DemonstrationScope scope in scopes)
+            {
+                BoundSource source = scope.Source;
+                if (!source.Identity.IsWindow || source.Identity.Hwnd != hwnd)
+                    continue;
+                if (!GetWindowRect(hwnd, out RECT bounds) ||
+                    bounds.Right - bounds.Left != source.Width || bounds.Bottom - bounds.Top != source.Height)
+                    InvalidateDemonstrationGeometry(source);
+            }
+        }
+
         private IntPtr OnKeyboard(int code, UIntPtr message, IntPtr data)
         {
             int msg = unchecked((int)message.ToUInt64());
@@ -2465,7 +2905,11 @@ internal static class Program
             {
                 KBDLLHOOKSTRUCT key = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(data);
                 if ((key.Flags & LLKHF_INJECTED) == 0)
+                {
                     RecordNonInjectedInput("keyboard");
+                    RecordDemonstrationKeyboard(key.VkCode,
+                        msg is WM_KEYDOWN or WM_SYSKEYDOWN);
+                }
             }
             return CallNextHookEx(_keyboardHook, code, message, data);
         }
@@ -2477,10 +2921,254 @@ internal static class Program
             {
                 MSLLHOOKSTRUCT mouse = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(data);
                 if ((mouse.Flags & LLMHF_INJECTED) == 0)
+                {
                     RecordNonInjectedInput("pointer");
+                    RecordDemonstrationMouse(msg, mouse);
+                }
             }
             return CallNextHookEx(_mouseHook, code, message, data);
         }
+
+        private void RecordDemonstrationKeyboard(uint virtualKey, bool down)
+        {
+            lock (_lock)
+            {
+                bool firstDown = down
+                    ? _demonstrationDownKeys.Add(virtualKey)
+                    : _demonstrationDownKeys.Remove(virtualKey);
+                UpdateModifierState(virtualKey, down);
+                if (!down || !firstDown || IsModifierKey(virtualKey))
+                    return;
+                bool commandModifier = _controlDown || _altDown || _windowsDown;
+                string? key = SafeShortcutKey(virtualKey);
+                if (!commandModifier && key is null)
+                    return;
+                var detail = new Dictionary<string, object?>
+                {
+                    ["action"] = commandModifier ? "shortcut" : "non-text-key",
+                    ["key"] = key ?? "printable-key-omitted",
+                    ["modifiers"] = CurrentModifiers(),
+                };
+                foreach (DemonstrationScope scope in _demonstrations.Values.ToArray())
+                    if (scope.Source.FollowForeground && IsForegroundSource(scope.Source.Identity))
+                        AppendDemonstrationEventLocked(scope, "shortcut", detail);
+            }
+        }
+
+        private void RecordDemonstrationMouse(int message, MSLLHOOKSTRUCT mouse)
+        {
+            List<DemonstrationScope> scopes;
+            lock (_lock)
+                scopes = _demonstrations.Values.ToList();
+            foreach (DemonstrationScope scope in scopes)
+            {
+                BoundSource source = scope.Source;
+                if (!source.FollowForeground || !IsForegroundSource(source.Identity))
+                    continue;
+                bool inside = TryDemonstrationPoint(scope, mouse.Point, out int x, out int y, out bool geometryChanged);
+                if (geometryChanged)
+                {
+                    InvalidateDemonstrationGeometry(source);
+                    continue;
+                }
+                string? downButton = message switch
+                {
+                    WM_LBUTTONDOWN => "primary",
+                    WM_RBUTTONDOWN => "secondary",
+                    WM_MBUTTONDOWN => "middle",
+                    _ => null,
+                };
+                string? upButton = message switch
+                {
+                    WM_LBUTTONUP => "primary",
+                    WM_RBUTTONUP => "secondary",
+                    WM_MBUTTONUP => "middle",
+                    _ => null,
+                };
+                if (downButton is not null)
+                {
+                    if (!inside) continue;
+                    lock (_lock)
+                    {
+                        if (_demonstrations.TryGetValue(source.SourceInstance, out DemonstrationScope? current) &&
+                            ReferenceEquals(current, scope))
+                            scope.Gesture = new MouseGesture(downButton, x, y, mouse.Point.X, mouse.Point.Y);
+                    }
+                    continue;
+                }
+                if (message == WM_MOUSEMOVE)
+                {
+                    lock (_lock)
+                    {
+                        if (scope.Gesture is MouseGesture gesture)
+                        {
+                            long dx = mouse.Point.X - gesture.StartScreenX;
+                            long dy = mouse.Point.Y - gesture.StartScreenY;
+                            if (dx * dx + dy * dy >= 64)
+                                gesture.Dragging = true;
+                        }
+                    }
+                    continue;
+                }
+                if (upButton is not null)
+                {
+                    MouseGesture? gesture = null;
+                    lock (_lock)
+                    {
+                        if (scope.Gesture is MouseGesture pending &&
+                            string.Equals(pending.Button, upButton, StringComparison.Ordinal))
+                        {
+                            gesture = pending;
+                            scope.Gesture = null;
+                        }
+                    }
+                    if (gesture is null) continue;
+                    bool dragging = gesture.Dragging ||
+                        Math.Abs((long)mouse.Point.X - gesture.StartScreenX) >= 8 ||
+                        Math.Abs((long)mouse.Point.Y - gesture.StartScreenY) >= 8;
+                    var detail = new Dictionary<string, object?> { ["button"] = gesture.Button };
+                    if (dragging)
+                    {
+                        detail["start"] = new Dictionary<string, object?> { ["x"] = gesture.StartX, ["y"] = gesture.StartY };
+                        detail["end"] = inside ? new Dictionary<string, object?> { ["x"] = x, ["y"] = y } : null;
+                        detail["end_inside_source"] = inside;
+                        AppendDemonstrationEvent(scope, "drag", detail);
+                    }
+                    else if (inside)
+                    {
+                        detail["x"] = gesture.StartX;
+                        detail["y"] = gesture.StartY;
+                        AppendDemonstrationEvent(scope, "click", detail);
+                    }
+                    continue;
+                }
+                if (message is WM_MOUSEWHEEL or WM_MOUSEHWHEEL && inside)
+                {
+                    short delta = unchecked((short)((mouse.MouseData >> 16) & 0xffff));
+                    if (delta == 0) continue;
+                    AppendDemonstrationEvent(scope, "scroll", new Dictionary<string, object?>
+                    {
+                        ["x"] = x, ["y"] = y,
+                        ["axis"] = message == WM_MOUSEWHEEL ? "vertical" : "horizontal",
+                        ["direction"] = message == WM_MOUSEWHEEL
+                            ? delta > 0 ? "up" : "down"
+                            : delta > 0 ? "right" : "left",
+                    });
+                }
+            }
+        }
+
+        private bool TryDemonstrationPoint(
+            DemonstrationScope scope, POINT point, out int x, out int y, out bool geometryChanged)
+        {
+            x = y = 0;
+            geometryChanged = false;
+            BoundSource source = scope.Source;
+            if (source.Lost || !source.Demonstration || source.GeometryRevision != scope.GeometryRevision)
+            {
+                geometryChanged = source.GeometryRevision != scope.GeometryRevision;
+                return false;
+            }
+            RECT bounds;
+            if (source.Identity.IsWindow)
+            {
+                if (!GetWindowRect(source.Identity.Hwnd, out bounds))
+                    return false;
+            }
+            else if (!TryGetMonitorRect(source.Identity.Monitor, out bounds))
+            {
+                return false;
+            }
+            int width = bounds.Right - bounds.Left;
+            int height = bounds.Bottom - bounds.Top;
+            if (width != source.Width || height != source.Height)
+            {
+                geometryChanged = true;
+                return false;
+            }
+            if (point.X < bounds.Left || point.X >= bounds.Right ||
+                point.Y < bounds.Top || point.Y >= bounds.Bottom)
+                return false;
+            if (source.Identity.IsWindow)
+            {
+                IntPtr hit = WindowFromPoint(point);
+                IntPtr root = hit == IntPtr.Zero ? IntPtr.Zero : GetAncestor(hit, GA_ROOT);
+                if (root != source.Identity.Hwnd && hit != source.Identity.Hwnd &&
+                    !IsChild(source.Identity.Hwnd, hit))
+                    return false;
+            }
+            x = (int)Math.Clamp((long)(point.X - bounds.Left) * source.Width / width, 0, source.Width - 1);
+            y = (int)Math.Clamp((long)(point.Y - bounds.Top) * source.Height / height, 0, source.Height - 1);
+            return true;
+        }
+
+        private void AppendDemonstrationEvent(
+            DemonstrationScope scope, string kind, Dictionary<string, object?> detail)
+        {
+            lock (_lock)
+                AppendDemonstrationEventLocked(scope, kind, detail);
+        }
+
+        private void AppendDemonstrationEventLocked(
+            DemonstrationScope scope, string kind, Dictionary<string, object?> detail)
+        {
+            if (!_demonstrations.TryGetValue(scope.Source.SourceInstance, out DemonstrationScope? active) ||
+                !ReferenceEquals(scope, active) || !scope.Source.Demonstration)
+                return;
+            if (scope.Events.Count >= MaxDemonstrationEvents)
+            {
+                scope.Events.Dequeue();
+                scope.LostCount++;
+            }
+            scope.Events.Enqueue(new Dictionary<string, object?>
+            {
+                ["sequence"] = ++_sequence,
+                ["kind"] = kind,
+                ["time_ns"] = MonotonicNs(),
+                ["focus_epoch"] = FocusEpoch,
+                ["input_domain_epoch"] = HumanState(scope.Source.Identity).Epoch,
+                ["event_time_uncertainty_ns"] = null,
+                ["source_id"] = scope.Source.SourceId,
+                ["source_instance"] = scope.Source.SourceInstance,
+                ["source_epoch"] = scope.Source.SourceEpoch,
+                ["geometry_revision"] = scope.GeometryRevision,
+                ["detail"] = detail,
+            });
+        }
+
+        private static bool IsModifierKey(uint virtualKey) =>
+            virtualKey is 0x10 or 0x11 or 0x12 or 0xA0 or 0xA1 or 0xA2 or 0xA3 or 0x5B or 0x5C;
+
+        private void UpdateModifierState(uint virtualKey, bool down)
+        {
+            switch (virtualKey)
+            {
+                case 0x10: case 0xA0: case 0xA1: _shiftDown = down; break;
+                case 0x11: case 0xA2: case 0xA3: _controlDown = down; break;
+                case 0x12: _altDown = down; break;
+                case 0x5B: case 0x5C: _windowsDown = down; break;
+            }
+        }
+
+        private List<string> CurrentModifiers()
+        {
+            var modifiers = new List<string>(4);
+            if (_controlDown) modifiers.Add("ctrl");
+            if (_altDown) modifiers.Add("alt");
+            if (_shiftDown) modifiers.Add("shift");
+            if (_windowsDown) modifiers.Add("windows");
+            return modifiers;
+        }
+
+        private static string? SafeShortcutKey(uint virtualKey) => virtualKey switch
+        {
+            0x1B => "escape", 0x09 => "tab", 0x0D => "enter", 0x08 => "backspace",
+            0x2E => "delete", 0x2D => "insert", 0x24 => "home", 0x23 => "end",
+            0x21 => "pageup", 0x22 => "pagedown", 0x25 => "left", 0x26 => "up",
+            0x27 => "right", 0x28 => "down", 0x2C => "printscreen",
+            >= 0x70 and <= 0x87 => $"f{virtualKey - 0x6F}",
+            _ => null,
+        };
 
         private void RecordNonInjectedInput(string channel)
         {
@@ -2527,11 +3215,51 @@ internal static class Program
             }
         }
 
+        private sealed class DemonstrationScope
+        {
+            public BoundSource Source { get; }
+            public long FocusEpoch { get; }
+            public long GeometryRevision { get; }
+            public Queue<Dictionary<string, object?>> Events { get; } = new();
+            public long LostCount { get; set; }
+            public long MissingIntervals { get; set; }
+            public bool WasForeground { get; set; }
+            public MouseGesture? Gesture { get; set; }
+
+            public DemonstrationScope(BoundSource source, long focusEpoch, long geometryRevision)
+            {
+                Source = source;
+                FocusEpoch = focusEpoch;
+                GeometryRevision = geometryRevision;
+                WasForeground = IsForegroundSource(source.Identity);
+            }
+        }
+
+        private sealed class MouseGesture
+        {
+            public string Button { get; }
+            public int StartX { get; }
+            public int StartY { get; }
+            public int StartScreenX { get; }
+            public int StartScreenY { get; }
+            public bool Dragging { get; set; }
+
+            public MouseGesture(string button, int x, int y, int screenX, int screenY)
+            {
+                Button = button;
+                StartX = x;
+                StartY = y;
+                StartScreenX = screenX;
+                StartScreenY = screenY;
+            }
+        }
+
         private struct HumanActivity { public long Epoch; public long LastTicks; }
         [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint eventThread, uint eventTime);
         [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate IntPtr HookProc(int code, UIntPtr message, IntPtr data);
         [StructLayout(LayoutKind.Sequential)] private struct MSG { public IntPtr Hwnd; public uint Message; public UIntPtr WParam; public IntPtr LParam; public uint Time; public POINT Point; public uint Private; }
         [StructLayout(LayoutKind.Sequential)] private struct POINT { public int X, Y; }
+        [DllImport("user32.dll", SetLastError = true)] private static extern IntPtr WindowFromPoint(POINT point);
         [StructLayout(LayoutKind.Sequential)] private struct KBDLLHOOKSTRUCT { public uint VkCode, ScanCode, Flags, Time; public UIntPtr ExtraInfo; }
         [StructLayout(LayoutKind.Sequential)] private struct MSLLHOOKSTRUCT { public POINT Point; public uint MouseData, Flags, Time; public UIntPtr ExtraInfo; }
         [DllImport("user32.dll", SetLastError = true)] private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module, WinEventProc callback, uint processId, uint threadId, uint flags);
