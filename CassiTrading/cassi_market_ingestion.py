@@ -98,6 +98,14 @@ def _bar_from_event(event: Event) -> MarketBar:
         raise IngestionError("canonical market bar payload is invalid") from exc
 
 
+def _health_signature(document: Mapping[str, Any]) -> tuple[str, tuple[str, ...]]:
+    """Health identity for history: state plus the set of reason codes, without their measured ages."""
+    reasons = document.get("reasons") or ()
+    return str(document.get("state")), tuple(sorted(
+        f"{row.get('severity')}:{row.get('code')}" for row in reasons if isinstance(row, Mapping)
+    ))
+
+
 @dataclass(frozen=True, slots=True)
 class RawCapture:
     raw_id: int
@@ -135,6 +143,10 @@ class HealthPolicy:
     backlog_red: int = 48
     disk_yellow_bytes: int = 2 * 1024**3
     disk_red_bytes: int = 512 * 1024**2
+    snapshot_interval_seconds: float = 300.0
+    # A bar closes on the clock but reaches the store with the next REST
+    # reconcile, so its absence is a source fault only after this grace.
+    bar_close_grace_seconds: float = 30.0
 
     def __post_init__(self) -> None:
         pairs = (
@@ -154,6 +166,10 @@ class HealthPolicy:
             raise IngestionError("backlog thresholds must satisfy 0 < yellow < red")
         if self.disk_red_bytes < 1 or self.disk_yellow_bytes <= self.disk_red_bytes:
             raise IngestionError("disk thresholds must satisfy 0 < red < yellow")
+        if not math.isfinite(self.snapshot_interval_seconds) or self.snapshot_interval_seconds <= 0.0:
+            raise IngestionError("health snapshot interval must be positive")
+        if not math.isfinite(self.bar_close_grace_seconds) or self.bar_close_grace_seconds < 0.0:
+            raise IngestionError("closed-bar grace must be nonnegative")
 
 
 @dataclass(frozen=True, slots=True)
@@ -232,6 +248,12 @@ class IngestionStore:
                 ON canonical_events(natural_key, state);
             CREATE INDEX IF NOT EXISTS canonical_type_time_idx
                 ON canonical_events(event_type, observed_at);
+            CREATE INDEX IF NOT EXISTS canonical_subject_available_idx
+                ON canonical_events(subject_id, available_at);
+            CREATE INDEX IF NOT EXISTS canonical_conflict_idx
+                ON canonical_events(state) WHERE state = 'conflict';
+            CREATE INDEX IF NOT EXISTS canonical_raw_idx
+                ON canonical_events(raw_id);
 
             CREATE TABLE IF NOT EXISTS accepted_events (
                 natural_key TEXT PRIMARY KEY,
@@ -246,6 +268,8 @@ class IngestionStore:
                 receipt_sha256 TEXT,
                 PRIMARY KEY(consumer_id, event_id)
             );
+            CREATE INDEX IF NOT EXISTS delivery_event_idx
+                ON deliveries(event_id);
 
             CREATE TABLE IF NOT EXISTS state (
                 name TEXT PRIMARY KEY,
@@ -748,6 +772,97 @@ class IngestionStore:
         row = self._db.execute("SELECT COUNT(*) AS count FROM raw_messages").fetchone()
         return int(row["count"])
 
+    def retained_raw_count(self) -> int:
+        """Retained raw rows from counters, without scanning the raw table."""
+        return self.metric("raw_messages") - self.metric("raw_messages_pruned")
+
+    def prune_transient(
+        self,
+        *,
+        before: str,
+        event_types: tuple[str, ...] = ("market-heartbeat",),
+    ) -> dict[str, Any]:
+        """Delete old liveness events and their exact raw messages.
+
+        Bars, reconciliations, deliveries, and every raw message still cited by
+        a retained canonical event stay intact.
+        """
+        parse_utc(before)
+        if not event_types or any(
+            not isinstance(name, str) or not name or name == "market-bar" for name in event_types
+        ):
+            raise IngestionError("transient pruning requires explicit non-bar event types")
+        marks = ",".join("?" for _ in event_types)
+        self._db.execute("CREATE TEMP TABLE IF NOT EXISTS prune_candidates(event_id TEXT PRIMARY KEY, raw_id INTEGER)")
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            self._db.execute("DELETE FROM prune_candidates")
+            self._db.execute(
+                "INSERT INTO prune_candidates(event_id, raw_id) SELECT e.event_id, e.raw_id "
+                f"FROM canonical_events e WHERE e.event_type IN ({marks}) AND e.observed_at < ? "
+                "AND NOT EXISTS (SELECT 1 FROM deliveries d WHERE d.event_id = e.event_id)",
+                (*event_types, before),
+            )
+            self._db.execute(
+                "DELETE FROM accepted_events WHERE event_id IN (SELECT event_id FROM prune_candidates)"
+            )
+            events = self._db.execute(
+                "DELETE FROM canonical_events WHERE event_id IN (SELECT event_id FROM prune_candidates)"
+            ).rowcount
+            raws = self._db.execute(
+                "DELETE FROM raw_messages WHERE raw_id IN "
+                "(SELECT raw_id FROM prune_candidates WHERE raw_id IS NOT NULL) "
+                "AND NOT EXISTS (SELECT 1 FROM canonical_events c WHERE c.raw_id = raw_messages.raw_id)"
+            ).rowcount
+            self._db.execute("DELETE FROM prune_candidates")
+            self._db.execute("COMMIT")
+        except Exception:
+            self._db.execute("ROLLBACK")
+            raise
+        if events:
+            self.increment_metric("canonical_pruned", events)
+        if raws:
+            self.increment_metric("raw_messages_pruned", raws)
+        return {"before": before, "event_types": list(event_types), "events": events, "raw_messages": raws}
+
+    def thin_health_snapshots(self, *, interval_seconds: float) -> dict[str, Any]:
+        """Apply the snapshot cadence to stored history: keep transitions and one row per interval."""
+        if not math.isfinite(interval_seconds) or interval_seconds <= 0.0:
+            raise IngestionError("health snapshot interval must be positive")
+        doomed: list[tuple[int]] = []
+        kept = 0
+        last_signature: tuple[str, tuple[str, ...]] | None = None
+        last_at: datetime | None = None
+        for row in self._db.execute("SELECT snapshot_id, evaluated_at, document_json FROM health_snapshots ORDER BY snapshot_id"):
+            signature = _health_signature(json.loads(str(row["document_json"])))
+            at = parse_utc(str(row["evaluated_at"]))
+            if (
+                last_signature is None
+                or signature != last_signature
+                or last_at is None
+                or (at - last_at).total_seconds() >= interval_seconds
+            ):
+                last_signature, last_at = signature, at
+                kept += 1
+            else:
+                doomed.append((int(row["snapshot_id"]),))
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            self._db.executemany("DELETE FROM health_snapshots WHERE snapshot_id = ?", doomed)
+            self._db.execute("COMMIT")
+        except Exception:
+            self._db.execute("ROLLBACK")
+            raise
+        return {"kept": kept, "removed": len(doomed), "interval_seconds": interval_seconds}
+
+    def vacuum(self) -> dict[str, int]:
+        """Rebuild the database file; requires that no other connection is writing."""
+        before = self.path.stat().st_size
+        self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        self._db.execute("VACUUM")
+        self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        return {"bytes_before": before, "bytes_after": self.path.stat().st_size}
+
     def export_recording(self, path: Path) -> dict[str, Any]:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -799,18 +914,30 @@ class IngestionStore:
                 parse_utc(str(record["received_at"]))
                 yield record
 
-    def save_health(self, health: DataHealth) -> None:
+    def save_health(self, health: DataHealth, *, persist_interval_seconds: float = 300.0) -> bool:
+        """Publish the latest health; append history only on transitions or once per interval."""
         document = health.as_dict()
-        self._db.execute(
-            "INSERT INTO health_snapshots(evaluated_at, state, content_sha256, document_json) VALUES(?, ?, ?, ?)",
-            (
-                health.evaluated_at,
-                health.state,
-                health.content_sha256,
-                canonical_bytes(document).decode("utf-8"),
-            ),
+        last = self._db.execute(
+            "SELECT evaluated_at, document_json FROM health_snapshots ORDER BY snapshot_id DESC LIMIT 1"
+        ).fetchone()
+        persist = (
+            last is None
+            or _health_signature(json.loads(str(last["document_json"]))) != _health_signature(document)
+            or (parse_utc(health.evaluated_at) - parse_utc(str(last["evaluated_at"]))).total_seconds()
+            >= persist_interval_seconds
         )
+        if persist:
+            self._db.execute(
+                "INSERT INTO health_snapshots(evaluated_at, state, content_sha256, document_json) VALUES(?, ?, ?, ?)",
+                (
+                    health.evaluated_at,
+                    health.state,
+                    health.content_sha256,
+                    canonical_bytes(document).decode("utf-8"),
+                ),
+            )
         self.set_state("latest_health", document, at=health.evaluated_at)
+        return persist
 
 
 class DataHealthMonitor:
@@ -932,7 +1059,8 @@ class DataHealthMonitor:
                 - timedelta(seconds=self.granularity)
             ).total_seconds()
         )
-        expected_latest = bucket_start(current, self.granularity).timestamp() - self.granularity
+        graced = current - timedelta(seconds=self.policy.bar_close_grace_seconds)
+        expected_latest = bucket_start(graced, self.granularity).timestamp() - self.granularity
         if latest is None:
             add("RED", "closed-bar-missing")
         elif parse_utc(latest[1].timestamp).timestamp() < expected_latest:
@@ -974,7 +1102,7 @@ class DataHealthMonitor:
             "unresolved_conflicts": conflicts,
             "consumer_backlog": backlog,
             "disk_free_bytes": free_bytes,
-            "raw_messages": self.store.raw_count(),
+            "raw_messages": self.store.retained_raw_count(),
             "counters": self.store.metrics(),
         }
         body = {
@@ -995,7 +1123,7 @@ class DataHealthMonitor:
             can_open_exposure=state == "GREEN",
             content_sha256=digest_value(body),
         )
-        self.store.save_health(health)
+        self.store.save_health(health, persist_interval_seconds=self.policy.snapshot_interval_seconds)
         return health
 
 

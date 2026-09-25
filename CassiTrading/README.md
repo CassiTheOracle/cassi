@@ -120,6 +120,11 @@ this canonical member is active. The market-ingestion paper option below retains
 its older shadow-policy account; do not run both paper loops for the same
 trading responsibility.
 
+For a high-volume public stream, `--public-feed-channels quotes` keeps fresh
+heartbeat/ticker observations while REST supplies the closed bars for research;
+`--public-feed-channels bars` subscribes to heartbeats only. Both keep the
+feed's wall-clock health checks authoritative.
+
 To expose the member through Cassi Surface, start `cassi_field_brain_server.py`
 with `--trading-paper-view <member-home>/trading-paper-application.json`. The
 host backend validates the view digest, durable member binding, and entity
@@ -129,6 +134,53 @@ the existing authenticated `/v1/surface` API. The program must already include
 `observation: [\"accessibility\"]` and `operations: []`. The source accepts no
 input or orders and does not start a second trading worker, access a private
 account, or create a mission.
+
+### Mathematics in the paper research program
+
+To have Cassi investigate the field's trading observations, enable the entity's
+hosted trading activity with `--trading-activity-home <member-home>`,
+`--trading-activity-db <ingestion-db>`, and
+`--trading-paper-program-id <active-program-id>`. Admit a research program with
+the same ID. Its `allowed_roots` must cover the member home and canonical
+ingestion database; give it `activity_run` and exact
+`"activity_scope":{"activities":{"trading":["paper-step"]}}`.
+
+Set `"standing":true` on the research program so a finished investigation
+waits for the next closed bar under the same field identity. For a completed
+program with retained paper history, send `continue` to its existing program
+control endpoint with a fresh quantitative question; the hosted member remains
+bound to that program ID.
+
+For example, the
+program's mission can ask Cassi to derive and challenge quantitative
+relationships among market changes, numeric field state, chosen exposure, and
+later paper outcomes. An initial question might ask which signal conditions
+predict movement by the next eligible bar, and which apparent relationships
+survive changes in market regime. She can select the next observation, propose
+a source-bound calculation through the existing research method tools, inspect
+its actual result, revise the question, and retain useful methods in her field.
+Keep the canonical ingestion feed running separately; a hosted paper step
+advances the same persistent member and should not run concurrently with the
+standalone paper worker for that member home.
+
+Each `trading/paper-step` with new accepted bars now places a mathematical
+observation in that program's workbench. It carries the exact source revision,
+observation and availability times, market OHLCV, numeric field-decision state,
+requested and applied targets, and the paper account and feed health. A new
+signal is marked as pending. A later settlement names the signal event and
+its canonical digest alongside the execution event, elapsed time, reference
+prices, and actual fill. The workbench keeps the hosted receipt digest and the
+canonical event digests as source references; methods can compare the exact
+signal and execution without treating a pending order as a fill. Internal
+modeled outcomes are separately named. A step that processes no bar adds no
+new mathematical observation. The field-held workbench and retained research
+methods allow the same inquiry to continue after a restart.
+
+For a first calculation, compare the executed fill price with the signal
+candle's close on the two linked source records. Continue with exposure
+changes, observed paper-account movements, and competing explanations across
+subsequent observations. This is paper evidence; relationships drawn from it
+are questions for ongoing measurement, not live order instructions.
 
 Long campaigns can advance in bounded chronological slices and emit an atomic,
 content-digested receipt:
@@ -1058,7 +1110,29 @@ Run the continuous public feed:
 python run_cassi_market_ingestion.py --mode live
 ```
 
-The live service subscribes to heartbeat, ticker, and matches. Heartbeats expose trade-ID gaps; a gap triggers an overlapping REST reconciliation before exposure can open again. Repeated polling also detects revised historical candles. A changed candle is first retained as an explicit conflict and turns health RED; only an identical second observation promotes the revision and supersedes the former canonical version.
+The live service's default channel profile is `all`: heartbeat, ticker, and
+matches. Heartbeats expose trade-ID gaps; a gap triggers an overlapping REST
+reconciliation before exposure can open again. Repeated polling also detects
+revised historical candles. A changed candle is first retained as an explicit
+conflict and turns health RED; only an identical second observation promotes the
+revision and supersedes the former canonical version.
+
+For the hosted paper research member, run a separate read-only public feed
+against its canonical ingestion database:
+
+```text
+python run_cassi_market_ingestion.py --mode live --no-paper --public-feed-channels bars --db path/to/market.sqlite3
+```
+
+`--public-feed-channels` chooses one explicit profile: `all` (default, all three
+channels), `quotes` (heartbeat+ticker), or `bars` (heartbeat only). The `bars`
+profile skips the high-volume quote and match streams and reconciles closed bars
+through REST every 60 seconds. Heartbeat trade-cursor gap enforcement runs only
+when `matches` is subscribed; in the `bars` profile REST reconciliation is the
+authority for bar continuity, while raw heartbeats and their source timestamps
+are still persisted for health. All profiles preserve the database across
+restarts, keep accepted closed bars and the ledger intact on restart, and still
+block paper exposure when timestamps, gaps, or source health fail.
 
 The default files are under `_diag/market-ingestion/`: `market.sqlite3`, `health.json`, `run-receipt.json`, `paper-state.json`, and `paper-latest.json`. Health is operational authority:
 Each snapshot exposes heartbeat, market, and reconciliation ages; the signed exchange-to-receipt and candle-close-to-receipt wall-clock deltas; a lower bound when the exchange clock leads the workstation; gap, conflict, duplicate, schema-rejection, and reconnect counters; consumer backlog; and free disk space. Excessive time divergence degrades or blocks new exposure instead of reporting an impossible negative network latency.
@@ -1084,3 +1158,64 @@ python run_cassi_account_reconciliation.py --events path/to/account-events.jsonl
 ```
 
 Orders, fills, balances, positions, and authoritative snapshots are persisted independently. Duplicate events are idempotent. A sequence gap or an impossible terminal-order transition quarantines the event and requires an authoritative snapshot before the account is considered reconciled. The market runner can couple this authority to paper exposure with `--require-account-reconciliation`. Neither runner contains an authenticated exchange client or an order-submission path.
+
+## Continuous operation
+
+`run_cassi_trading_service.py` keeps the trading stack alive across crashes,
+stalls, and logons. Its home (default `E:/CassiData/outputs/CassiTrading/_service`)
+holds `services.json`, `status.json`, per-service logs, and stop files. The
+supervisor re-reads `services.json` whenever it changes, restarts a service
+that exits or whose `health_path` goes stale (backoff 5 s doubling to 5 min),
+stops Python services gracefully through `run/<name>.stop`, and terminates
+executables named by `argv`. `external_port` marks a port that another owner
+may already serve; the supervisor then leaves it alone. `start_when` holds a
+service until its listed ports accept connections and the requested memory is
+free, then starts it on its own, so a heavy service yields the machine to
+other work instead of thrashing it.
+
+```text
+python run_cassi_trading_service.py install   # logon task, rechecked every 5 minutes
+python run_cassi_trading_service.py start
+python run_cassi_trading_service.py status
+python run_cassi_trading_service.py stop      # stays off until start
+```
+
+The manifest declares four services:
+
+- `feed-1h`: the `bars` feed for the paper member's canonical ingestion database.
+- `feed-5m`: a `bars` feed at 300-second granularity in its own database, the
+  intraday history for daytrading research.
+- `brain`: `llama-server` with `Qwen3.5-9B-Q8_0.gguf` on `127.0.0.1:8097`,
+  fully offloaded to the GPU. The service runs a private copy of the server
+  build from `_service/brain-bin`, so rebuilds of the shared llama.cpp tree
+  never collide with the running brain. `--load-mode none` keeps host memory
+  near 1.3 GB (a memory-mapped model stays resident in RAM on Windows), and
+  `--no-cassi-modal` keeps the dense Qwen3.5 forward pass unmodified. The
+  CassiFI self-improvement engine shares this brain on the same port.
+- `entity`: the field–brain server on `127.0.0.1:8090` with
+  `--brain-backend external` on the `brain` service (`--model-url
+  http://127.0.0.1:8097`, `--model-path` `Qwen3.5-9B-Q8_0.gguf`), gated by
+  `start_when` on that port and 3 GB of free RAM. The
+  entity carries the hosted `btc-paper-math` trading activity and
+  research roots covering every program's allowed roots. Its `stage` block
+  copies the CassiFI native field runtime into `_service/field-runtime` before
+  each start, once the build has been unchanged for two minutes, under the
+  image name `cassi-trading-field-runtime.exe`; `--program-native-runtime`
+  points the entity at that copy, so native rebuilds in the shared tree leave
+  the running field runtime untouched. `required_child` names the same image:
+  if the entity's native runtime disappears, the supervisor restarts the
+  entity, which resumes its programs and relaunches native residency from the
+  latest settled build.
+
+The `bars` profile reconciles each candle as soon as it closes: two seconds
+after the close, then every five seconds until the provider publishes it.
+Health allows a 30-second publication grace before it expects the new bar.
+
+Heartbeat rows and their raw messages expire after `--transient-retention-hours`
+(24 by default); closed bars and the ledger are kept forever. Health history
+keeps a row at every state change and one row per five minutes otherwise. Stop
+a feed before rebuilding its file:
+
+```text
+python run_cassi_market_ingestion.py --mode compact --db path/to/market.sqlite3
+```
