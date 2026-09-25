@@ -132,6 +132,15 @@ def _timestamp_label(frame_no: int, sample_no: int) -> str:
     return f"native-frame-{frame_no}-sample-{sample_no}"
 
 
+def _gate_refusal_reason(reason_code: int) -> str:
+    """Name a refused press by the native receipt reason that refused it."""
+    if reason_code == 2:
+        return "identity-changed"
+    if reason_code == 1:
+        return "gate-refused"
+    return "action-refused"
+
+
 def _action_button(action: str) -> int | None:
     if not action.startswith("pad-press-"):
         return None
@@ -733,6 +742,7 @@ def run_field_loop(
     current_action_request: bytes | None = None
     current_enable_request: bytes | None = None
     current_action_terminal: Mapping[str, Any] | None = None
+    step_retried = False
     input_frames: dict[int, list[dict[str, Any]]] = {}
     delta_frames: dict[int, dict[str, Any]] = {}
     delta_order: list[int] = []
@@ -1117,6 +1127,11 @@ def run_field_loop(
             state["action"]["status"] = "NO_SELECTION"
             state["action"]["selection_error"] = "owner selected an unbound native button action"
             return
+        arm_action(session, selected_action, mask)
+
+    def arm_action(session: Mapping[str, Any], selected_action: str, mask: int) -> None:
+        nonlocal current_action_id, current_action_mask, current_enable_request
+        nonlocal current_action_request, step_seen_outcomes, action_enable_sent
         current_action_id = selected_action
         current_action_mask = mask
         current_enable_request = uuid.uuid4().bytes
@@ -1177,6 +1192,7 @@ def run_field_loop(
                 "error": type(exc).__name__,
                 "send_may_have_occurred": action_enable_sent,
             })
+
     def send_selected_action(session: Mapping[str, Any]) -> None:
         nonlocal action_sent
         if (
@@ -1286,15 +1302,39 @@ def run_field_loop(
             return False
         return int(terminal["reason"]) in (1, 2, 3)
 
+    def retry_action(session: Mapping[str, Any]) -> None:
+        nonlocal action_terminal, action_sent, action_outcome_confirmed
+        nonlocal action_enable_sent, current_action_terminal, current_enable_request
+        if not guard_ok():
+            state["play"]["stop_reason"] = "foreground-lost"
+            return
+        journal.observation({
+            "kind": "play-step-retry", "observed_at": _now(),
+            "step": steps_done + 1, "action": current_action_id,
+            "mask": current_action_mask, "reason": 1,
+        })
+        # The refused press never reached the game, so the step keeps its place
+        # in the budget and is sent once more through a freshly enabled gate.
+        action_terminal = False
+        action_sent = False
+        action_outcome_confirmed = False
+        action_enable_sent = False
+        current_action_terminal = None
+        current_enable_request = None
+        state["action"] = fresh_action_state()
+        arm_action(session, current_action_id, current_action_mask)
+
     def arm_next_step(session: Mapping[str, Any]) -> None:
         nonlocal decision_attempted, action_terminal, action_sent, action_outcome_confirmed
         nonlocal action_enable_sent, current_action_id, current_action_mask
         nonlocal current_action_request, current_enable_request, current_action_terminal
-        nonlocal closed_request
+        nonlocal closed_request, step_retried
         if not guard_ok():
             state["play"]["stop_reason"] = "foreground-lost"
             return
+        dropped = gate_dropped()
         decision_attempted = False
+        step_retried = False
         action_terminal = False
         action_sent = False
         action_outcome_confirmed = False
@@ -1303,7 +1343,7 @@ def run_field_loop(
         current_action_mask = None
         current_action_request = None
         current_action_terminal = None
-        if gate_dropped() or not action_enable_sent:
+        if dropped or not action_enable_sent:
             # A NotForeground/WrongGame/GateDisabled receipt clears the native
             # gate, so the next step re-establishes identity with its own ENABLE.
             action_enable_sent = False
@@ -1915,6 +1955,11 @@ def run_field_loop(
                 raise NativeBridgeError("native stream emitted an unsupported message type")
             if state["action"].get("enable_rejection_reason_code") is not None:
                 reason_code = state["action"]["enable_rejection_reason_code"]
+                if steps > 1:
+                    # A refused gate cannot carry this session's presses; the
+                    # play session reports it instead of failing the operation.
+                    state["play"]["stop_reason"] = _gate_refusal_reason(reason_code)
+                    break
                 raise_field(
                     "action-enable-rejected",
                     f"native ENABLE_ACTIONS rejected the request with reason code {reason_code}",
@@ -1937,21 +1982,30 @@ def run_field_loop(
                 choose_and_enable(current_session)
 
             if allow_actions and steps_done < steps and step_resolved():
-                reason_code = (
-                    int(current_action_terminal["reason"]) if "reason" in (current_action_terminal or {})
-                    else 0
-                )
-                close_step()
-                if steps_done < steps:
-                    if reason_code == 4:
-                        # The human took the pad: wait for it to go idle again.
-                        state["play"]["paused"] = True
-                    elif reason_code == 3 or not guard_ok():
-                        state["play"]["stop_reason"] = "foreground-lost"
-                    else:
-                        arm_next_step(current_session or {})
-                    if state["play"]["stop_reason"] is not None:
-                        break
+                terminal = current_action_terminal or {}
+                reason_code = int(terminal["reason"]) if "reason" in terminal else 0
+                result_code = int(terminal["result"]) if "result" in terminal else None
+                if result_code == 2 and reason_code == 1 and not step_retried and guard_ok():
+                    # The gate dropped before this press reached the game, so the
+                    # step keeps its place in the budget and is sent once more.
+                    step_retried = True
+                    retry_action(current_session or {})
+                else:
+                    close_step()
+                    if steps_done < steps:
+                        if reason_code == 4:
+                            # The human took the pad: wait for it to go idle again.
+                            state["play"]["paused"] = True
+                        elif reason_code == 3 or not guard_ok():
+                            state["play"]["stop_reason"] = "foreground-lost"
+                        elif result_code == 2 or (result_code == 1 and reason_code == 2):
+                            # The native side refused this press, so the step's
+                            # action never reached the game.
+                            state["play"]["stop_reason"] = _gate_refusal_reason(reason_code)
+                        else:
+                            arm_next_step(current_session or {})
+                        if state["play"]["stop_reason"] is not None:
+                            break
 
             if state["frames_observed"] >= samples:
                 if not allow_actions or (steps == 1 and not state["action"]["requested"]):

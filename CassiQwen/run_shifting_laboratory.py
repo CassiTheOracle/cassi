@@ -17,9 +17,9 @@
     python run_shifting_laboratory.py author-canary
 
 Every mode writes JSON receipts under --receipt / --receipt-dir.  A run in
-`entity-run` is disposable by construction: a fresh data home, a fresh research
-root and a fresh token inside one run directory, and the entity's live home is
-never touched.
+`entity-run` is disposable by construction: it uses a fresh data home and
+research root inside one run directory, and the entity's live home is never
+touched.
 """
 from __future__ import annotations
 
@@ -29,7 +29,6 @@ import importlib
 import json
 import math
 import os
-import secrets
 import subprocess
 import sys
 import tempfile
@@ -304,10 +303,9 @@ def _entity_tools(arguments: argparse.Namespace) -> tuple[str, ...]:
 def entity_agent(arguments: argparse.Namespace, fixture: stations_module.Fixture) -> EntityAgent:
     from cassi_program_benchmark_client import ProgramBenchmarkClient
 
-    if not arguments.url or not arguments.token_file:
-        raise SystemExit("--agent entity needs --url and --token-file (or use entity-run)")
-    token = Path(arguments.token_file).read_text(encoding="utf-8").strip()
-    client = ProgramBenchmarkClient(arguments.url, token)
+    if not arguments.url:
+        raise SystemExit("--agent entity needs --url (or use entity-run)")
+    client = ProgramBenchmarkClient(arguments.url)
     root = Path(arguments.research_root).resolve() if arguments.research_root else Path(arguments.home or ".").resolve()
     root.mkdir(parents=True, exist_ok=True)
     workspace_root = Path(arguments.research_root) / "workspaces" if arguments.research_root else None
@@ -437,8 +435,7 @@ def cmd_rail(arguments: argparse.Namespace) -> int:
     module = importlib.import_module("laboratory.rail")
     transactions_module = importlib.import_module("laboratory.transactions")
     parent = Path(tempfile.mkdtemp(prefix="rail-", dir=_scratch_parent()))
-    token = secrets.token_urlsafe(24)
-    fixture = _open_disposable_entity(parent, token)
+    fixture = _open_disposable_entity(parent)
     try:
         client = fixture["client"]
         prepared = transactions_module.prepare_program(
@@ -491,7 +488,7 @@ def _scratch_parent() -> str:
     return str(scratch)
 
 
-def _open_disposable_entity(home: Path, token: str, port: int = 0) -> dict[str, Any]:
+def _open_disposable_entity(home: Path, port: int = 0) -> dict[str, Any]:
     """One disposable real entity: fresh data home, research root and server."""
 
     from cassi_field_brain_entity import EntityConfig, FieldBrainEntity
@@ -517,7 +514,7 @@ def _open_disposable_entity(home: Path, token: str, port: int = 0) -> dict[str, 
         ),
         brain=NoBrain(),
     )
-    server = EntityHTTPServer(("127.0.0.1", port), entity, api_token=token)
+    server = EntityHTTPServer(("127.0.0.1", port), entity)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     return {
@@ -525,7 +522,7 @@ def _open_disposable_entity(home: Path, token: str, port: int = 0) -> dict[str, 
         "server": server,
         "thread": thread,
         "client": ProgramBenchmarkClient(
-            f"http://127.0.0.1:{server.server_address[1]}", token
+            f"http://127.0.0.1:{server.server_address[1]}"
         ),
         "port": int(server.server_address[1]),
     }
@@ -550,8 +547,7 @@ def cmd_transactions(arguments: argparse.Namespace) -> int:
     reports: dict[str, Any] = {}
     for station_name in ("capacity-cliff", "acknowledgment", "recovery"):
         home = Path(tempfile.mkdtemp(prefix=f"{station_name}-", dir=parent))
-        token = secrets.token_urlsafe(36)
-        fixture = _open_disposable_entity(home, token)
+        fixture = _open_disposable_entity(home)
         program_id = f"laboratory-{station_name}"
         try:
             prepared = module.prepare_program(
@@ -586,7 +582,7 @@ def cmd_transactions(arguments: argparse.Namespace) -> int:
                     nonlocal fixture
                     port = fixture["port"]
                     _close_disposable_entity(fixture)
-                    fixture = _open_disposable_entity(home, token, port)
+                    fixture = _open_disposable_entity(home, port)
 
                 report = module.recovery_station(
                     fixture["client"],
@@ -708,18 +704,14 @@ def _stop_server_tree(server: subprocess.Popen[Any]) -> None:
 def disposable_entity(arguments: argparse.Namespace) -> Any:
     """A fresh entity in its own run directory, healthy before the body runs.
 
-    The live home is never touched: the entity gets a new data home, a new
-    research root and a new token inside one run directory, and the server is
-    stopped when the body leaves.
+    The live home is never touched: the entity gets a new data home and a new
+    research root; the server is stopped when the body leaves.
     """
 
     run_dir = Path(arguments.run_dir).resolve()
     for name in ("entity-home", "research"):
         (run_dir / name).mkdir(parents=True, exist_ok=True)
     _claim_entity_slot(run_dir)
-    token = secrets.token_urlsafe(36)
-    token_file = run_dir / "api-token.txt"
-    token_file.write_text(token, encoding="utf-8")
     model_path = Path(arguments.model_path).resolve()
     if not model_path.exists():
         raise SystemExit(f"model not found: {model_path}")
@@ -730,7 +722,6 @@ def disposable_entity(arguments: argparse.Namespace) -> Any:
         "--data-home", str(run_dir / "entity-home"),
         "--model-url", arguments.model_url,
         "--model-path", str(model_path),
-        "--api-token-file", str(token_file),
         "--port", str(arguments.port),
         "--research-home", str(run_dir / "research"),
         "--research-root", str(run_dir / "research"),
@@ -754,10 +745,9 @@ def disposable_entity(arguments: argparse.Namespace) -> Any:
     )
     try:
         base_url = arguments.url or f"http://127.0.0.1:{arguments.port}"
-        if not _await_health(base_url, token=token, timeout=arguments.startup_timeout):
+        if not _await_health(base_url, timeout=arguments.startup_timeout):
             raise SystemExit(f"entity did not become healthy; see {run_dir / 'entity-server.log'}")
         arguments.url = base_url
-        arguments.token_file = str(token_file)
         arguments.research_root = str(run_dir / "research")
         yield run_dir
     finally:
@@ -968,22 +958,15 @@ def cmd_author_canary(arguments: argparse.Namespace) -> int:
     return 0 if report["discriminates"] else 1
 
 
-def _await_health(url: str, *, token: str, timeout: float) -> bool:
-    import urllib.error
-    import urllib.request
+def _await_health(url: str, *, timeout: float) -> bool:
+    from cassi_program_benchmark_client import ProgramBenchmarkClient
 
+    client = ProgramBenchmarkClient(url)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        try:
-            request = urllib.request.Request(
-                f"{url}/v1/health",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            with urllib.request.urlopen(request, timeout=5) as response:
-                if response.status == 200:
-                    return True
-        except (urllib.error.URLError, OSError):
-            time.sleep(1.0)
+        if client.request("GET", "/v1/health", timeout=5).ok:
+            return True
+        time.sleep(1.0)
     return False
 
 
@@ -1095,7 +1078,6 @@ def _add_entity_arguments(parser: argparse.ArgumentParser, *, default_tools: str
         help="tools the entity program may use, comma separated",
     )
     parser.add_argument("--url")
-    parser.add_argument("--token-file")
     parser.add_argument("--program-id")
     parser.add_argument("--project-id", default="shifting-laboratory")
     parser.add_argument("--home")
@@ -1141,7 +1123,6 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--stations", default=argparse.SUPPRESS)
         sub.add_argument("--deadline", type=float, default=argparse.SUPPRESS)
         sub.add_argument("--url")
-        sub.add_argument("--token-file")
         sub.add_argument("--program-id")
         sub.add_argument("--project-id", default="shifting-laboratory")
         sub.add_argument("--home")
@@ -1163,7 +1144,6 @@ def build_parser() -> argparse.ArgumentParser:
     portfolio.add_argument("--deadline", type=float, default=argparse.SUPPRESS)
     portfolio.add_argument("--agent", default="scripted:competent")
     portfolio.add_argument("--url")
-    portfolio.add_argument("--token-file")
     portfolio.add_argument("--program-id")
     portfolio.add_argument("--project-id", default="shifting-laboratory")
     portfolio.add_argument("--home")
@@ -1179,7 +1159,6 @@ def build_parser() -> argparse.ArgumentParser:
     shift.add_argument("--deadline", type=float, default=argparse.SUPPRESS)
     shift.add_argument("--agent", default="scripted:competent")
     shift.add_argument("--url")
-    shift.add_argument("--token-file")
     shift.add_argument("--program-id")
     shift.add_argument("--project-id", default="shifting-laboratory")
     shift.add_argument("--home")
