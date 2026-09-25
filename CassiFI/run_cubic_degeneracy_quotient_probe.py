@@ -111,14 +111,53 @@ def boolean_solutions(
     matrix: Sequence[Sequence[Fraction]], rhs: Sequence[Fraction]
 ) -> tuple[tuple[int, ...], ...]:
     size = len(matrix[0]) if matrix else 0
+    if size == 0:
+        return ()
+
+    # Calculate the LCM of all denominators to convert Fractions to integers
+    from math import gcd
+
+    def lcm(a: int, b: int) -> int:
+        if a == 0 or b == 0:
+            return 0
+        return abs(a * b) // gcd(a, b)
+
+    common_denom = 1
+    for row in matrix:
+        for f in row:
+            common_denom = lcm(common_denom, f.denominator)
+    for f in rhs:
+        common_denom = lcm(common_denom, f.denominator)
+
+    # Convert matrix and rhs to integer representations
+    # int_matrix[i][j] = matrix[i][j] * common_denom
+    int_matrix = [[int(c * common_denom) for c in row] for row in matrix]
+    int_rhs = [int(t * common_denom) for t in rhs]
+
+    num_eqs = len(int_matrix)
     solutions = []
+
+    # Precompute indices for speed
+    indices = range(size)
+
+    # Iterate over all boolean assignments
     for assignment in itertools.product((0, 1), repeat=size):
-        if all(
-            sum(coefficient * value for coefficient, value in zip(row, assignment, strict=True))
-            == target
-            for row, target in zip(matrix, rhs, strict=True)
-        ):
+        match = True
+        for i in range(num_eqs):
+            target = int_rhs[i]
+            current_sum = 0
+            row = int_matrix[i]
+            # Dot product: sum(row[j] * assignment[j])
+            # Since assignment[j] is 0 or 1, we can just add row[j] if assignment[j] is 1
+            for j in indices:
+                if assignment[j]:
+                    current_sum += row[j]
+            if current_sum != target:
+                match = False
+                break
+        if match:
             solutions.append(assignment)
+
     return tuple(solutions)
 
 
