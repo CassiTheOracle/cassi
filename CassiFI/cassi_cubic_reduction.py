@@ -1190,37 +1190,68 @@ def _nonnegative_row_bound(
 ) -> tuple[int, dict[str, Any]] | None:
     """Find the first bounded row combination that forces one variable to zero."""
 
-    checked = 0
+    # Localize frequently accessed attributes to avoid repeated lookups
+    coefficients = system.coefficients
+    rhs = system.rhs
+    variable_count = system.variable_count
+
+    # Access equation_count as in the original code (attribute/property)
+    # If it were a method, the original code would have called it.
     row_count = system.equation_count
-    for support_size in range(1, min(_ROW_BOUND_SUPPORT_CAP, row_count) + 1):
+
+    # Pre-calculate the range for support sizes
+    max_support = min(_ROW_BOUND_SUPPORT_CAP, row_count)
+
+    checked = 0
+
+    # Iterate over support sizes
+    for support_size in range(1, max_support + 1):
+        # Iterate over combinations of rows
         for selected_rows in itertools.combinations(range(row_count), support_size):
+            # Iterate over sign combinations
             for signs in itertools.product((-1, 1), repeat=support_size):
                 checked += 1
                 ledger.row_bound_combinations += 1
-                combined = [0] * system.variable_count
+
+                # Initialize combined array and target
+                combined = [0] * variable_count
                 target = 0
+
+                # Accumulate coefficients and target
+                # Using zip to pair row indices with their signs
                 for row_index, multiplier in zip(selected_rows, signs, strict=True):
-                    target += multiplier * system.rhs[row_index]
+                    # Update target
+                    target += multiplier * rhs[row_index]
                     ledger.row_bound_coefficient_updates += 1
-                    row = system.coefficients[row_index]
-                    for column, coefficient in enumerate(row):
-                        combined[column] += multiplier * coefficient
+
+                    # Add scaled row to combined
+                    row = coefficients[row_index]
+                    for column in range(variable_count):
+                        combined[column] += multiplier * row[column]
                         ledger.row_bound_coefficient_updates += 1
-                if target < 0 or any(coefficient < 0 for coefficient in combined):
+
+                # Check if target is non-negative and all coefficients are non-negative
+                if target < 0:
                     continue
-                forced_column = next(
-                    (
-                        column
-                        for column, coefficient in enumerate(combined)
-                        if coefficient > target
-                    ),
-                    None,
-                )
+
+                if any(coefficient < 0 for coefficient in combined):
+                    continue
+
+                # Find the first column with coefficient > target
+                forced_column = None
+                for column, coefficient in enumerate(combined):
+                    if coefficient > target:
+                        forced_column = column
+                        break
+
                 if forced_column is None:
                     continue
+
+                # Build the multipliers array
                 multipliers = [0] * row_count
                 for row_index, multiplier in zip(selected_rows, signs, strict=True):
                     multipliers[row_index] = multiplier
+
                 return forced_column, {
                     "kind": "nonnegative_row_bound",
                     "support_cap": _ROW_BOUND_SUPPORT_CAP,
