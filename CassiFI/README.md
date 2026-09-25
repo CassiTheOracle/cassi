@@ -1245,31 +1245,56 @@ an explicit pause boundary, and actual execution-block invocation. See
 [design §31](FIELD-INTELLIGENCE-DESIGN.md#31-stored-program-computation-and-learning-execution-costs)
 for instruction semantics, the universality construction, and evidence limits.
 
-## Whole-corpus library field
+## Specialized field foundry
 
-`cassi_library_field.py` writes every tracked Markdown and Python file of a
-repository into one paged regional field. Each file is a named value holding
-its exact git blob. The same image holds the passage table (Markdown sections
-titled by heading path, Python modules, classes, and functions, each at most
-4,000 characters), a BM25 term index split into 256 shards, and the library
-catalog. The profile is sized to the next power-of-two mode count with 25%
-growth headroom. The image persists as content-addressed pages: opening reads
-the control pages, a search wakes the index shards of its terms and the
-passage shards of its hits, and a read wakes the pages of one file.
+`cassi_field_foundry.py` builds specialized fields. A field kind declares what
+its field holds: `normalize` checks a configuration, `source_identity` hashes
+the sources the field would be built from, `compose` turns them into named
+values and a summary, and a reader class opens the built field for use. The
+foundry sizes the profile to the next power-of-two mode count with 25% growth
+headroom, writes the values into one paged regional field, and persists it as
+content-addressed pages. Any kind can make its units searchable with the shared
+term index: `TermIndexBuilder` collects term counts per unit and writes BM25
+postings in 256 shards, and `TermIndex` ranks units for a query by waking only
+the shards of its terms.
 
-The CassiTheory library (HEAD `35edc04b`, 1,151 files, 26.2 MB) builds in
-12.5 s into a 2,097,152-mode field: 151 MB logical, 46% filled, 2,727 of 4,608
-pages committed, 13.7 MB on disk. Reopening takes 0.16 s and wakes 45 pages;
-every file reads back identical to its git blob. A search wakes a median of 21
-pages in about 28 ms. For 400 random ten-word phrases, the source passage ranks
-first 70% of the time and within the top five 94% of the time.
+The shelf (`_diag/fields/shelf.json` by default) holds every specialized field
+by name with its kind, configuration, purpose, generations, and the source
+identity each generation was built from. `status` reports a field as fresh,
+stale, or missing by comparing that identity with the current sources.
+`refresh` builds a new generation in a staging directory, swaps it in, and
+keeps the two newest generations, deleting the pages no kept generation
+shares. A lock file serializes shelf writers across processes, and `open`
+returns the kind's reader for the current generation.
+
+`cassi_library_field.py` is the `library` kind: every tracked file of a git
+repository matching its patterns (default `*.md` and `*.py`), read from the git
+index as exact staged blobs. Each file is a named value; the passage table
+splits Markdown by heading path and Python by module, class, and function, each
+passage at most 4,000 characters. Passage spans are byte offsets into the exact
+file bytes, and every file carries its git blob id and sha256, so a search hit
+is a citation that can be checked against its source. `verify` rereads every
+held file against both hashes and lists the repository files changed, added, or
+removed since the build.
+
+The CassiTheory library (1,151 files, 26.2 MB) holds 18,181 passages and
+70,597 terms in a 2,097,152-mode field: 2,645 of 4,608 pages committed,
+12.9 MB on disk, built in 16 s. Opening takes about 0.2 s. A search wakes a
+median of 19 pages in about 38 ms. For 400 random ten-word phrases, the source
+passage ranks first 70.5% of the time and within the top five 91.8% of the
+time. The workspace shelf also holds `cassifi-code` (879 files, 18,054
+passages) and `cassiqwen-code` (645 files, 7,916 passages).
 
 ```powershell
-python cassi_library_field.py build ../CassiTheory _diag/library-field-cassitheory
-python cassi_library_field.py search _diag/library-field-cassitheory "dark matter halo rotation curves"
-python cassi_library_field.py read _diag/library-field-cassitheory foundations/cassi-first-principles.md
-python cassi_library_field.py verify _diag/library-field-cassitheory --root ../CassiTheory
-python cassi_library_field.py report _diag/library-field-cassitheory
+python cassi_field_foundry.py kinds
+python cassi_field_foundry.py add cassitheory library --set root=../CassiTheory --set "patterns=*.md,*.py" --purpose "CassiTheory papers and solvers" --build
+python cassi_field_foundry.py list
+python cassi_field_foundry.py refresh
+python cassi_field_foundry.py search cassitheory "dark matter halo rotation curves"
+python cassi_field_foundry.py read cassitheory foundations/cassi-first-principles.md
+python cassi_field_foundry.py verify cassitheory
+python cassi_field_foundry.py report cassitheory
+python cassi_field_foundry.py prune cassitheory --keep 2
 ```
 
 ## Active implementation
@@ -1287,7 +1312,8 @@ do not own a second adaptive runtime. This repository root contains:
 | [`cassi_field_cognition.py`](cassi_field_cognition.py) | Cognition, learned variable-span language, autonomous bounded representation induction and revision, planning, inquiry, authority-request, assessment, and sustained-episode kernel |
 | [`cassi_field_input.py`](cassi_field_input.py) | Stateless deterministic source codecs, bounded typed paging, exact source linkage, and cognition observation construction |
 | [`cassi_field_owner.py`](cassi_field_owner.py) | Single-owner persistence, immutable checkpoints, journals, authority, capacity, and exactly-once regional operations |
-| [`cassi_library_field.py`](cassi_library_field.py) | Whole-repository library in one paged regional field: exact git-blob files, heading and definition passages, sharded BM25 index, and build/search/read/verify/report CLI |
+| [`cassi_field_foundry.py`](cassi_field_foundry.py) | Specialized field foundry: field kinds, profile sizing, paged build, shared BM25 term index, and the generational shelf with status/refresh/prune and its CLI |
+| [`cassi_library_field.py`](cassi_library_field.py) | `library` field kind: exact git-blob files, heading and definition passages with byte spans and file sha256, ranked search, and source verification |
 | [`cassi_field_hive.py`](cassi_field_hive.py) | Experience capsules, portable field-program bundles, adoption receipts, generation lineage, and revocation-safe transfer |
 | [`cassi_hive_store.py`](cassi_hive_store.py) | SQLite/immutable-object hive persistence, session state, reviews, bundles, adoptions, and revocations |
 | [`cassi_hive_policy.py`](cassi_hive_policy.py) | Explicit isolated, scout, member, reviewer, and leader exchange policies |

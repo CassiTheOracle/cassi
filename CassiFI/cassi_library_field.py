@@ -1,63 +1,42 @@
-"""A whole source library held in one paged CassiFI regional field.
+"""Library fields: a whole source repository held in one paged CassiFI field.
 
-Every tracked file of a git corpus becomes a named value of one regional image,
-stored as its exact git blob beside the passage table and the sharded term index
-that make the corpus searchable.  The image persists as content-addressed pages
-in a ``DiskObjectStore``.  Opening the library wakes only its control pages; a
-search wakes the index shards of its terms, and reading a passage wakes the
-pages of that one file.
+This module is the ``library`` kind of the field foundry.  Every tracked file of
+a git corpus becomes a named value holding its exact staged blob, beside the
+passage table and the foundry term index that make the corpus searchable.
+Opening a shelved library wakes only its control pages; a search wakes the index
+shards of its terms, and reading a passage wakes the pages of that one file.
+Passage spans are byte offsets into the exact file bytes and every file carries
+its sha256, so a quoted passage can be cited and checked against its source.
 """
 from __future__ import annotations
 
-import argparse
 import base64
 import hashlib
 import json
-import math
 import os
 import re
 import subprocess
-import sys
 import time
-import zlib
-from array import array
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-import numpy as np
+import cassi_field_foundry as foundry
 
-import cassi_field_regions as regions
-from cassi_field_storage import DiskObjectStore
-
-LIBRARY_SCHEMA = "cassifi.library-field.v1"
-TERMS_SCHEMA = "cassifi.library-terms.v1"
-FIELD_DESCRIPTOR = "field.json"
-BUILD_RECEIPT = "build.json"
-OBJECT_DIRECTORY = "objects"
+LIBRARY_SCHEMA = "cassifi.library-field.v2"
 DEFAULT_PATTERNS = ("*.md", "*.py")
-DEFAULT_RESIDENT_PAGES = 256
-INDEX_SHARDS = 256
 PASSAGE_SHARD_SIZE = 1024
 MAX_PASSAGE_CHARS = 4000
 MERGE_BELOW_CHARS = 160
-GROWTH_HEADROOM = 1.25
-BM25_K1 = 1.2
-BM25_B = 0.75
 
 LIBRARY_VALUE = "library"
-LENGTHS_VALUE = "passage-lengths"
 FILE_PREFIX = "file:"
-INDEX_PREFIX = "index:"
 PASSAGE_PREFIX = "passages:"
 
-_ROOT_PROGRAM = ({"op": "HALT"},)
-_CATALOG = regions.EMPTY_KERNEL_CATALOG
 
-
-class LibraryFieldError(ValueError):
-    """The library corpus, field image, or request is invalid."""
+class LibraryFieldError(foundry.FoundryError):
+    """The library corpus, field, or request is invalid."""
 
 
 # -- corpus ------------------------------------------------------------------
@@ -74,24 +53,25 @@ def git_blob_sha1(data: bytes) -> str:
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 
-def _git(root: Path, *args: str, stdin: bytes | None = None) -> bytes:
+def _git(root: Path, *args: str, stdin: bytes | None = None, check: bool = True) -> bytes:
     completed = subprocess.run(
         ["git", "-C", str(root), *args], input=stdin, capture_output=True, check=False
     )
     if completed.returncode != 0:
+        if not check:
+            return b""
         message = completed.stderr.decode("utf-8", "replace").strip()
         raise LibraryFieldError(f"git {args[0]} failed: {message}")
     return completed.stdout
 
 
-def collect_sources(
+def tracked_files(
     root: str | os.PathLike[str], patterns: Sequence[str] = DEFAULT_PATTERNS
-) -> list[SourceFile]:
-    """Read the staged git blob of every tracked regular file matching ``patterns``."""
+) -> list[tuple[str, str]]:
+    """The staged ``(path, blob_sha1)`` of every tracked regular file matching ``patterns``."""
 
-    root = Path(root)
     entries: list[tuple[str, str]] = []
-    for record in _git(root, "ls-files", "-s", "-z", "--", *patterns).split(b"\0"):
+    for record in _git(Path(root), "ls-files", "-s", "-z", "--", *patterns).split(b"\0"):
         if not record:
             continue
         meta, raw_path = record.split(b"\t", 1)
@@ -100,8 +80,16 @@ def collect_sources(
             entries.append((raw_path.decode("utf-8"), blob))
     if not entries:
         raise LibraryFieldError("no tracked files match the library patterns")
+    return entries
+
+
+def read_blobs(
+    root: str | os.PathLike[str], entries: Sequence[tuple[str, str]]
+) -> list[SourceFile]:
+    """The exact bytes of each staged blob, verified against its object id."""
+
     request = "".join(f"{blob}\n" for _, blob in entries).encode("ascii")
-    batch = _git(root, "cat-file", "--batch", stdin=request)
+    batch = _git(Path(root), "cat-file", "--batch", stdin=request)
     sources: list[SourceFile] = []
     offset = 0
     for path, blob in entries:
@@ -116,6 +104,14 @@ def collect_sources(
             raise LibraryFieldError(f"git blob for {path} failed verification")
         sources.append(SourceFile(path, blob, data))
     return sources
+
+
+def collect_sources(
+    root: str | os.PathLike[str], patterns: Sequence[str] = DEFAULT_PATTERNS
+) -> list[SourceFile]:
+    """Read the staged git blob of every tracked regular file matching ``patterns``."""
+
+    return read_blobs(root, tracked_files(root, patterns))
 
 
 # -- passages ----------------------------------------------------------------
@@ -228,355 +224,163 @@ def passage_spans(path: str, text: str) -> list[tuple[int, int, str]]:
     return spans
 
 
-# -- terms and index ---------------------------------------------------------
+def _byte_spans(text: str, spans: Sequence[tuple[int, int, str]]) -> list[tuple[int, int, str]]:
+    """Character spans of ``text`` as byte spans of its UTF-8 bytes."""
 
-_WORD = re.compile(r"\w+")
-_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
-_STOPWORDS = frozenset(
-    """a about an and are as at be been but by can could did do does for from had
-    has have how if in into is it its may might not of on or our should so such
-    than that the their them then there these they this those to was were what
-    when where which while who why will with would you your""".split()
-)
-_EXPANSIONS: dict[str, tuple[str, ...]] = {}
-
-
-def _keep(term: str) -> bool:
-    if term in _STOPWORDS or len(term) > 64 or not term.strip("_"):
-        return False
-    return len(term) >= 2 or not term.isascii()
-
-
-def _expand(raw: str) -> tuple[str, ...]:
-    cached = _EXPANSIONS.get(raw)
-    if cached is not None:
-        return cached
-    whole = raw.lower()
-    found: list[str] = [whole] if _keep(whole) else []
-    if "_" in raw or _CAMEL.search(raw):
-        for chunk in raw.split("_"):
-            for part in _CAMEL.split(chunk):
-                lowered = part.lower()
-                if lowered != whole and _keep(lowered):
-                    found.append(lowered)
-    value = tuple(found)
-    if len(_EXPANSIONS) < 2_000_000:
-        _EXPANSIONS[raw] = value
-    return value
-
-
-def terms(text: str) -> list[str]:
-    """Search terms of ``text``: words, identifier parts, and single symbols."""
-
-    found: list[str] = []
-    for raw in _WORD.findall(text):
-        found.extend(_expand(raw))
-    return found
-
-
-def term_shard(term: str) -> int:
-    return zlib.crc32(term.encode("utf-8")) % INDEX_SHARDS
-
-
-def _varint_encode(values: np.ndarray) -> tuple[bytes, np.ndarray]:
-    values = values.astype(np.uint64, copy=False)
-    lengths = np.ones(values.size, dtype=np.int64)
-    for power in range(1, 10):
-        lengths += values >= np.uint64(1 << (7 * power))
-    starts = np.zeros(values.size, dtype=np.int64)
-    np.cumsum(lengths[:-1], out=starts[1:])
-    out = np.empty(int(lengths.sum()), dtype=np.uint8)
-    for position in range(int(lengths.max()) if values.size else 0):
-        selected = lengths > position
-        chunk = ((values[selected] >> np.uint64(7 * position)) & np.uint64(0x7F)).astype(np.uint8)
-        chunk[lengths[selected] > position + 1] |= 0x80
-        out[starts[selected] + position] = chunk
-    return out.tobytes(), lengths
-
-
-def _varint_decode(raw: bytes) -> np.ndarray:
-    data = np.frombuffer(raw, dtype=np.uint8)
-    ends = np.flatnonzero(data < 0x80)
-    starts = np.zeros(ends.size, dtype=np.int64)
-    starts[1:] = ends[:-1] + 1
-    lengths = ends - starts + 1
-    values = np.zeros(ends.size, dtype=np.uint64)
-    for position in range(int(lengths.max()) if ends.size else 0):
-        selected = lengths > position
-        chunk = (data[starts[selected] + position] & 0x7F).astype(np.uint64)
-        values[selected] |= chunk << np.uint64(7 * position)
-    return values
-
-
-def _encode_postings(postings: Mapping[str, array]) -> dict[int, dict[str, str]]:
-    """Delta-varint every term's (passage, count) list in one vectorised pass."""
-
-    names = sorted(postings)
-    counts = np.fromiter((len(postings[name]) // 2 for name in names), dtype=np.int64, count=len(names))
-    pairs = np.frombuffer(
-        b"".join(postings[name].tobytes() for name in names), dtype=np.uint32
-    ).reshape(-1, 2).astype(np.uint64)
-    firsts = np.zeros(len(names), dtype=np.int64)
-    np.cumsum(counts[:-1], out=firsts[1:])
-    deltas = pairs[:, 0].copy()
-    deltas[1:] -= pairs[:-1, 0]
-    deltas[firsts] = pairs[firsts, 0]
-    interleaved = np.empty(2 * len(pairs), dtype=np.uint64)
-    interleaved[0::2] = deltas
-    interleaved[1::2] = pairs[:, 1]
-    encoded, lengths = _varint_encode(interleaved)
-    offsets = np.zeros(lengths.size + 1, dtype=np.int64)
-    np.cumsum(lengths, out=offsets[1:])
-    begin = offsets[2 * firsts]
-    finish = offsets[2 * (firsts + counts)]
-    shards: dict[int, dict[str, str]] = {shard: {} for shard in range(INDEX_SHARDS)}
-    for index, name in enumerate(names):
-        shards[term_shard(name)][name] = base64.b64encode(
-            encoded[int(begin[index]):int(finish[index])]
-        ).decode("ascii")
-    return shards
-
-
-def _decode_postings(value: str) -> tuple[np.ndarray, np.ndarray]:
-    pairs = _varint_decode(base64.b64decode(value)).reshape(-1, 2)
-    return np.cumsum(pairs[:, 0]).astype(np.int64), pairs[:, 1].astype(np.float64)
-
-
-def _index_name(shard: int) -> str:
-    return f"{INDEX_PREFIX}{shard:03d}"
+    if text.isascii():
+        return list(spans)
+    converted: list[tuple[int, int, str]] = []
+    characters = 0
+    position = 0
+    for start, end, title in spans:
+        position += len(text[characters:start].encode("utf-8"))
+        begin = position
+        position += len(text[start:end].encode("utf-8"))
+        characters = end
+        converted.append((begin, position, title))
+    return converted
 
 
 def _passage_name(shard: int) -> str:
     return f"{PASSAGE_PREFIX}{shard:04d}"
 
 
-# -- field image -------------------------------------------------------------
+# -- the library kind ----------------------------------------------------------
 
 
-def _words(value: Any) -> int:
-    return int(regions._json_words(value).size)
+def normalize(config: Mapping[str, Any]) -> dict[str, Any]:
+    """A library config: the repository ``root`` and the file ``patterns`` it holds."""
+
+    unknown = set(config) - {"root", "patterns"}
+    if unknown:
+        raise LibraryFieldError(f"unknown library config keys: {', '.join(sorted(unknown))}")
+    if not config.get("root"):
+        raise LibraryFieldError("a library needs a root directory")
+    root = Path(str(config["root"])).expanduser().resolve()
+    if not root.is_dir():
+        raise LibraryFieldError(f"library root {root} is not a directory")
+    patterns = config.get("patterns") or DEFAULT_PATTERNS
+    if isinstance(patterns, str):
+        patterns = patterns.split(",")
+    patterns = [str(item).strip() for item in patterns if str(item).strip()]
+    if not patterns:
+        raise LibraryFieldError("a library needs at least one file pattern")
+    return {"root": str(root), "patterns": patterns}
 
 
-def _power_of_two(value: int) -> int:
-    return 1 << max(0, math.ceil(math.log2(max(1, value))))
-
-
-def library_profile(
-    capacities: Mapping[str, int], *, mode_count: int | None = None
-) -> regions.RegionalProfile:
-    """The smallest power-of-two regional geometry that holds ``capacities`` with headroom."""
-
-    entries = len(capacities) + 16
-    directory_capacity = _power_of_two(2 * entries)
-    registry_words = _power_of_two(2 * 40 * directory_capacity)
-    queue_words = _power_of_two(2 * (sum(len(name) + 12 for name in capacities) // 4 + 1024))
-    base = regions.RegionalProfile()
-    fixed = (
-        regions.HEADER_WORDS
-        + regions.DIRECTORY_WORDS * directory_capacity
-        + registry_words + queue_words + base.program_words + base.ledger_words
-        + 4 * base.automaton_sites + 8 + 4 * base.default_value_words
+def _identity(patterns: Sequence[str], entries: Sequence[tuple[str, str]]) -> str:
+    digest = hashlib.sha256(
+        json.dumps({"schema": LIBRARY_SCHEMA, "patterns": list(patterns)}, sort_keys=True).encode("utf-8")
     )
-    needed = math.ceil((fixed + sum(capacities.values())) * GROWTH_HEADROOM / 9)
-    if mode_count is None:
-        mode_count = _power_of_two(needed)
-    elif mode_count < needed:
-        raise LibraryFieldError(f"mode_count {mode_count} cannot hold the library (needs {needed})")
-    return regions.RegionalProfile(
-        mode_count=mode_count,
-        directory_capacity=directory_capacity,
-        max_registry_entries=directory_capacity,
-        registry_words=registry_words,
-        queue_words=queue_words,
-    )
+    for path, blob in entries:
+        digest.update(f"\n{blob} {path}".encode("utf-8"))
+    return digest.hexdigest()
 
 
-def _atomic_json(path: Path, value: Any) -> None:
-    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
-    with temporary.open("w", encoding="utf-8") as handle:
-        json.dump(value, handle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(temporary, path)
+def source_identity(config: Mapping[str, Any]) -> str:
+    """The staged blobs the library would hold now, hashed without reading them."""
+
+    return _identity(config["patterns"], tracked_files(config["root"], config["patterns"]))
 
 
-def build_library(
-    root: str | os.PathLike[str],
-    destination: str | os.PathLike[str],
-    *,
-    patterns: Sequence[str] = DEFAULT_PATTERNS,
-    mode_count: int | None = None,
-    resident_limit: int = DEFAULT_RESIDENT_PAGES,
-) -> dict[str, Any]:
-    """Write the tracked corpus of ``root`` into one new paged library field."""
+def compose(config: Mapping[str, Any]) -> foundry.Composition:
+    """Every matching file, its passages, and their term index as named values."""
 
-    root = Path(root).resolve()
-    destination = Path(destination)
-    if (destination / FIELD_DESCRIPTOR).exists():
-        raise LibraryFieldError(f"{destination} already holds a library field")
-    destination.mkdir(parents=True, exist_ok=True)
-    clock = {"start": time.perf_counter()}
-
-    sources = collect_sources(root, patterns)
-    clock["collected"] = time.perf_counter()
-
+    root = Path(config["root"])
+    patterns = list(config["patterns"])
+    entries = tracked_files(root, patterns)
+    head = _git(root, "rev-parse", "--verify", "-q", "HEAD^{commit}", check=False).decode("ascii").strip() or None
+    index = foundry.TermIndexBuilder()
     values: dict[str, Any] = {}
     files: list[list[Any]] = []
     passages: list[list[Any]] = []
-    postings: dict[str, array] = {}
-    lengths: list[int] = []
-    for file_index, source in enumerate(sources):
+    for file_index, source in enumerate(read_blobs(root, entries)):
         try:
             text = source.data.decode("utf-8")
-            encoding = "utf-8"
-            values[FILE_PREFIX + source.path] = text
         except UnicodeDecodeError:
-            text = source.data.decode("utf-8", "replace")
-            encoding = "base64"
             values[FILE_PREFIX + source.path] = {"base64": base64.b64encode(source.data).decode("ascii")}
-        path_terms = terms(source.path)
-        spans = passage_spans(source.path, text)
-        files.append([source.path, source.blob_sha1, len(source.data), len(passages), len(spans), encoding])
-        for start, end, title in spans:
-            passage_id = len(passages)
+            encoding = "base64"
+            spans = [(0, len(source.data), "")] if source.data else []
+            segments = [source.data.decode("utf-8", "replace")]
+        else:
+            values[FILE_PREFIX + source.path] = text
+            encoding = "utf-8"
+            character_spans = passage_spans(source.path, text)
+            spans = _byte_spans(text, character_spans)
+            segments = [text[start:end] for start, end, _ in character_spans]
+        files.append([
+            source.path,
+            source.blob_sha1,
+            len(source.data),
+            len(passages),
+            len(spans),
+            encoding,
+            hashlib.sha256(source.data).hexdigest(),
+        ])
+        path_terms = foundry.terms(source.path)
+        for (start, end, title), segment in zip(spans, segments):
             passages.append([file_index, start, end, title])
-            counts = Counter(terms(text[start:end]))
-            counts.update(terms(title))
+            counts = Counter(foundry.terms(segment))
+            counts.update(foundry.terms(title))
             counts.update(path_terms)
-            lengths.append(sum(counts.values()))
-            for term, count in counts.items():
-                row = postings.get(term)
-                if row is None:
-                    row = postings[term] = array("I")
-                row.append(passage_id)
-                row.append(count)
-    clock["indexed"] = time.perf_counter()
-
-    posting_count = sum(len(row) for row in postings.values()) // 2
-    for shard, shard_terms in _encode_postings(postings).items():
-        values[_index_name(shard)] = {"terms": shard_terms}
-    for shard in range(0, len(passages), PASSAGE_SHARD_SIZE):
-        values[_passage_name(shard // PASSAGE_SHARD_SIZE)] = {
-            "passages": passages[shard:shard + PASSAGE_SHARD_SIZE]
+            index.add(counts)
+    index_header = index.write(values)
+    for first in range(0, len(passages), PASSAGE_SHARD_SIZE):
+        values[_passage_name(first // PASSAGE_SHARD_SIZE)] = {
+            "passages": passages[first:first + PASSAGE_SHARD_SIZE]
         }
-    values[LENGTHS_VALUE] = base64.b64encode(
-        np.minimum(np.asarray(lengths, dtype=np.int64), 0xFFFF).astype("<u2").tobytes()
-    ).decode("ascii")
-    head = _git(root, "rev-parse", "HEAD").decode("ascii").strip()
     values[LIBRARY_VALUE] = {
         "schema": LIBRARY_SCHEMA,
-        "terms_schema": TERMS_SCHEMA,
-        "source": {"name": root.name, "patterns": list(patterns), "git_head": head},
+        "source": {"name": root.name, "patterns": patterns, "git_head": head},
         "files": files,
         "passage_count": len(passages),
         "passage_shard_size": PASSAGE_SHARD_SIZE,
-        "average_length_milli": round(1000 * sum(lengths) / max(1, len(lengths))),
-        "index_shards": INDEX_SHARDS,
-        "term_count": len(postings),
-        "posting_count": posting_count,
-        "bm25_milli": {"k1": round(1000 * BM25_K1), "b": round(1000 * BM25_B)},
     }
-    term_count = len(postings)
-    postings.clear()
-
-    used = {name: _words(value) for name, value in values.items()}
-    capacities = {
-        name: words + words // (4 if name.startswith(FILE_PREFIX) else 2) + 16
-        for name, words in used.items()
-    }
-    largest_value_pages = max(used.values()) // regions.PERSISTENCE_PAGE_WORDS + 2
-    if largest_value_pages > resident_limit:
-        raise LibraryFieldError(
-            f"the largest library value spans {largest_value_pages} pages; "
-            f"resident_limit {resident_limit} cannot read it"
-        )
-    profile = library_profile(capacities, mode_count=mode_count)
-    clock["encoded"] = time.perf_counter()
-
-    field = regions.initial_field(
-        profile, list(_ROOT_PROGRAM), values=values, value_capacities=capacities, catalog=_CATALOG
-    )
-    values.clear()
-    clock["written"] = time.perf_counter()
-    image = regions.PagedFieldImage.from_dense(
-        field, profile, _CATALOG, resident_limit=resident_limit
-    )
-    del field
-    clock["paged"] = time.perf_counter()
-    image = image.with_backing(DiskObjectStore(destination / OBJECT_DIRECTORY))
-    _atomic_json(destination / FIELD_DESCRIPTOR, image.descriptor())
-    clock["persisted"] = time.perf_counter()
-
-    residency = image.residency_report()
-    receipt = {
-        "schema": f"{LIBRARY_SCHEMA}.build",
-        "source": {"root": str(root), "patterns": list(patterns), "git_head": head},
+    summary = {
         "files": len(files),
         "source_bytes": sum(row[2] for row in files),
         "passages": len(passages),
-        "terms": term_count,
-        "profile": profile.as_dict(),
-        "logical_bytes": profile.state_bytes,
-        "value_words": sum(used.values()),
-        "capacity_words": sum(capacities.values()),
-        "fill": round(sum(used.values()) / profile.total_words, 4),
-        "largest_value_pages": largest_value_pages,
-        "page_count": residency["page_count"],
-        "committed_pages": residency["committed_pages"],
-        "physical_bytes": residency["unique_physical_bytes"],
-        "root_sha256": image.root_sha256,
-        "state_sha256": image.state_identity_sha256(),
-        "seconds": {
-            stage: round(clock[stage] - clock[previous], 3)
-            for previous, stage in zip(
-                ("start", "collected", "indexed", "encoded", "written", "paged"),
-                ("collected", "indexed", "encoded", "written", "paged", "persisted"),
-            )
-        },
+        "terms": index_header["terms"],
+        "git_head": head,
     }
-    _atomic_json(destination / BUILD_RECEIPT, receipt)
-    return receipt
+    return foundry.Composition(values=values, summary=summary, source_identity=_identity(patterns, entries))
 
 
-# -- reading -----------------------------------------------------------------
+# -- reading -------------------------------------------------------------------
 
 
 class LibraryField:
-    """An opened library field: exact files, passages, and ranked search."""
+    """An opened library: exact files, byte-exact passages, and ranked search."""
 
-    def __init__(self, destination: Path, image: regions.PagedFieldImage) -> None:
-        self.destination = destination
-        self.image = image
-        self.library = self._values([LIBRARY_VALUE])[LIBRARY_VALUE]
-        if not isinstance(self.library, Mapping) or self.library.get("schema") != LIBRARY_SCHEMA:
-            raise LibraryFieldError("field does not hold a library catalog")
-        self.files = [list(row) for row in self.library["files"]]
+    def __init__(self, field: foundry.OpenedField) -> None:
+        self.field = field
+        self.name = field.name
+        self.state_sha256 = field.state_sha256
+        library = field.values([LIBRARY_VALUE])[LIBRARY_VALUE]
+        if not isinstance(library, Mapping) or library.get("schema") != LIBRARY_SCHEMA:
+            raise LibraryFieldError(f"{field.path} does not hold a {LIBRARY_SCHEMA} catalog")
+        self.library = library
+        self.files = [list(row) for row in library["files"]]
         self._file_index = {row[0]: index for index, row in enumerate(self.files)}
-        self.passage_count = int(self.library["passage_count"])
-        self.average_length = self.library["average_length_milli"] / 1000
-        self.lengths = np.frombuffer(
-            base64.b64decode(self._values([LENGTHS_VALUE])[LENGTHS_VALUE]), dtype="<u2"
-        ).astype(np.float64)
-        if self.lengths.size != self.passage_count:
-            raise LibraryFieldError("passage lengths do not match the catalog")
+        self.passage_count = int(library["passage_count"])
+        self.index = foundry.TermIndex(field)
+        if self.index.units != self.passage_count:
+            raise LibraryFieldError("the term index does not match the passage table")
 
-    @classmethod
-    def open(
-        cls, destination: str | os.PathLike[str], *, resident_limit: int = DEFAULT_RESIDENT_PAGES
-    ) -> "LibraryField":
-        destination = Path(destination)
-        descriptor = json.loads((destination / FIELD_DESCRIPTOR).read_text(encoding="utf-8"))
-        image = regions.PagedFieldImage.from_descriptor(
-            descriptor,
-            DiskObjectStore(destination / OBJECT_DIRECTORY),
-            _CATALOG,
-            verify="control",
-            resident_limit=resident_limit,
-        )
-        return cls(destination, image)
+    def file(self, path: str) -> dict[str, Any]:
+        """The identity of one held file."""
 
-    def _values(self, names: Sequence[str]) -> dict[str, Any]:
-        return regions.named_values_paged(self.image, list(names))
+        if path not in self._file_index:
+            raise LibraryFieldError(f"{path} is not in library {self.name}")
+        path, blob_sha1, size, _, passage_count, encoding, sha256 = self.files[self._file_index[path]]
+        return {
+            "path": path,
+            "blob_sha1": blob_sha1,
+            "sha256": sha256,
+            "size": size,
+            "encoding": encoding,
+            "passages": passage_count,
+        }
 
     def read(self, path: str) -> bytes:
         """The exact bytes of one library file."""
@@ -588,8 +392,8 @@ class LibraryField:
 
         for path in paths:
             if path not in self._file_index:
-                raise LibraryFieldError(f"{path} is not in the library")
-        loaded = self._values([FILE_PREFIX + path for path in paths])
+                raise LibraryFieldError(f"{path} is not in library {self.name}")
+        loaded = self.field.values([FILE_PREFIX + path for path in paths])
         held: dict[str, bytes] = {}
         for path in paths:
             value = loaded[FILE_PREFIX + path]
@@ -599,66 +403,50 @@ class LibraryField:
         return held
 
     def passages(self, passage_ids: Sequence[int]) -> dict[int, list[Any]]:
+        """Passage rows ``[file_index, byte_start, byte_end, title]`` by passage id."""
+
         shards: dict[int, list[int]] = {}
         for passage_id in passage_ids:
             if not 0 <= passage_id < self.passage_count:
-                raise LibraryFieldError(f"passage {passage_id} is outside the library")
+                raise LibraryFieldError(f"passage {passage_id} is outside library {self.name}")
             shards.setdefault(passage_id // PASSAGE_SHARD_SIZE, []).append(passage_id)
         names = {shard: _passage_name(shard) for shard in shards}
-        loaded = self._values(list(names.values()))
+        loaded = self.field.values(list(names.values()))
         return {
             passage_id: loaded[names[shard]]["passages"][passage_id % PASSAGE_SHARD_SIZE]
             for shard, members in shards.items()
             for passage_id in members
         }
 
-    def search(
-        self, query: str, *, limit: int = 8, with_text: bool = True
-    ) -> dict[str, Any]:
-        """Rank passages for ``query`` by BM25 over the field-held term index."""
+    def search(self, query: str, *, limit: int = 8, with_text: bool = True) -> dict[str, Any]:
+        """Rank passages for ``query``; each hit names its file, byte span, and file sha256."""
 
-        before = dict(self.image.counters)
+        before = dict(self.field.image.counters)
         started = time.perf_counter()
-        query_terms = sorted(set(terms(query)))
-        shards = sorted({term_shard(term) for term in query_terms})
-        loaded = self._values([_index_name(shard) for shard in shards])
-        scores = np.zeros(self.passage_count, dtype=np.float64)
-        matched: list[str] = []
-        k1, b = BM25_K1, BM25_B
-        for term in query_terms:
-            encoded = loaded[_index_name(term_shard(term))]["terms"].get(term)
-            if encoded is None:
-                continue
-            matched.append(term)
-            passage_ids, counts = _decode_postings(encoded)
-            frequency = passage_ids.size
-            weight = math.log(1 + (self.passage_count - frequency + 0.5) / (frequency + 0.5))
-            norm = k1 * (1 - b + b * self.lengths[passage_ids] / self.average_length)
-            scores[passage_ids] += weight * counts * (k1 + 1) / (counts + norm)
+        matched, ranked = self.index.rank(query, limit=limit)
+        rows = self.passages([unit for unit, _ in ranked])
+        held = (
+            self.read_many(sorted({self.files[rows[unit][0]][0] for unit, _ in ranked}))
+            if with_text and ranked
+            else {}
+        )
         hits: list[dict[str, Any]] = []
-        if matched:
-            count = min(limit, int(np.count_nonzero(scores)))
-            top = np.argpartition(-scores, count - 1)[:count] if count else np.array([], dtype=np.int64)
-            ranked = [int(item) for item in top[np.argsort(-scores[top], kind="stable")]]
-            rows = self.passages(ranked)
-            texts: dict[str, str] = {}
-            for passage_id in ranked:
-                file_index, start, end, title = rows[passage_id]
-                path = self.files[file_index][0]
-                hit = {
-                    "passage": passage_id,
-                    "path": path,
-                    "title": title,
-                    "start": start,
-                    "end": end,
-                    "score": round(float(scores[passage_id]), 4),
-                }
-                if with_text:
-                    if path not in texts:
-                        texts[path] = self.read(path).decode("utf-8", "replace")
-                    hit["text"] = texts[path][start:end]
-                hits.append(hit)
-        after = self.image.counters
+        for unit, score in ranked:
+            file_index, start, end, title = rows[unit]
+            path = self.files[file_index][0]
+            hit = {
+                "passage": unit,
+                "path": path,
+                "title": title,
+                "start": start,
+                "end": end,
+                "score": score,
+                "sha256": self.files[file_index][6],
+            }
+            if with_text:
+                hit["text"] = held[path][start:end].decode("utf-8", "replace")
+            hits.append(hit)
+        after = self.field.image.counters
         return {
             "query": query,
             "terms": matched,
@@ -669,109 +457,61 @@ class LibraryField:
         }
 
     def verify(self, root: str | os.PathLike[str] | None = None) -> dict[str, Any]:
-        """Re-read every file from the field and check it against its git blob."""
+        """Check every held file against its blob id and sha256, then against the repository."""
 
         started = time.perf_counter()
         exact = 0
         mismatched: list[str] = []
-        for batch in range(0, len(self.files), 64):
-            rows = self.files[batch:batch + 64]
+        for first in range(0, len(self.files), 64):
+            rows = self.files[first:first + 64]
             held = self.read_many([row[0] for row in rows])
-            for path, blob_sha1, *_ in rows:
-                if git_blob_sha1(held[path]) == blob_sha1:
+            for path, blob_sha1, size, _, _, _, sha256 in rows:
+                data = held[path]
+                if (
+                    len(data) == size
+                    and git_blob_sha1(data) == blob_sha1
+                    and hashlib.sha256(data).hexdigest() == sha256
+                ):
                     exact += 1
                 else:
                     mismatched.append(path)
-        report: dict[str, Any] = {
+        current = dict(tracked_files(root or self.field.config["root"], self.field.config["patterns"]))
+        held_blobs = {row[0]: row[1] for row in self.files}
+        return {
             "files": len(self.files),
             "exact": exact,
             "mismatched": mismatched,
+            "repository": {
+                "unchanged": sum(1 for path, blob in held_blobs.items() if current.get(path) == blob),
+                "changed": sorted(
+                    path for path, blob in held_blobs.items() if path in current and current[path] != blob
+                ),
+                "removed": sorted(set(held_blobs) - set(current)),
+                "added": sorted(set(current) - set(held_blobs)),
+            },
             "seconds": round(time.perf_counter() - started, 3),
         }
-        if root is not None:
-            current = {
-                path: blob
-                for path, blob in (
-                    (source.path, source.blob_sha1)
-                    for source in collect_sources(root, self.library["source"]["patterns"])
-                )
-            }
-            held = {row[0]: row[1] for row in self.files}
-            report["repository"] = {
-                "unchanged": sum(1 for path, blob in held.items() if current.get(path) == blob),
-                "changed": sorted(path for path, blob in held.items() if path in current and current[path] != blob),
-                "removed": sorted(set(held) - set(current)),
-                "added": sorted(set(current) - set(held)),
-            }
-        return report
 
     def report(self) -> dict[str, Any]:
-        residency = self.image.residency_report()
         return {
+            **self.field.report(),
             "files": len(self.files),
             "passages": self.passage_count,
-            "terms": self.library["term_count"],
-            "mode_count": self.image.profile.mode_count,
-            "logical_bytes": self.image.profile.state_bytes,
-            "page_count": residency["page_count"],
-            "committed_pages": residency["committed_pages"],
-            "physical_bytes": residency["unique_physical_bytes"],
-            "resident_pages": residency["resident_pages"],
-            "resident_limit": residency["resident_limit"],
-            "resident_high_water_pages": residency["resident_high_water_pages"],
-            "root_sha256": self.image.root_sha256,
+            "terms": self.index.header["terms"],
         }
 
 
-# -- command line --------------------------------------------------------------
-
-
-def _main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    commands = parser.add_subparsers(dest="command", required=True)
-    build = commands.add_parser("build", help="write a repository corpus into a new library field")
-    build.add_argument("root")
-    build.add_argument("destination")
-    build.add_argument("--pattern", action="append", dest="patterns")
-    build.add_argument("--mode-count", type=int)
-    build.add_argument("--resident-limit", type=int, default=DEFAULT_RESIDENT_PAGES)
-    search = commands.add_parser("search", help="rank library passages for a query")
-    search.add_argument("destination")
-    search.add_argument("query")
-    search.add_argument("--limit", type=int, default=8)
-    read = commands.add_parser("read", help="print one library file exactly")
-    read.add_argument("destination")
-    read.add_argument("path")
-    verify = commands.add_parser("verify", help="check every held file against git")
-    verify.add_argument("destination")
-    verify.add_argument("--root")
-    report = commands.add_parser("report", help="describe the library field")
-    report.add_argument("destination")
-    args = parser.parse_args(argv)
-
-    if args.command == "build":
-        result: Any = build_library(
-            args.root,
-            args.destination,
-            patterns=tuple(args.patterns or DEFAULT_PATTERNS),
-            mode_count=args.mode_count,
-            resident_limit=args.resident_limit,
-        )
-    elif args.command == "read":
-        sys.stdout.buffer.write(LibraryField.open(args.destination).read(args.path))
-        return 0
-    else:
-        library = LibraryField.open(args.destination)
-        if args.command == "search":
-            result = library.search(args.query, limit=args.limit)
-        elif args.command == "verify":
-            result = library.verify(args.root)
-        else:
-            result = library.report()
-    json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
-    sys.stdout.write("\n")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(_main())
+LIBRARY_KIND = foundry.register_kind(
+    foundry.FieldKind(
+        name="library",
+        schema=LIBRARY_SCHEMA,
+        purpose=(
+            "exact source library: every tracked file of a git corpus, "
+            "split into citable passages with ranked search"
+        ),
+        normalize=normalize,
+        source_identity=source_identity,
+        compose=compose,
+        reader=LibraryField,
+    )
+)
