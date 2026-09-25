@@ -190,35 +190,49 @@ def _rref(
     matrix: Sequence[Sequence[Fraction]],
 ) -> tuple[list[list[Fraction]], tuple[int, ...], int]:
     """Compute deterministic Gauss-Jordan RREF over the rationals."""
-
     values = [list(row) for row in matrix]
     row_count = len(values)
-    column_count = len(values[0]) if values else 0
+    if row_count == 0:
+        return [], (), 0
+    column_count = len(values[0])
+
     pivot_columns: list[int] = []
     pivot_row = 0
     fraction_updates = 0
 
     for column in range(column_count):
-        selected = next(
-            (row for row in range(pivot_row, row_count) if values[row][column]),
-            None,
-        )
+        # Find pivot row using a simple loop instead of next(generator)
+        selected = None
+        for r in range(pivot_row, row_count):
+            if values[r][column]:
+                selected = r
+                break
+
         if selected is None:
             continue
+
         if selected != pivot_row:
             values[pivot_row], values[selected] = values[selected], values[pivot_row]
 
         pivot = values[pivot_row][column]
+        pivot_row_vals = values[pivot_row]
+
+        # Normalize pivot row
         for target_column in range(column, column_count):
-            values[pivot_row][target_column] /= pivot
+            pivot_row_vals[target_column] /= pivot
             fraction_updates += 1
 
+        # Eliminate other rows
         for row in range(row_count):
-            if row == pivot_row or not values[row][column]:
+            if row == pivot_row:
                 continue
             factor = values[row][column]
+            if not factor:
+                continue
+
+            target_row_vals = values[row]
             for target_column in range(column, column_count):
-                values[row][target_column] -= factor * values[pivot_row][target_column]
+                target_row_vals[target_column] -= factor * pivot_row_vals[target_column]
                 fraction_updates += 1
 
         pivot_columns.append(column)
