@@ -371,12 +371,14 @@ class ExcitableConstraintController:
         coupling, recovery, and trace updates read it rather than the lane
         they are about to overwrite.
         """
-
         size = self.profile.size
         scale = self.profile.scale
-        index = np.arange(size, dtype=np.int64)
-        left = np.mod(index - 1, size)
-        right = np.mod(index + 1, size)
+
+        # Precompute indices for neighbor access to avoid np.take overhead
+        left = (np.arange(size, dtype=np.int64) - 1) % size
+        right = (np.arange(size, dtype=np.int64) + 1) % size
+
+        # Allocate temporary buffers once outside the loop
         total = np.empty(size, dtype=np.int64)
         other = np.empty(size, dtype=np.int64)
         flux = np.empty(size, dtype=np.int64)
@@ -389,35 +391,89 @@ class ExcitableConstraintController:
         next_recovery = np.empty(size, dtype=np.int64)
         next_trace = np.empty(size, dtype=np.int64)
 
+        # Cache constants for speed
+        COUPLING_DIV = _COUPLING_DIV
+        LEAK_DIV = _LEAK_DIV
+        INHIBIT_DIV = _INHIBIT_DIV
+        RECOVERY_GAIN = _RECOVERY_GAIN
+        RECOVERY_STEP = _RECOVERY_STEP
+        RECOVERY_DECAY = _RECOVERY_DECAY
+        TRACE_GAIN = _TRACE_GAIN
+        TRACE_STEP = _TRACE_STEP
+        TRACE_DECAY = _TRACE_DECAY
+
+        # Pre-allocate arrays for np.take to avoid repeated lookups if we were doing it differently,
+        # but here we just use the precomputed indices with take which is fast.
+        # Actually, using take with indices is efficient enough, but we can optimize the inner loop.
+
         for _ in range(ticks):
+            # Coupling: total = (previous[left] + previous[right]) - 2 * previous
             np.take(previous, left, out=total)
             np.take(previous, right, out=other)
             np.add(total, other, out=total)
             np.multiply(previous, 2, out=other)
             np.subtract(total, other, out=total)
-            _trunc_div_into(total, _COUPLING_DIV, flux, remainder, negative, nonzero)
-            _trunc_div_into(excitation, _LEAK_DIV, leak, remainder, negative, nonzero)
-            _trunc_div_into(recovery, _INHIBIT_DIV, inhibit, remainder, negative, nonzero)
+
+            # flux = trunc(total / COUPLING_DIV)
+            np.floor_divide(total, COUPLING_DIV, out=flux)
+            np.remainder(total, COUPLING_DIV, out=remainder)
+            np.not_equal(remainder, 0, out=nonzero)
+            np.less(total, 0, out=negative)
+            np.logical_and(nonzero, negative, out=nonzero)
+            np.add(flux, nonzero, out=flux)
+
+            # leak = trunc(excitation / LEAK_DIV)
+            np.floor_divide(excitation, LEAK_DIV, out=leak)
+            np.remainder(excitation, LEAK_DIV, out=remainder)
+            np.not_equal(remainder, 0, out=nonzero)
+            np.less(excitation, 0, out=negative)
+            np.logical_and(nonzero, negative, out=nonzero)
+            np.add(leak, nonzero, out=leak)
+
+            # inhibit = trunc(recovery / INHIBIT_DIV)
+            np.floor_divide(recovery, INHIBIT_DIV, out=inhibit)
+            np.remainder(recovery, INHIBIT_DIV, out=remainder)
+            np.not_equal(remainder, 0, out=nonzero)
+            np.less(recovery, 0, out=negative)
+            np.logical_and(nonzero, negative, out=nonzero)
+            np.add(inhibit, nonzero, out=inhibit)
+
+            # next_excitation = excitation + flux - leak - inhibit + drive
             np.add(excitation, flux, out=next_excitation)
             np.subtract(next_excitation, leak, out=next_excitation)
             np.subtract(next_excitation, inhibit, out=next_excitation)
             np.add(next_excitation, drive, out=next_excitation)
+
+            # Clip next_excitation to [0, scale]
             np.clip(next_excitation, 0, scale, out=next_excitation)
 
-            _trunc_div_into(previous, _RECOVERY_GAIN, total, remainder, negative, nonzero)
+            # Recovery update
+            # total = trunc(previous / RECOVERY_GAIN)
+            np.floor_divide(previous, RECOVERY_GAIN, out=total)
             np.add(recovery, total, out=next_recovery)
-            np.subtract(next_recovery, _RECOVERY_STEP, out=next_recovery)
-            _trunc_div_into(recovery, _RECOVERY_DECAY, other, remainder, negative, nonzero)
+            np.subtract(next_recovery, RECOVERY_STEP, out=next_recovery)
+
+            # other = trunc(recovery / RECOVERY_DECAY)
+            np.floor_divide(recovery, RECOVERY_DECAY, out=other)
             np.subtract(next_recovery, other, out=next_recovery)
+
+            # Clip next_recovery to [0, scale]
             np.clip(next_recovery, 0, scale, out=next_recovery)
 
-            _trunc_div_into(previous, _TRACE_GAIN, total, remainder, negative, nonzero)
+            # Trace update
+            # total = trunc(previous / TRACE_GAIN)
+            np.floor_divide(previous, TRACE_GAIN, out=total)
             np.add(trace, total, out=next_trace)
-            np.subtract(next_trace, _TRACE_STEP, out=next_trace)
-            _trunc_div_into(trace, _TRACE_DECAY, other, remainder, negative, nonzero)
+            np.subtract(next_trace, TRACE_STEP, out=next_trace)
+
+            # other = trunc(trace / TRACE_DECAY)
+            np.floor_divide(trace, TRACE_DECAY, out=other)
             np.subtract(next_trace, other, out=next_trace)
+
+            # Clip next_trace to [0, scale]
             np.clip(next_trace, 0, scale, out=next_trace)
 
+            # Update state arrays
             np.copyto(previous, excitation)
             np.copyto(excitation, next_excitation)
             np.copyto(recovery, next_recovery)
