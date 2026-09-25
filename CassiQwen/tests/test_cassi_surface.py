@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import threading
@@ -10,11 +11,12 @@ from urllib.request import Request, urlopen
 
 import pytest
 
-from surface.core import SurfaceBroker, SurfaceConflictError
+from surface.core import SurfaceAuthorizationError, SurfaceBroker, SurfaceConflictError, SurfaceValidationError, SurfaceWaitError
 from surface.field_native import FieldNativeBackend
 from surface.trading_paper import TradingPaperSurfaceBackend
 from cassi_field_brain_entity import EntityConfig, FieldBrainEntity
 from cassi_field_brain_server import EntityHTTPServer
+from surface.mission_authority import MissionAuthority
 from cassi_field_program import (
     SEMANTIC_PROGRAM_SCHEMA,
     SURFACE_PROCEDURE_SCHEMA,
@@ -39,7 +41,7 @@ def _write_paper_surface_document(path: Path, body: dict) -> dict:
     return document
 
 
-def test_trading_paper_view_is_authenticated_scoped_and_read_only(tmp_path: Path) -> None:
+def test_trading_paper_view_is_program_scoped_and_read_only(tmp_path: Path) -> None:
     member_home = tmp_path / "member"
     member_home.mkdir()
     view_path = member_home / "trading-paper-application.json"
@@ -144,8 +146,7 @@ def test_trading_paper_view_is_authenticated_scoped_and_read_only(tmp_path: Path
         brain=NoBrain(),
         surface_backends=(backend,),
     )
-    api_token = "paper-surface-test-token-0123456789"
-    server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token=api_token)
+    server = EntityHTTPServer(("127.0.0.1", 0), entity)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     try:
         program = entity.researcher.create_program(
@@ -172,9 +173,9 @@ def test_trading_paper_view_is_authenticated_scoped_and_read_only(tmp_path: Path
         thread.start()
         base_url = f"http://127.0.0.1:{server.server_port}"
 
-        def request(method: str, path: str, *, body=None, token: str = api_token):
+        def request(method: str, path: str, *, body=None):
             encoded = None if body is None else json.dumps(body).encode("utf-8")
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = {}
             if encoded is not None:
                 headers["content-type"] = "application/json"
             req = Request(
@@ -193,9 +194,6 @@ def test_trading_paper_view_is_authenticated_scoped_and_read_only(tmp_path: Path
             "/v1/surface/sources?backend_id=trading-paper"
             "&program_id=paper-view-program"
         )
-        status, _ = request("GET", source_path, token="")
-        assert status == 401
-
         status, source_response = request("GET", source_path)
         assert status == 200
         source = source_response["sources"][0]
@@ -243,6 +241,217 @@ def test_trading_paper_view_is_authenticated_scoped_and_read_only(tmp_path: Path
             thread.join(timeout=5)
         server.server_close()
         entity.close()
+
+def test_mission_window_renews_only_same_source_and_emergency_revoke_ends_it(tmp_path: Path) -> None:
+    source = FieldNativeBackend("canvas")
+    source.publish(bytes((0, 0, 255, 255)) * 4, width=2, height=2)
+    authority = MissionAuthority()
+
+    class NoBrain:
+        def complete(self, *_args, **_kwargs):
+            raise AssertionError("Surface approval must not call the brain")
+
+    entity = FieldBrainEntity(
+        EntityConfig(
+            data_home=tmp_path / "entity",
+            capability_root=Path(__file__).resolve().parents[2],
+            research_home=tmp_path / "research",
+            research_roots=(tmp_path,),
+            research_resident_enabled=False,
+            program_native_enabled=False,
+        ),
+        brain=NoBrain(),
+        surface_backends=(source,),
+        surface_authorizer=authority,
+    )
+    authority.bind_entity(entity)
+    server = EntityHTTPServer(("127.0.0.1", 0), entity, surface_authority=authority)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    try:
+        program = entity.researcher.create_program(
+            request_id="create-authorized-canvas",
+            program_id="canvas-mission",
+            project_id="canvas",
+            title="Observe canvas",
+            mission="Work with this synthetic canvas.",
+            initial_question="What changed?",
+            observed_at="2026-09-22T00:00:00Z",
+            cycle_limit=3,
+            allowed_roots=[str(tmp_path)],
+            allowed_tools=["surface_bind", "surface_grant"],
+            surface_scope={"sources": [{
+                "backend_id": "field-native",
+                "source_id": "canvas",
+                "observation": ["pixels"],
+                "operations": ["keyboard.text", "keyboard.key"],
+            }]},
+        )
+        thread.start()
+        base_url = f"http://127.0.0.1:{server.server_port}"
+
+        def request(method: str, path: str, *, body=None, origin: str | None = base_url):
+            encoded = None if body is None else json.dumps(body).encode("utf-8")
+            headers = {}
+            if origin is not None:
+                headers["origin"] = origin
+            if encoded is not None:
+                headers["content-type"] = "application/json"
+            req = Request(base_url + path, data=encoded, headers=headers, method=method)
+            try:
+                with urlopen(req, timeout=5) as response:
+                    return response.status, json.loads(response.read())
+            except HTTPError as exc:
+                return exc.code, json.loads(exc.read())
+
+        def bind():
+            code, result = request(
+                "POST", "/v1/surface/bind",
+                body={"program_id": "canvas-mission", "backend_id": "field-native", "source_id": "canvas"},
+            )
+            assert code == 201, result
+            return result
+
+        digest = hashlib.sha256(json.dumps(
+            {"title": program["title"], "mission": program["mission"], "generation": program["generation"]},
+            sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+
+        def approve(binding):
+            identity = {
+                "program_id": "canvas-mission",
+                "program_generation": program["generation"],
+                "mission_sha256": digest,
+                **{key: binding[key] for key in (
+                    "binding_id", "backend_id", "source_id", "source_instance",
+                    "source_epoch", "environment_incarnation", "geometry_revision",
+                )},
+            }
+            body = {
+                **identity,
+                "operations": ["keyboard.text"],
+                "expires_ns": time.time_ns() + 3_600_000_000_000,
+                "max_updates": 16,
+                "max_lease_seconds": 300,
+            }
+            return body
+
+        def grant(binding, operation="keyboard.text", duration_seconds: int = 60):
+            return request("POST", "/v1/surface/mission/canvas-mission/grant", body={
+                "binding_id": binding["binding_id"],
+                "operations": [operation],
+                "expires_ns": time.time_ns() + duration_seconds * 1_000_000_000,
+                "scope": {"target": "canvas", "objective": "inspect",
+                          "expected_consequence": "synthetic input", "max_updates": 4},
+            })
+
+        first = bind()
+        approval_path = "/v1/surface/mission-authority/approve"
+        assert request("POST", approval_path, body=approve(first), origin=None)[0] == 403
+        assert request("POST", approval_path, body=approve(first), origin="http://evil.invalid")[0] == 403
+        assert request("POST", approval_path, body=approve(first))[0] == 201
+        assert grant(first, duration_seconds=301)[0] == 403
+        assert grant(first)[0] == 201
+        assert grant(first, "keyboard.key")[0] == 403
+
+        assert request(
+            "POST", f"/v1/surface/bindings/{first['binding_id']}/revoke?program_id=canvas-mission",
+            body={},
+        )[0] == 200
+        assert grant(first)[0] == 201
+
+        source.publish(bytes((0, 0, 255, 255)) * 6, width=3, height=2)
+        resized = bind()
+        assert resized["geometry_revision"] != first["geometry_revision"]
+        assert grant(resized)[0] == 403
+        code, status = request(
+            "GET", f"/v1/surface/mission-authority/status?program_id=canvas-mission&binding_id={resized['binding_id']}",
+        )
+        assert code == 200 and status["active"] is False
+        assert request("POST", approval_path, body=approve(resized))[0] == 201
+        assert grant(resized)[0] == 201
+
+        assert request(
+            "POST", "/v1/surface/mission-authority/revoke",
+            body={"program_id": "canvas-mission", "binding_id": resized["binding_id"]},
+        )[0] == 200
+        assert grant(resized)[0] == 403
+
+        assert request("POST", approval_path, body=approve(resized))[0] == 201
+        assert request(
+            "POST", f"/v1/surface/bindings/{resized['binding_id']}/release?program_id=canvas-mission",
+            body={},
+        )[0] == 200
+        source.restart()
+        source.publish(bytes((0, 255, 0, 255)) * 4, width=2, height=2)
+        restarted = bind()
+        assert grant(restarted)[0] == 403
+    finally:
+        if thread.is_alive():
+            server.shutdown()
+            thread.join(timeout=5)
+        server.server_close()
+        entity.close()
+
+
+@pytest.mark.parametrize("changed_field", ("source_epoch", "geometry_revision"))
+def test_mission_grant_fences_exact_approved_epoch_and_geometry(changed_field: str) -> None:
+    program = {
+        "program_id": "canvas-mission", "status": "active", "generation": 0,
+        "title": "Canvas", "mission": "Observe the canvas",
+    }
+    digest = hashlib.sha256(json.dumps(
+        {"title": program["title"], "mission": program["mission"], "generation": 0},
+        sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    identity = {
+        "binding_id": "binding-1", "backend_id": "field-native",
+        "source_id": "canvas", "source_instance": "instance-1",
+        "source_epoch": 1, "environment_incarnation": "environment-1",
+        "geometry_revision": 1,
+    }
+
+    class Entity:
+        def __init__(self):
+            self.researcher = self
+            self.binding = dict(identity)
+
+        def program(self, _program_id):
+            return program
+
+        def inspect_surface_binding(self, _binding_id, *, program_id):
+            assert program_id == "canvas-mission"
+            return dict(self.binding)
+
+        def surface_sources(self, _backend_id, *, program_id):
+            assert program_id == "canvas-mission"
+            return [{"source_id": "canvas", "operations": ["keyboard.text"]}]
+
+    entity = Entity()
+    authority = MissionAuthority()
+    authority.bind_entity(entity)
+    authority.approve_mission(entity, {
+        "program_id": "canvas-mission", "program_generation": 0,
+        "mission_sha256": digest, **identity, "operations": ["keyboard.text"],
+        "expires_ns": time.time_ns() + 120_000_000_000,
+        "max_updates": 4, "max_lease_seconds": 60,
+    })
+    proposal = {
+        "purpose": "surface-grant", "mission_id": "canvas-mission",
+        **identity, "operations": ["keyboard.text"],
+        "expires_ns": time.monotonic_ns() + 10_000_000_000,
+        "scope": {
+            "program_id": "canvas-mission", "program_generation": 0,
+            "mission_sha256": digest, "max_updates": 1,
+        },
+    }
+    assert authority(proposal)["approved"] is True
+    changed = {**proposal, changed_field: proposal[changed_field] + 1}
+    with pytest.raises(PermissionError, match="source identity changed"):
+        authority(changed)
+    entity.binding[changed_field] += 1
+    with pytest.raises(PermissionError, match="source binding is no longer current"):
+        authority(proposal)
+    assert authority.status("canvas-mission", "binding-1")["active"] is False
 
 
 class _GenerationOwner:
@@ -292,6 +501,41 @@ def test_repeated_multimodal_capture_reuses_one_field_generation(tmp_path: Path)
     finally:
         broker.close()
 
+
+
+def test_surface_publication_reads_respect_field_page_limit(tmp_path: Path) -> None:
+    class PageOwner(_GenerationOwner):
+        def __init__(self) -> None:
+            super().__init__()
+            self.pages: dict[int, bytes] = {}
+
+        def admit_surface_publication(self, metadata, pixels):
+            publication = super().admit_surface_publication(metadata, pixels)
+            if pixels is not None:
+                self.pages[publication["generation"]] = pixels
+            return publication
+
+        def read_surface_page(self, binding_id, generation, offset, length):
+            return self.pages[generation][offset:offset + length]
+
+    page_limit = 1 << 20
+    pixels = bytes((1, 2, 3, 255)) * (1 << 20)
+    source = FieldNativeBackend("canvas")
+    source.publish(pixels, width=1024, height=1024)
+    owner = PageOwner()
+    broker = SurfaceBroker(tmp_path, owner)
+    try:
+        broker.register_backend(source)
+        binding_id = broker.bind("field-native", "canvas")["binding_id"]
+        publication = broker.capture(binding_id)
+        generation = publication["generation"]
+        for offset in range(0, len(pixels), page_limit):
+            length = min(page_limit, len(pixels) - offset)
+            assert broker.read_page(binding_id, generation, offset, length) == pixels[offset:offset + length]
+        with pytest.raises(SurfaceValidationError):
+            broker.read_page(binding_id, generation, 0, page_limit + 1)
+    finally:
+        broker.close()
 
 class _LostAcknowledgmentSource(FieldNativeBackend):
     def __init__(self) -> None:
@@ -345,6 +589,45 @@ def test_unknown_input_is_not_replayed_and_survives_restart(tmp_path: Path) -> N
         assert result["reconciliation"]["status"] == "observed-success"
     finally:
         reopened.close()
+
+
+def test_revoke_fences_a_grant_waiting_for_host_approval(tmp_path: Path) -> None:
+    entered = threading.Event()
+    release = threading.Event()
+
+    def authorize(_proposal):
+        entered.set()
+        assert release.wait(10)
+        return True
+
+    source = FieldNativeBackend("canvas")
+    source.publish(bytes((1, 2, 3, 255)) * 4, width=2, height=2)
+    broker = SurfaceBroker(tmp_path, authorizer=authorize)
+    try:
+        broker.register_backend(source)
+        binding_id = broker.bind("field-native", "canvas")["binding_id"]
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            try:
+                pending = pool.submit(
+                    broker.grant, "mission-a", binding_id, ["keyboard.text"],
+                    time.monotonic_ns() + 60_000_000_000, {"max_updates": 4},
+                )
+                assert entered.wait(5)
+                assert broker.revoke(binding_id)["revoked"]
+            finally:
+                release.set()
+            with pytest.raises(SurfaceAuthorizationError, match="authority changed"):
+                pending.result(timeout=10)
+
+        # Revocation fences the old callback, while a new approved lease can proceed.
+        renewed = broker.grant(
+            "mission-a", binding_id, ["keyboard.text"],
+            time.monotonic_ns() + 60_000_000_000, {"max_updates": 4},
+        )
+        assert renewed["state"] == "granted"
+    finally:
+        release.set()
+        broker.close()
 
 
 @pytest.mark.parametrize("with_audio", [False, True])
@@ -521,3 +804,66 @@ def test_field_procedure_delivers_once_then_observes_application(
         assert "grant_id" not in first and "grant_id" not in continuation
     finally:
         entity.close()
+
+
+def test_source_listing_accepts_unbound_descriptors_without_faking_epoch(tmp_path: Path) -> None:
+    class UnboundDescriptorBackend(FieldNativeBackend):
+        def sources(self):
+            descriptor = self._binding()
+            for key in (
+                "source_epoch",
+                "geometry_revision",
+                "width",
+                "height",
+                "capture_state",
+                "input_state",
+            ):
+                descriptor.pop(key, None)
+            descriptor.update({"status": "available", "reason": None, "transport": "test"})
+            return [descriptor]
+
+    backend = UnboundDescriptorBackend("canvas")
+    broker = SurfaceBroker(tmp_path)
+    broker.register_backend(backend)
+    try:
+        described = broker.describe()["backends"][0]
+        assert described["status"] == "available"
+        source = described["sources"][0]
+        assert source["source_id"] == "canvas"
+        assert "source_epoch" not in source
+        assert "geometry_revision" not in source
+        assert source["status"] == "available"
+        assert source["transport"] == "test"
+        binding = broker.bind("field-native", "canvas")
+        assert binding["source_epoch"] >= 1
+    finally:
+        broker.close()
+
+
+def test_foreground_wait_distinguishes_unfocused_window_from_lost_source(tmp_path: Path) -> None:
+    class WindowSource(FieldNativeBackend):
+        def __init__(self) -> None:
+            super().__init__("owned-window")
+            self.available = True
+
+        def foreground_binding(self, _binding) -> bool:
+            return False
+
+        def revalidate(self, binding):
+            result = super().revalidate(binding)
+            result["valid"] = result["valid"] and self.available
+            return result
+
+    source = WindowSource()
+    source.publish(bytes((0, 32, 180, 255)) * 4, width=2, height=2)
+    broker = SurfaceBroker(tmp_path)
+    broker.register_backend(source)
+    try:
+        binding = broker.bind(source.backend_id, source.source_id)
+        assert broker.foreground_binding((binding["binding_id"],)) is None
+        source.available = False
+        with pytest.raises(SurfaceWaitError) as lost:
+            broker.foreground_binding((binding["binding_id"],))
+        assert lost.value.details["kind"] == "source-revalidate"
+    finally:
+        broker.close()

@@ -11,11 +11,15 @@ from typing import Mapping
 
 from cassi_field_qwen_workbench import (
     COMPUTER_ID,
+    FIELD_RESOURCE_FEEDBACK_SCHEMA,
+    RESIDENT_BRAIN_RESOURCE_FEEDBACK_SCHEMA,
     CassiFieldWorkMemory,
     LocalQwenClient,
     WorkMemoryRecord,
 )
 from run_cassi_field_qwen_workcases import server_identity
+
+from cassi_field_owner import FieldIntelligenceOwner
 
 
 class CassiFieldWorkMemoryTests(unittest.TestCase):
@@ -55,6 +59,88 @@ class CassiFieldWorkMemoryTests(unittest.TestCase):
                 declared,
                 "re-open did not commit the declared resource policy",
             )
+
+    def test_work_memory_opens_alongside_a_program_numerical_computer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with FieldIntelligenceOwner(root) as owner:
+                owner.operate_computer(
+                    "program:computer:configure",
+                    computer_id="program-worker",
+                    action="configure",
+                )
+                owner.configure_program_residency(
+                    "structure", computer_id="program-worker",
+                )
+            with CassiFieldWorkMemory(root) as memory:
+                learned = memory.learn(self._record(
+                    "structure:observation:769",
+                    {"workspace": "structure", "topic": "peak"},
+                    {"q": 0.0173794240174152, "cell": 16912},
+                    "2026-09-24T00:00:00Z",
+                ))
+                self.assertEqual(learned["status"], "learned")
+                self.assertTrue(memory.owner.program_resources("structure")["configured"])
+            with CassiFieldWorkMemory(root) as memory:
+                recalled = memory.recall(
+                    {"workspace": "structure", "topic": "peak"},
+                    operation_label="structure:peak:reopen",
+                )
+                self.assertEqual(recalled["status"], "supported")
+                self.assertEqual(
+                    [row["source_id"] for row in recalled["records"]],
+                    ["structure:observation:769"],
+                )
+                self.assertTrue(memory.owner.program_resources("structure")["configured"])
+
+    def test_resident_brain_cost_is_paired_with_live_field_limits(self) -> None:
+        feedback = {
+            "schema": RESIDENT_BRAIN_RESOURCE_FEEDBACK_SCHEMA,
+            "task_id": "resident-qwen:task",
+            "operation_id": "a" * 64,
+            "activity_id": "program:one",
+            "model_id": "qwen-test.gguf",
+            "source_sha256": "b" * 64,
+            "backend": "cpu",
+            "measured": {
+                "elapsed_ns": 900,
+                "segment_count": 3,
+                "segment_work_ns": 700,
+                "max_segment_ns": 300,
+                "scheduler_yield_ns": 100,
+                "prompt_tokens": 12,
+                "completion_tokens": 4,
+                "total_tokens": 16,
+            },
+        }
+        limits = {
+            "ram_bytes": 1 << 30,
+            "scratch_bytes": 512 << 20,
+            "transfer_bytes": 128 << 20,
+            "storage_bytes": 8 << 30,
+            "low_watermark": 0.25,
+            "high_watermark": 0.75,
+            "auto_grow": True,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            with CassiFieldWorkMemory(
+                Path(directory), resource_limits=limits
+            ) as memory:
+                paired = memory.resident_resource_feedback(feedback)
+                with self.assertRaises(ValueError):
+                    memory.resident_resource_feedback(
+                        {**feedback, "schema": "unsupported"}
+                    )
+        self.assertEqual(paired["schema"], FIELD_RESOURCE_FEEDBACK_SCHEMA)
+        self.assertEqual(paired["resident_brain"], feedback)
+        self.assertEqual(
+            {
+                key: paired["field_computer"]["resource_limits"][key]
+                for key in limits
+            },
+            limits,
+        )
+        self.assertIn("resources", paired["field_computer"])
 
     def test_a_faulted_semantic_request_recovers_the_regional_computer(self) -> None:
         """A faulted task must not disable every later field request.

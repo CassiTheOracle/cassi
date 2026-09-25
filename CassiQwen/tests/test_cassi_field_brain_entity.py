@@ -1078,11 +1078,7 @@ class FieldBrainEntityTest(unittest.TestCase):
                     state["research"]["organism"]["investigations"],
                     perspective,
                 )
-                server = EntityHTTPServer(
-                    ("127.0.0.1", 0),
-                    entity,
-                    api_token="t" * 32,
-                )
+                server = EntityHTTPServer(("127.0.0.1", 0), entity)
                 server_thread = threading.Thread(
                     target=server.serve_forever,
                     daemon=True,
@@ -1097,7 +1093,7 @@ class FieldBrainEntityTest(unittest.TestCase):
                     connection.request(
                         "GET",
                         "/v1/research/status",
-                        headers={"authorization": "Bearer " + "t" * 32},
+                        headers={},
                     )
                     response = connection.getresponse()
                     self.assertEqual(response.status, 200)
@@ -2589,15 +2585,10 @@ class FieldBrainEntityTest(unittest.TestCase):
                     }
                 },
             )
-            server = EntityHTTPServer(
-                ("127.0.0.1", 0), entity, api_token="t" * 32,
-            )
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
-            headers = {
-                "authorization": "Bearer " + "t" * 32,
-                "content-type": "application/json",
-            }
+            headers = {"content-type": "application/json"}
             connection = http.client.HTTPConnection(
                 "127.0.0.1", server.server_address[1], timeout=10,
             )
@@ -2662,7 +2653,7 @@ class FieldBrainEntityTest(unittest.TestCase):
                 thread.join(timeout=10)
                 entity.close()
 
-    def test_http_dwarf_population_evidence_requires_authenticated_source_bound_request(self) -> None:
+    def test_http_dwarf_population_evidence_requires_program_scoped_request(self) -> None:
         with TemporaryDirectory() as temporary:
             home = Path(temporary)
             source_root = home / "dwarf-likelihood-sources"
@@ -2679,7 +2670,7 @@ class FieldBrainEntityTest(unittest.TestCase):
             ):
                 (source_root / filename).write_bytes(b"primary source\n")
             entity, _brain, _memory = self.make_entity(home)
-            server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token="t" * 32)
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
@@ -2697,7 +2688,7 @@ class FieldBrainEntityTest(unittest.TestCase):
                     "POST",
                     "/v1/theory/observations/dwarf-stellar-populations",
                     body=body,
-                    headers={"authorization": "Bearer " + "t" * 32, "content-type": "application/json"},
+                    headers={"content-type": "application/json"},
                 )
                 response = connection.getresponse()
                 result = json.loads(response.read())
@@ -2708,14 +2699,14 @@ class FieldBrainEntityTest(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=10)
-    def test_http_foundational_claim_map_is_authenticated_and_persisted(self) -> None:
+    def test_http_foundational_claim_map_is_program_scoped_and_persisted(self) -> None:
         with TemporaryDirectory() as temporary:
             home = Path(temporary)
             (home / "foundations").mkdir()
             (home / "foundations" / "basis.md").write_text("# Basis\n", encoding="utf-8")
             (home / "reading-guide.md").write_text("# Guide\n", encoding="utf-8")
             entity, _brain, _memory = self.make_entity(home)
-            server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token="t" * 32)
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
@@ -2732,7 +2723,7 @@ class FieldBrainEntityTest(unittest.TestCase):
                             "observed_at": "2026-09-19T00:00:00Z",
                         }
                     ),
-                    headers={"authorization": "Bearer " + "t" * 32, "content-type": "application/json"},
+                    headers={"content-type": "application/json"},
                 )
                 response = connection.getresponse()
                 result = json.loads(response.read())
@@ -2803,21 +2794,17 @@ class FieldBrainEntityTest(unittest.TestCase):
     def test_http_surface_exposes_state_message_and_resumable_events(self) -> None:
         with TemporaryDirectory() as temporary:
             entity, _brain, _memory = self.make_entity(Path(temporary))
-            server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token="t" * 32)
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
                 port = server.server_address[1]
                 connection = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
                 connection.request("GET", "/v1/state")
-                denied = connection.getresponse()
-                self.assertEqual(denied.status, 401)
-                denied.read()
-                headers = {"authorization": "Bearer " + "t" * 32}
-                connection.request("GET", "/v1/state", headers=headers)
                 state = connection.getresponse()
                 self.assertEqual(state.status, 200)
                 self.assertEqual(json.loads(state.read())["profile"], "field-brain")
+                headers = {"content-type": "application/json"}
                 connection.request(
                     "GET",
                     "/v1/memory?limit=7&include_unsettled=false",
@@ -2859,12 +2846,12 @@ class FieldBrainEntityTest(unittest.TestCase):
     def test_http_typed_turn_lifecycle_exposes_typed_events_and_terminal_control(self) -> None:
         with TemporaryDirectory() as temporary:
             entity, _brain, _memory = self.make_entity(Path(temporary))
-            server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token="t" * 32)
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
                 connection = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=10)
-                headers = {"authorization": "Bearer " + "t" * 32, "content-type": "application/json"}
+                headers = {"content-type": "application/json"}
 
                 def post(path: str, value: Mapping[str, Any]) -> tuple[int, Mapping[str, Any]]:
                     connection.request("POST", path, body=json.dumps(value), headers=headers)
@@ -2888,14 +2875,14 @@ class FieldBrainEntityTest(unittest.TestCase):
                 )
                 self.assertEqual(status, 202)
                 self.assertEqual(turn["status"], "committed")
-                connection.request("GET", "/v1/turns/turn-http-1", headers={"authorization": headers["authorization"]})
+                connection.request("GET", "/v1/turns/turn-http-1", headers={})
                 inspected = connection.getresponse()
                 self.assertEqual(inspected.status, 200)
                 self.assertEqual(json.loads(inspected.read())["turn"]["turn_id"], "turn-http-1")
                 connection.request(
                     "GET",
                     "/v1/turns/turn-http-1/events?after=0",
-                    headers={"authorization": headers["authorization"]},
+                    headers={},
                 )
                 events = connection.getresponse()
                 self.assertEqual(events.status, 200)
@@ -2932,12 +2919,12 @@ class FieldBrainEntityTest(unittest.TestCase):
             home = Path(temporary)
             (home / "evidence.txt").write_text("approved observation", encoding="utf-8")
             entity, _brain, _memory = self.make_entity(home)
-            server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token="t" * 32)
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
                 connection = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=10)
-                headers = {"authorization": "Bearer " + "t" * 32, "content-type": "application/json"}
+                headers = {"content-type": "application/json"}
 
                 def post(path: str, value: Mapping[str, Any]) -> tuple[int, Mapping[str, Any]]:
                     connection.request("POST", path, body=json.dumps(value), headers=headers)
@@ -3025,17 +3012,14 @@ class FieldBrainEntityTest(unittest.TestCase):
                 ),
                 brain=None,
             )
-            server = EntityHTTPServer(("127.0.0.1", 0), entity, api_token="t" * 32)
+            server = EntityHTTPServer(("127.0.0.1", 0), entity)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
                 connection = http.client.HTTPConnection(
                     "127.0.0.1", server.server_address[1], timeout=120
                 )
-                headers = {
-                    "authorization": "Bearer " + "t" * 32,
-                    "content-type": "application/json",
-                }
+                headers = {"content-type": "application/json"}
                 connection.request(
                     "GET",
                     "/v1/computers/resources?computer_id=field-qwen:work-memory",
