@@ -1063,7 +1063,12 @@ def _start_resident_stage(state: MutableMapping[str, Any], operation: Mapping[st
     sequence_id = f"{state['identity']['owner_id']}:{state['identity']['member_id']}:{state['identity']['operation_id']}"
     resident_metadata = resident.get("snapshot", {}).get("metadata", {})
     resident_metadata = resident_metadata if isinstance(resident_metadata, Mapping) else {}
-    from .graph_site import NEUTRAL_FIELD_EPOCH_SHA256, NEUTRAL_MEMBRANE_PROFILE, is_local_recurrent_row
+    from .graph_site import (
+        NEUTRAL_FIELD_EPOCH_SHA256,
+        NEUTRAL_MEMBRANE_PROFILE,
+        configured_mode as graph_site_mode,
+        is_local_recurrent_row,
+    )
     dependencies = {
         "tensor_names": _plain(parameters.get("tensor_names", {})),
         "state_effects": _plain(operation.get("state_effects", ())),
@@ -1108,9 +1113,7 @@ def _start_resident_stage(state: MutableMapping[str, Any], operation: Mapping[st
              or method["applicability"].get("position") == position)
         for method in methods.values()
     )
-    configured_mode = state["request"].get("graph_site_modes", {}).get(
-        specialist, "auto" if specialist in {"expert-synthesis", "recurrent-dynamics"} else "off"
-    )
+    configured_mode = graph_site_mode(state["request"].get("graph_site_modes"), specialist)
     graph_verb = (
         ("replace" if eligible else "observe") if configured_mode == "auto"
         else configured_mode if configured_mode == "observe" or eligible else "observe"

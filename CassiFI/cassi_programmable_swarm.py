@@ -2002,19 +2002,15 @@ class ProgrammableSwarm:
             or not isinstance(graph_state.get("methods"), Mapping)
         ):
             return False
-        allowed_specialists = {
-            "expert-synthesis", "recurrent-dynamics", "attention-memory", "execution-choice",
-        }
+        from programs.model.graph_site import SPECIALISTS, configured_mode
+
         for row in graph_state["methods"].values():
             if not isinstance(row, Mapping):
                 continue
             specialist = row.get("specialist")
-            if specialist not in allowed_specialists:
+            if specialist not in SPECIALISTS:
                 continue
-            mode = modes.get(
-                specialist,
-                "auto" if specialist in allowed_specialists else "off",
-            )
+            mode = configured_mode(modes, specialist)
             applicability = row.get("applicability")
             if (
                 mode in {"auto", "replace"}

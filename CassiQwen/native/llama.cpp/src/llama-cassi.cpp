@@ -1996,6 +1996,10 @@ struct llama_cassi_context {
             copy_c_string(descriptor.refusal, refusal);
             sites.push_back(descriptor);
         };
+        // Descriptors name the loaded architecture. Only the qwen35moe graph
+        // builds attention-memory and execution-choice candidates.
+        const std::string architecture = llm_arch_name(model->arch);
+        const bool moe_graph = model->arch == LLM_ARCH_QWEN35MOE;
         for (uint32_t layer_index = 0; layer_index < metadata.layers; ++layer_index) {
             const int32_t layer_id = static_cast<int32_t>(layer_index);
             const auto & layer = model->layers[layer_index];
@@ -2013,15 +2017,18 @@ struct llama_cassi_context {
                 const bool supported = candidate_runtime && layer.ssm_conv1d != nullptr && conv_rows != 0 &&
                     conv_channels != 0 && state_heads != 0 && state_head_width != 0 &&
                     state_width != 0 && input_width <= UINT32_MAX;
+                // Canonical JSON (sorted keys): the owner verifies canonical text,
+                // and the runtime matches candidates to descriptors by exact text.
                 const std::string dependencies =
-                    "{\"architecture\":\"qwen35moe\",\"layer\":" + std::to_string(layer_index) +
-                    ",\"operators\":[\"gdn-convolution\",\"gdn-recurrent-state-update\"]" +
-                    ",\"state_effects\":[\"conv_history\",\"recurrent_state\"]" +
+                    "{\"architecture\":\"" + architecture + "\"" +
+                    std::string(",\"conv_history_channels\":") + std::to_string(conv_channels) +
                     ",\"conv_history_rows\":" + std::to_string(conv_rows) +
-                    ",\"conv_history_channels\":" + std::to_string(conv_channels) +
+                    ",\"layer\":" + std::to_string(layer_index) +
+                    ",\"operators\":[\"gdn-convolution\",\"gdn-recurrent-state-update\"]" +
                     ",\"recurrent_state_heads\":" + std::to_string(state_heads) +
+                    ",\"recurrent_state_key_width\":" + std::to_string(state_head_width) +
                     ",\"recurrent_state_value_width\":" + std::to_string(state_head_width) +
-                    ",\"recurrent_state_key_width\":" + std::to_string(state_head_width) + "}";
+                    ",\"state_effects\":[\"conv_history\",\"recurrent_state\"]}";
                 append(LLAMA_CASSI_SITE_RECURRENT, supported, layer_id,
                     supported ? static_cast<uint32_t>(input_width) : 0,
                     supported ? static_cast<uint32_t>(input_width) : 0,
@@ -2032,16 +2039,17 @@ struct llama_cassi_context {
                 const uint64_t kv_heads = model->hparams.n_head_kv(layer_index);
                 const uint64_t kv_head_width = model->hparams.n_embd_head_v(layer_index);
                 const uint64_t output_width64 = metadata.embedding_width + 2ULL * kv_heads * kv_head_width;
-                const bool supported = candidate_runtime && layer.wo != nullptr &&
+                const bool supported = candidate_runtime && moe_graph && layer.wo != nullptr &&
                     kv_heads != 0 && kv_head_width != 0 &&
                     kv_head_width == model->hparams.n_embd_head_k(layer_index) &&
                     output_width64 <= UINT32_MAX;
                 const std::string dependencies =
-                    "{\"architecture\":\"qwen35moe\",\"layer\":" + std::to_string(layer_index) +
-                    ",\"operators\":[\"attention-qkv\",\"attention-memory-read\",\"attention-memory-write\"]" +
-                    ",\"state_effects\":[\"attention_memory\"]" +
+                    "{\"architecture\":\"" + architecture + "\"" +
+                    std::string(",\"kv_head_width\":") + std::to_string(kv_head_width) +
                     ",\"kv_heads\":" + std::to_string(kv_heads) +
-                    ",\"kv_head_width\":" + std::to_string(kv_head_width) + "}";
+                    ",\"layer\":" + std::to_string(layer_index) +
+                    ",\"operators\":[\"attention-qkv\",\"attention-memory-read\",\"attention-memory-write\"]" +
+                    ",\"state_effects\":[\"attention_memory\"]}";
                 append(LLAMA_CASSI_SITE_ATTENTION_MEMORY, supported, layer_id,
                     supported ? metadata.embedding_width : 0,
                     supported ? static_cast<uint32_t>(output_width64) : 0,
@@ -2061,11 +2069,13 @@ struct llama_cassi_context {
                      layer.ffn_up_shexp != nullptr && layer.ffn_down_shexp != nullptr);
                 const bool supported = candidate_runtime && routed_experts && full_shared;
                 const std::string dependencies =
-                    "{\"architecture\":\"qwen35moe\",\"layer\":" + std::to_string(layer_index) +
+                    "{\"architecture\":\"" + architecture + "\"" +
+                    std::string(",\"expert_count\":") + std::to_string(model->hparams.n_expert) +
+                    ",\"experts_per_token\":" + std::to_string(model->hparams.n_expert_used) +
+                    ",\"layer\":" + std::to_string(layer_index) +
                     ",\"operators\":[\"moe-router\",\"routed-expert-gate-up\",\"routed-expert-down\"" +
                     (any_shared ? ",\"shared-expert-gate-up\",\"shared-expert-down\"" : "") +
-                    "],\"state_effects\":[],\"expert_count\":" + std::to_string(model->hparams.n_expert) +
-                    ",\"experts_per_token\":" + std::to_string(model->hparams.n_expert_used) + "}";
+                    "],\"state_effects\":[]}";
                 append(LLAMA_CASSI_SITE_EXPERTS, supported, layer_id,
                     metadata.embedding_width, metadata.embedding_width,
                     "qwen-experts", "qwen-experts", "expert-synthesis",
@@ -2074,26 +2084,28 @@ struct llama_cassi_context {
             }
         }
         {
-            const bool execution_choice_supported = candidate_runtime;
+            const bool execution_choice_supported = candidate_runtime && moe_graph;
             append(LLAMA_CASSI_SITE_EXECUTION_CHOICE, execution_choice_supported, -1,
                 execution_choice_supported ? metadata.embedding_width : 0,
                 execution_choice_supported ? metadata.vocabulary_size : 0,
                 "qwen-head", "execution-choice", "execution-choice",
-                "head_input", "logits", "{\"architecture\":\"qwen35moe\",\"layer\":-1,\"operators\":[\"lm-head\",\"sampler\"]}",
-                execution_choice_supported ? "" : "execution_choice_requires_owner_publication");
+                "head_input", "logits",
+                "{\"architecture\":\"" + architecture + "\",\"layer\":-1,\"operators\":[\"lm-head\",\"sampler\"]}",
+                execution_choice_supported ? "" :
+                    !candidate_runtime ? "execution_choice_requires_owner_publication" : "execution_choice_unsupported");
         }
         if (model->hparams.n_layer_nextn > 0) {
             append(LLAMA_CASSI_SITE_DEPTH, false, static_cast<int32_t>(metadata.layers),
                 metadata.embedding_width, metadata.embedding_width,
                 "qwen-mtp", "depth", "depth-prediction",
                 "mtp_input", "mtp_successor",
-                "{\"architecture\":\"qwen35moe\",\"operators\":[\"mtp-decoder\"],\"state_effects\":[\"mtp_hidden\",\"attention_memory\"]}",
+                "{\"architecture\":\"" + architecture + "\",\"operators\":[\"mtp-decoder\"],\"state_effects\":[\"mtp_hidden\",\"attention_memory\"]}",
                 "depth_successor_unsupported");
             append(LLAMA_CASSI_SITE_DRAFT, false, static_cast<int32_t>(metadata.layers),
                 metadata.embedding_width, metadata.vocabulary_size,
                 "qwen-mtp", "draft", "draft-verification",
                 "mtp_input", "draft_logits",
-                "{\"architecture\":\"qwen35moe\",\"operators\":[\"mtp-decoder\",\"draft-verification\"]}",
+                "{\"architecture\":\"" + architecture + "\",\"operators\":[\"mtp-decoder\",\"draft-verification\"]}",
                 "draft_acceptance_unsupported");
         }
         return sites;

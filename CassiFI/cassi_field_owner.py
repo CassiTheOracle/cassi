@@ -18404,12 +18404,13 @@ class FieldIntelligenceOwner:
                 # graph names layer -1; every other site is a model layer.
                 or (layer != -1 if kind == 6 else layer < 0)
                 or not isinstance(supported, bool)
+                # A refused site carries no geometry; the owner never selects it.
                 or isinstance(input_width, bool)
                 or not isinstance(input_width, int)
-                or input_width < 1
+                or input_width < (1 if supported else 0)
                 or isinstance(output_width, bool)
                 or not isinstance(output_width, int)
-                or output_width < 1
+                or output_width < (1 if supported else 0)
             ):
                 raise FieldIntelligenceError(
                     "NATIVE_GRAPH_SITE_UNAVAILABLE",
@@ -18829,7 +18830,7 @@ class FieldIntelligenceOwner:
                 "native source has no owner-held graph-site policy",
             )
         try:
-            from programs.model.graph_site import native_program_for_site
+            from programs.model.graph_site import configured_mode, native_program_for_site
         except ImportError as exc:
             raise FieldIntelligenceError(
                 "NATIVE_GRAPH_SITE_UNAVAILABLE",
@@ -18845,6 +18846,12 @@ class FieldIntelligenceOwner:
         selected_index: int | None = None
         selected_invocation: Mapping[str, Any] | None = None
         method_rows = graph_state["methods"]
+        task_request = model_state.get("request")
+        task_modes = (
+            task_request.get("graph_site_modes")
+            if isinstance(task_request, Mapping)
+            else None
+        )
         for site_index, site_record in enumerate(sites):
             if not isinstance(site_record, Mapping):
                 continue
@@ -18875,6 +18882,8 @@ class FieldIntelligenceOwner:
                 or not isinstance(specialist, str)
                 or not isinstance(dependencies, Mapping)
             ):
+                continue
+            if configured_mode(task_modes, specialist) not in {"auto", "replace"}:
                 continue
             descriptor_source = descriptor.get("source_sha256", source_sha256)
             descriptor_sequence = descriptor.get("sequence_id", sequence_id)

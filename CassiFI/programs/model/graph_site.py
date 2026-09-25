@@ -22,6 +22,9 @@ NEUTRAL_MEMBRANE_PROFILE = {"mode": "none", "state_effects": "none"}
 NEUTRAL_FIELD_EPOCH_SHA256 = hashlib.sha256(b"").hexdigest()
 SPECIALISTS = ("expert-synthesis", "recurrent-dynamics", "attention-memory", "execution-choice")
 VERBS = ("observe", "assist", "replace", "propose")
+# Specialists that deploy an admitted method unless the task configures a verb.
+# Attention memory and execution choice deploy only when a task asks for them.
+DEFAULT_AUTO_SPECIALISTS = ("expert-synthesis", "recurrent-dynamics")
 # Executor stage hosting each specialist's native subgraph. Dense Qwen3.5 runs
 # attention and FFN as one layer stage whose first subgraph is the recurrent
 # branch; MoE Qwen3.5 splits attention/route from the expert stage.
@@ -48,6 +51,13 @@ MAX_LOCAL_TRAJECTORY_SAMPLES = 8
 
 class GraphSiteError(ValueError):
     """A graph-site invocation, candidate, or policy is not canonical."""
+
+
+def configured_mode(modes: Any, specialist: str) -> str:
+    """Return a task's verb for one specialist, with the shared default."""
+    if isinstance(modes, Mapping) and specialist in modes:
+        return str(modes[specialist])
+    return "auto" if specialist in DEFAULT_AUTO_SPECIALISTS else "off"
 
 
 def _plain(value: Any) -> Any:
