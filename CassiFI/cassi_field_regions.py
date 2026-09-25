@@ -4062,22 +4062,41 @@ def descriptor(
 
     if not _input_validated:
         validate_field(field, profile, catalog)
+
     flat = field.reshape(-1)
+    total_words = profile.total_words
+    page_words = PERSISTENCE_PAGE_WORDS
+
+    # Pre-calculate slice boundaries to avoid repeated multiplication in the loop
+    # Start indices for each potential page
+    start_indices = range(0, total_words, page_words)
+
     pages: list[dict[str, Any]] = []
-    for index, start in enumerate(
-        range(0, profile.total_words, PERSISTENCE_PAGE_WORDS)
-    ):
-        page = flat[start:start + PERSISTENCE_PAGE_WORDS]
+
+    for index, start in enumerate(start_indices):
+        end = start + page_words
+        # Ensure we don't exceed the total field size
+        if end > total_words:
+            end = total_words
+
+        # Extract page slice
+        page = flat[start:end]
+
+        # Skip empty pages
         if not np.any(page):
             continue
+
+        # Convert to bytes and encode
+        # Note: page size might be less than page_words if we hit the end of the field
         raw = page.astype("<f8", copy=False).tobytes(order="C")
         pages.append(
             {
                 "index": index,
-                "words": int(page.size),
+                "words": len(page),
                 "data_b64": base64.b64encode(raw).decode("ascii"),
             }
         )
+
     return {
         "schema": REGIONAL_SCHEMA,
         "layout": REGIONAL_LAYOUT,
