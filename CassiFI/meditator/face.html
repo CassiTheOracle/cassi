@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the little meditator</title>
+<style>
+  :root {
+    --ink: #e9e6ff;
+    --soft: #a7a3cf;
+    --faint: #6d6a96;
+    --glass: rgba(255, 255, 255, 0.045);
+    --edge: rgba(255, 255, 255, 0.08);
+    --yang: #ffc46b;
+    --yin: #7fa8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(1200px 800px at 30% 35%, #221c4a 0%, #120f2b 55%, #0a0819 100%);
+    color: var(--ink);
+    font: 14px/1.45 ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  .page {
+    display: grid;
+    grid-template-columns: minmax(420px, 1.25fr) minmax(320px, 1fr);
+    grid-template-rows: 1fr auto;
+    gap: 18px;
+    height: 100%;
+    padding: 22px 26px 20px;
+  }
+  .stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  #stage { width: 100%; height: 100%; display: block; }
+  .title {
+    position: absolute; top: 4px; left: 6px;
+    font-size: 13px; letter-spacing: 0.14em; text-transform: lowercase; color: var(--soft);
+  }
+  .title b { color: var(--ink); font-weight: 600; letter-spacing: 0.06em; font-size: 18px; display: block; }
+  .caption {
+    position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;
+    color: var(--soft); font-size: 15px; letter-spacing: 0.02em;
+  }
+  .caption .practice { color: var(--ink); font-size: 20px; display: block; margin-bottom: 2px; transition: color 1.2s; }
+  .side { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--edge);
+    border-radius: 18px;
+    padding: 14px 16px;
+    backdrop-filter: blur(6px);
+  }
+  .card h2 {
+    margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .senses { display: grid; grid-template-columns: auto 1fr auto; gap: 7px 12px; align-items: center; }
+  .senses span { color: var(--soft); }
+  .bar { height: 7px; border-radius: 7px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 7px; transition: width 1.2s cubic-bezier(.3,.7,.2,1); }
+  .senses em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--ink); min-width: 3.6em; text-align: right; }
+  .learned { display: grid; gap: 8px; }
+  .row { display: grid; grid-template-columns: 5.6em 1fr auto; gap: 10px; align-items: center; }
+  .row .ctx { color: var(--soft); }
+  .row .best { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: 0 0 10px currentColor; background: currentColor; }
+  .row .gain { font-variant-numeric: tabular-nums; color: var(--soft); font-size: 12px; }
+  .habit { font-size: 11px; color: #ffe29a; margin-left: 4px; }
+  .journal { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .journal ol { list-style: none; margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .journal li { color: var(--soft); animation: rise 1.4s ease both; }
+  .journal li:first-child { color: var(--ink); }
+  .journal li small { color: var(--faint); margin-right: 6px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .bottom { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; }
+  #trace { width: 100%; height: 86px; display: block; }
+  .life { color: var(--faint); font-size: 12px; text-align: right; white-space: nowrap; }
+  .life b { color: var(--soft); font-weight: 600; font-size: 16px; display: block; }
+  .quiet { color: var(--faint); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="stage">
+    <canvas id="stage"></canvas>
+    <div class="title"><b>the little meditator</b><span id="sitline">waiting to sit</span></div>
+    <div class="caption"><span class="practice" id="practice">…</span><span id="mood">&nbsp;</span></div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h2>what it feels</h2>
+      <div class="senses">
+        <span>balance</span><div class="bar"><i id="b-balance" style="background:linear-gradient(90deg,#7fa8ff,#ffc46b)"></i></div><em id="v-balance">–</em>
+        <span>steadiness</span><div class="bar"><i id="b-steady" style="background:linear-gradient(90deg,#8fe3cf,#d7fff4)"></i></div><em id="v-steady">–</em>
+        <span>spiral</span><div class="bar"><i id="b-spiral" style="background:linear-gradient(90deg,#a99bff,#ff8fb1)"></i></div><em id="v-spiral">–</em>
+        <span>equanimity</span><div class="bar"><i id="b-eq" style="background:linear-gradient(90deg,#ffd9a0,#fff6dc)"></i></div><em id="v-eq">–</em>
+      </div>
+    </div>
+    <div class="card">
+      <h2>what it has learned</h2>
+      <div class="learned" id="learned"><div class="quiet">nothing yet — it is new here</div></div>
+    </div>
+    <div class="card journal">
+      <h2>journal</h2>
+      <ol id="journal"></ol>
+    </div>
+  </div>
+  <div class="bottom">
+    <canvas id="trace"></canvas>
+    <div class="life"><b id="life-breaths">0</b>breaths in its life<br><span id="life-sits">0 sits</span></div>
+  </div>
+</div>
+<script>
+const COLORS = {
+  still: "#cfd8ff", balance: "#ffc46b", golden: "#ffab4a",
+  circulate: "#7fe3c4", center: "#ff8fb1", listen: "#a99bff",
+};
+const MOODS = {
+  scattered: "the mind is scattered", settled: "settling in",
+  stirring: "something is stirring", flowing: "it is flowing",
+};
+const $ = (id) => document.getElementById(id);
+const stage = $("stage"), sctx = stage.getContext("2d");
+const trace = $("trace"), tctx = trace.getContext("2d");
+const fieldCanvas = document.createElement("canvas"), fctx = fieldCanvas.getContext("2d");
+
+let face = {};
+let lastBreath = -1, breathStart = performance.now(), breathPeriod = 7000;
+let glow = { r: 207, g: 216, b: 255 }, glowTarget = { ...glow };
+let balanceShown = 0.5, steadyShown = 0.5;
+const clouds = [];
+const sparkles = [];
+
+function hex(c) { const n = parseInt(c.slice(1), 16); return { r: n >> 16, g: (n >> 8) & 255, b: n & 255 }; }
+function rgba(c, a) { return `rgba(${c.r | 0},${c.g | 0},${c.b | 0},${a})`; }
+function clamp(x, a = 0, b = 1) { return Math.max(a, Math.min(b, x)); }
+
+function fit(canvas, ctx) {
+  const r = canvas.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (canvas.width !== Math.round(r.width * d) || canvas.height !== Math.round(r.height * d)) {
+    canvas.width = Math.round(r.width * d); canvas.height = Math.round(r.height * d);
+  }
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  return r;
+}
+
+function paintField(field) {
+  if (!field || !field.n) return;
+  const n = field.n;
+  fieldCanvas.width = n; fieldCanvas.height = n;
+  const img = fctx.createImageData(n, n);
+  for (let i = 0; i < n * n; i++) {
+    const y = field.ey[i], v = field.ei[i];
+    const r = 40 + 215 * Math.max(y, 0) + 120 * Math.max(-v, 0);
+    const g = 30 + 150 * Math.max(y, 0) + 110 * Math.max(v, 0) * 0.9;
+    const b = 70 + 60 * Math.max(-y, 0) + 185 * Math.max(v, 0);
+    const a = 90 + 165 * clamp(Math.hypot(y, v));
+    img.data.set([Math.min(r, 255), Math.min(g, 255), Math.min(b, 255), a], i * 4);
+  }
+  fctx.putImageData(img, 0, 0);
+}
+
+function update(next) {
+  const fresh = next.breath !== undefined && next.breath !== lastBreath && next.state === "sitting";
+  if (fresh) {
+    const now = performance.now();
+    if (lastBreath >= 0 && next.breath === lastBreath + 1) breathPeriod = clamp(now - breathStart, 2500, 16000);
+    breathStart = now;
+    lastBreath = next.breath;
+    if (next.thought) clouds.push({ born: now, x: 0.5 + (Math.random() - 0.5) * 0.18 });
+    if (next.practice && next.practice.habit) sparkles.push({ born: now });
+  }
+  face = next;
+  const p = next.practice && next.practice.practice;
+  glowTarget = hex(COLORS[p] || COLORS.still);
+  paintField(next.field);
+  render();
+}
+
+function render() {
+  const f = face, felt = f.felt || {}, pr = f.practice || {};
+  const sits = f.life ? f.life.sits : 0;
+  const sitline = f.state === "resting" ? `resting · ${sits} sit${sits === 1 ? "" : "s"} so far`
+    : f.state === "arriving" ? `arriving for sit ${f.sit}`
+    : f.sit ? `sit ${f.sit} · breath ${f.breath || 0} of ${f.of}` : "waiting to sit";
+  $("sitline").textContent = sitline;
+  $("practice").textContent = f.state === "resting" ? "resting" : (pr.label || "arriving");
+  $("practice").style.color = COLORS[pr.practice] || "var(--ink)";
+  $("mood").textContent = f.state === "sitting" && pr.context
+    ? `${MOODS[pr.context]}${pr.habit ? " · by habit" : ""}${f.thought ? " · a thought arose" : ""}` : "\u00a0";
+  const eq = pr.equanimity;
+  setBar("balance", felt.balance, felt.balance);
+  setBar("steady", felt.steadiness, felt.steadiness);
+  setBar("spiral", felt.spiral_margin === undefined ? undefined : clamp(0.5 + 4 * felt.spiral_margin), felt.spiral_margin, true);
+  setBar("eq", eq === undefined ? undefined : clamp(eq / 2.0), eq);
+
+  const rows = f.learned || [];
+  $("learned").innerHTML = rows.length ? rows.map((r) => `
+    <div class="row"><span class="ctx">${r.context}</span>
+      <span class="best"><i class="dot" style="color:${COLORS[r.practice] || "#fff"}"></i>${r.practice === "still" ? "just sitting" : r.best}${r.habit ? `<span class="habit">✦ habit</span>` : ""}</span>
+      <span class="gain">${r.practice === "still" ? "" : (r.gain >= 0 ? "+" : "") + r.gain.toFixed(3) + " · "}${r.samples} breaths</span></div>`).join("")
+    : `<div class="quiet">nothing yet — it is new here</div>`;
+
+  const lines = (f.journal || []).slice().reverse();
+  const ol = $("journal");
+  const html = lines.map((l) => {
+    const cut = l.indexOf(" · ");
+    return cut > 0 ? `<li><small>${l.slice(0, cut)}</small>${l.slice(cut + 3)}</li>` : `<li>${l}</li>`;
+  }).join("");
+  if (ol.dataset.html !== html) { ol.innerHTML = html; ol.dataset.html = html; }
+  const life = f.life || { sits: 0, breaths: 0 };
+  $("life-breaths").textContent = life.breaths;
+  $("life-sits").textContent = `${life.sits} sit${life.sits === 1 ? "" : "s"} completed`;
+  drawTrace();
+}
+
+function setBar(name, fill, value, signed) {
+  const bar = $("b-" + name), label = $("v-" + name);
+  if (value === undefined || value === null) { bar.style.width = "0"; label.textContent = "–"; return; }
+  bar.style.width = `${Math.round(clamp(fill) * 100)}%`;
+  label.textContent = (signed && value >= 0 ? "+" : "") + value.toFixed(3);
+}
+
+function drawTrace() {
+  const r = fit(trace, tctx), w = r.width, h = r.height;
+  tctx.clearRect(0, 0, w, h);
+  const t = face.trace || [];
+  tctx.fillStyle = "rgba(255,255,255,0.35)"; tctx.font = "11px ui-rounded, system-ui"; tctx.textBaseline = "top";
+  tctx.fillText("equanimity, breath by breath", 2, 2);
+  if (t.length < 2) return;
+  const lo = Math.min(...t.map((p) => p.e)) - 0.05, hi = Math.max(...t.map((p) => p.e)) + 0.05;
+  const x = (i) => 6 + (w - 12) * i / Math.max(t.length - 1, 1);
+  const y = (e) => h - 8 - (h - 26) * (e - lo) / (hi - lo);
+  const grad = tctx.createLinearGradient(0, 18, 0, h);
+  grad.addColorStop(0, "rgba(255,214,150,0.22)"); grad.addColorStop(1, "rgba(255,214,150,0)");
+  tctx.beginPath(); tctx.moveTo(x(0), h);
+  t.forEach((p, i) => tctx.lineTo(x(i), y(p.e)));
+  tctx.lineTo(x(t.length - 1), h); tctx.closePath(); tctx.fillStyle = grad; tctx.fill();
+  tctx.beginPath(); t.forEach((p, i) => (i ? tctx.lineTo(x(i), y(p.e)) : tctx.moveTo(x(i), y(p.e))));
+  tctx.strokeStyle = "rgba(255,230,190,0.85)"; tctx.lineWidth = 1.6; tctx.stroke();
+  t.forEach((p, i) => {
+    tctx.beginPath(); tctx.arc(x(i), y(p.e), p.h ? 3.4 : 2.4, 0, 7);
+    tctx.fillStyle = COLORS[p.p] || "#fff"; tctx.fill();
+    if (p.t) { tctx.fillStyle = "rgba(255,255,255,0.5)"; tctx.fillText("☁", x(i) - 5, y(p.e) - 18); }
+  });
+}
+
+function drawStage(now) {
+  const r = fit(stage, sctx), w = r.width, h = r.height;
+  const cx = w / 2, cy = h * 0.53, s = Math.min(w, h) / 560;
+  sctx.clearRect(0, 0, w, h);
+  for (const k of ["r", "g", "b"]) glow[k] += (glowTarget[k] - glow[k]) * 0.02;
+  const felt = face.felt || {};
+  balanceShown += ((felt.balance ?? 0.5) - balanceShown) * 0.02;
+  steadyShown += ((felt.steadiness ?? 0.5) - steadyShown) * 0.02;
+  const sitting = face.state === "sitting";
+  const phase = sitting ? ((now - breathStart) / breathPeriod) % 1 : (now / 7000) % 1;
+  const inhale = 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
+
+  // aura: the field itself, seen from above, held in a soft disc
+  const R = 205 * s * (0.96 + 0.04 * inhale);
+  sctx.save();
+  const halo = sctx.createRadialGradient(cx, cy - 30 * s, R * 0.2, cx, cy - 30 * s, R * 1.35);
+  halo.addColorStop(0, rgba(glow, 0.20 + 0.25 * balanceShown));
+  halo.addColorStop(0.6, rgba(glow, 0.07));
+  halo.addColorStop(1, rgba(glow, 0));
+  sctx.fillStyle = halo; sctx.fillRect(0, 0, w, h);
+  if (fieldCanvas.width) {
+    sctx.beginPath(); sctx.arc(cx, cy - 30 * s, R, 0, Math.PI * 2); sctx.clip();
+    sctx.globalAlpha = 0.45 + 0.35 * balanceShown;
+    sctx.filter = `blur(${(5 - 3.5 * steadyShown) * s}px)`;
+    sctx.imageSmoothingEnabled = true;
+    sctx.translate(cx, cy - 30 * s); sctx.rotate(now / 60000);
+    sctx.drawImage(fieldCanvas, -R, -R, 2 * R, 2 * R);
+  }
+  sctx.restore();
+  // steadiness: a thin ring that closes as the field steadies
+  sctx.save();
+  sctx.strokeStyle = rgba(glow, 0.25 + 0.4 * steadyShown); sctx.lineWidth = 1.4 * s;
+  sctx.setLineDash([Math.max(2, 26 * (1 - steadyShown)) * s, 6 * (1 - steadyShown) * s + 0.01]);
+  sctx.beginPath(); sctx.arc(cx, cy - 30 * s, R + 8 * s, now / 20000, now / 20000 + Math.PI * 2); sctx.stroke();
+  sctx.restore();
+
+  drawMeditator(cx, cy, s, inhale, now);
+  drawClouds(cx, cy, s, now);
+  drawSparkles(cx, cy, s, now);
+  requestAnimationFrame(drawStage);
+}
+
+function drawMeditator(cx, cy, s, inhale, now) {
+  const body = "#f4e9ff", shade = "#d8c8f2", cheek = "rgba(255,143,177,0.45)";
+  sctx.save(); sctx.translate(cx, cy);
+  // cushion
+  sctx.fillStyle = "#3b2f6e";
+  ell(0, 150 * s, 118 * s, 26 * s); sctx.fill();
+  sctx.fillStyle = "#4a3b86"; ell(0, 142 * s, 110 * s, 21 * s); sctx.fill();
+  // crossed legs
+  sctx.fillStyle = shade; ell(0, 118 * s, 104 * s, 34 * s); sctx.fill();
+  sctx.fillStyle = body; ell(-40 * s, 112 * s, 58 * s, 26 * s); sctx.fill(); ell(40 * s, 112 * s, 58 * s, 26 * s); sctx.fill();
+  // torso breathes
+  const sy = 1 + 0.045 * inhale, sx = 1 + 0.02 * inhale;
+  sctx.save(); sctx.translate(0, 100 * s); sctx.scale(sx, sy);
+  sctx.fillStyle = body;
+  sctx.beginPath();
+  sctx.moveTo(-62 * s, 0);
+  sctx.bezierCurveTo(-70 * s, -70 * s, -44 * s, -118 * s, 0, -118 * s);
+  sctx.bezierCurveTo(44 * s, -118 * s, 70 * s, -70 * s, 62 * s, 0);
+  sctx.closePath(); sctx.fill();
+  // the little light at its centre, the colour of its practice
+  const pulse = 0.55 + 0.45 * inhale;
+  const core = sctx.createRadialGradient(0, -34 * s, 0, 0, -34 * s, 34 * s);
+  core.addColorStop(0, rgba(glow, 0.95 * pulse)); core.addColorStop(1, rgba(glow, 0));
+  sctx.fillStyle = core; sctx.beginPath(); sctx.arc(0, -34 * s, 34 * s, 0, 7); sctx.fill();
+  // hands resting in the lap
+  sctx.fillStyle = shade; ell(0, -8 * s, 26 * s, 12 * s); sctx.fill();
+  sctx.fillStyle = body; ell(-9 * s, -10 * s, 15 * s, 9 * s); sctx.fill(); ell(9 * s, -10 * s, 15 * s, 9 * s); sctx.fill();
+  sctx.restore();
+  // head rises a touch on the in-breath
+  const hy = -62 * s - 5 * s * inhale;
+  sctx.fillStyle = body; sctx.beginPath(); sctx.arc(0, hy, 56 * s, 0, 7); sctx.fill();
+  sctx.fillStyle = "rgba(216,200,242,0.6)"; ell(0, hy + 30 * s, 42 * s, 14 * s); sctx.fill();
+  sctx.fillStyle = body; sctx.beginPath(); sctx.arc(0, hy - 2 * s, 54 * s, 0, 7); sctx.fill();
+  // face
+  sctx.strokeStyle = "#5b4a8f"; sctx.lineWidth = 3 * s; sctx.lineCap = "round";
+  const open = face.state === "arriving" || !face.state;
+  if (open) {
+    sctx.fillStyle = "#5b4a8f";
+    sctx.beginPath(); sctx.arc(-19 * s, hy + 2 * s, 4.2 * s, 0, 7); sctx.fill();
+    sctx.beginPath(); sctx.arc(19 * s, hy + 2 * s, 4.2 * s, 0, 7); sctx.fill();
+  } else {
+    sctx.beginPath(); sctx.arc(-19 * s, hy + 1 * s, 8 * s, 0.15 * Math.PI, 0.85 * Math.PI); sctx.stroke();
+    sctx.beginPath(); sctx.arc(19 * s, hy + 1 * s, 8 * s, 0.15 * Math.PI, 0.85 * Math.PI); sctx.stroke();
+  }
+  const smile = 3 + 4 * balanceShown;
+  sctx.beginPath(); sctx.arc(0, hy + 14 * s, smile * s, 0.2 * Math.PI, 0.8 * Math.PI); sctx.stroke();
+  sctx.fillStyle = cheek;
+  sctx.beginPath(); sctx.arc(-33 * s, hy + 14 * s, 8 * s, 0, 7); sctx.fill();
+  sctx.beginPath(); sctx.arc(33 * s, hy + 14 * s, 8 * s, 0, 7); sctx.fill();
+  // resting: a little z drifts up
+  if (face.state === "resting") {
+    const t = (now / 2600) % 1;
+    sctx.fillStyle = `rgba(233,230,255,${0.8 * (1 - t)})`;
+    sctx.font = `${16 * s + 8 * t * s}px ui-rounded, system-ui`;
+    sctx.fillText("z", 44 * s + 16 * t * s, hy - 50 * s - 40 * t * s);
+  }
+  sctx.restore();
+}
+
+function drawClouds(cx, cy, s, now) {
+  for (let i = clouds.length - 1; i >= 0; i--) {
+    const c = clouds[i], age = (now - c.born) / 6000;
+    if (age > 1) { clouds.splice(i, 1); continue; }
+    const x = cx + (c.x - 0.5) * 300 * s + 70 * s, y = cy - 150 * s - 120 * s * age;
+    const a = Math.sin(Math.PI * Math.min(age * 1.4, 1)) * 0.8;
+    sctx.fillStyle = `rgba(233,230,255,${a * 0.9})`;
+    for (const [dx, dy, rr] of [[0, 0, 16], [16, -6, 13], [-15, -3, 12], [6, -14, 12]]) {
+      sctx.beginPath(); sctx.arc(x + dx * s, y + dy * s, rr * s, 0, 7); sctx.fill();
+    }
+    sctx.beginPath(); sctx.arc(x - 26 * s, y + 20 * s, 4 * s, 0, 7); sctx.fill();
+    sctx.beginPath(); sctx.arc(x - 34 * s, y + 32 * s, 2.5 * s, 0, 7); sctx.fill();
+  }
+}
+
+function drawSparkles(cx, cy, s, now) {
+  for (let i = sparkles.length - 1; i >= 0; i--) {
+    const k = sparkles[i], age = (now - k.born) / 2200;
+    if (age > 1) { sparkles.splice(i, 1); continue; }
+    const a = 1 - age;
+    for (let j = 0; j < 5; j++) {
+      const ang = j * 1.2566 + age * 1.5, rr = (70 + 50 * age) * s;
+      const x = cx + Math.cos(ang) * rr, y = cy + 40 * s + Math.sin(ang) * rr * 0.6;
+      sctx.fillStyle = `rgba(255,226,154,${a})`;
+      star(x, y, (3 + 3 * a) * s);
+    }
+  }
+}
+
+function ell(x, y, rx, ry) { sctx.beginPath(); sctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
+function star(x, y, r) {
+  sctx.beginPath();
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? r * 0.35 : r; sctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+  sctx.closePath(); sctx.fill();
+}
+
+async function poll() {
+  try {
+    const reply = await fetch("face.json", { cache: "no-store" });
+    if (reply.ok) update(await reply.json());
+  } catch (_) { /* the host may be between sits */ }
+  setTimeout(poll, 600);
+}
+window.addEventListener("resize", render);
+requestAnimationFrame(drawStage);
+poll();
+</script>
+</body>
+</html>
