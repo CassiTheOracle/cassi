@@ -53,6 +53,8 @@ CassiQwen/native/llama.cpp/*.obj
 CassiQwen/node_modules/
 CassiQwen/surface/native_windows/bin/
 CassiQwen/surface/native_windows/obj/
+CassiQwen/desktop_companion_host/bin/
+CassiQwen/desktop_companion_host/obj/
 
 # CassiQwen generated captures, schema extracts, and local receipts.
 CassiQwen/all-layer-hidden-state-capture.json
