@@ -1,6 +1,6 @@
 # Cassi Answers to the Open Questions of Physics
 
-## Status: Comprehensive catalog—September 2026
+## Status: Comprehensive catalog—2026-09-25
 
 ## Abstract
 
@@ -199,7 +199,7 @@ Under homogeneous conversion-only dynamics with advection, diffusion, and other 
 
 ### The Pinch—A Hypothesized Threshold at $r = \varphi^{-1}$
 
-At $r = \varphi^{-1} \approx 0.618$, the framework specifies a **Hypothesized** pinch threshold in a phenomenological/coordinate mapping. The Yang-outward role label, self-reference, and consciousness interpretation are Hypothesized closures; the cosmological association with $z \approx 19$ is a mapped/conditional application claim. The canonical conversion supplies relaxation toward its fixed ratio, while a qualitative phase-transition reading requires additional closure.
+At $r = \varphi^{-1} \approx 0.618$, the framework specifies a **Hypothesized** pinch threshold in a phenomenological/coordinate mapping. The Yang-outward role label, self-reference, and consciousness interpretation are Hypothesized closures; the cosmological association with $z \approx 19$ is a mapped/conditional application claim. The canonical conversion supplies relaxation toward its fixed ratio, while a qualitative phase-transition reading requires additional closure. A local-pulse complexity test (2026-09-25, `two-fluid/run_zap_and_zip.py`) finds the gate's self-feedback contributes nothing measurable to the pulse response—the registered gate-mechanism prediction is **NULL**—while the two states differ sharply in how they carry the pulse (SEPARATED, gate-independent perturbation growth; `consciousness/consciousness-from-phi.md` §2.1).
 
 ### The String and the Spiral
 
@@ -2681,7 +2681,7 @@ Cassi supplies an operational candidate for access consciousness: selected conte
 
 | **Cassi Answer** | Access consciousness is a bounded physical-becoming loop in which embodied history and action-conditioned futures guide present commitment and prediction-error learning; phenomenal experience remains an open bridge problem |
 | **Mechanism** | Maintained body and reserve $\rightarrow$ boundary sensing $\rightarrow$ ordered history $\rightarrow$ shadow futures $\rightarrow$ finite attention and commitment $\rightarrow$ resource-debited action $\rightarrow$ prediction-error update |
-| **Epistemic** | **Hypothesized architecture / Derived canonical reduction**—the two-fluid conversion has an exact gradient-flow embedding; embodiment, branch causality, debit, learning, and access-conscious integration await the registered gates in `foundations/physical-becoming-hierarchy.md`; the pinch two-point test is NULL and the two-bubble correlation is a static-geometry protocol feature |
+| **Epistemic** | **Hypothesized architecture / Derived canonical reduction**—the two-fluid conversion has an exact gradient-flow embedding; embodiment, branch causality, debit, learning, and access-conscious integration await the registered gates in `foundations/physical-becoming-hierarchy.md`; the pinch two-point test is NULL and the two-bubble correlation is a static-geometry protocol feature; the zap-and-zip campaign (2026-09-25) finds the gate mechanism contributes nothing measurable to a local pulse's echo (NULL) while the pinch states themselves differ sharply in complexity and perturbation growth (SEPARATED, gate-independent; `audit.md` §12) |
 | **Reference** | `foundations/physical-becoming-hierarchy.md` §§3–9; `consciousness/consciousness-from-phi.md` |
 
 ### M2: Mind-brain relation

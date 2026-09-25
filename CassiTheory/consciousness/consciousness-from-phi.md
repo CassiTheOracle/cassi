@@ -1,6 +1,6 @@
 # Consciousness in the Two-Fluid Framework
 
-## Status: Derived (pinch crossover §1.1; 26-step cascade arithmetic/index span §1.2) / Hypothesized (optional spatial wake closure §1.3; consciousness mappings §2; static two-bubble geometry §3; dynamical revival null)—August 2026
+## Status: Derived (pinch crossover §1.1; 26-step cascade arithmetic/index span §1.2) / Hypothesized (optional spatial wake closure §1.3; consciousness mappings §2; static two-bubble geometry §3; dynamical revival null)—2026-09-25
 
 ## Abstract
 
@@ -131,6 +131,8 @@ Operational self-modeling requires the causal loop in `foundations/physical-beco
 The fact that $q(E_Y,E_I)$ modulates the field's own conversion rate is ordinary state-dependent dynamics. Self-reference in the cognitive sense requires the system to carry a body-indexed model that predicts consequences of its own candidate actions. Identity is then the slowly maintained body/history/model configuration tested under perturbation and interruption (`consciousness/gender-as-qi-configuration.md` §2). The pinch interpretation remains a phenomenological coordinate mapping inside that larger architecture.
 
 **Tested prediction (2026-08-05):** A PDE initialized at $r<\varphi^{-1}$ and evolved through the pinch does not develop two-point correlation peaks at $\varphi$-scaled separations. The field crosses the pinch cleanly ($t_c=8.8$, $\bar r$: $0.5\rightarrow1.19$), while pre- and post-crossing correlation structure is indistinguishable and the above-pinch counterfactual is featureless. The registered prediction is **NULL**. Script: `two-fluid/run_pinch_correlation.py`; the run record is not retained in this checkout.
+
+**Tested prediction (2026-09-25):** A local balance-shift pulse to the canonical pinch-test field, read the way Massimini's zap-and-zip protocol reads a brain's evoked complexity (PCI, Casali et al. 2013, *Sci Transl Med* 5:198ra105), does not show the gate's self-feedback driving the response: above-pinch PCI with the gate live beats the same state with the gate switched off at the pulse by only 0.0007 ($\sigma=0.02$, 640 trials), short of the registered $\geq 0.05$ margin, so the primary verdict is **NULL**. At $\sigma=0.005$ (site c1, gate live) the two states still differ sharply—PCI 0.484 above the pinch versus 0.141 below, on either side of the human TMS-EEG cutoff $\mathrm{PCI}^*=0.31$ (reported as context, not part of the verdict)—with an echo that is widespread and late-peaking above the pinch and local and immediate below it. An expansion-frozen follow-up (`two-fluid/run_zap_expansion.py`, 128 trials) finds the faster Hubble drag below the pinch ($H=0.059$ vs $0.010$) carries about a quarter of that gap (**SHARED**). A perturbation-growth test (`two-fluid/run_zap_chaos.py`, 32 twin pairs) finds the flow's separation from an unperturbed twin grows about 2.5× faster above the pinch than below it in every pair (**SEPARATED**) and is gate-independent (**GATE-INDEPENDENT**, $|\Delta\Lambda| < 0.05$ in both states). Scripts: `two-fluid/run_zap_and_zip.py`, `two-fluid/run_zap_expansion.py`, `two-fluid/run_zap_chaos.py`; the run records are not retained in this checkout. The pinch–anesthesia coordinate mapping stays Hypothesized; the gate-mechanism prediction is NULL.
 
 ### 2.2 Thought as Wake Wave
 
