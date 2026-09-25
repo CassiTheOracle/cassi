@@ -243,25 +243,45 @@ class ExcitableConstraintController:
 
         if not isinstance(field, np.ndarray):
             raise ExcitableConstraintError("excitable field must be a numpy array")
-        if field.dtype != np.dtype(np.float64) or field.ndim != 1:
+        if field.dtype != np.float64 or field.ndim != 1:
             raise ExcitableConstraintError(
                 "excitable field must be a one-dimensional float64 numpy array"
             )
-        if tuple(field.shape) != self.profile.shape:
+        if field.shape != self.profile.shape:
             raise ExcitableConstraintError("excitable field has an invalid shape")
-        if not np.isfinite(field).all() or not np.equal(field, np.floor(field)).all():
+
+        # Vectorized checks for finite, integer, and range constraints
+        if not np.isfinite(field).all():
+            raise ExcitableConstraintError("excitable field must contain finite exact integers")
+        if not np.equal(field, np.floor(field)).all():
             raise ExcitableConstraintError("excitable field must contain finite exact integers")
         if np.any(np.abs(field) > _SAFE_INTEGER):
             raise ExcitableConstraintError("excitable field exceeds exact float64 integer range")
 
         size = self.profile.size
         scale = self.profile.scale
-        for lane in range(_LANES):
-            values = field[lane * size : (lane + 1) * size]
-            if np.any(values < 0) or np.any(values > scale):
-                raise ExcitableConstraintError("excitable lane value is outside the fixed-point range")
+        lane_count = _LANES
 
-        header = field[_LANES * size :]
+        # Reshape lane data into 2D for bulk validation
+        # field[:_LANES * size] contains the lane data
+        lane_data = field[:lane_count * size]
+        if lane_data.size != lane_count * size:
+            # This should not happen if shape check passed, but for safety
+            raise ExcitableConstraintError("excitable field has an invalid shape")
+
+        # Reshape to (num_lanes, size_per_lane)
+        # Note: field is 1D, so we reshape the slice
+        lanes_2d = lane_data.reshape((lane_count, size))
+
+        # Check if any lane has values < 0 or > scale
+        if np.any(lanes_2d < 0) or np.any(lanes_2d > scale):
+            raise ExcitableConstraintError("excitable lane value is outside the fixed-point range")
+
+        # Header is the remaining part
+        header_start = lane_count * size
+        header = field[header_start:]
+
+        # Direct integer conversion for header fields to avoid np.any overhead
         if int(header[_H_MAGIC]) != _MAGIC:
             raise ExcitableConstraintError("excitable field magic is invalid")
         if int(header[_H_SIZE]) != size:
@@ -270,9 +290,12 @@ class ExcitableConstraintController:
             raise ExcitableConstraintError("stored scale disagrees with the profile")
         if int(header[_H_RESERVED]) != 0:
             raise ExcitableConstraintError("excitable header padding must be zero")
+
+        # Check counter coordinates for negative values
         for coordinate in _COUNTER_COORDINATES:
-            if header[coordinate] < 0:
+            if int(header[coordinate]) < 0:
                 raise ExcitableConstraintError("excitable counters cannot be negative")
+
         if int(header[_H_TICKS]) > self.profile.max_ticks:
             raise ExcitableConstraintError("tick counter exceeds the profile bound")
 
