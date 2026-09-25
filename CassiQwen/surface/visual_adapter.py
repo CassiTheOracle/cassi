@@ -300,7 +300,12 @@ def _channel(pixel: memoryview, offset: int, layout: str) -> tuple[int, int, int
 
 def _features(pixels: bytearray, *, width: int, height: int, layout: str, bpp: int,
               regions: list[tuple[int, int, int, int]], redact_all: bool) -> list[dict[str, Any]]:
-    grid = 4 if min(width, height) >= 4 else 2 if min(width, height) >= 2 else 1
+    grid = (
+        8 if min(width, height) >= 8
+        else 4 if min(width, height) >= 4
+        else 2 if min(width, height) >= 2
+        else 1
+    )
     redacted = [redact_all or _cell_redacted(x, y, grid, width, height, regions)
                 for y in range(grid) for x in range(grid)]
     sums = [[0, 0, 0] for _ in range(grid * grid)]
@@ -545,7 +550,7 @@ def analyze_field_surface_page(owner: Any, publication: Mapping[str, Any]) -> di
             "redacted_region_count": len(regions),
             **accessibility_privacy,
             "unknown_or_unlocalized_regions": unknown_regions,
-            "redacted_cell_policy": "mask-intersecting-4x4-cells-and-all-ancestors",
+            "redacted_cell_policy": f"mask-intersecting-{features[0]['grid']}x{features[0]['grid']}-cells-and-all-ancestors",
             "raw_pixels_returned": False,
         },
         "instrument_provenance": instrument,

@@ -8,12 +8,19 @@ CassiQwen integrates the persistent CassiFI mind with a live pretrained llama.cp
 The current development direction is the [complete autonomous researcher](../CASSI-ENTITY-DESIGN.md): use Cassi's established learning to run continuing research programs. The experiment results below remain evidence and history, not a requirement to repeat learning, transfer, or displacement campaigns before implementing the researcher.
 
 The [Surface body](../CASSI-SURFACE-DESIGN.md) connects authorized application
-observations and effects to this same entity and continuing field. A field-native
-canvas has been exercised through the authenticated program API and observing
-workspace, including exact effect replay and human takeover. Windows capture
-and Linux RFB/portal backends are implemented but not deployed or verified
-against live desktops here; the configured Qwen has no visual input. An
-unavailable capability is reported rather than simulated.
+observations and effects to this same entity and continuing field. The
+[desktop companion](../CASSI-DESKTOP-COMPANION-DESIGN.md) offers an opt-in,
+source-selected Windows watch surface and an independent native stop bar.
+Windows Graphics Capture, foreground gating, the local chooser, and the bar
+have been exercised against an isolated owned window. With
+`--vision-projector-path`, the local projector produces image-token embeddings
+inside the resident Qwen visual encoder and owner-held neural graph; image
+pixels remain inside Cassi's authorized source path. The owned-window run
+verified its visual field sites, source-linked Moment admission, and resident
+token-stage execution. A 432×83 owned crop took 47.6 minutes and returned
+`3`. Accurate image reading and useful latency remain unresolved.
+Linux RFB/portal backends remain separately configured and have not been
+verified against a live desktop here.
 
 The [Universal Latent Reasoning System design](LATENT-REASONING-DESIGN.md)
 specifies the full integration with CassiFI: portable reasoning, model-specific
@@ -57,6 +64,17 @@ snapshots cross the host boundary. Vectors wider than the fixed 65,536-mode
 active bank are exchanged in deterministic chunks, preserving the other field
 workspace and immutable model weights.
 
+The optional `--ngram-table-path` selects the first Qwen3.8-Flash-Next GGUF
+shard. The resident client checks tokenizer identity and retrieves the 16
+hashed Q5_0 rows for each visible token prefix without loading the table onto
+the GPU. The owner's `enable-ngram` operation binds a zero-effect readout to
+the brain and table digests; `learn-ngram` updates field-held coefficients from
+measured next-token feedback. The readout acts at the output head after the
+ordinary membrane exchange. A one-observation trial improved the target-token
+margin on two unseen prefixes by 0.0033 and 0.0017 logits; shuffled-row and
+hidden-only controls had mixed outcomes, so broader predictive gain remains
+unmeasured.
+
 Ordinary `ResidentQwenClient.complete` submits an unadvanced task, then
 `run_to_boundary` carries all stages at the same token position through one
 private membrane epoch. Intermediate stage receipts bind their exchange sites
@@ -78,6 +96,16 @@ then distinguishes observation, derivation, hypothesis, contradiction, or
 no-result before the updated frontier returns through the same owner. This
 continues independently of caller-triggered self-question requests.
 
+Each completed research step now joins the selected methods, exact result
+digest, observed artifact or deliverable coverage, and measured planning,
+action, and synthesis time in the same field `Assessment` and field-owned
+workbench method. The next decision sees that outcome and can investigate
+repeated costly steps as optimization questions within the program's mission.
+Method use is recorded as an association; comparisons between like work
+establish whether a change actually improved performance. The field agenda
+resumes its ranking across bounded native-work quanta, so a one-work quantum
+can still select the next obligation.
+
 The entity can host NetHack and canonical trading as programme-scoped
 activities. Start the server with `--enable-nethack-activity` to offer bounded
 `nethack/play-life`; the game borrows the resident brain and work memory and
@@ -92,6 +120,13 @@ operations it may use. Registration starts neither a game nor a trading
 worker. Both activities write source-bound receipts under the entity data home,
 file outcomes in its work memory, and share its serialized field owner. There
 is no live order operation.
+
+Each new simulated paper step also makes its source-linked market, field
+decision, pending signal, subsequent settlement, and actual paper account
+available to the same programme's research workbench. The active brain can
+calculate across signal and execution records with the existing research
+method tools and retain the method in the field. See `CassiTrading/README.md`
+for a trading mathematics mission and the exact causal evidence exposed.
 
 The host side is execution machinery rather than another learned mind:
 request digests, intent/result/admission states, immutable artifacts,
@@ -188,12 +223,12 @@ Run the ordinary entity directly on the local resident GGUF:
 python cassi_field_brain_server.py \
   --data-home _diag/field-brain-entity \
   --model-path Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf \
-  --api-token-file _diag/field-brain-entity/api-token \
   --capability-root .. \
   --research-root .. \
   --port 8090
 ```
 
+The entity API has no bearer authentication and binds only to `127.0.0.1`.
 Startup inspects and hash-binds the complete GGUF before work is admitted.
 That verified manifest is reused by the package, executor, and weight bank only
 while the source file's stat identity is unchanged, so the first request does
@@ -205,17 +240,76 @@ The entity records the chosen model identity and backend in its durable state.
 Existing conversational turns retain their declared `enable_thinking: false`
 policy; resident research planning and synthesis request thinking explicitly.
 
+### Desktop companion (Windows opt-in)
+
+Add `--enable-desktop-companion` to the entity command above in an interactive
+Windows session. This registers the local Windows helper; it does not start
+watching. Open `http://127.0.0.1:8090/companion/` and select the exact windows
+to include. Previews load only when requested in the local chooser.
+Review the displayed processing, visual-capability, and retention agreement before selecting **Watch with me** or **Suggest**. Collection
+follows only a selected foreground window; another window suspends it. A quiet
+window may yield no new Windows Graphics Capture frame: the earlier image stays
+historical, and its capture age continues to grow.
+
+For native image interpretation, use the default resident brain and pass the
+matching local projector path alongside `--enable-desktop-companion`:
+
+```text
+--vision-projector-path mmproj-Qwen3.6-35B-A3B-Q8_0.gguf
+```
+
+The resident visual encoder processes authorized image pages as part of the
+same Qwen graph and owner-held neural membrane used for text. No llama-server
+vision service is required, and image pixels are never sent to an HTTP model
+endpoint. The explicit `--brain-backend external` baseline is text-only and
+does not accept a vision projector. Without a usable projector, image
+understanding is reported unavailable while selected-window previews remain
+local to the companion.
+
+Run the optional Windows bar from this directory without entity credentials:
+
+```text
+dotnet run --project desktop_companion_host/CassiCompanion.csproj -- --port 8090
+```
+
+The bar keeps the source, capture age, and interpretation age visible and offers
+**Pause**, **Resume**, and **Finish** independently of model inference. Closing
+the browser view does not itself stop the companion; use a stop control. Quitting
+the bar requests Finish and reports if the stop cannot be confirmed. Reconnection
+and source restart require current-source validation before watching resumes.
+Mission approvals use the local same-origin workspace consent flow: each
+delegated window lists the exact mission, source, operations, expiry, and update
+limit. Human control requires a separate explicit in-page confirmation. No
+entity API bearer token or human-token file is used.
+
+The **Living field** link opens the read-only embodied view. It fetches
+`/v1/embodied-field` from the same entity and shows owner generation, declared
+layout, recorded core/mantle/fringe roles, scoped concerns, circulation, meaning
+references, and root working-field organization. Capture, freeze, replay, compare,
+palette, and reduced-motion settings stay in this browser session and do not
+submit research actions. Missing layout coordinates or source bindings are
+identified in the view rather than illustrated as observed field geometry.
+Research activity opens and develops a working field under the existing Program;
+its assessed result enters the root through an active-source-verified reference.
+Program Pause interrupts scoped resident generation before the control transition;
+Resume allows unfinished research to replan.
+
 ### Resident research programs
 
 `POST /v1/programs` admits a mission with `request_id`, `program_id`,
 `project_id`, `title`, `mission`, `initial_question`, and `observed_at`.
 Optional fields are `priority`, `cycle_limit`, `allowed_roots`,
-`allowed_tools`, and `network_hosts`. The returned program is already durable
-in the field; its first investigation runs asynchronously. Inspect it with
+`allowed_tools`, `network_hosts`, and `standing`. A standing program remains
+responsible for its question as new observations arrive; a research cycle can
+finish while the program stays active for the next observation. The returned
+program is already durable in the field; its first investigation runs
+asynchronously. Inspect it with
 `GET /v1/programs/<id>` or the complete portfolio with `GET /v1/programs`.
 `POST /v1/programs/<id>/guidance` adds an owner-retained instruction.
 `POST /v1/programs/<id>/control` accepts `pause`, `resume`, `cancel`,
-`complete`, or `wake`. Activity is resumable through
+`complete`, `wake`, or `continue`. `continue` reopens a completed program in
+place as standing work with a new frontier question, retaining its sources,
+methods, workbench, and program identity. Activity is resumable through
 `GET /v1/programs/<id>/events?after=<sequence>&wait=<seconds>`.
 
 Each program may declare `responsibility` with `affected` (a nonempty list),
@@ -230,29 +324,39 @@ Open reports can reopen a completed program and guide its next question
 within its declared cycle limit; a report is kept distinct from a verified
 human outcome.
 
-The authenticated entity also connects `CassiMindField/redesign_lab.py` to
-the continuing field owner. Set `CASSI_FIELD_OWNER_URL` (default
-`http://127.0.0.1:8080`) and `CASSI_FIELD_OWNER_TOKEN_FILE` to a file
-containing the entity API bearer token, then run the redesign command with an
-isolated `--data-home`. Its first successful generation registers a
-field-owned responsibility program and records a linked consequence report
-for each affected group. A later `--research-cycle` fetches a fresh snapshot
-and pauses before creating a successor while any linked report remains open.
-Review each report in the authenticated Research Workspace; closing one
-requires a same-group report linked to its assessment ID with `observed`
-status and no follow-up. Reports remain caller-reported, never independent
-proof of human outcomes.
-
+The local entity also connects `CassiMindField/redesign_lab.py` to the
+continuing field owner. Set `CASSI_FIELD_OWNER_URL` (default
+`http://127.0.0.1:8090`) to select the loopback entity, then run the redesign
+command with an isolated `--data-home`. Calls use the loopback API without an
+entity bearer token. Its first successful generation registers a field-owned
+responsibility program and records a linked consequence report for each
+affected group. A later `--research-cycle` fetches a fresh snapshot and pauses
+before creating a successor while any linked report remains open. Review each
+report in the Research Workspace; closing one requires a same-group report
+linked to its assessment ID with `observed` status and no follow-up. Reports
+remain caller-reported, never independent proof of human outcomes.
 The autonomous source, self-host, workspace, patch-set, and impact rewrite
-commands use that same owner and token (`--field-owner-url` and
-`--field-owner-token-file`, or the environment settings above). Each promotion
-reads a fresh field-held responsibility snapshot before field selection and
-again before advancing the generation pointer. The promoted manifest binds
-the selected candidate and continuity evidence; linked reports enter the
+commands use that same local owner (`--field-owner-url` or
+`CASSI_FIELD_OWNER_URL`). Each promotion reads a fresh field-held responsibility
+snapshot before field selection and again before advancing the generation pointer.
+
+The promoted manifest binds the selected candidate and continuity evidence; linked reports enter the
 owner's program for every affected group. An open assessment pauses the next
 selection until its linked review is recorded. A transition journal beside
 each generation lets a restarted command deliver interrupted reports and
 recover a committed rewrite receipt without selecting another candidate.
+
+To make this a resident Cassi capability, launch the entity with an explicitly
+isolated `--self-rewrite-root` and a host-selected `--self-rewrite-variant`
+(`source`, `self-host`, `workspace`, `patchset`, or `impact`). A research
+program must separately declare
+`"activity_scope":{"activities":{"self-rewrite":["advance"]}}` and allow
+`activity_run` to choose one bounded successor; its `parameters` are `{}`.
+The hosted activity uses the entity's own field owner in-process, preserving
+the research cycle's lock and keeping the API token outside the brain's
+arguments. Without that host configuration and program scope, self-rewrite
+remains unavailable. The standalone commands continue to use the authenticated
+loopback owner API.
 
 The HTTP API remains available for other authenticated clients:
 `GET /v1/responsibilities/snapshot` exports the current field-held charter,
@@ -497,6 +601,111 @@ across independent sessions and receipt locations.
 
 These are statements about reader behavior on a declared instrument. They make
 no claim about the field, the brain, or acquired capability.
+
+## Cassi explores Pokémon Yellow with PyBoy
+
+From `CassiQwen/`, start continuous exploration, or run a bounded session and
+resume it with the same ROM and field home:
+
+```powershell
+python run_pyboy.py --window SDL2
+python run_pyboy.py --steps 16 --field-home .\_diag\yellow-field
+python run_pyboy.py --steps 16 --field-home .\_diag\yellow-field  # resume
+```
+
+PyBoy 2.7.0 or newer is required (`python -m pip install PyBoy`). Omitted
+`--steps` means continuous play (`--steps` accepts 1 to 131072 actions);
+`--frames-per-action` (default 8) sets how long each chosen button is held.
+CassiFI's field alone selects button actions; PyBoy does not load Qwen.
+
+Each learned state occupies about 95 KB of live field state, and every field
+operation writes one state snapshot into the field journal, so a long session
+lives inside two budgets: `--state-budget-mib` (default 1024) sets the field's
+state ceiling — at the default 64 MiB the run reaches roughly 700 actions — and
+`--history-entries` (default: one entry per 64 MiB of budget, at least 8 and at
+most 64) bounds the journal, which retains the newest half of that many
+computational snapshots. The startup and final records report
+`field_capacity` with the live state size, the ceiling, and the journal bound;
+a run that reaches its ceiling stops with `field operation exceeds configured
+capacity` naming the exact limit. A 3000-action session configured with
+`--state-budget-mib 2048 --history-entries 32` keeps the field home near
+400 MB and has room for tens of thousands of actions. Journal compaction keeps
+the newest snapshots and one replay floor per recurring producer, so each field
+operation carries a `producer:sequence` identity (`pyboy-advance-<run>:<n>`,
+`pyboy-carry-<run>:<n>`) that survives a compacted journal as a replay reference
+instead of a tombstone.
+
+The field receives categorical signatures from the existing privacy-aware
+Surface visual adapter's luma-mean features, which it reports at grids 8, 4, 2,
+and 1 over the captured image. Each frame becomes a sixteen-bit screen-ink
+pattern from the grid-4 cells: a cell counts as inked when its mean luma falls
+below 245, the range where text boxes, menus, and sprites register while blank
+screens stay clear. Comparing consecutive frames over the grid-8 cells turns
+that finer view into a sixty-four-bit motion pattern, set where a cell's mean
+luma moved by more than 24. Two bounded codebooks of 45 ink codes and 16 motion
+codes map each pattern to its nearest prototype (Hamming distance three for ink,
+two for motion), take the first free code for a genuinely new pattern, and
+reclaim the least recently used code once a codebook is full. A step whose cells
+moved reports its motion code, so a transition reads as motion and the settled
+screen that follows reads as ink; a static step reports its ink code. The
+codebooks persist beside the field home as `visual-codebook-<identity>.json` and
+`motion-codebook-<identity>.json`, so a resumed run keeps its categories and
+new allocations stay visible in the per-step provenance. Redacted or incomplete
+cells produce `visual-unavailable`, and output retains coverage and privacy
+provenance. The field seeks an unseen code, then one distinct from its current
+code once all 61 are in use. Existing screen-change evidence migrates into the
+separate-schema temporal memory as legacy binary observations; the original
+memory remains in the field.
+
+`--screenshot PATH` writes the final PyBoy screen image, and
+`--screenshot-every N` adds a frame every N actions beside it
+(`PATH` with a `-00005` style step suffix), which leaves a viewable trail of a
+long autonomous session.
+
+Actions flow through one input lease: a 295-second control grant renewed by
+heartbeat, with the run waiting out the single-holder input domain at expiry
+and acquiring a fresh grant (`--lease-seconds` sets the duration from 10 to
+295). The wait runs until the previous grant's expiry plus the watchdog, about
+five seconds at the default heartbeat timeout, and the run advances one frame
+after each grant so its next control intent carries a fresh source sample. A
+single predicted transition costs one of the grant's 4096 updates, and the
+two-part button press costs two.
+
+Observed transitions accumulate as append-only episodes of at most 128 steps
+inside a generation memory (`pyboy-<identity>-gen-NNNN`). A temporal automaton
+holds 128 learned states, so when the merge would exceed that budget the run
+starts the next generation, replays the transitions the exhausted generation
+could not admit into it, and continues; episode content is always an exact
+prefix of its participant's recorded history in that memory. When the field's
+bounded inquiry returns no action — typically because every known route to an
+unseen profile is longer than its horizon — the run selects from the field's
+own per-action predictions: an action with unpracticed transitions from the
+current candidate states first, otherwise the one with the least supporting
+evidence, with an immediate repeat only as a last resort. That policy costs one
+prediction read per action and keeps play moving past the edge of what the
+automaton can plan with.
+
+Ctrl+C cleanly checkpoints field history and persists PyBoy cartridge RAM/RTC.
+Rerunning with the same ROM and `--field-home` discovers the newest generation,
+reconciles the participant's uncommitted tail against its episodes, and
+continues from there. A commit that stored an episode revision and then lost
+the field state leaves the memory pointing at that superseded parent, so the
+next start reads the stored head, admits the steps it appends, and continues:
+an interrupted commit costs no observed steps. The run also writes a PyBoy machine snapshot to
+`pyboy-state.bin` in the field home when it stops and restores it on the next
+start, so the cartridge continues in place instead of replaying the intro;
+`--fresh-boot` ignores the snapshot and boots from the cartridge's first frame.
+This is open-ended visual exploration: there is no OCR, object localization,
+Pokémon game-rule or semantic-state reading, or story-completion objective.
+
+Generation rotation carries a session past the automaton's 128-state budget,
+and the input lease survives its own expiry: a run handed over ten control
+grants in a 120-action check without losing the game. An autonomous session
+configured with `--state-budget-mib 2048` moved through the game's opening
+screens with the field choosing every button: Oak's dialogue, then the name
+screen at action 200, then the player's bedroom with the START menu open at
+action 400, then continued room navigation past action 1000 with no capacity
+stop. These are observed outcomes, not a claim of intentional gameplay.
 
 ## Cassi plays NetHack (the watched-world seam)
 
@@ -773,6 +982,222 @@ use and verdict, the conditions filed, the reflection, and the autobiography.
 After a run the page holds the last screen for five minutes (`--linger`), so the
 end of a life is watchable too. A run refuses a port another run is still holding
 rather than sharing it silently.
+
+## Cassi watches a PS2 disc (the PCSX2 memory seam)
+
+The PCSX2 activity keeps the legacy static-disc and PINE research tools and adds
+a native CassiFI bridge. The patched emulator streams its EE-RAM baseline and
+frame deltas plus `INPUT_EVENT`s for the DS2 pad values actually consumed by
+PCSX2. It exposes two Windows named pipes to the current user:
+`\\.\pipe\CassiPCSX2-v1-stream` and `\\.\pipe\CassiPCSX2-v1-control`.
+Native field operations use these pipes, not PINE. PINE remains read-only; only
+the separately authorized `field-act` operation can request bounded virtual
+pad input.
+
+### Build the pinned native PCSX2
+
+`pcsx2/native/pcsx2-v2.8.2-cassifi-native.patch` targets the official PCSX2
+`v2.8.2` revision `fd9d310ccbb6b8b62c976da8886a3c8fd3a10ff3`. From the
+`CassiQwen` directory, make a separate upstream source tree and apply the
+committed patch there:
+
+```powershell
+git clone --recurse-submodules --branch v2.8.2 --depth 1 `
+  https://github.com/PCSX2/pcsx2.git pcsx2-v2.8.2-cassifi
+$source = (Resolve-Path .\pcsx2-v2.8.2-cassifi).Path
+$patch = (Resolve-Path .\pcsx2\native\pcsx2-v2.8.2-cassifi-native.patch).Path
+if ((git -C $source rev-parse HEAD).Trim() -ne `
+    "fd9d310ccbb6b8b62c976da8886a3c8fd3a10ff3") {
+  throw "The checkout is not the pinned PCSX2 v2.8.2 revision."
+}
+git -C $source apply --check $patch
+git -C $source apply $patch
+```
+
+For Windows, follow the [upstream build guide](https://pcsx2.net/docs/advanced/building/):
+install Visual Studio 2022 with the Desktop development with C++ workload and
+MSVC v143/Windows SDK, download the official [Windows dependency
+archive](https://github.com/PCSX2/pcsx2-windows-dependencies/releases), and
+extract it into the source tree's `deps/` directory. Open the pinned revision's
+root `PCSX2_qt.sln`, select `pcsx2-qt` as the startup project, and build
+`Release | x64`. The patch registers the bridge in both CMake and the Visual
+Studio project. Run the resulting `pcsx2-qt.exe` directly from this separate
+build tree; do not install it over, update, or launch the installed PCSX2 build.
+Close a running build-tree executable before rebuilding, since the install copy
+cannot replace a binary that is still open.
+
+Keep emulator settings and saves isolated too. Create a new empty data-path
+directory, put only a legitimately dumped BIOS needed by this test under its
+`bios/` subdirectory, and launch the build-tree executable with PCSX2's
+`-datapath` option:
+
+```powershell
+New-Item -ItemType Directory -Force C:\CassiData\pcsx2-profile | Out-Null
+& "C:\path\to\built\pcsx2-qt.exe" -datapath "C:\CassiData\pcsx2-profile"
+```
+
+Replace the executable path with the binary produced by the build. Load the
+same ISO configured for Cassi in this isolated instance. Do not point
+`-datapath` at an installed PCSX2 profile or personal save directory; memory
+cards, save states, and settings then stay with the isolated profile.
+
+### Enable and run the activity
+
+The server requires an existing absolute ISO path and activity home. Its entity
+`--data-home` must be a different directory from the activity home, and the
+activity home must not contain the ISO. Create these homes before starting the
+server:
+
+```powershell
+New-Item -ItemType Directory -Force `
+  C:\CassiData\entity-home, `
+  C:\CassiData\pcsx2-activity-home | Out-Null
+python cassi_field_brain_server.py `
+  --data-home C:/CassiData/entity-home `
+  --pcsx2-activity `
+  --pcsx2-iso C:/games/RatchetAndClank.iso `
+  --pcsx2-activity-home C:/CassiData/pcsx2-activity-home
+```
+
+| Flag | Owns |
+|---|---|
+| `--data-home <dir>` | Cassi entity and persistent field-owner state |
+| `--pcsx2-activity` | opts in to PCSX2 operations; required with the flags below |
+| `--pcsx2-iso <path>` | fixed disc to catalog and identity-check (absolute, existing ISO file) |
+| `--pcsx2-activity-home <dir>` | catalogs, PINE observations, native field evidence, sessions, candidates, and receipts (absolute, existing, isolated directory) |
+| `--pcsx2-pine-host <host>` | legacy PINE host (default `127.0.0.1`; PINE gameplay capture requires literal IPv4 loopback) |
+| `--pcsx2-pine-slot <1..65535>` | legacy PINE TCP slot (default `28011`) |
+| `--pcsx2-xinput-slot <0..3>` | legacy host-XInput capture slot (default `0`; native field input is read from the emulator's consumed DS2 events) |
+
+Load the configured ISO in the patched, isolated emulator and keep that exact
+`pcsx2-qt.exe` process in the foreground while a field operation runs. The
+native bridge session carries the live serial, CRC, process ID, and stream
+identity; the activity checks them against the fixed ISO and the bound
+foreground process. Native virtual actions are for the first emulated DS2 pad.
+
+A research program must separately allow the `activity_run` tool and scope the
+PCSX2 operation. Keep observation authorization separate from action
+authorization; for example, give the observation program only:
+
+```json
+{
+  "allowed_tools": ["activity_run"],
+  "activity_scope": {"activities": {"pcsx2": ["field-observe"]}}
+}
+```
+
+The corresponding `activity_run` arguments are:
+
+```json
+{
+  "activity_id": "pcsx2",
+  "operation": "field-observe",
+  "parameters": {"samples": 16, "timeout_seconds": 60}
+}
+```
+
+To permit virtual input, use a separately authorized program scoped to
+`field-act` (and still allow `activity_run`):
+
+```json
+{
+  "allowed_tools": ["activity_run"],
+  "activity_scope": {"activities": {"pcsx2": ["field-act"]}}
+}
+```
+
+Its `activity_run` arguments can set an explicit action ceiling:
+
+```json
+{
+  "activity_id": "pcsx2",
+  "operation": "field-act",
+  "parameters": {
+    "samples": 16,
+    "timeout_seconds": 60,
+    "max_action_frames": 2
+  }
+}
+```
+
+`field-observe` accepts only `samples` and `timeout_seconds`; `field-act`
+accepts those plus `max_action_frames`. Samples default to `16` and are bounded
+to `1..2048`; timeout defaults to `60` seconds and must be greater than `0` and
+at most `60`; the action-frame ceiling defaults to `2` and is bounded to
+`1..120`. EE-RAM snapshots are spaced two seconds apart to keep complete RAM
+copies and deltas within the bounded stream, while consumed-pad events remain
+available at the emulator's polling cadence. The default observation therefore
+collects sixteen sparse memory states within its sixty-second deadline. Virtual
+input is disabled by default. A `field-act` call can enable it only after
+program-scope admission and a field-owner selection; native requests are fenced
+by the current process, session, serial, and CRC. Human input has priority: a
+physical pad input overrides virtual input for that poll, and losing foreground
+or changing game identity closes the action gate.
+
+The field loop is owner-led: CassiFI's persistent temporal memory learns from
+observed input-to-EE-state transitions and selects any action within the
+authorized `field-act` call, without a Qwen call per emulated frame. Qwen may
+guide the research program's higher-level strategy; it does not issue raw
+per-frame button commands. Adaptive state belongs to the CassiFI owner under
+`--data-home` and is keyed to the program and game identity. Exact native
+evidence is separate: each operation receipt under
+`<activity-home>/operations/<sha256>/receipt.json` points to
+`field-evidence/pcsx2-native-field/<run>/`, which retains `stream.frames`,
+`observations.jsonl`, `control.frames`, and `result.json` with hashes. A reused
+operation identity with different arguments is refused; retries use the
+original receipt rather than replaying its actions.
+
+Native runs against the fixed disc (`Yu-Gi-Oh! Capsule Monster Coliseum`,
+`SLUS-20940`, CRC `63F6B523`) show the loop end to end. Observation keeps the
+EE-reader inside the producer's ring: sixteen sparse deltas over roughly
+nineteen hundred consumed pad polls, each delta carrying the pad poll it
+followed. An action run sends the session ENABLE, admits the terminal ACTION
+receipt that reports its own mask, applied mask, and consumed frames, and binds
+the successor EE state to the action the field chose; a virtual Cross press
+applied for its full one-hundred-and-twenty-frame window in the running game,
+and the field's own press entered temporal memory as
+`pad-press-0040 → ee-page-signature-03`. Human input outranks it: a physical
+pad sample during an armed action cancels the virtual press before it applies
+(`result = Cancelled`, `reason = PhysicalOverride`, zero consumed frames) while
+the human press is learned on its own terms, and the run still completes.
+Virtual input belongs to the foreground game: an action armed while the window
+is in front applies its mask to the emulated pad (a later sample shows Cross
+held) and is cancelled with `reason = NotForeground` once focus leaves, which
+keeps an unattended emulator from steering a background game. Streams survive
+load: a write whose reader is busy between emulated frames retries its
+remaining bytes instead of closing the connection, and a genuine producer
+disconnect costs one reconnect, after which the consumer takes the next SESSION
+and baseline inside the same run and finishes. Each run closes its own pipe
+handles, so the next run reaches a fresh producer instance instead of a previous
+run's abandoned accept loop.
+
+The original research operations remain available:
+
+| Operation | What it does |
+|---|---|
+| `catalog` | parses `SYSTEM.CNF`, resolves an explicit ISO9660 `;N` to that exact boot-file version, catalogs the boot ELF and MIPS code, and exports `<SERIAL>.atlas.json`, `<SERIAL>.sym`, and a receipt |
+| `observe` | verifies that PINE's running serial and CRC match the fixed ISO, reads bounded live memory, hashes it exactly, and stores the raw bytes plus the labelled observation |
+| `capture-session` | samples the fixed host XInput slot beside bounded PINE memory reads, records focus gaps without reading controller state, turns input edges followed by the next memory sample into temporal response hypotheses, and ranks implicated atlas functions |
+| `relate` | compares two observations byte for byte, maps changed bytes through covering static memory references, labels pointers to the observed window's base as hypotheses, ranks associated functions with their call neighbourhoods, and writes a commented `.pnach` candidate outside PCSX2 |
+| `decompile` | asks the resident brain to interpret one exact atlas function with its disassembly, call edges, attributed string references, and the exact subset of prior live evidence supplied in the prompt |
+
+Legacy `capture-session` accepts `address`, `size`, `label`, `samples`, and
+`sample_hz`. Its XInput samples are host observations near PINE memory moments,
+not the values consumed after PCSX2's input mapping. A session lasts at most
+five minutes, stores at most 64 MiB of unique memory evidence, and compares
+consecutive transition windows within a bounded episode budget. Focus loss
+creates a gap row with no controller or memory payload. The complete timeline
+is kept under `<activity-home>/sessions/`; the field receives a compact account
+of controls, episodes, changed ranges, static references, and ranked functions.
+
+PINE operations remain read-only. A relation's `.pnach` candidate is never
+written where PCSX2 reads it, and every patch line stays commented out; applying
+anything to the emulator remains a human decision. Legacy PINE `observe` may
+also request optional Surface captures only with an already-authorized exact
+`binding_id` whose source is in the programme's Surface scope; only hashed
+evidence is published through the existing Windows Surface broker.
+
+`python -m pytest tests/test_pcsx2_pipeline.py tests/test_pcsx2_gameplay.py tests/test_cassi_pcsx2_activity.py`
 
 ## 2026-09-18 bounded teacher proposal and Cassi Mind Field design
 
