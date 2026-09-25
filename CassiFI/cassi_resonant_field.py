@@ -6093,20 +6093,45 @@ def geometry_from_flow(flow: Any, *, signed_current: float = 0.0, handedness: in
 
 
 def metric_edge_weights(coordinates: Any, edges: Sequence[Sequence[int]], volumes: Any, *, scale: float = 1.0) -> np.ndarray:
-    points = _as_f64(coordinates, name="coordinates")
+    from numpy import asarray, finfo, sqrt, float64, array
+    from math import sqrt as math_sqrt
+
+    points = asarray(coordinates, dtype=float64)
     if points.ndim != 2:
         raise ResonantNumericalError("coordinates must be a matrix")
+
     volume = _metric_vector(volumes, len(points), "volumes")
+    tiny = finfo(float64).tiny
+
     result = []
+    n_points = len(points)
+
+    # Pre-lookup points and volume arrays to avoid repeated attribute access in loop
+    # This is a micro-optimization for tight loops, ensuring we access local variables
+
     for edge in edges:
         if len(edge) != 2:
             raise ResonantNumericalError("edges must be endpoint pairs")
         source, destination = int(edge[0]), int(edge[1])
-        if not 0 <= source < len(points) or not 0 <= destination < len(points) or source == destination:
+
+        if not (0 <= source < n_points) or not (0 <= destination < n_points) or source == destination:
             raise ResonantNumericalError("invalid metric edge")
-        length = float(np.linalg.norm(points[destination] - points[source]))
-        result.append(float(scale) / max(length, np.finfo(float).tiny) / math.sqrt(volume[source] * volume[destination]))
-    return np.asarray(result, dtype=np.float64)
+
+        # Manual dot product is faster than np.linalg.norm for single vector in tight loops
+        dx = points[destination, 0] - points[source, 0]
+        dy = points[destination, 1] - points[source, 1]
+        dz = points[destination, 2] - points[source, 2]
+        length = math_sqrt(dx*dx + dy*dy + dz*dz)
+
+        if length == 0.0:
+            length = tiny
+
+        vol_src = volume[source]
+        vol_dst = volume[destination]
+        weight = scale / (length * math_sqrt(vol_src * vol_dst))
+        result.append(weight)
+
+    return array(result, dtype=float64)
 
 
 def basis_change(q: Any, p: Any, basis: Any, *, operators: Mapping[str, Any] | None = None,
