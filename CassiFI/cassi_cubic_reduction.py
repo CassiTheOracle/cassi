@@ -561,35 +561,76 @@ def _rref(
     ledger: _WorkLedger,
 ) -> tuple[list[list[Fraction]], tuple[int, ...]]:
     ledger.rref_calls += 1
+    # Convert to mutable list of lists immediately
     values = [list(row) for row in matrix]
-    if any(len(row) != column_count for row in values):
-        raise CubicReductionError("RREF row width is invalid")
+
+    # Validate row widths
+    for row in values:
+        if len(row) != column_count:
+            raise CubicReductionError("RREF row width is invalid")
+
+    num_rows = len(values)
     pivot_row = 0
     pivots: list[int] = []
+
+    # Pre-bind frequently used attributes/methods for speed
+    Fraction_div = Fraction.__truediv__
+    Fraction_sub = Fraction.__sub__
+    Fraction_mul = Fraction.__mul__
+
     for column in range(column_count):
-        selected = next(
-            (row for row in range(pivot_row, len(values)) if values[row][column]),
-            None,
-        )
+        if pivot_row >= num_rows:
+            break
+
+        # Find a row with a non-zero element in the current column
+        selected = None
+        for r in range(pivot_row, num_rows):
+            if values[r][column]:
+                selected = r
+                break
+
         if selected is None:
             continue
+
+        # Swap rows
         values[pivot_row], values[selected] = values[selected], values[pivot_row]
+
+        # Get the pivot value
         pivot = values[pivot_row][column]
+
+        # Normalize the pivot row
+        # Instead of dividing each element by pivot one by one,
+        # we can compute the inverse once if possible, but Fraction doesn't support __inv__ directly in a way that helps here easily.
+        # However, we can optimize the loop.
+        pivot_row_data = values[pivot_row]
+        inv_pivot = Fraction(1, pivot)
+
         for index in range(column, column_count):
-            values[pivot_row][index] /= pivot
+            pivot_row_data[index] = pivot_row_data[index] * inv_pivot
             ledger.fraction_updates += 1
-        for row in range(len(values)):
-            if row == pivot_row or not values[row][column]:
+
+        # Eliminate other rows
+        for row in range(num_rows):
+            if row == pivot_row:
                 continue
+
             factor = values[row][column]
+            if not factor:
+                continue
+
+            target_row_data = values[row]
+            pivot_row_data = values[pivot_row]
+
+            # Subtract factor * pivot_row from target_row
+            # We only need to update from 'column' onwards because elements before 'column' are already 0
             for index in range(column, column_count):
-                values[row][index] -= factor * values[pivot_row][index]
+                target_row_data[index] = target_row_data[index] - factor * pivot_row_data[index]
                 ledger.fraction_updates += 2
+
         pivots.append(column)
         ledger.rref_pivots += 1
         pivot_row += 1
-        if pivot_row == len(values):
-            break
+
     return values, tuple(pivots)
 
 
