@@ -45,46 +45,83 @@ class CubicKernelDecisionError(ValueError):
 def canonical_cubic_formula(formula: Sequence[Sequence[int]]) -> Formula:
     """Validate and canonically order a square cubic exact-one formula."""
 
-    if not isinstance(formula, Sequence) or isinstance(formula, (str, bytes)):
+    # Duck-typing check for Sequence-like objects, excluding str/bytes
+    if not hasattr(formula, '__iter__') or not hasattr(formula, '__len__'):
         raise CubicKernelDecisionError("formula must be a sequence of clauses")
+    if isinstance(formula, (str, bytes)):
+        raise CubicKernelDecisionError("formula must be a sequence of clauses")
+
     clause_count = len(formula)
     if clause_count < 3:
         raise CubicKernelDecisionError("formula must contain at least three clauses")
 
     clauses: list[tuple[int, int, int]] = []
     occurrences = [0] * clause_count
+
+    # Pre-allocate a list for clause variables to avoid repeated list creation
+    clause_vars = [0, 0, 0]
+
     for raw_clause in formula:
-        if not isinstance(raw_clause, Sequence) or isinstance(
-            raw_clause, (str, bytes)
-        ):
+        # Check if raw_clause is a sequence (iterable and sized) but not str/bytes
+        if not hasattr(raw_clause, '__iter__') or not hasattr(raw_clause, '__len__'):
             raise CubicKernelDecisionError("every clause must be a sequence")
+        if isinstance(raw_clause, (str, bytes)):
+            raise CubicKernelDecisionError("every clause must be a sequence")
+
         if len(raw_clause) != 3:
             raise CubicKernelDecisionError(
                 "every clause must contain exactly three variables"
             )
-        clause: list[int] = []
-        for variable in raw_clause:
-            if isinstance(variable, bool) or not isinstance(variable, int):
-                raise CubicKernelDecisionError("variable identifiers must be integers")
+
+        # Validate and extract variables
+        is_valid = True
+        for i, variable in enumerate(raw_clause):
+            # Check if variable is an int but not a bool
+            # In Python, bool is a subclass of int, so we must check bool first
+            if isinstance(variable, bool):
+                is_valid = False
+                break
+            if not isinstance(variable, int):
+                is_valid = False
+                break
             if not 1 <= variable <= clause_count:
-                raise CubicKernelDecisionError(
-                    "variable identifiers must be the complete range 1..n"
-                )
-            clause.append(variable)
-        if len(set(clause)) != 3:
+                is_valid = False
+                break
+            clause_vars[i] = variable
+
+        if not is_valid:
+            raise CubicKernelDecisionError("variable identifiers must be integers")
+
+        # Check for distinct variables
+        if clause_vars[0] == clause_vars[1] or clause_vars[0] == clause_vars[2] or clause_vars[1] == clause_vars[2]:
             raise CubicKernelDecisionError(
                 "the three variables in a clause must be distinct"
             )
-        ordered = sorted(clause)
-        normalized = (ordered[0], ordered[1], ordered[2])
-        clauses.append(normalized)
-        for variable in normalized:
-            occurrences[variable - 1] += 1
 
-    if any(count != 3 for count in occurrences):
-        raise CubicKernelDecisionError(
-            "every variable must occur in exactly three clauses"
-        )
+        # Sort the clause variables
+        # Manual sort for 3 elements is faster than sorted()
+        a, b, c = clause_vars
+        if a > b:
+            a, b = b, a
+        if b > c:
+            b, c = c, b
+            if a > b:
+                a, b = b, a
+        normalized = (a, b, c)
+        clauses.append(normalized)
+
+        # Update occurrences
+        occurrences[a - 1] += 1
+        occurrences[b - 1] += 1
+        occurrences[c - 1] += 1
+
+    # Check if every variable occurs exactly 3 times
+    for count in occurrences:
+        if count != 3:
+            raise CubicKernelDecisionError(
+                "every variable must occur in exactly three clauses"
+            )
+
     return tuple(sorted(clauses))
 
 
