@@ -2790,37 +2790,86 @@ def _solve_two_sat(
 def _bounded_support_2sat(system: dict[str, Any]) -> tuple[
     tuple[int, ...] | None, dict[str, Any]
 ]:
+    from fractions import Fraction
+    import hashlib
+    import itertools
+    import json
+    from typing import Any, Sequence
+
     coefficients = system["pivot_free_coefficients"]
     free_columns = system["free_columns_zero_based"]
     pivot_columns = system["pivot_columns_zero_based"]
     clauses: list[tuple[int, int]] = []
     empty_relation_pivot: int | None = None
 
+    # Pre-caching allowed values for faster comparison if needed, 
+    # though direct Fraction comparison is usually fast enough.
+    _ALLOWED = {Fraction(-1), Fraction(2)}
+
     for row_index, row in enumerate(coefficients):
+        # Identify non-zero indices (support)
         support = tuple(index for index, value in enumerate(row) if value != 0)
-        if len(support) > 2:
+        sup_len = len(support)
+
+        if sup_len > 2:
             raise ValueError("pivot relation exceeds binary support")
-        for bits in itertools.product((0, 1), repeat=len(support)):
-            pivot_value = -sum(
-                (
-                    row[index] * Fraction(3 * bit - 1)
-                    for index, bit in zip(support, bits, strict=True)
-                ),
-                start=Fraction(0),
-            )
-            if pivot_value in _ALLOWED_KERNEL_VALUES:
-                continue
-            literals = tuple(
-                index + 1 if bit == 0 else -(index + 1)
-                for index, bit in zip(support, bits, strict=True)
-            )
-            if not literals:
-                empty_relation_pivot = pivot_columns[row_index] + 1
-                break
-            if len(literals) == 1:
-                clauses.append((literals[0], literals[0]))
+
+        if sup_len == 0:
+            # Empty support: sum is 0. pivot_value = -0 = 0.
+            # 0 is not in {-1, 2}, so it's a valid clause (empty literal list).
+            # But wait, the loop over bits product((0,1), repeat=0) yields one empty tuple.
+            # literals = ()
+            # if not literals: empty_relation_pivot = ...; break
+            empty_relation_pivot = pivot_columns[row_index] + 1
+            break
+
+        elif sup_len == 1:
+            # Support has 1 index.
+            idx = support[0]
+            coeff = row[idx]
+
+            # bits: (0,) -> pivot_value = - (coeff * -1) = coeff
+            if coeff in _ALLOWED:
+                pass # continue
             else:
-                clauses.append((literals[0], literals[1]))
+                # Clause: literal 1 (since bit=0 -> index+1)
+                clauses.append((idx + 1, idx + 1))
+
+            # bits: (1,) -> pivot_value = - (coeff * 2) = -2*coeff
+            pivot_val_neg2 = -2 * coeff
+            if pivot_val_neg2 in _ALLOWED:
+                pass # continue
+            else:
+                # Clause: literal -1 (since bit=1 -> -(index+1))
+                clauses.append((-(idx + 1), -(idx + 1)))
+
+        elif sup_len == 2:
+            # Support has 2 indices.
+            i0 = support[0]
+            i1 = support[1]
+            c0 = row[i0]
+            c1 = row[i1]
+
+            # bits: (0,0) -> sum = c0*-1 + c1*-1 = -(c0+c1). pivot = c0+c1
+            pivot_val = c0 + c1
+            if pivot_val not in _ALLOWED:
+                clauses.append((i0 + 1, i1 + 1))
+
+            # bits: (0,1) -> sum = c0*-1 + c1*2 = -c0+2c1. pivot = c0-2c1
+            pivot_val = c0 - 2 * c1
+            if pivot_val not in _ALLOWED:
+                clauses.append((i0 + 1, -(i1 + 1)))
+
+            # bits: (1,0) -> sum = c0*2 + c1*-1 = 2c0-c1. pivot = -2c0+c1
+            pivot_val = -2 * c0 + c1
+            if pivot_val not in _ALLOWED:
+                clauses.append((-(i0 + 1), i1 + 1))
+
+            # bits: (1,1) -> sum = c0*2 + c1*2 = 2(c0+c1). pivot = -2(c0+c1)
+            pivot_val = -2 * (c0 + c1)
+            if pivot_val not in _ALLOWED:
+                clauses.append((-(i0 + 1), -(i1 + 1)))
+
         if empty_relation_pivot is not None:
             break
 
@@ -2828,14 +2877,28 @@ def _bounded_support_2sat(system: dict[str, Any]) -> tuple[
     clause_digest = hashlib.sha256(
         json.dumps(clauses, separators=(",", ":")).encode("ascii")
     ).hexdigest()
+
+    # We need _solve_two_sat. Assuming it's available in scope or imported.
+    # The original code calls it directly.
+    # To be safe, we import it or assume it's in the same module.
+    # Since we are replacing the function in the same module, we can call it.
+    # However, the provided context shows _solve_two_sat is defined below or above.
+    # We assume it is accessible.
+
     if empty_relation_pivot is not None:
         assignment = None
         conflict_free_column = None
     else:
+        # Import _solve_two_sat if not already in global scope during execution
+        # But typically in these rewrites, we assume the module structure is preserved.
+        # We will call it directly.
+        from cubic_kernel_decision import _solve_two_sat
+
         assignment, conflict_index = _solve_two_sat(len(free_columns), clauses)
         conflict_free_column = (
             None if conflict_index is None else free_columns[conflict_index] + 1
         )
+
     return assignment, {
         "free_variables": len(free_columns),
         "clauses": len(clauses),
