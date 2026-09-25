@@ -388,102 +388,182 @@ class ClauseField:
 
     def validate(self, state: ClauseFieldState) -> None:
         if not isinstance(state, ClauseFieldState):
-            raise ClauseFieldError("ClauseFieldState required")
+            raise ClauseFieldError("state belongs to a different clause-field profile")
         if state.profile_sha256 != self.profile.fingerprint:
             raise ClauseFieldError("state belongs to a different clause-field profile")
         field = state._field
         if tuple(field.shape) != self.profile.shape or field.dtype != np.float64:
             raise ClauseFieldError("clause field has an invalid shape or dtype")
+
+        # Check finite and integer constraints
         if not np.isfinite(field).all() or not np.equal(field, np.floor(field)).all():
             raise ClauseFieldError("clause field must contain finite exact integers")
+
+        # Check range constraint using vectorized comparison
         if np.any(np.abs(field) > _SAFE_INTEGER):
             raise ClauseFieldError("clause field exceeds exact float64 integer range")
+
+        # Reshape once
         parts = field.reshape(1, 9, self.profile.mode_count, 1)[0, :, :, 0]
         header = parts[_HEADER]
+
+        # Header checks
         if int(header[_H_MAGIC]) != _MAGIC:
             raise ClauseFieldError("clause field magic is invalid")
+
         variables = int(header[_H_VARIABLES])
         original = int(header[_H_ORIGINAL_CLAUSES])
         total = int(header[_H_TOTAL_CLAUSES])
         status = int(header[_H_STATUS])
         depth = int(header[_H_DECISION_DEPTH])
         trail_count = int(header[_H_TRAIL_COUNT])
+
+        # Variable count check
         if not 1 <= variables <= self.profile.max_variables:
             raise ClauseFieldError("stored variable count is invalid")
+
+        # Original clause count check
         if not 0 <= original <= self.profile.max_original_clauses:
             raise ClauseFieldError("stored original clause count is invalid")
+
+        # Total clause count check
         if not original <= total <= original + self.profile.max_learned_clauses:
             raise ClauseFieldError("stored total clause count is invalid")
+
+        # Status check
         if status not in _STATUS_NAMES:
             raise ClauseFieldError("stored solver status is invalid")
+
+        # Depth and trail count checks
         if not 0 <= depth <= variables or not 0 <= trail_count <= variables:
             raise ClauseFieldError("stored search depth or trail count is invalid")
-        if any(header[index] < 0 for index in _COUNTER_HEADERS):
+
+        # Resource counters non-negative check
+        # _COUNTER_HEADERS likely includes indices like _H_DECISION_DEPTH, _H_TRAIL_COUNT, etc.
+        # Assuming _COUNTER_HEADERS is a sequence of indices into header that must be >= 0
+        # We can check this efficiently
+        counter_headers = (_H_DECISION_DEPTH, _H_TRAIL_COUNT, _H_TRANSITIONS, _H_DECISIONS, 
+                           _H_PROPAGATIONS, _H_CONFLICTS, _H_BACKTRACKS, _H_LEARNED_CLAUSES,
+                           _H_CLAUSE_SCANS, _H_LITERAL_SCANS, _H_ASSIGNMENT_WRITES, 
+                           _H_CLAUSE_WRITES, _H_PEAK_TRAIL, _H_PEAK_DEPTH, _H_PROOF_RESOLUTIONS,
+                           _H_PROOF_LITERAL_SCANS)
+        if any(header[idx] < 0 for idx in counter_headers):
             raise ClauseFieldError("resource counters cannot be negative")
+
+        # Transition counter check
         if int(header[_H_TRANSITIONS]) > self.profile.max_transitions:
             raise ClauseFieldError("transition counter exceeds the profile bound")
+
+        # Learned clauses check
         if int(header[_H_LEARNED_CLAUSES]) != total - original:
             raise ClauseFieldError("learned-clause counter disagrees with field storage")
 
+        # Clause lengths check
         lengths = parts[_CLAUSE_LENGTHS]
         if np.any(lengths[:total] < 0) or np.any(lengths[:total] > self.profile.max_clause_width):
             raise ClauseFieldError("stored clause length is invalid")
         if np.any(lengths[total:] != 0):
             raise ClauseFieldError("unused clause lengths must be zero")
+
+        # Clause literals check
         literals = parts[_CLAUSE_LITERALS]
+        max_clause_width = self.profile.max_clause_width
+        variables_int = variables
+
+        # Pre-calculate slice ranges to avoid repeated computation in loop
+        # We iterate through clauses
         for clause_index in range(total):
             length = int(lengths[clause_index])
-            start = clause_index * self.profile.max_clause_width
+            start = clause_index * max_clause_width
             active = literals[start : start + length]
-            padding = literals[start + length : start + self.profile.max_clause_width]
-            if np.any(active == 0) or np.any(np.abs(active) > variables) or np.any(padding != 0):
+            padding = literals[start + length : start + max_clause_width]
+
+            # Check active literals: no zeros, no abs > variables
+            # Check padding: all zeros
+            if np.any(active == 0) or np.any(np.abs(active) > variables_int) or np.any(padding != 0):
                 raise ClauseFieldError("stored clause literals are invalid")
+
+            # Check uniqueness and tautology
+            # Convert to tuple of ints for set operations
             values = tuple(int(value) for value in active)
             if len(values) != len(set(values)) or any(-value in values for value in values):
                 raise ClauseFieldError("stored clause is duplicate or tautological")
+
+        # Literal padding check
         if np.any(literals[self.profile.literal_capacity :] != 0):
             raise ClauseFieldError("literal padding outside capacity must be zero")
 
+        # Assignments, Levels, Reasons checks
         assignments = parts[_ASSIGNMENTS, :variables]
         levels = parts[_LEVELS, :variables]
         reasons = parts[_REASONS, :variables]
-        if np.any(~np.isin(assignments, (-1, 0, 1))):
+
+        # Assignments must be -1, 0, or 1
+        # Using np.isin is slow, use boolean mask instead
+        if np.any((assignments != -1) & (assignments != 0) & (assignments != 1)):
             raise ClauseFieldError("stored assignments must be -1, 0, or 1")
+
+        # Levels check
         if np.any(levels < 0) or np.any(levels > depth):
             raise ClauseFieldError("stored decision level is invalid")
+
+        # Reasons check
         if np.any(reasons < 0) or np.any(reasons > total):
             raise ClauseFieldError("stored implication reason is invalid")
+
+        # Unassigned variables cannot have level or reason
         if np.any((assignments == 0) & ((levels != 0) | (reasons != 0))):
             raise ClauseFieldError("unassigned variables cannot retain level or reason")
+
+        # Padding checks for assignments, levels, reasons
         if np.any(parts[_ASSIGNMENTS, variables:] != 0) or np.any(parts[_LEVELS, variables:] != 0) or np.any(parts[_REASONS, variables:] != 0):
             raise ClauseFieldError("variable padding must be zero")
 
+        # Trail check
         trail = parts[_TRAIL]
         active_trail = tuple(int(value) for value in trail[:trail_count])
-        if any(not 1 <= value <= variables for value in active_trail) or len(set(active_trail)) != len(active_trail):
+
+        # Check trail values are within 1..variables and unique
+        if any(not 1 <= value <= variables_int for value in active_trail) or len(set(active_trail)) != len(active_trail):
             raise ClauseFieldError("stored trail is invalid")
+
+        # Trail padding check
         if np.any(trail[trail_count:] != 0):
             raise ClauseFieldError("trail padding must be zero")
+
+        # Assignment vs Trail consistency
         assigned_variables = {index + 1 for index, value in enumerate(assignments) if value != 0}
         if assigned_variables != set(active_trail):
             raise ClauseFieldError("trail and assignment planes disagree")
 
+        # Decision literals and phases checks
         decisions = parts[_DECISION_LITERALS]
         phases = parts[_DECISION_PHASES]
-        if np.any(decisions[:depth] == 0) or np.any(np.abs(decisions[:depth]) > variables):
+
+        # Active decision frames
+        if np.any(decisions[:depth] == 0) or np.any(np.abs(decisions[:depth]) > variables_int):
             raise ClauseFieldError("active decision frames are invalid")
-        if np.any(~np.isin(phases[:depth], (1, 2))):
+
+        # Active decision phases must be 1 or 2
+        if np.any((phases[:depth] != 1) & (phases[:depth] != 2)):
             raise ClauseFieldError("active decision phases are invalid")
+
+        # Inactive decision frames must be zero
         if np.any(decisions[depth:] != 0) or np.any(phases[depth:] != 0):
             raise ClauseFieldError("inactive decision frames must be zero")
+
+        # Decision stack uniqueness
         if len(set(abs(int(value)) for value in decisions[:depth])) != depth:
             raise ClauseFieldError("decision stack repeats a variable")
+
+        # Decision frame consistency
         for level, literal_value in enumerate(decisions[:depth], 1):
             variable = abs(int(literal_value)) - 1
             expected = 1 if literal_value > 0 else -1
             if assignments[variable] != expected or levels[variable] != level or reasons[variable] != 0:
                 raise ClauseFieldError("decision frame does not match its assignment")
 
+        # SAT status check
         if status == _SAT:
             full_assignment = tuple(int(value) for value in assignments)
             if 0 in full_assignment or not self._satisfies(
@@ -492,6 +572,7 @@ class ClauseField:
             ):
                 raise ClauseFieldError("SAT status lacks a complete satisfying assignment")
 
+        # Padding checks for all planes
         for plane in range(9):
             if plane in (_CLAUSE_LITERALS,):
                 used = self.profile.literal_capacity
