@@ -72,12 +72,13 @@ class CubicReductionError(ValueError):
 
 def _canonical_bytes(value: Any) -> bytes:
     try:
-        return json.dumps(
+        json_str = json.dumps(
             value,
             sort_keys=True,
             separators=(",", ":"),
             ensure_ascii=False,
-        ).encode("utf-8")
+        )
+        return json_str.encode("utf-8")
     except (TypeError, ValueError) as exc:
         raise CubicReductionError("value is not JSON-canonical") from exc
 
