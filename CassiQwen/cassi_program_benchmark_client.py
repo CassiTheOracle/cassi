@@ -1,7 +1,7 @@
 """Shared API driver for the programmable-swarm program benchmark.
 
 This module is the benchmark's only transport boundary.  It speaks the existing
-authenticated entity surface implemented by :mod:`cassi_field_brain_server`,
+loopback entity surface implemented by :mod:`cassi_field_brain_server`,
 and it adds nothing to the server: no new route, no planner, no fault
 injection, and no local solver.  Every call returns exactly one
 :class:`BenchmarkSample`, so a caller can always distinguish a real server
@@ -14,10 +14,6 @@ Guarantees
   refresh, and no cache: ``request_id`` and ``expected_owner_state_sha256``
   travel from the caller to the server verbatim, and a stale revision is
   reported as the server's conflict rather than silently corrected.
-* No credential leaves the process except as the ``Authorization`` header,
-  and nothing is logged.  ``repr`` omits the token, and
-  :meth:`BenchmarkSample.measurement` reports status, sizes, and timing
-  without the response payload.
 * Timing is observation only.  ``elapsed_ns`` is a monotonic reading handed
   back to the caller; the client keeps no adaptive state.
 
@@ -26,7 +22,7 @@ Usage
 
 ::
 
-    client = ProgramBenchmarkClient("http://127.0.0.1:8090", token)
+    client = ProgramBenchmarkClient("http://127.0.0.1:8090")
     health = client.health().require_ok()
     revision = owner_state_sha256(health)
 
@@ -44,7 +40,7 @@ Usage
         proposal=proposal,
     )
     if not admitted.ok:
-        record = admitted.measurement()          # credential-free bench record
+        record = admitted.measurement()          # payload-free bench record
         reason = admitted.error
 """
 
@@ -64,7 +60,6 @@ MEASUREMENT_SCHEMA = "cassi.program-benchmark.client-sample.v1"
 ERROR_TRANSPORT = "transport"
 ERROR_PROTOCOL = "protocol"
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
-MINIMUM_API_TOKEN_BYTES = 32
 DEFAULT_TIMEOUT_SECONDS = 30.0
 #: The entity server refuses a request body larger than this (`_body`).
 MAX_REQUEST_BODY_BYTES = 65_536
@@ -85,7 +80,7 @@ PROGRAM_PROPOSAL_FIELDS = (
     "backend_policy",
     "payload",
 )
-PROGRAM_CONTROL_ACTIONS = ("pause", "resume", "cancel", "complete", "wake")
+PROGRAM_CONTROL_ACTIONS = ("pause", "resume", "cancel", "complete", "wake", "continue")
 COMPUTATION_CONTROL_ACTIONS = (
     "step",
     "run",
@@ -99,6 +94,7 @@ COMPUTATION_CONTROL_ACTIONS = (
     "optimize",
     "optimizer-status",
     "invalidate-optimization",
+    "increase-limits",
 )
 BRANCH_ACTIONS = ("begin", "commit", "rollback")
 WORKSPACE_OPERATIONS = (
@@ -498,7 +494,7 @@ class BenchmarkSample:
         return hashlib.sha256(self.raw_body).hexdigest()
 
     def measurement(self) -> dict[str, Any]:
-        """Credential-free, payload-free record of this call for a benchmark receipt."""
+        """Payload-free record of this call for a benchmark receipt."""
 
         return {
             "schema": MEASUREMENT_SCHEMA,
@@ -543,7 +539,6 @@ class ProgramBenchmarkClient:
     def __init__(
         self,
         base_url: str,
-        api_token: str,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
         if not isinstance(base_url, str):
@@ -559,10 +554,6 @@ class ProgramBenchmarkClient:
             port = parsed.port or 80
         except ValueError as exc:
             raise ValueError("base_url port is invalid") from exc
-        if not isinstance(api_token, str) or len(api_token) < MINIMUM_API_TOKEN_BYTES:
-            raise ValueError(
-                f"entity API token must contain at least {MINIMUM_API_TOKEN_BYTES} characters"
-            )
         if (
             isinstance(timeout, bool)
             or not isinstance(timeout, (int, float))
@@ -572,11 +563,10 @@ class ProgramBenchmarkClient:
         self._host = parsed.hostname
         self._port = port
         self._prefix = parsed.path.rstrip("/")
-        self._api_token = api_token
         self._timeout = float(timeout)
 
     def __repr__(self) -> str:
-        """Renders the endpoint; the bearer token is never included."""
+        """Renders the loopback endpoint."""
 
         return (
             f"ProgramBenchmarkClient(base_url='http://{self._host}:{self._port}"
@@ -591,7 +581,7 @@ class ProgramBenchmarkClient:
         *,
         timeout: float | None = None,
     ) -> BenchmarkSample:
-        """Perform exactly one authenticated request and classify its outcome."""
+        """Perform exactly one request and classify its outcome."""
 
         if not isinstance(method, str) or method.upper() not in {"GET", "POST"}:
             raise ValueError("program benchmark client speaks GET and POST only")
@@ -609,7 +599,6 @@ class ProgramBenchmarkClient:
         request_id = body.get("request_id") if isinstance(body, Mapping) else None
         headers = {
             "accept": "application/json, text/event-stream",
-            "authorization": f"Bearer {self._api_token}",
         }
         if payload is not None:
             headers["content-type"] = "application/json"
@@ -979,7 +968,6 @@ __all__ = [
     "LOOPBACK_HOSTS",
     "MAX_REQUEST_BODY_BYTES",
     "MEASUREMENT_SCHEMA",
-    "MINIMUM_API_TOKEN_BYTES",
     "PROGRAM_BACKENDS",
     "PROGRAM_CAPABILITIES",
     "PROGRAM_CONTROL_ACTIONS",

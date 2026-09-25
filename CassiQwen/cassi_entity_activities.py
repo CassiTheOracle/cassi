@@ -219,10 +219,153 @@ class TradingActivity:
             "operations": ["ingest"] + (["paper-step"] if self.paper_program_id else []),
             "source": str(self.ingestion_db),
             "member_home": str(self.data_home),
-            "effect": "canonical closed-bar ingestion and field-selected paper simulation; no live order path",
+            "effect": (
+                "canonical closed-bar ingestion and field-selected paper simulation; "
+                "new paper steps expose source-bound mathematical observations; "
+                "no live order path"
+            ),
             "max_new_bars": 256,
             "paper_program_id": self.paper_program_id,
         }
+
+    @staticmethod
+    def _mathematical_observation(
+        receipt: Mapping[str, Any], processed_bars: Any,
+    ) -> tuple[dict[str, Any] | None, list[str]]:
+        """Project only the latest causal paper receipt into bounded evidence."""
+        if not isinstance(processed_bars, int) or isinstance(processed_bars, bool) or processed_bars <= 0:
+            return None, []
+        status = receipt.get("paper_status")
+        if not isinstance(status, Mapping):
+            return None, []
+        latest = status.get("last_receipt")
+        source = status.get("source")
+        event = status.get("last_event")
+        if not isinstance(latest, Mapping) or not isinstance(source, Mapping) or not isinstance(event, Mapping):
+            return None, []
+        canonical_id = latest.get("canonical_event_id")
+        canonical_sha = latest.get("canonical_event_sha256")
+        receipt_source = receipt.get("source")
+        accepted_root = receipt_source.get("accepted_event_root_sha256") if isinstance(receipt_source, Mapping) else None
+        paper_event_id = event.get("paper_receipt_event_id")
+        paper_receipt_sha = latest.get("content_sha256")
+        if (
+            not isinstance(canonical_id, str) or not canonical_id
+            or not isinstance(canonical_sha, str) or not canonical_sha
+            or not isinstance(accepted_root, str) or not accepted_root
+            or not isinstance(paper_event_id, str) or not paper_event_id
+            or paper_event_id != latest.get("ledger_event_id")
+            or event.get("paper_receipt_sha256") != paper_receipt_sha
+            or not isinstance(paper_receipt_sha, str) or not paper_receipt_sha
+            or event.get("canonical_event_id") != canonical_id
+            or source.get("canonical_event_id") != canonical_id
+            or source.get("canonical_event_sha256") != canonical_sha
+        ):
+            return None, []
+        canonical_event = latest.get("canonical_event")
+        payload = canonical_event.get("payload") if isinstance(canonical_event, Mapping) else None
+        canonical_digest = hashlib.sha256(json.dumps(
+            canonical_event, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False,
+        ).encode("utf-8")).hexdigest() if isinstance(canonical_event, Mapping) else None
+        if canonical_digest != canonical_sha or not isinstance(payload, Mapping):
+            return None, []
+        market: dict[str, Any] = {}
+        for name in ("symbol", "open", "high", "low", "close", "volume"):
+            value = payload.get(name)
+            if name == "symbol":
+                if not isinstance(value, str) or not value:
+                    return None, []
+            elif isinstance(value, bool) or not isinstance(value, (int, float)):
+                return None, []
+            market[name] = value
+        field_decision = latest.get("field_decision")
+        if not isinstance(field_decision, Mapping):
+            field_decision = {}
+        raw_state = field_decision.get("state")
+        decision_state: dict[str, float] = {}
+        if isinstance(raw_state, Mapping):
+            for name, value in raw_state.items():
+                if (
+                    len(decision_state) >= 64
+                    or not isinstance(name, str)
+                    or isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(value)
+                ):
+                    continue
+                decision_state[name] = float(value)
+        target_application = latest.get("target_application")
+        if not isinstance(target_application, Mapping):
+            target_application = {}
+        account = latest.get("account")
+        health = latest.get("data_health")
+        settlement = latest.get("settlement")
+        settlement_view = None
+        signal_sha = None
+        if isinstance(settlement, Mapping) and settlement.get("execution_event_id") == canonical_id:
+            signal = settlement.get("pending_order")
+            if isinstance(signal, Mapping) and signal.get("signal_event_id") == settlement.get("signal_event_id"):
+                candidate = signal.get("signal_canonical_event_sha256")
+                if (
+                    isinstance(candidate, str) and len(candidate) == 64
+                    and all(ch in "0123456789abcdef" for ch in candidate)
+                ):
+                    signal_sha = candidate
+            settlement_view = {
+                name: settlement.get(name)
+                for name in (
+                    "status", "reason", "signal_event_id", "field_decision_event_id",
+                    "execution_event_id", "signal_reference_price",
+                    "execution_reference_price", "signal_to_execution_seconds",
+                    "execution_price",
+                )
+            }
+            settlement_view["signal_canonical_event_sha256"] = signal_sha
+        pending = latest.get("pending_order")
+        pending_view = (
+            {
+                name: pending.get(name)
+                for name in (
+                    "signal_event_id", "field_decision_event_id", "target_exposure",
+                    "current_exposure_at_signal", "signal_reference_price",
+                    "expected_execution_observed_at",
+                )
+            }
+            if isinstance(pending, Mapping) and pending.get("signal_event_id") == canonical_id
+            else None
+        )
+        observation = {
+            "schema": "cassi.trading-mathematical-observation.v1",
+            "source": {
+                "canonical_event_id": canonical_id,
+                "canonical_event_sha256": canonical_sha,
+                "source_id": source.get("source_id"),
+                "source_revision": source.get("source_revision"),
+                "observed_at": source.get("observed_at"),
+                "available_at": source.get("available_at"),
+                "accepted_event_root_sha256": accepted_root,
+            },
+            "market": market,
+            "decision": {
+                "field_decision_event_id": latest.get("field_decision_event_id"),
+                "state": decision_state,
+                "requested_target": target_application.get("requested_target"),
+                "applied_target": target_application.get("applied_target"),
+                "selection_source": field_decision.get("selection_source"),
+            },
+            "paper": {
+                "execution_model": latest.get("execution_model"),
+                "disposition": latest.get("disposition"),
+                "fill": latest.get("fill"),
+                "account": dict(account) if isinstance(account, Mapping) else None,
+                "feed_health": dict(health) if isinstance(health, Mapping) else None,
+                "settlement": settlement_view,
+                "pending_intent": pending_view,
+            },
+            "modeled_field_outcomes": latest.get("field_internal_modeled_outcomes"),
+        }
+        return observation, [canonical_sha, *([signal_sha] if signal_sha is not None else [])]
 
     def _run(self, operation: str, parameters: Mapping[str, Any], *,
              program: Mapping[str, Any], operation_id: str) -> Mapping[str, Any]:
@@ -273,20 +416,37 @@ class TradingActivity:
             raise ActivityRefused("trading receipt is not an object")
         source = receipt.get("source") or {}
         result = receipt.get("result") or {}
+        processed_bars = (
+            receipt.get("processed_bars", result.get("processed", 0))
+            if isinstance(result, dict) else receipt.get("processed_bars", 0)
+        )
+        receipt_sha = hashlib.sha256(body).hexdigest()
+        observation, event_refs = self._mathematical_observation(receipt, processed_bars)
+        source_root = source.get("accepted_event_root_sha256") if isinstance(source, dict) else None
         summary = {
             "status": receipt.get("status", "PASS"),
             "reason": receipt.get("reason"),
             "mode": operation,
-            "processed_bars": receipt.get("processed_bars", result.get("processed", 0))
-            if isinstance(result, dict) else receipt.get("processed_bars", 0),
+            "processed_bars": processed_bars,
             "admitted_bars": result.get("admitted_bars") if isinstance(result, dict) else None,
-            "source_event_root_sha256": source.get("accepted_event_root_sha256")
-            if isinstance(source, dict) else None,
+            "source_event_root_sha256": source_root,
             "receipt_path": str(path),
-            "receipt_sha256": hashlib.sha256(body).hexdigest(),
+            "receipt_sha256": receipt_sha,
             "field_owner": self.entity.config.entity_id,
             "external_order_path": False,
+            "artifact": {
+                "sha256": receipt_sha,
+                "metadata": {
+                    "source_path": str(path.resolve()),
+                    "source_revision_sha256": receipt_sha,
+                    "canonical_event_sha256": event_refs[0] if event_refs else None,
+                    "accepted_event_root_sha256": source_root,
+                },
+            },
+            "source_refs": [receipt_sha, *event_refs],
         }
+        if operation == "paper-step" and observation is not None:
+            summary["mathematical_observation"] = observation
         _field_result(self.entity, current, self.activity_id, operation, operation_id, summary)
         return summary
 

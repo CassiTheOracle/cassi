@@ -46,7 +46,13 @@ from cassi_resident_qwen_client import ResidentQwenClient
 from cassi_field_atlas import FieldIntelligenceError
 from cassi_field_owner import CapacityLimits
 from cassi_field_regions import ResidencyWait
-from cassi_field_residency import ResourceWait, available_ram_bytes
+from cassi_field_residency import (
+    PhysicalAdmission,
+    PhysicalAdmissionCancelled,
+    ResourceLimits,
+    ResourceWait,
+    available_ram_bytes,
+)
 from cassi_learning_computer import LearningComputerResidencyWait
 from cassi_research_organism import ResearchOrganism
 from cassi_hive_collective import (
@@ -66,6 +72,8 @@ from cassi_field_runtime import ResidentFieldRuntime
 from cassi_field_runtime_native import NativeFieldRuntimeClient
 from programs.model.gguf import build_gguf_model_package
 from surface.records import SurfaceConflictError, SurfaceWaitError
+from cassi_machine_observer import CassiMachineObserver
+from cassi_physical_observer import PhysicalObserver
 
 ENTITY_SCHEMA = "cassi.field-brain.entity.v1"
 ENTITY_EVENT_SCHEMA = "cassi.field-brain.event.v1"
@@ -96,7 +104,12 @@ _PROGRAM_IMPLEMENTED_BACKENDS = frozenset({"logical-cpu", "native-cpu", "vulkan"
 # fault in every class the condition can arrive as: the residency manager's
 # wait, a regional paged-structure wait, and the learning computer's typed
 # residency continuation.
-_FIELD_DEFERRALS = (ResourceWait, ResidencyWait, LearningComputerResidencyWait)
+_FIELD_DEFERRALS = (
+    PhysicalAdmissionCancelled,
+    ResourceWait,
+    ResidencyWait,
+    LearningComputerResidencyWait,
+)
 
 
 class _SerializedFieldMemory:
@@ -480,7 +493,7 @@ _SURFACE_MAX_JSON_BYTES = 8_192
 _SURFACE_MAX_JSON_NODES = 128
 _SURFACE_MAX_JSON_DEPTH = 8
 _SURFACE_MAX_OPERATIONS = 16
-_SURFACE_MAX_PAGE_BYTES = 4 << 20
+_SURFACE_MAX_PAGE_BYTES = 1 << 20
 _SURFACE_MAX_GRANT_NS = 60 * 60 * 1_000_000_000
 _SURFACE_MAX_INTENT_DURATION_NS = 5 * 60 * 1_000_000_000
 
@@ -794,6 +807,8 @@ class EntityConfig:
         "search_text",
         "write_artifact",
         "inspect_artifact",
+        "library_search",
+        "library_read",
     )
     research_python_executable: str | None = None
     research_resident_enabled: bool = True
@@ -801,10 +816,16 @@ class EntityConfig:
     research_organism_profile: Mapping[str, int] | None = None
     research_resource_capacity: Mapping[str, int] | None = None
     resource_limits: Mapping[str, Any] | None = None
+    physical_core_capacity: int = 8
+
     program_native_enabled: bool = True
     program_native_required: bool = False
     program_native_runtime_executable: Path | None = None
     program_native_device_index: int = 0
+
+    #: The CassiFI field shelf directory (holding shelf.json) the librarian
+    #: research tools open their libraries from; None keeps them closed.
+    field_shelf: Path | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "data_home", Path(self.data_home).resolve())
@@ -844,6 +865,12 @@ class EntityConfig:
             if not isinstance(self.resource_limits, Mapping):
                 raise ValueError("resource_limits must be a mapping")
             object.__setattr__(self, "resource_limits", dict(self.resource_limits))
+        if (
+            isinstance(self.physical_core_capacity, bool)
+            or not isinstance(self.physical_core_capacity, int)
+            or self.physical_core_capacity < 1
+        ):
+            raise ValueError("physical_core_capacity must be a positive integer")
         if self.program_native_runtime_executable is not None:
             object.__setattr__(
                 self,
@@ -864,6 +891,8 @@ class EntityConfig:
             raise ValueError("program_native_device_index must be nonnegative")
         if self.research_cycle_interval_seconds <= 0:
             raise ValueError("research_cycle_interval_seconds must be positive")
+        if self.field_shelf is not None:
+            object.__setattr__(self, "field_shelf", Path(self.field_shelf).resolve())
         if not isinstance(self.research_resident_enabled, bool):
             raise ValueError("research_resident_enabled must be boolean")
         if (
@@ -1028,8 +1057,15 @@ class EntityJournal:
         capacity: Mapping[str, int],
         lease_expires_ns: int,
         parent_reservation_id: str | None = None,
+        foreground_reserve: Mapping[str, int] | None = None,
+        priority: str = "background",
     ) -> Mapping[str, Any]:
-        """Reserve fixed host capacity in journal order with a publication fence."""
+        """Reserve fixed host capacity in journal order with a publication fence.
+
+        ``foreground_reserve`` and ``priority`` record the PhysicalAdmission
+        policy that produced the reservation; they describe admission intent,
+        not charged capacity, so durable replay compares only charged fields.
+        """
         reservation_id = _identifier(reservation_id, "reservation_id")
         mission_account_id = _identifier(mission_account_id, "mission_account_id")
         owner_id = _identifier(owner_id, "resource owner_id")
@@ -1051,6 +1087,13 @@ class EntityJournal:
             raise ValueError("resource lease expiry must be a positive integer")
         normalized_cap = self._resource_values(cap, "reservation cap")
         normalized_capacity = self._resource_values(capacity, "resource capacity")
+        normalized_reserve = (
+            self._resource_values(foreground_reserve, "foreground reserve")
+            if foreground_reserve is not None
+            else {}
+        )
+        if priority not in {"foreground", "background"}:
+            raise ValueError("resource reservation priority must be foreground or background")
         if set(normalized_cap) - set(normalized_capacity):
             raise ValueError("reservation cap names unavailable capacity")
         candidate = {
@@ -1063,6 +1106,10 @@ class EntityJournal:
             "resource_class": resource_class,
             "cap": normalized_cap,
             "parent_reservation_id": parent_reservation_id,
+            "admission": {
+                "priority": priority,
+                "foreground_reserve": normalized_reserve,
+            },
             "measured_consumption": {name: 0 for name in normalized_cap},
             "lease": {
                 "expires_ns": lease_expires_ns,
@@ -1259,6 +1306,7 @@ class EntityJournal:
         reconciliation_id: str,
         *,
         observed_released: bool,
+        measured_consumption: Mapping[str, int] | None = None,
     ) -> Mapping[str, Any]:
         reservation_id = _identifier(reservation_id, "reservation_id")
         reconciliation_id = _identifier(
@@ -1266,39 +1314,82 @@ class EntityJournal:
         )
         if not isinstance(observed_released, bool):
             raise ValueError("resource reconciliation observation must be boolean")
+        if not observed_released and measured_consumption is not None:
+            raise ValueError("consumption cannot be measured before release is observed")
         with self._lock:
             prior = self._reservations.get(reservation_id)
             if prior is None:
                 raise ValueError("resource reservation is unavailable")
             reservation = json.loads(_canonical(prior))
+            measured: dict[str, int] | None = None
+            if observed_released:
+                measured = self._resource_values(
+                    reservation["cap"]
+                    if measured_consumption is None
+                    else measured_consumption,
+                    "measured consumption",
+                )
+                if set(measured) - set(reservation["cap"]):
+                    raise ValueError("measured consumption contains an unreserved resource")
             if reservation["state"] != "reconciliation-required":
-                if (
-                    reservation.get("reconciliation", {}).get("reconciliation_id")
-                    == reconciliation_id
-                ):
+                previous = reservation.get("reconciliation", {})
+                if previous.get("reconciliation_id") == reconciliation_id:
+                    if (
+                        previous.get("observed_released") != observed_released
+                        or previous.get("measured_consumption") != measured
+                    ):
+                        raise ValueError(
+                            "resource reconciliation id was reused with different evidence"
+                        )
                     return reservation
                 raise ValueError("resource reservation does not require reconciliation")
+            previous = reservation.get("reconciliation")
+            if isinstance(previous, Mapping) and previous.get("reconciliation_id") == reconciliation_id:
+                if (
+                    previous.get("observed_released") != observed_released
+                    or previous.get("measured_consumption") != measured
+                ):
+                    raise ValueError(
+                        "resource reconciliation id was reused with different evidence"
+                    )
+                return reservation
             reservation["reconciliation"] = {
                 "reconciliation_id": reconciliation_id,
                 "observed_released": observed_released,
+                "measured_consumption": measured,
             }
             if observed_released:
+                assert measured is not None
+                reservation["measured_consumption"] = measured
                 reservation["state"] = "released"
                 reservation["settlement"] = {
                     "status": "released",
                     "settlement_id": reconciliation_id,
-                    "overrun": {},
+                    "overrun": {
+                        name: max(0, measured.get(name, 0) - int(cap))
+                        for name, cap in reservation["cap"].items()
+                    },
                 }
-                reservation["lease"]["state"] = "closed"
+                reservation["lease"] = {
+                    **reservation["lease"],
+                    "state": "closed",
+                    "fence": int(reservation["lease"]["fence"]) + 1,
+                }
             return self.commit(
                 request_id=f"resource-reconcile:{reservation_id}:{reconciliation_id}",
-                payload_sha256=_sha256(reservation),
+                payload_sha256=_sha256({
+                    "reservation_id": reservation_id,
+                    "reconciliation_id": reconciliation_id,
+                    "observed_released": observed_released,
+                    "measured_consumption": measured,
+                }),
                 event_specs=[{
                     "kind": "resource-reconciled",
                     "payload": {
                         "reservation_id": reservation_id,
                         "reconciliation_id": reconciliation_id,
                         "observed_released": observed_released,
+                        "measured_consumption": measured,
                     },
                 }],
                 result={"resource_reservation": reservation},
@@ -1499,50 +1590,176 @@ class _FairBrainScheduler:
         self._condition = threading.Condition()
         self._waiting: list[tuple[int, bool]] = []
         self._next_ticket = 0
-        self._active = False
+        self._active_foreground = 0
+        self._active_background = 0
         self._foreground_streak = 0
         self._foreground_burst = foreground_burst
+        self._background_decode_limit = 1
+        self._physical_admission: PhysicalAdmission | None = None
+        # Observational-only hook owned by the entity's machine observer: it
+        # receives segment pause durations and first-useful boundaries. The
+        # scheduler never depends on it and must never raise through it.
+        self.segment_event_hook: Callable[..., None] | None = None
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._brain, name)
+
+    @property
+    def background_decode_limit(self) -> int:
+        with self._condition:
+            return self._background_decode_limit
+
+    def set_background_decode_limit(self, limit: int) -> None:
+        if isinstance(limit, bool) or limit not in (1, 2, 4, 8):
+            raise ValueError("background decode limit must be one of 1, 2, 4, or 8")
+        with self._condition:
+            self._background_decode_limit = limit
+            self._condition.notify_all()
+
+    def queue_counts(self) -> dict[str, int]:
+        with self._condition:
+            return {
+                "foreground_waiting": sum(1 for _, foreground in self._waiting if foreground),
+                "background_waiting": sum(1 for _, foreground in self._waiting if not foreground),
+                "foreground_active": self._active_foreground,
+                "background_active": self._active_background,
+            }
 
     @staticmethod
     def _is_foreground() -> bool:
         return threading.current_thread().name != "cassi-autonomous-researcher"
 
-    def _eligible(self, ticket: int, foreground: bool) -> bool:
-        if self._active:
+    def _supports_segment_yield(self) -> bool:
+        return isinstance(self._brain, ResidentQwenClient) and bool(
+            getattr(self._brain, "supports_segment_yield", False)
+        )
+
+    def _eligible(self, ticket: int, foreground: bool, *, allow_parallel: bool) -> bool:
+        if not allow_parallel and (self._active_foreground or self._active_background):
+            return False
+        if foreground:
+            if self._active_foreground:
+                return False
+        elif self._active_background >= (
+            self._background_decode_limit if allow_parallel else 1
+        ):
             return False
         foreground_waiting = [row for row in self._waiting if row[1]]
         background_waiting = [row for row in self._waiting if not row[1]]
-        if background_waiting and self._foreground_streak >= self._foreground_burst:
-            selected = min(background_waiting)
-        elif foreground_waiting:
-            selected = min(foreground_waiting)
+        # A foreground request may use a ready slot immediately; background
+        # fairness must never make it wait merely to fill a compatible batch.
+        if (
+            not foreground
+            and foreground_waiting
+            and self._foreground_streak < self._foreground_burst
+        ):
+            return False
+        same_class = foreground_waiting if foreground else background_waiting
+        return min(same_class) == (ticket, foreground) if same_class else False
+
+    def _claim_slot(self, foreground: bool) -> None:
+        if foreground:
+            self._active_foreground += 1
         else:
-            selected = min(background_waiting)
-        return selected == (ticket, foreground)
+            self._active_background += 1
+
+    def _release_slot(self, foreground: bool) -> None:
+        if foreground:
+            self._active_foreground -= 1
+        else:
+            self._active_background -= 1
+
+    def has_available_capacity(self) -> bool | None:
+        admission = self._physical_admission
+        if admission is None:
+            return None
+        try:
+            return admission.manager.available("ram") > 0
+        except Exception:
+            return False
 
     def _dispatch(self, method: str, kwargs: Mapping[str, Any]) -> Mapping[str, Any]:
         foreground = self._is_foreground()
+        allow_parallel = method == "complete" and self._supports_segment_yield()
+        scheduler_timing = kwargs.get("_scheduler_timing")
+        queued_at_ns = time.monotonic_ns()
         with self._condition:
             ticket = self._next_ticket
             self._next_ticket += 1
             self._waiting.append((ticket, foreground))
-            while not self._eligible(ticket, foreground):
+            while not self._eligible(ticket, foreground, allow_parallel=allow_parallel):
                 self._condition.wait()
             self._waiting.remove((ticket, foreground))
-            self._active = True
+            self._claim_slot(foreground)
+            if isinstance(scheduler_timing, dict):
+                scheduler_timing["queue_wait_ns"] = time.monotonic_ns() - queued_at_ns
+        slot_held = True
+        request = dict(kwargs)
+        request.pop("_scheduler_timing", None)
+        if method == "complete" and isinstance(self._brain, ResidentQwenClient):
+            # The client owns physical admission for a resident decode: one
+            # per-group core lease acquired and retired around each
+            # run_to_boundary call. The scheduler keeps only the concurrency
+            # bound (1/2/4/8), so it must not hold a second overlapping core
+            # reservation for the same decode.
+            request["_admission_priority"] = "foreground" if foreground else "background"
+        if method == "complete" and self._supports_segment_yield():
+            observer = request.get("segment_callback")
+            segment_calls = 0
+            segment_pause_ns_total = 0
+
+            def yield_segment(progress: Mapping[str, Any]) -> None:
+                nonlocal slot_held, segment_calls, segment_pause_ns_total
+                paused_at_ns = time.monotonic_ns() if slot_held else None
+                with self._condition:
+                    if slot_held:
+                        self._release_slot(foreground)
+                        slot_held = False
+                        self._foreground_streak = self._foreground_streak + 1 if foreground else 0
+                if observer is not None:
+                    observer(progress)
+                with self._condition:
+                    resumed_ticket = self._next_ticket
+                    self._next_ticket += 1
+                    self._waiting.append((resumed_ticket, foreground))
+                    self._condition.notify_all()
+                    while not self._eligible(
+                        resumed_ticket, foreground, allow_parallel=allow_parallel
+                    ):
+                        self._condition.wait()
+                    self._waiting.remove((resumed_ticket, foreground))
+                    self._claim_slot(foreground)
+                    slot_held = True
+                segment_calls += 1
+                if paused_at_ns is None:
+                    pause_ns = 0
+                else:
+                    pause_ns = time.monotonic_ns() - paused_at_ns
+                segment_pause_ns_total += pause_ns
+                hook = self.segment_event_hook
+                if hook is not None:
+                    try:
+                        hook(
+                            foreground=foreground,
+                            pause_ns=pause_ns,
+                            first_useful=segment_calls == 1,
+                        )
+                    except Exception:
+                        pass
+
+            request["segment_callback"] = yield_segment
         try:
-            return getattr(self._brain, method)(**kwargs)
+            response = getattr(self._brain, method)(**request)
         finally:
             with self._condition:
-                self._active = False
-                if foreground:
-                    self._foreground_streak += 1
-                else:
-                    self._foreground_streak = 0
+                if slot_held:
+                    self._release_slot(foreground)
+                    self._foreground_streak = self._foreground_streak + 1 if foreground else 0
                 self._condition.notify_all()
+        if isinstance(scheduler_timing, dict) and method == "complete" and self._supports_segment_yield():
+            scheduler_timing["segment_pause_ns_total"] = segment_pause_ns_total
+            scheduler_timing["segment_pause_count"] = segment_calls
+        return response
 
     def complete(self, **kwargs: Any) -> Mapping[str, Any]:
         return self._dispatch("complete", kwargs)
@@ -1550,8 +1767,10 @@ class _FairBrainScheduler:
     def complete_visual(self, **kwargs: Any) -> Mapping[str, Any]:
         return self._dispatch("complete_visual", kwargs)
 
-class FieldBrainEntity:
+    def visual_capabilities(self) -> Mapping[str, Any]:
+        return self._dispatch("visual_capabilities", {})
 
+class FieldBrainEntity:
     """One durable entity with a field-owned lifetime and a required live brain."""
 
     def __init__(
@@ -1579,34 +1798,29 @@ class FieldBrainEntity:
         activities = tuple(activities)
         if len(activities) > 16:
             raise ValueError("at most 16 hosted activities may be configured")
+        self.config = config
         self._surface_authorizer = surface_authorizer
         self.surface_broker: Any | None = None
-        self.config = config
+        self.machine_observer = CassiMachineObserver()
+        self._machine_adaptive_control_applied = False
         self.brain = _FairBrainScheduler(brain)
+        self.brain.segment_event_hook = self.machine_observer.record_pause_event
         self._lock = threading.RLock()
         self._field_lock = threading.RLock()
+        owner_limits = None
+        if config.resource_limits is not None:
+            logical_ceiling = int(
+                config.resource_limits.get(
+                    "max_logical_bytes", CapacityLimits().max_workspace_bytes
+                )
+            )
+            owner_limits = CapacityLimits(
+                max_state_bytes=logical_ceiling,
+                max_workspace_bytes=logical_ceiling,
+            )
         raw_memory = memory or CassiFieldWorkMemory(
             config.data_home / "field",
-            limits=(
-                None
-                if config.resource_limits is None
-                else CapacityLimits(
-                    max_state_bytes=int(
-                        config.resource_limits.get(
-                            "max_logical_bytes",
-                            # A slots dataclass exposes its class attributes as
-                            # member descriptors, so the defaults are read from
-                            # an instance rather than from the class.
-                            CapacityLimits().max_state_bytes,
-                        )
-                    ),
-                    max_workspace_bytes=int(
-                        config.resource_limits.get(
-                            "max_logical_bytes", CapacityLimits().max_workspace_bytes
-                        )
-                    ),
-                )
-            ),
+            limits=owner_limits,
             resource_limits=config.resource_limits,
             profile_overrides=ENTITY_REGIONAL_PROFILE_OVERRIDES,
         )
@@ -1615,6 +1829,9 @@ class FieldBrainEntity:
         self.journal = EntityJournal(config.data_home / "entity-events.jsonl")
         self.organism: ResearchOrganism | None = None
         root_owner = getattr(raw_memory, "owner", None)
+        self._field_owner = root_owner
+        self.physical_admission: PhysicalAdmission | None = None
+        self.physical_observer: PhysicalObserver | None = None
         assert config.capability_root is not None and config.research_home is not None
         self._program_physical_runtime: ResidentFieldRuntime | None = None
         self._program_native_executable: Path | None = None
@@ -1674,6 +1891,17 @@ class FieldBrainEntity:
                 runtime=self._program_physical_runtime,
                 placement="logical-cpu",
             )
+            program_resources = config.resource_limits
+            if program_resources is None:
+                # A semantic owner transition reserves its resident image as
+                # scratch and twice that image in RAM. The program computer
+                # supplies the entity-wide physical admission account.
+                state_ceiling = root_owner.limits.max_state_bytes
+                defaults = ResourceLimits()
+                program_resources = {
+                    "ram_bytes": max(defaults.ram_bytes, 2 * state_ceiling),
+                    "scratch_bytes": max(defaults.scratch_bytes, state_ceiling),
+                }
             program_runtime.ensure_computer(
                 self._program_member_id,
                 profile=PROGRAM_COMPUTER_PROFILE,
@@ -1682,8 +1910,37 @@ class FieldBrainEntity:
                 # works under; its own manager still asks the machine for
                 # room on every reservation, so a declaration cannot exceed
                 # what the rig actually reports.
-                resource_limits=config.resource_limits,
+                resource_limits=program_resources,
             )
+            manager = root_owner.resource_manager(self._program_computer_id)
+            limits = manager.limits
+            physical_capacity = {
+                "physical_cores": config.physical_core_capacity,
+                "ram_bytes": int(limits.ram_bytes),
+                "vram_bytes": int(limits.vram_bytes),
+                "transfer_bytes": int(limits.transfer_bytes),
+                "peak_bytes": int(limits.scratch_bytes),
+            }
+            admission = root_owner.physical_admission
+            if admission is None:
+                admission = PhysicalAdmission(
+                    manager,
+                    self.journal,
+                    owner_id=config.entity_id,
+                    capacity=physical_capacity,
+                    foreground_reserve={"physical_cores": 1},
+                )
+                root_owner.set_physical_admission(admission)
+            elif (
+                admission.manager is not manager
+                or admission.capacity != physical_capacity
+            ):
+                raise ValueError(
+                    "field owner already has a physical admission with a different "
+                    "computer account or capacity"
+                )
+            self.physical_admission = admission
+            self.brain._physical_admission = admission
             program_runtime.ensure_program_runtime(self._program_member_id)
             # A continuation task left behind by an earlier process can never be
             # advanced, so it would hold its share of the bounded task region
@@ -1731,6 +1988,7 @@ class FieldBrainEntity:
                 default_tools=self.config.research_default_tools,
                 brain_context_tokens=self.config.brain_context_tokens,
                 brain_context_reserve_tokens=self.config.brain_context_reserve_tokens,
+                field_shelf=self.config.field_shelf,
             ),
             brain=self.brain,
             memory=self.memory,
@@ -1743,6 +2001,10 @@ class FieldBrainEntity:
         self.activities: dict[str, Any] = {}
         self._closed = False
         try:
+            if self.physical_admission is not None:
+                self.physical_observer = PhysicalObserver(
+                    self.physical_admission,
+                ).start()
             for activity in activities:
                 name = _identifier(getattr(activity, "activity_id", None), "activity_id")
                 if name in self.activities:
@@ -1804,6 +2066,10 @@ class FieldBrainEntity:
                         brain_close = getattr(self.brain, "close", None)
                         if callable(brain_close):
                             brain_close()
+                        self.machine_observer.close()
+                        if self.physical_observer is not None:
+                            self.physical_observer.stop()
+                            self.physical_observer = None
                         if self._program_physical_runtime is not None:
                             self._program_physical_runtime.shutdown()
                             self._program_physical_runtime = None
@@ -2466,6 +2732,7 @@ class FieldBrainEntity:
         thinking: bool,
         response_format: Mapping[str, Any],
         conversation_id: str | None = None,
+        activity_id: str | None = None,
     ) -> Mapping[str, Any]:
         brain_request: dict[str, Any] = {
             "prompt": prompt,
@@ -2473,16 +2740,62 @@ class FieldBrainEntity:
             "thinking": thinking,
             "response_format": response_format,
         }
-        if conversation_id is not None and isinstance(self.brain._brain, ResidentQwenClient):
-            brain_request["conversation_id"] = conversation_id
+        if isinstance(self.brain._brain, ResidentQwenClient):
+            if conversation_id is not None:
+                brain_request["conversation_id"] = conversation_id
+            if activity_id is not None:
+                brain_request["activity_id"] = activity_id
+        queue_timing: dict[str, int] = {}
+        brain_request["_scheduler_timing"] = queue_timing
+        foreground = self.brain._is_foreground()
+        sample_id = self.machine_observer.begin(
+            foreground=foreground,
+            queued=self.brain.queue_counts(),
+        )
+        response: Mapping[str, Any] | None = None
+        observed_error: BaseException | None = None
         try:
             response = self.brain.complete(**brain_request)
-        except _FIELD_DEFERRALS:
+        except _FIELD_DEFERRALS as exc:
+            observed_error = exc
             # The field asked for room and keeps its place: the pending stage
             # is durable in its own state, so this is a wait, not a fault.
             raise
         except Exception as exc:
+            observed_error = exc
             raise BrainUnavailable(f"required llama.cpp brain is unavailable: {exc}") from exc
+        finally:
+            self.machine_observer.finish(
+                sample_id,
+                foreground=foreground,
+                queue_wait_ns=queue_timing.get("queue_wait_ns"),
+                response=response,
+                error=observed_error,
+                segment_pause_ns=queue_timing.get("segment_pause_ns_total"),
+                segment_pause_count=queue_timing.get("segment_pause_count"),
+            )
+            if self.brain._supports_segment_yield():
+                measured = self.machine_observer.status(
+                    queues=self.brain.queue_counts(),
+                    available_capacity=self.brain.has_available_capacity(),
+                )
+                foreground_p95 = measured["foreground_latency_ms"]["p95"]
+                recommendation = measured["sampling"]["recommendation"]
+                # Apply only on a recommendation with enough measured
+                # foreground completions to trust; idle or sparse windows
+                # never hike or thrash the concurrency bound.
+                apply_recommendation = (
+                    measured["sample_count"] > 0
+                    and measured["sampling"]["capacity_available"] is True
+                    and recommendation["confidence"] in ("medium", "high")
+                    and isinstance(foreground_p95, (int, float))
+                    and not isinstance(foreground_p95, bool)
+                )
+                if apply_recommendation:
+                    self.brain.set_background_decode_limit(
+                        measured["sampling"]["recommended_level"]
+                    )
+                    self._machine_adaptive_control_applied = True
         content = response.get("content")
         if not isinstance(content, str) or not content.strip():
             raise BrainUnavailable("required llama.cpp brain returned no usable content")
@@ -2514,6 +2827,7 @@ class FieldBrainEntity:
         *,
         expected_epoch_sha256: str | None,
         next_epoch_sha256: str | None,
+        activity_id: str | None = None,
     ) -> bool:
         client = self._resident_prefix_client()
         if (
@@ -2526,6 +2840,7 @@ class FieldBrainEntity:
             conversation_id,
             expected_epoch_sha256=expected_epoch_sha256,
             next_epoch_sha256=next_epoch_sha256,
+            activity_id=activity_id,
         )
 
 
@@ -3050,6 +3365,7 @@ class FieldBrainEntity:
                         conversation_id,
                         expected_epoch_sha256=before_field_epoch,
                         next_epoch_sha256=after_field_epoch,
+                        activity_id=f"conversation:{conversation_id}",
                     )
             brain = self._complete(
                 prompt=prompt,
@@ -3057,6 +3373,7 @@ class FieldBrainEntity:
                 thinking=self.config.brain_thinking,
                 response_format=response_format,
                 conversation_id=conversation_id,
+                activity_id=f"conversation:{conversation_id}",
             )
             contribution = self._brain_json(brain, fields=frozenset({"response"}))
             server_receipt = brain.get("server_cassi_receipt")
@@ -3068,6 +3385,13 @@ class FieldBrainEntity:
             completion_field_epoch = (
                 prefix_receipt.get("completion_field_epoch_sha256")
                 if isinstance(prefix_receipt, Mapping)
+                else None
+            )
+            measured = brain.get("resource_feedback")
+            resource_view = (
+                self.memory.resident_resource_feedback(measured)
+                if isinstance(measured, Mapping)
+                and self.memory.provides("resident_resource_feedback")
                 else None
             )
             with self._field_lock:
@@ -3101,6 +3425,7 @@ class FieldBrainEntity:
                         "message_source_revision_id": message.get("source_revision_id"),
                         "request_id": request_id,
                         "usage": brain.get("usage", {}),
+                        **({"resident_resource_feedback": resource_view} if resource_view is not None else {}),
                         **self._field_policies(brain),
                         "context_accounting": context_accounting,
                     },
@@ -3110,6 +3435,7 @@ class FieldBrainEntity:
                         conversation_id,
                         expected_epoch_sha256=completion_field_epoch,
                         next_epoch_sha256=self._resident_prefix_field_epoch(),
+                        activity_id=f"conversation:{conversation_id}",
                     )
             result = {
                 "schema": ENTITY_SCHEMA,
@@ -3126,6 +3452,7 @@ class FieldBrainEntity:
                 "message_source_revision_id": message.get("source_revision_id"),
                 "brain_source_revision_id": brain_record.get("source_revision_id"),
                 "usage": brain.get("usage", {}),
+                **({"resident_resource_feedback": resource_view} if resource_view is not None else {}),
                 **self._field_policies(brain),
                 "context_accounting": context_accounting,
                 "idempotent_replay": False,
@@ -4433,6 +4760,8 @@ class FieldBrainEntity:
                 prompt=prompt,
                 max_tokens=self.config.max_question_tokens,
                 thinking=self.config.brain_thinking,
+                conversation_id=conversation_id,
+                activity_id=f"conversation:{conversation_id}",
                 response_format=response_format,
             )
             contribution = self._brain_json(brain, fields=frozenset({"question", "reason"}))
@@ -4729,6 +5058,70 @@ class FieldBrainEntity:
                 limit=limit,
                 include_unsettled=include_unsettled,
             )
+
+    def inspect_embodied_field(self) -> Mapping[str, Any]:
+        """Return a consistent, read-only view of the canonical field owner."""
+
+        with self._field_lock:
+            owner = self._field_owner
+            inspect = getattr(owner, "inspect_embodied_field", None)
+            if not callable(inspect):
+                reason = (
+                    "canonical field owner is unavailable"
+                    if owner is None
+                    else "canonical field owner does not expose embodied inspection"
+                )
+                return {
+                    "schema": "cassifi.embodied-field.v1",
+                    "status": "unavailable",
+                    "state_sha256": None,
+                    "generation": None,
+                    "read_only": True,
+                    "layout": {"status": "unavailable", "value": None, "reason": reason},
+                    "regions": {
+                        "status": "unavailable",
+                        "items": [],
+                        "limit": 0,
+                        "truncated": False,
+                        "reason": reason,
+                    },
+                    "circulation": {
+                        "status": "unavailable",
+                        "value": None,
+                        "reason": reason,
+                    },
+                    "semantics": {
+                        "status": "unavailable",
+                        "items": [],
+                        "limit": 0,
+                        "truncated": False,
+                        "reason": reason,
+                    },
+                }
+            snapshot = inspect()
+            if not isinstance(snapshot, Mapping):
+                raise RuntimeError("canonical field owner returned an invalid embodied snapshot")
+            if snapshot.get("schema") != "cassifi.embodied-field.v1":
+                raise RuntimeError("canonical field owner returned an unsupported embodied snapshot schema")
+        captured_at_ns = time.time_ns()
+        result = dict(snapshot)
+        result["captured_at_ns"] = captured_at_ns
+        if self.organism is None:
+            result["working_organization"] = {
+                "status": "unavailable",
+                "items": [],
+                "total_count": 0,
+                "limit": 0,
+                "truncated": False,
+                "reason": "the canonical owner has no research organism",
+            }
+        else:
+            organization = dict(self.organism.inspect_working_fields(limit=32))
+            organization["capture_matches_owner"] = (
+                organization.get("owner_state_sha256") == snapshot.get("state_sha256")
+            )
+            result["working_organization"] = organization
+        return result
     
 
     def _surface_required(self) -> Any:
@@ -6611,6 +7004,22 @@ class FieldBrainEntity:
 
         with self._lock:
             receipt = self.memory.state_receipt()
+            machine_observer = self.machine_observer.status(
+                queues=self.brain.queue_counts(),
+                available_capacity=self.brain.has_available_capacity(),
+            )
+            machine_observer["sampling"]["target_background_decode_limit"] = (
+                self.brain.background_decode_limit
+            )
+            machine_observer["sampling"]["observed_background_active"] = (
+                self.brain.queue_counts()["background_active"]
+            )
+            machine_observer["sampling"]["automatic_cost_increase"] = (
+                self._machine_adaptive_control_applied
+            )
+            machine_observer["sampling"]["adaptive_control_active"] = (
+                self._machine_adaptive_control_applied
+            )
             return {
                 "schema": ENTITY_SCHEMA,
                 "entity_id": self.config.entity_id,
@@ -6622,6 +7031,11 @@ class FieldBrainEntity:
                     "id": getattr(self.brain, "model_id", "unidentified"),
                     "sha256": getattr(self.brain, "model_sha256", "unidentified"),
                 },
+                "machine_observer": machine_observer,
+                "physical_observer": (
+                    None if self.physical_observer is None
+                    else self.physical_observer.status()
+                ),
                 "resource_limits": (
                     dict(self.config.resource_limits)
                     if self.config.resource_limits is not None
@@ -7390,6 +7804,22 @@ class FieldBrainEntity:
                         self._program_member_id,
                         task_id=internal_id,
                     )
+                elif action == "increase-limits":
+                    if set(arguments) != {"limits"} or not isinstance(
+                        arguments["limits"], Mapping
+                    ):
+                        raise ValueError(
+                            "limit increase requires exactly one limits object"
+                        )
+                    result = runtime.step(
+                        self._program_member_id,
+                        task_id=internal_id,
+                        steps=1,
+                        control={
+                            "operation": "increase-limits",
+                            "limits": dict(arguments["limits"]),
+                        },
+                    )
                 elif action == "invalidate-optimization":
                     result = runtime.step(
                         self._program_member_id,
@@ -7618,6 +8048,10 @@ class FieldBrainEntity:
     def create_research_program(self, **arguments: Any) -> Mapping[str, Any]:
         result = self.researcher.create_program(**arguments)
         program_id = _identifier(arguments.get("program_id"), "program_id")
+        # The entity's regional spectrum belongs to the same work-memory
+        # owner as its semantic computer. Form it only when research starts.
+        if self.memory.provides("ensure_embodied_circulation"):
+            self.memory.ensure_embodied_circulation()
         with self._lock:
             workspace = self._ensure_program_workspace(program_id)
         return {**dict(result), "programmable_workspace": workspace}
@@ -9922,6 +10356,9 @@ def undeclared_resource_limits() -> dict[str, int]:
     )
     return {
         "ram_bytes": ram_bytes,
+        # Computer work holds its image and successor in RAM, then stages an
+        # additional peak buffer. Keep the peak allowance within that share.
+        "scratch_bytes": max(CapacityLimits().max_state_bytes, ram_bytes // 3),
         "max_logical_bytes": max(ram_bytes, 1024 * 1024 * 1024),
     }
 
@@ -9931,6 +10368,8 @@ def open_local_entity(
     *,
     model_url: str | None = None,
     model_path: Path | None = None,
+    vision_projector_path: Path | None = None,
+    ngram_table_path: Path | None = None,
     brain_backend: str = "resident",
     resident_backend: str = "cpu",
     resident_state_directory: Path | None = None,
@@ -9942,6 +10381,7 @@ def open_local_entity(
     brain_context_tokens: int = 32_768,
     brain_context_reserve_tokens: int = 128,
     resource_limits: Mapping[str, Any] | None = None,
+    physical_core_capacity: int = 8,
     capability_root: Path | None = None,
     theory_root: Path | None = None,
     research_home: Path | None = None,
@@ -9954,7 +10394,10 @@ def open_local_entity(
         "search_text",
         "write_artifact",
         "inspect_artifact",
+        "library_search",
+        "library_read",
     ),
+    field_shelf: Path | None = None,
     research_resident_enabled: bool = True,
     program_native_enabled: bool = True,
     program_native_required: bool = False,
@@ -9966,46 +10409,40 @@ def open_local_entity(
 ) -> FieldBrainEntity:
     """Open the field–brain profile against resident Qwen by default.
 
-    ``brain_backend='external'`` remains the explicit loopback text baseline.
-    Optional local multimodal inference uses ``CASSI_SURFACE_VISION_MODEL_URL``
-    and ``CASSI_SURFACE_VISION_PROJECTOR_PATH``; an absent or unavailable
-    instrument leaves visual interpretation explicitly unsupported.
+    The projector is local to the resident owner-held model graph; the explicit
+    external text baseline has no visual route.
     """
     if brain_backend not in {"resident", "external"}:
         raise ValueError("brain_backend must be resident or external")
     if resource_limits is None:
         resource_limits = undeclared_resource_limits()
     resolved_model = Path(model_path or "Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf")
-    vision_url = os.environ.get("CASSI_SURFACE_VISION_MODEL_URL", "").strip()
-    projector_path = os.environ.get("CASSI_SURFACE_VISION_PROJECTOR_PATH", "").strip()
+    projector = vision_projector_path or os.environ.get("CASSI_SURFACE_VISION_PROJECTOR_PATH", "").strip()
+    projector_path = Path(projector).resolve() if projector else None
     if brain_backend == "external":
         if not model_url:
             raise ValueError("external brain_backend requires model_url")
-        external_client = LocalQwenClient(model_url, model_path=resolved_model)
-        if vision_url and projector_path and vision_url != model_url:
-            try:
-                external_client._visual_client = LocalQwenClient(
-                    vision_url, model_path=resolved_model, defer_discovery=True
-                )
-            except Exception:
-                external_client._visual_client = None
-        client: BrainClient = external_client
+        if projector_path is not None:
+            raise ValueError(
+                "visual input requires resident field-owned Qwen and its native "
+                "projector; the external text baseline has no visual route"
+            )
+        if ngram_table_path is not None:
+            raise ValueError("ngram table requires resident field-owned Qwen")
+        client: BrainClient = LocalQwenClient(
+            model_url,
+            model_path=resolved_model,
+        )
     else:
-        resident_client = ResidentQwenClient(
+        client = ResidentQwenClient(
             resolved_model,
             resident_state_directory or (Path(data_home) / "resident-qwen"),
             backend=resident_backend,
             library_path=resident_library_path,
             threads=resident_threads,
+            projector_path=projector_path,
+            ngram_table_path=ngram_table_path,
         )
-        if vision_url and projector_path:
-            try:
-                resident_client._visual_client = LocalQwenClient(
-                    vision_url, model_path=resolved_model, defer_discovery=True
-                )
-            except Exception:
-                resident_client._visual_client = None
-        client = resident_client
     entity = FieldBrainEntity(
         EntityConfig(
             data_home=data_home,
@@ -10015,6 +10452,7 @@ def open_local_entity(
             brain_context_tokens=brain_context_tokens,
             brain_context_reserve_tokens=brain_context_reserve_tokens,
             resource_limits=resource_limits,
+            physical_core_capacity=physical_core_capacity,
             capability_root=capability_root,
             theory_root=theory_root,
             research_home=research_home,
@@ -10027,6 +10465,7 @@ def open_local_entity(
             program_native_required=program_native_required,
             program_native_runtime_executable=program_native_runtime_executable,
             program_native_device_index=program_native_device_index,
+            field_shelf=field_shelf,
         ),
         brain=client,
         surface_backends=surface_backends,

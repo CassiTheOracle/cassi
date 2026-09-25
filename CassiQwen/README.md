@@ -373,6 +373,23 @@ Python research scripts can be enabled with `run_existing_python`; repeat
 tool list replaces the defaults. Generated workspace code is retained as an
 artifact but cannot execute without a real containment backend.
 
+Programs also read from the CassiFI field shelf (`../CassiFI/README.md`,
+"Specialized field foundry") through `library_search` and `library_read`. The
+server opens the shelf named by `--field-shelf` (default
+`../CassiFI/_diag/fields`), and the capability map lists each library's name,
+kind, purpose, and summary. `library_search` wakes the best-ranked passages of
+one library for a query and returns their exact text; `library_read` returns
+the exact bytes of one library file from an optional byte offset. A quote
+becomes an admitted observation under `library:<name>/<path>` only when it lies
+inside one returned passage or read. The observation records the quote's byte
+span in the file and the file's sha256, so each citation points at an exact
+span of an exact revision, and a later change to that file invalidates the
+records that read it. A library refreshes against its repository on its first
+use in each process. When no shelf names a library, both tools leave the
+action prompt and refuse direct calls. An unknown library returns a refusal
+that lists the shelved libraries, and an unknown path a refusal naming the
+library it is missing from.
+
 The event journal and operation records recover the boundary
 `intent → actual result → field admission → delivery`. Reads and immutable
 workspace writes may replay after an interruption. An existing-script process
@@ -604,58 +621,161 @@ no claim about the field, the brain, or acquired capability.
 
 ## Cassi explores Pokémon Yellow with PyBoy
 
-From `CassiQwen/`, start continuous exploration, or run a bounded session and
-resume it with the same ROM and field home:
+From `CassiQwen/`, start continuous exploration, run a bounded session and
+resume it with the same ROM and field home, or play yourself while the field
+watches:
 
 ```powershell
 python run_pyboy.py --window SDL2
-python run_pyboy.py --steps 16 --field-home .\_diag\yellow-field
-python run_pyboy.py --steps 16 --field-home .\_diag\yellow-field  # resume
+python run_pyboy.py --steps 1500 --field-home .\_diag\yellow-field
+python run_pyboy.py --steps 1500 --field-home .\_diag\yellow-field  # resume
+python run_pyboy.py --window SDL2 --demo --field-home .\_diag\yellow-field
 ```
 
 PyBoy 2.7.0 or newer is required (`python -m pip install PyBoy`). Omitted
 `--steps` means continuous play (`--steps` accepts 1 to 131072 actions);
-`--frames-per-action` (default 8) sets how long each chosen button is held.
-CassiFI's field alone selects button actions; PyBoy does not load Qwen.
+`--frames-per-action` (default 8) sets how long a non-walking button is held,
+and `--speed` sets the pace (0 unthrottled, N times real time; the default runs
+real time in a window and unthrottled headless). CassiFI's field selects every
+button.
 
-Each learned state occupies about 95 KB of live field state, and every field
-operation writes one state snapshot into the field journal, so a long session
-lives inside two budgets: `--state-budget-mib` (default 1024) sets the field's
-state ceiling — at the default 64 MiB the run reaches roughly 700 actions — and
-`--history-entries` (default: one entry per 64 MiB of budget, at least 8 and at
-most 64) bounds the journal, which retains the newest half of that many
-computational snapshots. The startup and final records report
-`field_capacity` with the live state size, the ceiling, and the journal bound;
-a run that reaches its ceiling stops with `field operation exceeds configured
-capacity` naming the exact limit. A 3000-action session configured with
-`--state-budget-mib 2048 --history-entries 32` keeps the field home near
-400 MB and has room for tens of thousands of actions. Journal compaction keeps
-the newest snapshots and one replay floor per recurring producer, so each field
-operation carries a `producer:sequence` identity (`pyboy-advance-<run>:<n>`,
-`pyboy-carry-<run>:<n>`) that survives a compacted journal as a replay reference
-instead of a tombstone.
+Play runs indefinitely at a steady rate. Each generation's automaton is
+released from the live field as soon as the next generation opens, so the live
+state stays near one generation's size (about 12 MB) however long the session
+lasts. The field journal writes a durable snapshot once every
+`--checkpoint-interval` actions (default 16); the actions in between advance the
+live field in memory, and a clean close or Ctrl+C always writes the final
+state. Journal compaction deletes every stored object that no retained snapshot
+reaches, so the field home holds only the newest `--history-entries` snapshots
+(default: one per 64 MiB of `--state-budget-mib`, at least 8 and at most 64).
+Compacted operations keep one replay floor per producer, so every run of the
+same exploration shares one producer per operation kind and sequences it by
+wall-clock time (`pyboy-advance-<identity>:<ns>`), which keeps the floors fixed
+however many runs resume a home and answers a stale retry with
+`HISTORY_COMPACTED`.
+The startup and final records report `field_capacity` with the live state size,
+the ceiling, and the journal bound.
 
-The field receives categorical signatures from the existing privacy-aware
-Surface visual adapter's luma-mean features, which it reports at grids 8, 4, 2,
-and 1 over the captured image. Each frame becomes a sixteen-bit screen-ink
-pattern from the grid-4 cells: a cell counts as inked when its mean luma falls
-below 245, the range where text boxes, menus, and sprites register while blank
-screens stay clear. Comparing consecutive frames over the grid-8 cells turns
-that finer view into a sixty-four-bit motion pattern, set where a cell's mean
-luma moved by more than 24. Two bounded codebooks of 45 ink codes and 16 motion
-codes map each pattern to its nearest prototype (Hamming distance three for ink,
-two for motion), take the first free code for a genuinely new pattern, and
-reclaim the least recently used code once a codebook is full. A step whose cells
-moved reports its motion code, so a transition reads as motion and the settled
-screen that follows reads as ink; a static step reports its ink code. The
-codebooks persist beside the field home as `visual-codebook-<identity>.json` and
-`motion-codebook-<identity>.json`, so a resumed run keeps its categories and
-new allocations stay visible in the per-step provenance. Redacted or incomplete
-cells produce `visual-unavailable`, and output retains coverage and privacy
-provenance. The field seeks an unseen code, then one distinct from its current
-code once all 61 are in use. Existing screen-change evidence migrates into the
-separate-schema temporal memory as legacy binary observations; the original
-memory remains in the field.
+Resuming a 122-action home that had grown to 17 GB, a 600-action continuation
+compacted it to 736 MB, released fifteen retired generations (live field
+126 MB → 12.6 MB), and played at 2.1 actions per second, where the growing
+field had slowed to 0.6.
+
+Cassi sees the game through the finished picture alone: the 160×144
+framebuffer, reduced to the four shades the Game Boy draws with. Nothing is
+read from video memory, tile maps, the font, or the game's RAM, and no screen
+is labeled by hand. After each press the run waits until the picture holds
+still (one blinking tile such as a cursor is tolerated and ignored), then
+compares the picture before and after. Phase correlation finds the
+displacement that best carries the old picture onto the new one, and two
+agreements decide what happened: how much of the screen that slide explains,
+and how much holding still explains. A slide that explains nearly everything
+is a move, and its size in 16-pixel steps advances the player's position. When
+neither the slide nor stillness explains even half the screen, or the screen
+fades to one flat shade, the scene has been cut: a door, staircase, cave, or
+battle. A partial change with the rest of the picture intact is an event: a
+dialogue box, a menu, a sprite turning, an item appearing.
+
+Standing in the world, Cassi separates the things on screen from the ground
+they stand on. Each area keeps a background learned by majority vote over the
+first view from every distinct place in it, so a character that walks away
+leaves the floor it covered behind in the vote. A figure is a connected patch
+of pixels that differ from that background, with pixels up to 12 apart joined,
+so a sprite comes out whole and a line of text becomes one figure. A figure up
+to 32 pixels across is compared with a library of object kinds by shape and
+shading (a fuzzy match of 70%, tolerant of a two-pixel shift); an unmatched
+figure becomes a new kind. The one figure that stays fixed in the same spot on
+screen across 60% of views, once eight views exist, is Cassi's own body, and a
+change confined to it reads as `self`. Figures cut by the screen edge wait
+until they are seen whole. In a 300-action test from the player's house, Cassi
+learned 40 object kinds (the other people, a Pokémon, furniture) and found its
+own character by step 120 with no labels from the game.
+
+Changes that cover more than 32 pixels, or that occur while a dialogue or menu is
+open, are panels, sorted into screen regions Cassi learns from where changes
+land. The first change in a new part of the screen opens a region (up to 16),
+and a later change with the same extent, or lying inside it, joins that region.
+So a dialogue box at the bottom, the start menu on the right, and a battle's
+command panel each become a region through use. Within a region, the exact
+pixels shown are a sight, and a sight never seen before is a discovery.
+
+A framed box is recognized as a message by its shape: a straight line of its
+darkest shade runs through every 8-pixel tile of its top and bottom edges and
+down every tile of both sides, around at least one row and two columns of tiles.
+While a box is open, every change is a panel, the box's steady pixels are its
+sight, and nothing of the view enters the world picture, so the letters of a
+message never become scenery. When the box closes, the view underneath is the
+world again. Across the 21 stored keyframes this found every real box and no
+scenery.
+
+Cassi also learns what things do. The settled world view is read as a grid of
+16-pixel cells. A figure of a known kind is a thing in the cell holding its
+middle, and a patch of scenery that appears at most twice on its screen (a
+sign, a door, a bookshelf end, a lone rock) is a thing named by its pixels, so
+the same kind of thing is recognized in any room; patches repeated across the
+screen are ground. Cassi faces the last direction it pressed in the world.
+Pressing a direction uses the verb `walk` on the thing on that side, and A, B,
+Start, or Select use their verb on the thing Cassi faces. The use stays open
+while a box it opened is on screen (up to 64 presses) and ends with a set of
+effects: `still`, `moved`, `cut`, `panel`, `stirred` (another figure changed),
+`gone`, or `changed` (a different thing now stands in that cell). The place
+map keeps, for every kind of thing and verb, the effects seen and how often a
+use taught something (a new effect or any discovery along the way), plus the
+verbs already used at each world cell. A verb is curious for a thing when it
+was never used on that kind, or when it did more than stand still or walk
+there, has not yet been used at this spot, and (taught + 1)/(uses + 2) is at
+least one half, so reading each new sign stays interesting while a door that
+always leads to the same room fades. A verb that gives one answer on three
+quarters of eight or more things is judged independent of the thing and stops
+being aimed at things. A thing's promise is the sum over its curious verbs of
+one half for an untried verb and (taught + 1)/(uses + 2) otherwise. Curious
+presses beside Cassi are always offered to the field at low cost; next come the
+directions toward the thing in view with the most promise per step of distance.
+Every settled view also records the thing seen in each of its cells as a
+sighting (`sightings` in `map.json`), and a cell seen empty clears its entry.
+When nothing in view is worth using, Cassi walks toward a remembered thing out
+of view: a breadth search over the places it has stood in the area finds the
+one with the most promise per step, and the first step of that route is
+offered (`"travel": true` in the step record). A thing still unreached after
+the larger of 12 presses and twice its starting distance is let be for the
+run, and the Go-Explore return waits while Cassi is walking toward something.
+
+Each action reaches the field as one of 42 outcomes: `still`, `moved-new`,
+`moved-seen`, `cut-new`, `cut-seen`, `self`, `object-new`, `object-seen`,
+`panel-KK-new` or `panel-KK-seen` for each region `KK`, `use-new` (a use gave a
+thing an effect never seen from that verb), and `facing-thing` (Cassi ended the
+press facing a curious thing). The 21 discovery outcomes are the field's
+curiosity goals, so its inquiry seeks actions that reach unseen places, scenes,
+figures, sights, and uses of things. The place map (`place-map-<identity>/` in
+the field home) holds the places, the areas they form, each area's background
+(`ground/`), the object kinds (`objects.npz`), the regions, every sight with its
+count, what things do (`uses`, `use_stats`, `engaged` in `map.json`), keyframe
+pictures of each area (`keyframes.npz`), and an emulator
+snapshot per place. On a cut, Cassi compares the new scene against the
+keyframes; a match within 85% places it back at a remembered spot in a known
+area, which is how walking out of a house and back in again lands on the same
+map. An unmatched scene opens a new area. The same comparison places the player
+again when a large menu closes over the world. After `--return-after` actions
+without a discovery and with no untried direction at the current place, the run
+restores a remembered place and continues from there, favoring places with
+untried directions, the place nearest each promising remembered thing (weighted
+by its promise), the newest area, and rarely revisited places. Only
+snapshots taken at the story's current point qualify, so a return never rewinds
+the game.
+
+Every step record carries `facing` (the thing Cassi faces), `use` (a finished
+use: thing, verb, effects, whether it was new), and `curious` (the curious
+presses and the approach target the field was offered); the final record's
+`world` lists the things known, the verbs judged independent of the thing, and
+the most used things that do something. Two runs of 500 and 300 actions from
+Professor Oak's lab learned 36 kinds of thing, half of the 144 uses in the
+second run revealed a new effect, and Select was judged independent of the
+thing.
+
+`--demo` hands the SDL2 window to you (arrows, A on `a`, B on `s`, Start on
+Enter, Select on Backspace). The game runs at full speed between presses; each
+press is perceived with the same outcomes and recorded into the same field
+history as the field's own actions, marked as a demonstration.
 
 `--screenshot PATH` writes the final PyBoy screen image, and
 `--screenshot-every N` adds a frame every N actions beside it
@@ -695,17 +815,29 @@ an interrupted commit costs no observed steps. The run also writes a PyBoy machi
 `pyboy-state.bin` in the field home when it stops and restores it on the next
 start, so the cartridge continues in place instead of replaying the intro;
 `--fresh-boot` ignores the snapshot and boots from the cartridge's first frame.
-This is open-ended visual exploration: there is no OCR, object localization,
-Pokémon game-rule or semantic-state reading, or story-completion objective.
 
 Generation rotation carries a session past the automaton's 128-state budget,
-and the input lease survives its own expiry: a run handed over ten control
-grants in a 120-action check without losing the game. An autonomous session
-configured with `--state-budget-mib 2048` moved through the game's opening
-screens with the field choosing every button: Oak's dialogue, then the name
-screen at action 200, then the player's bedroom with the START menu open at
-action 400, then continued room navigation past action 1000 with no capacity
-stop. These are observed outcomes, not a claim of intentional gameplay.
+and the input lease survives its own expiry. Resuming a home saved in the
+player's house, 300 headless actions from pixels alone mapped 31 places across
+five areas, saw 95 distinct sights in 17 learned screen regions, and cut
+between scenes 15 times, re-placing itself on a remembered map for 10 of them.
+
+Cassi learns which presses are futile where. Every press is tallied against
+the spot it was made from: the standing place, or the exact sight open on
+screen. The game is deterministic, so standing in the world, a press that left
+the screen still or repeated a known sight is offered to the field as
+infeasible, and the fallback skips it; inside an open dialogue or menu only a
+press that changed nothing is withheld. A button that has left the screen still
+in its first 32 presses anywhere is set aside everywhere. Walking into a wall,
+pressing Select, and reopening a sign already read stop costing actions once
+learned, and the field is never left without an option.
+
+The field's observations name what a step found (a new place, a known one, a
+wall) without its direction, so to the field stepping back looks exactly like
+stepping on. A step is therefore never undone immediately while another way is
+open; in a dead end the way back stays available. Stepping toward unmapped
+ground is cheap for the field, so walks trace loops through a room in place of
+pacing between two spots.
 
 ## Cassi plays NetHack (the watched-world seam)
 

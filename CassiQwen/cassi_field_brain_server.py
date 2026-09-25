@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import hmac
 from contextlib import ExitStack
+import os
 import json
 import time
 from http import HTTPStatus
@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import parse_qs, unquote, urlparse
+from cassi_desktop_companion import DesktopCompanion
 from cassi_autonomous_researcher import (
     CapabilityDenied,
     ProgramConflict,
@@ -35,7 +36,7 @@ from cassi_field_brain_entity import (
     TurnNotFound,
     open_local_entity,
 )
-from cassi_entity_activities import NetHackActivity, TradingActivity
+from cassi_entity_activities import NetHackActivity, PCSX2Activity, SelfRewriteActivity, TradingActivity
 from surface.records import (
     SurfaceAuthorizationError,
     SurfaceCapabilityError,
@@ -50,7 +51,7 @@ from surface.mission_authority import MissionAuthority
 
 
 class SurfaceOriginDenied(PermissionError):
-    """A browser-originated Surface request did not match the authenticated origin."""
+    """A browser-originated Surface request did not match the expected local origin."""
 
 
 
@@ -64,15 +65,12 @@ class EntityHTTPServer(ThreadingHTTPServer):
         address: tuple[str, int],
         entity: FieldBrainEntity,
         *,
-        api_token: str,
         surface_authority: MissionAuthority | None = None,
     ) -> None:
-        if not isinstance(api_token, str) or len(api_token) < 32:
-            raise ValueError("entity API token must contain at least 32 characters")
         super().__init__(address, EntityRequestHandler)
         self.entity = entity
-        self.api_token = api_token
         self.surface_authority = surface_authority
+        self.companion = DesktopCompanion(entity)
 
     def serve_forever(self, poll_interval: float = 0.5) -> None:
         if self.entity.config.research_resident_enabled:
@@ -80,6 +78,7 @@ class EntityHTTPServer(ThreadingHTTPServer):
         try:
             super().serve_forever(poll_interval=poll_interval)
         finally:
+            self.companion.close()
             self.entity.researcher.stop()
 
 
@@ -118,6 +117,10 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
     def _workspace_asset(self, path: str) -> bool:
+        companion = path in {
+            "/companion", "/companion/", "/companion/index.html",
+            "/companion/app.js", "/companion/styles.css",
+        }
         assets = {
             "/": ("index.html", "text/html; charset=utf-8"),
             "/workspace": ("index.html", "text/html; charset=utf-8"),
@@ -125,6 +128,11 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
             "/workspace/index.html": ("index.html", "text/html; charset=utf-8"),
             "/workspace/app.js": ("app.js", "text/javascript; charset=utf-8"),
             "/workspace/styles.css": ("styles.css", "text/css; charset=utf-8"),
+            "/companion": ("index.html", "text/html; charset=utf-8"),
+            "/companion/": ("index.html", "text/html; charset=utf-8"),
+            "/companion/index.html": ("index.html", "text/html; charset=utf-8"),
+            "/companion/app.js": ("app.js", "text/javascript; charset=utf-8"),
+            "/companion/styles.css": ("styles.css", "text/css; charset=utf-8"),
         }
         asset = assets.get(path)
         if asset is None:
@@ -132,8 +140,9 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         filename, content_type = asset
         try:
             body = (
-                Path(__file__).resolve().with_name("research_workspace")
-                / filename
+                Path(__file__).resolve().with_name(
+                    "desktop_companion" if companion else "research_workspace"
+                ) / filename
             ).read_bytes()
         except OSError:
             self._json(
@@ -159,11 +168,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
         return True
 
-    def _require_authorization(self) -> None:
-        supplied = self.headers.get("authorization")
-        expected = f"Bearer {self.server.api_token}"
-        if supplied is None or not hmac.compare_digest(supplied, expected):
-            raise PermissionError("a valid bearer token is required")
+
 
     def _require_surface_origin(self, *, required: bool = False) -> None:
         origin = self.headers.get("origin")
@@ -311,6 +316,65 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
             )
         return category[0], int(offset[0]), int(limit[0])
 
+    def _handle_companion_get(self, parsed: Any) -> bool:
+        if not parsed.path.startswith("/v1/companion"):
+            return False
+        self._require_surface_origin()
+        companion = self.server.companion
+        if parsed.path == "/v1/companion/preview":
+            values = parse_qs(parsed.query, strict_parsing=True)
+            if set(values) != {"backend_id", "source_id"} or any(len(row) != 1 for row in values.values()):
+                raise ValueError("preview requires one backend_id and source_id")
+            self._raw(
+                HTTPStatus.OK,
+                companion.preview(values["backend_id"][0], values["source_id"][0]),
+                content_type="image/png",
+            )
+            return True
+        if parsed.query:
+            raise ValueError("this companion route accepts no query fields")
+        if parsed.path == "/v1/companion":
+            self._json(HTTPStatus.OK, companion.status())
+        elif parsed.path == "/v1/companion/sources":
+            self._json(HTTPStatus.OK, companion.sources())
+        elif parsed.path == "/v1/companion/frame":
+            self._raw(HTTPStatus.OK, companion.frame(), content_type="image/png")
+        else:
+            return False
+        return True
+
+    def _handle_companion_post(self, parsed: Any, body: Mapping[str, Any]) -> bool:
+        if not parsed.path.startswith("/v1/companion"):
+            return False
+        if parsed.query:
+            raise ValueError("companion mutations accept no query fields")
+        companion = self.server.companion
+        if parsed.path == "/v1/companion/sessions":
+            self._allowed(body, {"sources"}, {"purpose", "mode", "retention", "program_id"})
+            result = companion.start(body)
+            status = HTTPStatus.CREATED
+        elif parsed.path == "/v1/companion/control":
+            self._allowed(body, {"action"}, {"mode", "interval"})
+            result = companion.control(body)
+            status = HTTPStatus.OK
+        elif parsed.path == "/v1/companion/moments":
+            self._allowed(
+                body,
+                {"binding_id", "capture_id", "publication_generation", "source_epoch",
+                 "geometry_revision", "annotation", "instruction", "kind"},
+                {"method"},
+            )
+            result = companion.moment(body)
+            status = HTTPStatus.ACCEPTED
+        elif parsed.path == "/v1/companion/corrections":
+            self._allowed(body, {"lesson_id", "action"}, {"text"})
+            result = companion.correct(body)
+            status = HTTPStatus.OK
+        else:
+            return False
+        self._json(status, result)
+        return True
+
 
     def _handle_surface_get(self, parsed: Any, route: list[str]) -> bool:
         if route[:2] != ["v1", "surface"]:
@@ -443,7 +507,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
                 if (
                     offset < 0
                     or offset >= total_length
-                    or not 1 <= requested_length <= (4 << 20)
+                    or not 1 <= requested_length <= (1 << 20)
                 ):
                     raise ValueError("pixel page range is outside the published buffer")
                 page_length = min(requested_length, total_length - offset)
@@ -565,17 +629,14 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
             self._require_surface_origin(required=True)
             authority = self.server.surface_authority
             if authority is None:
-                raise PermissionError("host human Surface authority is not configured")
-            supplied = self.headers.get("x-cassi-surface-human-token")
-            if not authority.verify_token(supplied):
-                raise PermissionError("a valid separate human Surface token is required")
+                raise PermissionError("host Surface authority is not configured")
             self._allowed(
                 body,
                 {
                     "program_id", "program_generation", "mission_sha256", "binding_id",
                     "backend_id", "source_id", "source_instance", "source_epoch",
                     "environment_incarnation", "geometry_revision", "operations",
-                    "expires_ns", "max_updates",
+                    "expires_ns", "max_updates", "max_lease_seconds",
                 },
                 set(),
             )
@@ -586,9 +647,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
             authority = self.server.surface_authority
             if authority is None:
                 raise PermissionError("host human Surface authority is not configured")
-            supplied = self.headers.get("x-cassi-surface-human-token")
-            if not authority.verify_token(supplied):
-                raise PermissionError("a valid separate human Surface token is required")
+
             self._allowed(
                 body,
                 {
@@ -600,7 +659,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
             )
             self._json(
                 HTTPStatus.CREATED,
-                authority.take_control(self.server.entity, body, supplied),
+                authority.take_control(self.server.entity, body),
             )
             return True
         if parsed.path == "/v1/surface/mission-authority/revoke":
@@ -766,10 +825,13 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
                 values = parse_qs(parsed.query, strict_parsing=True)
                 if set(values) != {"program_id"} or len(values["program_id"]) != 1:
                     raise ValueError(f"{action} requires one program_id")
-                if action == "revoke" and self.server.surface_authority is not None:
-                    self.server.surface_authority.revoke_approval(
-                        values["program_id"][0], binding_id
-                    )
+                method = {
+                    "release": self.server.entity.release_surface,
+                    "pause": self.server.entity.pause_surface,
+                    "resume": self.server.entity.resume_surface,
+                    "revoke": self.server.entity.revoke_surface,
+                    "release-human": self.server.entity.release_surface_human,
+                }[action]
                 self._json(
                     HTTPStatus.OK,
                     method(binding_id, program_id=values["program_id"][0]),
@@ -922,7 +984,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             if self._workspace_asset(parsed.path):
                 return
-            self._require_authorization()
+
             if parsed.path == "/v1/health":
                 self._json(HTTPStatus.OK, {"status": "ok", "entity": self.server.entity.inspect()})
                 return
@@ -985,7 +1047,18 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
                     self.server.entity.research_responsibility_snapshot(),
                 )
                 return
+            if parsed.path == "/v1/embodied-field":
+                self._require_surface_origin()
+                if parsed.query:
+                    raise ValueError("embodied field inspection accepts no query fields")
+                self._json(
+                    HTTPStatus.OK,
+                    self.server.entity.inspect_embodied_field(),
+                )
+                return
             route = parsed.path.strip("/").split("/")
+            if self._handle_companion_get(parsed):
+                return
             if self._handle_surface_get(parsed, route):
                 return
             if self._handle_program_get(parsed, route):
@@ -1127,6 +1200,7 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
                     "priority", "cycle_limit", "allowed_roots",
                     "allowed_tools", "network_hosts", "deliverable",
                     "surface_scope", "activity_scope", "responsibility",
+                    "standing",
                 },
             )
             self._json(
@@ -1283,9 +1357,15 @@ class EntityRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         try:
-            self._require_authorization()
+
             parsed = urlparse(self.path)
             route = parsed.path.strip("/").split("/")
+            if route[:2] == ["v1", "companion"]:
+                self._require_surface_origin()
+                body = self._body(max_bytes=16_384, reject_duplicate_keys=True)
+                if not self._handle_companion_post(parsed, body):
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "unknown companion route"})
+                return
             if route[:2] == ["v1", "surface"]:
                 self._require_surface_origin()
                 body = self._body(
@@ -1816,15 +1896,24 @@ def main() -> None:
         type=Path,
         default=Path("Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf"),
     )
-    parser.add_argument("--resident-backend", choices=("cpu", "vulkan"), default="cpu")
+    parser.add_argument(
+        "--vision-projector-path",
+        type=Path,
+        help="local mmproj GGUF for native visual encoding in the resident Qwen graph",
+    )
+    parser.add_argument(
+        "--ngram-table-path",
+        type=Path,
+        help="local Qwen3.8 n-gram GGUF shard for the field-owned resident readout",
+    )
+    parser.add_argument("--resident-backend", choices=("cpu", "vulkan", "auto"), default="cpu")
     parser.add_argument("--resident-state-directory", type=Path)
     parser.add_argument("--resident-library-path", type=Path)
     parser.add_argument("--resident-threads", type=int, default=8)
-    parser.add_argument("--api-token-file", type=Path, required=True)
+
     parser.add_argument(
-        "--surface-human-token-file",
-        type=Path,
-        help="opt in to host-owned Surface mission approval; absent keeps Surface observation-only",
+        "--enable-desktop-companion", action="store_true",
+        help="register this user's native Windows desktop helper; observation still requires explicit window selection",
     )
     parser.add_argument(
         "--trading-paper-view",
@@ -1842,10 +1931,40 @@ def main() -> None:
     )
     parser.add_argument("--nethack-program", type=Path, help="fixed local NetHack executable")
     parser.add_argument("--trading-activity-home", type=Path, help="canonical trading member home")
+    parser.add_argument(
+        "--self-rewrite-root",
+        type=Path,
+        help="opt in to a fixed isolated CassiMindField rewrite workspace",
+    )
+    parser.add_argument(
+        "--self-rewrite-variant",
+        choices=("source", "self-host", "workspace", "patchset", "impact"),
+        default=None,
+        help="fixed rewrite runner variant (default: impact; requires --self-rewrite-root)",
+    )
     parser.add_argument("--trading-activity-db", type=Path, help="canonical closed-bar ingestion SQLite database")
     parser.add_argument(
         "--trading-paper-program-id",
         help="opt in to simulated paper steps for exactly this active entity programme",
+    )
+    parser.add_argument(
+        "--pcsx2-activity", action="store_true",
+        help=(
+            "offer static PS2 cataloging, read-only PINE observation, and native "
+            "field-observe/field-act for the configured ISO; virtual actions require "
+            "an active programme scope and foreground PCSX2"
+        ),
+    )
+    parser.add_argument("--pcsx2-iso", type=Path, help="fixed PS2 game ISO for the pcsx2 activity")
+    parser.add_argument(
+        "--pcsx2-activity-home", type=Path,
+        help="existing private data home for catalogs, observations, field evidence, sessions, and receipts",
+    )
+    parser.add_argument("--pcsx2-pine-host", help="fixed PINE host (default 127.0.0.1)")
+    parser.add_argument("--pcsx2-pine-slot", type=int, help="fixed PINE TCP slot (default 28011)")
+    parser.add_argument(
+        "--pcsx2-xinput-slot", type=int,
+        help="fixed foreground PCSX2 XInput controller slot (default 0)",
     )
     parser.add_argument("--port", type=int, default=8090)
     parser.add_argument("--entity-id", default="cassi")
@@ -1860,6 +1979,15 @@ def main() -> None:
     parser.add_argument("--research-network-host", action="append", default=[])
     parser.add_argument("--research-cycle-seconds", type=float, default=1.0)
     parser.add_argument(
+        "--field-shelf",
+        type=Path,
+        default=Path.cwd().parent / "CassiFI" / "_diag" / "fields",
+        help=(
+            "CassiFI field shelf directory (holding shelf.json) whose libraries "
+            "the library_search and library_read research tools open"
+        ),
+    )
+    parser.add_argument(
         "--research-tool",
         action="append",
         choices=(
@@ -1868,8 +1996,12 @@ def main() -> None:
             "search_text",
             "write_artifact",
             "inspect_artifact",
+            "library_search",
+            "library_read",
             "fetch_url",
             "run_existing_python",
+            "activity_describe",
+            "activity_run",
         ),
     )
     parser.add_argument("--no-resident", action="store_true")
@@ -1878,29 +2010,121 @@ def main() -> None:
     parser.add_argument("--program-native-runtime", type=Path)
     parser.add_argument("--program-native-device", type=int, default=0)
     arguments = parser.parse_args()
+    entity_home = arguments.data_home.expanduser().resolve()
+
+    def overlaps(left: Path, right: Path) -> bool:
+        try:
+            left.relative_to(right)
+            return True
+        except ValueError:
+            try:
+                right.relative_to(left)
+                return True
+            except ValueError:
+                return False
+
+    pcsx2_iso: Path | None = None
+    pcsx2_activity_home: Path | None = None
+    pcsx2_pine_host = arguments.pcsx2_pine_host or "127.0.0.1"
+    pcsx2_pine_slot = 28_011 if arguments.pcsx2_pine_slot is None else arguments.pcsx2_pine_slot
+    pcsx2_xinput_slot = (
+        0 if arguments.pcsx2_xinput_slot is None else arguments.pcsx2_xinput_slot
+    )
+    if not arguments.pcsx2_activity and (
+        arguments.pcsx2_iso is not None
+        or arguments.pcsx2_activity_home is not None
+        or arguments.pcsx2_pine_host is not None
+        or arguments.pcsx2_pine_slot is not None
+        or arguments.pcsx2_xinput_slot is not None
+    ):
+        parser.error(
+            "--pcsx2-iso, --pcsx2-activity-home, --pcsx2-pine-host, "
+            "--pcsx2-pine-slot, and --pcsx2-xinput-slot require --pcsx2-activity"
+        )
+    if arguments.pcsx2_activity:
+        if arguments.pcsx2_iso is None or arguments.pcsx2_activity_home is None:
+            parser.error("--pcsx2-activity requires --pcsx2-iso and --pcsx2-activity-home")
+        configured_iso = arguments.pcsx2_iso.expanduser()
+        if not configured_iso.is_absolute():
+            parser.error("--pcsx2-iso must be an absolute path")
+        try:
+            pcsx2_iso = configured_iso.resolve(strict=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(f"cannot resolve --pcsx2-iso: {exc}")
+        if not pcsx2_iso.is_file():
+            parser.error("--pcsx2-iso must be an existing game ISO file")
+        configured_pcsx2_home = arguments.pcsx2_activity_home.expanduser()
+        if not configured_pcsx2_home.is_absolute():
+            parser.error("--pcsx2-activity-home must be an absolute path")
+        try:
+            pcsx2_activity_home = configured_pcsx2_home.resolve(strict=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(f"cannot resolve --pcsx2-activity-home: {exc}")
+        if not pcsx2_activity_home.is_dir():
+            parser.error("--pcsx2-activity-home must be an existing directory")
+        if overlaps(pcsx2_activity_home, entity_home):
+            parser.error("--pcsx2-activity-home must be isolated from --data-home")
+        if overlaps(pcsx2_activity_home, pcsx2_iso):
+            parser.error("--pcsx2-activity-home must not contain the fixed ISO")
+    if (
+        not pcsx2_pine_host
+        or len(pcsx2_pine_host) > 253
+        or any(
+            not (character.isascii() and (character.isalnum() or character in ".-"))
+            for character in pcsx2_pine_host
+        )
+    ):
+        parser.error("--pcsx2-pine-host must be a host name without spaces or scheme")
+    if not 1 <= pcsx2_pine_slot <= 65_535:
+        parser.error("--pcsx2-pine-slot must be in 1..65535")
+    if not 0 <= pcsx2_xinput_slot <= 3:
+        parser.error("--pcsx2-xinput-slot must be in 0..3")
+    if arguments.self_rewrite_variant is not None and arguments.self_rewrite_root is None:
+        parser.error("--self-rewrite-variant requires --self-rewrite-root")
+    self_rewrite_root = None
+    self_rewrite_variant = arguments.self_rewrite_variant or "impact"
+    if arguments.self_rewrite_root is not None:
+        configured_root = arguments.self_rewrite_root
+        if not configured_root.is_absolute():
+            parser.error("--self-rewrite-root must be an absolute path")
+        try:
+            self_rewrite_root = configured_root.resolve(strict=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(f"cannot resolve --self-rewrite-root: {exc}")
+        if not self_rewrite_root.is_dir():
+            parser.error("--self-rewrite-root must be an existing directory")
+
+        source_tree = (Path(__file__).resolve().parent.parent / "CassiMindField").resolve()
+
+        if overlaps(self_rewrite_root, entity_home):
+            parser.error("--self-rewrite-root must be isolated from --data-home")
+        if overlaps(self_rewrite_root, source_tree):
+            current_pointer = self_rewrite_root / "current.json"
+            generations = self_rewrite_root / "generations"
+            isolated_generation_root = (
+                self_rewrite_root != source_tree
+                and source_tree in self_rewrite_root.parents
+                and current_pointer.is_file()
+                and not current_pointer.is_symlink()
+                and generations.is_dir()
+                and not generations.is_symlink()
+            )
+            if not isolated_generation_root:
+                parser.error(
+                    "--self-rewrite-root must be outside CassiMindField source files "
+                    "or an existing isolated generation root"
+                )
     if not 1 <= arguments.port <= 65_535:
         parser.error("--port must be in 1..65535")
+    if arguments.enable_desktop_companion and os.name != "nt":
+        parser.error("--enable-desktop-companion requires an interactive Windows session")
     if arguments.nethack_program is not None and not arguments.enable_nethack_activity:
         parser.error("--nethack-program requires --enable-nethack-activity")
     if (arguments.trading_activity_home is None) != (arguments.trading_activity_db is None):
         parser.error("--trading-activity-home and --trading-activity-db must be supplied together")
     if arguments.trading_paper_program_id and arguments.trading_activity_db is None:
         parser.error("--trading-paper-program-id requires the canonical trading activity")
-    try:
-        api_token = arguments.api_token_file.read_text(encoding="utf-8").strip()
-    except OSError as exc:
-        parser.error(f"cannot read --api-token-file: {exc}")
-    if len(api_token) < 32:
-        parser.error("--api-token-file must contain at least 32 characters")
-    surface_authority = None
-    if arguments.surface_human_token_file is not None:
-        try:
-            human_token = arguments.surface_human_token_file.read_text(encoding="utf-8").strip()
-        except OSError as exc:
-            parser.error(f"cannot read --surface-human-token-file: {exc}")
-        if len(human_token) < 32:
-            parser.error("--surface-human-token-file must contain at least 32 characters")
-        surface_authority = MissionAuthority(human_token)
+    surface_authority = MissionAuthority()
     with ExitStack() as owned:
         activities: list[Any] = []
         if arguments.enable_nethack_activity:
@@ -1911,9 +2135,27 @@ def main() -> None:
                 ingestion_db=arguments.trading_activity_db,
                 paper_program_id=arguments.trading_paper_program_id,
             ))
+        if arguments.pcsx2_activity:
+            activities.append(PCSX2Activity(
+                iso_path=pcsx2_iso,
+                data_home=pcsx2_activity_home,
+                pine_host=pcsx2_pine_host,
+                pine_slot=pcsx2_pine_slot,
+                xinput_slot=pcsx2_xinput_slot,
+            ))
+        if self_rewrite_root is not None:
+            activities.append(SelfRewriteActivity(
+                root=self_rewrite_root,
+                variant=self_rewrite_variant,
+            ))
         surface_backends: list[Any] = []
         if arguments.trading_paper_view is not None:
             surface_backends.append(TradingPaperSurfaceBackend(arguments.trading_paper_view))
+        if arguments.enable_desktop_companion:
+            from surface.windows import WindowsBackend
+            windows_backend = WindowsBackend()
+            owned.callback(windows_backend.close)
+            surface_backends.append(windows_backend)
         if arguments.surface_linux_config is not None:
             supervisor, linux_backend, audio_backend = _start_linux_surface(arguments.surface_linux_config)
             owned.callback(supervisor.close)
@@ -1926,6 +2168,8 @@ def main() -> None:
             arguments.data_home,
             model_url=arguments.model_url,
             model_path=arguments.model_path,
+            vision_projector_path=arguments.vision_projector_path,
+            ngram_table_path=arguments.ngram_table_path,
             brain_backend=arguments.brain_backend,
             resident_backend=arguments.resident_backend,
             resident_state_directory=arguments.resident_state_directory,
@@ -1947,13 +2191,23 @@ def main() -> None:
                 tuple(arguments.research_tool)
                 if arguments.research_tool
                 else (
-                    "list_files",
-                    "read_file",
-                    "search_text",
-                    "write_artifact",
-                    "inspect_artifact",
+                    (
+                        "list_files",
+                        "read_file",
+                        "search_text",
+                        "write_artifact",
+                        "inspect_artifact",
+                        "library_search",
+                        "library_read",
+                    )
+                    + (
+                        ("activity_describe", "activity_run")
+                        if (self_rewrite_root is not None or arguments.pcsx2_activity)
+                        else ()
+                    )
                 )
             ),
+            field_shelf=arguments.field_shelf,
             research_resident_enabled=not arguments.no_resident,
             program_native_enabled=not arguments.no_program_native,
             program_native_required=arguments.require_program_native,
@@ -1964,12 +2218,10 @@ def main() -> None:
             activities=tuple(activities),
         )
         owned.callback(entity.close)
-        if surface_authority is not None:
-            surface_authority.bind_entity(entity)
+        surface_authority.bind_entity(entity)
         server = EntityHTTPServer(
             ("127.0.0.1", arguments.port),
             entity,
-            api_token=api_token,
             surface_authority=surface_authority,
         )
         owned.callback(server.server_close)
