@@ -65,14 +65,11 @@ export class CassiEntityHttpError extends Error {
 export class CassiEntityClient {
   constructor({
     baseUrl = "http://127.0.0.1:8090",
-    token,
     fetchImpl = globalThis.fetch,
     maxEvidenceBytes = MAX_EVIDENCE_BYTES,
   } = {}) {
     if (typeof fetchImpl !== "function") throw new Error("fetch is required for the Cassi entity client");
-    if (typeof token !== "string" || token.length < 32) throw new Error("Cassi entity bearer token is missing or too short");
     this.baseUrl = assertLoopbackUrl(baseUrl);
-    this.token = token;
     this.fetch = fetchImpl;
     this.maxEvidenceBytes = Math.min(Math.max(Number(maxEvidenceBytes) || MAX_EVIDENCE_BYTES, 1), MAX_EVIDENCE_BYTES);
   }
@@ -82,7 +79,6 @@ export class CassiEntityClient {
     const url = new URL(path, this.baseUrl);
     if (url.origin !== this.baseUrl.origin) throw new Error("Cassi entity request escaped its configured origin");
     const headers = {
-      authorization: `Bearer ${this.token}`,
       accept,
       "cache-control": "no-store",
     };
@@ -227,7 +223,7 @@ export class CassiEntityClient {
     });
   }
 
-  admitProgram({ requestId, programId, projectId, title, mission, initialQuestion, cycleLimit, allowedRoots, allowedTools, networkHosts, observedAt = new Date().toISOString(), signal }) {
+  admitProgram({ requestId, programId, projectId, title, mission, initialQuestion, cycleLimit, standing, allowedRoots, allowedTools, networkHosts, observedAt = new Date().toISOString(), signal }) {
     return this.request("/v1/programs", {
       method: "POST",
       signal,
@@ -240,6 +236,7 @@ export class CassiEntityClient {
         initial_question: boundedText(initialQuestion, "initial_question", 8_000),
         observed_at: observedAt,
         ...(cycleLimit === undefined ? {} : { cycle_limit: Math.max(1, Math.min(10_000, Number(cycleLimit))) }),
+        ...(standing === undefined ? {} : { standing }),
         ...(allowedRoots === undefined ? {} : { allowed_roots: allowedRoots }),
         ...(allowedTools === undefined ? {} : { allowed_tools: allowedTools }),
         ...(networkHosts === undefined ? {} : { network_hosts: networkHosts }),
@@ -260,7 +257,7 @@ export class CassiEntityClient {
   }
 
   controlProgram({ requestId, programId, action, message, observedAt = new Date().toISOString(), signal }) {
-    const actions = new Set(["pause", "resume", "cancel", "complete", "wake"]);
+    const actions = new Set(["pause", "resume", "cancel", "complete", "wake", "continue"]);
     if (!actions.has(action)) throw new TypeError(`unsupported program action ${JSON.stringify(action)}`);
     return this.request(`/v1/programs/${encodeURIComponent(boundedId(programId, "program_id"))}/control`, {
       method: "POST",

@@ -1,11 +1,9 @@
-# Cassi's host integration is a separate profile bundle. The bearer token is
-# resolved only in the host process from the configured file or environment.
+# Cassi's host integration is a separate profile bundle for the local entity.
 - insert:
     - id: cassi-entity
       name: '../../../workspaces/Cassi/CassiQwen/dsh-cassi-entity/index.js'
       config:
         baseUrl: !!js process.env.CASSI_ENTITY_URL ?? 'http://127.0.0.1:8090'
-        tokenFile: !!js process.env.CASSI_ENTITY_TOKEN_FILE ?? 'CassiQwen/_diag/field-brain-entity/api-token'
         projectId: cassi-workspace
         allowedProjectIds: [cassi-workspace]
         allowedRoots: []

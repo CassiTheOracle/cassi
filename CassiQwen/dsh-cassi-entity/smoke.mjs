@@ -190,7 +190,7 @@ const fetchImpl = async (url, init) => {
   return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
 };
 
-const client = new CassiEntityClient({ baseUrl: "http://127.0.0.1:8090", token: "x".repeat(32), fetchImpl });
+const client = new CassiEntityClient({ baseUrl: "http://127.0.0.1:8090", fetchImpl });
 assert.equal(stableRequestId("test", { a: 1 }), stableRequestId("test", { a: 1 }));
 assert.notEqual(stableRequestId("test", { a: 1 }), stableRequestId("test", { a: 2 }));
 assert.equal((await client.state()).entity_id, "cassi");
@@ -329,7 +329,6 @@ try {
     llm: { registerAdapter() {} },
     tools: { register(definition) { registeredTools.push(definition); } },
   }, {
-    token: "x".repeat(32),
     sourceRoots: [sourceHome],
   });
   const sourceTool = registeredTools.find((definition) => definition.name === "cassi_read_source");
@@ -350,7 +349,7 @@ try {
       connection: { rpc: { handle() {} } },
       llm: { registerAdapter() {} },
       tools: { register(definition) { configuredTools.push(definition); } },
-    }, { token: "x".repeat(32), sourceRoots: [sourceHome] });
+    }, { sourceRoots: [sourceHome] });
     const configuredSourceTool = configuredTools.find((definition) => definition.name === "cassi_read_source");
     assert.ok(configuredSourceTool);
     const configuredResult = await configuredSourceTool.execute(
@@ -378,7 +377,7 @@ try {
       connection: { rpc: { handle() {} } },
       llm: { registerAdapter() {} },
       tools: { register(definition) { noRootTools.push(definition); } },
-    }, { token: "x".repeat(32), sourceRoots: [] });
+    }, { sourceRoots: [] });
     assert.equal(noRootTools.find((definition) => definition.name === "cassi_read_source"), undefined);
 
     process.env.CASSI_SOURCE_ROOTS = sourceHome;
@@ -387,7 +386,7 @@ try {
       connection: { rpc: { handle() {} } },
       llm: { registerAdapter() {} },
       tools: { register(definition) { environmentTools.push(definition); } },
-    }, { token: "x".repeat(32) });
+    }, {});
     const environmentSourceTool = environmentTools.find((definition) => definition.name === "cassi_read_source");
     assert.ok(environmentSourceTool);
     const environmentResult = await environmentSourceTool.execute(
@@ -403,7 +402,6 @@ try {
   const ledgerPath = join(workOrderHome, "ledger.jsonl");
   const firstBrokerHost = brokerContext();
   applyHost(firstBrokerHost.context, {
-    token: "x".repeat(32),
     workOrderTools: ["fixture_tool"],
     workOrderLedgerFile: ledgerPath,
   });
@@ -441,7 +439,6 @@ try {
 
   const restartedBrokerHost = brokerContext();
   applyHost(restartedBrokerHost.context, {
-    token: "x".repeat(32),
     workOrderTools: ["fixture_tool"],
     workOrderLedgerFile: ledgerPath,
   });
@@ -470,7 +467,6 @@ try {
     },
   });
   applyHost(approvalHost.context, {
-    token: "x".repeat(32),
     workOrderTools: ["fixture_tool"],
     approvalRequiredTools: ["fixture_tool"],
     workOrderLedgerFile: join(workOrderHome, "approval-ledger.jsonl"),
@@ -485,7 +481,6 @@ try {
 
   const unavailableHost = brokerContext();
   applyHost(unavailableHost.context, {
-    token: "x".repeat(32),
     workOrderTools: ["fixture_tool"],
     workOrderLedgerFile: join(workOrderHome, "unavailable-ledger.jsonl"),
   });
@@ -504,7 +499,6 @@ try {
     },
   });
   applyHost(cancellationHost.context, {
-    token: "x".repeat(32),
     workOrderTools: ["fixture_tool"],
     workOrderLedgerFile: join(workOrderHome, "cancellation-ledger.jsonl"),
   });
@@ -602,7 +596,7 @@ assert.equal(firstReplay.idempotent_replay, false);
 assert.equal(secondReplay.idempotent_replay, true);
 const messageCalls = calls.filter((call) => new URL(call.url).pathname === "/v1/messages");
 assert.equal(messageCalls.length, 2);
-assert.match(messageCalls[0].init.headers.authorization, /^Bearer /);
+assert.equal(messageCalls[0].init.headers.authorization, undefined);
 const rpc = createCassiRpc(async (_url, init) => {
   const request = JSON.parse(init.body);
   return new Response(JSON.stringify({ rpcId: request.rpcId, result: { endpoint: request.method } }), {

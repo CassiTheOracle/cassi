@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { delimiter } from "node:path";
 import { defineTool } from "@deepseek-ai/dsh-tools";
@@ -11,18 +10,6 @@ export const inject = ["connection", "tools", "llm"];
 
 const NO_ARGS = {};
 
-function readToken(config) {
-  if (typeof config.token === "string" && config.token.length >= 32) return config.token;
-  const envName = typeof config.tokenEnv === "string" && config.tokenEnv ? config.tokenEnv : "CASSI_ENTITY_API_TOKEN";
-  const fromEnv = process.env[envName];
-  if (typeof fromEnv === "string" && fromEnv.length >= 32) return fromEnv.trim();
-  const fileName = typeof config.tokenFile === "string" && config.tokenFile ? config.tokenFile : process.env.CASSI_ENTITY_TOKEN_FILE;
-  if (fileName) {
-    const fromFile = readFileSync(fileName, "utf8").trim();
-    if (fromFile.length >= 32) return fromFile;
-  }
-  throw new Error(`Cassi entity token is unavailable; set ${envName} or configure tokenFile`);
-}
 
 function projectScope(config, value) {
   const project = value ?? config.projectId ?? "cassi-workspace";
@@ -81,7 +68,6 @@ function sourceRootValues(config) {
 export function apply(ctx, config = {}) {
   const client = new CassiEntityClient({
     baseUrl: config.baseUrl ?? "http://127.0.0.1:8090",
-    token: readToken(config),
     maxEvidenceBytes: config.maxEvidenceBytes,
   });
   const configuredSourceRoots = sourceRootValues(config);
@@ -151,6 +137,7 @@ export function apply(ctx, config = {}) {
         mission: { type: "string", required: true },
         initial_question: { type: "string", required: true },
         cycle_limit: { type: "integer" },
+        standing: { type: "boolean" },
         project_id: { type: "string" },
       },
       async (args, exec) => {
@@ -164,6 +151,7 @@ export function apply(ctx, config = {}) {
           mission: args.mission,
           initialQuestion: args.initial_question,
           cycleLimit: args.cycle_limit ?? config.cycleLimit,
+          standing: args.standing,
           allowedRoots: config.allowedRoots ?? [],
           allowedTools: config.allowedTools ?? [],
           networkHosts: config.networkHosts ?? [],
@@ -181,10 +169,10 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(tool(
       "cassi_control_program",
-      "Pause, resume, wake, complete, or cancel an existing Cassi research program.",
+      "Pause, resume, continue, wake, complete, or cancel an existing Cassi research program.",
       {
         program_id: { type: "string", required: true },
-        action: { type: "string", required: true, enum: ["pause", "resume", "wake", "complete", "cancel"] },
+        action: { type: "string", required: true, enum: ["pause", "resume", "continue", "wake", "complete", "cancel"] },
         message: { type: "string" },
       },
       async (args, exec) => client.controlProgram({ requestId: callId(exec, "control"), programId: args.program_id, action: args.action, message: args.message, signal: exec.signal }),
