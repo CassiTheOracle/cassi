@@ -350,29 +350,85 @@ def _count_simple_fully_cubic_sources_dp(clause_count: int) -> int:
         3 <= clause_count <= FULLY_CUBIC_C7_COUNT_CLAUSES,
         "count-only DP supports clause sizes from 3 through c=7",
     )
-    triple_masks = tuple(
-        sum(1 << (variable - 1) for variable in triple)
-        for triple in itertools.combinations(range(1, clause_count + 1), 3)
-    )
-    target = (3,) * clause_count
-    states: dict[tuple[int, tuple[int, ...]], int] = {
-        (0, (0,) * clause_count): 1
-    }
-    for mask in triple_masks:
-        next_states = dict(states)
-        for (selected, degrees), ways in states.items():
-            if selected == clause_count:
+
+    # Generate all possible triples (as bitmasks) from clause_count variables.
+    # Variables are 0-indexed here for bit manipulation convenience, 
+    # corresponding to 1..clause_count in the problem description.
+    triples = []
+    for i in range(clause_count):
+        for j in range(i + 1, clause_count):
+            for k in range(j + 1, clause_count):
+                mask = (1 << i) | (1 << j) | (1 << k)
+                triples.append(mask)
+
+    # Target degree bitmask: each of the clause_count variables must have degree 3.
+    # Since we are summing degrees, and max degree is 3, we can track exact counts.
+    # However, tracking exact counts in the state key is expensive.
+    # Optimization: The state is (num_triples_selected, degrees_tuple).
+    # degrees_tuple is a tuple of length clause_count with values 0..3.
+
+    # Initial state: 0 triples selected, all degrees 0.
+    # We use a dictionary for DP.
+    # Key: (selected_count, degrees_tuple)
+    # Value: number of ways to reach this state
+
+    initial_degrees = tuple(0 for _ in range(clause_count))
+    dp = {(0, initial_degrees): 1}
+
+    # Iterate through each possible triple mask
+    for mask in triples:
+        new_dp = dict(dp)
+        for (count, degrees), ways in dp.items():
+            # If we've already selected 'clause_count' triples, we can't add more.
+            # But since we iterate through ALL possible triples, we must ensure
+            # we don't select the same triple twice or select more than needed.
+            # The structure of the loop implies we process each triple once.
+            # So if count == clause_count, we stop adding for this branch?
+            # Actually, the original code continues if selected == clause_count.
+            if count == clause_count:
                 continue
-            updated = list(degrees)
-            for variable in range(clause_count):
-                if mask & (1 << variable):
-                    updated[variable] += 1
-            if any(degree > 3 for degree in updated):
+
+            # Try adding this triple
+            # Check if adding this triple violates degree constraints (degree > 3)
+            # Also update degrees
+            new_degrees_list = list(degrees)
+            valid_addition = True
+
+            # Decode the mask to find which variables are in this triple
+            # We can iterate bits or precompute variable indices for each mask.
+            # Since clause_count is small (<=7), iterating bits is fast.
+            temp_mask = mask
+            var_indices = []
+            idx = 0
+            while temp_mask:
+                if temp_mask & 1:
+                    var_indices.append(idx)
+                temp_mask >>= 1
+                idx += 1
+
+            for var in var_indices:
+                new_degrees_list[var] += 1
+                if new_degrees_list[var] > 3:
+                    valid_addition = False
+                    break
+
+            if not valid_addition:
                 continue
-            key = (selected + 1, tuple(updated))
-            next_states[key] = next_states.get(key, 0) + ways
-        states = next_states
-    return states.get((clause_count, target), 0)
+
+            new_degrees_tuple = tuple(new_degrees_list)
+            new_count = count + 1
+            new_key = (new_count, new_degrees_tuple)
+
+            # Accumulate ways
+            if new_key in new_dp:
+                new_dp[new_key] += ways
+            else:
+                new_dp[new_key] = ways
+        dp = new_dp
+
+    # The answer is the number of ways to reach state (clause_count, (3, 3, ..., 3))
+    target_degrees = tuple(3 for _ in range(clause_count))
+    return dp.get((clause_count, target_degrees), 0)
 
 
 def _count_simple_fully_cubic_sources_c7() -> int:
