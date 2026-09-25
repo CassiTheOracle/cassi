@@ -668,6 +668,8 @@ When the field owns a route, idle native paths should be bypassed or unloaded ra
 
 Persistent edits to base model weights are not required by this design. The base artifact remains recoverable; any separately authorized derived-model experiment has a new identity and does not replace the field's knowledge owner. Learned Cassi program/state change is the primary persistent adaptation path.
 
+The [whole-machine performance design](../../CASSI-PERFORMANCE-DESIGN.md#field-acquisition-of-qwen-graph-work) specifies the shared graph-site invocation, four initial specialist working regions, native state and field-owner publication boundary, compatible candidate batching, and measured displacement path for acquired Qwen computations. The combined routed/shared expert contribution now has an owner-held method and a resident Qwen bypass with a coherent next hidden state; that site has been exercised against a real model with its native expert work counted. The same contract extends to complete recurrent branches and other supported graph work without creating a separate adaptive owner.
+
 ## 14. Native regional execution and lowering
 
 The current float64 regional image and historical float32 Qi tensor have different semantics. Integration requires explicit numeric-region codecs and bounded executors; it cannot reinterpret exact identities or instruction words as native wave amplitudes.
@@ -2155,7 +2157,7 @@ self-edited prompt “RSI.”
 | **L2: improvement strategy** | diagnose a weakness and choose how to improve under a fixed objective and verifier | bounded mechanisms exist for field-supported candidate choice, acquired method selection, repair, and guarded use | repeated superiority to supplied fixed strategies on unseen work |
 | **L3: experience acquisition** | decide which examples, questions, demonstrations, or experiments the next improvement needs | the fixed-tape SQLite baseline is complete; field-directed question choice remains the first direct campaign test | field-selected experience that measurably beats a matched supplied curriculum |
 | **L4: deployment adaptation** | use continuing environmental feedback to revise persistent state | the field can persist across tasks, restarts, and continuing worlds | a sustained deployment trajectory in which live outcomes produce verified, reusable gains without model fallback |
-| **L5: recursive inheritance** | revise an improver, verifier, curriculum policy, or successor procedure and pass it into later improvement rounds | there is a structural seed: an acquired guard method was later invoked rather than merely described | a repeated \(M_0 \rightarrow M_1 \rightarrow M_2\) succession in which inherited methods produce stronger later learners under matched total budgets |
+| **L5: recursive inheritance** | revise an improver, verifier, curriculum policy, or successor procedure and pass it into later improvement rounds | a closed succession runs in `CassiFI/self_improvement/` (§31.6): the live brain writes each successor improver from its lineage ledger; \(M_0 \rightarrow M_1\) and \(M_1 \rightarrow M_2\) were each promoted by matched trials on untouched functions of Cassi's own source, each promoted improver governed the next live round, and \(M_2\) has written \(M_3\) | the multi-generation crosscheck of \(M_0\), \(M_1\), \(M_2\) on shared untouched functions, and longer succession showing whether the gain accumulates or saturates |
 
 The survey finds broad evidence at lower and intermediate levels, bounded
 meta-improvement at L5, and leaves statistically reliable accumulation across
@@ -2356,6 +2358,41 @@ One successful method change is a meta-learning result. Two successive,
 inherited method revisions that each improve later apprenticeships establish the
 first bounded recursive chain. Longer succession then tests whether the gain
 accumulates or saturates.
+
+#### The running succession
+
+`CassiFI/self_improvement/engine.py` runs this succession with Cassi's own
+source as the apprenticeship world. An improver \(M_g\) is a policy module
+with three duties: `plan` chooses which functions get the brain's calls and
+how each request is framed, `parse` reads a rewrite out of each reply, and
+`successor_messages` asks the brain for the next improver. A rewrite counts
+only when every workload that runs its module keeps its exact output and the
+function's inclusive time beats the original by at least 5 % in interleaved
+timed pairs on a quiet core. An arm's reading is the sum over its functions of
+the log of each function's best verified speedup, so a 2× rewrite adds
+\(\ln 2\) whatever the function.
+
+A successor is judged against its parent on functions neither has touched:
+both spend the same 12 brain calls and 60,000 tokens on each replicate group,
+with shared brain seeds, and promotion requires the summed reading to win.
+The promoted improver then governs the next live round, its verified rewrites
+enter the live tree, and it writes its own successor. Each successor is
+written in two steps: the brain first diagnoses the lineage ledger (where
+readings came from, which retries ever paid, where calls and tokens went
+unspent) and chooses one evidenced change, then writes the module around it.
+
+The chain so far:
+
+| step | trial readings (parent → child) | what the child changed |
+|---|---|---|
+| \(M_0 \rightarrow M_1\) | 2.980 → 3.172 | tolerant parsing of cut replies, tighter context, retries that name the failure |
+| \(M_1 \rightarrow M_2\) | 0.269 → 0.646, both replicate groups won | retries shaped by the previous outcome (near miss, slowdown, changed output, cut reply), leaner context, cooler first attempts |
+
+Four successors written in one step, without the diagnosis, lost to \(M_1\);
+the first diagnosed successor won with three verified functions against one
+while spending fewer calls (18 against 22) and tokens (69 k against 88 k).
+\(M_2\) governed the second live round and has written \(M_3\), whose own
+diagnosis targets prompt length and completion room.
 
 ### 31.7 Campaign sequence
 

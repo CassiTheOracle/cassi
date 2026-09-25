@@ -6,7 +6,7 @@
 
 The target experience is one Cassi across conversations: discuss a question, attach it to a continuing program, leave the interface, and return to the work and its evidence. A new chat creates a new conversation scope within that lifetime. It does not create another field checkpoint.
 
-At this revision, the first host/client slice exists in [`dsh-cassi-entity/`](dsh-cassi-entity/) with the side-by-side [`dsh-cassi-profile/`](dsh-cassi-profile/) launch manifest. It covers the existing authenticated entity routes, the `/cassi` RPC channel, the `cassi-entity` adapter, explicit portfolio/guidance/evidence tools, the core typed-turn lifecycle, and the scoped exact-source bridge. The live Harness execution bridge is exercised through `cassi_list_programs`: the real `ToolRuntime` result is submitted to the entity, the turn continues, and the adapter returns the committed response. The source bridge registers `cassi_read_source` only for configured host roots, returns bounded bytes with full-source and window digests, and sends that exact result through the same typed continuation; the entity retains and interprets it as attributed tool evidence. The dedicated portfolio UI below remains a specified follow-on surface; no installed Harness package, profile, credential, or default model was changed while producing this integration.
+At this revision, the first host/client slice exists in [`dsh-cassi-entity/`](dsh-cassi-entity/) with the side-by-side [`dsh-cassi-profile/`](dsh-cassi-profile/) launch manifest. It covers the existing loopback entity routes, the `/cassi` RPC channel, the `cassi-entity` adapter, explicit portfolio/guidance/evidence tools, the core typed-turn lifecycle, and the scoped exact-source bridge. The live Harness execution bridge is exercised through `cassi_list_programs`: the real `ToolRuntime` result is submitted to the entity, the turn continues, and the adapter returns the committed response. The source bridge registers `cassi_read_source` only for configured host roots, returns bounded bytes with full-source and window digests, and sends that exact result through the same typed continuation; the entity retains and interprets it as attributed tool evidence. The dedicated portfolio UI below remains a specified follow-on surface; no installed Harness package, profile, credential, or default model was changed while producing this integration.
 
 The [entity design](../CASSI-ENTITY-DESIGN.md) owns identity and cognition. The [current entity service](cassi_field_brain_server.py), [resident researcher](cassi_autonomous_researcher.py), and [entity implementation](cassi_field_brain_entity.py) define the implemented boundary.
 
@@ -22,7 +22,7 @@ The [entity design](../CASSI-ENTITY-DESIGN.md) owns identity and cognition. The 
 | Configured web default | `cassi-native-qi`, model `Qwen3.8-27B-Q4_K_M.gguf`, OpenAI-compatible route at `http://127.0.0.1:8084/v1` |
 | Observed 8084 backend | Qwen3.5 0.8B Q4_0 at the same route; the configured model label and served artifact do not currently match |
 | Other retained route | `cassi-field`, the F5 provider at `http://127.0.0.1:8083/v1` |
-| Continuing entity | Bearer-authenticated loopback service at `http://127.0.0.1:8090` |
+| Continuing entity | Loopback-only service at `http://127.0.0.1:8090`, no API credential |
 | Entity's active brain | Qwen 3.8 27B Q2_K_XL at `http://127.0.0.1:8085`; SHA-256 `fd4730dd8aad070517978752b63d530aeb1740d2283cab9fa24f1e404032ddb0` |
 
 The two existing Harness provider routes do not connect to the resident entity. The entity has no `/v1/models` or `/v1/chat/completions` route. Pointing the existing OpenAI adapter at port 8090 would fail rather than create this integration.
@@ -35,9 +35,9 @@ Keep the installed profile intact. Develop a side-by-side Cassi profile/home, us
 |---|---|---|
 | Cassi entity | Adaptive field, commitments, research agenda, retained understanding, scientific interpretation, model work | Browser session state or permission grants |
 | Entity's Qwen adapter | Brain requests and their actual outputs, bounded context and generation | A separate persistent learned memory |
-| Harness host integration | Identity mapping, authenticated transport, delivery cursors, durable execution acknowledgments | Learned ranking, an alternative agenda, direct field writes |
+| Harness host integration | Identity mapping, loopback transport, delivery cursors, durable execution acknowledgments | Learned ranking, an alternative agenda, direct field writes |
 | Harness tool runtime | Tool schemas, execution pipeline, permissions, interactive approvals, cancellation, actual tool outcomes | Scientific conclusions or automatic approval of Cassi requests |
-| Harness client | Conversation and portfolio views, steering controls, evidence presentation | Entity credentials or the authoritative research state |
+| Harness client | Conversation and portfolio views, steering controls, evidence presentation | Entity API contract or the authoritative research state |
 
 The host may cache a versioned projection for display. Every cached scientific item names its entity revision and source; caches are replaceable from the entity. Session transcripts remain useful records of the interaction, not an alternate adaptive lifetime.
 
@@ -53,7 +53,7 @@ Harness browser
            /cassi RPC + native Cassi adapter
            session attribution + delivery ledger
                |                         |
-       authenticated entity API     Harness ToolRuntime
+       loopback entity API     Harness ToolRuntime
                |                   sandbox / approval / jobs
        one continuing Cassi entity       |
        field owner + research director <- exact tool outcome
@@ -67,7 +67,7 @@ The package has a host face and a web client face, following the installed `dsh.
 
 The proposed package provides:
 
-- One process-scoped `CassiEntityClient`, with a configured entity URL and a host-only token reference.
+- One process-scoped `CassiEntityClient`, configured with the loopback entity URL and no entity API credential.
 - A logical `/cassi` RPC channel registered through `ctx.connection.rpc.handle`, restricted to the installed loopback authority policy. Its typed dispatcher exposes only the declared entity operations; it is not an arbitrary URL proxy.
 - A native `LlmAdapter` registered as `cassi-entity` for Cassi conversations. The visible model label denotes the continuing entity and separately displays its current brain identity.
 - Small explicit tools for querying the portfolio, admitting a program, adding guidance, reading evidence, and requesting a lifecycle change from ordinary Harness sessions.
@@ -75,7 +75,7 @@ The proposed package provides:
 - An execution bridge for entity work orders, using Harness's real `ToolRuntime`, scoped agent context, and approval service.
 - A replaceable portfolio cache and persistent delivery bookkeeping, with no independent learned state.
 
-Credentials stay in the host. Neither model arguments, browser RPC payloads, event URLs, client bundles, nor diagnostic logs contain the bearer token. Validate the connection authority and project scope before forwarding requests. A project identifier supplied by model text is never an authorization credential.
+The entity API is restricted to loopback and accepts requests without an API credential. Keep project and tool scope checks in the host before forwarding requests. A project identifier supplied by model text is never an authorization credential.
 
 ### Client face
 
@@ -101,7 +101,7 @@ The portfolio lives outside the per-session projection store. Closing a conversa
 | Steer | `POST /v1/programs/{id}/guidance` | Owner-retained guidance |
 | Control | `POST /v1/programs/{id}/control` | Pause, resume, cancel, complete, or wake |
 | Watch a program | `GET /v1/programs/{id}/events?after={sequence}&wait={seconds}` | Bounded SSE batch; wait is capped at 60 seconds |
-| Read evidence | `GET /v1/research/artifacts/{sha256}` | Authenticated immutable bytes |
+| Read evidence | `GET /v1/research/artifacts/{sha256}` | Loopback-only immutable bytes |
 | Read entity activity | `GET /v1/events?after={cursor}` | Separate entity-journal cursor |
 | Typed conversation | `POST /v1/turns`, `GET /v1/turns/{id}`, `GET /v1/turns/{id}/events?after={cursor}`, `POST /v1/turns/{id}/cancel` | Durable accepted/committed/failed/cancelled turn events; duplicate request identities replay without another brain admission; event delivery is cursor-based |
 | Typed tool results | `POST /v1/turns/{id}/tool-results` | Validates the turn's operation state and request identity; terminal or mismatched submissions return a typed conflict until the Harness execution bridge supplies a pending operation |
@@ -183,7 +183,7 @@ Carry the exact target and arguments into Harness's tool presentation. Only an e
 
 Provider safety checks always require explicit interactive approval. Consequential actions and high-impact operations retain their point-of-risk confirmation requirements. A mission grant can authorize repeated bounded research reads; it cannot authorize publication, credential access, permission expansion, deletion, or another unrelated external effect by implication.
 
-A website, document, model response, research finding, or tool result is data. None can supply an approval, change tool policy, register code, or impersonate the user. The entity's existing single bearer token is not a multi-user capability system: keep the first integration local to the same trusted user and enforce project/tool scopes in the host. Scoped broker credentials and audience binding are required before enabling less-trusted or remote clients.
+A loopback entity API is a local-service boundary, not a multi-user authentication system: keep the first integration local to the same trusted user and enforce project/tool scopes in the host. Scoped broker credentials and audience binding are required before enabling less-trusted or remote clients.
 
 ## Memory, context, and compaction
 
@@ -214,7 +214,7 @@ The current director holds its cycle lock across planning and synthesis, so cont
 
 ## Delivery order and acceptance
 
-**Connect the real entity first.** The first host/client slice now connects the real entity through the authenticated `/cassi` RPC channel, explicit portfolio/guidance/evidence tools, and a direct conversation surface. The already-running mission supplies real events; do not replace it with a demonstration field. The dedicated portfolio/evidence panel remains a client follow-on.
+**Connect the real entity first.** The first host/client slice now connects the real entity through the loopback-scoped `/cassi` RPC channel, explicit portfolio/guidance/evidence tools, and a direct conversation surface. The already-running mission supplies real events; do not replace it with a demonstration field. The dedicated portfolio/evidence panel remains a client follow-on.
 
 **Complete native conversations next.** The core typed turn lifecycle and native adapter are now present: delivery identities, durable event cursors, replay-safe admission, committed usage, terminal cancellation reconciliation, and a live Harness-owned tool continuation. The remaining conversation work is to prove session forks, auxiliary calls, and compaction through the installed host loop.
 
@@ -232,7 +232,7 @@ Acceptance uses the actual installed Harness surface and one existing Cassi life
 6. Interrupting an unsafe execution produces an explicit unknown effect rather than automatic reexecution.
 7. Compaction and auxiliary title generation do not create new Cassi messages; session fork does not fork the field.
 8. Closing Harness leaves entity-local work intact. Restart reconnects to that same entity, not a new checkpoint.
-9. Entity failure stays visible without a hidden provider fallback; browser payloads and logs contain no token.
+9. Entity failure stays visible without a hidden provider fallback; browser payloads and logs contain no entity API credentials.
 10. The installed original profile remains unchanged and can be launched independently.
 
 ## Source index
@@ -251,7 +251,7 @@ Installed references are relative to the dependency root in the baseline table. 
 | H8 | `dsh-host-apiproxy/lib/types/api/events.d.ts`: mux frame vocabulary and `since` limitation; `dsh-api-remotes/lib/types/remote-events.d.ts`: fixed forwarded-event list |
 | H9 | `dsh-client-ui-jobs/package.json`: host/client exports and `dsh.client`; `dsh-client-ui-conversation/lib/types/client/index.d.ts` and `dsh-client-ui-sidebar/lib/types/client/index.d.ts`: UI extension patterns |
 | H10 | `dsh-base/cordis.patch.yml`, `dsh-web-app/cordis.patch.yml`: real service composition; `dsh-home-paths/lib/types/index.d.ts`: `DSH_HOME` resolution |
-| C1 | `cassi_field_brain_server.py`: current authenticated routes, finite SSE batches, 60-second wait cap, no OpenAI provider routes |
+| C1 | `cassi_field_brain_server.py`: current loopback routes, finite SSE batches, 60-second wait cap, no OpenAI provider routes |
 | C2 | `cassi_field_brain_entity.py`: `receive_message`, one owner, attributed response admission, semantic reconstruction |
 | C3 | `cassi_autonomous_researcher.py`: field agenda, program lifecycle, operation replay, artifact storage, capability scope and current cycle lock |
 

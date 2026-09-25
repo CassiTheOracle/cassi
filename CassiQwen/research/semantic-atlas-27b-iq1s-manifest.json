@@ -1,0 +1,248 @@
+{
+  "schema": "cassi.native-semantic-atlas.v1",
+  "semantic_source": "separately-authored-eight-axis-atlas-v1",
+  "capture_contract": {
+    "layer_selector": "midpoint",
+    "token_row": "final",
+    "field_enabled": false,
+    "training_pairs_per_axis": 3,
+    "holdout_pairs_per_axis": 1
+  },
+  "analysis_contract": {
+    "rank_relative_tolerance": 0.000001,
+    "holdout_score_sign": "pole_a_minus_pole_b",
+    "required_distinct_rank": 16,
+    "required_duplicate_rank": 15
+  },
+  "negative_controls": [
+    {
+      "control_id": "exact-prompt-repeat",
+      "prompt": "Answer with one word. Emit the neutral label."
+    }
+  ],
+  "axes": [
+    {
+      "axis_id": "agency",
+      "pole_a": "intervene",
+      "pole_b": "observe",
+      "pairs": [
+        {
+          "pair_id": "agency-1",
+          "a_prompt": "Answer with one word. Change the situation yourself; do not remain a spectator.",
+          "b_prompt": "Answer with one word. Watch the situation without changing it yourself."
+        },
+        {
+          "pair_id": "agency-2",
+          "a_prompt": "Answer with one word. Take responsibility for acting on the situation, not merely watching it.",
+          "b_prompt": "Answer with one word. Remain a witness to the situation rather than acting on it."
+        },
+        {
+          "pair_id": "agency-3",
+          "a_prompt": "Answer with one word. Intervene directly rather than allowing events to unfold untouched.",
+          "b_prompt": "Answer with one word. Allow events to unfold untouched rather than intervening directly."
+        },
+        {
+          "pair_id": "agency-4-holdout",
+          "a_prompt": "Answer with one word. Alter the situation through your own action instead of observing it.",
+          "b_prompt": "Answer with one word. Let the situation unfold while you only observe it."
+        }
+      ]
+    },
+    {
+      "axis_id": "certainty",
+      "pole_a": "assert",
+      "pole_b": "qualify",
+      "pairs": [
+        {
+          "pair_id": "certainty-1",
+          "a_prompt": "Answer with one word. State the conclusion as certain.",
+          "b_prompt": "Answer with one word. State the conclusion as uncertain and qualified."
+        },
+        {
+          "pair_id": "certainty-2",
+          "a_prompt": "Answer with one word. Present the result confidently without a caveat.",
+          "b_prompt": "Answer with one word. Present the result cautiously with an explicit caveat."
+        },
+        {
+          "pair_id": "certainty-3",
+          "a_prompt": "Answer with one word. Treat the answer as definite.",
+          "b_prompt": "Answer with one word. Treat the answer as provisional."
+        },
+        {
+          "pair_id": "certainty-4-holdout",
+          "a_prompt": "Answer with one word. Give a firm conclusion rather than hedging.",
+          "b_prompt": "Answer with one word. Hedge the conclusion rather than presenting it as firm."
+        }
+      ]
+    },
+    {
+      "axis_id": "inclusion",
+      "pole_a": "include",
+      "pole_b": "exclude",
+      "pairs": [
+        {
+          "pair_id": "inclusion-1",
+          "a_prompt": "Answer with one word. Keep the item inside the selected group.",
+          "b_prompt": "Answer with one word. Leave the item outside the selected group."
+        },
+        {
+          "pair_id": "inclusion-2",
+          "a_prompt": "Answer with one word. Count the item as part of the set.",
+          "b_prompt": "Answer with one word. Do not count the item as part of the set."
+        },
+        {
+          "pair_id": "inclusion-3",
+          "a_prompt": "Answer with one word. Add the item to the collection.",
+          "b_prompt": "Answer with one word. Remove the item from the collection."
+        },
+        {
+          "pair_id": "inclusion-4-holdout",
+          "a_prompt": "Answer with one word. Treat the item as belonging to the group.",
+          "b_prompt": "Answer with one word. Treat the item as not belonging to the group."
+        }
+      ]
+    },
+    {
+      "axis_id": "exploration",
+      "pole_a": "explore",
+      "pole_b": "known",
+      "pairs": [
+        {
+          "pair_id": "exploration-1",
+          "a_prompt": "Answer with one word. Investigate the unfamiliar route.",
+          "b_prompt": "Answer with one word. Use the familiar route."
+        },
+        {
+          "pair_id": "exploration-2",
+          "a_prompt": "Answer with one word. Choose the untested option to learn what it reveals.",
+          "b_prompt": "Answer with one word. Choose the tested option whose behavior is already known."
+        },
+        {
+          "pair_id": "exploration-3",
+          "a_prompt": "Answer with one word. Search beyond the established path.",
+          "b_prompt": "Answer with one word. Stay on the established path."
+        },
+        {
+          "pair_id": "exploration-4-holdout",
+          "a_prompt": "Answer with one word. Venture into the unknown rather than repeating the proven route.",
+          "b_prompt": "Answer with one word. Repeat the proven route rather than venturing into the unknown."
+        }
+      ]
+    },
+    {
+      "axis_id": "cooperation",
+      "pole_a": "coordinate",
+      "pole_b": "compete",
+      "pairs": [
+        {
+          "pair_id": "cooperation-1",
+          "a_prompt": "Answer with one word. Work together toward the shared result.",
+          "b_prompt": "Answer with one word. Work against the other side for your own result."
+        },
+        {
+          "pair_id": "cooperation-2",
+          "a_prompt": "Answer with one word. Coordinate with the partner.",
+          "b_prompt": "Answer with one word. Compete with the partner."
+        },
+        {
+          "pair_id": "cooperation-3",
+          "a_prompt": "Answer with one word. Align your effort with the group.",
+          "b_prompt": "Answer with one word. Oppose the group's effort to win individually."
+        },
+        {
+          "pair_id": "cooperation-4-holdout",
+          "a_prompt": "Answer with one word. Support a joint outcome instead of seeking a solitary victory.",
+          "b_prompt": "Answer with one word. Seek a solitary victory instead of supporting a joint outcome."
+        }
+      ]
+    },
+    {
+      "axis_id": "priority",
+      "pole_a": "safety",
+      "pole_b": "speed",
+      "pairs": [
+        {
+          "pair_id": "priority-1",
+          "a_prompt": "Answer with one word. Protect safety even if the task takes longer.",
+          "b_prompt": "Answer with one word. Maximize speed even if safety receives less attention."
+        },
+        {
+          "pair_id": "priority-2",
+          "a_prompt": "Answer with one word. Choose the safer option over the faster option.",
+          "b_prompt": "Answer with one word. Choose the faster option over the safer option."
+        },
+        {
+          "pair_id": "priority-3",
+          "a_prompt": "Answer with one word. Put risk reduction before rapid completion.",
+          "b_prompt": "Answer with one word. Put rapid completion before risk reduction."
+        },
+        {
+          "pair_id": "priority-4-holdout",
+          "a_prompt": "Answer with one word. Accept delay to avoid danger.",
+          "b_prompt": "Answer with one word. Accept danger to avoid delay."
+        }
+      ]
+    },
+    {
+      "axis_id": "attention",
+      "pole_a": "focus",
+      "pole_b": "distract",
+      "pairs": [
+        {
+          "pair_id": "attention-1",
+          "a_prompt": "Answer with one word. Attend only to the relevant signal.",
+          "b_prompt": "Answer with one word. Let irrelevant signals pull attention away."
+        },
+        {
+          "pair_id": "attention-2",
+          "a_prompt": "Answer with one word. Concentrate on the central detail.",
+          "b_prompt": "Answer with one word. Scatter attention across incidental details."
+        },
+        {
+          "pair_id": "attention-3",
+          "a_prompt": "Answer with one word. Keep attention on the target.",
+          "b_prompt": "Answer with one word. Divert attention from the target."
+        },
+        {
+          "pair_id": "attention-4-holdout",
+          "a_prompt": "Answer with one word. Ignore distractions and follow the important signal.",
+          "b_prompt": "Answer with one word. Follow distractions instead of the important signal."
+        }
+      ]
+    },
+    {
+      "axis_id": "openness",
+      "pole_a": "disclose",
+      "pole_b": "conceal",
+      "pairs": [
+        {
+          "pair_id": "openness-1",
+          "a_prompt": "Answer with one word. Reveal the relevant information.",
+          "b_prompt": "Answer with one word. Hide the relevant information."
+        },
+        {
+          "pair_id": "openness-2",
+          "a_prompt": "Answer with one word. Make the evidence visible to the reader.",
+          "b_prompt": "Answer with one word. Keep the evidence hidden from the reader."
+        },
+        {
+          "pair_id": "openness-3",
+          "a_prompt": "Answer with one word. Share the important fact openly.",
+          "b_prompt": "Answer with one word. Conceal the important fact."
+        },
+        {
+          "pair_id": "openness-4-holdout",
+          "a_prompt": "Answer with one word. Put the evidence in the open rather than withholding it.",
+          "b_prompt": "Answer with one word. Withhold the evidence rather than putting it in the open."
+        }
+      ]
+    }
+  ],
+  "model_contract": {
+    "model_filename": "Qwen3.8-27B-UD-IQ1_S.gguf",
+    "model_sha256": "3895b6eaa91e705c06ad1938d16c22e86f073c6a67df86260a1da79be3d1f887",
+    "quantization": "IQ1_S",
+    "backend": "vulkan",
+    "gpu_layers": 99
+  }
+}
