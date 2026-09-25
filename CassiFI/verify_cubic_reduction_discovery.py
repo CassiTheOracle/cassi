@@ -699,28 +699,55 @@ def rref(matrix: Sequence[Sequence[Fraction]], columns: int, ledger: AuditLedger
     values = [list(row) for row in matrix]
     if any(len(row) != columns for row in values):
         fail("independent RREF width mismatch")
+
     pivot_row = 0
     pivots: list[int] = []
+    num_rows = len(values)
+
     for column in range(columns):
-        selected = next((row for row in range(pivot_row, len(values)) if values[row][column]), None)
+        # Find the pivot row for this column starting from pivot_row
+        selected = None
+        for r in range(pivot_row, num_rows):
+            if values[r][column]:
+                selected = r
+                break
+
         if selected is None:
             continue
+
+        # Swap rows
         values[pivot_row], values[selected] = values[selected], values[pivot_row]
+
+        # Normalize the pivot row
         pivot = values[pivot_row][column]
+        pivot_row_vals = values[pivot_row]
+
+        # In-place division for the pivot row from 'column' to 'columns'
         for index in range(column, columns):
-            values[pivot_row][index] /= pivot
+            pivot_row_vals[index] /= pivot
             ledger.fraction_updates += 1
-        for row in range(len(values)):
-            if row == pivot_row or not values[row][column]:
+
+        # Eliminate other rows
+        for row in range(num_rows):
+            if row == pivot_row:
                 continue
             factor = values[row][column]
+            if factor == 0:
+                continue
+
+            row_vals = values[row]
+            # Subtract factor * pivot_row_vals from row_vals
+            # We only need to update from 'column' onwards because columns before 'column' are already 0 in this row
+            # (due to previous elimination steps)
             for index in range(column, columns):
-                values[row][index] -= factor * values[pivot_row][index]
+                row_vals[index] -= factor * pivot_row_vals[index]
                 ledger.fraction_updates += 2
+
         pivots.append(column)
         pivot_row += 1
-        if pivot_row == len(values):
+        if pivot_row == num_rows:
             break
+
     return values, tuple(pivots)
 
 
