@@ -6,6 +6,30 @@ The project is a prototype and still rapidly evolving. It is disorganized and di
 
 [**Cassi: A Persistent Field–Brain Entity**](CASSI-ENTITY-DESIGN.md) specifies the fully capable autonomous researcher: a continuing field-owned mind, an active pretrained llama.cpp brain, multiple ongoing research programs, complete source access, scientific tools, reusable methods, and an interruptible research life. The current priority is to connect the existing learning and research machinery into that working system; the design distinguishes implemented components from the remaining integration.
 
+[**Cassi Living Memory**](CASSI-LIVING-MEMORY-DESIGN.md) is the implemented
+memory lifecycle inside that entity: progressive and exact recall, actual-use
+and outcome binding, recoverable deep detail, prospective relevance,
+reinterpretation, maintenance, autobiography, and independently verifiable
+regional storage.
+
+[**Cassi: A Programmable Field Swarm**](CASSI-PROGRAMMABLE-SWARM-DESIGN.md) specifies the next execution architecture: a Python interpreter acquired as field-owned executable knowledge, computations Cassi can inspect and branch, and a native Vulkan backend that groups compatible work across many distinct members. It connects reusable methods, guarded compilation and collective research while preserving the existing field–brain lifetime; the interpreter and GPU swarm remain specified work.
+
+[**Cassi: Performance Across the Whole Machine**](CASSI-PERFORMANCE-DESIGN.md) brings together cache-resident working fields, persistent GPU computation, shared brain batching, a field-owned communication service, and acquired methods that improve the organization of work. It records the hardware, current execution paths, proposed architecture, implementation order, and measures of useful progress and responsiveness.
+
+[**Cassi Surface: A Persistent Computer-Use Body**](CASSI-SURFACE-DESIGN.md)
+defines one general system for Windows and Linux applications: a live sensory
+region in the field, acquired procedures rather than application-specific code,
+a background Linux workstation, scoped Windows access, and human takeover
+and recovery. The shared field-native path and authenticated observing workspace
+are implemented; native desktops require provisioning and operational checks,
+and the configured local brain has no image input.
+
+[**Cassi, beside you: Desktop Companion**](CASSI-DESKTOP-COMPANION-DESIGN.md)
+specifies the everyday **Watch with me** experience: selected-window observation,
+natural demonstrations, quiet assistance, and useful lessons carried into the
+same continuing entity. It includes screen designs, visual language, privacy,
+correction, and the complete integration responsibilities.
+
 CassiTheory develops the organizational laws that provide the foundation for everything else.
 
 CassiCosmos applies the theory to a realtime, 3D, field-mediated N-body particle gravity simulation built with Godot and Vulkan shaders. It is capable of smoothly simulating globally-effective gravity between millions of particles, all on consumer GPUs. It is developed and tested on a 7900XTX.
