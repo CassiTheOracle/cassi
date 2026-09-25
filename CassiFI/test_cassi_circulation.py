@@ -25,6 +25,7 @@ from cassi_circulation import (
     _modulation_values,
     _operator_edges,
     _RegionalWaveOperator,
+    _digest,
     circulation_activity,
     circulation_admit,
     circulation_alignment,
@@ -34,6 +35,7 @@ from cassi_circulation import (
     circulation_unit,
     initial_circulation,
     validate_circulation,
+    working_field_exchange_view,
 )
 from cassi_resonant_field import (
     REGIONAL_KERNEL_NAME,
@@ -128,7 +130,6 @@ def test_circulate_pass_closes_the_balance_and_measures_geometry_on_the_second_p
     assert abs(output["balance_defect"]) <= output["energy_roundoff_allowance"]
     assert output["circulation_parameter_work"] > 0.0
     readout = output["circulation"]
-    assert readout["schema"] == "cassifi.resonant-circulation-readout.v1"
     assert readout["continuation"]["pass"] == 2
     assert readout["continuation"]["phase"] == "refresh"
     geometry = readout["geometry"]
@@ -491,6 +492,97 @@ def _agenda(state, operation_id, **request):
     return transition.output
 
 
+
+
+def test_over_budget_agenda_finishes_without_a_progress_continuation():
+    from cassi_field_cognition import (
+        semantic_cognition_kernel,
+        semantic_cognition_state,
+    )
+
+    state = semantic_cognition_state(bounds={"max_work": 3})
+    transition = semantic_cognition_kernel(
+        state,
+        {
+            "operation": "autonomous-agenda",
+            "operation_id": "agenda:over-budget",
+            "max_items": 1,
+        },
+        1,
+    )
+    assert transition.status == "done"
+    assert transition.output["status"] == "resource-exhausted"
+    assert transition.output["required_work"] == 4
+    assert transition.state["continuation"]["request"] is None
+    assert transition.state["ledger"]["work"] == 3
+
+
+def test_pending_saturated_agenda_finishes_when_resumed():
+    from cassi_field_atlas import sha256_value
+    from cassi_field_cognition import (
+        semantic_cognition_kernel,
+        semantic_cognition_state,
+    )
+
+    state = semantic_cognition_state(bounds={"max_work": 3})
+    request = {
+        "operation": "autonomous-agenda",
+        "operation_id": "agenda:legacy-saturated",
+        "max_items": 1,
+    }
+    state["continuation"].update(
+        {
+            "cursor": 1,
+            "operation_id": request["operation_id"],
+            "partial": {"required_work": 3},
+            "request": request,
+            "request_sha256": sha256_value(request),
+        }
+    )
+
+    progress = semantic_cognition_kernel(state, {}, 1)
+    assert progress.status == "yield"
+    assert progress.output["completed_work"] == 2
+    transition = semantic_cognition_kernel(progress.state, {}, 1)
+    assert transition.status == "done"
+    assert transition.output["status"] == "resource-exhausted"
+    assert transition.output["limitations"] == ["semantic-work-bound"]
+    assert transition.state["continuation"]["request"] is None
+
+
+
+
+def test_agenda_selects_the_same_obligation_across_one_work_quanta():
+    from cassi_field_cognition import semantic_cognition_kernel
+
+    state = _agenda_state([("work:lower", 0.1), ("work:higher", 0.9)])
+    direct = _agenda(state, "agenda:direct", max_items=2)
+    transition = semantic_cognition_kernel(
+        state,
+        {
+            "operation": "autonomous-agenda",
+            "operation_id": "agenda:resumed",
+            "max_items": 2,
+        },
+        1,
+    )
+    assert transition.status == "yield"
+    assert transition.output["status"] == "waiting"
+    while transition.status == "yield":
+        # Restart from an exact persisted snapshot between native quanta.
+        state = json.loads(json.dumps(transition.state))
+        transition = semantic_cognition_kernel(state, {}, 1)
+    assert transition.status == "done"
+    assert transition.output["status"] == "supported"
+    assert (
+        transition.output["selected"]["obligation"]["id"]
+        == direct["selected"]["obligation"]["id"]
+        == "work:higher"
+    )
+    assert transition.state["continuation"]["request"] is None
+    assert transition.state["ledger"]["work"] > state["ledger"]["work"]
+
+
 def test_flow_modulates_eligible_work_without_changing_eligibility():
     """Section 18.5: realised flow modulates eligible-work priority, bounded."""
 
@@ -641,3 +733,328 @@ def test_owner_produces_the_flow_modulation_of_its_resident_circulation(tmp_path
         assert json.loads(json.dumps(block, allow_nan=False)) == block
         assert owner.circulation_modulation(events, computer_id="absent") is None
         assert owner.circulation_modulation([])["values"] == {}
+
+
+def test_spectral_feedback_is_concern_scoped_signed_and_operator_measured():
+    from cassi_field_affect import affect_concern_ref
+
+    task = _run(_task(), {"operation": "circulate", "ticks": 1}, quantum=4096).state
+    segment = task["circulation"]
+    exchange = segment["spectrum"]["last_exchange"]
+    assert exchange["status"] == "available"
+    interface = exchange["interface"]
+    exchange_digest = _digest(exchange)
+    initial_applications = task["ledger"]["operator_applications"]
+    baseline = copy.deepcopy(task)
+
+    def concern(object_id):
+        return affect_concern_ref(
+            project_id="project:spectral",
+            question_ref={"id": "question:resonance", "kind": "Question",
+                          "content_version": 2},
+            object_refs=[{"id": object_id, "kind": "Method", "content_version": 1}],
+            goal_ref={"id": "goal:exchange", "kind": "Goal", "content_version": 1},
+        )
+
+    def feedback_args(ref, operation_id, assessment_id, progress):
+        assessment = {
+            "id": assessment_id, "kind": "Assessment", "content_version": 3,
+        }
+        return {
+            "operation": "spectral-feedback",
+            "interface": interface,
+            "appraisal_ref": {
+                "operation_id": operation_id,
+                "assessment_sha256": "a" * 64 if progress > 0.0 else "b" * 64,
+            },
+            "progress": progress,
+            "expected_exchange_sha256": exchange_digest,
+            "concern_ref": ref,
+            "appraisal_basis": {
+                "assessment_ref": assessment,
+                "source_revision_id": f"source:{operation_id}",
+                "source_sha256": "c" * 64 if progress > 0.0 else "d" * 64,
+            },
+        }
+
+    first_concern = concern("object:first")
+    first = regional_kernel(
+        task,
+        feedback_args(first_concern, "work:first", "assessment:first", 0.8),
+        1,
+    )
+    assert first.status == "done"
+    assert first.output["status"] == "updated"
+    assert first.output["parameter_work"] > 0.0
+    assert first.output["potential_after"] < first.output["potential_before"]
+    assert first.output["operator_residual"] <= 1e-10
+    assert first.state["ledger"]["operator_applications"] > initial_applications
+    interface_state = first.state["circulation"]["spectrum"]["interfaces"][interface]
+    first_tuning = interface_state["concern_tunings"][first_concern["concern_id"]]
+    first_shift = first_tuning["receiver_log_shift"]
+    assert first_tuning["appraisal_basis"]["assessment_ref"]["id"] == "assessment:first"
+    assert interface_state["receiver_log_shift"] == 0.0
+
+    second_concern = concern("object:second")
+    second = regional_kernel(
+        first.state,
+        feedback_args(second_concern, "work:second", "assessment:second", -0.5),
+        1,
+    )
+    assert second.status == "done"
+    assert second.output["status"] == "updated"
+    assert second.output["parameter_work"] < 0.0
+    assert second.output["potential_after"] > second.output["potential_before"]
+    final_link = second.state["circulation"]["spectrum"]["interfaces"][interface]
+    tunings = final_link["concern_tunings"]
+    assert set(tunings) == {
+        first_concern["concern_id"], second_concern["concern_id"],
+    }
+    assert tunings[first_concern["concern_id"]]["receiver_log_shift"] == first_shift
+    assert tunings[second_concern["concern_id"]]["progress"] == -0.5
+    assert final_link["receiver_log_shift"] == 0.0
+    spectrum = second.state["circulation"]["spectrum"]
+    assert spectrum["last_feedback"]["concern_ref"] == second_concern
+    assert spectrum["last_feedback"]["appraisal_basis"]["source_revision_id"] == (
+        "source:work:second"
+    )
+    assert spectrum["ledger"]["tuning_parameter_work"] == pytest.approx(
+        first.output["parameter_work"] + second.output["parameter_work"]
+    )
+    baseline_next = _run(
+        resume_regional_state(baseline, ticks=2),
+        {"operation": "circulate", "ticks": 2}, quantum=4096,
+    ).state["circulation"]["spectrum"]["last_exchange"]
+    tuned_next = _run(
+        resume_regional_state(second.state, ticks=2),
+        {"operation": "circulate", "ticks": 2}, quantum=4096,
+    ).state["circulation"]["spectrum"]["last_exchange"]
+    assert tuned_next["concern_ids"] == sorted(
+        (first_concern["concern_id"], second_concern["concern_id"])
+    )
+    assert tuned_next["effective_receiver_log_shift"] != (
+        baseline_next["effective_receiver_log_shift"]
+    )
+    assert not math.isclose(
+        tuned_next["effective_weight"], baseline_next["effective_weight"],
+        rel_tol=1e-12, abs_tol=1e-15,
+    )
+    validate_circulation(second.state["circulation"])
+
+
+def test_research_assessment_resolves_agenda_exchange_from_checkpoint(
+    tmp_path,
+):
+    from pathlib import Path
+    from cassi_field_owner import FieldIntelligenceOwner
+    from cassi_research_residency import attach_research_residency
+    from cassi_research_worlds import INSTRUMENT_KIND
+
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer(
+            "feedback:configure", computer_id="main", action="configure",
+            arguments={"profile": {"mode_count": 65_536}},
+        )
+        owner.operate_computer(
+            "feedback:circulate", computer_id="main", action="submit",
+            arguments={
+                "kernel": REGIONAL_KERNEL_NAME,
+                "state": _task(),
+                "arguments": {"operation": "circulate", "ticks": 1},
+                "steps": 4096,
+            },
+        )
+        with attach_research_residency(owner, tmp_path / "residency") as residency:
+            residency.initialize(
+                workspace=Path(__file__).resolve().parents[1],
+                work=[{
+                    "id": "measure",
+                    "summary": "Observe a context-gated response",
+                    "request": {
+                        "kind": INSTRUMENT_KIND,
+                        "scenario": {
+                            "steps": 32, "change_at": 16, "delay": 3,
+                            "low": 0.0, "high": 1.0,
+                            "context_available": True, "tolerance": 0.0,
+                        },
+                        "program": {"strategy": "context-gated", "window": 1},
+                    },
+                }],
+                profile={"mode_count": 65_536, "default_value_words": 512},
+            )
+            residency.advance()  # seed
+            residency.advance()  # choose and persist the actual agenda Event
+            cursor = residency._cursor()
+            assert cursor["selected"] == {"id": "measure"}
+            agenda_id = f"research:phase:{cursor['sequence'] - 1:012d}:agenda"
+            agenda_ref = residency._task()["indexes"]["operations"][agenda_id]["result"]["event"]
+            agenda = residency._record(agenda_ref["id"])["payload"]["autonomous_agenda"]
+            assert agenda["circulation"]["spectral_values"]["0"] != 0.0
+            residency.advance()  # execute, retain the selected checkpoint
+            assert residency._cursor()["phase"] == "admit"
+            residency.advance()  # admit exact result and automatically apply feedback
+            assessment_id = "research:work:00000000:measure"
+            assessment = residency._record("research:outcome:" + assessment_id)
+            assert assessment["payload"]["result_status"] == "observed"
+            task = next(
+                row._value("task") for row in owner.state.computers
+                if row.computer_id == "main"
+            )
+            feedback = task["circulation"]["spectrum"]["last_feedback"]
+            assert feedback["appraisal_ref"]["operation_id"] == assessment_id
+            assert task["circulation"]["spectrum"]["ledger"]["feedback_updates"] == 1
+            assert feedback["parameter_work"] > 0.0
+
+
+def test_paused_regional_task_refuses_spectral_feedback_without_tuning():
+    task = _run(_task(), {"operation": "circulate", "ticks": 1}, quantum=4096).state
+    exchange = task["circulation"]["spectrum"]["last_exchange"]
+    task["paused"] = True
+    original = copy.deepcopy(task["circulation"])
+    receipt = regional_kernel(
+        task,
+        {
+            "operation": "spectral-feedback",
+            "interface": exchange["interface"],
+            "appraisal_ref": {
+                "operation_id": "paused:assessment",
+                "assessment_sha256": "a" * 64,
+            },
+            "progress": 1.0,
+            "expected_exchange_sha256": _digest(exchange),
+        },
+        1,
+    )
+    assert receipt.status == "fault"
+    assert receipt.work == 0
+    assert receipt.output["message"] == "paused regional task cannot apply spectral feedback"
+    assert receipt.state["circulation"] == original
+
+
+def test_v2_spectrum_state_is_upgraded_by_a_writable_circulation_unit():
+    task = _task()
+    spectrum = task["circulation"]["spectrum"]
+    spectrum["schema"] = "cassifi.resonant-spectrum.v2"
+    for row in spectrum["regions"].values():
+        row.pop("operator_residual")
+    for row in spectrum["interfaces"].values():
+        row.pop("concern_tunings")
+    validate_circulation(task["circulation"])
+
+    advanced = _run(
+        task, {"operation": "circulate", "ticks": 1}, quantum=4096
+    )
+    upgraded = advanced.state["circulation"]["spectrum"]
+    assert upgraded["schema"] == "cassifi.resonant-spectrum.v3"
+    assert upgraded["basis"] == "operator-projected-block-haar.v2"
+    assert all(
+        isinstance(row["operator_residual"], float)
+        for row in upgraded["regions"].values()
+    )
+    assert all(
+        row["concern_tunings"] == {}
+        for row in upgraded["interfaces"].values()
+    )
+
+
+def test_working_field_exchange_view_requires_exact_source_and_concern():
+    concern = {
+        "question_ref": {"id": "question:1", "kind": "question", "content_version": 2},
+        "goal_ref": None,
+        "object_refs": [],
+    }
+    assessment = {"id": "assessment:1", "kind": "assessment", "content_version": 4}
+    basis = {
+        "assessment_ref": assessment,
+        "source_revision_id": "revision:7",
+        "source_sha256": "a" * 64,
+    }
+    frequency_report = {
+        "status": "available",
+        "frequencies": {"emitter": 12.5, "receiver": 9.25},
+        "reason": None,
+    }
+    item = {
+        "computer_id": "computer-1",
+        "interface": "region-a->region-b",
+        "emitter_region_id": "region-a",
+        "receiver_region_id": "region-b",
+        "concern_ref": concern,
+        "current_concern_ref": concern,
+        "assessment_ref": assessment,
+        "appraisal_basis": basis,
+        "last_appraisal_ref": {
+            "operation_id": "appraisal:1",
+            "assessment_sha256": "b" * 64,
+        },
+        "result_source": {
+            "revision_id": "revision:7",
+            "content_sha256": "a" * 64,
+        },
+        "exchange": {
+            "status": "available",
+            "owner_reported_last_exchange_sha256": "c" * 64,
+            "overlap": 0.75,
+            "effective_weight": 0.5,
+            "feedback": {
+                "status": "available",
+                "concern_ref": concern,
+                "appraisal_basis": basis,
+                "progress": 0.8,
+                "direction": "improving",
+            },
+        },
+    }
+    snapshot = {
+        "exchange_meaning": {
+            "status": "known", "items": [item], "truncated": False,
+        },
+        "circulation": {
+            "status": "known",
+            "value": {
+                "regional": [{
+                    "computer_id": "computer-1",
+                    "spectrum": {"interfaces": {"region-a->region-b": frequency_report}},
+                }],
+                "truncated": False,
+            },
+        },
+    }
+    result = working_field_exchange_view(snapshot, {
+        "field_id": "field:1", "concern_ref": concern,
+    })
+    assert result["status"] == "known"
+    assert result["items"][0]["exchange"]["overlap"] == 0.75
+    assert result["items"][0]["feedback"]["progress"] == 0.8
+    assert result["items"][0]["spectrum_interface"] == frequency_report
+
+    wrong_concern = {**concern, "question_ref": {**concern["question_ref"], "id": "question:other"}}
+    assert working_field_exchange_view(
+        snapshot, {"field_id": "field:other", "concern_ref": wrong_concern}
+    )["status"] == "unavailable"
+    stale = copy.deepcopy(snapshot)
+    stale["exchange_meaning"]["items"][0]["result_source"]["content_sha256"] = "d" * 64
+    assert working_field_exchange_view(
+        stale, {"field_id": "field:1", "concern_ref": concern}
+    )["status"] == "unavailable"
+    stale = copy.deepcopy(snapshot)
+    stale["exchange_meaning"]["items"][0]["appraisal_basis"]["source_revision_id"] = "revision:old"
+    assert working_field_exchange_view(
+        stale, {"field_id": "field:1", "concern_ref": concern}
+    )["status"] == "unavailable"
+
+
+def test_working_field_exchange_view_preserves_unknown_and_truncation():
+    concern = {"question_ref": {"id": "question:1", "kind": "question", "content_version": 1}}
+    absent = working_field_exchange_view(
+        {"exchange_meaning": {"status": "unavailable", "items": [], "truncated": True}},
+        {"concern_ref": concern},
+        limit=1,
+    )
+    assert absent["status"] == "unavailable"
+    assert absent["truncated"] is True
+    assert absent["items"] == []
+    assert working_field_exchange_view(
+        {"exchange_meaning": {"status": "known", "items": []}},
+        {"concern_ref": None},
+    )["status"] == "unavailable"

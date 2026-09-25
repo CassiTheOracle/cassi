@@ -4,6 +4,8 @@ from __future__ import annotations
 import copy
 import json
 from dataclasses import replace
+import threading
+import time
 from typing import Mapping
 from unittest import mock
 
@@ -22,13 +24,16 @@ from cassi_field_owner import (
     RPC_SCHEMA,
     SourceInput,
     WorldAcknowledgment,
+    _assessed_research_progress,
 )
 from cassi_field_program import (
     SCHEMA as STRUCTURED_SCHEMA,
+    compile_structured_program,
+    regional_scalar_state,
     semantic_program_payload,
 )
 from run_cassi_computer import main as computer_cli, program_arguments
-from cassi_field_computer import FieldComputer
+from cassi_field_computer import ComputerProfile, FieldComputer
 import cassi_field_regions as regions
 from cassi_field_regions import RegionalFieldError, RegionalProfile, from_chunked_descriptor
 from cassi_field_residency import ResourceLimits, ResidencyManager, ResourceWait
@@ -52,6 +57,167 @@ def computer_task(owner):
 
 def computer_policy_sha256(owner):
     return owner.state.computers[0].inspect()["policy_state_sha256"]
+
+
+def test_existing_computer_adopts_paging_without_losing_work_or_replay(tmp_path):
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "paging-configure", "configure", profile={
+            "mode_count": 16_384, "max_steps": 128, "max_events": 256,
+        })
+        call(owner, "paging-load", "load", program=[[0, 0, 0, 0, 0]])
+        task = computer_task(owner)
+        dense_state = owner.state.computers[0].state_sha256
+        migrated = call(owner, "paging-adopt", "adopt-paged", resident_pages=96)
+        assert migrated["receipt"]["paged"] is True
+        assert migrated["receipt"]["previous_state_sha256"] == dense_state
+        assert computer_task(owner) == task
+        state = owner.state.state_sha256
+        replay = call(owner, "paging-adopt", "adopt-paged", resident_pages=96)
+        assert replay["checkpoint_receipt"]["replayed"] is True
+        assert owner.state.state_sha256 == state
+
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.state_sha256 == state
+        assert owner.state.computers[0].is_paged
+        assert computer_task(owner) == task
+        replay = call(owner, "paging-adopt", "adopt-paged", resident_pages=96)
+        assert replay["checkpoint_receipt"]["replayed"] is True
+        call(owner, "paging-advance", "advance", steps=1)
+        assert computer_task(owner)["status"] == "halted"
+
+
+def test_paged_computer_can_advance_with_physical_room_below_logical_size(tmp_path):
+    class BoundedAdmission:
+        def get_activity_status(self, _activity_id):
+            return {"status": "not-admitted"}
+
+        def acquire(self, _activity_id, *, resources, **_kwargs):
+            if resources["peak_bytes"] > 12 * 1024 * 1024:
+                raise ResourceWait(
+                    "peak_bytes", resources["peak_bytes"], 12 * 1024 * 1024,
+                    reason="successor-capacity",
+                )
+            return self
+
+        def retire(self, _status):
+            pass
+
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        call(owner, "bounded-configure", "configure", profile={
+            "mode_count": 262_144, "max_steps": 128, "max_events": 256,
+        })
+        call(owner, "bounded-load", "load", program=[[0, 0, 0, 0, 0]])
+        admission = BoundedAdmission()
+        owner.set_physical_admission(admission)
+        with pytest.raises(ResourceWait, match="peak_bytes"):
+            owner.operate_computer(
+                "bounded-dense-advance", computer_id="main",
+                action="advance", arguments={"steps": 1},
+            )
+        owner.set_physical_admission(None)
+        call(owner, "bounded-adopt", "adopt-paged", resident_pages=96)
+        assert owner.state.computers[0].nbytes > 12 * 1024 * 1024
+        owner.set_physical_admission(admission)
+        owner.operate_computer(
+            "bounded-paged-advance", computer_id="main",
+            action="advance", arguments={"steps": 1},
+        )
+        assert computer_task(owner)["status"] == "halted"
+
+
+@pytest.mark.parametrize("paged", [False, True])
+def test_catalog_revision_recovers_dense_and_paged_work_with_original_audit(
+    monkeypatch, paged: bool
+) -> None:
+    # The retained catalog predates RECEIVE; its profile and state identities
+    # must be checked as a pair before the field can adopt the current catalog.
+    try:
+        with monkeypatch.context() as previous:
+            previous.setattr(
+                regions, "_CATALOG_OPERATIONS", regions._CATALOG_OPERATIONS[:-1]
+            )
+            RegionalProfile._catalog_sha256.cache_clear()
+            RegionalProfile._fingerprint.cache_clear()
+            regions._CATALOG_FINGERPRINT_CACHE.clear()
+            profile = RegionalProfile(
+                mode_count=16_384,
+                max_steps=128,
+                max_events=256,
+                kernel_names=STANDARD_KERNEL_CATALOG.names,
+            )
+            machine = FieldComputer.regional(profile, catalog=STANDARD_KERNEL_CATALOG)
+            dense = machine.initial(
+                (
+                    {"op": "COPY", "source": "input", "target": "output", "next": 1},
+                    {"op": "HALT"},
+                ),
+                values={"input": {"token": 17}, "output": None},
+            )
+            field = machine.paged_state(dense, resident_limit=96)[0] if paged else dense
+            record, objects = LearningComputer(
+                "catalog-history", profile, field
+            ).persistence_dict()
+    finally:
+        RegionalProfile._catalog_sha256.cache_clear()
+        RegionalProfile._fingerprint.cache_clear()
+        regions._CATALOG_FINGERPRINT_CACHE.clear()
+
+    with pytest.raises(LearningComputerError):
+        LearningComputer.from_persistence_dict(record, objects)
+    corrupt = dict(objects)
+    address = record["field"]["chunks"][0]["object_sha256"]
+    corrupt[address] = bytes([corrupt[address][0] ^ 1]) + corrupt[address][1:]
+    with pytest.raises(LearningComputerError):
+        LearningComputer.from_persistence_dict(
+            record, corrupt, accept_recorded_catalog=True
+        )
+    restored = LearningComputer.from_persistence_dict(
+        record, objects, accept_recorded_catalog=True
+    )
+    assert restored.is_paged is paged
+    values = (
+        regions.named_values_paged(restored.field.image, ["input", "output"])
+        if paged
+        else regions.named_values(
+            restored.field._field, restored.profile, STANDARD_KERNEL_CATALOG,
+            ["input", "output"],
+        )
+    )
+    assert values == {"input": {"token": 17}, "output": None}
+    retained, _ = restored.persistence_dict()
+    assert retained["field"]["catalog_sha256"] == STANDARD_KERNEL_CATALOG.fingerprint
+    assert retained["field"]["profile_sha256"] == restored.profile.fingerprint
+
+    altered = copy.deepcopy(record)
+    altered["field"]["catalog_sha256"] = STANDARD_KERNEL_CATALOG.fingerprint
+    altered["field"]["profile_sha256"] = "0" * 64
+    with pytest.raises(LearningComputerError):
+        LearningComputer.from_persistence_dict(
+            altered, objects, accept_recorded_catalog=True
+        )
+
+def test_adoption_grows_for_page_count_not_large_logical_page_indexes(tmp_path):
+    limits = CapacityLimits(
+        max_workspace_bytes=128 * 1024 * 1024,
+        max_state_bytes=128 * 1024 * 1024,
+    )
+    with FieldIntelligenceOwner(tmp_path / "field", limits=limits) as owner:
+        call(owner, "wide-configure", "configure", profile={"mode_count": 1_000_000})
+        row = owner.state.computers[0]
+        task = {**row.inspect()["task"], "context": "x" * 2_000_000}
+        field, _ = row._write_named_value("task", task)
+        owner.state = replace(owner.state, computers=(replace(row, field=field),))
+
+        migrated = call(owner, "wide-adopt", "adopt-paged", resident_pages=96)
+        resident_limit = migrated["receipt"]["resident_limit"]
+        assert 128 <= resident_limit <= 512
+        assert computer_task(owner) == task
+
+    with FieldIntelligenceOwner(tmp_path / "field", limits=limits) as owner:
+        row = owner.state.computers[0]
+        assert row.resident_limit == resident_limit
+        assert computer_task(owner) == task
 
 
 def test_a_resource_wait_while_validating_is_a_wait_not_an_invalid_image() -> None:
@@ -166,7 +332,23 @@ def test_resident_model_fused_resume_preserves_next_stage_and_token() -> None:
         scheduler, {"operation": "advance-task", "task_id": "task", "quantum": 1}, 1
     )
     assert scheduler == scheduler_before
-    assert scheduled.state["tasks"]["task"]["state"] == direct.state
+    # The scheduler publishes the model task with the graph-site policy
+    # detached to the owner-held `model_policies` store (the block a later
+    # dispatch re-attaches before the kernel runs), so the published state
+    # matches the direct kernel result exactly except for that one block,
+    # and the retained pointer must carry the same sites the direct state
+    # shows.
+    published = scheduled.state["tasks"]["task"]["state"]
+    retained_sites = scheduled.state["model_policies"][source_sha]["graph_sites"]
+    assert retained_sites == direct.state["resident_model"]["graph_sites"]
+    # The published state is the direct kernel result with exactly the
+    # detached graph-site block excised; the retained store above carries it.
+    expected_resident = {
+        key: value
+        for key, value in direct.state["resident_model"].items()
+        if key != "graph_sites"
+    }
+    assert published == {**direct.state, "resident_model": expected_resident}
 
     waiting, *_ = advance_model(state, {}, 1)
     for stage in ("qwen-embedding", "qwen-head"):
@@ -205,6 +387,67 @@ def test_resident_model_fused_resume_preserves_next_stage_and_token() -> None:
         waiting = fused
     assert waiting["phase"] == "completed"
     assert waiting["generated_tokens"] == [17]
+
+
+def test_resident_model_cycle_commits_exact_scheduler_result_once() -> None:
+    source_sha = "b" * 64
+    package = build_model_package(
+        program_id="resident-cycle-equivalence",
+        architecture="qwen35moe",
+        graph=[
+            {"op": stage, "stage": stage, "parameters": {"source_sha256": source_sha}}
+            for stage in ("qwen-embedding", "qwen-head")
+        ],
+        tensors={},
+        tokenizer={"vocab_size": 32},
+    )
+    model = initial_model_state(
+        package, prompt_tokens=[7], owner_id="main", member_id="member",
+        lineage_id="lineage", operation_id="token", max_new_tokens=1,
+        backend_policy="logical-cpu",
+    )
+    task = initial_program_state(
+        owner_id="main", member_id="member", runtime_id="model-scheduler",
+        imported_task=model, imported_kind="model", imported_task_id="task",
+    )
+    row, _ = LearningComputer.initial("main").submit(
+        kernel="field-program-runtime", state=task,
+        arguments={"operation": "advance-task", "task_id": "task", "quantum": 1},
+    )
+    original = row.named_value("task")
+    hot_cycle = row.begin_model_cycle("task")
+    cold = row
+    for stage in ("qwen-embedding", "qwen-head"):
+        waiting = hot_cycle.runtime_state["tasks"]["task"]["state"]
+        operation_id = waiting["await_target"]
+        request = waiting["operations"][operation_id]["request"]
+        assert request["stage"] == stage
+        result = {
+            key: request[key]
+            for key in ("operation_id", "source_sha256", "stage", "layer", "position", "request_sha256")
+        }
+        result.update(schema=RESIDENT_STAGE_RESULT_SCHEMA, snapshot={})
+        if stage == "qwen-head":
+            result.update(token=17, eog=True)
+        arguments = {
+            "operation": "resume-resident-model-and-advance",
+            "operation_id": operation_id,
+            "result": result,
+        }
+        hot_cycle.advance(arguments=arguments, quantum=2)
+        cold, _ = cold.invoke(
+            arguments={
+                "operation": "advance-task", "task_id": "task",
+                "quantum": 2, "arguments": arguments,
+            },
+        )
+    assert row.named_value("task") == original
+    hot, receipt = hot_cycle.finish()
+    assert hot.named_value("task") == cold.named_value("task")
+    assert receipt["run"]["status"] == "completed"
+    assert hot.named_value("task")["tasks"]["task"]["state"]["generated_tokens"] == [17]
+    with pytest.raises(LearningComputerError):
+        hot_cycle.finish()
 
 
 def test_a_resource_wait_reaches_the_caller_as_a_wait(tmp_path):
@@ -6390,3 +6633,624 @@ def test_regional_program_resolution_floor_blocks_subprecision_promotion() -> No
     assert evaluated["unresolved_assessment_count"] == 1
     assert evaluated["resolution_statuses"] == ["unresolved"]
     assert evaluated["resolution_floors"] == [assessment["resolution_floor"]]
+
+
+def test_field_ngram_readout_distinguishes_table_rows_after_restart(tmp_path):
+    import numpy as np
+
+    from programs.model.ngram_learning import readout
+
+    root = tmp_path / "field"
+    table = np.linspace(-1.0, 1.0, 2560, dtype=np.float32)
+    hidden = np.linspace(-0.5, 0.5, 2048, dtype=np.float32)
+    feedback = {
+        "schema": "cassifi.qwen-ngram-next-token-feedback.v1",
+        "id": "observed-next-token",
+        "model_id": "a" * 64,
+        "table_id": "b" * 64,
+        "context_sha256": "c" * 64,
+        "next_token_id": 17,
+        "probability_token_id": 17,
+        "competitor_token_id": 18,
+        "target_direction": [1.0] + [0.0] * 2047,
+        "advantage": -2.0,
+    }
+    with FieldIntelligenceOwner(root) as owner:
+        call(owner, "ngram-configure", "configure", profile={
+            "mode_count": 65_536, "max_steps": 256, "max_events": 256,
+        })
+        call(owner, "ngram-enable", "enable-ngram", model_id="a" * 64, table_id="b" * 64)
+        call(
+            owner, "ngram-learn", "learn-ngram",
+            table_vector=table.tolist(), hidden=hidden.tolist(), feedback=feedback,
+        )
+        state = owner.state.computers[0].ngram_readout_state()
+        real = readout(state, table, hidden)
+        swapped = readout(state, table[::-1].copy(), hidden)
+        assert state["revision"] == 1
+        assert np.linalg.norm(real - swapped) > 1e-4
+        digest = owner.state.state_sha256
+
+    with FieldIntelligenceOwner(root) as reopened:
+        assert reopened.state.state_sha256 == digest
+        restored = reopened.state.computers[0].ngram_readout_state()
+        assert restored["revision"] == 1
+        np.testing.assert_array_equal(readout(restored, table, hidden), real)
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({"status": "supported", "result_status": "observed"}, 1.0),
+        ({"status": "supported", "result_status": "supported"}, 1.0),
+        ({"status": "failed", "result_status": "support-gap"}, -1.0),
+        ({"status": "failed", "result_status": "rejected"}, -1.0),
+        ({"status": "failed", "result_status": "blocked"}, 0.0),
+        ({"status": "supported", "result_status": "support-gap"}, 0.0),
+        ({"status": "unassessed", "result_status": "rejected"}, 0.0),
+        ({"status": "supported", "result_status": []}, 0.0),
+        ({"status": "failed", "result_status": {"status": "failed"}}, 0.0),
+    ],
+    ids=[
+        "observed-success",
+        "supported-success",
+        "support-gap-obstruction",
+        "rejected-obstruction",
+        "generic-failure-is-neutral",
+        "inconsistent-result-is-neutral",
+        "unassessed-is-neutral",
+        "malformed-list-is-neutral",
+        "malformed-object-is-neutral",
+    ],
+)
+def test_research_progress_requires_an_explicit_assessed_outcome(payload, expected):
+    assert _assessed_research_progress(payload) == expected
+
+
+def test_embodied_snapshot_publishes_generation_bound_read_only_roles(tmp_path):
+    with FieldIntelligenceOwner(
+        tmp_path / "field", initial_state=AtlasState(resonant_workspace=None)
+    ) as owner:
+        prior_digest = owner.state.state_sha256
+        prior_generation = owner.state.generation
+        snapshot = owner.inspect_embodied_field()
+
+        assert snapshot["schema"] == "cassifi.embodied-field.v1"
+        assert snapshot["read_only"] is True
+        assert snapshot["state_sha256"] == prior_digest
+        assert snapshot["generation"] == prior_generation
+        assert snapshot["orientation"]["schema"] == "cassifi.embodied-orientation.v1"
+        assert snapshot["orientation"]["state_generation"] == prior_generation
+        roles = snapshot["roles"]
+        assert roles["schema"] == "cassifi.embodied-role-bindings.v1"
+        assert roles["state_generation"] == prior_generation
+        assert roles["state_sha256"] == prior_digest
+        for name in ("core", "mantle", "fringe"):
+            binding = roles[name]
+            assert binding["schema"] == "cassifi.embodied-role-binding.v1"
+            assert binding["role"] == name
+            assert binding["state_generation"] == prior_generation
+            assert binding["state_sha256"] == prior_digest
+            assert binding["status"] == "unavailable"
+            assert binding["region_ids"] == []
+
+        assert owner.state.state_sha256 == prior_digest
+        assert owner.state.generation == prior_generation
+
+def test_embodied_snapshot_binds_current_resonant_core_layout(tmp_path):
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        workspace = owner.state.resonant_workspace
+        assert workspace is not None
+        profile = workspace.profile
+        prior_digest = owner.state.state_sha256
+        snapshot = owner.inspect_embodied_field()
+        core = snapshot["roles"]["core"]
+
+        assert core["state_generation"] == snapshot["generation"]
+        assert core["state_sha256"] == prior_digest
+        assert core["region_ids"] == ["owner:owner-resonance"]
+        layout = core["layout"][0]
+        assert layout["region_id"] == "owner:owner-resonance"
+        assert layout["source_region_id"] == "owner-resonance"
+        assert layout["layout_identity"] == profile.layout_identity
+        operator = core["operator"][0]
+        assert operator["basis"] == "owner-resonant-workspace-profile"
+        assert operator["layout_identity"] == profile.layout_identity
+        assert operator["pools"] == profile.pools
+        assert operator["ports_per_pool"] == profile.ports_per_pool
+        assert owner.state.state_sha256 == prior_digest
+
+
+
+def test_affect_concern_binding_uses_only_unique_current_assessment_experience(
+    tmp_path,
+):
+    from cassi_field_cognition import semantic_cognition_state
+
+    assessment_id = "research:outcome:concern-binding"
+    assessment_payload = {
+        "memory_role": "recall-assessment",
+        "episode_ref": {
+            "id": "memory:episode:concern-binding",
+            "kind": "Event",
+            "content_version": 1,
+        },
+        "use_ref": {
+            "id": "memory:use:concern-binding",
+            "kind": "Event",
+            "content_version": 1,
+        },
+        "outcome_ref": {
+            "id": "memory:outcome:concern-binding",
+            "kind": "Event",
+            "content_version": 1,
+        },
+        "usefulness": 0.5,
+    }
+    semantic_state = semantic_cognition_state()
+    semantic_state, registered = _semantic_step(
+        semantic_state,
+        operation="register",
+        operation_id="register:concern-binding",
+        kind="Assessment",
+        record_id=assessment_id,
+        payload=assessment_payload,
+        status="active",
+        epistemic_kind="assessed",
+    )
+    assessment_ref = registered["record"]
+    semantic_state, _ = _semantic_step(
+        semantic_state,
+        operation="appraise-experience",
+        operation_id="appraise:concern-binding:project-a",
+        evidence=assessment_ref,
+        project_id="project-a",
+    )
+
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        concern_ref = owner._embodied_affect_concern_for_experience(
+            semantic_state, assessment_ref
+        )
+        assert concern_ref is not None
+        assert concern_ref["project_id"] == "project-a"
+        assert concern_ref["question_ref"] is None
+        assert concern_ref["object_refs"] == []
+        assert concern_ref["goal_ref"] is None
+        stale_ref = {**assessment_ref, "content_version": assessment_ref["content_version"] + 1}
+        assert owner._embodied_affect_concern_for_experience(
+            semantic_state, stale_ref
+        ) is None
+
+        semantic_state, _ = _semantic_step(
+            semantic_state,
+            operation="appraise-experience",
+            operation_id="appraise:concern-binding:project-b",
+            evidence=assessment_ref,
+            project_id="project-b",
+        )
+        assert owner._embodied_affect_concern_for_experience(
+            semantic_state, assessment_ref
+        ) is None
+
+
+def test_embodied_orientation_limits_current_pending_obligations_not_retired_history(
+    tmp_path,
+):
+    from pathlib import Path
+    from cassi_research_residency import open_research_residency
+
+    work = [
+        {
+            "id": item_id,
+            "summary": f"Study {item_id}",
+            "request": {"kind": "self-study", "source_paths": ["CassiFI/cassi_field_owner.py"]},
+        }
+        for item_id in ("alpha", "beta")
+    ]
+    with open_research_residency(tmp_path / "residency") as residency:
+        residency.initialize(
+            workspace=Path(__file__).resolve().parents[1],
+            work=work,
+            profile={"mode_count": 65_536, "default_value_words": 512},
+        )
+        residency.advance()  # seed both real pending obligations
+        owner = residency.owner
+        before = owner._embodied_orientation(owner.state, limit=1)
+        assert before["truncated"] is True
+        assert before["current_concerns"][0]["question_id"] == "alpha"
+
+        first = residency._required_record("research:work:00000000:alpha")
+        residency._register(
+            "orientation:resolve-alpha",
+            first["id"],
+            "Obligation",
+            first["payload"],
+            status="resolved",
+            epistemic_kind="asserted",
+        )
+        after = owner._embodied_orientation(owner.state, limit=1)
+        assert after["status"] == "partial"
+        assert after["truncated"] is False
+        assert [row["question_id"] for row in after["current_concerns"]] == ["beta"]
+        assert [row["question_id"] for row in after["continuations"]] == ["beta"]
+        assert after["unknowns"] == []
+
+
+def _numerical_scalar_state(value: int) -> dict:
+    compiled = compile_structured_program({
+        "schema": STRUCTURED_SCHEMA,
+        "main": [
+            {"op": "set_acc", "value": value},
+            {"op": "push_acc", "stack": "left"},
+        ],
+    })
+    profile = ComputerProfile(
+        program_capacity=len(compiled.program) + 2,
+        stack_capacity=8,
+        max_steps=64,
+    )
+    return regional_scalar_state(compiled, profile)
+
+
+def _collect_numerical_result(owner, work_id: str, operation_id: str):
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        result = owner.collect_numerical_work(work_id, operation_id=operation_id)
+        if result["status"] != "pending":
+            return result
+        time.sleep(0.02)
+    pytest.fail(f"numerical work {work_id} did not settle")
+
+
+def _pause_numerical_submit(monkeypatch):
+    entered, release = threading.Event(), threading.Event()
+    original_submit = LearningComputer.submit
+
+    def paused_submit(self, *args, **kwargs):
+        entered.set()
+        assert release.wait(30)
+        return original_submit(self, *args, **kwargs)
+
+    monkeypatch.setattr(LearningComputer, "submit", paused_submit)
+    return entered, release
+
+
+def test_numerical_work_executes_on_distinct_computers_in_parallel(tmp_path, monkeypatch):
+    barrier = threading.Barrier(3)
+    original_submit = LearningComputer.submit
+
+    def synchronized_submit(self, *args, **kwargs):
+        barrier.wait(timeout=15)
+        return original_submit(self, *args, **kwargs)
+
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        for computer_id in ("first", "second"):
+            owner.operate_computer(
+                f"configure-{computer_id}",
+                computer_id=computer_id,
+                action="configure",
+            )
+        monkeypatch.setattr(LearningComputer, "submit", synchronized_submit)
+        first = owner.submit_numerical_work(
+            "parallel-first", computer_id="first",
+            kernel="scalar-computer", state=_numerical_scalar_state(7), steps=64,
+        )
+        second = owner.submit_numerical_work(
+            "parallel-second", computer_id="second",
+            kernel="scalar-computer", state=_numerical_scalar_state(11), steps=64,
+        )
+        assert first["status"] == second["status"] == "pending"
+        barrier.wait(timeout=15)  # Both real submissions have entered before either can finish.
+        results = (
+            _collect_numerical_result(owner, "parallel-first", "admit-first"),
+            _collect_numerical_result(owner, "parallel-second", "admit-second"),
+        )
+        assert [result["status"] for result in results] == ["admitted", "admitted"]
+        for computer_id, value, result in zip(
+            ("first", "second"), (7, 11), results
+        ):
+            row = next(
+                row for row in owner.state.computers
+                if row.computer_id == computer_id
+            )
+            assert row.inspect()["outcome"]["left"] == [value]
+            assert result["artifact"]["computer_state_sha256"] == row.state_sha256
+            assert result["artifact"]["receipt"]["run"]["status"] == "halted"
+            assert result["checkpoint_receipt"]["operation_id"] == f"admit-{computer_id}"
+
+
+def test_numerical_work_rejects_changed_relevant_computer(tmp_path, monkeypatch):
+    entered, release = _pause_numerical_submit(monkeypatch)
+    root = tmp_path / "field"
+
+    with FieldIntelligenceOwner(root) as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        assert owner.state.computers[0].inspect()["outcome"] is None
+        try:
+            pending = owner.submit_numerical_work(
+                "stale-computer", computer_id="main",
+                kernel="scalar-computer", state=_numerical_scalar_state(7), steps=64,
+            )
+            assert pending["status"] == "pending"
+            assert entered.wait(15)
+            owner.operate_computer(
+                "change-computer", computer_id="main", action="load",
+                arguments={"program": [[0, 0, 0, 0, 0]]},
+            )
+            changed = owner.state.computers[0].state_sha256
+        finally:
+            release.set()
+        result = _collect_numerical_result(owner, "stale-computer", "admit-stale")
+        assert result["status"] == "obsolete"
+        assert owner.state.computers[0].state_sha256 == changed
+        assert owner.state.computers[0].inspect()["task"]["status"] != "halted"
+    with FieldIntelligenceOwner(root) as owner:
+        assert owner.state.computers[0].state_sha256 == changed
+        assert owner.state.computers[0].inspect()["outcome"] is None
+
+
+def test_numerical_work_rejects_superseded_source_revision(tmp_path, monkeypatch):
+    entered, release = _pause_numerical_submit(monkeypatch)
+    source = SourceInput(
+        source_id="numerical-observation",
+        content=canonical_json_bytes({"reading": 7}),
+        media_type="application/json",
+        codec="utf-8",
+        observed_timestamp="numerical-time",
+        scope="test",
+        claim_category="controlled-observation",
+        fidelity="exact-record",
+    )
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        owner.evidence.store_source(source)
+        computer_sha256 = owner.state.computers[0].state_sha256
+        try:
+            pending = owner.submit_numerical_work(
+                "stale-source", computer_id="main",
+                kernel="scalar-computer", state=_numerical_scalar_state(13),
+                source_revision_ids=(source.revision_id,), steps=64,
+            )
+            assert pending["status"] == "pending"
+            assert pending["dependencies"]["source_revision_ids"] == [source.revision_id]
+            assert entered.wait(15)
+            owner.evidence.store_source(
+                replace(
+                    source,
+                    parent_revision_id=source.revision_id,
+                    content=canonical_json_bytes({"reading": 8}),
+                )
+            )
+        finally:
+            release.set()
+        result = _collect_numerical_result(owner, "stale-source", "admit-stale-source")
+        assert result["status"] == "obsolete"
+        assert owner.state.computers[0].state_sha256 == computer_sha256
+        assert owner.evidence.source(source.revision_id).status == "superseded"
+
+
+def test_numerical_work_admits_after_unrelated_owner_change(tmp_path, monkeypatch):
+    entered, release = _pause_numerical_submit(monkeypatch)
+
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer("configure-main", computer_id="main", action="configure")
+        original_computer = owner.state.computers[0].state_sha256
+        try:
+            pending = owner.submit_numerical_work(
+                "unrelated-change", computer_id="main",
+                kernel="scalar-computer", state=_numerical_scalar_state(19), steps=64,
+            )
+            assert pending["status"] == "pending"
+            assert entered.wait(15)
+            owner.operate_computer(
+                "configure-other", computer_id="other", action="configure",
+            )
+            assert next(
+                row for row in owner.state.computers if row.computer_id == "main"
+            ).state_sha256 == original_computer
+        finally:
+            release.set()
+        result = _collect_numerical_result(owner, "unrelated-change", "admit-unrelated")
+        assert result["status"] == "admitted"
+        assert next(
+            row for row in owner.state.computers if row.computer_id == "main"
+        ).inspect()["outcome"]["left"] == [19]
+        assert {row.computer_id for row in owner.state.computers} == {"main", "other"}
+
+
+def test_cancelled_numerical_work_cannot_publish_after_worker_finishes(tmp_path, monkeypatch):
+    entered, release = _pause_numerical_submit(monkeypatch)
+
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        before = owner.state.computers[0].state_sha256
+        try:
+            assert owner.submit_numerical_work(
+                "cancelled-work", computer_id="main",
+                kernel="scalar-computer", state=_numerical_scalar_state(23), steps=64,
+            )["status"] == "pending"
+            assert entered.wait(15)
+            assert owner.cancel_numerical_work("cancelled-work")["status"] == "cancelled"
+        finally:
+            release.set()
+        assert _collect_numerical_result(
+            owner, "cancelled-work", "collect-cancelled"
+        )["status"] == "cancelled"
+        assert owner.state.computers[0].state_sha256 == before
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        assert owner.collect_numerical_work(
+            "cancelled-work", operation_id="collect-cancelled-restarted"
+        )["status"] == "cancelled"
+        assert owner.state.computers[0].state_sha256 == before
+
+
+def test_pending_numerical_work_recovers_after_owner_restart(tmp_path, monkeypatch):
+    root = tmp_path / "field"
+    finished = threading.Event()
+    original_submit = LearningComputer.submit
+
+    def completed_submit(self, *args, **kwargs):
+        result = original_submit(self, *args, **kwargs)
+        finished.set()
+        return result
+
+    with FieldIntelligenceOwner(root) as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        monkeypatch.setattr(LearningComputer, "submit", completed_submit)
+        assert owner.submit_numerical_work(
+            "recover-pending", computer_id="main",
+            kernel="scalar-computer", state=_numerical_scalar_state(29), steps=64,
+        )["status"] == "pending"
+        assert finished.wait(30)
+        assert owner.state.computers[0].inspect()["outcome"] is None
+    with FieldIntelligenceOwner(root) as owner:
+        result = _collect_numerical_result(owner, "recover-pending", "admit-recovered")
+        assert result["status"] == "admitted"
+        assert owner.state.computers[0].inspect()["outcome"]["left"] == [29]
+        assert result["artifact"]["computer_state_sha256"] == owner.state.computers[0].state_sha256
+        assert result["checkpoint_receipt"]["operation_id"] == "admit-recovered"
+
+
+def test_numerical_queue_ignores_crashed_atomic_write_temporary(tmp_path):
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        owner.limits = replace(owner.limits, max_pending_operations=1)
+        record_path = owner._numerical_record_path("interrupted")
+        record_path.with_name(f".{record_path.name}.123.456.tmp").write_bytes(b"incomplete")
+        pending = owner.submit_numerical_work(
+            "after-interruption", computer_id="main",
+            kernel="scalar-computer", state=_numerical_scalar_state(31), steps=64,
+        )
+        assert pending["status"] == "pending"
+        assert _collect_numerical_result(
+            owner, "after-interruption", "admit-after-interruption"
+        )["status"] == "admitted"
+
+
+def test_numerical_submission_rejects_permanently_impossible_reservation(tmp_path):
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        owner.limits = replace(
+            owner.limits, max_workspace_bytes=2 * owner.state.computers[0].nbytes - 1
+        )
+        with pytest.raises(FieldIntelligenceError) as rejected:
+            owner.submit_numerical_work(
+                "impossible", computer_id="main",
+                kernel="scalar-computer", state=_numerical_scalar_state(37), steps=64,
+            )
+        assert rejected.value.code == "WORK_CAPACITY"
+        assert not owner._numerical_record_path("impossible").exists()
+
+
+def test_numerical_submission_queues_while_other_reservation_is_inflight(
+    tmp_path, monkeypatch,
+):
+    entered, release = _pause_numerical_submit(monkeypatch)
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        for computer_id in ("first", "second"):
+            owner.operate_computer(
+                f"configure-{computer_id}", computer_id=computer_id, action="configure",
+            )
+        row_bytes = owner.state.computers[0].nbytes
+        owner.limits = replace(owner.limits, max_workspace_bytes=2 * row_bytes)
+        try:
+            owner.submit_numerical_work(
+                "reserved", computer_id="first",
+                kernel="scalar-computer", state=_numerical_scalar_state(39), steps=64,
+            )
+            assert entered.wait(15)
+            queued = owner.submit_numerical_work(
+                "queued", computer_id="second",
+                kernel="scalar-computer", state=_numerical_scalar_state(40), steps=64,
+            )
+            assert queued["status"] == "pending"
+            assert owner._numerical_record_path("queued").is_file()
+            assert "queued" not in owner._numerical_futures
+        finally:
+            release.set()
+        assert _collect_numerical_result(owner, "reserved", "admit-reserved")["status"] == "admitted"
+        assert _collect_numerical_result(owner, "queued", "admit-queued")["status"] == "admitted"
+        second = next(row for row in owner.state.computers if row.computer_id == "second")
+        assert second.inspect()["outcome"]["left"] == [40]
+
+@pytest.mark.parametrize("recovery", ("cancel", "retry_after_restart"))
+def test_numerical_committed_effect_survives_descriptor_write_failure(
+    tmp_path, monkeypatch, recovery,
+):
+    root = tmp_path / "field"
+    with FieldIntelligenceOwner(root) as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        owner.submit_numerical_work(
+            "committed-before-record", computer_id="main",
+            kernel="scalar-computer", state=_numerical_scalar_state(41), steps=64,
+        )
+        original_save = owner._save_numerical_record
+
+        def fail_final_save(record):
+            if record["status"] == "admitted":
+                raise OSError("interrupted descriptor update")
+            return original_save(record)
+
+        with monkeypatch.context() as patch:
+            patch.setattr(owner, "_save_numerical_record", fail_final_save)
+            with pytest.raises(OSError, match="interrupted descriptor update"):
+                _collect_numerical_result(owner, "committed-before-record", "admit-before-record")
+        assert owner._numerical_record("committed-before-record")["status"] == "pending"
+        assert owner.state.computers[0].inspect()["outcome"]["left"] == [41]
+        if recovery == "cancel":
+            result = owner.cancel_numerical_work("committed-before-record")
+            assert result["status"] == "admitted"
+            assert result["checkpoint_receipt"]["operation_id"] == "admit-before-record"
+            assert owner.collect_numerical_work(
+                "committed-before-record", operation_id="admit-before-record"
+            )["artifact"] == result["artifact"]
+    if recovery == "retry_after_restart":
+        with FieldIntelligenceOwner(root) as owner:
+            result = owner.collect_numerical_work(
+                "committed-before-record", operation_id="admit-before-record"
+            )
+            assert result["status"] == "admitted"
+            assert result["checkpoint_receipt"]["operation_id"] == "admit-before-record"
+            assert owner.cancel_numerical_work("committed-before-record")["status"] == "admitted"
+            assert owner.state.computers[0].inspect()["outcome"]["left"] == [41]
+
+
+@pytest.mark.parametrize("rejection", ("state_capacity", "replay_floor"))
+def test_numerical_prepublication_rejection_allows_new_operation_id(
+    tmp_path, rejection,
+):
+    with FieldIntelligenceOwner(tmp_path / "field") as owner:
+        owner.operate_computer("configure", computer_id="main", action="configure")
+        owner.submit_numerical_work(
+            "retry-publication", computer_id="main",
+            kernel="scalar-computer", state=_numerical_scalar_state(43), steps=64,
+        )
+        # Wait for computation to finish without publishing it.
+        owner._numerical_futures["retry-publication"].result(timeout=30)
+        if rejection == "state_capacity":
+            original_limits = owner.limits
+            workspace = owner.state.workspace_usage()["workspace_bytes"]
+            owner.limits = replace(
+                owner.limits, max_workspace_bytes=workspace, max_state_bytes=workspace,
+            )
+            bad_id, code = "capacity-rejected", "FIELD_CAPACITY"
+        else:
+            bad_id, code = "historical:1", "REPLAY_FLOOR"
+            floor_path = owner.checkpoints.history_floor_path
+            floor = owner.checkpoints._history_floor()
+            floor_path.write_bytes(canonical_json_bytes({
+                **floor, "discarded_operation_ids": [bad_id],
+            }))
+        with pytest.raises(FieldIntelligenceError) as rejected:
+            owner.collect_numerical_work("retry-publication", operation_id=bad_id)
+        assert rejected.value.code == code
+        assert owner._numerical_record("retry-publication")["status"] == "pending"
+        assert "operation_id" not in owner._numerical_record("retry-publication")
+        if rejection == "state_capacity":
+            owner.limits = original_limits
+        result = owner.collect_numerical_work(
+            "retry-publication", operation_id="admit-after-rejection"
+        )
+        assert result["status"] == "admitted"
+        assert result["checkpoint_receipt"]["operation_id"] == "admit-after-rejection"
+        assert owner.state.computers[0].inspect()["outcome"]["left"] == [43]

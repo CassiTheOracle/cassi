@@ -258,6 +258,13 @@ def test_one_experience_can_have_distinct_stable_contextual_projections() -> Non
     assert first["appraisal"]["id"] != second["appraisal"]["id"]
     assert first["context"]["evidence_count"] == 1
     assert second["context"]["evidence_count"] == 1
+    first_concern = first["context"]["concerns"][0]
+    second_concern = second["context"]["concerns"][0]
+    assert first_concern["project_id"] == "project-a"
+    assert second_concern["project_id"] == "project-b"
+    assert first_concern["experience_refs"] == [evidence_ref(record["id"])]
+    assert second_concern["experience_refs"] == [evidence_ref(record["id"])]
+    assert first_concern["concern_id"] != second_concern["concern_id"]
     assert len([
         history[-1]
         for history in state["records"].values()
@@ -316,7 +323,8 @@ def test_introspection_and_regulation_refs_cannot_become_evidence() -> None:
     context = inspected["context"]
     assert context["project_id"] == "global"
     assert context["object_id"] is None
-    assert context["schema"] == "cassifi.affect-context.v2"
+    assert context["schema"] == "cassifi.affect-context.v3"
+    assert context["concerns"] == []
     assert context["evidence_count"] == 0
     assert context["regulation"]["strength"] == 0.0
     assert context["regulation"]["mode"] in {"explore", "persist", "verify", "consolidate"}
@@ -729,3 +737,53 @@ def test_legacy_affect_choice_migrates_once_with_unknown_consequence_links() -> 
         object_id="legacy-object",
     )
     assert len(state["records"]) == record_count
+
+
+def test_grounded_regulation_keeps_working_as_concern_history_grows() -> None:
+    state = semantic_cognition_state()
+    for role in ("question", "goal"):
+        state, _ = step(
+            state,
+            operation="register",
+            operation_id=f"register:long-lived:{role}",
+            kind="Value",
+            record_id=f"value:long-lived:{role}",
+            payload={"role": role, "meaning": "investigate measured resonance"},
+            status="active",
+        )
+    concern_refs = {
+        "question_ref": evidence_ref("value:long-lived:question", "Value"),
+        "goal_ref": evidence_ref("value:long-lived:goal", "Value"),
+    }
+    for index in range(32):
+        record = research_record(
+            f"assessment:long-lived:{index}",
+            source_revision_id=f"revision:long-lived:{index}",
+            output_sha256=f"{index + 1:064x}",
+        )
+        state, _ = step(
+            state,
+            operation="register",
+            operation_id=f"register:long-lived:assessment:{index}",
+            record_id=record["id"],
+            kind="Assessment",
+            payload=record["payload"],
+            status="active",
+            epistemic_kind="assessed",
+            scope="research-organism:root",
+        )
+        state, appraised = step(
+            state,
+            operation="appraise-experience",
+            operation_id=f"appraise:long-lived:{index}",
+            evidence=evidence_ref(record["id"]),
+            project_id="long-lived",
+            **concern_refs,
+        )
+    assert appraised["regulation"]["kind"] == "Event"
+    assert appraised["context"]["evidence_count"] == 32
+    concern = next(
+        row for row in appraised["context"]["concerns"]
+        if row["concern_ref"]["question_ref"] == concern_refs["question_ref"]
+    )
+    assert evidence_ref(record["id"]) in concern["experience_refs"]

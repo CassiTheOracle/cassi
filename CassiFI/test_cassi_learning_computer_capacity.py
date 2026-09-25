@@ -61,6 +61,8 @@ def test_public_profiles_pin_historical_default_and_small_capacities(
 ) -> None:
     historical = {
         "arguments": 16_384,
+        "communication_receiver_a": 4_096,
+        "communication_receiver_b": 4_096,
         "config": 1_024,
         "frames": 98_304,
         "outcome": 98_304,
@@ -81,6 +83,8 @@ def test_public_profiles_pin_historical_default_and_small_capacities(
     )
     small = {
         "arguments": 256,
+        "communication_receiver_a": 16,
+        "communication_receiver_b": 16,
         "config": 128,
         "frames": 512,
         "outcome": 512,

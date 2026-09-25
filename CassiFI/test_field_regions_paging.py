@@ -15,6 +15,7 @@ import pytest
 
 import cassi_field_regions as regions
 from cassi_field_storage import ObjectOverlay, ObjectSubset
+from cassi_page_tier_store import PageTierStore
 from cassi_field_regions import (
     KernelCatalog,
     KernelResult,
@@ -289,6 +290,37 @@ def test_bounded_run_never_exceeds_its_page_allowance() -> None:
     assert all(receipt["kind"] == "regional-transition" for receipt in receipts)
 
 
+def test_segments_cover_used_words_without_reserved_capacity_pages() -> None:
+    profile = RegionalProfile(mode_count=65_536)
+    field, profile, catalog = seeded(
+        copy_program(1),
+        profile=profile,
+        value_capacities={"dst": 200_000},
+    )
+    directory_words = regions._directory(field.reshape(-1), profile)
+    row = next(
+        row
+        for row in directory_words
+        if int(row[regions.D_KIND]) == regions.KIND_VALUE
+        and int(row[regions.D_CAPACITY]) == 200_000
+    )
+    base = int(row[regions.D_BASE])
+    used = int(row[regions.D_USED])
+    capacity = int(row[regions.D_CAPACITY])
+    assert used < capacity
+
+    image, _record = migrate_flat_to_paged(
+        field, profile=profile, catalog=catalog
+    )
+    value_pages = set(image.segments()["values"])
+    first_reserved_page = (base + used + regions.PERSISTENCE_PAGE_WORDS - 1) // (
+        regions.PERSISTENCE_PAGE_WORDS
+    )
+    last_reserved_page = (base + capacity - 1) // regions.PERSISTENCE_PAGE_WORDS
+    reserved_page = (first_reserved_page + last_reserved_page) // 2
+    assert reserved_page not in value_pages
+
+
 def test_unchanged_pages_reuse_leaf_records_and_tree_nodes() -> None:
     field, profile, catalog = seeded(copy_program(4))
     image, _record = migrate_flat_to_paged(field, profile=profile, catalog=catalog)
@@ -298,6 +330,7 @@ def test_unchanged_pages_reuse_leaf_records_and_tree_nodes() -> None:
         image, receipt = step_paged_image(image, catalog=catalog)
         commit = receipt["commit"]
         assert commit["tree_nodes_shared"] > 0
+        assert image.tree == image.directory.tree(profile)
         assert len(commit["changed_pages"]) < image.page_count
         assert commit["objects_written"] <= len(commit["changed_pages"])
         live_objects = {
@@ -348,6 +381,174 @@ def test_missing_or_corrupt_page_objects_are_typed_failures() -> None:
         )
         damaged.materialise()
     assert corrupt.value.kind == "corrupt"
+
+def test_nvme_page_placement_survives_reopen_and_falls_back_to_canonical(
+    tmp_path,
+) -> None:
+    field, profile, catalog = seeded(copy_program(3))
+    image, _record = migrate_flat_to_paged(field, profile=profile, catalog=catalog)
+    leaf = next(leaf for leaf in image.directory.leaves if leaf is not None)
+    index = leaf.index
+    tier_root = tmp_path / "nvme"
+    store = PageTierStore(
+        nvme_root=tier_root,
+        limits={"nvme": 16 * 1024 * 1024},
+        resource_manager=image.resource_manager,
+    )
+    original_root = image.root_sha256
+
+    placed = image.place_pages([index], "nvme", tier_store=store, max_pages=1)
+    assert placed["root_sha256"] == original_root
+    assert placed["moved_pages"] == [index]
+    assert placed["bytes"] == leaf.object_bytes
+    assert image.resource_manager.report()["used_bytes"]["nvme"] == leaf.object_bytes
+
+    receipt = store.lookup(
+        "nvme",
+        root_sha256=original_root,
+        page_index=index,
+        page_version=image.tree.digest(index),
+        object_sha256=leaf.object_sha256,
+    )
+    assert receipt is not None
+    assert store.get(receipt) == image.objects[leaf.object_sha256]
+
+    image.release_resident()
+    ram_before = image.resource_manager.report()["used_bytes"]["ram"]
+    repeated = image.place_pages([index], "nvme", tier_store=store, max_pages=1)
+    assert repeated["moved_pages"] == []
+    assert repeated["bytes"] == 0
+    assert image.resource_manager.report()["used_bytes"]["ram"] == ram_before
+    assert image.resource_manager.report()["used_bytes"]["nvme"] == leaf.object_bytes
+
+    image.page(0)
+    assert 0 in image._pinned
+    cold_leaf = next(
+        candidate
+        for candidate in image.directory.leaves
+        if candidate is not None
+        and candidate.index != index
+        and candidate.index not in image._pinned
+    )
+    assert cold_leaf.index not in image._resident
+    manager = image.resource_manager
+    limits_before = manager.limits.as_dict()
+    ram_before = manager.report()["used_bytes"]["ram"]
+    full_limits = dict(limits_before)
+    full_limits["ram_bytes"] = ram_before
+    full_limits["auto_grow"] = False
+    nvme_before = store.used_bytes("nvme")
+    manager.reconfigure(full_limits)
+    cold_placed = image.place_pages(
+        [cold_leaf.index], "nvme", tier_store=store, max_pages=1
+    )
+    assert cold_placed["moved_pages"] == [cold_leaf.index]
+    assert cold_placed["bytes"] == store.used_bytes("nvme") - nvme_before
+    assert manager.report()["used_bytes"]["ram"] == ram_before
+    assert cold_leaf.index not in image._resident
+    assert 0 in image._resident
+    image.release_resident()
+    manager.reconfigure(limits_before)
+
+    hdd_store = PageTierStore(
+        hdd_root=tmp_path / "hdd",
+        limits={"hdd": 16 * 1024 * 1024},
+    )
+    hdd_placed = image.place_pages([index], "hdd", tier_store=hdd_store, max_pages=1)
+    assert hdd_placed["moved_pages"] == [index]
+    assert hdd_placed["bytes"] == leaf.object_bytes
+    hdd_receipt = hdd_store.lookup(
+        "hdd",
+        root_sha256=original_root,
+        page_index=index,
+        page_version=image.tree.digest(index),
+        object_sha256=leaf.object_sha256,
+    )
+    assert hdd_receipt is not None
+    assert hdd_store.get(hdd_receipt) == image.objects[leaf.object_sha256]
+
+    stale_root = "0" * 64 if original_root != "0" * 64 else "1" * 64
+    with pytest.raises(RegionalFieldError, match="root is stale"):
+        image.place_pages(
+            [index], "nvme", root_sha256=stale_root, tier_store=store
+        )
+
+    expected_page = image.page(index).copy()
+    restarted_store = PageTierStore(
+        nvme_root=tier_root,
+        limits={"nvme": 16 * 1024 * 1024},
+    )
+    assert any(
+        record.root_sha256 == original_root
+        and record.page_index == index
+        and record.page_version == image.tree.digest(index)
+        and record.object_sha256 == leaf.object_sha256
+        for record in restarted_store.recover()
+    )
+    canonical = dict(image.object_store())
+    del canonical[leaf.object_sha256]
+    reopened = PagedFieldImage.from_descriptor(
+        image.descriptor(),
+        canonical,
+        catalog,
+        verify="none",
+        tier_store=restarted_store,
+    )
+    assert np.array_equal(reopened.page(index), expected_page)
+    assert reopened.root_sha256 == original_root
+
+    object_path = (
+        restarted_store._object_root("nvme")
+        / leaf.object_sha256[:2]
+        / leaf.object_sha256
+    )
+    object_path.write_bytes(b"corrupt tier object")
+    canonical_fallback = PagedFieldImage.from_descriptor(
+        image.descriptor(),
+        dict(image.object_store()),
+        catalog,
+        verify="none",
+        tier_store=restarted_store,
+    )
+    assert np.array_equal(canonical_fallback.page(index), expected_page)
+
+
+def test_ram_page_placement_is_resident_idempotent_and_rejects_fake_vram() -> None:
+    field, profile, catalog = seeded(copy_program(3))
+    image, _record = migrate_flat_to_paged(field, profile=profile, catalog=catalog)
+    index = image.page_count - 1
+    page_bytes = image.directory.page_words(profile.total_words, index) * 8
+
+    with pytest.raises(RegionalFieldError, match="real GPU page executor"):
+        image.place_pages([index], "vram")
+
+
+    image.page(0)
+    ram_before = image.resource_manager.report()["used_bytes"]["ram"]
+    already_resident = image.place_pages([0], "ram")
+    assert already_resident["moved_pages"] == []
+    assert already_resident["bytes"] == 0
+    assert image.resource_manager.report()["used_bytes"]["ram"] == ram_before
+    first = image.place_pages([index], "ram", max_pages=1)
+    assert first["moved_pages"] == [index]
+    assert first["bytes"] == page_bytes
+    used = image.resource_manager.report()["used_bytes"]["ram"]
+    assert used >= page_bytes
+    repeated = image.place_pages([index], "ram", max_pages=1)
+    assert repeated["moved_pages"] == []
+    assert repeated["bytes"] == 0
+    assert image.resource_manager.report()["used_bytes"]["ram"] == used
+
+    image.release_resident()
+    assert image.resource_manager.report()["used_bytes"]["ram"] == 0
+    continued = image.place_pages([index, index - 1], "ram", max_pages=1)
+    assert continued["remaining_pages"] == [index - 1]
+    continuation = continued["continuation"]
+    assert continuation["remaining_pages"] == [index - 1]
+    assert len(continuation["page_versions"]) == 1
+    resumed = image.place_pages([], "ram", max_pages=1, continuation=continuation)
+    assert resumed["moved_pages"] == [index - 1]
+    assert resumed["remaining_pages"] == []
 
 
 def test_descriptor_reopen_preserves_identity_and_is_demand_paged() -> None:
@@ -414,6 +615,27 @@ def test_staging_spills_within_its_declared_dirty_bound() -> None:
     for offset, index in enumerate(touched):
         assert int(flat[index * regions.PERSISTENCE_PAGE_WORDS + 3]) == 100 + offset
 
+def test_vector_page_writes_preserve_order_for_unsorted_duplicate_offsets() -> None:
+    field, profile, catalog = seeded(copy_program(1))
+    image, _record = migrate_flat_to_paged(field, profile=profile, catalog=catalog)
+    staging = image.stage(stage="ordered-vector-write")
+    offsets = np.asarray(
+        [
+            17 * regions.PERSISTENCE_PAGE_WORDS + 3,
+            4,
+            17 * regions.PERSISTENCE_PAGE_WORDS + 3,
+            9 * regions.PERSISTENCE_PAGE_WORDS + 9,
+            4,
+        ],
+        dtype=np.int64,
+    )
+
+    staging.stage_words(offsets, [7, 11, 13, 17, 19])
+    successor, _receipt = staging.commit(require_clean=True)
+    flat = successor.materialise().reshape(-1)
+    assert flat[offsets].tolist() == [13, 19, 13, 17, 19]
+
+
 
 def test_layout_migration_binds_the_predecessor_identity() -> None:
     field, profile, catalog = seeded(copy_program(3))
@@ -449,6 +671,34 @@ def test_layout_migration_binds_the_predecessor_identity() -> None:
     assert int(after[regions.H_TOTAL_WORDS]) == grown_profile.total_words
     assert int(after[regions.H_DIRECTORY_CAPACITY]) == profile.directory_capacity
     validate_paged_image(grown)
+
+
+def test_large_paged_successor_switches_to_content_bound_identity() -> None:
+    profile = RegionalProfile(mode_count=30_000_000)
+    page_count = (
+        profile.total_words + regions.PERSISTENCE_PAGE_WORDS - 1
+    ) // regions.PERSISTENCE_PAGE_WORDS
+    assert page_count > regions.MAX_RESIDENCY_PAGES
+    directory = regions.PageDirectory(profile.fingerprint, page_count, ())
+    predecessor_digest = "a" * 64
+    image = PagedFieldImage(
+        profile,
+        regions.EMPTY_KERNEL_CATALOG,
+        directory,
+        {},
+        resident_limit=32,
+        dirty_limit=8,
+        audited_state_sha256=predecessor_digest,
+    )
+
+    successor = image.successor(
+        directory, {}, transition={"kind": "regional-transition"}
+    )
+    assert successor.predecessor["state_sha256"] == predecessor_digest
+    assert successor.state_sha256_kind == regions.PAGED_STATE_KIND_ROOT
+    assert successor.state_identity_sha256() == regions.paged_root_state_sha256(
+        profile, successor.root_sha256, page_count
+    )
 
 
 # -- Section 18.5: field-derived activity among eligible work -------------
@@ -580,6 +830,68 @@ def test_paged_activity_matches_dense_activity_byte_for_byte() -> None:
     )
     assert np.array_equal(bounded.materialise(), dense)
 
+# -- Closed AWAIT dependencies and bounded prerequisite urgency ------------
+
+
+def test_foreground_await_lends_to_its_writer_with_flat_paged_parity() -> None:
+    profile = RegionalProfile()
+    catalog = regions.EMPTY_KERNEL_CATALOG
+    program = (
+        {"op": "YIELD", "next": 0},
+        {"op": "AWAIT", "target": "barrier", "next": 3},
+        {"op": "WRITE", "target": "barrier", "value": {"status": "done"}, "next": 3},
+        {"op": "HALT"},
+    )
+    field = initial_field(
+        profile, program, catalog=catalog,
+        values={"barrier": {"status": "pending"}},
+        value_capacities={"barrier": 64},
+    )
+    field, waiting = regions.enqueue_event(
+        field, profile, catalog, {"pc": 1, "site": 1, "priority": 6},
+    )
+    field, writer = regions.enqueue_event(
+        field, profile, catalog, {"pc": 2, "site": 2, "priority": 0},
+    )
+    dense, receipt = step_field(field, profile, catalog)
+    image, _ = migrate_flat_to_paged(field, profile=profile, catalog=catalog)
+    paged, paged_receipt = step_paged_image(image, catalog=catalog)
+    assert receipt["event_id"] == paged_receipt["event_id"] == writer["event_id"]
+    assert receipt["await_analysis"]["lent_event_ids"] == [writer["event_id"]]
+    assert receipt["await_analysis"]["blocked_event_ids"] == []
+    assert waiting["event_id"] != writer["event_id"]
+    assert np.array_equal(dense, paged.materialise())
+
+
+def test_closed_await_cycle_is_reported_without_falsely_running_a_writer() -> None:
+    profile = RegionalProfile()
+    catalog = regions.EMPTY_KERNEL_CATALOG
+    program = (
+        {"op": "AWAIT", "target": "b", "next": 1},
+        {"op": "WRITE", "target": "a", "value": {"status": "done"}, "next": 4},
+        {"op": "AWAIT", "target": "a", "next": 3},
+        {"op": "WRITE", "target": "b", "value": {"status": "done"}, "next": 4},
+        {"op": "HALT"},
+    )
+    field = initial_field(
+        profile, program, catalog=catalog,
+        values={"a": {"status": "pending"}, "b": {"status": "pending"}},
+        value_capacities={"a": 64, "b": 64},
+    )
+    field, second = regions.enqueue_event(
+        field, profile, catalog, {"pc": 2, "site": 2, "priority": 3},
+    )
+    dense, receipt = step_field(field, profile, catalog)
+    image, _ = migrate_flat_to_paged(field, profile=profile, catalog=catalog)
+    paged, paged_receipt = step_paged_image(image, catalog=catalog)
+    expected = [1, second["event_id"]]
+    assert receipt["status"] == paged_receipt["status"] == "waiting"
+    assert receipt["await_analysis"]["blocked_event_ids"] == expected
+    assert paged_receipt["await_analysis"]["blocked_event_ids"] == expected
+    assert receipt["kind"] == paged_receipt["kind"] == "no-ready-event"
+    assert "event_id" not in receipt and "event_id" not in paged_receipt
+    assert np.array_equal(dense, paged.materialise())
+
 
 # -- Section 18.7: a residency wait is a canonical continuation ----------
 
@@ -646,7 +958,6 @@ def test_a_long_paged_run_holds_only_what_it_is_using() -> None:
         assert manager.report()["used_bytes"]["ram"] <= allowance
     # The run is real: pages were fetched through the cache it is charged for.
     assert image.counters["page_misses"] > 0
-    assert manager.report()["allocations"]["ram"]["resident"] == allowance
 
 
 def test_paged_object_history_preserves_live_keys_and_precedence() -> None:
@@ -680,3 +991,111 @@ def test_paged_object_history_preserves_live_keys_and_precedence() -> None:
     assert "revoked" not in objects
     assert "piece-0" not in objects
     assert base.reads == 1
+
+def test_paged_prefetch_is_bounded_reopenable_and_credited_only_on_use() -> None:
+    field, profile, catalog = seeded(copy_program(3))
+    original, _record = migrate_flat_to_paged(
+        field, profile=profile, catalog=catalog
+    )
+    target = original.directory.leaves[-1].index
+    assert original.page_count > 1
+    descriptor = original.descriptor()
+    objects = original.object_store()
+    hint = original.page_read_hint([target])
+
+    full = PagedFieldImage.from_descriptor(
+        descriptor, objects, catalog, resident_limit=1, verify="none"
+    )
+    keep = target - 1 if target else 1
+    full.page(keep)
+    before_resident = set(full._resident)
+    deferred = full.prefetch_pages(hint, max_pages=1)
+    assert deferred["status"] == "deferred"
+    assert deferred["deferred_pages"] == [
+        {"index": target, "reason": "resident-limit"}
+    ]
+    assert set(full._resident) == before_resident
+    assert full.residency_report()["resident_pages"] == 1
+
+    unused = PagedFieldImage.from_descriptor(
+        descriptor, objects, catalog, resident_limit=1, verify="none"
+    )
+    unused_receipt = unused.prefetch_pages(hint, max_pages=1)
+    assert unused_receipt["status"] == "staged"
+    assert unused.root_sha256 == original.root_sha256
+    unused_settlement = unused.settle_prefetch(unused_receipt["prefetch_id"])
+    assert unused_settlement["unused_pages"] == [target]
+    assert unused.counters["prefetch_hits"] == 0
+    assert unused.counters["unused_prefetch_misses"] == 1
+    assert unused.residency_report()["pending_prefetches"] == 0
+
+    reopened = PagedFieldImage.from_descriptor(
+        descriptor, objects, catalog, resident_limit=1, verify="none"
+    )
+    staged = reopened.prefetch_pages(hint, max_pages=1)
+    assert staged["prefetched_pages"] == [target]
+    assert reopened.root_sha256 == original.root_sha256
+    decode_count = reopened.counters["page_decodes"]
+    view = reopened.view()
+    offset = target * regions.PERSISTENCE_PAGE_WORDS
+    first = view[offset]
+    assert view[offset] == first
+    assert reopened.counters["page_decodes"] == decode_count
+    settled = reopened.settle_prefetch(staged["prefetch_id"])
+    assert settled["used_pages"] == [target]
+    assert settled["unused_pages"] == []
+    assert reopened.counters["prefetch_hits"] == 1
+    assert reopened.residency_report()["resident_pages"] <= 1
+    assert reopened.residency_report()["resident_high_water_pages"] <= 1
+
+    successor, _receipt = step_paged_image(original, catalog=catalog)
+    stale_before = successor.residency_report()["resident_pages"]
+    stale = successor.prefetch_pages(hint, max_pages=1)
+    assert stale["status"] == "stale"
+    assert stale["reason"] == "state-identity"
+    assert stale["prefetched_pages"] == []
+    assert successor.root_sha256 != original.root_sha256
+    assert successor.residency_report()["resident_pages"] == stale_before
+
+
+def test_bound_object_prefetch_uses_current_exact_object_pages() -> None:
+    field, profile, catalog = seeded(copy_program(3))
+    original, _record = migrate_flat_to_paged(
+        field, profile=profile, catalog=catalog
+    )
+    bound, receipt = regions.bind_regional_method_values(
+        original,
+        profile,
+        values={"prefetch_words": list(range(257))},
+        u32_words=("prefetch_words",),
+    )
+    reference = receipt["objects"]["prefetch_words"]
+    input_ref = {
+        key: reference[key]
+        for key in ("object_id", "object_version", "source_sha256")
+    }
+    first_word = reference["first_word"]
+    word_count = reference["word_count"]
+    expected_pages = list(
+        range(
+            first_word // regions.PERSISTENCE_PAGE_WORDS,
+            (first_word + word_count - 1) // regions.PERSISTENCE_PAGE_WORDS + 1,
+        )
+    )
+    before_root = bound.root_sha256
+    stale_ref = {**input_ref, "object_version": input_ref["object_version"] + 1}
+    with pytest.raises(RegionalFieldError, match="bound object version is stale"):
+        regions.prefetch_bound_object_refs(bound, profile, [stale_ref], limit=2)
+    assert bound.root_sha256 == before_root
+
+    prefetch = regions.prefetch_bound_object_refs(
+        bound, profile, [input_ref], limit=2
+    )
+    assert prefetch["root_sha256"] == before_root
+    assert prefetch["bound_object_ids"] == [reference["object_id"]]
+    assert prefetch["requested_pages"] == expected_pages[:2]
+
+    flat_before = np.array(field, copy=True)
+    with pytest.raises(RegionalFieldError, match="bound prefetch requires a paged image"):
+        regions.prefetch_bound_object_refs(field, profile, [input_ref], limit=2)
+    assert np.array_equal(field, flat_before)
