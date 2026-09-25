@@ -690,10 +690,13 @@ class LocalHiveStore:
         }
 
     def close(self) -> None:
-        with self._lock:
-            if self._connection is not None:
+        if self._connection is not None:
+            self._lock.acquire()
+            try:
                 self._connection.close()
                 self._connection = None  # type: ignore[assignment]
+            finally:
+                self._lock.release()
 
     def __enter__(self) -> "LocalHiveStore":
         return self
