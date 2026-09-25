@@ -102,23 +102,65 @@ def class_key(classes: Sequence[str]) -> str:
 def relation_classes_for_system(
     system: dict[str, Any],
 ) -> tuple[str, ...]:
+    # Precompute a lookup table for pivot value tuples to allowed bit patterns.
+    # The condition is: sum(pivot_values[index] * (3*bit - 1)) in (-1, 2)
+    # Let p_i be pivot_values[index]. The term is p_i * (3*b_i - 1).
+    # If b_i=0, term is -p_i. If b_i=1, term is 2*p_i.
+    # We need to find which subsets of indices have b_i=1 such that the sum is -1 or 2.
+    # Since support size is small (typically <= 4 for ternary SAT/UNSAT bases),
+    # we can precompute this.
+
+    # Helper to compute allowed bits for a given tuple of pivot values
+    _pivot_cache: dict[tuple, tuple[tuple[int, ...], ...]] = {}
+
+    def _get_allowed(pivots: tuple) -> tuple[tuple[int, ...], ...]:
+        if pivots in _pivot_cache:
+            return _pivot_cache[pivots]
+
+        n = len(pivots)
+        allowed: list[tuple[int, ...]] = []
+        # Iterate through all 2^n bit patterns
+        for mask in range(1 << n):
+            # Construct the bit tuple for this mask
+            bits = tuple((mask >> i) & 1 for i in range(n))
+
+            # Calculate sum(p_i * (3*b_i - 1))
+            total = 0
+            for i, b in enumerate(bits):
+                if b:
+                    total += 2 * pivots[i]
+                else:
+                    total -= pivots[i]
+
+            if total in (-1, 2):
+                allowed.append(bits)
+
+        result = tuple(allowed)
+        _pivot_cache[pivots] = result
+        return result
+
     relations: list[dict[str, bool]] = []
     for coefficients in system["pivot_free_coefficients"]:
         # RREF stores pivot + c*free = 0; the kernel pivot values are -c.
         pivot_values = tuple(-value for value in coefficients)
         support = tuple(index for index, value in enumerate(pivot_values) if value)
-        allowed: list[tuple[int, ...]] = []
-        for bits in itertools.product((0, 1), repeat=len(support)):
-            value = sum(
-                (
-                    pivot_values[index] * (3 * bit - 1)
-                    for index, bit in zip(support, bits, strict=True)
-                ),
-                start=Fraction(0),
-            )
-            if value in (Fraction(-1), Fraction(2)):
-                allowed.append(bits)
+
+        if not support:
+            # Empty support means no free variables, relation is trivial or empty?
+            # If support is empty, allowed is empty tuple? 
+            # relation_properties([], 0) likely returns specific properties.
+            # Let's handle it via the cache with empty tuple.
+            allowed = _get_allowed(())
+        else:
+            # Extract pivot values corresponding to support indices
+            # pivot_values is a tuple of length len(coefficients)
+            # support contains indices where pivot_values is non-zero
+            # We need the actual values at those indices.
+            actual_pivots = tuple(pivot_values[idx] for idx in support)
+            allowed = _get_allowed(actual_pivots)
+
         relations.append(relation_properties(allowed, len(support)))
+
     return tuple(
         name
         for name in SCHAEFER_CLASSES
