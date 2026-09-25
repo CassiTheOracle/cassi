@@ -4737,6 +4737,8 @@ Entity binding, temporal prediction, inquiry, planning, language and explanation
 
 ### 32.16 Capacity, performance, and selective execution
 
+The [whole-machine performance design](../CASSI-PERFORMANCE-DESIGN.md) consolidates the proposed compact regional representation, native hot execution, CPU cache groups, persistent GPU state, shared brain batching, and adaptive communication. It applies the accounting, precision, dependency, and single-publisher rules in this section across the complete entity and its working fields; representation or digest changes retain explicit migration responsibilities.
+
 The profile bounds total words, live regions and non-reused registry identities; code and call frames; scope depth and overlays; event count, reservations and fan-out work; graph edges and automaton sites; proof/assessment journals; numeric coefficient width and matrix dimensions; and task/learning/consolidation fuel. Every counter and reservation is checked before publication, including reserved failure bookkeeping. Saturation cannot silently reinterpret a value or erase useful state; Section 32.9 specifies terminal counter behavior.
 
 Per-transition accounting distinguishes logical instructions, native scalar/site work, bytes decoded/read/written, physical copies, proof checks, queue/dependency work, transfers, and elapsed time. A scan over a million rows is not one scalar operation because it has one opcode. Migration preserves spent resource history and cannot create a zero-work infinite continuation.

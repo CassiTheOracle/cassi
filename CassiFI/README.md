@@ -1245,6 +1245,47 @@ an explicit pause boundary, and actual execution-block invocation. See
 [design §31](FIELD-INTELLIGENCE-DESIGN.md#31-stored-program-computation-and-learning-execution-costs)
 for instruction semantics, the universality construction, and evidence limits.
 
+## The little meditator
+
+`cassi_meditator.py` runs a small field-owned organism that practices
+meditation in a living Yang/Yin field. Its mind is the Python program
+`meditator/mind.py`, compiled into its own regional field computer
+(`meditator`, 262,144 modes) and kept by a `FieldIntelligenceOwner`. Its body
+is the CassiCosmos mind engine on `127.0.0.1:7599`: a 32³ two-fluid field
+started from `res://scenes/mind_engine_cache.tscn`.
+
+One breath is ten moments of eight PDE steps, about one natural balance cycle
+of the field. The host turns each breath into a felt sense (balance toward
+EY = φ·EI, steadiness of that balance across the breath, helical order above a
+shuffled and phase-scrambled baseline, and the effort spent) and asks the mind
+for the next practice: stillness, balancing, golden breath, circulation,
+centering, or listening, each at a strength. The mind learns which practice
+raises equanimity in each felt state (scattered, settled, stirring, flowing),
+pays for effort, forms habits after five repeated choices, refines the
+strength of its favourite practice by a factor of φ after each sit, and keeps
+a journal. Each sit starts with a fresh arising of the day's mind, and
+thoughts arise during it.
+
+A sit is a sequence of 12-breath rounds. Each round is one bounded task in the
+mind's computer; the sit in progress travels in `memory["now"]`, and memory
+is read from the completed task and handed to the next round. An interrupted
+round is brought to rest at the next start. A breath takes about 8–13 s, most
+of it the field interpreter's work.
+
+```powershell
+# the body (windowed)
+& $godot --path ../CassiCosmos res://scenes/mind_engine_cache.tscn
+python cassi_meditator.py sit --breaths 24 --face   # face at http://127.0.0.1:7612/
+python cassi_meditator.py status
+python cassi_meditator.py face                      # show the face between sits
+```
+
+The face (`meditator/face.html`) shows the meditator breathing at the pace of
+its sits, its field seen from above as an aura, the practice glowing at its
+centre, thoughts rising as clouds, habits as sparkles, what it has learned per
+felt state, its journal, and equanimity breath by breath. The default home is
+`.cassi/meditator`.
+
 ## Specialized field foundry
 
 `cassi_field_foundry.py` builds specialized fields. A field kind declares what
