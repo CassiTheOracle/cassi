@@ -107,7 +107,15 @@ class DiskObjectStore(Mapping[str, bytes]):
             raise StorageError("object digest does not match payload")
         path = self._path(key)
         if not path.exists():
-            tmp = path.with_name(f".{key}.tmp-{os.getpid()}-{id(raw)}")
+            # Pre-calculate PID and ID to avoid repeated lookups in the string construction
+            pid = os.getpid()
+            raw_id = id(raw)
+            # Construct a unique temp filename in the same directory to ensure atomic rename works
+            # Use a simple counter-like suffix derived from time to minimize collision risk without heavy locks
+            # while keeping string operations minimal.
+            import time
+            suffix = f".{key}.tmp-{pid}-{raw_id}-{int(time.time() * 1000000) % 1000000}"
+            tmp = path.with_name(suffix)
             try:
                 with tmp.open("wb") as handle:
                     handle.write(raw)
