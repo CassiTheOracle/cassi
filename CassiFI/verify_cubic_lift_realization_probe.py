@@ -177,38 +177,58 @@ def json_stream_digest(rows: Iterable[Any]) -> str:
 def rref(
     matrix: Sequence[Sequence[Fraction]],
 ) -> tuple[list[list[Fraction]], tuple[int, ...]]:
+    # Convert to list of lists of Fractions for mutability
+    # We work with references to lists to avoid copying entire rows unnecessarily
     values = [list(row) for row in matrix]
     row_count = len(values)
-    column_count = len(values[0]) if values else 0
+    if row_count == 0:
+        return [], ()
+
+    column_count = len(values[0])
     pivots: list[int] = []
     pivot_row = 0
+
     for column in range(column_count):
-        source = next(
-            (
-                row
-                for row in range(pivot_row, row_count)
-                if values[row][column]
-            ),
-            None,
-        )
-        if source is None:
+        if pivot_row >= row_count:
+            break
+
+        # Find a row with a non-zero entry in the current column, starting from pivot_row
+        source = -1
+        for r in range(pivot_row, row_count):
+            if values[r][column]:
+                source = r
+                break
+
+        if source == -1:
             continue
-        values[pivot_row], values[source] = values[source], values[pivot_row]
+
+        # Swap rows
+        if source != pivot_row:
+            values[pivot_row], values[source] = values[source], values[pivot_row]
+
+        # Normalize the pivot row
         scale = values[pivot_row][column]
-        values[pivot_row] = [value / scale for value in values[pivot_row]]
-        for row in range(row_count):
-            if row == pivot_row:
+        # In-place normalization of the pivot row
+        pivot_row_list = values[pivot_row]
+        for i in range(column_count):
+            pivot_row_list[i] = pivot_row_list[i] / scale
+
+        # Eliminate other rows
+        for r in range(row_count):
+            if r == pivot_row:
                 continue
-            factor = values[row][column]
+            factor = values[r][column]
             if factor:
-                values[row] = [
-                    left - factor * right
-                    for left, right in zip(values[row], values[pivot_row])
-                ]
+                row_list = values[r]
+                # In-place row operation: row[r] -= factor * pivot_row
+                # We can optimize this by iterating only relevant columns or all
+                # Since it's RREF, we need to update all columns
+                for i in range(column_count):
+                    row_list[i] = row_list[i] - factor * pivot_row_list[i]
+
         pivots.append(column)
         pivot_row += 1
-        if pivot_row == row_count:
-            break
+
     return values, tuple(pivots)
 
 
