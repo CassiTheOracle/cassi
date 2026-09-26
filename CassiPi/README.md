@@ -35,6 +35,8 @@ One entry whose canonical bytes exceed 640 KiB cannot travel inside the worker's
 
 Observation cost grows with the field's accumulated evidence: the owner revalidates the atlas chart that holds every admitted observation, so one observation costs roughly 9–11 ms per already-stored source. Measured on this machine against the packaged runtime: 59 ms at the first observation, 1.4 s after 150 synthetic 2 KiB observations, and 4.3 s mean over 150 replayed entries of a real session. The field-owned sync is sequential and awaited inside the provider hook, so long-lived fields add seconds per new entry. Bounding this is runtime work in `CassiFI/runtime` (incremental chart validation and checkpoint durability), not a host-side setting.
 
+Profiling the mutation path locates the growth: each observation re-encodes and re-parses the whole chart through JSON, re-validates every contribution digest and value, re-instantiates every `SupportContribution`, and reruns `VariationalField` validation (a Cholesky decomposition per component). That is the checkpoint commit verifying itself by replaying the operation against the persisted state, so the cost is proportional to stored evidence rather than to the observation.
+
 The launcher overlay keeps the host's compaction threshold clear of the floor the host cannot summarize: its own system prompt and tool catalog (about 22k tokens on the pinned host) plus the field summary the owner writes (about 4k tokens). A threshold at that floor makes the host compact, find nothing left to summarize, and drop the pending turn without reporting an error, so the installer writes `compaction.thresholdTokens: 60000` and the owner probe keeps the same headroom.
 
 ## Build the private artifacts
