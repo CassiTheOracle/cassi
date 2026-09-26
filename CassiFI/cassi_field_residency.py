@@ -334,24 +334,29 @@ class ResidencyTransfer:
         self.tokens.clear()
 
 
+import ctypes
+
+class _MemoryStatus(ctypes.Structure):
+    _fields_ = [
+        ("length", ctypes.c_ulong),
+        ("load", ctypes.c_ulong),
+        ("total_physical", ctypes.c_ulonglong),
+        ("available_physical", ctypes.c_ulonglong),
+        ("total_page", ctypes.c_ulonglong),
+        ("available_page", ctypes.c_ulonglong),
+        ("total_virtual", ctypes.c_ulonglong),
+        ("available_virtual", ctypes.c_ulonglong),
+        ("available_extended", ctypes.c_ulonglong),
+    ]
+
 def available_ram_bytes() -> int:
     """Physical memory this machine can hand out right now.
 
     A declared share is a budget, so a caller sizing one needs the machine's
     current room rather than a fixed number.
     """
-
     if os.name == "nt":
-        class MemoryStatus(ctypes.Structure):
-            _fields_ = [("length", ctypes.c_ulong), ("load", ctypes.c_ulong),
-                        ("total_physical", ctypes.c_ulonglong),
-                        ("available_physical", ctypes.c_ulonglong),
-                        ("total_page", ctypes.c_ulonglong),
-                        ("available_page", ctypes.c_ulonglong),
-                        ("total_virtual", ctypes.c_ulonglong),
-                        ("available_virtual", ctypes.c_ulonglong),
-                        ("available_extended", ctypes.c_ulonglong)]
-        status = MemoryStatus()
+        status = _MemoryStatus()
         status.length = ctypes.sizeof(status)
         if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
             raise OSError("GlobalMemoryStatusEx failed")
