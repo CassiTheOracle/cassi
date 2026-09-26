@@ -162,7 +162,10 @@ def build_runtime(output: Path, closure_path: Path = DEFAULT_CLOSURE) -> Mapping
         for source, relative in files_to_copy:
             target = staging / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, target)
+            # The manifest pins every copied byte, so the copy is line-ending
+            # normalised: a checkout that rewrites CRLF would otherwise carry
+            # the same source under a digest the manifest does not record.
+            target.write_bytes(source.read_bytes().replace(b"\r\n", b"\n"))
             files.append(
                 {
                     "path": relative.as_posix(),
