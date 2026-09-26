@@ -1423,10 +1423,10 @@ def _validate_spectrum(segment: Mapping[str, Any]) -> None:
     regions = spectrum["regions"]
     if not isinstance(regions, Mapping) or set(regions) != set(segment["regions"]):
         raise ResonantNumericalError("spectral region rows are incomplete")
+    region_keys = _SPECTRAL_REGION_KEYS if current_schema else (
+        _SPECTRAL_REGION_KEYS - {"operator_residual"}
+    )
     for identity, row in regions.items():
-        region_keys = _SPECTRAL_REGION_KEYS if current_schema else (
-            _SPECTRAL_REGION_KEYS - {"operator_residual"}
-        )
         if not isinstance(row, Mapping) or set(row) != region_keys:
             raise ResonantNumericalError("spectral region keys are invalid")
         status = row["status"]
@@ -1467,10 +1467,10 @@ def _validate_spectrum(segment: Mapping[str, Any]) -> None:
                            for parent, child in map(tuple, segment["edges"])}
     if not isinstance(interfaces, Mapping) or set(interfaces) != expected_interfaces:
         raise ResonantNumericalError("spectral interface rows are incomplete")
+    interface_keys = _SPECTRAL_INTERFACE_KEYS if current_schema else (
+        _SPECTRAL_INTERFACE_KEYS - {"concern_tunings"}
+    )
     for key, row in interfaces.items():
-        interface_keys = _SPECTRAL_INTERFACE_KEYS if current_schema else (
-            _SPECTRAL_INTERFACE_KEYS - {"concern_tunings"}
-        )
         if not isinstance(row, Mapping) or set(row) != interface_keys:
             raise ResonantNumericalError("spectral interface keys are invalid")
         status = row["status"]

@@ -3393,6 +3393,12 @@ class AtlasCheckpointStore:
         manifest_cache: dict[str, Mapping[str, Any]] = getattr(
             self, "_compaction_manifest_cache", {}
         )
+        # Page byte sizes come from immutable content-addressed objects, so a
+        # manifest's page cost stays exact for the life of the process; a
+        # publication therefore revisits it without restating every page.
+        page_size_cache: dict[str, Mapping[str, int] | None] = getattr(
+            self, "_compaction_page_size_cache", {}
+        )
         manifest_paths: dict[str, Path] | None = getattr(
             self, "_compaction_manifest_paths", None
         )
@@ -3404,11 +3410,13 @@ class AtlasCheckpointStore:
             }
             self._compaction_manifest_paths = manifest_paths
             self._compaction_manifest_cache = manifest_cache
+            self._compaction_page_size_cache = page_size_cache
         entries: list[tuple[int, Path, Mapping[str, Any]]] = []
         for name, path in tuple(manifest_paths.items()):
             if not path.is_file():
                 manifest_paths.pop(name, None)
                 manifest_cache.pop(name, None)
+                page_size_cache.pop(name, None)
                 continue
             manifest = manifest_cache.get(name)
             if manifest is None:
@@ -3424,7 +3432,6 @@ class AtlasCheckpointStore:
         computational_count = sum(
             row[2].get("transition", {}).get("kind") in _COMPUTATIONAL_TRANSITIONS for row in entries
         )
-        page_size_cache: dict[str, Mapping[str, int] | None] = {}
 
         def _page_sizes(
             entry: tuple[int, Path, Mapping[str, Any]]
@@ -3538,11 +3545,13 @@ class AtlasCheckpointStore:
                 path.unlink(missing_ok=True)
                 manifest_paths.pop(path.name, None)
                 manifest_cache.pop(path.name, None)
+                page_size_cache.pop(path.name, None)
         except BaseException:
             # A partially completed deletion must not leave stale disposable
             # metadata in use by the next publication in this process.
             self._compaction_manifest_paths = None
             self._compaction_manifest_cache = {}
+            self._compaction_page_size_cache = {}
             raise
         # Roots include retained exact-evidence/effect history and staged
         # publications. Collect only unreachable content-addressed field pages.
@@ -3551,6 +3560,7 @@ class AtlasCheckpointStore:
             if not path.is_file():
                 manifest_paths.pop(name, None)
                 manifest_cache.pop(name, None)
+                page_size_cache.pop(name, None)
                 continue
             manifest = manifest_cache.get(name)
             if manifest is None:
@@ -13559,6 +13569,8 @@ class FieldIntelligenceOwner:
                 event_id=event.event_id,
             )
             self._finish_pending(operation_id)
+            # The medium, if grown, absorbs the admitted steps as it lives.
+            self._sync_temporal_medium(memory_id)
             return result
 
     def _require_temporal_idle(self, memory_id: str, participant_id: str | None) -> None:
@@ -13773,6 +13785,126 @@ class FieldIntelligenceOwner:
                     skill_id,
                 )
             return result
+
+    # -- emergent medium ------------------------------------------------------
+    # A temporal memory may grow an emergent two-fluid medium
+    # (``cassi_emergent_field.TemporalMedium``).  Its imprints are kept equal to
+    # the memory's active evidence: admitted steps are linked, revoked steps are
+    # erased by anti-phase replay.  Rest changes only how loudly it answers.
+
+    def _temporal_medium_path(self, memory_id: str) -> Path:
+        return self.data_home / "emergent-media" / f"{sha256_value({'memory_id': memory_id})}.pt"
+
+    def _temporal_medium(self, memory_id: str) -> Any | None:
+        media = self.__dict__.setdefault("_temporal_media", {})
+        if memory_id not in media:
+            path = self._temporal_medium_path(memory_id)
+            if not path.exists():
+                return None
+            import torch
+            from cassi_emergent_field import TemporalMedium
+            media[memory_id] = TemporalMedium.load(path, "cuda" if torch.cuda.is_available() else "cpu")
+        return media[memory_id]
+
+    def _sync_temporal_medium(self, memory_id: str) -> Mapping[str, Any] | None:
+        medium = self._temporal_medium(memory_id)
+        if medium is None:
+            return None
+        row = self.state.temporal(memory_id)
+        active = self.evidence.active_revision_ids()
+        episodes = [
+            self._temporal_episode(self.evidence.read(self.evidence.source(revision)))
+            for revision in row.source_revision_ids if revision in active
+        ]
+        change = medium.sync(episodes)
+        if change["linked"] or change["erased"]:
+            medium.save(self._temporal_medium_path(memory_id))
+        return change
+
+    def grow_temporal_medium(
+        self, memory_id: str, *, size: int = 32, device: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Give a temporal memory an emergent medium and let it absorb every admitted episode."""
+        with self._lock:
+            memory_id = self._temporal_memory(memory_id).memory_id
+            if self._temporal_medium(memory_id) is None:
+                import torch
+                from cassi_emergent_field import EmergentProfile, SequenceMemory, TemporalMedium
+                device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+                profile = EmergentProfile(size=size, device=device)
+                medium = TemporalMedium(SequenceMemory.create(profile, salt=memory_id))
+                medium.save(self._temporal_medium_path(memory_id))
+                self.__dict__.setdefault("_temporal_media", {})[memory_id] = medium
+            change = self._sync_temporal_medium(memory_id)
+            medium = self._temporal_medium(memory_id)
+            return {"memory_id": memory_id, **dict(change), "notes": medium.memory.codec.count,
+                    "ideas": len(medium.memory.names)}
+
+    def predict_temporal_medium(
+        self, memory_id: str, *, actions: Sequence[str], participant_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """What the medium expects each action to produce from the participant's recent history."""
+        with self._lock:
+            row = self._temporal_memory(memory_id)
+            if self._temporal_medium(row.memory_id) is None:
+                raise FieldIntelligenceError("NOT_FOUND", "temporal memory has no emergent medium")
+            self._sync_temporal_medium(row.memory_id)
+            history = self._temporal_apply(row.history, participant_id=participant_id)
+            actions = [_identifier(action, "action") for action in actions]
+            medium = self._temporal_medium(row.memory_id)
+            recognised = sum(medium.recognised.values())
+            predictions = medium.predict(history, actions)
+            if sum(medium.recognised.values()) != recognised:
+                medium.save(self._temporal_medium_path(row.memory_id))
+            return {"memory_id": row.memory_id, "history_steps": len(history), "predictions": predictions}
+
+    def rest_temporal_medium(self, memory_id: str, *, duration: float) -> Mapping[str, Any]:
+        """Let a temporal memory's medium sleep: replay what it recognised, then rest for ``duration``."""
+        with self._lock:
+            memory_id = self._temporal_memory(memory_id).memory_id
+            medium = self._temporal_medium(memory_id)
+            if medium is None:
+                raise FieldIntelligenceError("NOT_FOUND", "temporal memory has no emergent medium")
+            if not math.isfinite(duration) or duration < 0.0:
+                raise FieldIntelligenceError("INVALID_TEMPORAL", "rest duration must be finite and nonnegative")
+            receipt = medium.sleep(duration)
+            medium.save(self._temporal_medium_path(memory_id))
+            return {"memory_id": memory_id, **receipt}
+
+    def choose_temporal_medium_action(
+        self,
+        memory_id: str,
+        *,
+        actions: Sequence[str],
+        goals: Sequence[str] = (),
+        avoid: Sequence[str] = (),
+        depth: int = 2,
+        participant_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Let the medium choose: play every action, imagine its futures, act toward the goals.
+
+        ``goals`` and ``avoid`` are observations.  Without a heard goal the
+        medium picks the action it knows least about.
+        """
+        with self._lock:
+            row = self._temporal_memory(memory_id)
+            if self._temporal_medium(row.memory_id) is None:
+                raise FieldIntelligenceError("NOT_FOUND", "temporal memory has no emergent medium")
+            if not 1 <= depth <= 4:
+                raise FieldIntelligenceError("INVALID_TEMPORAL", "choice depth must be between 1 and 4")
+            self._sync_temporal_medium(row.memory_id)
+            history = self._temporal_apply(row.history, participant_id=participant_id)
+            actions = [_identifier(action, "action") for action in actions]
+            if not actions:
+                raise FieldIntelligenceError("INVALID_TEMPORAL", "choice needs at least one action")
+            goals = [_identifier(goal, "observation") for goal in goals]
+            avoid = [_identifier(item, "observation") for item in avoid]
+            medium = self._temporal_medium(row.memory_id)
+            recognised = sum(medium.recognised.values())
+            choice = medium.choose(history, actions, goals=goals, avoid=avoid, depth=depth)
+            if sum(medium.recognised.values()) != recognised:
+                medium.save(self._temporal_medium_path(row.memory_id))
+            return {"memory_id": row.memory_id, "history_steps": len(history), **choice}
 
     def select_temporal_action(
         self,

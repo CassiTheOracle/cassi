@@ -67,17 +67,48 @@ class DiskObjectStore(Mapping[str, bytes]):
             return False
 
     def __getitem__(self, key: str) -> bytes:
-        path = self._path(key)
+        # Inline path creation and validation to avoid extra function call overhead
+        root = self.root
+        keys = self._keys
+        if keys is not None and key not in keys:
+            raise KeyError(key)
+
+        # Check cache first
         cached = self._cache.get(key)
         if cached is not None:
             return cached
+
+        # Construct path directly
+        path = root / key
+
         try:
             raw = path.read_bytes()
-        except FileNotFoundError as exc:
-            raise KeyError(key) from exc
-        if hashlib.sha256(raw).hexdigest() != key:
+        except FileNotFoundError:
+            raise KeyError(key)
+
+        # Verify SHA-256 hash
+        computed_hash = hashlib.sha256(raw).hexdigest()
+        if computed_hash != key:
             raise StorageError(f"object {key} failed SHA-256 verification")
-        self._cache_put(key, raw)
+
+        # Update cache if enabled and size allows
+        if self.cache_bytes > 0 and len(raw) <= self.cache_bytes:
+            old = self._cache.pop(key, None)
+            if old is not None:
+                self._cache_used -= len(old)
+                try:
+                    self._cache_order.remove(key)
+                except ValueError:
+                    pass
+            self._cache[key] = raw
+            self._cache_order.append(key)
+            self._cache_used += len(raw)
+            while self._cache_used > self.cache_bytes and self._cache_order:
+                victim = self._cache_order.pop(0)
+                value = self._cache.pop(victim, None)
+                if value is not None:
+                    self._cache_used -= len(value)
+
         return raw
 
     def _cache_put(self, key: str, raw: bytes) -> None:

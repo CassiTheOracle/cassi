@@ -445,6 +445,8 @@ class CanonicalOwnerAdapter:
         self.atlas = self.owner.atlas
         self.surface = FieldIntelligenceSurface(self.owner)
         self.control_path = self.data_home / "cassipi-field-control.json"
+        self._verified_control_manifests: set[str] = set()
+        self._verified_control_floor: tuple[int, str | None] | None = None
         self.control = self._load_control()
         self.compatibility = {
             "schema": COMPATIBILITY_SCHEMA,
@@ -694,6 +696,33 @@ class CanonicalOwnerAdapter:
         manifest = self.owner.checkpoints._manifest(manifest_id)
         return self.owner.checkpoints.readable_state(manifest)
 
+    def _control_retention_token(self) -> tuple[int, str | None] | None:
+        """Return the store's retention token, or None when it cannot be read.
+
+        Checkpoint manifests and their pages are immutable content-addressed
+        objects, and history compaction publishes the floor before it deletes
+        anything, so a checkpoint verified under the current floor stays
+        readable until the floor moves.
+        """
+        try:
+            floor = self.owner.checkpoints._history_floor()
+        except FieldIntelligenceError:
+            return None
+        return (floor["floor_generation"], floor["floor_manifest_sha256"])
+
+    def _control_checkpoint_verified(self, manifest_sha256: Any, label: str) -> None:
+        """Verify that a recorded checkpoint is readable, once per floor.
+
+        Reconstructing every recorded head on every save costs one full atlas
+        state decode per stored source, so the verdict is kept for as long as
+        the retention floor that guarantees the checkpoint's objects survive.
+        """
+        manifest_id = _digest(manifest_sha256, label)
+        if manifest_id in self._verified_control_manifests:
+            return
+        self._control_checkpoint_state(manifest_id, label)
+        self._verified_control_manifests.add(manifest_id)
+
     @staticmethod
     def _migrate_control_v2(value: Any) -> dict[str, Any]:
         if not isinstance(value, Mapping) or set(value) != {
@@ -769,6 +798,13 @@ class CanonicalOwnerAdapter:
             )
             if control["schema"] != CONTROL_SCHEMA:
                 raise ValueError("control ledger schema is incompatible")
+            token = self._control_retention_token()
+            if token is None:
+                self._verified_control_manifests.clear()
+                self._verified_control_floor = None
+            elif token != self._verified_control_floor:
+                self._verified_control_manifests.clear()
+                self._verified_control_floor = token
             for name in ("applied", "cancelled", "heads", "pending"):
                 if not isinstance(control[name], Mapping):
                     raise TypeError(f"control ledger {name} must be an object")
@@ -776,7 +812,7 @@ class CanonicalOwnerAdapter:
                 control["baseline_manifest_sha256"],
                 "baseline_manifest_sha256",
             )
-            self._control_checkpoint_state(baseline, "baseline_manifest_sha256")
+            self._control_checkpoint_verified(baseline, "baseline_manifest_sha256")
             profile_id = control["profile_id"]
             if profile_id is not None:
                 profile_id = _text(profile_id, "profile_id")
@@ -790,7 +826,7 @@ class CanonicalOwnerAdapter:
                 ) or not key.partition(":")[2]:
                     raise ValueError("control head key has an unsupported namespace")
                 head = _digest(raw_head, f"control head {key}")
-                self._control_checkpoint_state(head, f"control head {key}")
+                self._control_checkpoint_verified(head, f"control head {key}")
                 heads[key] = head
 
             pending: dict[str, Any] = {}
@@ -952,7 +988,7 @@ class CanonicalOwnerAdapter:
                     result["active_head_id"],
                     "applied active_head_id",
                 )
-                self._control_checkpoint_state(active_head, "applied active head")
+                self._control_checkpoint_verified(active_head, "applied active head")
                 committed_entry_id = _text(
                     result["committed_entry_id"],
                     "applied committed_entry_id",
