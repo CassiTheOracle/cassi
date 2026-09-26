@@ -873,6 +873,7 @@ def propagate_literal(
         or value not in (0, 1)
     ):
         fail("literal-propagation assumption is invalid")
+
     assignments: list[int | None] = [None] * n
     assignments[column] = value
     column_rows: list[list[int]] = [[] for _ in range(n)]
@@ -885,36 +886,44 @@ def propagate_literal(
     heapq.heapify(queue)
     queued = [True] * len(rows)
     deductions: list[dict[str, Any]] = []
+
     while queue:
         row_index = heapq.heappop(queue)
         queued[row_index] = False
         ledger.propagation_rows_checked += 1
         row = rows[row_index]
         target = rhs[row_index]
-        premises = [
-            {
-                "column": candidate + 1,
-                "coefficient": coefficient,
-                "value": assignments[candidate],
-            }
-            for candidate, coefficient in enumerate(row)
-            if coefficient and assignments[candidate] is not None
-        ]
+
+        # Compute assigned_sum and premises in a single tight loop
         assigned_sum = 0
+        premises: list[dict[str, Any]] = []
         for candidate, coefficient in enumerate(row):
-            assigned_value = assignments[candidate]
-            if coefficient and assigned_value is not None:
-                assigned_sum += coefficient * assigned_value
+            if coefficient:
+                assigned_value = assignments[candidate]
+                if assigned_value is not None:
+                    assigned_sum += coefficient * assigned_value
+                    premises.append({
+                        "column": candidate + 1,
+                        "coefficient": coefficient,
+                        "value": assigned_value,
+                    })
+
         residual_rhs = target - assigned_sum
-        unknown = [
-            candidate
-            for candidate, coefficient in enumerate(row)
-            if coefficient and assignments[candidate] is None
-        ]
-        minimum = sum(min(0, row[candidate]) for candidate in unknown)
-        maximum = sum(max(0, row[candidate]) for candidate in unknown)
+
+        # Compute min/max bounds for unknowns
+        minimum = 0
+        maximum = 0
+        unknown_indices: list[int] = []
+        for candidate, coefficient in enumerate(row):
+            if coefficient and assignments[candidate] is None:
+                unknown_indices.append(candidate)
+                if coefficient < 0:
+                    minimum += coefficient
+                else:
+                    maximum += coefficient
+
         ledger.propagation_bound_checks += 1
-        if not minimum <= residual_rhs <= maximum:
+        if not (minimum <= residual_rhs <= maximum):
             return {
                 "assumption": {"column": column + 1, "value": value},
                 "outcome": "conflict",
@@ -930,15 +939,22 @@ def propagate_literal(
                     "remaining_maximum": maximum,
                 },
             }
-        for candidate in unknown:
+
+        # Process each unknown variable
+        for candidate in unknown_indices:
             coefficient = row[candidate]
+
+            # Calculate bounds for the remaining system after fixing this variable
             other_minimum = minimum - min(0, coefficient)
             other_maximum = maximum - max(0, coefficient)
+
             zero_residual = residual_rhs
             one_residual = residual_rhs - coefficient
+
             ledger.propagation_bound_checks += 2
             zero_possible = other_minimum <= zero_residual <= other_maximum
             one_possible = other_minimum <= one_residual <= other_maximum
+
             if not zero_possible and not one_possible:
                 return {
                     "assumption": {"column": column + 1, "value": value},
@@ -958,33 +974,35 @@ def propagate_literal(
                         "one_residual_rhs": one_residual,
                     },
                 }
+
             if zero_possible == one_possible:
                 continue
-            forced_value = int(one_possible)
+
+            forced_value = 1 if one_possible else 0
             rejected_value = 1 - forced_value
-            rejected_residual = (
-                zero_residual if rejected_value == 0 else one_residual
-            )
+            rejected_residual = zero_residual if rejected_value == 0 else one_residual
+
             assignments[candidate] = forced_value
             ledger.propagation_assignments += 1
-            deductions.append(
-                {
-                    "row": row_index + 1,
-                    "column": candidate + 1,
-                    "value": forced_value,
-                    "rejected_value": rejected_value,
-                    "equation_rhs": target,
-                    "premises": premises,
-                    "residual_rhs": residual_rhs,
-                    "other_minimum": other_minimum,
-                    "other_maximum": other_maximum,
-                    "rejected_residual_rhs": rejected_residual,
-                }
-            )
+
+            deductions.append({
+                "row": row_index + 1,
+                "column": candidate + 1,
+                "value": forced_value,
+                "rejected_value": rejected_value,
+                "equation_rhs": target,
+                "premises": premises,
+                "residual_rhs": residual_rhs,
+                "other_minimum": other_minimum,
+                "other_maximum": other_maximum,
+                "rejected_residual_rhs": rejected_residual,
+            })
+
             for affected in column_rows[candidate]:
                 if not queued[affected]:
                     heapq.heappush(queue, affected)
                     queued[affected] = True
+
             break
 
     complete_assignment = tuple(
