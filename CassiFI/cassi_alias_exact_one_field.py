@@ -84,24 +84,27 @@ def canonical_monotone_formula(
 ) -> Formula:
     if not isinstance(variable_count, int) or isinstance(variable_count, bool) or variable_count < 1:
         raise AliasExactOneDecisionError("variable count must be a positive integer")
-    rows: list[Clause] = []
-    for raw_clause in formula:
-        if (
-            len(raw_clause) != 3
-            or any(
-                not isinstance(variable, int)
-                or isinstance(variable, bool)
-                or not 1 <= variable <= variable_count
-                for variable in raw_clause
-            )
-        ):
+
+    rows: list[Clause] = [None] * len(formula)
+    for i, raw_clause in enumerate(formula):
+        if len(raw_clause) != 3:
             raise AliasExactOneDecisionError("clauses must contain three positive in-range variables")
-        clause = tuple(sorted(raw_clause))
-        if len(set(clause)) != 3:
+
+        # Single pass validation
+        for variable in raw_clause:
+            if not isinstance(variable, int) or isinstance(variable, bool) or not 1 <= variable <= variable_count:
+                raise AliasExactOneDecisionError("clauses must contain three positive in-range variables")
+
+        # Sort and check for duplicates efficiently
+        sorted_clause = tuple(sorted(raw_clause))
+        if sorted_clause[0] == sorted_clause[1] or sorted_clause[1] == sorted_clause[2]:
             raise AliasExactOneDecisionError("a clause repeats a variable")
-        rows.append((clause[0], clause[1], clause[2]))
-    if not rows:
+
+        rows[i] = sorted_clause
+
+    if not rows[0]:
         raise AliasExactOneDecisionError("formula must contain at least one clause")
+
     return tuple(sorted(rows))
 
 
