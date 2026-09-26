@@ -180,6 +180,44 @@ class PackedFieldImage:
         return metadata
 
 
+def _refuse_image_word(values: np.ndarray) -> None:
+    """Name the property that makes an image word non-canonical."""
+
+    if not np.all(np.isfinite(values)):
+        raise UnsupportedImageEncoding("unsupported-image-encoding: nonfinite word")
+    if np.any(values < 0.0) or np.any(values > float(0xFFFFFFFF)):
+        raise UnsupportedImageEncoding("unsupported-image-encoding: word outside u32")
+    if not np.all(values == np.floor(values)):
+        raise UnsupportedImageEncoding("unsupported-image-encoding: fractional word")
+    if np.any((values == 0.0) & np.signbit(values)):
+        raise UnsupportedImageEncoding("unsupported-image-encoding: negative zero")
+    raise UnsupportedImageEncoding("unsupported-image-encoding: word outside u32")
+
+
+def _canonical_words(
+    field_image: np.ndarray, *, refusal: str | None = None
+) -> np.ndarray:
+    """Return the image as little-endian u32 words, refusing non-canonical values.
+
+    A binary64 word is canonical exactly when the packed form recovers it: every
+    u32 is representable, so the recovered value equals the stored one only for
+    finite integers in range with no negative zero.  One conversion and one
+    comparison answer that; a value that fails gets the precise diagnosis, or
+    the caller's own refusal when it reports a coarser one.
+    """
+
+    values = np.asarray(field_image, dtype="float64", order="C")
+    with np.errstate(invalid="ignore"):  # the comparison below rejects the cast
+        words = values.astype("<u4", order="C")
+    if np.any(np.signbit(values)) or not np.array_equal(
+        words.astype("float64"), values
+    ):
+        if refusal is not None:
+            raise UnsupportedImageEncoding(refusal)
+        _refuse_image_word(values)
+    return words
+
+
 def pack_field_image(
     field_image: np.ndarray,
     *,
@@ -194,15 +232,7 @@ def pack_field_image(
         raise FieldRuntimeError("field image must be a float64 numpy tensor")
     if field_image.ndim < 1 or any(part < 1 for part in field_image.shape):
         raise FieldRuntimeError("field image shape is invalid")
-    if not np.all(np.isfinite(field_image)):
-        raise UnsupportedImageEncoding("unsupported-image-encoding: nonfinite word")
-    if np.any(field_image < 0.0) or np.any(field_image > float(0xFFFFFFFF)):
-        raise UnsupportedImageEncoding("unsupported-image-encoding: word outside u32")
-    if not np.all(field_image == np.floor(field_image)):
-        raise UnsupportedImageEncoding("unsupported-image-encoding: fractional word")
-    if np.any((field_image == 0.0) & np.signbit(field_image)):
-        raise UnsupportedImageEncoding("unsupported-image-encoding: negative zero")
-    words = np.asarray(field_image, dtype="<u4", order="C")
+    words = _canonical_words(field_image)
     return PackedFieldImage(
         profile_sha256=_hex_digest(profile_sha256, "profile_sha256"),
         state_sha256=_hex_digest(state_sha256, "state_sha256"),
@@ -231,26 +261,20 @@ def pack_computer_state(
             page_bytes=page_bytes,
         )
     total_words = state.image.profile.total_words
-    packed = bytearray(total_words * 4)
+    words = np.zeros(total_words, dtype="<u4")
     for page_index in range(state.image.page_count):
         page = state.image.page(page_index)
-        if (
-            not np.all(np.isfinite(page))
-            or np.any(page < 0.0)
-            or np.any(page > float(0xFFFFFFFF))
-            or not np.all(page == np.floor(page))
-            or np.any((page == 0.0) & np.signbit(page))
-        ):
-            raise UnsupportedImageEncoding("unsupported-image-encoding: paged u32 word")
-        start = page_index * PERSISTENCE_PAGE_WORDS * 4
-        payload = np.asarray(page, dtype="<u4", order="C").tobytes(order="C")
-        packed[start : start + len(payload)] = payload
+        encoded = _canonical_words(
+            page, refusal="unsupported-image-encoding: paged u32 word"
+        )
+        start = page_index * PERSISTENCE_PAGE_WORDS
+        words[start : start + encoded.size] = encoded
     return PackedFieldImage(
         profile_sha256=state.profile_sha256,
         state_sha256=_hex_digest(state_sha256, "state_sha256"),
         catalog_sha256=_hex_digest(catalog_sha256, "catalog_sha256"),
         shape=(1, total_words, 1),
-        payload=bytes(packed),
+        payload=words.tobytes(order="C"),
         page_bytes=page_bytes,
     )
 

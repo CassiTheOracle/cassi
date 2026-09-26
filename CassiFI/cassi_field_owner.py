@@ -19951,13 +19951,16 @@ class FieldIntelligenceOwner:
                 completed_row: Any,
                 completed_cycle: Any,
                 completed_membrane: Any,
+                stage_result_sha256: str,
             ) -> tuple[Any, dict[str, Any], dict[str, Any]]:
                 """Close one token's field-owned cycle and membrane epoch.
 
                 A single-token round closes them once after the loop; a prompt
                 block closes the same cycle and epoch at every token boundary
                 inside the loop, so each block position keeps exactly the
-                records a one-token round produced for it.
+                records a one-token round produced for it.  The token's last
+                stage result digest is the caller's, already computed from the
+                canonical result bytes, so it is not recomputed here.
                 """
                 completed_row, raw_resume_receipt = completed_cycle.finish()
                 completed_receipt = {
@@ -19972,7 +19975,7 @@ class FieldIntelligenceOwner:
                 }
                 resume_receipts.append(completed_receipt)
                 completed_row, raw_membrane_receipt = completed_membrane.finish(
-                    stage_result_sha256=sha256_value(stage_results[-1]),
+                    stage_result_sha256=stage_result_sha256,
                     computer=completed_row,
                 )
                 completed_membrane_receipt = dict(raw_membrane_receipt)
@@ -20619,7 +20622,7 @@ class FieldIntelligenceOwner:
                             "resident prompt block lost its next model stage"
                         )
                     successor_row, _, _ = finish_resident_token(
-                        successor_row, model_cycle, membrane
+                        successor_row, model_cycle, membrane, stage_result_sha256
                     )
                     positions_done += 1
                     initial_position = next_position
@@ -20647,7 +20650,9 @@ class FieldIntelligenceOwner:
                             "resident token batch has no field-owned task cycle"
                         )
                     successor_row, membrane_receipt, resume_receipt = (
-                        finish_resident_token(successor_row, model_cycle, membrane)
+                        finish_resident_token(
+                            successor_row, model_cycle, membrane, stage_result_sha256
+                        )
                     )
             except LearningComputerCapacityError as exc:
                 raise FieldIntelligenceError(

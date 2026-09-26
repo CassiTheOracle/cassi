@@ -8779,6 +8779,20 @@ class PagedFieldStaging:
                     continue
                 changed[index] = None
                 continue
+            decoded_sha = hashlib.sha256(decoded).hexdigest()
+            previous = self.image.directory.leaf(index)
+            if (
+                previous is not None
+                and previous.decoded_sha256 == decoded_sha
+                and previous.decoded_bytes == len(decoded)
+                and previous.words == int(page.size)
+            ):
+                # This page's canonical bytes are the predecessor's word for word,
+                # and zlib is deterministic, so compressing them again would
+                # rebuild the predecessor's own leaf.  Keep it and skip the
+                # compression.
+                reused += 1
+                continue
             physical = zlib.compress(decoded, level=6)
             object_sha = hashlib.sha256(physical).hexdigest()
             leaf = PageLeaf(
@@ -8786,11 +8800,10 @@ class PagedFieldStaging:
                 start_word=index * PERSISTENCE_PAGE_WORDS,
                 words=int(page.size),
                 decoded_bytes=len(decoded),
-                decoded_sha256=hashlib.sha256(decoded).hexdigest(),
+                decoded_sha256=decoded_sha,
                 object_bytes=len(physical),
                 object_sha256=object_sha,
             )
-            previous = self.image.directory.leaf(index)
             if previous is not None and previous.digest == leaf.digest:
                 reused += 1
                 continue

@@ -953,15 +953,15 @@ class NeuralMembraneEpoch:
         self._record_device_sites()
         if self._device_session is not None:
             self._device_session.discard_stage_tensors()
-        normalized_epoch = json.loads(
-            _canonical(dict(epoch)).decode("utf-8")
-        )
+        epoch_bytes = _canonical(dict(epoch))
+        normalized_epoch = json.loads(epoch_bytes.decode("utf-8"))
         self._stage_records.append(
             {
                 "epoch": normalized_epoch,
-                "epoch_sha256": hashlib.sha256(
-                    _canonical(normalized_epoch)
-                ).hexdigest(),
+                # Canonical JSON survives a parse and re-encode unchanged, so the
+                # digest of these bytes is the digest of the parsed epoch; hashing
+                # the bytes avoids encoding the same epoch twice per stage.
+                "epoch_sha256": hashlib.sha256(epoch_bytes).hexdigest(),
                 "stage_result_sha256": stage_result_sha256,
                 "site_start": self._recorded_site_count,
                 "site_stop": self._site_count,
