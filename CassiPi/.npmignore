@@ -1,6 +1,0 @@
-fi-runtime/__pycache__/
-fi-runtime/**/__pycache__/
-__pycache__/
-**/__pycache__/
-*.pyc
-**/*.pyc

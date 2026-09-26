@@ -1,5 +1,0 @@
-set(TARGET cassi-qwen)
-add_executable(${TARGET} cassi-qwen.cpp)
-install(TARGETS ${TARGET} RUNTIME)
-target_link_libraries(${TARGET} PRIVATE llama-common llama ggml ${CMAKE_THREAD_LIBS_INIT})
-target_compile_features(${TARGET} PRIVATE cxx_std_17)
