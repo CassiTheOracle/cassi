@@ -28,6 +28,7 @@ from programs.model.records import ModelPackage
 from programs.model.runtime import RUNTIME_SCHEMA as MODEL_RUNTIME_SCHEMA, computation_view as model_view
 from programs.model.runtime import seed_resident_prefix
 from programs.model.runtime import _resident_qwen_graph
+from programs.model.runtime import RESIDENT_PROMPT_BLOCK_MAX
 from programs.python.compiler import compile_python
 from programs.python.kernel import (
     REGIONAL_KERNEL_MAX_WORK as PYTHON_KERNEL_MAX_WORK,
@@ -1639,6 +1640,7 @@ class ProgrammableSwarm:
         _pending_checked: bool = False,
         _runtime_state_snapshot: Mapping[str, Any] | None = None,
         _batch_to_token: bool = False,
+        _block_positions: int = 1,
     ) -> Mapping[str, Any]:
         pending = (
             _pending
@@ -1676,6 +1678,7 @@ class ProgrammableSwarm:
                 "resident_operation_id": operation_id,
                 "request": request,
                 "batch_to_token": _batch_to_token,
+                "block_positions": _block_positions,
             }
         )
         coupled = execute_stage(
@@ -1687,6 +1690,7 @@ class ProgrammableSwarm:
             executor=executor,
             resume_task=True,
             batch_to_token=_batch_to_token,
+            block_positions=_block_positions,
         )
         result = coupled.get("stage_result")
         membrane_receipt = coupled.get("membrane_receipt")
@@ -3684,6 +3688,7 @@ class ProgrammableSwarm:
         control: Mapping[str, Any] | None = None,
         task_id: str | None = None,
         _batch_to_token: bool = False,
+        _block_positions: int = 1,
     ) -> Mapping[str, Any]:
         member = self._member(member_id)
         runtime_state = self._runtime_state(member_id)
@@ -3752,6 +3757,7 @@ class ProgrammableSwarm:
                 selected,
                 result,
                 _batch_to_token=_batch_to_token,
+                _block_positions=_block_positions if _batch_to_token else 1,
             )
         elif pending is not None:
             serviced = self._service_native_model_wait(
@@ -3787,11 +3793,18 @@ class ProgrammableSwarm:
         task_id: str | None = None,
         quantum: int = min(64, REGIONAL_KERNEL_MAX_WORK),
         max_groups: int = 1_024,
+        block_positions: int = RESIDENT_PROMPT_BLOCK_MAX,
     ) -> Mapping[str, Any]:
         if not 1 <= quantum <= max(PYTHON_KERNEL_MAX_WORK, MODEL_KERNEL_MAX_WORK):
             raise ProgrammableSwarmError("quantum is outside the program bound")
         if isinstance(max_groups, bool) or not isinstance(max_groups, int) or max_groups < 1:
             raise ProgrammableSwarmError("max_groups must be positive")
+        if (
+            isinstance(block_positions, bool)
+            or not isinstance(block_positions, int)
+            or not 1 <= block_positions <= RESIDENT_PROMPT_BLOCK_MAX
+        ):
+            raise ProgrammableSwarmError("block_positions is outside the prompt block bound")
         last: Mapping[str, Any] | None = None
         for _ in range(max_groups):
             state = self._runtime_state(member_id)
@@ -3825,6 +3838,7 @@ class ProgrammableSwarm:
                             _pending_checked=True,
                             _runtime_state_snapshot=state,
                             _batch_to_token=True,
+                            _block_positions=block_positions,
                         )
                         continue
                     pending = self._pending_native_model_request(
@@ -3848,6 +3862,7 @@ class ProgrammableSwarm:
                 task_id=task_id,
                 steps=quantum,
                 _batch_to_token=True,
+                _block_positions=block_positions,
             )
         return {
             "schema": SWARM_RESULT_SCHEMA,

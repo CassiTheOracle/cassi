@@ -26,6 +26,10 @@ RESIDENT_STAGE_WAIT_REASON = "resident-model-stage"
 RESIDENT_PREFIX_REUSE_SCHEMA = "cassifi.resident-qwen-prefix-reuse.v1"
 # Largest number of consecutive native tokens one owner round may admit.
 NATIVE_TOKEN_RUN_MAX = 8
+# Largest number of consecutive resident prompt positions one owner round may
+# admit. A block ends early at any head that sampled, so a generated token
+# still takes its own round.
+RESIDENT_PROMPT_BLOCK_MAX = 8
 RESIDENT_PREFIX_SNAPSHOT_WINDOW = 64
 DEFAULT_LIMITS = {
     "max_tensor_elements": 1_048_576,

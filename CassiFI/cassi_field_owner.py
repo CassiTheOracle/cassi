@@ -413,6 +413,57 @@ def _stage_request_digest(request: Mapping[str, Any]) -> str:
     ).hexdigest()
 
 
+def _resident_prompt_block_continues(
+    *,
+    block_positions: int,
+    positions_done: int,
+    completed_position: Any,
+    next_position: Any,
+    model_state: Any,
+) -> bool:
+    """Whether a prompt block carries this round into the next position.
+
+    A block admits only consecutive prompt positions of the same model task:
+    a head that sampled (which is how a generated token and the last prompt
+    position end), the declared position budget, a terminal task phase, or a
+    position that does not continue the sequence all stop the round after its
+    current token has been closed.
+    """
+
+    if block_positions <= 1 or positions_done + 1 >= block_positions:
+        return False
+    if (
+        isinstance(completed_position, bool)
+        or not isinstance(completed_position, int)
+        or isinstance(next_position, bool)
+        or not isinstance(next_position, int)
+        or next_position != completed_position + 1
+        or not isinstance(model_state, Mapping)
+    ):
+        return False
+    if model_state.get("phase") in {"completed", "faulted", "cancelled"}:
+        return False
+    resident_state = model_state.get("resident_model")
+    request_state = model_state.get("request")
+    prompt_tokens = (
+        request_state.get("prompt_tokens") if isinstance(request_state, Mapping) else None
+    )
+    token_index = (
+        resident_state.get("token_index") if isinstance(resident_state, Mapping) else None
+    )
+    if (
+        not isinstance(prompt_tokens, list)
+        or not prompt_tokens
+        or isinstance(token_index, bool)
+        or not isinstance(token_index, int)
+        or token_index < 0
+    ):
+        return False
+    # A token whose head sampled ends the block so its sampler work stays the
+    # last thing the round did; only unsampled prompt positions continue it.
+    return token_index < len(prompt_tokens)
+
+
 def _regional_source_dependencies(value: Any) -> tuple[str, ...]:
     """Collect explicitly typed evidence references from a regional request."""
 
@@ -19657,6 +19708,7 @@ class FieldIntelligenceOwner:
         executor: Any,
         resume_task: bool = False,
         batch_to_token: bool = False,
+        block_positions: int = 1,
         transient_payload: bytes | None = None,
     ) -> Mapping[str, Any]:
         """Compute a private resident stage and publish against its exact lineage."""
@@ -19666,6 +19718,7 @@ class FieldIntelligenceOwner:
             LearningComputerError,
             LearningComputerResidencyWait,
         )
+        from programs.model.runtime import RESIDENT_PROMPT_BLOCK_MAX
 
         _identifier(operation_id, "operation_id")
         _identifier(computer_id, "computer_id")
@@ -19754,6 +19807,18 @@ class FieldIntelligenceOwner:
                 "INVALID_COMPUTER",
                 "resident token batching requires task resume",
             )
+        if (
+            isinstance(block_positions, bool)
+            or not isinstance(block_positions, int)
+            or not 1 <= block_positions <= RESIDENT_PROMPT_BLOCK_MAX
+            or (block_positions > 1 and not batch_to_token)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_COMPUTER",
+                "resident block positions must be a bounded prompt count inside a token batch",
+            )
+        if not batch_to_token:
+            block_positions = 1
         try:
             # One canonical encoding per stage request: the same bytes give the
             # detached executor request and the request-row digest below.
@@ -19773,6 +19838,7 @@ class FieldIntelligenceOwner:
             "stage_request": stage_request,
             "resume_task": resume_task,
             "batch_to_token": batch_to_token,
+            "block_positions": block_positions,
         }
         if ngram_table_id is not None:
             request_row["ngram_table_id"] = ngram_table_id
@@ -19879,6 +19945,42 @@ class FieldIntelligenceOwner:
             seen_stages: set[tuple[Any, Any, Any]] = set()
             model_cycle = None
             growth_receipt = None
+            positions_done = 0
+
+            def finish_resident_token(
+                completed_row: Any,
+                completed_cycle: Any,
+                completed_membrane: Any,
+            ) -> tuple[Any, dict[str, Any], dict[str, Any]]:
+                """Close one token's field-owned cycle and membrane epoch.
+
+                A single-token round closes them once after the loop; a prompt
+                block closes the same cycle and epoch at every token boundary
+                inside the loop, so each block position keeps exactly the
+                records a one-token round produced for it.
+                """
+                completed_row, raw_resume_receipt = completed_cycle.finish()
+                completed_receipt = {
+                    **dict(raw_resume_receipt),
+                    "computer_id": computer_id,
+                    "action": "invoke",
+                    "computer_state_sha256": sha256_value(
+                        completed_row.as_dict()
+                    ),
+                    "state_sha256_kind": "task-transition-with-deferred-neural-plane",
+                    "computer_state_sha256_kind": "task-transition-with-deferred-neural-plane",
+                }
+                resume_receipts.append(completed_receipt)
+                completed_row, raw_membrane_receipt = completed_membrane.finish(
+                    stage_result_sha256=sha256_value(stage_results[-1]),
+                    computer=completed_row,
+                )
+                completed_membrane_receipt = dict(raw_membrane_receipt)
+                membrane_receipts.extend(
+                    completed_membrane.stage_receipts(completed_membrane_receipt)
+                )
+                return completed_row, completed_membrane_receipt, completed_receipt
+
             try:
                 if batch_to_token:
                     task_value = successor_row.named_value("task")
@@ -19912,11 +20014,13 @@ class FieldIntelligenceOwner:
                             "resident token batch has no remaining model graph"
                         )
                     remaining_stages = len(graph) - cursor
+                    block_stages = remaining_stages + (block_positions - 1) * len(graph)
                     region = successor_row._region_capacity()["task"]
-                    # A token holds one membrane epoch through every model
-                    # stage. Reserve room for the task's growing stage ledger
-                    # before opening that epoch: its field profile cannot
-                    reserve_words = remaining_stages * 4096
+                    # Every block position holds one membrane epoch through
+                    # every model stage. Reserve the block's whole stage
+                    # ledger before opening the first epoch: its field profile
+                    # cannot grow while any epoch of the block is open.
+                    reserve_words = block_stages * 4096
                     required_words = region["used_words"] + reserve_words
                     if required_words > region["capacity_words"]:
                         limits = resource_limits
@@ -19943,9 +20047,84 @@ class FieldIntelligenceOwner:
                             raise LearningComputerCapacityError(
                                 "resident token task growth left insufficient storage"
                             )
-                    stage_limit = remaining_stages + 1
+                    stage_limit = block_stages + 1
                 else:
                     stage_limit = 1
+
+                def poll_resident_stage(
+                    poll_cycle: Any,
+                    poll_position: Any,
+                ) -> tuple[bool, Any, Any, Any]:
+                    """Step the field-owned cycle until it offers a stage or ends a token.
+
+                    Returns whether the position settled, the offered operation and
+                    request, and the model task state the loop observed.
+                    """
+
+                    settled = False
+                    next_operation_id: Any = None
+                    next_request: Any = None
+                    poll_state: Any = None
+                    for _dispatch_index in range(8):
+                        runtime_state = poll_cycle.runtime_state
+                        task_record = (
+                            runtime_state.get("tasks", {}).get(task_id)
+                            if isinstance(runtime_state, Mapping)
+                            else None
+                        )
+                        poll_state = (
+                            task_record.get("state")
+                            if isinstance(task_record, Mapping)
+                            else None
+                        )
+                        if not isinstance(poll_state, Mapping):
+                            raise LearningComputerError(
+                                "resident token batch lost its model task"
+                            )
+                        resident_state = poll_state.get("resident_model")
+                        if poll_state.get("phase") in {
+                            "completed",
+                            "faulted",
+                            "cancelled",
+                        }:
+                            settled = True
+                            break
+                        if (
+                            isinstance(resident_state, Mapping)
+                            and resident_state.get("position") != poll_position
+                        ):
+                            settled = True
+                            break
+                        if poll_state.get("phase") == "waiting":
+                            if (
+                                poll_state.get("wait_reason")
+                                != "resident-model-stage"
+                            ):
+                                raise LearningComputerError(
+                                    "resident token batch reached an alien wait"
+                                )
+                            next_operation_id = poll_state.get("await_target")
+                            next_operation = poll_state.get(
+                                "operations", {}
+                            ).get(next_operation_id)
+                            next_request = (
+                                next_operation.get("request")
+                                if isinstance(next_operation, Mapping)
+                                and next_operation.get("phase") == "proposed"
+                                else None
+                            )
+                            break
+                        if poll_state.get("phase") != "running":
+                            raise LearningComputerError(
+                                "resident token batch has an invalid phase"
+                            )
+                        poll_cycle.advance(arguments={}, quantum=1)
+                    else:
+                        raise LearningComputerCapacityError(
+                            "resident token batch dispatch exceeds 8 steps"
+                        )
+                    return settled, next_operation_id, next_request, poll_state
+
                 for _batch_index in range(stage_limit):
                     stage_key = (
                         current_request.get("position"),
@@ -20379,78 +20558,74 @@ class FieldIntelligenceOwner:
                     token_boundary = False
                     next_operation_id: Any = None
                     next_request: Any = None
-                    for _dispatch_index in range(8):
-                        runtime_state = model_cycle.runtime_state
-                        task_record = (
-                            runtime_state.get("tasks", {}).get(task_id)
-                            if isinstance(runtime_state, Mapping)
-                            else None
-                        )
-                        model_state = (
-                            task_record.get("state")
-                            if isinstance(task_record, Mapping)
-                            else None
-                        )
-                        if not isinstance(model_state, Mapping):
-                            raise LearningComputerError(
-                                "resident token batch lost its model task"
-                            )
-                        resident_state = model_state.get("resident_model")
-                        if model_state.get("phase") in {
-                            "completed",
-                            "faulted",
-                            "cancelled",
-                        }:
-                            token_boundary = True
-                            break
-                        if (
-                            isinstance(resident_state, Mapping)
-                            and resident_state.get("position")
-                            != initial_position
-                        ):
-                            token_boundary = True
-                            break
-                        if model_state.get("phase") == "waiting":
-                            if (
-                                model_state.get("wait_reason")
-                                != "resident-model-stage"
-                            ):
-                                raise LearningComputerError(
-                                    "resident token batch reached an alien wait"
-                                )
-                            next_operation_id = model_state.get("await_target")
-                            next_operation = model_state.get(
-                                "operations", {}
-                            ).get(next_operation_id)
-                            next_request = (
-                                next_operation.get("request")
-                                if isinstance(next_operation, Mapping)
-                                and next_operation.get("phase") == "proposed"
-                                else None
-                            )
-                            break
-                        if model_state.get("phase") != "running":
-                            raise LearningComputerError(
-                                "resident token batch has an invalid phase"
-                            )
-                        model_cycle.advance(
-                            arguments={}, quantum=1,
-                        )
-                    else:
-                        raise LearningComputerCapacityError(
-                            "resident token batch dispatch exceeds 8 steps"
-                        )
-                    if token_boundary:
-                        break
-                    if (
+                    (
+                        token_boundary,
+                        next_operation_id,
+                        next_request,
+                        model_state,
+                    ) = poll_resident_stage(model_cycle, initial_position)
+                    if not token_boundary and (
                         not isinstance(next_operation_id, str)
                         or not isinstance(next_request, Mapping)
                     ):
                         raise LearningComputerError(
                             "resident token batch next stage is invalid"
                         )
-                    if next_request.get("position") != initial_position:
+                    if (
+                        not token_boundary
+                        and next_request.get("position") == initial_position
+                    ):
+                        current_resident_operation_id = next_operation_id
+                        current_request = json.loads(
+                            canonical_json_bytes(dict(next_request)).decode("utf-8")
+                        )
+                        continue
+                    # The position settled. A prompt block closes this token's
+                    # cycle and epoch exactly as a one-token round does, then
+                    # carries the same round into the next prompt position while
+                    # its budget allows; a sampling head, the position budget,
+                    # or the end of the prompt stops the round here.
+                    block_state = model_state.get("resident_model")
+                    next_position = (
+                        block_state.get("position")
+                        if isinstance(block_state, Mapping)
+                        else None
+                    )
+                    if not _resident_prompt_block_continues(
+                        block_positions=block_positions,
+                        positions_done=positions_done,
+                        completed_position=initial_position,
+                        next_position=next_position,
+                        model_state=model_state,
+                    ):
                         break
+                    # The token's own cycle advances the task to the next
+                    # position's first stage before it closes, so the write-back
+                    # that closes the token already publishes that proposal and
+                    # the next stage resumes from the state this round wrote.
+                    (
+                        block_boundary,
+                        next_operation_id,
+                        next_request,
+                        block_state,
+                    ) = poll_resident_stage(model_cycle, next_position)
+                    if (
+                        block_boundary
+                        or not isinstance(next_operation_id, str)
+                        or not isinstance(next_request, Mapping)
+                        or next_request.get("position") != next_position
+                    ):
+                        raise LearningComputerError(
+                            "resident prompt block lost its next model stage"
+                        )
+                    successor_row, _, _ = finish_resident_token(
+                        successor_row, model_cycle, membrane
+                    )
+                    positions_done += 1
+                    initial_position = next_position
+                    # The next prompt position opens its own epoch on the closed
+                    # successor, and its first stage request is already offered.
+                    membrane = None
                     current_resident_operation_id = next_operation_id
                     current_request = json.loads(
                         canonical_json_bytes(dict(next_request)).decode("utf-8")
@@ -20459,7 +20634,7 @@ class FieldIntelligenceOwner:
                     raise LearningComputerCapacityError(
                         "resident token batch exceeded its model graph stages "
                         f"(cursor={model_state.get('graph_cursor')}, "
-                        f"position={resident_state.get('position') if isinstance(resident_state, Mapping) else None}, "
+                        f"position={initial_position}, "
                         f"stage={current_request.get('stage')})"
                     )
                 if batch_to_token:
@@ -20471,24 +20646,8 @@ class FieldIntelligenceOwner:
                         raise LearningComputerError(
                             "resident token batch has no field-owned task cycle"
                         )
-                    successor_row, raw_resume_receipt = model_cycle.finish()
-                    resume_receipt = {
-                        **dict(raw_resume_receipt),
-                        "computer_id": computer_id,
-                        "action": "invoke",
-                        "computer_state_sha256": sha256_value(
-                            successor_row.as_dict()
-                        ),
-                        "state_sha256_kind": "task-transition-with-deferred-neural-plane",
-                        "computer_state_sha256_kind": "task-transition-with-deferred-neural-plane",
-                    }
-                    resume_receipts.append(resume_receipt)
-                    successor_row, membrane_receipt = membrane.finish(
-                        stage_result_sha256=sha256_value(stage_results[-1]),
-                        computer=successor_row,
-                    )
-                    membrane_receipts = membrane.stage_receipts(
-                        membrane_receipt
+                    successor_row, membrane_receipt, resume_receipt = (
+                        finish_resident_token(successor_row, model_cycle, membrane)
                     )
             except LearningComputerCapacityError as exc:
                 raise FieldIntelligenceError(
