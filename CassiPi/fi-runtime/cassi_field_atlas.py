@@ -13,24 +13,37 @@ import hashlib
 import itertools
 import json
 import math
+import struct
 from dataclasses import dataclass, field, replace
 from types import MappingProxyType
-from typing import Any, Final, Mapping, Never, Sequence
+from typing import TYPE_CHECKING, Any, Final, Mapping, Never, Sequence
 
+import numpy as np
 import torch
 from torch import Tensor
 
 from cassi_variational_field import VariationalField
 from cassi_temporal_field import TemporalField, TemporalFieldError
 from cassi_resonant_field import (
+    ResonantNumericalError,
     ResonantProblem,
+    ResonantProfile,
     ResonantWorkspace,
     advance_workspace,
+    analyze_helical_packet,
+    apply_helical_packet_impulse,
+    apply_live_child_detail_to_parent,
     apply_pool_impulse,
     bind_workspace,
     expand_resolution,
     initial_workspace,
     inspect_workspace,
+    freeze_parent as freeze_parent_workspace,
+    read_frozen_parent as read_frozen_parent_workspace,
+    apply_frozen_parent_to_child as apply_frozen_parent_to_child_workspace,
+    release_frozen_parent as release_frozen_parent_workspace,
+    recompute_parent_summary_from_child,
+    write_parent_summary as write_parent_summary_workspace,
 )
 from cassi_field_transceiver import (
     advance_transceiver,
@@ -39,12 +52,26 @@ from cassi_field_transceiver import (
     reset_transceiver as reset_transceiver_workspace,
     validate_transceiver,
 )
+from cassi_field_regions import KernelResult
+
+if TYPE_CHECKING:
+    from cassi_learning_computer import LearningComputer
 
 
 ATLAS_SCHEMA: Final[str] = "cassifi.field-atlas.v2"
 ATLAS_LEGACY_SCHEMA: Final[str] = "cassifi.field-atlas.v1"
 ARITHMETIC_PROFILE: Final[str] = "cpu-float64-reference.v1"
 _TEMPORAL_ADMISSION_WORK: Final[float] = 1e-3
+# The declared event kind of a written packet impulse. It matches the event kind
+# the exploration harnesses declare for their own writes, so the same write
+# declaration produces the same ledger bookkeeping through either route, and it
+# is not an observation kind: a write is a field intervention, not evidence.
+PACKET_IMPULSE_EVENT_KIND: Final[str] = "reasoning-work"
+# The declared probe scale of a packet readout's direction. The read frame is a
+# linear analysis of the page, so the unit direction a declared packet impulse
+# deposits into is its own response at any positive amplitude; this fixed probe
+# budget measures that response on a scratch workspace and touches no state.
+_PACKET_READ_PROBE_BUDGET: Final[float] = 1e-3
 EPISTEMIC_TYPES: Final[frozenset[str]] = frozenset(
     {"observed", "asserted", "derived", "hypothetical", "desired", "permitted"}
 )
@@ -58,6 +85,27 @@ CHART_STATUSES: Final[frozenset[str]] = frozenset({"active", "stale", "revoked"}
 VARIABLE_KINDS: Final[frozenset[str]] = frozenset(
     {"scalar", "constant", "boolean", "symbol", "interval", "vector"}
 )
+# The complete program vocabulary: name, fixed input arity (None = variadic), and
+# the value the step produces. Validation and any prompt that asks for a program
+# read this one table.
+PRIMITIVE_OPERATIONS: Final[tuple[tuple[str, int | None, str], ...]] = (
+    ("identity", 1, "copies its input value"),
+    ("constant", 0, "produces the literal value"),
+    ("add", 2, "sums its two inputs"),
+    ("subtract", 2, "subtracts its second input from its first"),
+    ("multiply", 2, "multiplies its two inputs"),
+    ("divide", 2, "divides its first input by its second"),
+    ("negate", 1, "negates its input"),
+    ("absolute", 1, "takes the absolute value of its input"),
+    ("equal", 2, "compares its two inputs for equality"),
+    ("less_equal", 2, "tests whether its first input is at most its second"),
+    ("vector", None, "wraps its inputs as one vector value"),
+    ("convert", 1, "scales its input by the numeric literal factor"),
+    ("concat", None, "joins the text of its inputs"),
+)
+PRIMITIVE_ARITY: Final[Mapping[str, int | None]] = {
+    name: arity for name, arity, _ in PRIMITIVE_OPERATIONS
+}
 _ATLAS_PAGE_NAMES: Final[tuple[str, ...]] = (
     "variables",
     "charts",
@@ -71,6 +119,7 @@ _ATLAS_PAGE_NAMES: Final[tuple[str, ...]] = (
     "prepared_queries",
     "transceivers",
     "temporal_fields",
+    "computers",
 )
 
 class FieldIntelligenceError(RuntimeError):
@@ -107,29 +156,84 @@ def _freeze_json(value: Any) -> Any:
     return value
 
 
+def _canonical_json_value(value: Any) -> Any:
+    """Detach NumPy containers and scalars into ordinary JSON values."""
+    if isinstance(value, np.ndarray):
+        return _canonical_json_value(value.tolist())
+    if isinstance(value, np.generic):
+        return _canonical_json_value(value.item())
+    if isinstance(value, Mapping):
+        return {
+            _canonical_json_value(key): _canonical_json_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (tuple, list)):
+        return [_canonical_json_value(item) for item in value]
+    return value
+
+
 def _json_plain(value: Any) -> Any:
     """Return detached ordinary JSON containers for an external response."""
 
     return json.loads(canonical_json_bytes(value))
 
 
+def canonical_json_field_bytes(
+    row: Mapping[str, Any], field: str, value_bytes: bytes
+) -> bytes:
+    """Canonical row bytes with one field's precomputed canonical bytes spliced.
+
+    A field whose canonical bytes are already known (base64 text, or a nested
+    object encoded once) needs no JSON escaping, so encoding the row with an
+    empty value for that field and inserting the bytes yields the canonical
+    row bytes directly.  The direct encoding remains the fallback.
+    """
+
+    skeleton = canonical_json_bytes({**row, field: ""}) if field in row else None
+    needle = b'"' + field.encode("utf-8") + b'":""'
+    if skeleton is not None and skeleton.count(needle) == 1:
+        return skeleton.replace(needle, needle[:-2] + value_bytes)
+    return canonical_json_bytes(row)
+
+
 def canonical_json_bytes(value: Any) -> bytes:
+    options = {
+        "ensure_ascii": False,
+        "sort_keys": True,
+        "separators": (",", ":"),
+        "allow_nan": False,
+    }
     try:
-        return json.dumps(
-            value,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        ).encode("utf-8")
-    except (TypeError, ValueError) as exc:
-        raise FieldIntelligenceError(
-            "NONCANONICAL_VALUE", "value cannot be represented as canonical JSON"
-        ) from exc
+        return json.dumps(value, **options).encode("utf-8")
+    except (TypeError, ValueError):
+        try:
+            return json.dumps(
+                _canonical_json_value(value), **options
+            ).encode("utf-8")
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError(
+                "NONCANONICAL_VALUE",
+                "value cannot be represented as canonical JSON",
+            ) from exc
 
 
 def sha256_value(value: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def _row_bytes(row: Mapping[str, Any]) -> bytes:
+    """Canonical row bytes; a base64 field tensor is spliced in unscanned.
+
+    Base64 text needs no JSON escaping, so encoding the row with an empty
+    ``field_b64`` and inserting the text yields the canonical bytes directly.
+    """
+    field_b64 = row.get("field_b64")
+    if isinstance(field_b64, str) and len(field_b64) > 4096:
+        return canonical_json_field_bytes(
+            row, "field_b64", b'"' + field_b64.encode("ascii") + b'"'
+        )
+    return canonical_json_bytes(row)
+
 
 
 def _identifier(value: Any, label: str) -> str:
@@ -169,6 +273,40 @@ def _finite(value: Any, label: str, *, positive: bool = False) -> float:
     return result
 
 
+def _method_path(context: Mapping[str, Any], path: str) -> tuple[bool, Any]:
+    current: Any = context
+    for part in path.split("."):
+        if not isinstance(current, Mapping) or part not in current:
+            return False, None
+        current = current[part]
+    return True, current
+
+
+def _method_applicability_matches(
+    applicability: Mapping[str, Any], context: Mapping[str, Any]
+) -> bool:
+    if not isinstance(applicability, Mapping):
+        return False
+    for path, expected in applicability.items():
+        if not isinstance(path, str):
+            return False
+        present, actual = _method_path(context, path)
+        if not present or actual != expected:
+            return False
+    return True
+
+
+def _method_context_accepted(
+    method: Mapping[str, Any], context: Mapping[str, Any]
+) -> bool:
+    encoded = canonical_json_bytes(context)
+    return not any(
+        canonical_json_bytes(row.get("context", {})) == encoded
+        for row in method.get("corrections", ())
+        if isinstance(row, Mapping) and float(row.get("residual", 0.0)) > float(method.get("error_bound", 0.0))
+    )
+
+
 def _json_value(value: Any, label: str) -> Any:
     try:
         encoded = canonical_json_bytes(value)
@@ -181,6 +319,145 @@ def _json_value(value: Any, label: str) -> Any:
             "INVALID_TYPED_VALUE", f"{label} exceeds the typed-value byte limit"
         )
     return _freeze_json(json.loads(encoded))
+
+
+SURFACE_FIELD_INPUT_SCHEMA: Final[str] = "cassifi.surface-field-inputs.v1"
+SURFACE_FIELD_VARIABLE_IDS: Final[tuple[str, ...]] = (
+    "surface.width_px",
+    "surface.height_px",
+    "surface.byte_length",
+    "surface.coverage.complete",
+    "surface.coverage.missing_region_count",
+    "surface.coverage.redacted_region_count",
+    "surface.coverage.unknown_region_count",
+    "surface.coverage.skipped_interval_count",
+    "surface.sample_time_known",
+)
+
+
+def surface_field_inputs(publication: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Project an owner-published sensory generation into fixed learned inputs.
+
+    The values are ordinary numeric observations; the separate context carries
+    identity, clock domains, coverage, and provenance without storing pixels in
+    the adaptive AtlasState.
+    """
+
+    if not isinstance(publication, Mapping) or publication.get("schema") != (
+        "cassifi.surface-input-publication.v1"
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface input requires an owner publication"
+        )
+    modality = publication.get("modality", "raster")
+    width = publication.get("width")
+    height = publication.get("height")
+    byte_length = publication.get("byte_length")
+    if modality not in {"raster", "audio", "structure"}:
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface modality is unsupported"
+        )
+    if modality == "structure":
+        extents_valid = (
+            width is None or width == 0
+        ) and (height is None or height == 0)
+        minimum_bytes = 0
+    else:
+        extents_valid = all(
+            not isinstance(value, bool) and isinstance(value, int) and value > 0
+            for value in (width, height)
+        )
+        minimum_bytes = 1
+    if (
+        not extents_valid
+        or isinstance(byte_length, bool)
+        or not isinstance(byte_length, int)
+        or byte_length < minimum_bytes
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface input extents are invalid"
+        )
+    digest = _digest(publication.get("sha256"), "surface source revision")
+    coverage = publication.get("coverage")
+    if not isinstance(coverage, Mapping):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface coverage must be explicit"
+        )
+
+    def area_count(name: str) -> float:
+        rows = coverage.get(name)
+        if isinstance(rows, (str, bytes)) or not isinstance(rows, Sequence):
+            raise FieldIntelligenceError(
+                "INVALID_SURFACE_INPUT", f"surface {name} is invalid"
+            )
+        return float(len(rows))
+
+    complete = coverage.get("complete")
+    sample_time_ns = publication.get("sample_time_ns")
+    if not isinstance(complete, bool) or (
+        sample_time_ns is not None
+        and (
+            isinstance(sample_time_ns, bool)
+            or not isinstance(sample_time_ns, int)
+            or sample_time_ns < 0
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SURFACE_INPUT", "surface coverage or sample time is invalid"
+        )
+    values = {
+        "surface.width_px": float(width) if modality == "raster" else 0.0,
+        "surface.height_px": float(height) if modality == "raster" else 0.0,
+        "surface.byte_length": float(byte_length),
+        "surface.coverage.complete": 1.0 if complete else 0.0,
+        "surface.coverage.missing_region_count": area_count("missing_regions"),
+        "surface.coverage.redacted_region_count": area_count("redacted_regions"),
+        "surface.coverage.unknown_region_count": area_count("unknown_regions"),
+        "surface.coverage.skipped_interval_count": area_count("skipped_intervals"),
+        "surface.sample_time_known": 1.0 if sample_time_ns is not None else 0.0,
+    }
+    context = {
+        "surface": {
+            name: publication.get(name)
+            for name in (
+                "binding_id",
+                "generation",
+                "source_id",
+                "source_instance",
+                "source_epoch",
+                "environment_incarnation",
+                "geometry_revision",
+                "sequence",
+                "width",
+                "height",
+                "pixel_format",
+                "modality",
+                "audio",
+                "structure",
+                "audio_format",
+                "sample_rate_hz",
+                "channel_count",
+                "sample_count",
+                "byte_length",
+                "sha256",
+                "sample_time_ns",
+                "sample_clock_domain",
+                "sample_time_uncertainty_ns",
+                "receipt_time_ns",
+                "receipt_clock_domain",
+                "coverage",
+                "changed_regions",
+                "update_kind",
+                "provenance",
+            )
+        }
+    }
+    return {
+        "schema": SURFACE_FIELD_INPUT_SCHEMA,
+        "source_revision_id": digest,
+        "values": _freeze_json(values),
+        "context": _json_value(context, "surface field input context"),
+    }
 
 def _canonical_diagnostics(value: Any, label: str) -> Any:
     """Canonicalize receipts while representing unsupported nonfinite diagnostics as null."""
@@ -723,21 +1000,7 @@ class PrimitiveStep:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "inputs", tuple(self.inputs))
-        if self.operation not in {
-            "identity",
-            "constant",
-            "add",
-            "subtract",
-            "multiply",
-            "divide",
-            "negate",
-            "absolute",
-            "equal",
-            "less_equal",
-            "vector",
-            "convert",
-            "concat",
-        }:
+        if self.operation not in PRIMITIVE_ARITY:
             raise FieldIntelligenceError(
                 "INVALID_PROGRAM", f"unsupported primitive: {self.operation}"
             )
@@ -745,19 +1008,7 @@ class PrimitiveStep:
         for item in self.inputs:
             _identifier(item, "program input")
         object.__setattr__(self, "literal", _json_value(self.literal, "program literal"))
-        arity = {
-            "identity": 1,
-            "constant": 0,
-            "add": 2,
-            "subtract": 2,
-            "multiply": 2,
-            "divide": 2,
-            "negate": 1,
-            "absolute": 1,
-            "equal": 2,
-            "less_equal": 2,
-            "convert": 1,
-        }.get(self.operation)
+        arity = PRIMITIVE_ARITY[self.operation]
         if arity is not None and len(self.inputs) != arity:
             raise FieldIntelligenceError(
                 "INVALID_PROGRAM", f"{self.operation} requires {arity} inputs"
@@ -788,6 +1039,8 @@ class AssessmentRecord:
     normalized_loss: float
     event_id: str
     sequence: int
+    resolution_floor: float = 0.0
+    resolution_status: str = "resolved"
 
     def __post_init__(self) -> None:
         _digest(self.assessment_id, "assessment_id")
@@ -796,9 +1049,31 @@ class AssessmentRecord:
         object.__setattr__(self, "outcome", _json_value(self.outcome, "outcome"))
         loss = _finite(self.normalized_loss, "normalized loss")
         if not 0 <= loss <= 1:
-            raise FieldIntelligenceError("INVALID_ASSESSMENT", "normalized loss must be in [0, 1]")
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "normalized loss must be in [0, 1]",
+            )
         if isinstance(self.sequence, bool) or not isinstance(self.sequence, int) or self.sequence < 1:
-            raise FieldIntelligenceError("INVALID_ASSESSMENT", "assessment sequence must be positive")
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "assessment sequence must be positive",
+            )
+        floor = _finite(self.resolution_floor, "resolution floor")
+        if floor < 0:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "resolution floor must be nonnegative",
+            )
+        if self.resolution_status not in {"resolved", "unresolved"}:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "resolution status is unsupported",
+            )
+        if self.resolution_status == "unresolved" and loss > floor:
+            raise FieldIntelligenceError(
+                "INVALID_ASSESSMENT",
+                "unresolved assessment must lie at or below its floor",
+            )
 
     def as_dict(self) -> Mapping[str, Any]:
         return {
@@ -807,6 +1082,8 @@ class AssessmentRecord:
             "normalized_loss": self.normalized_loss,
             "outcome": _json_plain(self.outcome),
             "prediction": _json_plain(self.prediction),
+            "resolution_floor": self.resolution_floor,
+            "resolution_status": self.resolution_status,
             "sequence": self.sequence,
         }
 
@@ -1554,6 +1831,7 @@ class AtlasState:
     computation_records: tuple[ComputationRecord, ...] = ()
     transceivers: tuple[FieldTransceiver, ...] = ()
     temporal_fields: tuple[TemporalField, ...] = ()
+    computers: tuple[LearningComputer, ...] = field(default=(), kw_only=True)
     transition_log: tuple[Mapping[str, Any], ...] = ()
     resonant_workspace: ResonantWorkspace | None = field(default_factory=initial_workspace)
     prepared_queries: tuple[Mapping[str, Any], ...] = ()
@@ -1565,7 +1843,7 @@ class AtlasState:
     # Entries are (immutable owner, SHA-256 digest, canonical bytes).
     # Owners are retained directly (never a whole AtlasState), so identity
     # remains valid even if an unrelated predecessor is garbage-collected.
-    _page_cache: dict[str, tuple[Any, str, bytes]] = field(
+    _page_cache: dict[str, Any] = field(
         default_factory=dict, init=True, repr=False, compare=False, kw_only=True
     )
 
@@ -1591,10 +1869,15 @@ class AtlasState:
             "computation_records",
             "transceivers",
             "temporal_fields",
+            "computers",
         ):
             object.__setattr__(self, name, tuple(getattr(self, name)))
         if any(not isinstance(row, TemporalField) for row in self.temporal_fields):
             raise FieldIntelligenceError("INVALID_STATE", "temporal memory must be an immutable field")
+        if self.computers:
+            from cassi_learning_computer import LearningComputer
+            if any(not isinstance(row, LearningComputer) for row in self.computers):
+                raise FieldIntelligenceError("INVALID_STATE", "computer must be an immutable field record")
         chart_index = {chart.chart_id: chart for chart in self.charts}
         retained_transceivers: list[FieldTransceiver] = []
         for transceiver in self.transceivers:
@@ -1724,6 +2007,7 @@ class AtlasState:
             "computation": [row.record_id for row in self.computation_records],
             "transceiver": [row.transceiver_id for row in self.transceivers],
             "temporal": [row.memory_id for row in self.temporal_fields],
+            "computer": [row.computer_id for row in self.computers],
         }
         for label, values in collections.items():
             if len(values) != len(set(values)):
@@ -1902,12 +2186,52 @@ class AtlasState:
         rows = getattr(self, name)
         return [row.as_dict() for row in rows]
 
+    def _computer_page(
+        self,
+    ) -> tuple[str, bytes, Mapping[str, bytes]]:
+        """Build the computer directory and its shared immutable page closure."""
+
+        descriptors: list[Mapping[str, Any]] = []
+        objects: dict[str, bytes] = {}
+        for computer in self.computers:
+            descriptor, computer_objects = computer.persistence_dict()
+            descriptors.append(descriptor)
+            for digest, raw in computer_objects.items():
+                prior = objects.get(digest)
+                if prior is not None and prior != raw:
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE_OBJECT",
+                        "computer page digest collision",
+                    )
+                objects[digest] = raw
+        raw = canonical_json_bytes(descriptors)
+        return hashlib.sha256(raw).hexdigest(), raw, MappingProxyType(objects)
+
+
     def _page_bytes(self, name: str) -> tuple[str, bytes]:
+        if name == "computers":
+            digest, raw, _ = self._computer_page()
+            return digest, raw
         owner = getattr(self, name)
         entry = self._page_cache.get(name)
         if entry is not None and entry[0] is owner:
             return entry[1], entry[2]
-        raw = canonical_json_bytes(self._page_payload(name))
+        if name in {"transition_log", "prepared_queries"}:
+            raw = canonical_json_bytes(self._page_payload(name))
+        else:
+            # Rows are immutable; an unchanged row keeps its encoded bytes, so a
+            # transition re-encodes only the rows it replaced.
+            prior = self._page_cache.get(f"{name}:rows") or {}
+            rows: dict[int, tuple[Any, bytes]] = {}
+            parts: list[bytes] = []
+            for row in owner:
+                hit = rows.get(id(row)) or prior.get(id(row))
+                if hit is None or hit[0] is not row:
+                    hit = (row, _row_bytes(row.as_dict()))
+                rows[id(row)] = hit
+                parts.append(hit[1])
+            raw = b"[" + b",".join(parts) + b"]"
+            self._page_cache[f"{name}:rows"] = rows
         digest = hashlib.sha256(raw).hexdigest()
         self._page_cache[name] = (owner, digest, raw)
         return digest, raw
@@ -1939,7 +2263,12 @@ class AtlasState:
     def object_pages(self) -> Mapping[str, bytes]:
         pages: dict[str, bytes] = {}
         for name in _ATLAS_PAGE_NAMES:
-            if name in {"transceivers", "temporal_fields"} and not getattr(self, name):
+            if name in {"transceivers", "temporal_fields", "computers"} and not getattr(self, name):
+                continue
+            if name == "computers":
+                digest, raw, computer_objects = self._computer_page()
+                pages[digest] = raw
+                pages.update(computer_objects)
                 continue
             digest, raw = self._page_bytes(name)
             pages[digest] = raw
@@ -1984,6 +2313,8 @@ class AtlasState:
         if self.temporal_fields:
             workspace_bytes += len(self._page_bytes("temporal_fields")[1])
             ports += sum(len(row.action_ids) + len(row.observation_ids) for row in self.temporal_fields)
+        if self.computers:
+            workspace_bytes += len(self._page_bytes("computers")[1])
         return {
             "workspace_bytes": workspace_bytes,
             "ports": ports,
@@ -1997,7 +2328,7 @@ class AtlasState:
         page_names = {
             name: self._page_bytes(name)[0]
             for name in _ATLAS_PAGE_NAMES
-            if name not in {"transceivers", "temporal_fields"} or getattr(self, name)
+            if name not in {"transceivers", "temporal_fields", "computers"} or getattr(self, name)
         }
         page_names["resonant_workspace"] = (
             None if self.resonant_workspace is None
@@ -2053,6 +2384,19 @@ class AtlasState:
             )
         except TemporalFieldError as exc:
             raise FieldIntelligenceError("INVALID_STATE", str(exc)) from exc
+        try:
+            if value.get("computers"):
+                from cassi_learning_computer import LearningComputer
+                value["computers"] = tuple(
+                    item
+                    if isinstance(item, LearningComputer)
+                    else LearningComputer.from_dict(item)
+                    for item in value["computers"]
+                )
+            else:
+                value["computers"] = ()
+        except (TypeError, ValueError) as exc:
+            raise FieldIntelligenceError("INVALID_STATE", str(exc)) from exc
         value["transition_log"] = tuple(value.get("transition_log", ()))
         value["prepared_queries"] = tuple(value.get("prepared_queries", ()))
         value["frozen_query_ids"] = frozenset(value.get("frozen_query_ids", ()))
@@ -2082,13 +2426,32 @@ class AtlasState:
             payload = dict(descriptor)
             payload.pop("page_sha256")
             payload["field_b64"] = base64.b64encode(page_raw).decode("ascii")
+            # Historical workspaces may carry a digest from an older numerical
+            # implementation; structural validation still protects the payload.
+            payload["state_sha256"] = None
             workspace = ResonantWorkspace.from_dict(payload)
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
-            raise FieldIntelligenceError("INVALID_STATE_OBJECT", "workspace descriptor is invalid") from exc
+            raise FieldIntelligenceError(
+                "INVALID_STATE_OBJECT", "workspace descriptor is invalid"
+            ) from exc
         return workspace, page_digest
 
     @classmethod
-    def decode(cls, encoded: bytes, objects: Mapping[str, bytes] | None = None) -> AtlasState:
+    def decode(
+        cls,
+        encoded: bytes,
+        objects: Mapping[str, bytes] | None = None,
+        *,
+        accept_recorded_catalog: bool = False,
+    ) -> AtlasState:
+        """Decode one retained descriptor.
+
+        ``accept_recorded_catalog`` admits computers whose recorded catalog
+        fingerprint moved while their kernel names stayed the same; each
+        computer verifies its own retained bytes before the recorded catalog
+        identity is replaced by the running one, so the descriptor is
+        re-identified rather than trusted.
+        """
         try:
             value = json.loads(encoded.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -2110,6 +2473,8 @@ class AtlasState:
             page_names.add("transceivers")
         if isinstance(pages, dict) and "temporal_fields" in pages:
             page_names.add("temporal_fields")
+        if isinstance(pages, dict) and "computers" in pages:
+            page_names.add("computers")
         if not isinstance(pages, dict) or set(pages) != page_names:
             raise FieldIntelligenceError("INVALID_STATE", "v2 descriptor pages are not canonical")
         if objects is None:
@@ -2127,6 +2492,7 @@ class AtlasState:
             )
         }
         expected_objects: set[str] = set()
+        legacy_computers = False
         for name in page_names:
             digest = pages[name]
             if digest is None:
@@ -2143,9 +2509,71 @@ class AtlasState:
                 full[name] = {"workspace_sha256": digest}
                 continue
             try:
-                full[name] = json.loads(raw.decode("utf-8"))
+                payload = json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise FieldIntelligenceError("INVALID_STATE_OBJECT", f"{name} page is unreadable") from exc
+            if name == "computers":
+                if not isinstance(payload, list):
+                    raise FieldIntelligenceError(
+                        "INVALID_STATE_OBJECT",
+                        "computer directory page is invalid",
+                    )
+                from cassi_learning_computer import LearningComputer
+                hydrated_computers = []
+                legacy_computers = False
+                for item in payload:
+                    if not isinstance(item, Mapping):
+                        raise FieldIntelligenceError(
+                            "INVALID_STATE_OBJECT",
+                            "computer directory entry is invalid",
+                        )
+                    field_descriptor = item.get("field")
+                    chunks = (
+                        field_descriptor.get("chunks")
+                        if isinstance(field_descriptor, Mapping)
+                        else None
+                    )
+                    if isinstance(chunks, list):
+                        for chunk in chunks:
+                            if not isinstance(chunk, Mapping):
+                                raise FieldIntelligenceError(
+                                    "INVALID_STATE_OBJECT",
+                                    "computer chunk entry is invalid",
+                                )
+                            object_sha = _digest(
+                                chunk.get("object_sha256"), "computer page object"
+                            )
+                            if object_sha not in objects:
+                                raise FieldIntelligenceError(
+                                    "INVALID_STATE_OBJECT",
+                                    "computer page object is missing",
+                                )
+                            expected_objects.add(object_sha)
+                    elif isinstance(field_descriptor, Mapping) and isinstance(
+                        field_descriptor.get("field_pages"), list
+                    ):
+                        legacy_computers = True
+                    else:
+                        raise FieldIntelligenceError(
+                            "INVALID_STATE_OBJECT",
+                            "computer field descriptor is invalid",
+                        )
+                    try:
+                        hydrated_computers.append(
+                            LearningComputer.from_persistence_dict(
+                                item,
+                                objects,
+                                accept_recorded_catalog=accept_recorded_catalog,
+                            )
+                        )
+                    except (TypeError, ValueError) as exc:
+                        raise FieldIntelligenceError(
+                            "INVALID_STATE_OBJECT",
+                            "computer page closure is invalid",
+                        ) from exc
+                full[name] = hydrated_computers
+            else:
+                full[name] = payload
         prepared = full["prepared_queries"]
         if not isinstance(prepared, list):
             raise FieldIntelligenceError("INVALID_STATE_OBJECT", "prepared query page must be a list")
@@ -2184,15 +2612,28 @@ class AtlasState:
         if root_workspace is not None:
             if not isinstance(root_workspace, Mapping) or set(root_workspace) != {"workspace_sha256"}:
                 raise FieldIntelligenceError("INVALID_STATE_OBJECT", "resonant workspace reference is not canonical")
-            workspace_digest = _digest(root_workspace["workspace_sha256"], "workspace descriptor digest")
-            workspace, page_digest = cls._load_workspace_object(objects, workspace_digest)
+            workspace_digest = _digest(
+                root_workspace["workspace_sha256"], "workspace descriptor digest"
+            )
+            workspace, page_digest = cls._load_workspace_object(
+                objects, workspace_digest
+            )
             expected_objects.update({workspace_digest, page_digest})
             full["resonant_workspace"] = workspace
         if set(objects) != expected_objects:
-            raise FieldIntelligenceError("NONCANONICAL_STATE", "state object closure contains unreachable objects")
+            raise FieldIntelligenceError(
+                "NONCANONICAL_STATE", "state object closure contains unreachable objects"
+            )
         result = cls._from_full_dict(full)
-        if result.encode() != encoded:
-            raise FieldIntelligenceError("NONCANONICAL_STATE", "field descriptor is not canonical")
+        if legacy_computers:
+            object.__setattr__(result, "_encoded", encoded)
+            object.__setattr__(
+                result, "_state_sha256", hashlib.sha256(encoded).hexdigest()
+            )
+        if not accept_recorded_catalog and result.encode() != encoded:
+            raise FieldIntelligenceError(
+                "NONCANONICAL_STATE", "field descriptor is not canonical"
+            )
         return result
     @classmethod
     def decode_bundle(cls, encoded: bytes) -> AtlasState:
@@ -2418,6 +2859,48 @@ class QueryResult:
         )
         row["requested"] = tuple(row["requested"])
         return cls(**row)
+
+
+def _packet_read_frame(workspace: ResonantWorkspace) -> np.ndarray:
+    """The declared read frame: the canonical analyzer's whole-packet coefficients."""
+
+    packet = analyze_helical_packet(workspace)
+    return np.asarray(packet["coefficients"], dtype=np.float64).reshape(-1)
+
+
+def packet_read_direction(
+    profile: ResonantProfile,
+    *,
+    path: str,
+    component: str,
+    flow_signal: Sequence[float],
+) -> np.ndarray:
+    """The unit read-frame direction one declared packet impulse deposits into.
+
+    The direction is measured rather than assumed: the declared impulse is applied
+    to a scratch workspace of the same profile at the declared probe budget and the
+    resulting read frame is normalized. Nothing outside that scratch workspace is
+    touched, and any declared direction that deposits nothing in the read frame is
+    an explicit numerical error rather than a silent zero.
+    """
+
+    scratch, _ = apply_helical_packet_impulse(
+        initial_workspace(profile),
+        path=path,
+        component=component,
+        flow_signal=flow_signal,
+        work_budget=_PACKET_READ_PROBE_BUDGET,
+        evidence_tick=0,
+        event_kind=PACKET_IMPULSE_EVENT_KIND,
+    )
+    frame = _packet_read_frame(scratch)
+    norm = float(np.linalg.norm(frame))
+    if norm <= 0.0:
+        raise FieldIntelligenceError(
+            "RESONANT_NUMERICAL",
+            "a declared packet direction deposits nothing in the read frame",
+        )
+    return frame / norm
 
 
 class FieldAtlas:
@@ -3559,6 +4042,285 @@ class FieldAtlas:
             resonant_workspace=workspace,
         )
         return successor, _json_value(dict(receipt), "resonance receipt")
+
+    def write_packet_impulse(
+        self,
+        state: AtlasState,
+        *,
+        path: str,
+        component: str,
+        flow_signal: Sequence[float],
+        work_budget: float,
+        event_kind: str = PACKET_IMPULSE_EVENT_KIND,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Write one declared packet impulse into the wave as a canonical transition.
+
+        This is the wave's own write route -- the canonical packet basis impulse
+        of :func:`cassi_resonant_field.apply_helical_packet_impulse`, the route
+        every exploration harness uses -- exposed as an atlas transition so the
+        owner can accept a written packet impulse as an operation. It is
+        additive: without a call, no state, page or receipt changes, and the
+        canonical advance is untouched. No evidence is consumed: the impulse
+        addresses the field at its own evidence clock, so the atlas logical tick
+        and the evidence store are unchanged, and the ledger records the applied
+        work as a field intervention.
+        """
+
+        workspace = state.resonant_workspace or initial_workspace()
+        workspace, receipt = apply_helical_packet_impulse(
+            workspace,
+            path=path,
+            component=component,
+            flow_signal=flow_signal,
+            work_budget=work_budget,
+            evidence_tick=workspace.evidence_tick,
+            event_kind=event_kind,
+        )
+        successor = state.with_transition(
+            "packet-impulse-written",
+            {
+                "path": str(receipt["path"]),
+                "component": str(receipt["component"]),
+                "requested_work": float(receipt["requested_work"]),
+                "applied_work": float(receipt["applied_work"]),
+                "accepted": bool(receipt["accepted"]),
+                "event_kind": str(receipt["event_kind"]),
+            },
+            resonant_workspace=workspace,
+        )
+        return successor, _json_value(dict(receipt), "packet impulse receipt")
+    def apply_live_child_detail_to_parent(
+        self,
+        state: AtlasState,
+        *,
+        work_budget: float,
+        parent_enabled: bool = True,
+        expected_child_source_state_sha256: str | None = None,
+        expected_child_packet_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        event_kind: str = PACKET_IMPULSE_EVENT_KIND,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Route live LL detail momentum into the native L scale impulse."""
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "child detail to parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = apply_live_child_detail_to_parent(
+                workspace,
+                work_budget=work_budget,
+                parent_enabled=parent_enabled,
+                expected_child_source_state_sha256=expected_child_source_state_sha256,
+                expected_child_packet_sha256=expected_child_packet_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                event_kind=event_kind,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "live-child-detail-to-parent",
+            {
+                "parent_enabled": bool(receipt["parent_enabled"]),
+                "requested_work": float(receipt["requested_work"]),
+                "applied_work": float(receipt["applied_work"]),
+                "accepted": bool(receipt["accepted"]),
+                "child_packet_sha256": str(receipt["child_packet_sha256"]),
+                "relation_sha256": str(receipt["relation_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "live child detail receipt")
+    def write_parent_summary(
+        self,
+        state: AtlasState,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Write the canonical L level-zero summary through the atlas state."""
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "parent summary requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = write_parent_summary_workspace(workspace)
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-summary-written",
+            {
+                "layout": str(receipt["layout"]),
+                "path": str(receipt["path"]),
+                "source_state_sha256": str(receipt["source_state_sha256"]),
+                "summary_sha256": str(receipt["summary_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "parent summary receipt")
+    def freeze_parent(
+        self,
+        state: AtlasState,
+        *,
+        expected_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "freeze parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = freeze_parent_workspace(
+                workspace,
+                expected_state_sha256=expected_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-frozen",
+            {
+                "freeze_id": str(receipt["freeze_id"]),
+                "summary_sha256": str(receipt["summary_sha256"]),
+                "relation_sha256": str(receipt["relation_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "frozen parent receipt")
+
+    def read_frozen_parent(self, state: AtlasState) -> Mapping[str, Any]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "frozen parent requires an existing resonant workspace",
+            )
+        try:
+            return _json_value(
+                dict(read_frozen_parent_workspace(workspace)),
+                "frozen parent read",
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+
+    def apply_frozen_parent_to_child(
+        self,
+        state: AtlasState,
+        *,
+        freeze_id: str,
+        base_flow_signal: Sequence[float],
+        work_budget: float,
+        parent_enabled: bool = True,
+        expected_parent_summary_sha256: str | None = None,
+        expected_parent_source_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        expected_child_source_state_sha256: str | None = None,
+        event_kind: str = "reasoning-work",
+        consume: bool = False,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "frozen parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = apply_frozen_parent_to_child_workspace(
+                workspace,
+                freeze_id=freeze_id,
+                base_flow_signal=base_flow_signal,
+                work_budget=work_budget,
+                parent_enabled=parent_enabled,
+                expected_parent_summary_sha256=expected_parent_summary_sha256,
+                expected_parent_source_state_sha256=expected_parent_source_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                expected_child_source_state_sha256=expected_child_source_state_sha256,
+                event_kind=event_kind,
+                consume=consume,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "frozen-parent-applied",
+            {
+                "freeze_id": str(receipt["freeze_id"]),
+                "parent_enabled": bool(receipt["parent_enabled"]),
+                "child_path": str(receipt["child_path"]),
+                "applied_work": float(receipt["impulse"]["applied_work"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(
+            dict(receipt), "frozen parent application receipt"
+        )
+
+    def release_frozen_parent(
+        self,
+        state: AtlasState,
+        *,
+        freeze_id: str,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "frozen parent requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = release_frozen_parent_workspace(
+                workspace, freeze_id=freeze_id
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-freeze-released",
+            {"freeze_id": str(receipt["freeze_id"])},
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(dict(receipt), "frozen parent release receipt")
+
+    def recompute_parent_summary_from_child(
+        self,
+        state: AtlasState,
+        *,
+        expected_source_state_sha256: str | None = None,
+        expected_relation_sha256: str | None = None,
+        expected_child_packet_sha256: str | None = None,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Refresh L from the live LL child through one immutable transition."""
+        workspace = state.resonant_workspace
+        if workspace is None:
+            raise FieldIntelligenceError(
+                "RESONANT_UNINITIALIZED",
+                "parent recompute requires an existing resonant workspace",
+            )
+        try:
+            successor_workspace, receipt = recompute_parent_summary_from_child(
+                workspace,
+                expected_source_state_sha256=expected_source_state_sha256,
+                expected_relation_sha256=expected_relation_sha256,
+                expected_child_packet_sha256=expected_child_packet_sha256,
+            )
+        except ResonantNumericalError as exc:
+            raise FieldIntelligenceError("RESONANT_NUMERICAL", str(exc)) from exc
+        successor = state.with_transition(
+            "parent-child-summary-recomputed",
+            {
+                "parent_path": str(receipt["parent_path"]),
+                "child_path": str(receipt["child_path"]),
+                "source_state_sha256": str(receipt["source_state_sha256"]),
+                "relation_sha256": str(receipt["relation_sha256"]),
+                "summary_sha256": str(receipt["summary_sha256"]),
+            },
+            resonant_workspace=successor_workspace,
+        )
+        return successor, _json_value(
+            dict(receipt), "parent-child recompute receipt"
+        )
+
+
     def inspect_resonance(self, state: AtlasState) -> Mapping[str, Any]:
         workspace = state.resonant_workspace
         if workspace is None:
@@ -3576,6 +4338,54 @@ class FieldAtlas:
                 "snapshot_age_seconds": 0.0,
             },
             "resonance inspection",
+        )
+
+    def read_packet_deposit(
+        self,
+        state: AtlasState,
+        *,
+        path: str,
+        component: str,
+        flow_signal: Sequence[float],
+    ) -> Mapping[str, Any]:
+        """Recover one written packet direction's deposit from the canonical page.
+
+        This is the read half of the packet write path, declared as the design
+        declares a readout (FIELD-INTELLIGENCE-DESIGN.md 27.3): the value is a
+        temporal prediction of the canonical page, carried by the write's own
+        declared direction, and the read adds no observed support and does not
+        advance the evidence clock. It is read-only on the field: no successor is
+        published, no page, generation, logical tick or ledger entry changes, and
+        the only workspace it computes on is the scratch probe of the direction.
+        """
+
+        workspace = state.resonant_workspace or initial_workspace()
+        direction = packet_read_direction(
+            workspace.profile,
+            path=path,
+            component=component,
+            flow_signal=flow_signal,
+        )
+        frame = _packet_read_frame(workspace)
+        projection = float(np.dot(frame, direction))
+        return _json_value(
+            {
+                "readout_kind": "temporal-prediction",
+                "path": str(path),
+                "component": str(component),
+                "flow_signal": [float(value) for value in flow_signal],
+                "direction_sha256": hashlib.sha256(
+                    np.ascontiguousarray(direction, dtype="<f8").tobytes()
+                ).hexdigest(),
+                "read_frame_coordinates": int(frame.size),
+                "recovered_deposit": projection * projection,
+                "read_frame_energy": float(np.dot(frame, frame)),
+                "evidence_tick": state.logical_tick,
+                "evidence_added": False,
+                "state_sha256": state.state_sha256,
+                "workspace_state_sha256": workspace.state_sha256,
+            },
+            "packet readout",
         )
 
     def _resonant_branch(
@@ -4084,6 +4894,886 @@ class FieldAtlas:
             "values": {name: float(candidate[position]) for position, name in enumerate(order)},
         }
 
+    @staticmethod
+    def _acquired_method_record(
+        state: AtlasState, method_id: str
+    ) -> ComputationRecord | None:
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{method_id}".encode("utf-8")
+        ).hexdigest()
+        return next(
+            (
+                row
+                for row in state.computation_records
+                if row.record_id == record_id
+                and row.operation == "acquired-method"
+            ),
+            None,
+        )
+
+    @staticmethod
+    def _method_source_record(
+        state: AtlasState, source_sha256: str
+    ) -> ComputationRecord | None:
+        source_id = hashlib.sha256(
+            f"cassifi.acquired-method-source.v1:{source_sha256}".encode("ascii")
+        ).hexdigest()
+        return next(
+            (
+                row
+                for row in state.computation_records
+                if row.record_id == source_id
+                and row.operation == "acquired-method-source"
+            ),
+            None,
+        )
+
+    def acquire_reduced_method(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        macro_id: str,
+        method_payload: Mapping[str, Any],
+        source_bytes: bytes,
+        applicability: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_units: str,
+        error_bound: float,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Admit an executable realization of an exact Schur reduction
+        (or a checked native u32 -> u64 sum with no synthetic Schur macro)."""
+        method_id = _identifier(method_id, "method_id")
+        macro_id = _identifier(macro_id, "macro_id")
+        if not isinstance(source_bytes, bytes) or len(source_bytes) > 44 * 1024:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method source bytes exceed the bounded source limit"
+            )
+        payload = _json_value(dict(method_payload), "reduced method payload")
+        payload_kind = payload.get("kind")
+        if payload_kind in {"hive-executable", "native-u32-sum"}:
+            macro = None
+        else:
+            macro = next((row for row in state.macros if row.macro_id == macro_id), None)
+            if macro is None or macro.status != "promoted" or not macro.exact:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "method requires an active exact Schur reduction"
+                )
+        applicability_value = _json_value(dict(applicability), "method applicability")
+        normalized_inputs = _json_value(dict(input_units), "method input units")
+        if not isinstance(normalized_inputs, Mapping) or not normalized_inputs:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method input units must be a nonempty mapping"
+            )
+        for name, unit in normalized_inputs.items():
+            _identifier(name, "method input")
+            _identifier(unit, "method input unit")
+        if payload_kind == "schur-energy":
+            if set(payload) != {"kind", "macro_id"} or payload["macro_id"] != macro_id:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "Schur energy method must name its exact source macro"
+                )
+            argument_units = {
+                name: state.variable(name).unit for name in macro.boundary
+            }
+        elif payload_kind == "semantic-program" and isinstance(
+            payload.get("program"), Mapping
+        ):
+            from cassi_field_program import canonical_semantic_program_payload
+
+            executable = canonical_semantic_program_payload(payload["program"])
+            declared_program_digest = hashlib.sha256(
+                canonical_json_bytes(executable)
+            ).hexdigest()
+            if payload.get("program_sha256") not in {None, declared_program_digest}:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "Schur method executable digest does not match"
+                )
+            argument_units = {
+                name: descriptor["units"]
+                for name, descriptor in executable["arguments"].items()
+                if descriptor["required"]
+            }
+        elif payload_kind == "native-u32-sum":
+            if set(payload) != {
+                "kind", "declared_op", "dtype_in", "dtype_out",
+                "input_count", "source_sha256",
+            }:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum payload must bind its exact canonical form",
+                )
+            if (
+                payload["declared_op"] != "checked_u64_sum_u32"
+                or payload["dtype_in"] != "u32"
+                or payload["dtype_out"] != "u64"
+                or payload["input_count"] != 1
+            ):
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native sum must declare exactly one checked u32 -> u64 sum",
+                )
+            if payload["source_sha256"] != hashlib.sha256(source_bytes).hexdigest():
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native sum payload digest does not match its executable source",
+                )
+            if len(normalized_inputs) != 1:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum requires exactly one u32 array input",
+                )
+            argument_units = dict(normalized_inputs)
+            for name, unit in normalized_inputs.items():
+                if unit == "u32" or unit == "u64":
+                    raise FieldIntelligenceError(
+                        "INVALID_METHOD",
+                        "native u32 sum input must carry a physical unit, not a dtype",
+                    )
+        elif payload_kind == "hive-executable" and isinstance(
+            payload.get("executable_method"), Mapping
+        ):
+            from cassi_hive_collective import CollectiveHiveError, ExecutableMethod
+
+            if set(payload) != {
+                "kind", "executable_method", "program_sha256"
+            }:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "hive executable payload must bind one executable method exactly",
+                )
+            try:
+                executable = ExecutableMethod.from_dict(
+                    dict(payload["executable_method"])
+                )
+            except CollectiveHiveError as exc:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", f"executable method is invalid: {exc}"
+                ) from exc
+            if len(executable.interface.outputs) != 1:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "hive executable method must produce exactly one output port",
+                )
+            if not executable.interface.inputs:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "hive executable method requires input ports",
+                )
+            declared_program_digest = executable.program_sha256
+            if payload["program_sha256"] != declared_program_digest:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD", "hive executable digest does not match"
+                )
+            argument_units = {
+                port.name: port.unit for port in executable.interface.inputs
+            }
+        else:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "Schur method has no executable reduction procedure"
+            )
+        if argument_units != dict(normalized_inputs):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method executable units do not match its declared inputs"
+            )
+        output_unit = _identifier(output_units, "method output unit")
+        declared_error = _finite(error_bound, "method error bound")
+        if declared_error < 0:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method error bound cannot be negative"
+            )
+        if payload_kind == "native-u32-sum":
+            if declared_error != 0.0:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum is exact and requires a zero error bound",
+                )
+            native_input_unit = next(iter(normalized_inputs.values()))
+            if output_units != native_input_unit:
+                raise FieldIntelligenceError(
+                    "INVALID_METHOD",
+                    "native u32 sum output must use the same physical unit as its input",
+                )
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+        method = {
+            "applicability": _json_plain(applicability_value),
+            "corrections": [],
+            "dependencies": (
+                {
+                    "macro_id": macro.macro_id,
+                    "macro_version": macro.version,
+                    "parent_chart_versions": [list(row) for row in macro.parent_chart_versions],
+                    "support_event_ids": list(macro.support_event_ids),
+                }
+                if macro is not None
+                else {
+                    "realization": (
+                        "hive-executable"
+                        if payload_kind == "hive-executable"
+                        else "native-u32-sum"
+                    ),
+                    **(
+                        {
+                            "declared_op": payload["declared_op"],
+                            "dtype_in": payload["dtype_in"],
+                            "dtype_out": payload["dtype_out"],
+                            "input_count": payload["input_count"],
+                        }
+                        if payload_kind == "native-u32-sum"
+                        else {}
+                    ),
+                }
+            ),
+            "error_bound": declared_error,
+            "kind": (
+                "hive-executable"
+                if payload_kind == "hive-executable"
+                else "native-u32-sum"
+                if payload_kind == "native-u32-sum"
+                else "schur-reduced"
+            ),
+            "method_id": method_id,
+            "method_payload": _json_plain(payload),
+            **(
+                {}
+                if macro is not None
+                else {"input_units": _json_plain(normalized_inputs)}
+            ),
+            "method_version": 1,
+            "output_unit": output_unit,
+            "schema": "cassifi.acquired-reduced-method.v1",
+            "source_record_id": hashlib.sha256(
+                f"cassifi.acquired-method-source.v1:{source_sha256}".encode("ascii")
+            ).hexdigest(),
+            "source_sha256": source_sha256,
+            "status": "active",
+            "actual_outcomes": 0,
+            "measured_error": 0.0,
+        }
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "acquired method exceeds the typed record limit"
+            )
+        previous = self._acquired_method_record(state, method_id)
+        if previous is None and sum(
+            row.operation == "acquired-method" for row in state.computation_records
+        ) >= 128:
+            raise FieldIntelligenceError(
+                "METHOD_CAPACITY", "field atlas acquired-method capacity is full"
+            )
+        if previous is not None:
+            old = previous.inputs.get("method", {})
+            if old.get("source_sha256") != source_sha256:
+                raise FieldIntelligenceError(
+                    "METHOD_SOURCE_CONFLICT", "method identity already names different source bytes"
+                )
+            method["method_version"] = int(old.get("method_version", 1)) + 1
+            method["corrections"] = list(old.get("corrections", ()))
+            method["actual_outcomes"] = int(old.get("actual_outcomes", 0))
+            method["measured_error"] = float(old.get("measured_error", 0.0))
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{method_id}".encode("utf-8")
+        ).hexdigest()
+        record = ComputationRecord(
+            record_id=record_id,
+            operation="acquired-method",
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="active",
+            elapsed_ns=0,
+            work_units=0,
+        )
+        source_record = self._method_source_record(state, source_sha256)
+        source_records = tuple(state.computation_records)
+        if source_record is None:
+            source_record = ComputationRecord(
+                record_id=method["source_record_id"],
+                operation="acquired-method-source",
+                logical_tick=state.logical_tick,
+                inputs={
+                    "bytes_b64": base64.b64encode(source_bytes).decode("ascii"),
+                    "sha256": source_sha256,
+                },
+                outcome="retained",
+                elapsed_ns=0,
+                work_units=0,
+            )
+            source_records = (*source_records, source_record)
+        records = tuple(record if row.record_id == record_id else row for row in source_records)
+        if not any(row.record_id == record_id for row in source_records):
+            records = (*records, record)
+        successor = state.with_transition(
+            "reduced-method-acquired",
+            {"method_id": method_id, "macro_id": macro_id, "source_sha256": source_sha256},
+            computation_records=records,
+        )
+        return successor, _json_plain(method)
+
+    def acquire_scalar_procedure(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        procedure: Mapping[str, Any],
+        program: Sequence[Sequence[int]],
+        applicability: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_unit: str,
+        error_bound: float = 0.0,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Admit an already-proven transferable scalar block with exact source."""
+        from cassi_field_program import _canonical_transferable_procedure
+
+        try:
+            canonical_procedure = _canonical_transferable_procedure(procedure)
+            canonical_program = _json_value(
+                [list(row) for row in program], "scalar method source program"
+            )
+        except Exception as exc:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "scalar procedure or source program is invalid"
+            ) from exc
+        program_sha256 = hashlib.sha256(canonical_json_bytes(canonical_program)).hexdigest()
+        if canonical_procedure.get("evidence_program_sha256") != program_sha256:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "scalar procedure evidence names another program"
+            )
+        source_bytes = canonical_json_bytes(canonical_program)
+        if len(source_bytes) > 44 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "scalar source exceeds bounded source limit")
+        units = _json_value(dict(input_units), "scalar method input units")
+        if not isinstance(units, Mapping) or not units:
+            raise FieldIntelligenceError("INVALID_METHOD", "scalar method input units are invalid")
+        for name, unit in units.items():
+            _identifier(name, "scalar method input")
+            _identifier(unit, "scalar method input unit")
+        output = _identifier(output_unit, "scalar method output unit")
+        declared_error = _finite(error_bound, "scalar method error bound")
+        if declared_error < 0:
+            raise FieldIntelligenceError("INVALID_METHOD", "scalar method error is negative")
+        app = _json_value(dict(applicability), "scalar method applicability")
+        payload = {
+            "kind": "transferable-scalar-procedure",
+            "program_sha256": program_sha256,
+            "procedure": canonical_procedure,
+        }
+        method = {
+            "applicability": _json_plain(app),
+            "corrections": [],
+            "dependencies": {"kind": "scalar-program", "program_sha256": program_sha256},
+            "error_bound": declared_error,
+            "input_units": _json_plain(units),
+            "kind": "scalar-procedure",
+            "method_id": _identifier(method_id, "method_id"),
+            "method_payload": _json_plain(payload),
+            "method_version": 1,
+            "output_unit": output,
+            "schema": "cassifi.acquired-reduced-method.v1",
+            "source_record_id": hashlib.sha256(
+                f"cassifi.acquired-method-source.v1:{hashlib.sha256(source_bytes).hexdigest()}".encode("ascii")
+            ).hexdigest(),
+            "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
+            "status": "active",
+            "actual_outcomes": 0,
+            "measured_error": 0.0,
+        }
+        previous = self._acquired_method_record(state, method["method_id"])
+        if previous is not None:
+            old = previous.inputs.get("method", {})
+            if old.get("source_sha256") != method["source_sha256"]:
+                raise FieldIntelligenceError("METHOD_SOURCE_CONFLICT", "method source conflicts")
+            for name in ("corrections", "actual_outcomes", "measured_error"):
+                method[name] = old.get(name, method[name])
+            method["method_version"] = int(old.get("method_version", 1)) + 1
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "acquired method exceeds typed record limit")
+        if self._acquired_method_record(state, method["method_id"]) is None and sum(
+            row.operation == "acquired-method" for row in state.computation_records
+        ) >= 128:
+            raise FieldIntelligenceError("METHOD_CAPACITY", "field atlas acquired-method capacity is full")
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{method['method_id']}".encode("utf-8")
+        ).hexdigest()
+        record = ComputationRecord(
+            record_id=record_id,
+            operation="acquired-method",
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="active",
+            elapsed_ns=0,
+            work_units=0,
+        )
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+        source_record = self._method_source_record(state, source_sha256)
+        source_records = tuple(state.computation_records)
+        if source_record is None:
+            source_record = ComputationRecord(
+                record_id=method["source_record_id"],
+                operation="acquired-method-source",
+                logical_tick=state.logical_tick,
+                inputs={
+                    "bytes_b64": base64.b64encode(source_bytes).decode("ascii"),
+                    "sha256": source_sha256,
+                },
+                outcome="retained",
+                elapsed_ns=0,
+                work_units=0,
+            )
+            source_records = (*source_records, source_record)
+        records = tuple(
+            record if row.record_id == record_id else row
+            for row in source_records
+        )
+        if not any(row.record_id == record_id for row in source_records):
+            records = (*records, record)
+        successor = state.with_transition(
+            "scalar-method-acquired",
+            {"method_id": method["method_id"], "program_sha256": program_sha256},
+            computation_records=records,
+        )
+        return successor, _json_plain(method)
+
+    def acquire_fused_method(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        fused_program: Mapping[str, Any],
+        source_bytes: bytes,
+        applicability: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_unit: str,
+        error_bound: float,
+    ) -> tuple[AtlasState, Mapping[str, Any]]:
+        """Admit a bounded ordered composition with retained original procedures."""
+        from cassi_field_program import compose_semantic_programs
+
+        if not isinstance(source_bytes, bytes) or len(source_bytes) > 44 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused source exceeds bounded source limit")
+        if not isinstance(fused_program, Mapping) or fused_program.get("schema") != (
+            "cassifi.fused-semantic-program.v1"
+        ):
+            raise FieldIntelligenceError("INVALID_METHOD", "fused program schema is invalid")
+        components = fused_program.get("components")
+        app = _json_value(dict(applicability), "fused applicability")
+        rebuilt = compose_semantic_programs(components, applicability=app)
+        if canonical_json_bytes(rebuilt) != canonical_json_bytes(fused_program):
+            raise FieldIntelligenceError("INVALID_METHOD", "fused program provenance is inconsistent")
+        units = _json_value(dict(input_units), "fused input units")
+        required_units: dict[str, Any] = {}
+        for component in components:
+            for name, descriptor in component["arguments"].items():
+                if descriptor["required"]:
+                    previous_unit = required_units.get(name)
+                    if previous_unit is not None and previous_unit != descriptor["units"]:
+                        raise FieldIntelligenceError(
+                            "INVALID_METHOD", "fused component argument units conflict"
+                        )
+                    required_units[name] = descriptor["units"]
+        if dict(units) != required_units:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused input units do not match components")
+        for name, unit in units.items():
+            _identifier(name, "fused input")
+            _identifier(unit, "fused input unit")
+        output = _identifier(output_unit, "fused output unit")
+        declared_error = _finite(error_bound, "fused method error")
+        if declared_error < 0:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused method error cannot be negative")
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+        normalized_id = _identifier(method_id, "method_id")
+        method = {
+            "applicability": _json_plain(app),
+            "corrections": [],
+            "dependencies": {
+                "kind": "fused-components",
+                "component_digests": list(fused_program["component_digests"]),
+            },
+            "error_bound": declared_error,
+            "input_units": _json_plain(units),
+            "kind": "fused-procedure",
+            "method_id": normalized_id,
+            "method_payload": {
+                "kind": "cassifi.fused-semantic-program.v1",
+                "program": _json_plain(fused_program),
+            },
+            "method_version": 1,
+            "output_unit": output,
+            "schema": "cassifi.acquired-reduced-method.v1",
+            "source_record_id": hashlib.sha256(
+                f"cassifi.acquired-method-source.v1:{source_sha256}".encode("ascii")
+            ).hexdigest(),
+            "source_sha256": source_sha256,
+            "status": "active",
+            "actual_outcomes": 0,
+            "measured_error": 0.0,
+        }
+        previous = self._acquired_method_record(state, normalized_id)
+        if previous is not None:
+            old = previous.inputs.get("method", {})
+            if old.get("source_sha256") != source_sha256:
+                raise FieldIntelligenceError("METHOD_SOURCE_CONFLICT", "method source conflicts")
+            for name in ("corrections", "actual_outcomes", "measured_error"):
+                method[name] = old.get(name, method[name])
+            method["method_version"] = int(old.get("method_version", 1)) + 1
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError("INVALID_METHOD", "fused method exceeds typed record limit")
+        if previous is None and sum(
+            row.operation == "acquired-method" for row in state.computation_records
+        ) >= 128:
+            raise FieldIntelligenceError("METHOD_CAPACITY", "field atlas acquired-method capacity is full")
+        record_id = hashlib.sha256(
+            f"cassifi.acquired-method.v1:{normalized_id}".encode("utf-8")
+        ).hexdigest()
+        record = ComputationRecord(
+            record_id=record_id,
+            operation="acquired-method",
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="active",
+            elapsed_ns=0,
+            work_units=0,
+        )
+        source_records = tuple(state.computation_records)
+        if self._method_source_record(state, source_sha256) is None:
+            source_records = (
+                *source_records,
+                ComputationRecord(
+                    record_id=method["source_record_id"],
+                    operation="acquired-method-source",
+                    logical_tick=state.logical_tick,
+                    inputs={
+                        "bytes_b64": base64.b64encode(source_bytes).decode("ascii"),
+                        "sha256": source_sha256,
+                    },
+                    outcome="retained",
+                    elapsed_ns=0,
+                    work_units=0,
+                ),
+            )
+        records = tuple(record if row.record_id == record_id else row for row in source_records)
+        if not any(row.record_id == record_id for row in source_records):
+            records = (*records, record)
+        successor = state.with_transition(
+            "fused-method-acquired",
+            {"method_id": normalized_id, "source_sha256": source_sha256},
+            computation_records=records,
+        )
+        return successor, _json_plain(method)
+
+    def execute_reduced_method(
+        self,
+        state: AtlasState,
+        method: Mapping[str, Any],
+        *,
+        boundary_values: Mapping[str, float],
+        context: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Evaluate a selected exact Schur energy method against its source."""
+        if isinstance(method, Mapping) and method.get("kind") == "native-u32-sum":
+            raise FieldIntelligenceError(
+                "INVALID_METHOD",
+                "native u32 sum executes only through the owner native dispatch",
+            )
+        if (
+            not isinstance(method, Mapping)
+            or method.get("schema") != "cassifi.acquired-reduced-method.v1"
+            or method.get("kind") != "schur-reduced"
+            or method.get("status") != "active"
+        ):
+            raise FieldIntelligenceError("INVALID_METHOD", "selected Schur method is invalid")
+        payload = method.get("method_payload")
+        deps = method.get("dependencies")
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("kind") != "schur-energy"
+            or not isinstance(deps, Mapping)
+        ):
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "selected method is not an executable Schur energy"
+            )
+        macro = next(
+            (row for row in state.macros if row.macro_id == deps.get("macro_id")),
+            None,
+        )
+        if (
+            macro is None
+            or macro.macro_id != payload.get("macro_id")
+            or macro.version != deps.get("macro_version")
+            or not macro.valid_for(state, context)
+        ):
+            raise FieldIntelligenceError(
+                "METHOD_GUARD_FAILED", "Schur source or applicability guard has changed"
+            )
+        values = _json_value(dict(boundary_values), "Schur boundary values")
+        current_record = self._acquired_method_record(
+            state, str(method.get("method_id", ""))
+        )
+        current_method = (
+            None if current_record is None else current_record.inputs.get("method")
+        )
+        if (
+            not isinstance(current_method, Mapping)
+            or current_method.get("method_version") != method.get("method_version")
+            or current_method.get("source_sha256") != method.get("source_sha256")
+            or current_method.get("status") != "active"
+            or not _method_applicability_matches(
+                current_method.get("applicability", {}), context
+            )
+            or not _method_context_accepted(current_method, context)
+        ):
+            raise FieldIntelligenceError(
+                "METHOD_GUARD_FAILED", "selected method applicability or revision changed"
+            )
+        if set(values) != set(macro.boundary):
+            raise FieldIntelligenceError(
+                "METHOD_INPUT_MISMATCH", "Schur method requires every exact boundary input"
+            )
+        for name, unit in method["input_units"].items():
+            if state.variable(name).unit != unit:
+                raise FieldIntelligenceError(
+                    "METHOD_UNIT_MISMATCH", f"Schur input unit changed for {name}"
+                )
+            values[name] = _finite(values[name], f"Schur boundary value {name}")
+        ordered = [values[name] for name in macro.boundary]
+        quadratic = math.fsum(
+            ordered[i] * macro.hessian[i][j] * ordered[j]
+            for i in range(len(ordered))
+            for j in range(len(ordered))
+        )
+        result = _finite(
+            0.5 * quadratic
+            + math.fsum(macro.linear[i] * ordered[i] for i in range(len(ordered)))
+            + macro.constant,
+            "Schur reduced energy",
+        )
+        return {
+            "method_id": method["method_id"],
+            "method_version": method["method_version"],
+            "value": result,
+            "unit": method["output_unit"],
+            "error_bound": method["error_bound"],
+            "source_sha256": method["source_sha256"],
+            "support_event_ids": list(macro.support_event_ids),
+            "dependencies": {
+                "macro_id": macro.macro_id,
+                "macro_version": macro.version,
+                "parent_chart_versions": [list(row) for row in macro.parent_chart_versions],
+            },
+        }
+
+    def select_reduced_method(
+        self,
+        state: AtlasState,
+        *,
+        context: Mapping[str, Any],
+        input_units: Mapping[str, str],
+        output_unit: str,
+        maximum_error: float,
+    ) -> Mapping[str, Any] | None:
+        """Return the newest source-valid compatible admitted method."""
+        context_value = _json_value(dict(context), "method context")
+        units = _json_value(dict(input_units), "method input units")
+        output = _identifier(output_unit, "method output unit")
+        error_limit = _finite(maximum_error, "maximum method error")
+        if error_limit < 0:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "maximum method error cannot be negative"
+            )
+        charts = {row.chart_id: row for row in state.charts}
+        macros = {row.macro_id: row for row in state.macros}
+        candidates: list[Mapping[str, Any]] = []
+        for record in state.computation_records:
+            if record.operation != "acquired-method":
+                continue
+            method = record.inputs.get("method")
+            if not isinstance(method, Mapping) or method.get("status") != "active":
+                continue
+            deps = method.get("dependencies", {})
+            if method.get("kind") == "scalar-procedure":
+                method_payload = method.get("method_payload", {})
+                if (
+                    deps.get("kind") != "scalar-program"
+                    or method_payload.get("program_sha256") != deps.get("program_sha256")
+                ):
+                    continue
+            elif method.get("kind") == "fused-procedure":
+                method_payload = method.get("method_payload", {})
+                fused_program = method_payload.get("program", {})
+                if (
+                    deps.get("kind") != "fused-components"
+                    or method_payload.get("kind") != "cassifi.fused-semantic-program.v1"
+                    or not isinstance(fused_program, Mapping)
+                    or list(fused_program.get("component_digests", ()))
+                    != list(deps.get("component_digests", ()))
+                ):
+                    continue
+                from cassi_field_program import compose_semantic_programs
+
+                try:
+                    rebuilt = compose_semantic_programs(
+                        fused_program["components"],
+                        applicability=method.get("applicability", {}),
+                    )
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if canonical_json_bytes(rebuilt) != canonical_json_bytes(fused_program):
+                    continue
+            elif method.get("kind") == "native-u32-sum":
+                method_payload = method.get("method_payload", {})
+                native_expected = {
+                    "kind", "declared_op", "dtype_in", "dtype_out",
+                    "input_count", "source_sha256",
+                }
+                if (
+                    not isinstance(method_payload, Mapping)
+                    or set(method_payload) != native_expected
+                    or method_payload.get("kind") != "native-u32-sum"
+                    or method_payload.get("declared_op") != "checked_u64_sum_u32"
+                    or method_payload.get("dtype_in") != "u32"
+                    or method_payload.get("dtype_out") != "u64"
+                    or method_payload.get("input_count") != 1
+                    or method_payload.get("source_sha256") != method.get("source_sha256")
+                    or not isinstance(deps, Mapping)
+                    or deps.get("realization") != "native-u32-sum"
+                    or deps.get("declared_op") != method_payload.get("declared_op")
+                    or deps.get("dtype_in") != "u32"
+                    or deps.get("dtype_out") != "u64"
+                    or deps.get("input_count") != 1
+                ):
+                    continue
+            elif method.get("kind") == "schur-reduced":
+                macro = macros.get(deps.get("macro_id"))
+                if (
+                    macro is None
+                    or macro.status != "promoted"
+                    or not macro.exact
+                    or macro.version != deps.get("macro_version")
+                    or list(macro.parent_chart_versions) != [
+                        tuple(row) for row in deps.get("parent_chart_versions", ())
+                    ]
+                    or any(
+                        chart_id not in charts
+                        or charts[chart_id].version != version
+                        or charts[chart_id].status != "active"
+                        for chart_id, version in macro.parent_chart_versions
+                    )
+                ):
+                    continue
+            if (
+                dict(method.get("input_units", {})) != dict(units)
+                or method.get("output_unit") != output
+                or float(method.get("error_bound", math.inf)) > error_limit
+                or not _method_applicability_matches(method.get("applicability", {}), context_value)
+                or not _method_context_accepted(method, context_value)
+            ):
+                continue
+            source_record = next(
+                (
+                    row
+                    for row in state.computation_records
+                    if row.record_id == method.get("source_record_id")
+                    and row.operation == "acquired-method-source"
+                ),
+                None,
+            )
+            if source_record is None:
+                continue
+            try:
+                source = base64.b64decode(
+                    source_record.inputs["bytes_b64"], validate=True
+                )
+            except Exception:
+                continue
+            if (
+                source_record.inputs.get("sha256") != method.get("source_sha256")
+                or hashlib.sha256(source).hexdigest() != method.get("source_sha256")
+            ):
+                continue
+            candidates.append(method)
+        if not candidates:
+            return None
+        selected = max(
+            candidates,
+            key=lambda row: (int(row.get("actual_outcomes", 0)), -float(row.get("measured_error", 0.0)), row["method_id"]),
+        )
+        return _json_plain(selected)
+
+    def record_reduced_method_outcome(
+        self,
+        state: AtlasState,
+        *,
+        method_id: str,
+        context: Mapping[str, Any],
+        predicted: float,
+        actual: float,
+        evidence_kind: str,
+        evidence_id: str,
+        source_revision_ids: Sequence[str],
+    ) -> AtlasState:
+        """Correct method error only from a measured, executed outcome."""
+        if evidence_kind != "executed":
+            raise FieldIntelligenceError(
+                "INVALID_METHOD_EVIDENCE", "only actual executed outcomes can correct a method"
+            )
+        _identifier(evidence_id, "outcome evidence identity")
+        context_value = _json_plain(_json_value(dict(context), "outcome context"))
+        predicted_value = _finite(predicted, "method predicted outcome")
+        actual_value = _finite(actual, "method actual outcome")
+        residual = abs(actual_value - predicted_value)
+        revisions = sorted({_digest(item, "source revision") for item in source_revision_ids})
+        record = self._acquired_method_record(state, method_id)
+        if record is None:
+            raise FieldIntelligenceError("METHOD_NOT_FOUND", "acquired method does not exist")
+        method = _json_plain(record.inputs["method"])
+        corrections = list(method["corrections"])
+        if any(row.get("evidence_id") == evidence_id for row in corrections):
+            existing = next(row for row in corrections if row.get("evidence_id") == evidence_id)
+            if existing != {
+                "actual": actual_value,
+                "context": context_value,
+                "evidence_id": evidence_id,
+                "predicted": predicted_value,
+                "residual": residual,
+                "source_revision_ids": revisions,
+            }:
+                raise FieldIntelligenceError(
+                    "METHOD_EVIDENCE_CONFLICT", "outcome evidence identity conflicts"
+                )
+            return state
+        corrections.append({
+            "actual": actual_value,
+            "context": context_value,
+            "evidence_id": evidence_id,
+            "predicted": predicted_value,
+            "residual": residual,
+            "source_revision_ids": revisions,
+        })
+        corrections = corrections[-32:]
+        method["corrections"] = corrections
+        method["actual_outcomes"] = int(method["actual_outcomes"]) + 1
+        method["measured_error"] = max(
+            float(method["measured_error"]), residual
+        )
+        if len(canonical_json_bytes(method)) > 64 * 1024:
+            raise FieldIntelligenceError(
+                "INVALID_METHOD", "method correction exceeds the bounded record limit"
+            )
+        updated = replace(
+            record,
+            logical_tick=state.logical_tick,
+            inputs={"method": method},
+            outcome="corrected",
+        )
+        records = tuple(
+            updated if row.record_id == record.record_id else row
+            for row in state.computation_records
+        )
+        return state.with_transition(
+            "reduced-method-outcome-recorded",
+            {"evidence_id": evidence_id, "method_id": method_id, "residual": residual},
+            computation_records=records,
+        )
+
     def derive_schur_reduction(
         self,
         state: AtlasState,
@@ -4188,30 +5878,1192 @@ class FieldAtlas:
             macros=tuple(macros),
         )
 
+REGIONAL_RESULT_SCHEMA: Final[str] = "cassifi.regional-kernel-result.v1"
+REGIONAL_KERNEL_NAME: Final[str] = "learning.atlas"
+REGIONAL_KERNEL_MAX_WORK: Final[int] = 4_096
+REGIONAL_STATE_SCHEMA: Final[str] = "cassifi.regional-atlas-state.v1"
+_REGIONAL_PHI = (1.0 + math.sqrt(5.0)) / 2.0
+_REGIONAL_SAFE_INTEGER = 2**53 - 1
+_REGIONAL_MAX_VARIABLES = 4_096
+_REGIONAL_MAX_CHARTS = 4_096
+_REGIONAL_MAX_CONTRIBUTIONS = 65_536
+_REGIONAL_MAX_DIMENSION = 256
+
+
+def _regional_plain(value: Any, label: str = "regional value") -> Any:
+    try:
+        return json.loads(canonical_json_bytes(value).decode("utf-8"))
+    except (TypeError, ValueError, UnicodeDecodeError) as exc:
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_VALUE", f"{label} must be canonical JSON data"
+        ) from exc
+
+
+def _regional_integer(
+    value: Any,
+    label: str,
+    *,
+    minimum: int = 0,
+    maximum: int = _REGIONAL_SAFE_INTEGER,
+) -> int:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not minimum <= value <= maximum
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_VALUE",
+            f"{label} must be an integer in [{minimum}, {maximum}]",
+        )
+    return int(value)
+
+
+def _regional_number(value: Any, label: str, *, positive: bool = False) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_VALUE", f"{label} must be numeric")
+    result = float(value)
+    if not math.isfinite(result) or (positive and result <= 0.0):
+        suffix = " and positive" if positive else ""
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_VALUE", f"{label} must be finite{suffix}"
+        )
+    return result
+
+
+def _regional_digest_text(value: Any, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_ID", f"{label} must be a lowercase SHA-256 digest"
+        )
+    return value
+
+
+def _regional_identifier(value: Any, label: str) -> str:
+    return _identifier(value, label)
+
+
+def _regional_sha(value: Any) -> str:
+    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def _regional_numeric_payload(values: Sequence[float], shape: Sequence[int]) -> dict[str, Any]:
+    checked = tuple(_regional_number(value, "numeric field word") for value in values)
+    raw = struct.pack("<" + "d" * len(checked), *checked)
+    return {
+        "bytes_base64": base64.b64encode(raw).decode("ascii"),
+        "dtype": "float64-le",
+        "shape": [int(item) for item in shape],
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
+def _regional_numeric_values(
+    payload: Mapping[str, Any],
+    dimension: int,
+) -> tuple[list[float], list[int]]:
+    if not isinstance(payload, Mapping) or set(payload) != {
+        "bytes_base64", "dtype", "shape", "sha256"
+    }:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field envelope is invalid")
+    if payload["dtype"] != "float64-le" or not isinstance(payload["shape"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field codec is invalid")
+    shape = [
+        _regional_integer(item, "numeric field shape", minimum=1, maximum=_REGIONAL_SAFE_INTEGER)
+        for item in payload["shape"]
+    ]
+    if len(shape) != 3 or shape[0] != 1 or shape[2] != 1 or shape[1] % 9:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field shape is invalid")
+    modes = shape[1] // 9
+    if modes < max(dimension, dimension * dimension):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field is too small")
+    encoded = payload["bytes_base64"]
+    if not isinstance(encoded, str):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field bytes are invalid")
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+    except (TypeError, ValueError) as exc:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field bytes are invalid") from exc
+    if base64.b64encode(raw).decode("ascii") != encoded:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field bytes are noncanonical")
+    if len(raw) != math.prod(shape) * 8:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field byte length is invalid")
+    if hashlib.sha256(raw).hexdigest() != _regional_digest_text(payload["sha256"], "numeric field sha256"):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field digest is invalid")
+    values = list(struct.unpack("<" + "d" * (len(raw) // 8), raw))
+    if any(not math.isfinite(value) for value in values):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "numeric field contains nonfinite values")
+    for lane in (1, 3):
+        if any(values[lane * modes + index] != 0.0 for index in range(modes)):
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart workspace must be empty")
+    if any(value != 0.0 for value in values[4 * modes:]):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart statistic lanes must be empty")
+    for index in range(modes):
+        if values[index] != _REGIONAL_PHI * values[2 * modes + index]:
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart memory codec is invalid")
+    covariance = [
+        [
+            _REGIONAL_PHI * values[row * dimension + column]
+            + values[2 * modes + row * dimension + column]
+            for column in range(dimension)
+        ]
+        for row in range(dimension)
+    ]
+    for row in range(dimension):
+        for column in range(dimension):
+            if covariance[row][column] != covariance[column][row]:
+                raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart covariance is nonsymmetric")
+    # A small direct Cholesky check keeps the kernel independent of the legacy
+    # VariationalField object while rejecting non-SPD numeric words.
+    lower = [[0.0] * dimension for _ in range(dimension)]
+    for row in range(dimension):
+        for column in range(row + 1):
+            residual = covariance[row][column] - sum(
+                lower[row][index] * lower[column][index] for index in range(column)
+            )
+            if row == column:
+                if not math.isfinite(residual) or residual <= 0.0:
+                    raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart covariance is not positive definite")
+                lower[row][column] = math.sqrt(residual)
+            else:
+                lower[row][column] = residual / lower[column][column]
+    return values, shape
+
+
+def _regional_covariance(payload: Mapping[str, Any], dimension: int) -> list[list[float]]:
+    values, shape = _regional_numeric_values(payload, dimension)
+    modes = shape[1] // 9
+    return [
+        [
+            _REGIONAL_PHI * values[row * dimension + column]
+            + values[2 * modes + row * dimension + column]
+            for column in range(dimension)
+        ]
+        for row in range(dimension)
+    ]
+
+
+def _regional_initial_numeric(dimension: int, ridge: float) -> dict[str, Any]:
+    modes = max(dimension, dimension * dimension)
+    values = [0.0] * (9 * modes)
+    scale = 1.0 / (1.0 + _REGIONAL_PHI * _REGIONAL_PHI)
+    for index in range(dimension):
+        values[index * dimension + index] = _REGIONAL_PHI * ridge * scale
+        values[2 * modes + index * dimension + index] = ridge * scale
+    return _regional_numeric_payload(values, (1, 9 * modes, 1))
+
+
+def _regional_pack_covariance(
+    payload: Mapping[str, Any],
+    dimension: int,
+    covariance: Sequence[Sequence[float]],
+) -> dict[str, Any]:
+    values, shape = _regional_numeric_values(payload, dimension)
+    modes = shape[1] // 9
+    scale = 1.0 / (1.0 + _REGIONAL_PHI * _REGIONAL_PHI)
+    for row in range(dimension):
+        for column in range(dimension):
+            value = _regional_number(covariance[row][column], "chart covariance")
+            values[row * dimension + column] = _REGIONAL_PHI * value * scale
+            values[2 * modes + row * dimension + column] = value * scale
+    return _regional_numeric_payload(values, shape)
+
+
+def _regional_validate_variable(value: Any) -> dict[str, Any]:
+    if isinstance(value, VariableSpec):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional variable")
+    if not isinstance(raw, dict) or set(raw) != {
+        "constant", "frame", "kind", "lower", "unit", "upper", "variable_id"
+    }:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "regional variable keys are invalid")
+    _regional_identifier(raw["variable_id"], "variable_id")
+    _regional_identifier(raw["unit"], "variable unit")
+    _regional_identifier(raw["frame"], "variable frame")
+    if raw["kind"] not in VARIABLE_KINDS:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "variable kind is unsupported")
+    for key in ("lower", "upper", "constant"):
+        if raw[key] is not None:
+            raw[key] = _regional_number(raw[key], f"variable {key}")
+    if raw["lower"] is not None and raw["upper"] is not None and raw["lower"] > raw["upper"]:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "variable bounds are reversed")
+    if raw["kind"] == "constant":
+        if raw["constant"] is None:
+            raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "constant variable needs a value")
+        if (
+            raw["lower"] is not None and raw["constant"] < raw["lower"]
+            or raw["upper"] is not None and raw["constant"] > raw["upper"]
+        ):
+            raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "constant is outside its domain")
+    elif raw["constant"] is not None:
+        raise FieldIntelligenceError("INVALID_REGIONAL_VARIABLE", "only constant variables carry constants")
+    return raw
+
+
+def _regional_validate_guard(value: Any) -> dict[str, Any]:
+    if isinstance(value, Guard):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional guard")
+    if not isinstance(raw, dict) or set(raw) != {"field", "operator", "value"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "guard keys are invalid")
+    _regional_identifier(raw["field"], "guard field")
+    if raw["operator"] not in {"eq", "ne", "in", "range", "exists"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "guard operator is unsupported")
+    raw["value"] = _regional_plain(raw["value"], "guard value")
+    if raw["operator"] == "in" and not isinstance(raw["value"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "in guard requires a list")
+    if raw["operator"] == "range":
+        if (
+            not isinstance(raw["value"], list)
+            or len(raw["value"]) != 2
+            or any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in raw["value"])
+            or not all(math.isfinite(float(item)) for item in raw["value"])
+            or float(raw["value"][0]) > float(raw["value"][1])
+        ):
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "range guard is invalid")
+    return raw
+
+
+def _regional_validate_contribution(value: Any, *, width: int | None = None) -> dict[str, Any]:
+    if isinstance(value, SupportContribution):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional contribution")
+    if not isinstance(raw, dict) or set(raw) != {
+        "context_sha256", "derivation_roots", "epistemic_type", "event_id",
+        "logical_tick", "source_revision_id", "values", "weight",
+    }:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution keys are invalid")
+    _regional_digest_text(raw["event_id"], "event_id")
+    _regional_digest_text(raw["source_revision_id"], "source_revision_id")
+    if not isinstance(raw["values"], list) or not raw["values"]:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution values are invalid")
+    if width is not None and len(raw["values"]) != width:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution width is invalid")
+    raw["values"] = [_regional_number(item, "contribution value") for item in raw["values"]]
+    raw["weight"] = _regional_number(raw["weight"], "contribution weight", positive=True)
+    raw["logical_tick"] = _regional_integer(raw["logical_tick"], "logical tick", minimum=1)
+    if raw["epistemic_type"] not in {"observed", "asserted", "derived"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution epistemic type is invalid")
+    _regional_digest_text(raw["context_sha256"], "context_sha256")
+    if not isinstance(raw["derivation_roots"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "derivation roots are invalid")
+    raw["derivation_roots"] = [
+        _regional_digest_text(item, "derivation root") for item in raw["derivation_roots"]
+    ]
+    if raw["epistemic_type"] == "derived" and not raw["derivation_roots"]:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "derived support needs premise roots")
+    return raw
+
+
+def _regional_validate_chart(value: Any) -> dict[str, Any]:
+    if isinstance(value, RelationChart):
+        value = value.as_dict()
+    raw = _regional_plain(value, "regional chart")
+    required = {
+        "chart_id", "contributions", "dependencies", "factor_weight", "guards",
+        "learning_mode", "mode", "mode_group", "numeric_field",
+        "observation_norm_bound", "prior_mass", "recency_half_life",
+        "representation_id", "ridge", "scope", "status", "version",
+    }
+    if not isinstance(raw, dict) or set(raw) != required:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart keys are invalid")
+    _regional_identifier(raw["chart_id"], "chart_id")
+    if (
+        not isinstance(raw["scope"], list)
+        or not raw["scope"]
+        or len(raw["scope"]) > _REGIONAL_MAX_DIMENSION
+        or len(raw["scope"]) != len(set(raw["scope"]))
+    ):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart scope is invalid")
+    for name in raw["scope"]:
+        _regional_identifier(name, "chart variable")
+    raw["version"] = _regional_integer(raw["version"], "chart version", minimum=1)
+    raw["ridge"] = _regional_number(raw["ridge"], "chart ridge", positive=True)
+    raw["observation_norm_bound"] = _regional_number(
+        raw["observation_norm_bound"], "chart observation norm bound", positive=True
+    )
+    raw["prior_mass"] = _regional_number(raw["prior_mass"], "chart prior mass", positive=True)
+    raw["factor_weight"] = _regional_number(raw["factor_weight"], "chart factor weight", positive=True)
+    if raw["learning_mode"] not in LEARNING_MODES:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart learning mode is invalid")
+    if raw["learning_mode"] == "contextual":
+        if raw["recency_half_life"] is None:
+            raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "contextual chart needs recency")
+        raw["recency_half_life"] = _regional_number(
+            raw["recency_half_life"], "recency half-life", positive=True
+        )
+    elif raw["recency_half_life"] is not None:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "stationary chart cannot decay")
+    if (raw["mode_group"] is None) != (raw["mode"] is None):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart mode identity is incomplete")
+    if raw["mode_group"] is not None:
+        _regional_identifier(raw["mode_group"], "mode_group")
+        _regional_identifier(raw["mode"], "mode")
+    _regional_identifier(raw["representation_id"], "representation_id")
+    if not isinstance(raw["dependencies"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart dependencies are invalid")
+    for dependency in raw["dependencies"]:
+        _regional_identifier(dependency, "chart dependency")
+    if raw["status"] not in CHART_STATUSES:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart status is invalid")
+    if not isinstance(raw["guards"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart guards are invalid")
+    raw["guards"] = [_regional_validate_guard(item) for item in raw["guards"]]
+    if not isinstance(raw["contributions"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart contributions are invalid")
+    if len(raw["contributions"]) > _REGIONAL_MAX_CONTRIBUTIONS:
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart contributions exceed the regional bound")
+    raw["contributions"] = [
+        _regional_validate_contribution(item, width=len(raw["scope"]))
+        for item in raw["contributions"]
+    ]
+    event_ids = [item["event_id"] for item in raw["contributions"]]
+    if len(event_ids) != len(set(event_ids)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart repeats a support event")
+    values, shape = _regional_numeric_values(raw["numeric_field"], len(raw["scope"]))
+    modes = shape[1] // 9
+    covariance = torch.tensor(
+        [
+            [
+                _REGIONAL_PHI * values[row * len(raw["scope"]) + column]
+                + values[2 * modes + row * len(raw["scope"]) + column]
+                for column in range(len(raw["scope"]))
+            ]
+            for row in range(len(raw["scope"]))
+        ],
+        dtype=torch.float64,
+    )
+    eigenvalues = torch.linalg.eigvalsh(covariance)
+    upper = raw["ridge"] + raw["observation_norm_bound"] ** 2
+    tolerance = (
+        128 * torch.finfo(torch.float64).eps * len(raw["scope"]) * max(1.0, upper)
+    )
+    if (
+        float(eigenvalues.min()) < raw["ridge"] - tolerance
+        or float(eigenvalues.max()) > upper + tolerance
+    ):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart covariance leaves spectral bounds")
+    return raw
+
+
+def _regional_guard_matches(guard: Mapping[str, Any], context: Mapping[str, Any]) -> bool:
+    field_name = guard["field"]
+    operator = guard["operator"]
+    present = field_name in context
+    if operator == "exists":
+        return present is bool(guard["value"])
+    if not present:
+        return False
+    actual = context[field_name]
+    if operator == "eq":
+        return actual == guard["value"]
+    if operator == "ne":
+        return actual != guard["value"]
+    if operator == "in":
+        return actual in guard["value"]
+    return (
+        not isinstance(actual, bool)
+        and isinstance(actual, (int, float))
+        and float(guard["value"][0]) <= float(actual) <= float(guard["value"][1])
+    )
+
+
+def _regional_chart_matches(chart: Mapping[str, Any], context: Mapping[str, Any]) -> bool:
+    return chart["status"] == "active" and all(
+        _regional_guard_matches(guard, context) for guard in chart["guards"]
+    )
+
+
+def _regional_domain_values(
+    variables: Sequence[Mapping[str, Any]], values: Mapping[str, Any]
+) -> dict[str, float]:
+    known = {row["variable_id"]: row for row in variables}
+    if not isinstance(values, Mapping):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation values must be a mapping")
+    normalized: dict[str, float] = {}
+    for name, value in values.items():
+        if name not in known:
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation names an unknown variable")
+        number = _regional_number(value, str(name))
+        spec = known[name]
+        if (
+            spec["lower"] is not None and number < spec["lower"]
+            or spec["upper"] is not None and number > spec["upper"]
+            or spec["kind"] == "constant" and number != spec["constant"]
+        ):
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation is outside its domain")
+        normalized[str(name)] = number
+    return normalized
+
+
+def _regional_contribution_from(
+    item: Mapping[str, Any],
+    *,
+    chart: Mapping[str, Any],
+    values: Mapping[str, float],
+    context_sha256: str,
+    tick: int,
+) -> dict[str, Any]:
+    event_id = _regional_digest_text(item.get("event_id"), "event_id")
+    source_id = _regional_digest_text(item.get("source_revision_id"), "source_revision_id")
+    local_values = item.get("values", values)
+    if isinstance(local_values, Mapping):
+        local = [local_values[name] for name in chart["scope"] if name in local_values]
+        if len(local) != len(chart["scope"]):
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "chart scope is only partially observed")
+    elif isinstance(local_values, (list, tuple)):
+        local = list(local_values)
+    else:
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution values are invalid")
+    contribution = {
+        "context_sha256": item.get("context_sha256", context_sha256),
+        "derivation_roots": list(item.get("derivation_roots", ())),
+        "epistemic_type": item.get("epistemic_type", "observed"),
+        "event_id": event_id,
+        "logical_tick": item.get("logical_tick", tick),
+        "source_revision_id": source_id,
+        "values": local,
+        "weight": item.get("weight", 1.0),
+    }
+    contribution = _regional_validate_contribution(
+        contribution, width=len(chart["scope"])
+    )
+    norm = math.sqrt(sum(value * value for value in contribution["values"]))
+    if norm > chart["observation_norm_bound"]:
+        raise FieldIntelligenceError(
+            "OBSERVATION_OUT_OF_DOMAIN",
+            "local observation exceeds the chart norm bound",
+        )
+    return contribution
+
+
+def _regional_observation_items(
+    variables: Sequence[Mapping[str, Any]],
+    charts: Sequence[Mapping[str, Any]],
+    spec: Mapping[str, Any],
+    supplied: Sequence[Any],
+    *,
+    tick: int,
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    context = _regional_plain(spec.get("context", {}), "observation context")
+    if not isinstance(context, dict):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "observation context must be a mapping")
+    values = _regional_domain_values(variables, spec.get("values", {}))
+    context_sha256 = _regional_sha(context)
+    target_raw = spec.get("target_chart_ids")
+    targets = None if target_raw is None else list(target_raw)
+    if targets is not None and (
+        not targets or len(targets) != len(set(targets))
+    ):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "target chart IDs are invalid")
+    chart_map = {chart["chart_id"]: chart for chart in charts}
+    if targets is not None and any(item not in chart_map for item in targets):
+        raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "target chart is unknown")
+    rows = list(supplied)
+    if not rows:
+        rows = [spec]
+    normalized_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if isinstance(row, SupportContribution):
+            normalized_rows.append(dict(row.as_dict()))
+        elif isinstance(row, Mapping):
+            normalized_rows.append(dict(row))
+        else:
+            raise FieldIntelligenceError("INVALID_REGIONAL_SUPPORT", "contribution task is invalid")
+    items: list[dict[str, Any]] = []
+    partial: list[str] = []
+    selected_ids: list[str] = []
+    for chart in charts:
+        if targets is not None and chart["chart_id"] not in targets:
+            continue
+        if not _regional_chart_matches(chart, context):
+            continue
+        selected_ids.append(chart["chart_id"])
+        chart_rows: list[dict[str, Any]] = []
+        try:
+            for row in normalized_rows:
+                if "values" not in row:
+                    row = {**dict(spec), **row}
+                chart_rows.append(
+                    _regional_contribution_from(
+                        row, chart=chart, values=values,
+                        context_sha256=context_sha256, tick=tick,
+                    )
+                )
+        except FieldIntelligenceError as exc:
+            if exc.code == "INVALID_REGIONAL_SUPPORT" and "partially observed" in str(exc):
+                partial.append(chart["chart_id"])
+                continue
+            raise
+        staged = list(chart["contributions"])
+        special_items: list[dict[str, Any]] = []
+        new_rows: list[dict[str, Any]] = []
+        for contribution in chart_rows:
+            existing = next(
+                (row for row in staged if row["event_id"] == contribution["event_id"]), None
+            )
+            if existing is not None:
+                special_items.append({
+                    "action": "conflict" if existing != contribution else "duplicate",
+                    "chart_id": chart["chart_id"],
+                    "contribution": contribution,
+                })
+                continue
+            new_rows.append(contribution)
+            staged.append(contribution)
+        items.extend(special_items)
+        if not new_rows:
+            continue
+        rebuild = (
+            len(new_rows) > 1
+            or chart["learning_mode"] == "contextual"
+            or chart["recency_half_life"] is not None
+            or (
+                chart["contributions"]
+                and (new_rows[0]["logical_tick"], new_rows[0]["event_id"])
+                <= max(
+                    (row["logical_tick"], row["event_id"])
+                    for row in chart["contributions"]
+                )
+            )
+        )
+        if rebuild:
+            items.append({
+                "action": "rebuild",
+                "chart_id": chart["chart_id"],
+                "contributions": sorted(
+                    staged, key=lambda row: (row["logical_tick"], row["event_id"])
+                ),
+                "rebuild_cursor": 0,
+                "working_numeric_field": _regional_initial_numeric(
+                    len(chart["scope"]), chart["ridge"]
+                ),
+                "mass": chart["prior_mass"],
+            })
+        else:
+            items.append({
+                "action": "incremental",
+                "chart_id": chart["chart_id"],
+                "contribution": new_rows[0],
+            })
+    return items, partial, selected_ids
+
+
+def regional_state(
+    variables: Sequence[Any] | Mapping[str, Any] = (),
+    charts: Sequence[Any] = (),
+    *,
+    operation: str | Mapping[str, Any] = "identity",
+    task: Mapping[str, Any] | None = None,
+    contributions: Sequence[Any] = (),
+    logical_tick: int = 0,
+    revocation_generation: int = 0,
+) -> dict[str, Any]:
+    """Build a JSON-only restartable Atlas task for the regional machine."""
+    if isinstance(variables, Mapping) and ("variables" in variables or "charts" in variables):
+        source = dict(variables)
+        variables = source.get("variables", ())
+        charts = source.get("charts", charts)
+        if task is None and "task" in source:
+            task = source["task"]
+        if operation == "identity" and "operation" in source:
+            operation = source["operation"]
+        logical_tick = source.get("logical_tick", logical_tick)
+        revocation_generation = source.get("revocation_generation", revocation_generation)
+    normalized_variables = [_regional_validate_variable(item) for item in variables]
+    normalized_charts = [_regional_validate_chart(item) for item in charts]
+    if len(normalized_variables) > _REGIONAL_MAX_VARIABLES or len(normalized_charts) > _REGIONAL_MAX_CHARTS:
+        raise FieldIntelligenceError("REGIONAL_CAPACITY", "regional Atlas identity capacity is exceeded")
+    variable_ids = [item["variable_id"] for item in normalized_variables]
+    chart_ids = [item["chart_id"] for item in normalized_charts]
+    if len(variable_ids) != len(set(variable_ids)) or len(chart_ids) != len(set(chart_ids)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_ID", "regional identities must be unique")
+    if any(name not in set(variable_ids) for chart in normalized_charts for name in chart["scope"]):
+        raise FieldIntelligenceError("INVALID_REGIONAL_CHART", "chart scope names an unknown variable")
+    logical_tick = _regional_integer(logical_tick, "logical tick")
+    revocation_generation = _regional_integer(revocation_generation, "revocation generation")
+    if task is not None:
+        if not isinstance(task, Mapping):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "regional task must be a mapping")
+        spec = dict(task)
+    elif isinstance(operation, Mapping):
+        spec = dict(operation)
+    else:
+        spec = {"kind": operation}
+    kind = spec.get("kind", spec.get("operation", "identity"))
+    aliases = {
+        "atlas-identity": "identity",
+        "validate-identity": "identity",
+        "relation-chart-admission": "chart-admission",
+        "admit-chart": "chart-admission",
+        "observation": "contribution-update",
+        "admit-observation": "contribution-update",
+        "retract": "retraction-rebuild",
+        "retract-sources": "retraction-rebuild",
+    }
+    kind = aliases.get(kind, kind)
+    if kind not in {"identity", "chart-admission", "contribution-update", "retraction-rebuild", "rebuild"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "regional Atlas operation is unsupported")
+    tick = logical_tick + 1
+    if kind == "identity":
+        regional_task: dict[str, Any] = {
+            "kind": "identity", "phase": "identity", "cursor": 0,
+            "items": [{"variable_ids": variable_ids, "chart_ids": chart_ids}],
+        }
+    elif kind == "chart-admission":
+        chart_value = spec.get("chart")
+        if chart_value is None and len(normalized_charts) == 1:
+            chart_value = normalized_charts[0]
+        if chart_value is None:
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "chart admission needs a chart")
+        chart_value = _regional_validate_chart(chart_value)
+        if any(name not in set(variable_ids) for name in chart_value["scope"]):
+            raise FieldIntelligenceError(
+                "INVALID_REGIONAL_TASK", "chart admission scope names an unknown variable"
+            )
+        regional_task = {
+            "kind": "chart-admission", "phase": "apply", "cursor": 0,
+            "chart": chart_value,
+        }
+    elif kind == "contribution-update":
+        rows = spec.get("contributions", contributions)
+        if not rows and spec.get("contribution") is not None:
+            rows = [spec["contribution"]]
+        if not rows:
+            rows = [spec]
+        event_id = spec.get("event_id")
+        source_id = spec.get("source_revision_id")
+        if event_id is not None:
+            _regional_digest_text(event_id, "event_id")
+        if source_id is not None:
+            _regional_digest_text(source_id, "source_revision_id")
+        items, partial, selected = _regional_observation_items(
+            normalized_variables,
+            normalized_charts,
+            spec,
+            rows,
+            tick=tick,
+        )
+        regional_task = {
+            "kind": "contribution-update", "phase": "apply", "cursor": 0,
+            "tick": tick, "items": items, "partial_chart_ids": partial,
+            "selected_chart_ids": selected,
+            "target_chart_ids": None if spec.get("target_chart_ids") is None else list(spec["target_chart_ids"]),
+            "no_applicable": not bool(items),
+        }
+    elif kind == "rebuild":
+        targets = spec.get("chart_ids", spec.get("target_chart_ids"))
+        target_ids = chart_ids if targets is None else list(targets)
+        if not target_ids or len(target_ids) != len(set(target_ids)):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "rebuild chart IDs are invalid")
+        chart_map = {chart["chart_id"]: chart for chart in normalized_charts}
+        if any(item not in chart_map for item in target_ids):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "rebuild chart is unknown")
+        supplied_map = spec.get("contributions_by_chart", {})
+        if not isinstance(supplied_map, Mapping):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "rebuild contributions are invalid")
+        rebuild_items = []
+        for chart_id in target_ids:
+            chart = chart_map[chart_id]
+            raw_rows = supplied_map.get(chart_id, chart["contributions"])
+            rows = [
+                _regional_validate_contribution(item, width=len(chart["scope"]))
+                for item in raw_rows
+            ]
+            rebuild_items.append({
+                "chart_id": chart_id, "contributions": sorted(
+                    rows, key=lambda row: (row["logical_tick"], row["event_id"])
+                ),
+                "rebuild_cursor": 0,
+                "working_numeric_field": _regional_initial_numeric(len(chart["scope"]), chart["ridge"]),
+                "mass": chart["prior_mass"],
+            })
+        regional_task = {
+            "kind": "rebuild", "phase": "apply", "cursor": 0,
+            "tick": tick, "items": rebuild_items,
+        }
+    else:
+        targets = spec.get("source_revision_ids")
+        if not isinstance(targets, (list, tuple)) or not targets:
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "retraction targets cannot be empty")
+        target_ids = sorted({_regional_digest_text(item, "source revision") for item in targets})
+        explicit_events = spec.get("event_ids", ())
+        if not isinstance(explicit_events, (list, tuple)):
+            raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "retraction event IDs are invalid")
+        explicit_events = sorted({_regional_digest_text(item, "event ID") for item in explicit_events})
+        requested_generation = _regional_integer(
+            spec.get("revocation_generation", revocation_generation + 1),
+            "revocation generation",
+            minimum=revocation_generation + 1,
+        )
+        regional_task = {
+            "kind": "retraction-rebuild", "phase": "discover", "tick": tick,
+            "chart_cursor": 0, "contribution_cursor": 0, "changed_pass": False,
+            "source_revision_ids": target_ids, "event_ids": explicit_events,
+            "invalid_roots": sorted(set((*target_ids, *explicit_events))),
+            "removed_event_ids": list(explicit_events), "affected_chart_ids": [],
+            "current": None, "revocation_generation": requested_generation,
+        }
+    state = {
+        "schema": REGIONAL_STATE_SCHEMA,
+        "variables": normalized_variables,
+        "charts": normalized_charts,
+        "logical_tick": logical_tick,
+        "revocation_generation": revocation_generation,
+        "phase": "running",
+        "task": regional_task,
+        "journal": [{"event": "initialized", "operation": kind, "cursor": 0}],
+        "result": None,
+    }
+    return _regional_validate_state(state)
+
+
+def _regional_validate_state(value: Any) -> dict[str, Any]:
+    raw = _regional_plain(value, "regional Atlas state")
+    required = {
+        "schema", "variables", "charts", "logical_tick", "revocation_generation",
+        "phase", "task", "journal", "result",
+    }
+    if not isinstance(raw, dict) or set(raw) != required or raw["schema"] != REGIONAL_STATE_SCHEMA:
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional Atlas state keys are invalid")
+    if raw["phase"] not in {"running", "terminal", "fault"}:
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional Atlas phase is invalid")
+    raw["logical_tick"] = _regional_integer(raw["logical_tick"], "logical tick")
+    raw["revocation_generation"] = _regional_integer(
+        raw["revocation_generation"], "revocation generation"
+    )
+    if not isinstance(raw["variables"], list) or not isinstance(raw["charts"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional identity records are invalid")
+    normalized_variables = [_regional_validate_variable(item) for item in raw["variables"]]
+    normalized_charts = [_regional_validate_chart(item) for item in raw["charts"]]
+    if len(normalized_variables) > _REGIONAL_MAX_VARIABLES or len(normalized_charts) > _REGIONAL_MAX_CHARTS:
+        raise FieldIntelligenceError("REGIONAL_CAPACITY", "regional Atlas identity capacity is exceeded")
+    variable_ids = [item["variable_id"] for item in normalized_variables]
+    chart_ids = [item["chart_id"] for item in normalized_charts]
+    if len(variable_ids) != len(set(variable_ids)) or len(chart_ids) != len(set(chart_ids)):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional identities are duplicated")
+    variable_set = set(variable_ids)
+    if any(name not in variable_set for chart in normalized_charts for name in chart["scope"]):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional chart scope escaped identity")
+    if not isinstance(raw["task"], dict) or not isinstance(raw["journal"], list):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional task or journal is invalid")
+    if raw["phase"] == "running" and raw["result"] is not None:
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "running regional state has a result")
+    if raw["phase"] in {"terminal", "fault"} and not isinstance(raw["result"], dict):
+        raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "terminal regional state lacks a result")
+    raw["variables"] = normalized_variables
+    raw["charts"] = normalized_charts
+    return raw
+
+
+def _regional_apply_observation(
+    numeric_field: Mapping[str, Any],
+    chart: Mapping[str, Any],
+    contribution: Mapping[str, Any],
+    *,
+    exposure: float,
+) -> dict[str, Any]:
+    dimension = len(chart["scope"])
+    covariance = _regional_covariance(numeric_field, dimension)
+    gain = -math.expm1(-_regional_number(exposure, "chart exposure", positive=True))
+    values = contribution["values"]
+    for row in range(dimension):
+        for column in range(dimension):
+            target = values[row] * values[column]
+            if row == column:
+                target += chart["ridge"]
+            covariance[row][column] = (
+                (1.0 - gain) * covariance[row][column] + gain * target
+            )
+    return _regional_pack_covariance(numeric_field, dimension, covariance)
+
+
+def _regional_effective_weight(
+    contribution: Mapping[str, Any], chart: Mapping[str, Any], at_tick: int
+) -> float:
+    weight = contribution["weight"]
+    half_life = chart["recency_half_life"]
+    if half_life is None:
+        return weight
+    age = max(0, at_tick - contribution["logical_tick"])
+    return weight * math.exp2(-age / half_life)
+
+
+def _regional_chart_replacement(
+    charts: list[dict[str, Any]], chart_id: str, replacement: dict[str, Any]
+) -> None:
+    for index, chart in enumerate(charts):
+        if chart["chart_id"] == chart_id:
+            charts[index] = replacement
+            return
+    raise FieldIntelligenceError("INVALID_REGIONAL_STATE", "regional chart identity disappeared")
+
+
+def _regional_result(
+    state: Mapping[str, Any],
+    *,
+    status: str,
+    operation: str,
+    work: int,
+    **details: Any,
+) -> dict[str, Any]:
+    digest_payload = {key: value for key, value in state.items() if key != "result"}
+    return {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "status": status,
+        "operation": operation,
+        "work": work,
+        "state_sha256": _regional_sha(digest_payload),
+        **details,
+    }
+
+
+def _regional_finish(
+    state: dict[str, Any],
+    *,
+    status: str,
+    operation: str,
+    work: int,
+    **details: Any,
+) -> dict[str, Any]:
+    result = _regional_result(
+        state, status=status, operation=operation, work=work, **details
+    )
+    state["phase"] = "fault" if status == "fault" else "terminal"
+    state["result"] = result
+    return result
+
+
+def _regional_identity_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    if task["cursor"] == 0:
+        task["cursor"] = 1
+        task["phase"] = "done"
+        _regional_finish(
+            state,
+            status="done",
+            operation="identity",
+            work=work,
+            variable_ids=list(task["items"][0]["variable_ids"]),
+            chart_ids=list(task["items"][0]["chart_ids"]),
+        )
+
+
+def _regional_chart_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    if task["cursor"]:
+        return
+    chart = _regional_validate_chart(task["chart"])
+    variable_ids = {row["variable_id"] for row in state["variables"]}
+    if any(name not in variable_ids for name in chart["scope"]):
+        raise FieldIntelligenceError(
+            "INVALID_REGIONAL_TASK", "chart admission scope names an unknown variable"
+        )
+    task["chart"] = chart
+    existing = next(
+        (row for row in state["charts"] if row["chart_id"] == chart["chart_id"]),
+        None,
+    )
+    if existing is not None and existing != chart:
+        raise FieldIntelligenceError("CHART_CONFLICT", "chart identity has different semantics")
+    if existing is None:
+        state["charts"].append(chart)
+    task["cursor"] = 1
+    task["phase"] = "done"
+    _regional_finish(
+        state,
+        status="done",
+        operation="chart-admission",
+        work=work,
+        chart_id=chart["chart_id"],
+        changed=existing is None,
+    )
+
+
+def _regional_update_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    items = task["items"]
+    cursor = task["cursor"]
+    if not items:
+        raise FieldIntelligenceError(
+            "NO_APPLICABLE_CHART",
+            "contribution did not fully support an applicable chart",
+        )
+    if cursor >= len(items):
+        task["phase"] = "done"
+        state["logical_tick"] = task["tick"]
+        _regional_finish(
+            state,
+            status="done",
+            operation="contribution-update",
+            work=work,
+            changed_chart_ids=sorted({
+                item["chart_id"] for item in items if item["action"] not in {"duplicate", "conflict"}
+            }),
+            partial_chart_ids=list(task["partial_chart_ids"]),
+        )
+        return
+    item = items[cursor]
+    chart = next(row for row in state["charts"] if row["chart_id"] == item["chart_id"])
+    if item["action"] == "conflict":
+        raise FieldIntelligenceError("EVIDENCE_IDENTITY_CONFLICT", "support event identity conflicts")
+    if item["action"] == "duplicate":
+        task["cursor"] += 1
+        return
+    if item["action"] == "incremental":
+        contribution = item["contribution"]
+        mass = chart["prior_mass"] + sum(row["weight"] for row in chart["contributions"])
+        exposure = math.log1p(contribution["weight"] / mass)
+        replacement = dict(chart)
+        replacement["numeric_field"] = _regional_apply_observation(
+            chart["numeric_field"], chart, contribution, exposure=exposure
+        )
+        replacement["contributions"] = [*chart["contributions"], contribution]
+        replacement["version"] = chart["version"] + 1
+        _regional_chart_replacement(state["charts"], chart["chart_id"], replacement)
+        task["cursor"] += 1
+        return
+    if item["rebuild_cursor"] < len(item["contributions"]):
+        contribution = item["contributions"][item["rebuild_cursor"]]
+        weight = _regional_effective_weight(contribution, chart, task["tick"])
+        if weight > 0.0:
+            exposure = math.log1p(weight / item["mass"])
+            item["working_numeric_field"] = _regional_apply_observation(
+                item["working_numeric_field"], chart, contribution, exposure=exposure
+            )
+            item["mass"] += weight
+        item["rebuild_cursor"] += 1
+        return
+    replacement = dict(chart)
+    replacement["numeric_field"] = item["working_numeric_field"]
+    replacement["contributions"] = item["contributions"]
+    replacement["version"] = chart["version"] + 1
+    _regional_chart_replacement(state["charts"], chart["chart_id"], replacement)
+    task["cursor"] += 1
+
+
+def _regional_retraction_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    charts = state["charts"]
+    if task["phase"] == "discover":
+        if task["chart_cursor"] < len(charts):
+            chart = charts[task["chart_cursor"]]
+            if task["contribution_cursor"] < len(chart["contributions"]):
+                contribution = chart["contributions"][task["contribution_cursor"]]
+                if (
+                    contribution["source_revision_id"] in task["source_revision_ids"]
+                    or set(task["invalid_roots"]).intersection(contribution["derivation_roots"])
+                ):
+                    if contribution["event_id"] not in task["removed_event_ids"]:
+                        task["removed_event_ids"].append(contribution["event_id"])
+                        task["invalid_roots"].append(contribution["event_id"])
+                        task["invalid_roots"].sort()
+                        task["changed_pass"] = True
+                task["contribution_cursor"] += 1
+                return
+            task["chart_cursor"] += 1
+            task["contribution_cursor"] = 0
+            return
+        if task["changed_pass"]:
+            task["chart_cursor"] = 0
+            task["contribution_cursor"] = 0
+            task["changed_pass"] = False
+            return
+        task["phase"] = "rebuild"
+        task["chart_cursor"] = 0
+        return
+    if task["phase"] == "rebuild":
+        current = task["current"]
+        if current is None:
+            if task["chart_cursor"] >= len(charts):
+                task["phase"] = "done"
+                state["logical_tick"] = task["tick"]
+                state["revocation_generation"] = task["revocation_generation"]
+                _regional_finish(
+                    state,
+                    status="done",
+                    operation="retraction-rebuild",
+                    work=work,
+                    removed_event_ids=sorted(task["removed_event_ids"]),
+                    affected_chart_ids=sorted(task["affected_chart_ids"]),
+                    revocation_generation=task["revocation_generation"],
+                )
+                return
+            chart = charts[task["chart_cursor"]]
+            retained = [
+                row for row in chart["contributions"]
+                if row["source_revision_id"] not in task["source_revision_ids"]
+                and row["event_id"] not in task["removed_event_ids"]
+            ]
+            if len(retained) == len(chart["contributions"]):
+                task["chart_cursor"] += 1
+                return
+            task["current"] = {
+                "chart_id": chart["chart_id"],
+                "contributions": sorted(
+                    retained, key=lambda row: (row["logical_tick"], row["event_id"])
+                ),
+                "rebuild_cursor": 0,
+                "working_numeric_field": _regional_initial_numeric(
+                    len(chart["scope"]), chart["ridge"]
+                ),
+                "mass": chart["prior_mass"],
+            }
+            return
+        chart = next(row for row in charts if row["chart_id"] == current["chart_id"])
+        if current["rebuild_cursor"] < len(current["contributions"]):
+            contribution = current["contributions"][current["rebuild_cursor"]]
+            weight = _regional_effective_weight(contribution, chart, task["tick"])
+            if weight > 0.0:
+                exposure = math.log1p(weight / current["mass"])
+                current["working_numeric_field"] = _regional_apply_observation(
+                    current["working_numeric_field"], chart, contribution, exposure=exposure
+                )
+                current["mass"] += weight
+            current["rebuild_cursor"] += 1
+            return
+        replacement = dict(chart)
+        replacement["numeric_field"] = current["working_numeric_field"]
+        replacement["contributions"] = current["contributions"]
+        replacement["version"] = chart["version"] + 1
+        _regional_chart_replacement(charts, chart["chart_id"], replacement)
+        task["affected_chart_ids"].append(chart["chart_id"])
+        task["chart_cursor"] += 1
+        task["current"] = None
+        return
+    raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "retraction phase is invalid")
+
+
+def _regional_rebuild_step(state: dict[str, Any], *, work: int) -> None:
+    task = state["task"]
+    if task["cursor"] >= len(task["items"]):
+        task["phase"] = "done"
+        state["logical_tick"] = task["tick"]
+        _regional_finish(
+            state,
+            status="done",
+            operation="rebuild",
+            work=work,
+            affected_chart_ids=sorted(item["chart_id"] for item in task["items"]),
+        )
+        return
+    item = task["items"][task["cursor"]]
+    chart = next(row for row in state["charts"] if row["chart_id"] == item["chart_id"])
+    if item["rebuild_cursor"] < len(item["contributions"]):
+        contribution = item["contributions"][item["rebuild_cursor"]]
+        weight = _regional_effective_weight(contribution, chart, task["tick"])
+        if weight > 0.0:
+            exposure = math.log1p(weight / item["mass"])
+            item["working_numeric_field"] = _regional_apply_observation(
+                item["working_numeric_field"], chart, contribution, exposure=exposure
+            )
+            item["mass"] += weight
+        item["rebuild_cursor"] += 1
+        return
+    replacement = dict(chart)
+    replacement["numeric_field"] = item["working_numeric_field"]
+    replacement["contributions"] = item["contributions"]
+    replacement["version"] = chart["version"] + 1
+    _regional_chart_replacement(state["charts"], chart["chart_id"], replacement)
+    task["cursor"] += 1
+
+
+def regional_kernel(
+    state: Any,
+    arguments: Mapping[str, Any],
+    quantum: int,
+) -> KernelResult:
+    """Perform only the declared bounded Atlas task quantum over typed data."""
+    if not isinstance(arguments, Mapping) or arguments:
+        raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "Atlas regional kernel takes no arguments")
+    quantum = _regional_integer(
+        quantum, "Atlas regional quantum", minimum=1, maximum=REGIONAL_KERNEL_MAX_WORK
+    )
+    raw = _regional_validate_state(state)
+    if raw["phase"] == "terminal":
+        return KernelResult(state=raw, status="done", work=0, output=raw["result"])
+    if raw["phase"] == "fault":
+        return KernelResult(state=raw, status="fault", work=0, output=raw["result"])
+    current = _regional_plain(raw, "regional Atlas state")
+    operation = current["task"]["kind"]
+    used = 0
+    while used < quantum and current["phase"] == "running":
+        used += 1
+        try:
+            if operation == "identity":
+                _regional_identity_step(current, work=used)
+            elif operation == "chart-admission":
+                _regional_chart_step(current, work=used)
+            elif operation == "contribution-update":
+                _regional_update_step(current, work=used)
+            elif operation == "retraction-rebuild":
+                _regional_retraction_step(current, work=used)
+            elif operation == "rebuild":
+                _regional_rebuild_step(current, work=used)
+            else:
+                raise FieldIntelligenceError("INVALID_REGIONAL_TASK", "regional Atlas operation is invalid")
+            current["journal"].append({
+                "event": "step", "operation": operation, "work": used,
+                "phase": current["task"].get("phase"),
+                "cursor": current["task"].get("cursor", current["task"].get("chart_cursor", 0)),
+            })
+        except FieldIntelligenceError as exc:
+            current["task"]["error"] = {"code": exc.code, "message": str(exc)}
+            _regional_finish(
+                current,
+                status="fault",
+                operation=operation,
+                work=used,
+                reason=exc.code,
+                message=str(exc),
+            )
+            break
+    if current["phase"] == "terminal":
+        return KernelResult(state=current, status="done", work=used, output=current["result"])
+    if current["phase"] == "fault":
+        return KernelResult(state=current, status="fault", work=used, output=current["result"])
+    return KernelResult(state=current, status="yield", work=used, output=None)
+
+
 
 __all__ = [
-    "ARITHMETIC_PROFILE",
-    "ATLAS_LEGACY_SCHEMA",
-    "ATLAS_SCHEMA",
-    "AssessmentRecord",
-    "AtlasState",
-    "BranchSolution",
-    "ComputationRecord",
-    "ExactReduction",
-    "FieldAtlas",
-    "FieldIntelligenceError",
-    "FieldProgram",
-    "FieldTransceiver",
-    "Guard",
-    "LanguageConstruction",
-    "PlanRecord",
-    "PlanSegment",
-    "PredictionRecord",
-    "PrimitiveStep",
-    "QueryResult",
-    "RelationChart",
-    "SupportContribution",
-    "VariableSpec",
-    "canonical_json_bytes",
-    "sha256_value",
+"ARITHMETIC_PROFILE",
+"ATLAS_LEGACY_SCHEMA",
+"ATLAS_SCHEMA",
+"AssessmentRecord",
+"AtlasState",
+"BranchSolution",
+"ComputationRecord",
+"ExactReduction",
+"FieldAtlas",
+"FieldIntelligenceError",
+"FieldProgram",
+"FieldTransceiver",
+"Guard",
+"LanguageConstruction",
+"PlanRecord",
+"PlanSegment",
+"PRIMITIVE_ARITY",
+"PRIMITIVE_OPERATIONS",
+"PredictionRecord",
+"PrimitiveStep",
+"QueryResult",
+"RelationChart",
+"SupportContribution",
+"SURFACE_FIELD_INPUT_SCHEMA",
+"SURFACE_FIELD_VARIABLE_IDS",
+"surface_field_inputs",
+"VariableSpec",
+"REGIONAL_KERNEL_MAX_WORK",
+"REGIONAL_KERNEL_NAME",
+"REGIONAL_RESULT_SCHEMA",
+"REGIONAL_STATE_SCHEMA",
+"canonical_json_bytes",
+"regional_kernel",
+"regional_state",
+"sha256_value",
 ]

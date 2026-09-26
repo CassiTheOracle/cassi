@@ -30,7 +30,7 @@ from cassi_field_owner import (
     SourceInput,
 )
 PROTOCOL_ID = "cassifi.cassipi-owner-rpc.v1"
-RUNTIME_ID = "cassifi.cassipi-field-intelligence.v3"
+RUNTIME_ID = "cassifi.cassipi-field-intelligence.v4"
 COMPATIBILITY_SCHEMA = "cassifi.cassipi-compatibility.v1"
 CONTROL_SCHEMA = "cassipi.field-control.v3"
 MEMORY_SCOPES = frozenset({"profile", "project", "branch", "task"})
@@ -452,7 +452,7 @@ class CanonicalOwnerAdapter:
             "runtime_id": RUNTIME_ID,
             "closure_sha256": self.manifest["closure_sha256"],
             "manifest_sha256": _sha256_bytes(manifest_path.read_bytes()),
-            "adapter_api_version": "3",
+            "adapter_api_version": "4",
             "owner_rpc_schema": RPC_SCHEMA,
             "minimum_torch_version": "2.9.1",
             "field_state_sha256": self.owner.state.state_sha256,
@@ -692,7 +692,7 @@ class CanonicalOwnerAdapter:
     def _control_checkpoint_state(self, manifest_sha256: Any, label: str) -> AtlasState:
         manifest_id = _digest(manifest_sha256, label)
         manifest = self.owner.checkpoints._manifest(manifest_id)
-        return self.owner.checkpoints._load_state(manifest)
+        return self.owner.checkpoints.readable_state(manifest)
 
     @staticmethod
     def _migrate_control_v2(value: Any) -> dict[str, Any]:
@@ -1260,6 +1260,54 @@ class CanonicalOwnerAdapter:
             "field_intelligence": field,
         }
 
+    def computer(
+        self,
+        request: Mapping[str, Any],
+        *,
+        scope: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Run one bounded universal-computer operation in the owner."""
+
+        if request.get("schema") != "cassipi.computer.v1":
+            raise OwnerAdapterError(
+                "PROTOCOL_MISMATCH",
+                "computer request schema is incompatible",
+                status=409,
+            )
+        operation_id = _text(
+            request.get("operation_id"), "operation_id"
+        )
+        computer_id = _text(
+            request.get("computer_id"), "computer_id"
+        )
+        action = _text(request.get("action"), "action")
+        arguments = request.get("arguments", {})
+        if not isinstance(arguments, Mapping):
+            raise OwnerAdapterError(
+                "INVALID_REQUEST",
+                "computer arguments must be an object",
+                status=400,
+            )
+        bound_scope = _scope_from(scope)
+        self._assert_profile(bound_scope["profile_id"])
+        try:
+            return self.owner.operate_computer(
+                operation_id,
+                computer_id=computer_id,
+                action=action,
+                arguments=dict(arguments),
+                expected_state_sha256=request.get(
+                    "expected_state_sha256"
+                ),
+            )
+        except FieldIntelligenceError as exc:
+            raise OwnerAdapterError(
+                exc.code,
+                str(exc),
+                status=409,
+                details=exc.details,
+            ) from exc
+
     def advance(
         self,
         *,
@@ -1749,7 +1797,12 @@ class CanonicalOwnerAdapter:
         value = _keys(
             request,
             required,
-            optional={"native_entry_id", "provisional_observation_id", "tool_call_id"},
+            optional={
+                "cognition",
+                "native_entry_id",
+                "provisional_observation_id",
+                "tool_call_id",
+            },
             label="observe request",
         )
         if value["schema"] != "cassipi.observe.v1":
@@ -1757,12 +1810,47 @@ class CanonicalOwnerAdapter:
         operation_id = _text(value["operation_id"], "operation_id")
         scope = _scope_from(value)
         self._assert_profile(scope["profile_id"])
-        existing = self.owner.evidence.event_for_operation(operation_id)
-        if existing is None and value["parent_head_id"] != self.owner.checkpoints.current_manifest_sha256:
+        cognition = value.get("cognition")
+        if cognition is not None and (
+            not isinstance(cognition, Mapping)
+            or set(cognition)
+            - {
+                "chunk_index",
+                "computer_id",
+                "cursor",
+                "dtype",
+                "page_size",
+                "shape",
+                "steps",
+                "stream_id",
+                "units",
+            }
+        ):
+            raise OwnerAdapterError(
+                "INVALID_REQUEST",
+                "cognition source-view options are invalid",
+                status=400,
+            )
+        evidence_operation_id = (
+            f"{operation_id}:source"
+            if cognition is not None
+            else operation_id
+        )
+        existing = self.owner.evidence.event_for_operation(
+            evidence_operation_id
+        )
+        if (
+            existing is None
+            and value["parent_head_id"]
+            != self.owner.checkpoints.current_manifest_sha256
+        ):
             raise OwnerAdapterError(
                 "STALE_FIELD_HEAD",
                 "observation expected a different field head",
-                details={"expected": value["parent_head_id"], "actual": self.owner.checkpoints.current_manifest_sha256},
+                details={
+                    "expected": value["parent_head_id"],
+                    "actual": self.owner.checkpoints.current_manifest_sha256,
+                },
             )
         source_value = value["source"]
         payload = value["payload"]
@@ -1806,63 +1894,111 @@ class CanonicalOwnerAdapter:
             span=None if source.get("span") is None else tuple(source["span"]),
             labels=labels,
         )
+        event: Mapping[str, Any] | None = None
+        stored: Mapping[str, Any] | None = None
+        receipt: Mapping[str, Any] | None = None
+        if cognition is not None:
+            cognition_options = dict(cognition)
+            result = self._call(
+                "computer_input",
+                {
+                    "operation_id": operation_id,
+                    "computer_id": cognition_options.pop(
+                        "computer_id", "main"
+                    ),
+                    "source": source_input.as_dict(),
+                    **cognition_options,
+                },
+                operation_id,
+            )
+            evidence_result = result["evidence"]
+            event = evidence_result["event"]
+            stored = evidence_result["source"]
+            receipt = (
+                evidence_result["receipt"]
+                if result["computer"] is None
+                else result["computer"]["checkpoint_receipt"]
+            )
+        else:
+            result = None
         trainable = (
             source_input.codec == "utf-8"
             and source_input.media_type != "application/octet-stream"
             and value["event_kind"] != "terminal-import"
             and payload.get("projection_eligible") is not False
         )
-        if trainable:
-            source_attributes = _source_attributes(
-                context,
-                source_bytes=len(field_content),
-                max_source_bytes=self.owner.limits.max_source_bytes,
+        if cognition is None:
+            if trainable:
+                source_attributes = _source_attributes(
+                    context,
+                    source_bytes=len(field_content),
+                    max_source_bytes=self.owner.limits.max_source_bytes,
+                )
+                cue_attributes = self._predecessor_attributes(
+                    context, source_attributes
+                )
+                values = {
+                    BIAS_VARIABLE: 1.0,
+                    **{
+                        name: cue_attributes[attribute]
+                        for name, attribute in zip(
+                            CUE_VARIABLES,
+                            ATTRIBUTE_NAMES,
+                            strict=True,
+                        )
+                    },
+                    **{
+                        name: source_attributes[attribute] - 0.5
+                        for name, attribute in zip(
+                            SOURCE_VARIABLES,
+                            ATTRIBUTE_NAMES,
+                            strict=True,
+                        )
+                    },
+                }
+                result = self._call(
+                    "admit",
+                    {
+                        "operation_id": operation_id,
+                        "event_kind": value["event_kind"],
+                        "source": source_input.as_dict(),
+                        "values": values,
+                        "context": context,
+                        "epistemic_type": (
+                            "asserted"
+                            if source_input.claim_category
+                            in {"user-instruction", "assistant-response"}
+                            else "observed"
+                        ),
+                        "derivation_roots": [],
+                        "target_chart_ids": [
+                            self._chart(scope, identity_scope)
+                        ],
+                        "weight": 1.0,
+                    },
+                    operation_id,
+                )
+            else:
+                result = self._call(
+                    "archive",
+                    {
+                        "operation_id": operation_id,
+                        "source": source_input.as_dict(),
+                        "context": context,
+                        "epistemic_type": "observed",
+                        "event_kind": value["event_kind"],
+                    },
+                    operation_id,
+                )
+            event = result["event"]
+            stored = result["source"]
+            receipt = result["receipt"]
+        if event is None or stored is None or receipt is None:
+            raise OwnerAdapterError(
+                "OWNER_PROTOCOL_ERROR",
+                "owner observation result is incomplete",
+                status=500,
             )
-            cue_attributes = self._predecessor_attributes(context, source_attributes)
-            values = {
-                BIAS_VARIABLE: 1.0,
-                **{name: cue_attributes[attribute] for name, attribute in zip(CUE_VARIABLES, ATTRIBUTE_NAMES, strict=True)},
-                **{
-                    name: source_attributes[attribute] - 0.5
-                    for name, attribute in zip(
-                        SOURCE_VARIABLES,
-                        ATTRIBUTE_NAMES,
-                        strict=True,
-                    )
-                },
-            }
-            result = self._call(
-                "admit",
-                {
-                    "operation_id": operation_id,
-                    "event_kind": value["event_kind"],
-                    "source": source_input.as_dict(),
-                    "values": values,
-                    "context": context,
-                    "epistemic_type": (
-                        "asserted" if source_input.claim_category in {"user-instruction", "assistant-response"} else "observed"
-                    ),
-                    "derivation_roots": [],
-                    "target_chart_ids": [self._chart(scope, identity_scope)],
-                    "weight": 1.0,
-                },
-                operation_id,
-            )
-        else:
-            result = self._call(
-                "archive",
-                {
-                    "operation_id": operation_id,
-                    "source": source_input.as_dict(),
-                    "context": context,
-                    "epistemic_type": "observed",
-                    "event_kind": value["event_kind"],
-                },
-                operation_id,
-            )
-        event = result["event"]
-        stored = result["source"]
-        receipt = result["receipt"]
         # Native host identities are the durable lineage lookup surface. The
         # evidence event itself remains indexed by ExactEvidenceStore.
         if value.get("native_entry_id") is not None:

@@ -17,7 +17,14 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from cassi_field_regions import KernelResult
+
 SCHEMA = "cassifi.temporal-field.v1"
+REGIONAL_KERNEL_NAME = "temporal-memory"
+REGIONAL_MAX_WORK = 4_096
+REGIONAL_KERNEL_MAX_WORK = REGIONAL_MAX_WORK
+REGIONAL_STATE_SCHEMA = "cassifi.temporal-regional-state.v1"
+REGIONAL_RESULT_SCHEMA = "cassifi.regional-kernel-result.v1"
 _MAX_ACTIONS = 64
 _MAX_OBSERVATIONS = 64
 _MAX_EPISODES = 4096
@@ -282,6 +289,9 @@ class TemporalField:
     _participants: tuple[str, ...] = field(default=("",), repr=False, compare=False)
     _legacy: bool = field(default=False, repr=False, compare=False)
     _projection_state: int | None = field(default=None, repr=False, compare=False)
+    _materializations: tuple[Mapping[str, Any], ...] = field(default=(), repr=False, compare=False)
+    # Frozen instance: digests and encoded bytes are computed once per value.
+    _memo: dict[str, Any] = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         _identifier(self.memory_id, "memory_id")
@@ -310,8 +320,39 @@ class TemporalField:
             _digest(revision, "source_revision_id")
         object.__setattr__(self, "_source_revision_ids", revisions)
         tensor.flags.writeable = False
+        object.__setattr__(self, "_materializations", self._validate_materializations(self._materializations))
         object.__setattr__(self, "_skills", self._validate_skills(self._skills))
         self._validate_tensor()
+    @classmethod
+    def initial(cls, memory_id: str, *, action_ids: Sequence[str], observation_ids: Sequence[str],
+                max_states: int = 128, context: Mapping[str, Any] | None = None) -> TemporalField:
+        actions = _ids(action_ids, "action_ids", _MAX_ACTIONS)
+        observations = _ids(observation_ids, "observation_ids", _MAX_OBSERVATIONS)
+        if isinstance(max_states, bool) or not isinstance(max_states, int) or not 1 <= max_states <= _MAX_STATES:
+            raise TemporalFieldError("max_states must be in [1,128]")
+        return cls(memory_id, actions, observations, max_states, {} if context is None else context,
+                   _tensor([{}], actions, observations, max_states))
+
+    @property
+    def field(self) -> np.ndarray:
+        return self._field.copy()
+
+    @property
+    def state_count(self) -> int:
+        return int(self._field[0, 3*self.max_states, 0])
+
+    @property
+    def nbytes(self) -> int:
+        return int(self._field.nbytes)
+
+    @property
+    def source_revision_ids(self) -> tuple[str, ...]:
+        return self._source_revision_ids
+
+    @property
+    def participant_ids(self) -> tuple[str, ...]:
+        return tuple(item for item in self._participants if item)
+
     @property
     def _layers(self) -> int:
         return self._field.shape[1] // self.max_states
@@ -448,13 +489,62 @@ class TemporalField:
                     if name in forbidden or (name not in goals and not 0 < ranks[successor, slot] < ranks[state, slot]):
                         raise TemporalFieldError("skill action does not make supported safe progress")
 
+    def _validate_materializations(self, records: Any) -> tuple[Mapping[str, Any], ...]:
+        if isinstance(records, (str, bytes)) or not isinstance(records, Sequence) or len(records) > _MAX_EPISODES:
+            raise TemporalFieldError("materialization register exceeds bounded capacity")
+        normalized: list[Mapping[str, Any]] = []
+        seen: set[str] = set()
+        for record in records:
+            if not isinstance(record, Mapping) or set(record) != {
+                "participant_id", "skill_id", "history", "action", "observation",
+                "template_destination",
+            }:
+                raise TemporalFieldError("invalid temporal materialization record")
+            participant_id = _identifier(record["participant_id"], "materialization participant_id")
+            skill_id = _identifier(record["skill_id"], "materialization skill_id")
+            action = _identifier(record["action"], "materialization action")
+            observation = _identifier(record["observation"], "materialization observation")
+            if action not in self.action_ids or observation not in self.observation_ids:
+                raise TemporalFieldError("invalid temporal materialization identity")
+            history = record["history"]
+            if isinstance(history, (str, bytes)) or not isinstance(history, Sequence) or len(history) > self._history_capacity:
+                raise TemporalFieldError("invalid temporal materialization history")
+            events: list[Mapping[str, str]] = []
+            for event in history:
+                if not isinstance(event, Mapping) or set(event) != {"action", "observation"}:
+                    raise TemporalFieldError("invalid temporal materialization history event")
+                event_action = _identifier(event["action"], "history action")
+                event_observation = _identifier(event["observation"], "history observation")
+                if event_action not in self.action_ids or event_observation not in self.observation_ids:
+                    raise TemporalFieldError("history event leaves fixed codec")
+                events.append(MappingProxyType({"action": event_action, "observation": event_observation}))
+            destination = record["template_destination"]
+            if isinstance(destination, bool) or not isinstance(destination, int) or not 0 <= destination < self.max_states:
+                raise TemporalFieldError("invalid temporal materialization destination")
+            key = hashlib.sha256(_canonical({
+                "participant_id": participant_id, "skill_id": skill_id,
+                "history": events, "action": action, "observation": observation,
+            })).hexdigest()
+            if key in seen:
+                raise TemporalFieldError("duplicate temporal materialization")
+            seen.add(key)
+            normalized.append(MappingProxyType({
+                "participant_id": participant_id, "skill_id": skill_id,
+                "history": tuple(events), "action": action, "observation": observation,
+                "template_destination": destination,
+            }))
+        return tuple(normalized)
+
     def _validate_skills(self, skills: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Mapping[str, Any]]:
         if not isinstance(skills, Mapping) or len(skills) > min(_MAX_SKILLS, self._field.shape[2]):
             raise TemporalFieldError("skills exceed bounded policy capacity")
         result, used = {}, set()
         for skill_id, spec in skills.items():
             _identifier(skill_id, "skill_id")
-            if not isinstance(spec, Mapping) or set(spec) != {"goal", "forbidden", "bound_memory", "slot"}:
+            if not isinstance(spec, Mapping) or set(spec) not in (
+                {"goal", "forbidden", "bound_memory", "slot"},
+                {"goal", "forbidden", "bound_memory", "slot", "formation_source_count"},
+            ):
                 raise TemporalFieldError("invalid temporal skill metadata")
             goals = _ids(spec["goal"], "goal observations", len(self.observation_ids))
             forbidden = _ids(spec["forbidden"], "forbidden observations", len(self.observation_ids), allow_empty=True)
@@ -466,38 +556,23 @@ class TemporalField:
             used.add(slot)
             if _digest(spec["bound_memory"], "skill memory") != self.memory_sha256:
                 raise TemporalFieldError("skill is bound to different learned memory")
-            result[skill_id] = MappingProxyType({"goal": goals, "forbidden": forbidden, "bound_memory": spec["bound_memory"], "slot": slot})
+            formation_source_count = spec.get("formation_source_count", len(self._source_revision_ids))
+            if (
+                isinstance(formation_source_count, bool)
+                or not isinstance(formation_source_count, int)
+                or formation_source_count < 0
+                or formation_source_count > len(self._source_revision_ids)
+            ):
+                raise TemporalFieldError("skill formation source count is invalid")
+            result[skill_id] = MappingProxyType({
+                "goal": goals,
+                "forbidden": forbidden,
+                "bound_memory": spec["bound_memory"],
+                "slot": slot,
+                "formation_source_count": formation_source_count,
+            })
         return MappingProxyType(result)
 
-    @classmethod
-    def initial(cls, memory_id: str, *, action_ids: Sequence[str], observation_ids: Sequence[str],
-                max_states: int = 128, context: Mapping[str, Any] | None = None) -> TemporalField:
-        actions = _ids(action_ids, "action_ids", _MAX_ACTIONS)
-        observations = _ids(observation_ids, "observation_ids", _MAX_OBSERVATIONS)
-        if isinstance(max_states, bool) or not isinstance(max_states, int) or not 1 <= max_states <= _MAX_STATES:
-            raise TemporalFieldError("max_states must be in [1,128]")
-        return cls(memory_id, actions, observations, max_states, {} if context is None else context,
-                   _tensor([{}], actions, observations, max_states))
-
-    @property
-    def field(self) -> np.ndarray:
-        return self._field.copy()
-
-    @property
-    def state_count(self) -> int:
-        return int(self._field[0, 3*self.max_states, 0])
-
-    @property
-    def nbytes(self) -> int:
-        return int(self._field.nbytes)
-
-    @property
-    def source_revision_ids(self) -> tuple[str, ...]:
-        return self._source_revision_ids
-
-    @property
-    def participant_ids(self) -> tuple[str, ...]:
-        return tuple(item for item in self._participants if item)
 
     @property
     def skill_ids(self) -> tuple[str, ...]:
@@ -519,38 +594,57 @@ class TemporalField:
 
     @property
     def memory_sha256(self) -> str:
-        digest = hashlib.sha256(_canonical({
+        cached = self._memo.get("memory_sha256")
+        if cached is not None:
+            return cached
+        identity: dict[str, Any] = {
             "schema": SCHEMA, "memory_id": self.memory_id, "action_ids": self.action_ids,
             "observation_ids": self.observation_ids, "max_states": self.max_states,
             "context": _plain(self.context), "source_revision_ids": self.source_revision_ids,
             "state_count": float(self._field[0, 3*self.max_states, 0]),
-        }))
+        }
+        if self._materializations:
+            identity["materializations"] = _plain(self._materializations)
+        digest = hashlib.sha256(_canonical(identity))
         digest.update(self._field[0, :2*self.max_states, :])
-        return digest.hexdigest()
+        self._memo["memory_sha256"] = result = digest.hexdigest()
+        return result
 
     @property
     def state_sha256(self) -> str:
-        identity = {"memory_sha256": self.memory_sha256, "skills": _plain(self._skills)}
+        cached = self._memo.get("state_sha256")
+        if cached is not None:
+            return cached
+        identity: dict[str, Any] = {"memory_sha256": self.memory_sha256, "skills": _plain(self._skills)}
         if not self._legacy:
             identity["participant_ids"] = list(self.participant_ids)
+        if self._materializations:
+            identity["materializations"] = _plain(self._materializations)
         digest = hashlib.sha256(_canonical(identity))
         digest.update(self._field)
-        return digest.hexdigest()
+        self._memo["state_sha256"] = result = digest.hexdigest()
+        return result
+
     def as_dict(self) -> Mapping[str, Any]:
+        field_b64 = self._memo.get("field_b64")
+        if field_b64 is None:
+            self._memo["field_b64"] = field_b64 = base64.b64encode(self._field).decode("ascii")
         result = {"schema": SCHEMA, "memory_id": self.memory_id, "action_ids": list(self.action_ids),
                   "observation_ids": list(self.observation_ids), "max_states": self.max_states,
                   "context": _plain(self.context), "source_revision_ids": list(self.source_revision_ids),
-                  "skills": _plain(self._skills), "field_b64": base64.b64encode(self._field).decode("ascii"),
+                  "skills": _plain(self._skills), "field_b64": field_b64,
                   "state_sha256": self.state_sha256, "memory_sha256": self.memory_sha256}
         if not self._legacy:
             result["participant_ids"] = list(self.participant_ids)
+        if self._materializations:
+            result["materializations"] = _plain(self._materializations)
         return result
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> TemporalField:
         required = {"schema", "memory_id", "action_ids", "observation_ids", "max_states", "context",
                     "source_revision_ids", "skills", "field_b64", "state_sha256", "memory_sha256"}
-        allowed = required | {"participant_ids"}
+        allowed = required | {"participant_ids", "materializations"}
         if not isinstance(value, Mapping) or not required.issubset(value) or not set(value).issubset(allowed) or value.get("schema") != SCHEMA:
             raise TemporalFieldError("invalid temporal field descriptor")
         actions = _ids(value["action_ids"], "action_ids", _MAX_ACTIONS)
@@ -582,8 +676,11 @@ class TemporalField:
         if len(participants) != tensor.shape[0]:
             raise TemporalFieldError("participant ids do not match field slices")
         try:
-            result = cls(value["memory_id"], actions, observations, m, value["context"], tensor,
-                         tuple(value["source_revision_ids"]), value["skills"], participants, legacy)
+            result = cls(
+                value["memory_id"], actions, observations, m, value["context"], tensor,
+                tuple(value["source_revision_ids"]), value["skills"], participants, legacy,
+                None, tuple(value.get("materializations", ())),
+            )
         except (KeyError, TypeError, ValueError) as exc:
             raise TemporalFieldError("invalid temporal field descriptor") from exc
         if _digest(value["state_sha256"], "state_sha256") != result.state_sha256 or _digest(value["memory_sha256"], "memory_sha256") != result.memory_sha256:
@@ -592,12 +689,14 @@ class TemporalField:
 
     def _replace(self, *, tensor: np.ndarray | None = None, skills: Mapping[str, Mapping[str, Any]] | None = None,
                  participants: tuple[str, ...] | None = None, revisions: tuple[str, ...] | None = None,
-                 legacy: bool | None = None) -> TemporalField:
+                 legacy: bool | None = None,
+                 materializations: tuple[Mapping[str, Any], ...] | None = None) -> TemporalField:
         return replace(self, _field=self._field if tensor is None else tensor,
                        _skills=self._skills if skills is None else skills,
                        _participants=self._participants if participants is None else participants,
                        _source_revision_ids=self._source_revision_ids if revisions is None else revisions,
                        _legacy=self._legacy if legacy is None else legacy,
+                       _materializations=self._materializations if materializations is None else materializations,
                        _projection_state=None)
     def _expand_layout(self, participants: tuple[str, ...]) -> np.ndarray:
         tensor = np.zeros((len(participants), _LAYERS * self.max_states, self._field.shape[2]), dtype=np.float64)
@@ -637,6 +736,15 @@ class TemporalField:
         bound = self._replace(tensor=tensor, participants=participants, legacy=False)
         return bound if known_start else bound.reset(participant_id=participant_id, known_start=False)
 
+    def release(self, participant_id: str) -> TemporalField:
+        """Remove one participant lane; learned transitions and skills stay in the shared field."""
+        lane = self._lane(participant_id)
+        if lane == 0:
+            raise TemporalFieldError("participant_id cannot be empty")
+        tensor = np.delete(self._field, lane, axis=0)
+        participants = tuple(item for index, item in enumerate(self._participants) if index != lane)
+        return self._replace(tensor=tensor, participants=participants, legacy=False)
+
     def _history_codes(self, lane: int) -> tuple[list[tuple[int, int]], int]:
         if self._legacy:
             return [], 1
@@ -660,7 +768,7 @@ class TemporalField:
             flat[1] = int(flat[1]) | 1
 
     def _next_states(self, candidates: set[int], action: int, observation: int) -> tuple[set[int], list[int]]:
-        """An absent action row carries an unknown successor, not a refutation."""
+        """Retain a bounded context envelope across unknown successors."""
         width = len(self.observation_ids)
         start = action * width
         next_states, missing = set(), []
@@ -670,6 +778,34 @@ class TemporalField:
                 missing.append(state)
             elif exposures[observation] > 0:
                 next_states.add(int(self._field[0, self.max_states + state, start + observation]))
+        if missing or not next_states:
+            # Missing support marks the context unresolved, but supported
+            # candidates remain the strongest field evidence.  Only fall back
+            # to the global envelope when no carried candidate explains the
+            # observation; merging both sets manufactures uncertainty and can
+            # drown out a learned continuation.
+            if not next_states:
+                compatible = set()
+                for state in range(self.state_count):
+                    exposures = self._field[0, state, start:start + width]
+                    if np.any(exposures) and exposures[observation] > 0:
+                        compatible.add(int(self._field[0, self.max_states + state, start + observation]))
+                if compatible and self._skills:
+                    reachable = {
+                        destination
+                        for destination in compatible
+                        if any(
+                            self._field[
+                                0,
+                                7 * self.max_states + destination,
+                                spec["slot"],
+                            ] > 0
+                            for spec in self._skills.values()
+                        )
+                    }
+                    if reachable:
+                        compatible = reachable
+                next_states.update(compatible or candidates)
         return next_states, missing
 
     def _replay(
@@ -700,7 +836,44 @@ class TemporalField:
         old_history = [self._history_codes(lane) for lane in range(self._field.shape[0])]
         tensor = _tensor(rows, self.action_ids, self.observation_ids, self.max_states, len(self._participants),
                          universally_observed)
-        successor = self._replace(tensor=tensor, skills={}, revisions=tuple(sorted(revisions)), legacy=False)
+        materializations = tuple(dict(item) for item in self._materializations)
+        if materializations:
+            # Reapply canonical state-conditioned writes after rebuilding the
+            # learned transition planes.  The register is intentionally
+            # bounded and replayed from its provenance history, not from the
+            # prior numeric source-state id.
+            base = self._replace(
+                tensor=tensor, skills={}, revisions=tuple(sorted(revisions)),
+                legacy=False, materializations=materializations,
+            )
+            for record in materializations:
+                history = []
+                for item in record["history"]:
+                    history.append((
+                        self.action_ids.index(item["action"]),
+                        self.observation_ids.index(item["observation"]),
+                    ))
+                candidates, halted, unknown, uncovered = base._replay(
+                    history, False, known_start=True,
+                )
+                if halted or unknown or uncovered or len(candidates) != 1:
+                    raise TemporalFieldError("materialization provenance is no longer uniquely replayable")
+                source_state = next(iter(candidates))
+                action_code = self.action_ids.index(record["action"])
+                observation_code = self.observation_ids.index(record["observation"])
+                column = action_code * len(self.observation_ids) + observation_code
+                destination = int(base._field[0, self.max_states, column])
+                if destination < 0:
+                    raise TemporalFieldError("materialization target is no longer rooted")
+                existing = tensor[0, self.max_states + source_state, column]
+                if tensor[0, source_state, column] > 0 and int(existing) != destination:
+                    raise TemporalFieldError("materialization conflicts with rebuilt transition")
+                tensor[0, source_state, column] = 1.0
+                tensor[0, self.max_states + source_state, column] = float(destination)
+        successor = self._replace(
+            tensor=tensor, skills={}, revisions=tuple(sorted(revisions)),
+            legacy=False, materializations=materializations,
+        )
         if specs:
             # A revised model changes numeric state IDs; retain skill identity and
             # goals while recomputing policy/rank against the new shared planes.
@@ -864,10 +1037,6 @@ class TemporalField:
         tensor = self._field.copy()
         m = self.max_states
         tensor[lane, 2*m, 0] = 0
-        tensor[lane, 4*m, 0] = -1
-        tensor[lane, 5*m, 0] = 0
-        if not self._history_capacity and not known_start and self.state_count > 1:
-            raise TemporalFieldError("uncertain reset needs bounded candidate capacity")
         flat = tensor[lane, 8*m:9*m, :].reshape(-1)
         flat[:] = 0
         if self._history_capacity:
@@ -877,6 +1046,26 @@ class TemporalField:
             else:
                 flat[self._candidate_offset] = 1
         return self._replace(tensor=tensor, legacy=False)
+
+    def _condense_all(self, specs: Mapping[str, Mapping[str, Any]]) -> tuple[TemporalField, Mapping[str, Any]]:
+        result = self
+        for skill_id, spec in specs.items():
+            result, _ = result.condense_skill(
+                skill_id,
+                goal_observations=spec["goal"],
+                forbidden_observations=spec["forbidden"],
+                _slot=spec["slot"],
+                _bound_memory=result.memory_sha256,
+            )
+            restored = dict(result._skills[skill_id])
+            restored["formation_source_count"] = spec.get(
+                "formation_source_count",
+                len(self._source_revision_ids),
+            )
+            skills = dict(result._skills)
+            skills[skill_id] = restored
+            result = result._replace(skills=skills)
+        return result, {"skills": list(specs)}
     def candidate_states(self, *, participant_id: str | None = None) -> tuple[int, ...]:
         _, candidates, halted = self._working(participant_id)
         return tuple(sorted(candidates)) if not halted else ()
@@ -893,11 +1082,6 @@ class TemporalField:
         object.__setattr__(projection, "_projection_state", state)
         return projection
 
-    def _condense_all(self, specs: Mapping[str, Mapping[str, Any]]) -> tuple[TemporalField, Mapping[str, Any]]:
-        result = self
-        for skill_id, spec in specs.items():
-            result, _ = result.condense_skill(skill_id, goal_observations=spec["goal"], forbidden_observations=spec["forbidden"], _slot=spec["slot"], _bound_memory=result.memory_sha256)
-        return result, {"skills": list(specs)}
 
     def _derive_skill_policy(
         self,
@@ -982,7 +1166,18 @@ class TemporalField:
         tensor[0, 6*m:6*m+states, slot] = np.where(ranks > 0, policy + 1, 0)
         tensor[0, 7*m:7*m+states, slot] = ranks
         bound = self.memory_sha256 if _bound_memory is None else _bound_memory
-        specs[skill_id] = {"goal": goals, "forbidden": forbidden, "bound_memory": bound, "slot": slot}
+        formation_source_count = (
+            len(self._source_revision_ids)
+            if _bound_memory is None or skill_id not in specs
+            else specs[skill_id]["formation_source_count"]
+        )
+        specs[skill_id] = {
+            "goal": goals,
+            "forbidden": forbidden,
+            "bound_memory": bound,
+            "slot": slot,
+            "formation_source_count": formation_source_count,
+        }
         successor = self._replace(tensor=tensor, skills=specs)
         formed = ranks[0] > 0
         return successor, {
@@ -1010,7 +1205,39 @@ class TemporalField:
             return {**label, "status": "complete", "action": None,
                     "explain": "goal observation was actually consumed"}
         context = self.context_status(participant_id=participant_id)
-        if halted or context["status"] == "unresolved" or not candidates:
+        goal_bridge = False
+        if context["status"] == "unresolved" and skill_id is not None and candidates:
+            spec = self._skills.get(skill_id)
+            if spec is not None and spec["formation_source_count"] < len(self._source_revision_ids):
+                bridge_codes = {
+                    int(policy[state]) if ranks[state] > 0 else -1
+                    for state in candidates
+                }
+                action_code = next(iter(bridge_codes), -1)
+                repeat_after_gap = False
+                events, _ = self._history_codes(self._lane(participant_id))
+                if events and events[-1][0] == action_code:
+                    previous_action, previous_observation = events[-1]
+                    width = len(self.observation_ids)
+                    repeat_after_gap = not all(
+                        np.any(self._field[0, state, previous_action * width:(previous_action + 1) * width])
+                        and self._field[
+                            0,
+                            state,
+                            previous_action * width + previous_observation,
+                        ] > 0
+                        for state in candidates
+                    )
+                goal_bridge = (
+                    len(bridge_codes) == 1
+                    and action_code >= 0
+                    and not repeat_after_gap
+                    and all(
+                        self._action_fully_observed(state, action_code)
+                        for state in candidates
+                    )
+                )
+        if halted or not candidates or (context["status"] == "unresolved" and not goal_bridge):
             return {**label, "status": "unresolved", "action": None,
                     "context": context,
                     "explain": "current context lacks complete transition support or cannot be replayed"}
@@ -1349,6 +1576,979 @@ class TemporalField:
             policy=self._field[0, 6*self.max_states:7*self.max_states, slot] - 1,
             participant_id=participant_id,
         )
+    def synthesize_transition(
+        self, skill_id: str, *, participant_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Read-only state-conditioned proposal; never writes canonical planes."""
+        _identifier(skill_id, "skill_id")
+        spec = self._skills.get(skill_id)
+        context = self.context_status(participant_id=participant_id)
+        source_state, candidates, _ = self._working(participant_id)
+        lane_id = "" if participant_id is None else _identifier(participant_id, "participant_id")
+        source = {
+            "memory_id": self.memory_id, "participant_id": lane_id,
+            "state": source_state, "candidate_states": sorted(candidates),
+            "history": [dict(item) for item in self.history(participant_id=participant_id)],
+            "state_sha256": self.state_sha256, "memory_sha256": self.memory_sha256,
+        }
+        base: dict[str, Any] = {
+            "schema": "cassifi.temporal-synthesized-transition.v1",
+            "status": "unresolved", "memory_id": self.memory_id, "skill_id": skill_id,
+            "participant_id": lane_id, "source": source, "action": None,
+            "expected_observations": [], "template": None, "context": context,
+            "canonical_support": False, "evidence_class": "derived-hypothesis",
+            "observed": False, "execution_authorized": False,
+        }
+        reason = None
+        if spec is None:
+            reason = "unknown-skill"
+        elif context["status"] != "supported" or len(candidates) != 1:
+            reason = "ambiguous-or-unresolved-current-context"
+        elif self.memory_sha256 != spec["bound_memory"]:
+            reason = "stale-skill-memory"
+        else:
+            slot = int(spec["slot"])
+            ranks = self._field[0, 7*self.max_states:8*self.max_states, slot]
+            policy = self._field[0, 6*self.max_states:7*self.max_states, slot]
+            if int(ranks[0]) != 1 or int(policy[0]) <= 0:
+                reason = "target-root-policy-not-deterministic-rank-one"
+            else:
+                action_code = int(policy[0]) - 1
+                width = len(self.observation_ids)
+                root_start = action_code * width
+                root_exposures = self._field[0, 0, root_start:root_start + width]
+                outcomes = [int(index) for index in np.flatnonzero(root_exposures)]
+                if len(outcomes) != 1:
+                    reason = "target-root-outcome-ambiguous"
+                else:
+                    observation_code = outcomes[0]
+                    observation = self.observation_ids[observation_code]
+                    if observation in spec["forbidden"]:
+                        reason = "target-root-outcome-forbidden"
+                    else:
+                        destination = int(self._field[0, self.max_states, root_start + observation_code])
+                        source_state = next(iter(candidates))
+                        source_start = source_state * width * len(self.action_ids) + root_start
+                        if np.any(self._field[0, source_state, root_start:root_start + width]):
+                            base.update({
+                                "status": "already-supported", "action": self.action_ids[action_code],
+                                "expected_observations": [observation],
+                                "source_state": source_state, "reason": "source-action-already-supported",
+                            })
+                        else:
+                            base.update({
+                                "status": "proposed", "action": self.action_ids[action_code],
+                                "expected_observations": [observation], "source_state": source_state,
+                                "template": {
+                                    "root_state": 0, "action": self.action_ids[action_code],
+                                    "observation": observation, "destination_state": destination,
+                                    "edge_sha256": hashlib.sha256(_canonical({
+                                        "source_state": 0, "action": self.action_ids[action_code],
+                                        "observation": observation, "destination_state": destination,
+                                    })).hexdigest(),
+                                },
+                            })
+        if reason is not None:
+            base["reason"] = reason
+        base["hypothesis_sha256"] = hashlib.sha256(_canonical(base)).hexdigest()
+        return MappingProxyType(base)
+
+    def materialize_transition_support(
+        self, skill_id: str, *, participant_id: str | None = None,
+        action: str, observation: str, hypothesis_sha256: str,
+        expected_state_sha256: str | None = None,
+    ) -> tuple[TemporalField, Mapping[str, Any]]:
+        """Write one bounded state-conditioned edge, then consume its observation."""
+        _identifier(skill_id, "skill_id")
+        lane_id = "" if participant_id is None else _identifier(participant_id, "participant_id")
+        _identifier(action, "action")
+        _identifier(observation, "observation")
+        _digest(hypothesis_sha256, "hypothesis_sha256")
+        if expected_state_sha256 is not None and _digest(expected_state_sha256, "expected state") != self.state_sha256:
+            raise TemporalFieldError("temporal predecessor does not match current field")
+        proposal = self.synthesize_transition(skill_id, participant_id=participant_id)
+        if proposal.get("status") != "proposed":
+            raise TemporalFieldError("transition proposal is not writable")
+        if proposal["hypothesis_sha256"] != hypothesis_sha256:
+            raise TemporalFieldError("transition proposal is stale")
+        if proposal["action"] != action or observation not in proposal["expected_observations"]:
+            raise TemporalFieldError("observed transition does not match proposal")
+        source_state = int(proposal["source_state"])
+        action_code = self.action_ids.index(action)
+        observation_code = self.observation_ids.index(observation)
+        width = len(self.observation_ids)
+        column = action_code * width + observation_code
+        if self._field[0, source_state, column] > 0:
+            raise TemporalFieldError("transition is already supported")
+        destination = int(proposal["template"]["destination_state"])
+        record = {
+            "participant_id": lane_id,
+            "skill_id": skill_id,
+            "history": list(proposal["source"]["history"]),
+            "action": action,
+            "observation": observation,
+            "template_destination": destination,
+        }
+        write_digest = hashlib.sha256(_canonical(record)).hexdigest()
+        tensor = self._field.copy()
+        tensor[0, source_state, column] = 1.0
+        tensor[0, self.max_states + source_state, column] = float(destination)
+        materializations = (*self._materializations, record)
+        tensor[0, 6*self.max_states:8*self.max_states, :] = 0
+        specs = {key: dict(value) for key, value in self._skills.items()}
+        successor = self._replace(tensor=tensor, skills={}, materializations=materializations)
+        successor, _ = successor._condense_all(specs)
+        successor, consumed = successor.consume(action, observation, participant_id=participant_id)
+        receipt = {
+            "schema": "cassifi.temporal-materialized-transition.v1",
+            "memory_id": self.memory_id,
+            "participant_id": lane_id,
+            "skill_id": skill_id,
+            "action": action,
+            "observation": observation,
+            "source_state": source_state,
+            "destination_state": destination,
+            "hypothesis_sha256": hypothesis_sha256,
+            "materialization_write_sha256": write_digest,
+            "support_origin": "state-conditioned-materialization",
+            "evidence_class": "canonical-materialized-support",
+            "training_source_admitted": False,
+            "observed_outcome": True,
+            "supported": bool(consumed.get("supported")),
+            "execution_authorized": False,
+            "source_revision_ids": list(successor.source_revision_ids),
+            "previous_memory_sha256": self.memory_sha256,
+            "memory_sha256": successor.memory_sha256,
+            "previous_state_sha256": self.state_sha256,
+            "state_sha256": successor.state_sha256,
+        }
+        return successor, receipt
 
 
-__all__ = ["SCHEMA", "TemporalField", "TemporalFieldError"]
+REGIONAL_TASK_SCHEMA = "cassifi.temporal-regional-task.v1"
+
+
+def _regional_clone(value: Any) -> Any:
+    """Clone only canonical JSON values used by the regional continuation."""
+    try:
+        return json.loads(_canonical(value).decode("utf-8"))
+    except (TypeError, ValueError, TemporalFieldError) as exc:
+        raise TemporalFieldError("regional temporal value is not canonical JSON") from exc
+
+
+def _regional_int(value: Any, name: str, *, minimum: int = 0, maximum: int = 2**53 - 1) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= maximum:
+        raise TemporalFieldError(f"{name} must be an exact bounded integer")
+    return int(value)
+
+
+def _regional_source_id(value: Any) -> str:
+    return _identifier(value, "source_id")
+
+
+def _regional_episode(value: Any, actions: Sequence[str], observations: Sequence[str]) -> list[dict[str, str]]:
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence) or not value:
+        raise TemporalFieldError("regional temporal episodes must be nonempty sequences")
+    action_set, observation_set = set(actions), set(observations)
+    result: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, Mapping) or set(item) != {"action", "observation"}:
+            raise TemporalFieldError("regional temporal steps must contain action and observation")
+        action, observation = item["action"], item["observation"]
+        if action not in action_set or observation not in observation_set:
+            raise TemporalFieldError("regional temporal episode uses an unknown token")
+        result.append({"action": action, "observation": observation})
+    if len(result) > _MAX_STEPS:
+        raise TemporalFieldError("regional temporal episode exceeds bounded capacity")
+    return result
+
+
+def _regional_rows(states: int, actions: int, observations: int, value: int = 0) -> list[list[list[int]]]:
+    return [[[value for _ in range(observations)] for _ in range(actions)] for _ in range(states)]
+
+
+def _regional_coverage(states: int, actions: int) -> list[list[bool]]:
+    return [[False for _ in range(actions)] for _ in range(states)]
+
+
+def _regional_memory_digest(state: Mapping[str, Any]) -> str:
+    model = state["model"]
+    return hashlib.sha256(_canonical({
+        "schema": REGIONAL_TASK_SCHEMA,
+        "memory_id": state["memory"]["memory_id"],
+        "action_ids": state["memory"]["action_ids"],
+        "observation_ids": state["memory"]["observation_ids"],
+        "max_states": state["memory"]["max_states"],
+        "context": state["memory"]["context"],
+        "state_count": model["state_count"],
+        "exposures": model["exposures"],
+        "destinations": model["destinations"],
+        "coverage": model["coverage"],
+        "sources": model["sources"],
+    })).hexdigest()
+
+
+def _regional_participant(participant: Any, *, allow_primary: bool = True) -> str:
+    if participant is None:
+        return ""
+    if not isinstance(participant, str) or len(participant) > 256:
+        raise TemporalFieldError("regional participant_id is invalid")
+    if not participant and not allow_primary:
+        raise TemporalFieldError("regional participant_id is empty")
+    return participant
+
+
+def _regional_validate(state: Any) -> dict[str, Any]:
+    if not isinstance(state, Mapping) or state.get("schema") != REGIONAL_STATE_SCHEMA:
+        raise TemporalFieldError("regional temporal state schema is invalid")
+    required = {
+        "schema", "memory", "model", "participants", "projection_scopes",
+        "continuation", "last_result",
+    }
+    if set(state) != required:
+        raise TemporalFieldError("regional temporal state keys are invalid")
+    memory = state["memory"]
+    if not isinstance(memory, Mapping) or set(memory) != {
+        "memory_id", "action_ids", "observation_ids", "max_states", "context",
+    }:
+        raise TemporalFieldError("regional temporal memory descriptor is invalid")
+    actions = _ids(memory["action_ids"], "action_ids", _MAX_ACTIONS)
+    observations = _ids(memory["observation_ids"], "observation_ids", _MAX_OBSERVATIONS)
+    max_states = _regional_int(memory["max_states"], "max_states", minimum=1, maximum=_MAX_STATES)
+    _identifier(memory["memory_id"], "memory_id")
+    _context(memory["context"])
+    model = state["model"]
+    if not isinstance(model, Mapping) or set(model) != {
+        "state_count", "exposures", "destinations", "coverage", "sources", "skills",
+    }:
+        raise TemporalFieldError("regional temporal model is invalid")
+    count = _regional_int(model["state_count"], "state_count", minimum=1, maximum=max_states)
+    exposures, destinations, coverage = model["exposures"], model["destinations"], model["coverage"]
+    if not isinstance(exposures, list) or not isinstance(destinations, list) or not isinstance(coverage, list):
+        raise TemporalFieldError("regional temporal transition planes are invalid")
+    if len(exposures) != count or len(destinations) != count or len(coverage) != count:
+        raise TemporalFieldError("regional temporal transition plane count is invalid")
+    total_exposure = 0
+    for state_index in range(count):
+        if (not isinstance(exposures[state_index], list)
+                or not isinstance(destinations[state_index], list)
+                or not isinstance(coverage[state_index], list)
+                or len(exposures[state_index]) != len(actions)
+                or len(destinations[state_index]) != len(actions)
+                or len(coverage[state_index]) != len(actions)):
+            raise TemporalFieldError("regional temporal transition row is invalid")
+        for action_index in range(len(actions)):
+            erow, drow = exposures[state_index][action_index], destinations[state_index][action_index]
+            if not isinstance(erow, list) or not isinstance(drow, list) or len(erow) != len(observations) or len(drow) != len(observations):
+                raise TemporalFieldError("regional temporal transition outcome row is invalid")
+            if not isinstance(coverage[state_index][action_index], bool):
+                raise TemporalFieldError("regional temporal coverage is invalid")
+            for observation_index, exposure in enumerate(erow):
+                exposure = _regional_int(exposure, "transition exposure", maximum=_MAX_STEPS)
+                total_exposure += exposure
+                destination = _regional_int(drow[observation_index], "transition destination", maximum=count - 1)
+                if exposure == 0 and destination != 0:
+                    raise TemporalFieldError("unexposed transition has a destination")
+            if coverage[state_index][action_index] and not any(erow):
+                raise TemporalFieldError("regional coverage lacks transition evidence")
+    if total_exposure > _MAX_STEPS:
+        raise TemporalFieldError("regional transition exposure exceeds bounded work")
+    sources = model["sources"]
+    if not isinstance(sources, list) or len(sources) > _MAX_EPISODES:
+        raise TemporalFieldError("regional source inventory exceeds capacity")
+    source_ids: set[str] = set()
+    for source in sources:
+        if not isinstance(source, Mapping) or set(source) != {"source_id", "episodes"}:
+            raise TemporalFieldError("regional source record is invalid")
+        source_id = _regional_source_id(source["source_id"])
+        if source_id in source_ids:
+            raise TemporalFieldError("regional source identity is duplicated")
+        source_ids.add(source_id)
+        episodes = source["episodes"]
+        if not isinstance(episodes, list) or not episodes:
+            raise TemporalFieldError("regional source episodes are invalid")
+        for episode in episodes:
+            _regional_episode(episode, actions, observations)
+    skills = model["skills"]
+    if not isinstance(skills, Mapping) or len(skills) > _MAX_SKILLS:
+        raise TemporalFieldError("regional skill inventory exceeds capacity")
+    for skill_id, spec in skills.items():
+        _identifier(skill_id, "skill_id")
+        if not isinstance(spec, Mapping) or set(spec) != {
+            "goal", "forbidden", "ranks", "policy", "bound_memory_sha256", "stale",
+        }:
+            raise TemporalFieldError("regional skill record is invalid")
+        goals = _ids(spec["goal"], "goal observations", len(observations))
+        forbidden = _ids(spec["forbidden"], "forbidden observations", len(observations), allow_empty=True)
+        if set(goals) & set(forbidden) or any(item not in observations for item in (*goals, *forbidden)):
+            raise TemporalFieldError("regional skill observations conflict")
+        ranks, policy = spec["ranks"], spec["policy"]
+        if not isinstance(ranks, list) or not isinstance(policy, list) or len(ranks) != count or len(policy) != count:
+            raise TemporalFieldError("regional skill ranks and policy are invalid")
+        for rank, action in zip(ranks, policy):
+            _regional_int(rank, "skill rank", maximum=count)
+            _regional_int(action, "skill policy", maximum=len(actions))
+            if (rank == 0) != (action == 0):
+                raise TemporalFieldError("regional skill rank and policy disagree")
+        if not isinstance(spec["stale"], bool):
+            raise TemporalFieldError("regional skill stale flag is invalid")
+        if not spec["stale"]:
+            goals_set, forbidden_set = set(goals), set(forbidden)
+            exposures_for_skill = model["exposures"]
+            destinations_for_skill = model["destinations"]
+            for state_index, rank in enumerate(ranks):
+                if not rank:
+                    continue
+                action_index = policy[state_index] - 1
+                outcomes = [
+                    observation_index
+                    for observation_index, exposure in enumerate(
+                        exposures_for_skill[state_index][action_index]
+                    ) if exposure > 0
+                ]
+                if not outcomes:
+                    raise TemporalFieldError("regional skill proposes an unsupported action")
+                for observation_index in outcomes:
+                    observation = observations[observation_index]
+                    destination = destinations_for_skill[state_index][action_index][observation_index]
+                    if observation in forbidden_set or (
+                        observation not in goals_set
+                        and not 0 < ranks[destination] < rank
+                    ):
+                        raise TemporalFieldError("regional skill action does not make safe decreasing progress")
+        _digest(spec["bound_memory_sha256"], "skill memory")
+    participants = state["participants"]
+    if not isinstance(participants, Mapping) or "" not in participants or len(participants) > _MAX_EPISODES:
+        raise TemporalFieldError("regional participant inventory is invalid")
+    for participant_id, record in participants.items():
+        _regional_participant(participant_id)
+        if not isinstance(record, Mapping) or set(record) != {
+            "history", "candidates", "current", "last_observation", "unknown",
+            "unknown_start", "uncovered", "halted",
+        }:
+            raise TemporalFieldError("regional participant record is invalid")
+        history = record["history"]
+        if not isinstance(history, list) or len(history) > _MAX_STEPS:
+            raise TemporalFieldError("regional participant history exceeds capacity")
+        for item in history:
+            _regional_episode([item], actions, observations)
+        candidates = record["candidates"]
+        if not isinstance(candidates, list) or any(
+            _regional_int(item, "candidate state", maximum=count - 1) != item for item in candidates
+        ) or len(set(candidates)) != len(candidates):
+            raise TemporalFieldError("regional participant candidates are invalid")
+        for flag_name in ("unknown", "unknown_start", "uncovered", "halted"):
+            if not isinstance(record[flag_name], bool):
+                raise TemporalFieldError("regional participant flags are invalid")
+        current = record["current"]
+        if current != -1 and _regional_int(current, "participant current", maximum=count - 1) != current:
+            raise TemporalFieldError("regional participant current is invalid")
+        if record["last_observation"] is not None and record["last_observation"] not in observations:
+            raise TemporalFieldError("regional participant observation is invalid")
+    scopes = state["projection_scopes"]
+    if not isinstance(scopes, Mapping) or len(scopes) > _MAX_SKILLS:
+        raise TemporalFieldError("regional projection scopes exceed capacity")
+    for scope_id, scope in scopes.items():
+        _identifier(scope_id, "scope_id")
+        if not isinstance(scope, Mapping):
+            raise TemporalFieldError("regional projection scope is invalid")
+    continuation = state["continuation"]
+    if not isinstance(continuation, Mapping) or continuation.get("phase") not in {"ready", "running"}:
+        raise TemporalFieldError("regional temporal continuation is invalid")
+    if continuation["phase"] == "running":
+        _identifier(continuation.get("operation"), "continuation operation")
+        if not isinstance(continuation.get("task"), Mapping) or not isinstance(continuation.get("cursor"), Mapping):
+            raise TemporalFieldError("regional temporal continuation payload is invalid")
+    if state["last_result"] is not None and not isinstance(state["last_result"], Mapping):
+        raise TemporalFieldError("regional temporal result is invalid")
+    return dict(state)
+
+
+def regional_state(
+    memory_id: str | Mapping[str, Any],
+    *,
+    action_ids: Sequence[str] | None = None,
+    observation_ids: Sequence[str] | None = None,
+    max_states: int = _MAX_STATES,
+    context: Mapping[str, Any] | None = None,
+    episodes: Sequence[Sequence[Mapping[str, str]]] | None = None,
+    source_revision_ids: Sequence[str] | None = None,
+) -> Mapping[str, Any]:
+    """Build one stateless, JSON-serializable temporal regional task.
+
+    The returned value contains all transition, participant, skill, projection,
+    and continuation coordinates.  It deliberately does not contain a
+    ``TemporalField`` or any other adaptive Python owner.
+    """
+    if isinstance(memory_id, Mapping):
+        config = dict(memory_id)
+        memory_name = config.pop("memory_id", config.pop("memory", None))
+        configured_actions = config.pop("action_ids", None)
+        configured_observations = config.pop("observation_ids", None)
+        configured_context = config.pop("context", None)
+        configured_episodes = config.pop("episodes", None)
+        configured_sources = config.pop("source_revision_ids", config.pop("source_ids", None))
+        if action_ids is None:
+            action_ids = configured_actions
+        if observation_ids is None:
+            observation_ids = configured_observations
+        if context is None:
+            context = configured_context
+        if episodes is None:
+            episodes = configured_episodes
+        if source_revision_ids is None:
+            source_revision_ids = configured_sources
+        max_states = config.pop("max_states", max_states)
+        if config:
+            raise TemporalFieldError("regional temporal builder arguments are invalid")
+        memory_id = memory_name
+    actions = _ids(action_ids, "action_ids", _MAX_ACTIONS)
+    observations = _ids(observation_ids, "observation_ids", _MAX_OBSERVATIONS)
+    max_states = _regional_int(max_states, "max_states", minimum=1, maximum=_MAX_STATES)
+    memory_context = _plain(_context({} if context is None else context))
+    state: dict[str, Any] = {
+        "schema": REGIONAL_STATE_SCHEMA,
+        "memory": {
+            "memory_id": memory_id,
+            "action_ids": list(actions),
+            "observation_ids": list(observations),
+            "max_states": max_states,
+            "context": memory_context,
+        },
+        "model": {
+            "state_count": 1,
+            "exposures": _regional_rows(1, len(actions), len(observations)),
+            "destinations": _regional_rows(1, len(actions), len(observations)),
+            "coverage": _regional_coverage(1, len(actions)),
+            "sources": [],
+            "skills": {},
+        },
+        "participants": {
+            "": {
+                "history": [], "candidates": [0], "current": 0,
+                "last_observation": None, "unknown": False,
+                "unknown_start": False, "uncovered": False, "halted": False,
+            },
+        },
+        "projection_scopes": {},
+        "continuation": {
+            "phase": "ready", "operation": None, "task": None,
+            "cursor": {}, "learning_frontier": {"source": 0, "episode": 0, "step": 0},
+        },
+        "last_result": None,
+    }
+    if episodes is not None:
+        induction_arguments: dict[str, Any] = {
+            "operation": "induce", "episodes": episodes,
+        }
+        if source_revision_ids is not None:
+            induction_arguments["source_revision_ids"] = source_revision_ids
+        _regional_start(state, induction_arguments)
+    _regional_validate(state)
+    return state
+
+
+def _regional_operation(arguments: Mapping[str, Any]) -> str:
+    raw = arguments.get("operation", arguments.get("op", arguments.get("kind")))
+    if raw is None:
+        if "episodes" in arguments or "source_revision_ids" in arguments or "source_ids" in arguments:
+            raw = "induce"
+        elif "action" in arguments and "observation" in arguments:
+            raw = "consume"
+        elif "known_start" in arguments and "skill_id" not in arguments:
+            raw = "reset"
+        elif "skill_id" in arguments and any(
+            name in arguments for name in ("goal_observations", "goals", "forbidden_observations", "forbidden")
+        ):
+            raw = "skill"
+        elif "scope_id" in arguments or "projection" in arguments:
+            raw = "project"
+        elif "skill_id" in arguments:
+            raw = "select"
+    names = {
+        "learn": "induce", "induction": "induce", "advance": "consume",
+        "construct_skill": "skill", "build_skill": "skill",
+        "selection": "select", "projection": "project",
+    }
+    if not isinstance(raw, str):
+        raise TemporalFieldError("regional temporal operation is invalid")
+    operation = names.get(raw, raw)
+    if operation not in {"induce", "consume", "reset", "skill", "select", "project"}:
+        raise TemporalFieldError("regional temporal operation is invalid")
+    return operation
+
+
+def _regional_start(current: dict[str, Any], arguments: Mapping[str, Any]) -> None:
+    operation = _regional_operation(arguments)
+    memory = current["memory"]
+    model = current["model"]
+    if operation == "induce":
+        episodes_value = arguments.get("episodes", ())
+        if isinstance(episodes_value, (str, bytes)) or not isinstance(episodes_value, Sequence) or not episodes_value:
+            raise TemporalFieldError("regional induction requires episodes")
+        episodes = [
+            _regional_episode(episode, memory["action_ids"], memory["observation_ids"])
+            for episode in episodes_value
+        ]
+        source_values = arguments.get("source_revision_ids", arguments.get("source_ids"))
+        if source_values is None:
+            source_values = [
+                hashlib.sha256(_canonical(episode)).hexdigest() for episode in episodes
+            ]
+        source_values = _ids(source_values, "source_revision_ids", _MAX_EPISODES)
+        if len(source_values) not in {1, len(episodes)}:
+            raise TemporalFieldError("source_revision_ids must identify each episode or the batch")
+        batches = (
+            [{"source_id": source_values[0], "episodes": episodes}]
+            if len(source_values) == 1
+            else [{"source_id": sid, "episodes": [episode]} for sid, episode in zip(source_values, episodes)]
+        )
+        known = {row["source_id"]: row for row in model["sources"]}
+        pending = []
+        for row in batches:
+            previous = known.get(row["source_id"])
+            if previous is not None:
+                if previous["episodes"] != row["episodes"]:
+                    raise TemporalFieldError("source identity conflicts with retained episode")
+            else:
+                pending.append(row)
+        current["continuation"] = {
+            "phase": "running", "operation": "induce",
+            "task": {"sources": pending, "support_added": 0},
+            "cursor": {"source": 0, "episode": 0, "step": 0, "state": 0},
+            "learning_frontier": {"source": 0, "episode": 0, "step": 0},
+        }
+        return
+    if operation == "consume":
+        action, observation = arguments.get("action"), arguments.get("observation")
+        if action not in memory["action_ids"] or observation not in memory["observation_ids"]:
+            raise TemporalFieldError("regional consumption uses an unknown token")
+        participant_id = _regional_participant(arguments.get("participant_id"))
+        if participant_id not in current["participants"]:
+            current["participants"][participant_id] = {
+                "history": [], "candidates": [0], "current": 0,
+                "last_observation": None, "unknown": False,
+                "unknown_start": False, "uncovered": False, "halted": False,
+            }
+        current["continuation"] = {
+            "phase": "running", "operation": "consume",
+            "task": {
+                "action": action, "observation": observation,
+                "participant_id": participant_id,
+            },
+            "cursor": {"step": 0},
+            "learning_frontier": {"participant": participant_id, "step": 0},
+        }
+        return
+    if operation == "reset":
+        participant_id = _regional_participant(arguments.get("participant_id"))
+        if participant_id not in current["participants"]:
+            current["participants"][participant_id] = {
+                "history": [], "candidates": [0], "current": 0,
+                "last_observation": None, "unknown": False,
+                "unknown_start": False, "uncovered": False, "halted": False,
+            }
+        current["continuation"] = {
+            "phase": "running", "operation": "reset",
+            "task": {
+                "participant_id": participant_id,
+                "known_start": arguments.get("known_start", True),
+            },
+            "cursor": {"step": 0},
+            "learning_frontier": {"participant": participant_id, "step": 0},
+        }
+        return
+    if operation == "skill":
+        skill_id = _identifier(arguments.get("skill_id"), "skill_id")
+        goals = _ids(arguments.get("goal_observations", arguments.get("goals", ())),
+                     "goal observations", len(memory["observation_ids"]))
+        forbidden = _ids(arguments.get("forbidden_observations", arguments.get("forbidden", ())),
+                         "forbidden observations", len(memory["observation_ids"]), allow_empty=True)
+        if set(goals) & set(forbidden) or any(
+            item not in memory["observation_ids"] for item in (*goals, *forbidden)
+        ):
+            raise TemporalFieldError("regional skill observations conflict")
+        count = model["state_count"]
+        current["continuation"] = {
+            "phase": "running", "operation": "skill",
+            "task": {
+                "skill_id": skill_id, "goal": list(goals),
+                "forbidden": list(forbidden), "ranks": [0] * count,
+                "policy": [0] * count, "iteration": 0, "changed": False,
+            },
+            "cursor": {"state": 0},
+            "learning_frontier": {"skill_id": skill_id, "state": 0, "iteration": 0},
+        }
+        return
+    if operation == "select":
+        skill_id = _identifier(arguments.get("skill_id"), "skill_id")
+        participant_id = _regional_participant(arguments.get("participant_id"))
+        if participant_id not in current["participants"]:
+            current["participants"][participant_id] = {
+                "history": [], "candidates": [0], "current": 0,
+                "last_observation": None, "unknown": False,
+                "unknown_start": False, "uncovered": False, "halted": False,
+            }
+        current["continuation"] = {
+            "phase": "running", "operation": "select",
+            "task": {"skill_id": skill_id, "participant_id": participant_id},
+            "cursor": {"step": 0},
+            "learning_frontier": {"participant": participant_id, "skill_id": skill_id, "step": 0},
+        }
+        return
+    if operation == "project":
+        skill_id = _identifier(arguments.get("skill_id"), "skill_id")
+        scope_id = _identifier(arguments.get("scope_id", skill_id), "scope_id")
+        participant_id = _regional_participant(arguments.get("participant_id"))
+        current["continuation"] = {
+            "phase": "running", "operation": "project",
+            "task": {
+                "skill_id": skill_id, "scope_id": scope_id,
+                "participant_id": participant_id,
+                "kind": arguments.get("projection", "skill_pool"),
+            },
+            "cursor": {"step": 0},
+            "learning_frontier": {"scope_id": scope_id, "step": 0},
+        }
+
+
+def _regional_finish(current: dict[str, Any], operation: str, payload: Mapping[str, Any]) -> None:
+    result = {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "operation": operation,
+        "status": payload.get("status", "complete"),
+        "memory_id": current["memory"]["memory_id"],
+        "memory_sha256": _regional_memory_digest(current),
+        "frontier": _regional_clone(current["continuation"].get("learning_frontier", {})),
+        "state_schema": REGIONAL_STATE_SCHEMA,
+        "work_schema": REGIONAL_RESULT_SCHEMA,
+        **_regional_clone(dict(payload)),
+    }
+    current["last_result"] = result
+    current["continuation"] = {
+        "phase": "ready", "operation": None, "task": None, "cursor": {},
+        "learning_frontier": result["frontier"],
+    }
+
+
+def _regional_step_induce(current: dict[str, Any]) -> None:
+    continuation = current["continuation"]
+    task, cursor = continuation["task"], continuation["cursor"]
+    sources = task["sources"]
+    model, memory = current["model"], current["memory"]
+    if cursor["source"] >= len(sources):
+        if task["support_added"]:
+            for skill in model["skills"].values():
+                skill["stale"] = True
+        _regional_finish(current, "induce", {
+            "status": "replayed" if not task["support_added"] else "learned",
+            "source_count": len(sources),
+            "support_added": task["support_added"],
+            "state_count": model["state_count"],
+        })
+        return
+    source = sources[cursor["source"]]
+    if cursor["episode"] >= len(source["episodes"]):
+        model["sources"].append(source)
+        cursor["source"] += 1
+        cursor["episode"] = 0
+        cursor["step"] = 0
+        cursor["state"] = 0
+        return
+    episode = source["episodes"][cursor["episode"]]
+    if cursor["step"] >= len(episode):
+        cursor["episode"] += 1
+        cursor["step"] = 0
+        cursor["state"] = 0
+        return
+    event = episode[cursor["step"]]
+    action_index = memory["action_ids"].index(event["action"])
+    observation_index = memory["observation_ids"].index(event["observation"])
+    state_index = cursor["state"]
+    exposure = model["exposures"][state_index][action_index][observation_index]
+    if exposure == 0:
+        if model["state_count"] >= memory["max_states"]:
+            raise TemporalFieldError("regional temporal state capacity exceeded")
+        destination = model["state_count"]
+        model["state_count"] += 1
+        model["exposures"].append(_regional_rows(1, len(memory["action_ids"]), len(memory["observation_ids"]))[0])
+        model["destinations"].append(_regional_rows(1, len(memory["action_ids"]), len(memory["observation_ids"]))[0])
+        model["coverage"].append([False] * len(memory["action_ids"]))
+        model["destinations"][state_index][action_index][observation_index] = destination
+    else:
+        destination = model["destinations"][state_index][action_index][observation_index]
+    model["exposures"][state_index][action_index][observation_index] += 1
+    model["coverage"][state_index][action_index] = True
+    cursor["state"] = destination
+    cursor["step"] += 1
+    task["support_added"] += 1
+    continuation["learning_frontier"] = {
+        "source": cursor["source"], "episode": cursor["episode"], "step": cursor["step"],
+    }
+
+
+def _regional_step_consume(current: dict[str, Any]) -> None:
+    continuation = current["continuation"]
+    task = continuation["task"]
+    participant = current["participants"][task["participant_id"]]
+    model, memory = current["model"], current["memory"]
+    action_index = memory["action_ids"].index(task["action"])
+    observation_index = memory["observation_ids"].index(task["observation"])
+    candidates = list(participant["candidates"])
+    next_candidates: set[int] = set()
+    missing: list[int] = []
+    for state_index in candidates:
+        if not any(model["exposures"][state_index][action_index]):
+            missing.append(state_index)
+        elif model["exposures"][state_index][action_index][observation_index] > 0:
+            next_candidates.add(model["destinations"][state_index][action_index][observation_index])
+    was_unknown = participant["unknown"]
+    unknown = bool(missing) or not next_candidates or (was_unknown and len(next_candidates) != 1)
+    participant["history"].append({"action": task["action"], "observation": task["observation"]})
+    participant["candidates"] = sorted(next_candidates)
+    participant["current"] = min(next_candidates) if next_candidates else -1
+    participant["last_observation"] = task["observation"]
+    participant["unknown"] = unknown
+    participant["uncovered"] = participant["uncovered"] or bool(missing)
+    continuation["learning_frontier"] = {"participant": task["participant_id"], "step": 1}
+    _regional_finish(current, "consume", {
+        "status": "supported" if not unknown else "unknown-support",
+        "action": task["action"], "observation": task["observation"],
+        "participant_id": task["participant_id"], "current": participant["current"],
+        "candidate_states": participant["candidates"], "missing_states": missing,
+        "supported": not unknown, "unknown_successor": unknown,
+    })
+
+
+def _regional_step_reset(current: dict[str, Any]) -> None:
+    continuation = current["continuation"]
+    task = continuation["task"]
+    participant = current["participants"][task["participant_id"]]
+    known_start = task["known_start"]
+    if not isinstance(known_start, bool):
+        raise TemporalFieldError("known_start must be boolean")
+    count = current["model"]["state_count"]
+    if not known_start and count > current["memory"]["max_states"]:
+        raise TemporalFieldError("regional unknown reset exceeds candidate capacity")
+    participant.update({
+        "history": [], "candidates": [0] if known_start else list(range(count)),
+        "current": 0 if known_start else -1, "last_observation": None,
+        "unknown": not known_start, "unknown_start": not known_start,
+        "uncovered": False, "halted": False,
+    })
+    _regional_finish(current, "reset", {
+        "status": "reset", "participant_id": task["participant_id"],
+        "known_start": known_start, "candidate_states": participant["candidates"],
+    })
+
+
+def _regional_skill_option(
+    current: Mapping[str, Any], state_index: int, goal: set[str], forbidden: set[str],
+    ranks: Sequence[int],
+) -> tuple[int, int] | None:
+    model, memory = current["model"], current["memory"]
+    best: tuple[int, int] | None = None
+    for action_index, action_row in enumerate(model["exposures"][state_index]):
+        outcomes = [index for index, count in enumerate(action_row) if count > 0]
+        if not outcomes or any(memory["observation_ids"][index] in forbidden for index in outcomes):
+            continue
+        if not all(
+            memory["observation_ids"][index] in goal
+            or 0 < ranks[model["destinations"][state_index][action_index][index]] < current["model"]["state_count"]
+            for index in outcomes
+        ):
+            continue
+        cost = 1 + max(
+            (
+                0
+                if memory["observation_ids"][index] in goal
+                else ranks[model["destinations"][state_index][action_index][index]]
+            )
+            for index in outcomes
+        )
+        # Policy zero is the explicit unsupported sentinel; expose stored
+        # actions one-based while keeping ``action_index`` zero-based above.
+        candidate = (cost, action_index + 1)
+        if best is None or candidate < best:
+            best = candidate
+    return best
+
+
+def _regional_step_skill(current: dict[str, Any]) -> None:
+    continuation = current["continuation"]
+    task, cursor = continuation["task"], continuation["cursor"]
+    count = current["model"]["state_count"]
+    goal, forbidden = set(task["goal"]), set(task["forbidden"])
+    if cursor["state"] < count:
+        state_index = cursor["state"]
+        option = _regional_skill_option(current, state_index, goal, forbidden, task["ranks"])
+        if option is not None:
+            old_rank = task["ranks"][state_index]
+            old_action = (
+                task["policy"][state_index]
+                if old_rank else len(current["memory"]["action_ids"]) + 1
+            )
+            if old_rank == 0 or option[0] < old_rank or (
+                option[0] == old_rank and option[1] < old_action
+            ):
+                task["ranks"][state_index] = option[0]
+                task["policy"][state_index] = option[1]
+                task["changed"] = True
+        cursor["state"] += 1
+        continuation["learning_frontier"] = {
+            "skill_id": task["skill_id"], "state": cursor["state"],
+            "iteration": task["iteration"],
+        }
+        return
+    if task["changed"] and task["iteration"] < count:
+        task["iteration"] += 1
+        task["changed"] = False
+        cursor["state"] = 0
+        continuation["learning_frontier"] = {
+            "skill_id": task["skill_id"], "state": 0, "iteration": task["iteration"],
+        }
+        return
+    bound = _regional_memory_digest(current)
+    current["model"]["skills"][task["skill_id"]] = {
+        "goal": list(task["goal"]), "forbidden": list(task["forbidden"]),
+        "ranks": list(task["ranks"]), "policy": list(task["policy"]),
+        "bound_memory_sha256": bound, "stale": False,
+    }
+    _regional_finish(current, "skill", {
+        "status": "formed" if task["ranks"][0] > 0 else "pending",
+        "skill_id": task["skill_id"],
+        "supported_states": sum(rank > 0 for rank in task["ranks"]),
+        "start_state_supported": task["ranks"][0] > 0,
+        "ranks": list(task["ranks"]), "policy": list(task["policy"]),
+        "bound_memory_sha256": bound,
+    })
+
+
+def _regional_skill_signal(current: Mapping[str, Any], skill_id: str) -> list[float]:
+    spec = current["model"]["skills"].get(skill_id)
+    signal = [0.0] * 7
+    if spec is None or spec["stale"]:
+        return signal
+    supported = [rank for rank in spec["ranks"] if rank > 0]
+    if not supported:
+        return signal
+    maximum = max(supported)
+    if maximum == 1:
+        signal[0] = float(len(supported))
+    else:
+        for rank in supported:
+            pool = int(math.floor(6 * (rank - 1) / (maximum - 1) + 0.5))
+            signal[pool] += 1.0
+    norm = math.sqrt(sum(value * value for value in signal))
+    return [value / norm for value in signal] if norm else signal
+
+
+def _regional_step_select(current: dict[str, Any]) -> None:
+    task = current["continuation"]["task"]
+    participant = current["participants"][task["participant_id"]]
+    skill = current["model"]["skills"].get(task["skill_id"])
+    payload: dict[str, Any] = {
+        "skill_id": task["skill_id"], "participant_id": task["participant_id"],
+        "action": None, "supported_states": len(participant["candidates"]),
+    }
+    if skill is None or skill["stale"]:
+        payload.update(status="unresolved", explain="skill absent or stale")
+    elif participant["halted"] or participant["unknown"] or not participant["candidates"]:
+        payload.update(status="unresolved", explain="current context lacks complete transition support")
+    elif participant["last_observation"] in skill["goal"]:
+        payload.update(status="complete", explain="goal observation was consumed")
+    else:
+        actions = {skill["policy"][state] for state in participant["candidates"] if skill["ranks"][state] > 0}
+        if len(actions) != 1 or 0 in actions:
+            payload.update(status="unresolved", explain="candidate states do not agree on a supported safe action")
+        else:
+            action_index = next(iter(actions)) - 1
+            payload.update(
+                status="proposed", action=current["memory"]["action_ids"][action_index],
+                remaining_steps=max(skill["ranks"][state] for state in participant["candidates"]),
+                explain="supported decreasing-rank action",
+            )
+    payload["pool_signal"] = _regional_skill_signal(current, task["skill_id"])
+    _regional_finish(current, "select", payload)
+
+
+def _regional_step_project(current: dict[str, Any]) -> None:
+    task = current["continuation"]["task"]
+    scope = {
+        "scope_id": task["scope_id"], "kind": task["kind"],
+        "skill_id": task["skill_id"], "participant_id": task["participant_id"],
+        "memory_sha256": _regional_memory_digest(current),
+    }
+    current["projection_scopes"][task["scope_id"]] = scope
+    _regional_finish(current, "project", {
+        "status": "projected", "scope": scope,
+        "pool_signal": _regional_skill_signal(current, task["skill_id"]),
+    })
+
+
+def regional_kernel(
+    state: Any,
+    arguments: Mapping[str, Any],
+    quantum: int,
+) -> KernelResult:
+    """Advance one temporal task continuation by at most ``quantum`` steps."""
+    checked = _regional_validate(state)
+    if not isinstance(arguments, Mapping):
+        raise TemporalFieldError("regional temporal arguments must be a mapping")
+    quantum = _regional_int(quantum, "regional temporal quantum", minimum=1, maximum=REGIONAL_MAX_WORK)
+    current = _regional_clone(checked)
+    if current["continuation"]["phase"] == "ready":
+        if not arguments:
+            return KernelResult(
+                state=current, status="done", work=0, output=current["last_result"],
+            )
+        _regional_start(current, arguments)
+    elif arguments:
+        requested = _regional_operation(arguments)
+        if requested != current["continuation"]["operation"]:
+            raise TemporalFieldError("regional temporal continuation operation conflicts")
+    used = 0
+    while used < quantum and current["continuation"]["phase"] == "running":
+        operation = current["continuation"]["operation"]
+        try:
+            if operation == "induce":
+                _regional_step_induce(current)
+            elif operation == "consume":
+                _regional_step_consume(current)
+            elif operation == "reset":
+                _regional_step_reset(current)
+            elif operation == "skill":
+                _regional_step_skill(current)
+            elif operation == "select":
+                _regional_step_select(current)
+            else:
+                _regional_step_project(current)
+        except TemporalFieldError as exc:
+            _regional_finish(current, operation, {
+                "status": "fault", "reason": str(exc),
+            })
+            used += 1
+            return KernelResult(
+                state=current, status="fault", work=used, output=current["last_result"],
+            )
+        used += 1
+    _regional_validate(current)
+    done = current["continuation"]["phase"] == "ready"
+    return KernelResult(
+        state=current, status="done" if done else "yield",
+        work=used, output=current["last_result"] if done else None,
+    )
+
+
+temporal_regional_state = regional_state
+temporal_regional_kernel = regional_kernel
+
+
+__all__ = [
+    "SCHEMA", "TemporalField", "TemporalFieldError",
+    "REGIONAL_KERNEL_NAME", "REGIONAL_MAX_WORK", "REGIONAL_KERNEL_MAX_WORK",
+    "REGIONAL_STATE_SCHEMA", "REGIONAL_RESULT_SCHEMA", "REGIONAL_TASK_SCHEMA",
+    "regional_state", "regional_kernel", "temporal_regional_state",
+    "temporal_regional_kernel",
+]

@@ -12,15 +12,42 @@ import hashlib
 import json
 import math
 import time
+from copy import deepcopy
 from dataclasses import replace
 from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from cassi_field_regions import KernelResult
+
 from cassi_resonant_field import (
     ResonantNumericalError, ResonantProblem, ResonantProfile, ResonantWorkspace,
     _WaveOperator, bind_workspace,
 )
+
+REGIONAL_KERNEL_NAME = "numerical.transceiver"
+REGIONAL_KERNEL_MAX_WORK = 4_096
+REGIONAL_STATE_SCHEMA = "cassifi.regional-transceiver-state.v1"
+REGIONAL_RESULT_SCHEMA = "cassifi.regional-kernel-result.v1"
+REGIONAL_TASK_SCHEMA = "cassifi.regional-transceiver-task.v1"
+_REGIONAL_PANEL_MAX = 256
+_REGIONAL_MAX_PANELS = 1_000_000
+_REGIONAL_FULL_WORDS = ("base_state", "input_lift", "output_rows", "initial_state")
+_REGIONAL_FULL_OPTIONAL_WORDS = ("transition", "drive")
+_REGIONAL_REDUCED_WORDS = (
+    "transition", "drive", "lift", "output", "direct", "offset",
+    "energy", "energy_linear", "residual",
+)
+_REGIONAL_STATE_KEYS = frozenset({
+    "schema", "family", "task", "operation", "phase", "parent_versions",
+    "metadata", "recipe", "full_words", "reduced_words", "inputs",
+    "input_errors", "previous_inputs", "mode", "coordinates", "ticks",
+    "error_radius", "model_error", "state_error", "transport_error",
+    "horizon", "force_full", "construction_cursor", "advance_cursor",
+    "journal", "ledger", "result",
+})
+ 
+
 
 SCHEMA = "cassifi.field-transceiver.v1"
 _RECEIPT_SCHEMA = "cassifi.field-transceiver-receipt.v1"
@@ -407,6 +434,83 @@ def condense_workspace(workspace: ResonantWorkspace, problem: ResonantProblem, *
                    elapsed_seconds=time.perf_counter()-started)
     return kernel, working, receipt
 
+def input_problem(
+    variable_ids: Sequence[str],
+    *,
+    diagonal: float = 1.0,
+    coupling: float = 0.0,
+) -> ResonantProblem:
+    """The declared input relation of one input realization, as an explicit object.
+
+    What decides whether a boundary drive reaches the declared readout is the
+    relation the declared problem carries, not the input code path: with the
+    shipped declared input (``diagonal`` 1, ``coupling`` 0 -- the identity
+    precision) the input lift is supported on the input port's own coordinates
+    while the readout row sits on the output port's, so the drive is inert, and
+    the same construction carries a signal once the declared precision carries a
+    cross term between the declared variables. This helper builds that
+    construction as an opt-in object instead of a hand-built matrix: every
+    declared variable keeps ``diagonal`` on its own coordinate and every pair
+    gains ``coupling`` between them. It is additive and default-off: with no
+    coupling the returned problem is the shipped declared input, so no existing
+    caller changes.
+    """
+
+    ids = _ids(variable_ids, "variable_ids")
+    diagonal_value = _number(diagonal, "input diagonal")
+    coupling_value = _number(coupling, "input coupling")
+    if diagonal_value <= 0.0:
+        raise ResonantNumericalError("declared input diagonal must be positive")
+    if coupling_value < 0.0:
+        raise ResonantNumericalError("declared input coupling must be nonnegative")
+    count = len(ids)
+    precision = np.full((count, count), coupling_value, dtype=np.float64)
+    precision[np.diag_indices(count)] += diagonal_value
+    # A declared relation must be a coercive energy: a non-positive-definite
+    # precision would make the realization's own energy test meaningless.
+    if float(np.linalg.eigvalsh(precision).min()) <= 0.0:
+        raise ResonantNumericalError(
+            "declared input relation must be positive definite"
+        )
+    return ResonantProblem(variable_ids=ids, precision=precision)
+
+
+def condense_input(
+    workspace: ResonantWorkspace,
+    *,
+    input_ids: Sequence[str],
+    output_ids: Sequence[str],
+    diagonal: float = 1.0,
+    coupling: float = 0.0,
+    rank: int = 16,
+    error_allowance: float = 1e-3,
+    input_bound: float = 4.0,
+    horizon_ticks: int = 64,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Condense the declared input realization, optionally carrying a coupling.
+
+    This is :func:`condense_workspace` with the declared input relation named
+    explicitly by the same two numbers :func:`input_problem` builds it from, so a
+    caller can opt into the coupled boundary drive without changing what the
+    shipped declared input is. Default-off: ``coupling`` 0 with ``diagonal`` 1
+    declares the identity precision, which is exactly the shipped declared input,
+    and the realization returned is ``condense_workspace``'s for that problem --
+    this function adds a name for the relation, never a second condenser.
+    """
+
+    inputs, outputs = _ids(input_ids, "input_ids"), _ids(output_ids, "output_ids")
+    return condense_workspace(
+        workspace,
+        input_problem((*inputs, *outputs), diagonal=diagonal, coupling=coupling),
+        input_ids=inputs,
+        output_ids=outputs,
+        rank=rank,
+        error_allowance=error_allowance,
+        input_bound=input_bound,
+        horizon_ticks=horizon_ticks,
+    )
+
+
 def _initial_state_error(kernel: Mapping[str, Any]) -> float:
     rom = kernel["rom"]
     if rom is None:
@@ -581,4 +685,930 @@ def inspect_transceiver(kernel: Mapping[str, Any], working_state: Mapping[str, A
             "elapsed_seconds": time.perf_counter()-started}
 
 
-__all__ = ["SCHEMA", "condense_workspace", "advance_transceiver", "reset_transceiver", "inspect_transceiver", "validate_transceiver"]
+def _regional_copy(value: Any) -> Any:
+    """Copy task data through the same canonical JSON boundary as the field."""
+    try:
+        return json.loads(json.dumps(_json(value), sort_keys=True, separators=(",", ":"), allow_nan=False))
+    except (TypeError, ValueError) as exc:
+        raise ResonantNumericalError("regional transceiver data is not canonical") from exc
+def _regional_full_word_map(value: Any, name: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ResonantNumericalError(f"{name} has invalid word keys")
+    allowed = set(_REGIONAL_FULL_WORDS) | set(_REGIONAL_FULL_OPTIONAL_WORDS)
+    if not set(_REGIONAL_FULL_WORDS).issubset(value) or set(value) - allowed:
+        raise ResonantNumericalError(f"{name} has invalid word keys")
+    return {
+        key: _regional_copy(value[key])
+        for key in (*_REGIONAL_FULL_WORDS, *(_REGIONAL_FULL_OPTIONAL_WORDS))
+        if key in value
+    }
+
+
+def _regional_shape(value: Any, name: str) -> tuple[int, ...]:
+    array = _array(value, name=name)
+    if array.ndim not in (1, 2) or not all(int(size) > 0 for size in array.shape):
+        raise ResonantNumericalError(f"{name} must be a nonempty vector or matrix")
+    return tuple(int(size) for size in array.shape)
+
+
+def _regional_word_map(value: Any, names: Sequence[str], name: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != set(names):
+        raise ResonantNumericalError(f"{name} has invalid word keys")
+    return {key: _regional_copy(value[key]) for key in names}
+
+
+def _regional_parents(value: Any, metadata: Mapping[str, Any]) -> list[list[Any]]:
+    if value is None:
+        value = metadata.get("parent_versions")
+    if value is None:
+        digest = metadata.get("kernel_sha256") or metadata.get("source_sha256")
+        value = [[digest or "regional-transceiver-source", 1]]
+    if isinstance(value, Mapping) or isinstance(value, (str, bytes)):
+        raise ResonantNumericalError("parent_versions must be a sequence")
+    result: list[list[Any]] = []
+    try:
+        entries = tuple(value)
+    except TypeError as exc:
+        raise ResonantNumericalError("parent_versions must be a sequence") from exc
+    for entry in entries:
+        if isinstance(entry, Mapping):
+            if set(entry) != {"id", "version"}:
+                raise ResonantNumericalError("parent version entry is invalid")
+            identifier, version = entry["id"], entry["version"]
+        else:
+            try:
+                identifier, version = tuple(entry)
+            except (TypeError, ValueError) as exc:
+                raise ResonantNumericalError("parent version entry is invalid") from exc
+        if not isinstance(identifier, str) or not identifier:
+            raise ResonantNumericalError("parent version id is invalid")
+        version = _int(version, "parent version", 1, 2**53 - 1)
+        result.append([identifier, version])
+    if not result or len({(row[0], row[1]) for row in result}) != len(result):
+        raise ResonantNumericalError("parent_versions must be nonempty and unique")
+    return result
+
+
+def _regional_metadata(source: Mapping[str, Any]) -> dict[str, Any]:
+    if isinstance(source.get("metadata"), Mapping):
+        metadata = _regional_copy(source["metadata"])
+    else:
+        metadata = _regional_copy({
+            key: source[key]
+            for key in (
+                "profile", "problem", "bindings", "input_ids", "output_ids",
+                "input_bound", "horizon_ticks", "error_allowance", "initial_error",
+                "initial_reduced", "reason", "certificate", "dimensions", "bounds",
+                "status", "kernel_sha256", "parent_versions",
+            )
+            if key in source
+        })
+    if not isinstance(metadata, Mapping):
+        raise ResonantNumericalError("regional transceiver metadata is invalid")
+    metadata = dict(metadata)
+    metadata.setdefault("input_bound", 4.0)
+    metadata.setdefault("horizon_ticks", 1)
+    metadata.setdefault("error_allowance", 0.0)
+    metadata.setdefault("initial_error", 0.0)
+    metadata.setdefault("reason", "regional transceiver realization")
+    metadata.setdefault("bounds", {})
+    if not isinstance(metadata.get("input_ids"), list):
+        metadata["input_ids"] = list(metadata.get("input_ids", ()))
+    if not isinstance(metadata.get("output_ids"), list):
+        metadata["output_ids"] = list(metadata.get("output_ids", ()))
+    _ids(metadata["input_ids"], "regional input_ids")
+    _ids(metadata["output_ids"], "regional output_ids")
+    if set(metadata["input_ids"]).intersection(metadata["output_ids"]):
+        raise ResonantNumericalError("regional input and output ports must be distinct")
+    for key in ("input_bound", "error_allowance", "initial_error"):
+        if _number(metadata[key], f"regional {key}") < 0:
+            raise ResonantNumericalError(f"regional {key} must be nonnegative")
+    _int(metadata["horizon_ticks"], "regional horizon", 1, _MAX_TICKS)
+    if not isinstance(metadata["bounds"], Mapping):
+        raise ResonantNumericalError("regional numerical bounds are invalid")
+    return metadata
+
+
+def _regional_material(source: Any) -> dict[str, Any]:
+    if not isinstance(source, Mapping):
+        raise ResonantNumericalError("regional transceiver source must be a mapping")
+    if source.get("schema") == REGIONAL_STATE_SCHEMA:
+        if not isinstance(source.get("recipe"), Mapping):
+            raise ResonantNumericalError("regional state recipe is missing")
+        recipe = source["recipe"]
+        metadata = _regional_metadata(recipe)
+        full = _regional_full_word_map(recipe.get("full_words"), "regional full words")
+        reduced = recipe.get("reduced_words")
+        reduced = None if reduced is None else _regional_word_map(reduced, _REGIONAL_REDUCED_WORDS, "regional reduced words")
+        return {"metadata": metadata, "full_words": full, "reduced_words": reduced}
+    if source.get("schema") == REGIONAL_RESULT_SCHEMA:
+        metadata = _regional_metadata(source)
+        full = _regional_full_word_map(source.get("full_words"), "regional full words")
+        reduced = source.get("reduced_words")
+        reduced = None if reduced is None else _regional_word_map(reduced, _REGIONAL_REDUCED_WORDS, "regional reduced words")
+        return {"metadata": metadata, "full_words": full, "reduced_words": reduced}
+    if source.get("schema") == SCHEMA:
+        _validate_kernel(source)
+        metadata = _regional_metadata(source)
+        full = {key: _regional_copy(source[key]) for key in _REGIONAL_FULL_WORDS}
+        reduced_source = source.get("rom")
+        reduced = None if reduced_source is None else {
+            key: _regional_copy(reduced_source[key]) for key in _REGIONAL_REDUCED_WORDS
+        }
+        return {"metadata": metadata, "full_words": full, "reduced_words": reduced}
+    metadata = _regional_metadata(source)
+    if "full_words" not in source:
+        raise ResonantNumericalError("regional source has no full words")
+    full = _regional_full_word_map(source["full_words"], "regional full words")
+    reduced_source = source.get("reduced_words")
+    reduced = None if reduced_source is None else _regional_word_map(
+        reduced_source, _REGIONAL_REDUCED_WORDS, "regional reduced words"
+    )
+    return {"metadata": metadata, "full_words": full, "reduced_words": reduced}
+
+
+def _regional_validate_material(material: Mapping[str, Any]) -> tuple[int, int, int, int]:
+    metadata = material["metadata"]
+    full = material["full_words"]
+    input_count, output_count = len(metadata["input_ids"]), len(metadata["output_ids"])
+    base_shape = _regional_shape(full["base_state"], "base_state")
+    if len(base_shape) != 1:
+        raise ResonantNumericalError("base_state must be a vector")
+    dimension = base_shape[0]
+    expected = {
+        "input_lift": (dimension, input_count),
+        "output_rows": (output_count, dimension),
+        "initial_state": (dimension,),
+    }
+    for key, shape in expected.items():
+        if _regional_shape(full[key], key) != shape:
+            raise ResonantNumericalError(f"{key} has invalid shape")
+    for key in _REGIONAL_FULL_OPTIONAL_WORDS:
+        if key in full:
+            shape = (dimension, dimension) if key == "transition" else (dimension, input_count + 1)
+            if _regional_shape(full[key], key) != shape:
+                raise ResonantNumericalError(f"{key} has invalid shape")
+    reduced = material["reduced_words"]
+    rank = 0
+    if reduced is not None:
+        transition_shape = _regional_shape(reduced["transition"], "transition")
+        if len(transition_shape) != 2 or transition_shape[0] != transition_shape[1]:
+            raise ResonantNumericalError("reduced transition must be square")
+        rank = transition_shape[0]
+        expected_reduced = {
+            "drive": (rank, input_count + 1), "lift": (dimension, rank),
+            "output": (output_count, rank), "direct": (output_count, input_count),
+            "offset": (output_count,), "energy": (rank + input_count + 1, rank + input_count + 1),
+            "energy_linear": (rank + input_count + 1,),
+        }
+        for key, shape in expected_reduced.items():
+            if _regional_shape(reduced[key], key) != shape:
+                raise ResonantNumericalError(f"reduced {key} has invalid shape")
+        residual_shape = _regional_shape(reduced["residual"], "residual")
+        if len(residual_shape) != 2 or residual_shape[1] != rank + input_count + 1:
+            raise ResonantNumericalError("reduced residual has invalid shape")
+    return dimension, input_count, output_count, rank
+def _regional_panels(
+    words: Mapping[str, Any],
+    names: Sequence[str],
+    panel_size: int = _REGIONAL_PANEL_MAX,
+) -> list[tuple[str, str, int, int]]:
+    panel_size = _int(panel_size, "regional panel size", 1, _REGIONAL_PANEL_MAX)
+    panels: list[tuple[str, str, int, int]] = []
+    for name in names:
+        shape = _regional_shape(words[name], name)
+        size = math.prod(shape)
+        for start in range(0, size, panel_size):
+            panels.append(("words", name, start, min(size, start + panel_size)))
+    return panels
+
+
+def _regional_set_flat(value: Any, shape: tuple[int, ...], index: int, item: float) -> None:
+    if len(shape) == 1:
+        value[index] = float(item)
+    else:
+        columns = shape[1]
+        value[index // columns][index % columns] = float(item)
+
+
+def _regional_get_flat(value: Any, shape: tuple[int, ...], index: int) -> float:
+    if len(shape) == 1:
+        return float(value[index])
+    columns = shape[1]
+    return float(value[index // columns][index % columns])
+
+
+def _regional_parent_and_material(source: Any, parent_versions: Any) -> tuple[dict[str, Any], list[list[Any]]]:
+    material = _regional_material(source)
+    _regional_validate_material(material)
+    return material, _regional_parents(parent_versions, material["metadata"])
+
+
+def regional_construction_state(
+    source: Mapping[str, Any],
+    *,
+    parent_versions: Sequence[Any] | None = None,
+    operation: str = "realization",
+    panel_size: int = _REGIONAL_PANEL_MAX,
+    horizon: int | None = None,
+) -> dict[str, Any]:
+    """Create a task that panel-copies immutable realization words.
+
+    The recipe is source data only.  Every matrix element is copied by the
+    regional kernel under ``construction_cursor``; no numerical evaluator is
+    called by that kernel.
+    """
+    if operation not in {"realization", "reduction", "condensation", "construction"}:
+        raise ResonantNumericalError("invalid regional construction operation")
+    panel_size = _int(panel_size, "regional panel size", 1, _REGIONAL_PANEL_MAX)
+    material, parents = _regional_parent_and_material(source, parent_versions)
+    metadata = dict(material["metadata"])
+    if horizon is not None:
+        metadata["horizon_ticks"] = _int(horizon, "regional horizon", 1, _MAX_TICKS)
+    full_source = material["full_words"]
+    reduced_source = material["reduced_words"]
+    full_words = {
+        key: np.zeros(_regional_shape(value, key), dtype=np.float64).tolist()
+        for key, value in full_source.items()
+    }
+    reduced_words = None if reduced_source is None else {
+        key: np.zeros(_regional_shape(value, key), dtype=np.float64).tolist()
+        for key, value in reduced_source.items()
+    }
+    panel_count = len(_regional_panels(full_source, tuple(full_source), panel_size))
+    if reduced_source is not None:
+        panel_count += len(_regional_panels(reduced_source, _REGIONAL_REDUCED_WORDS, panel_size))
+    if panel_count > _REGIONAL_MAX_PANELS:
+        raise ResonantNumericalError("regional construction exceeds panel capacity")
+    dimension, input_count, _, rank = _regional_validate_material(material)
+    return {
+        "schema": REGIONAL_STATE_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "task": "construction",
+        "operation": operation,
+        "phase": "running",
+        "parent_versions": parents,
+        "metadata": _regional_copy(metadata),
+        "recipe": {
+            "metadata": _regional_copy(metadata),
+            "full_words": _regional_copy(full_source),
+            "reduced_words": _regional_copy(reduced_source),
+        },
+        "full_words": full_words,
+        "reduced_words": reduced_words,
+        "inputs": [0.0] * input_count,
+        "input_errors": [0.0] * input_count,
+        "previous_inputs": [0.0] * input_count,
+        "mode": "reduced" if rank else "full",
+        "coordinates": (
+            [0.0] * rank if rank else _regional_copy(full_source["initial_state"])
+        ),
+        "ticks": 0,
+        "error_radius": 0.0,
+        "model_error": 0.0,
+        "state_error": 0.0,
+        "transport_error": [0.0] * rank,
+        "horizon": int(metadata["horizon_ticks"]),
+        "force_full": False,
+        "construction_cursor": {"panel": 0, "panel_count": panel_count, "panel_size": panel_size},
+        "advance_cursor": {"tick": 0},
+        "journal": [],
+        "ledger": {"panels": 0, "matrix_elements": 0, "ticks": 0, "reduced_steps": 0, "full_steps": 0},
+        "result": None,
+    }
+
+
+def regional_condensation_state(source: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
+    kwargs.setdefault("operation", "condensation")
+    return regional_construction_state(source, **kwargs)
+def regional_advance_state(
+    source: Mapping[str, Any],
+    *,
+    inputs: Mapping[str, Any] | Sequence[Any] | None = None,
+    input_errors: Mapping[str, Any] | Sequence[Any] | None = None,
+    parent_versions: Sequence[Any] | None = None,
+    horizon: int | None = None,
+    force_full: bool = False,
+) -> dict[str, Any]:
+    """Create a bounded execution task from a completed regional result."""
+    if not isinstance(force_full, bool):
+        raise ResonantNumericalError("regional force_full must be boolean")
+    if parent_versions is None and isinstance(source, Mapping):
+        if source.get("schema") in {REGIONAL_STATE_SCHEMA, REGIONAL_RESULT_SCHEMA}:
+            parent_versions = source.get("parent_versions")
+    material, parents = _regional_parent_and_material(source, parent_versions)
+    metadata = dict(material["metadata"])
+    dimension, input_count, output_count, rank = _regional_validate_material(material)
+    source_state = source if source.get("schema") == REGIONAL_STATE_SCHEMA else None
+    source_result = source if source.get("schema") == REGIONAL_RESULT_SCHEMA else None
+    if source_state is not None and source_state.get("phase") != "terminal":
+        raise ResonantNumericalError("regional execution requires completed construction")
+    if source_result is not None and (
+        source_result.get("status") not in {"active", "expanded"}
+        and not (
+            source_result.get("task") == "construction"
+            and source_result.get("status") == "done"
+        )
+    ):
+        raise ResonantNumericalError("regional execution result is not reusable")
+    if horizon is None:
+        horizon = (
+            source_state.get("horizon") if source_state is not None
+            else source_result.get("horizon") if source_result is not None
+            else metadata["horizon_ticks"]
+        )
+    horizon = _int(horizon, "regional horizon", 1, _MAX_TICKS)
+    ids = metadata["input_ids"]
+
+    def vectors(values: Any, label: str) -> list[float]:
+        if values is None:
+            return [0.0] * input_count
+        if isinstance(values, Mapping):
+            if set(values) - set(ids):
+                raise ResonantNumericalError(f"{label} has unknown input channels")
+            values = [values.get(name, 0.0) for name in ids]
+        array = _array(values, (input_count,), label)
+        return [float(item) for item in array]
+
+    inherited_inputs = None
+    inherited_errors = None
+    if source_state is not None:
+        inherited_inputs = source_state["inputs"]
+        inherited_errors = source_state["input_errors"]
+    elif source_result is not None and isinstance(source_result.get("execution"), Mapping):
+        inherited_inputs = source_result["execution"].get("inputs")
+        inherited_errors = source_result["execution"].get("input_errors")
+    current_inputs = vectors(inputs if inputs is not None else inherited_inputs, "regional inputs")
+    current_errors = vectors(
+        input_errors if input_errors is not None else inherited_errors, "regional input errors"
+    )
+    bound = _number(metadata["input_bound"], "regional input bound")
+    if any(error < 0 for error in current_errors):
+        raise ResonantNumericalError("regional input errors must be nonnegative")
+    if any(abs(value) + error > bound for value, error in zip(current_inputs, current_errors, strict=True)):
+        raise ResonantNumericalError("regional input uncertainty leaves its declared envelope")
+
+    inherited = None
+    if source_state is not None:
+        inherited = source_state
+    elif source_result is not None and isinstance(source_result.get("execution"), Mapping):
+        inherited = source_result["execution"]
+    if inherited is not None:
+        mode = inherited.get("mode", "full")
+        raw_coordinates = inherited.get("coordinates")
+        if source_state is not None and source_state.get("task") == "construction" and mode == "reduced":
+            raw_coordinates = metadata.get("initial_reduced", raw_coordinates)
+        coordinates = _regional_copy(raw_coordinates)
+        previous_inputs = vectors(inherited.get("previous_inputs"), "regional previous inputs")
+        ticks = _int(inherited.get("ticks", 0), "regional ticks", 0, 2**53 - 1)
+        error_radius = _number(inherited.get("error_radius", 0.0), "regional error radius")
+        model_error = _number(inherited.get("model_error", error_radius), "regional model error")
+        state_error = _number(inherited.get("state_error", 0.0), "regional state error")
+        transport_error = _array(
+            inherited.get("transport_error", ()),
+            (rank if mode == "reduced" else 0,),
+            "regional transport error",
+        ).tolist()
+    else:
+        mode = "reduced" if rank else "full"
+        coordinates = _regional_copy(material["full_words"]["initial_state"])
+        if mode == "reduced":
+            # The reduced initial coordinates are part of the optional source
+            # metadata when supplied by a legacy kernel; otherwise zero is the
+            # canonical regional origin.
+            initial_reduced = metadata.get("initial_reduced", [0.0] * rank)
+            coordinates = _array(initial_reduced, (rank,), "regional initial reduced").tolist()
+        previous_inputs = [0.0] * input_count
+        ticks = 0
+        initial_error = _number(metadata.get("initial_error", 0.0), "regional initial error")
+        error_radius = model_error = initial_error
+        full_initial = _array(material["full_words"]["initial_state"])
+        if mode == "reduced":
+            base = _array(material["full_words"]["base_state"])
+            lift = _array(material["reduced_words"]["lift"])
+            state_error = float(np.linalg.norm(full_initial - base - lift @ np.asarray(coordinates)))
+        else:
+            state_error = 0.0
+        transport_error = [0.0] * (rank if mode == "reduced" else 0)
+    if mode not in {"full", "reduced"} or mode == "reduced" and rank == 0:
+        raise ResonantNumericalError("regional execution mode is invalid")
+    if force_full and mode == "full":
+        force_full = False
+    if mode == "full":
+        coordinates = _array(coordinates, (dimension,), "regional full coordinates").tolist()
+        transport_error = []
+    else:
+        coordinates = _array(coordinates, (rank,), "regional reduced coordinates").tolist()
+    if source_state is not None:
+        operation = "advance"
+        task = "advance"
+        recipe = _regional_copy(source_state["recipe"])
+        full_words = _regional_copy(source_state["full_words"])
+        reduced_words = _regional_copy(source_state["reduced_words"])
+        construction_cursor = _regional_copy(source_state["construction_cursor"])
+    else:
+        operation = "advance"
+        task = "advance"
+        recipe = {
+            "metadata": _regional_copy(metadata),
+            "full_words": _regional_copy(material["full_words"]),
+            "reduced_words": _regional_copy(material["reduced_words"]),
+        }
+        full_words = _regional_copy(material["full_words"])
+        reduced_words = _regional_copy(material["reduced_words"])
+        construction_cursor = {"panel": 0, "panel_count": 0, "panel_size": _REGIONAL_PANEL_MAX}
+    return {
+        "schema": REGIONAL_STATE_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "task": task,
+        "operation": operation,
+        "phase": "running",
+        "parent_versions": parents,
+        "metadata": _regional_copy(metadata),
+        "recipe": recipe,
+        "full_words": full_words,
+        "reduced_words": reduced_words,
+        "inputs": current_inputs,
+        "input_errors": current_errors,
+        "previous_inputs": previous_inputs,
+        "mode": mode,
+        "coordinates": coordinates,
+        "ticks": ticks,
+        "error_radius": max(0.0, error_radius),
+        "model_error": max(0.0, model_error),
+        "state_error": max(0.0, state_error),
+        "transport_error": transport_error,
+        "horizon": horizon,
+        "force_full": force_full,
+        "construction_cursor": construction_cursor,
+        "advance_cursor": {"tick": ticks},
+        "journal": [],
+        "ledger": {"panels": 0, "matrix_elements": 0, "ticks": 0, "reduced_steps": 0, "full_steps": 0},
+        "result": None,
+    }
+
+
+def regional_expansion_state(
+    source: Mapping[str, Any],
+    *,
+    parent_versions: Sequence[Any] | None = None,
+    horizon: int | None = None,
+) -> dict[str, Any]:
+    """Create a one-quantum task that expands a reduced state to full words."""
+    requested = 1 if horizon is None else _int(horizon, "regional horizon", 1, _MAX_TICKS)
+    inherited_ticks = 0
+    if isinstance(source, Mapping):
+        if source.get("schema") == REGIONAL_STATE_SCHEMA:
+            inherited_ticks = int(source.get("ticks", 0))
+        elif source.get("schema") == REGIONAL_RESULT_SCHEMA and isinstance(source.get("execution"), Mapping):
+            inherited_ticks = int(source["execution"].get("ticks", 0))
+    requested = max(requested, inherited_ticks)
+    state = regional_advance_state(
+        source, parent_versions=parent_versions, horizon=requested, force_full=True
+    )
+    if state["mode"] != "reduced":
+        raise ResonantNumericalError("regional expansion requires a reduced realization")
+    state["task"] = "expand"
+    state["operation"] = "expansion"
+    return state
+
+
+def regional_state(
+    source: Mapping[str, Any],
+    *,
+    operation: str = "construction",
+    task: str | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Dispatch to one typed transceiver construction or execution task."""
+    selected = operation if task is None else task
+    if selected in {"construction", "realization", "reduction", "condensation"}:
+        if selected != "construction":
+            kwargs.setdefault("operation", selected)
+        return regional_construction_state(source, **kwargs)
+    if selected == "advance":
+        return regional_advance_state(source, **kwargs)
+    if selected in {"expand", "expansion"}:
+        return regional_expansion_state(source, **kwargs)
+    raise ResonantNumericalError("unknown regional transceiver task")
+def _regional_validate_state(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != _REGIONAL_STATE_KEYS:
+        raise ResonantNumericalError("regional transceiver state keys are invalid")
+    if value.get("schema") != REGIONAL_STATE_SCHEMA or value.get("family") != REGIONAL_KERNEL_NAME:
+        raise ResonantNumericalError("regional transceiver state schema is invalid")
+    if value.get("task") not in {"construction", "advance", "expand"}:
+        raise ResonantNumericalError("regional transceiver task is invalid")
+    if value.get("phase") not in {"running", "terminal", "fault"}:
+        raise ResonantNumericalError("regional transceiver phase is invalid")
+    if value.get("operation") not in {
+        "construction", "realization", "reduction", "condensation", "advance", "expansion"
+    }:
+        raise ResonantNumericalError("regional transceiver operation is invalid")
+    metadata = _regional_metadata(value.get("metadata"))
+    recipe = value.get("recipe")
+    if not isinstance(recipe, Mapping) or set(recipe) != {"metadata", "full_words", "reduced_words"}:
+        raise ResonantNumericalError("regional transceiver recipe is invalid")
+    recipe_material = {
+        "metadata": _regional_metadata(recipe["metadata"]),
+        "full_words": _regional_full_word_map(recipe["full_words"], "regional recipe full words"),
+        "reduced_words": (
+            None if recipe["reduced_words"] is None else
+            _regional_word_map(recipe["reduced_words"], _REGIONAL_REDUCED_WORDS, "regional recipe reduced words")
+        ),
+    }
+    dimensions = _regional_validate_material(recipe_material)
+    material = {
+        "metadata": metadata,
+        "full_words": _regional_full_word_map(value["full_words"], "regional full words"),
+        "reduced_words": (
+            None if value["reduced_words"] is None else
+            _regional_word_map(value["reduced_words"], _REGIONAL_REDUCED_WORDS, "regional reduced words")
+        ),
+    }
+    if _regional_validate_material(material) != dimensions:
+        raise ResonantNumericalError("regional transceiver words changed shape")
+    parents = _regional_parents(value["parent_versions"], metadata)
+    _, input_count, _, rank = dimensions
+    mode = value["mode"]
+    if mode not in {"full", "reduced"} or mode == "reduced" and rank == 0:
+        raise ResonantNumericalError("regional transceiver mode is invalid")
+    _array(value["inputs"], (input_count,), "regional inputs")
+    _array(value["input_errors"], (input_count,), "regional input errors")
+    _array(value["previous_inputs"], (input_count,), "regional previous inputs")
+    if np.any(np.asarray(value["input_errors"], dtype=np.float64) < 0):
+        raise ResonantNumericalError("regional input errors must be nonnegative")
+    coordinate_size = rank if mode == "reduced" else dimensions[0]
+    _array(value["coordinates"], (coordinate_size,), "regional coordinates")
+    transport = _array(value["transport_error"], (rank if mode == "reduced" else 0,), "regional transport error")
+    if np.any(transport < 0):
+        raise ResonantNumericalError("regional transport errors must be nonnegative")
+    for key in ("error_radius", "model_error", "state_error"):
+        if _number(value[key], f"regional {key}") < 0:
+            raise ResonantNumericalError(f"regional {key} must be nonnegative")
+    if value["model_error"] > value["error_radius"] + 1e-12:
+        raise ResonantNumericalError("regional model error exceeds error radius")
+    horizon = _int(value["horizon"], "regional horizon", 1, _MAX_TICKS)
+    ticks = _int(value["ticks"], "regional ticks", 0, 2**53 - 1)
+    if ticks > horizon:
+        raise ResonantNumericalError("regional ticks exceed horizon")
+    cursor = value["construction_cursor"]
+    if not isinstance(cursor, Mapping) or set(cursor) != {"panel", "panel_count", "panel_size"}:
+        raise ResonantNumericalError("regional construction cursor is invalid")
+    panel_size = _int(cursor["panel_size"], "regional panel size", 1, _REGIONAL_PANEL_MAX)
+    panel_count = _int(cursor["panel_count"], "regional panel count", 1, _REGIONAL_MAX_PANELS)
+    panel = _int(cursor["panel"], "regional construction cursor", 0, panel_count)
+    expected_count = len(_regional_panels(
+        recipe_material["full_words"], tuple(recipe_material["full_words"]), panel_size
+    ))
+    if recipe_material["reduced_words"] is not None:
+        expected_count += len(_regional_panels(
+            recipe_material["reduced_words"], _REGIONAL_REDUCED_WORDS, panel_size
+        ))
+    if panel_count != expected_count:
+        raise ResonantNumericalError("regional construction panel count changed")
+    if value["task"] == "construction" and panel_size != value["construction_cursor"]["panel_size"]:
+        raise ResonantNumericalError("regional construction panel size is invalid")
+    advance_cursor = value["advance_cursor"]
+    if not isinstance(advance_cursor, Mapping) or set(advance_cursor) != {"tick"}:
+        raise ResonantNumericalError("regional advance cursor is invalid")
+    if _int(advance_cursor["tick"], "regional advance cursor", 0, 2**53 - 1) != ticks:
+        raise ResonantNumericalError("regional advance cursor is out of sync")
+    if not isinstance(value["force_full"], bool):
+        raise ResonantNumericalError("regional force_full is invalid")
+    if not isinstance(value["journal"], list) or not isinstance(value["ledger"], Mapping):
+        raise ResonantNumericalError("regional transceiver journal or ledger is invalid")
+    if set(value["ledger"]) != {"panels", "matrix_elements", "ticks", "reduced_steps", "full_steps"}:
+        raise ResonantNumericalError("regional transceiver ledger is invalid")
+    if any(_int(item, "regional ledger", 0, 2**53 - 1) != item for item in value["ledger"].values()):
+        raise ResonantNumericalError("regional transceiver ledger values are invalid")
+    if value["phase"] == "terminal" and not isinstance(value["result"], Mapping):
+        raise ResonantNumericalError("regional terminal result is missing")
+    if value["phase"] != "terminal" and value["result"] is not None:
+        raise ResonantNumericalError("unfinished regional state has a result")
+    return dict(value)
+
+
+def _regional_bound(metadata: Mapping[str, Any], name: str, default: float) -> float:
+    bounds = metadata.get("bounds", {})
+    value = bounds.get(name, default) if isinstance(bounds, Mapping) else default
+    return max(0.0, _number(value, f"regional bound {name}"))
+
+
+def _regional_readout(
+    metadata: Mapping[str, Any],
+    full_words: Mapping[str, Any],
+    reduced_words: Mapping[str, Any] | None,
+    mode: str,
+    coordinates: np.ndarray,
+    inputs: np.ndarray,
+) -> np.ndarray:
+    if mode == "full":
+        return _array(full_words["output_rows"]) @ coordinates
+    if reduced_words is None:
+        raise ResonantNumericalError("regional reduced readout is missing")
+    return (
+        _array(reduced_words["offset"])
+        + _array(reduced_words["direct"]) @ inputs
+        + _array(reduced_words["output"]) @ coordinates
+    )
+
+
+def _regional_transport_output(
+    reduced_words: Mapping[str, Any] | None,
+    transport: np.ndarray,
+    input_errors: np.ndarray,
+) -> float:
+    if reduced_words is None:
+        return 0.0
+    rows = np.abs(_array(reduced_words["output"])) @ np.abs(transport)
+    rows += np.abs(_array(reduced_words["direct"])) @ np.abs(input_errors)
+    return float(np.max(rows, initial=0.0))
+
+
+def _regional_expand_execution(state: dict[str, Any]) -> None:
+    if state["mode"] != "reduced" or state["reduced_words"] is None:
+        raise ResonantNumericalError("regional expansion requires reduced coordinates")
+    reduced = state["reduced_words"]
+    transport = _array(state["transport_error"])
+    input_errors = _array(state["input_errors"])
+    mapped = np.abs(_array(reduced["lift"])) @ np.abs(transport)
+    mapped += np.abs(_array(state["recipe"]["full_words"]["input_lift"])) @ np.abs(input_errors)
+    physical = float(np.linalg.norm(mapped))
+    state["state_error"] = float(state["state_error"]) + physical
+    base = _array(state["recipe"]["full_words"]["base_state"])
+    input_lift = _array(state["recipe"]["full_words"]["input_lift"])
+    lift = _array(reduced["lift"])
+    previous = _array(state["previous_inputs"])
+    state["coordinates"] = (
+        base + input_lift @ previous + lift @ _array(state["coordinates"])
+    ).tolist()
+    state["mode"] = "full"
+    state["transport_error"] = []
+    full_gain = _regional_bound(
+        state["metadata"], "full_output_gain",
+        float(np.linalg.norm(_array(state["recipe"]["full_words"]["output_rows"]), 2)),
+    )
+    state["model_error"] = max(float(state["model_error"]), full_gain * float(state["state_error"]))
+    state["error_radius"] = max(
+        float(state["error_radius"]), float(state["model_error"]),
+        full_gain * float(state["state_error"]),
+    )
+
+
+def _regional_step_execution(state: dict[str, Any]) -> dict[str, int]:
+    metadata = state["metadata"]
+    full_words = state["recipe"]["full_words"]
+    reduced_words = state["reduced_words"]
+    inputs = _array(state["inputs"])
+    input_errors = _array(state["input_errors"])
+    counts = {"reduced_steps": 0, "full_steps": 0}
+    if state["mode"] == "reduced":
+        if reduced_words is None:
+            raise ResonantNumericalError("regional reduced execution words are missing")
+        if state["force_full"]:
+            _regional_expand_execution(state)
+        else:
+            coordinates = _array(state["coordinates"])
+            joined = np.concatenate((coordinates, inputs, [1.0]))
+            residual = float(np.linalg.norm(_array(reduced_words["residual"]) @ joined))
+            state_norm = float(np.linalg.norm(coordinates))
+            input_norm = float(np.linalg.norm(joined))
+            roundoff = _regional_bound(metadata, "roundoff", 0.0) * (1 + state_norm + input_norm)
+            output_gain = _regional_bound(metadata, "output_gain", 1.0)
+            local = output_gain * residual + roundoff
+            transition = _array(reduced_words["transition"])
+            drive = _array(reduced_words["drive"])
+            next_transport = (
+                np.abs(transition) @ _array(state["transport_error"])
+                + np.abs(drive[:, :len(inputs)]) @ np.abs(input_errors)
+            )
+            residual_uncertainty = np.abs(_array(reduced_words["residual"])[:, :len(coordinates)]) @ np.abs(_array(state["transport_error"]))
+            residual_uncertainty += (
+                np.abs(_array(reduced_words["residual"])[:, len(coordinates):len(coordinates) + len(inputs)])
+                @ np.abs(input_errors)
+            )
+            residual_uncertainty_norm = float(np.linalg.norm(residual_uncertainty))
+            growth = _regional_bound(metadata, "growth", 1.0)
+            state_gain = _regional_bound(metadata, "state_gain", 1.0)
+            state_next = growth * float(state["state_error"]) + state_gain * (
+                residual + residual_uncertainty_norm
+                + _regional_bound(metadata, "state_roundoff", 0.0) * (1 + state_norm + input_norm)
+            )
+            model_next = growth * float(state["model_error"]) + local + output_gain * residual_uncertainty_norm
+            model_next = max(model_next, _regional_bound(metadata, "full_output_gain", 0.0) * state_next)
+            output_uncertainty = _regional_transport_output(reduced_words, next_transport, input_errors)
+            proposed = max(float(state["error_radius"]), model_next + output_uncertainty)
+            allowance = _number(metadata["error_allowance"], "regional error allowance")
+            if proposed <= allowance:
+                state["coordinates"] = (transition @ coordinates + drive @ joined).tolist()
+                state["transport_error"] = next_transport.tolist()
+                state["state_error"] = state_next
+                state["model_error"] = model_next
+                state["error_radius"] = proposed
+                counts["reduced_steps"] = 1
+                state["previous_inputs"] = inputs.tolist()
+                return counts
+            _regional_expand_execution(state)
+    coordinates = _array(state["coordinates"])
+    transition = (
+        _array(full_words["transition"])
+        if "transition" in full_words else np.eye(len(coordinates), dtype=np.float64)
+    )
+    drive = (
+        _array(full_words["drive"])
+        if "drive" in full_words else np.zeros((len(coordinates), len(inputs) + 1), dtype=np.float64)
+    )
+    joined = np.concatenate((inputs, [1.0]))
+    state["coordinates"] = (transition @ coordinates + drive @ joined).tolist()
+    radius = float(np.linalg.norm(input_errors))
+    growth = _regional_bound(metadata, "growth", 1.0)
+    input_gain = _regional_bound(metadata, "input_gain", 0.0)
+    full_gain = _regional_bound(
+        metadata, "full_output_gain",
+        float(np.linalg.norm(_array(full_words["output_rows"]), 2)),
+    )
+    previous_error = float(state["error_radius"])
+    state["model_error"] = max(
+        float(state["model_error"]),
+        growth * (float(state["model_error"]) + full_gain * float(state["state_error"]))
+        + input_gain * radius,
+    )
+    state["state_error"] = 0.0
+    state["transport_error"] = []
+    state["error_radius"] = max(previous_error, float(state["model_error"]))
+    state["previous_inputs"] = inputs.tolist()
+    counts["full_steps"] = 1
+    return counts
+
+
+def _regional_execution_result(state: Mapping[str, Any]) -> dict[str, Any]:
+    material = {
+        "metadata": state["metadata"],
+        "full_words": state["recipe"]["full_words"],
+        "reduced_words": state["reduced_words"],
+    }
+    dimension, input_count, output_count, rank = _regional_validate_material(material)
+    values = _regional_readout(
+        state["metadata"], state["recipe"]["full_words"], state["reduced_words"],
+        state["mode"], _array(state["coordinates"]), _array(state["inputs"]),
+    )
+    allowance = _number(state["metadata"]["error_allowance"], "regional error allowance")
+    execution = {
+        "mode": state["mode"],
+        "coordinates": _regional_copy(state["coordinates"]),
+        "inputs": _regional_copy(state["inputs"]),
+        "input_errors": _regional_copy(state["input_errors"]),
+        "previous_inputs": _regional_copy(state["previous_inputs"]),
+        "ticks": int(state["ticks"]),
+        "error_radius": float(state["error_radius"]),
+        "model_error": float(state["model_error"]),
+        "state_error": float(state["state_error"]),
+        "transport_error": _regional_copy(state["transport_error"]),
+    }
+    return {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "operation": state["operation"],
+        "status": "active" if state["mode"] == "reduced" else "expanded",
+        "parent_versions": _regional_copy(state["parent_versions"]),
+        "metadata": _regional_copy(state["metadata"]),
+        "full_words": _regional_copy(state["recipe"]["full_words"]),
+        "reduced_words": _regional_copy(state["reduced_words"]),
+        "dimensions": {
+            "full": dimension, "reduced": rank, "inputs": input_count, "outputs": output_count
+        },
+        "values": dict(zip(state["metadata"]["output_ids"], values.tolist(), strict=True)),
+        "error_bound": float(state["error_radius"]),
+        "resolved": float(state["error_radius"]) <= allowance,
+        "horizon": int(state["horizon"]),
+        "execution": execution,
+    }
+
+
+def _regional_construction_result(state: Mapping[str, Any]) -> dict[str, Any]:
+    material = {
+        "metadata": state["metadata"],
+        "full_words": state["full_words"],
+        "reduced_words": state["reduced_words"],
+    }
+    dimension, input_count, output_count, rank = _regional_validate_material(material)
+    return {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "operation": state["operation"],
+        "status": "active" if rank else "expanded",
+        "parent_versions": _regional_copy(state["parent_versions"]),
+        "metadata": _regional_copy(state["metadata"]),
+        "full_words": _regional_copy(state["full_words"]),
+        "reduced_words": _regional_copy(state["reduced_words"]),
+        "dimensions": {
+            "full": dimension, "reduced": rank, "inputs": input_count, "outputs": output_count
+        },
+        "values": None,
+        "error_bound": 0.0,
+        "resolved": True,
+        "horizon": int(state["horizon"]),
+        "execution": None,
+    }
+
+
+def regional_kernel(
+    state: Any,
+    arguments: Mapping[str, Any],
+    quantum: int,
+) -> KernelResult:
+    """Advance one typed construction, execution, or expansion task quantum."""
+    current = _regional_validate_state(state)
+    if not isinstance(arguments, Mapping) or arguments:
+        raise ResonantNumericalError("regional transceiver kernel takes no arguments")
+    quantum = _int(quantum, "regional transceiver quantum", 1, REGIONAL_KERNEL_MAX_WORK)
+    if current["phase"] == "terminal":
+        return KernelResult(state=current, status="done", work=0, output=current["result"])
+    if current["phase"] == "fault":
+        return KernelResult(state=current, status="fault", work=0, output=current["result"])
+    updated = _regional_copy(current)
+    used = 0
+    if updated["task"] == "construction":
+        panels: list[tuple[str, str, int, int]] = []
+        panels.extend(
+            ("full_words", name, start, end)
+            for _, name, start, end in _regional_panels(
+                updated["recipe"]["full_words"],
+                tuple(updated["recipe"]["full_words"]),
+                int(updated["construction_cursor"]["panel_size"]),
+            )
+        )
+        if updated["recipe"]["reduced_words"] is not None:
+            panels.extend(
+                ("reduced_words", name, start, end)
+                for _, name, start, end in _regional_panels(
+                    updated["recipe"]["reduced_words"],
+                    _REGIONAL_REDUCED_WORDS,
+                    int(updated["construction_cursor"]["panel_size"]),
+                )
+            )
+        while used < quantum and updated["construction_cursor"]["panel"] < len(panels):
+            index = int(updated["construction_cursor"]["panel"])
+            target_name, word_name, start, end = panels[index]
+            source_words = updated["recipe"][target_name]
+            target_words = updated[target_name]
+            shape = _regional_shape(source_words[word_name], word_name)
+            for offset in range(start, end):
+                _regional_set_flat(
+                    target_words[word_name], shape, offset,
+                    _regional_get_flat(source_words[word_name], shape, offset),
+                )
+            updated["construction_cursor"]["panel"] = index + 1
+            updated["ledger"]["panels"] += 1
+            updated["ledger"]["matrix_elements"] += end - start
+            updated["journal"].append({
+                "kind": "construction-panel", "panel": index,
+                "word": f"{target_name}.{word_name}", "start": start, "end": end,
+            })
+            used += 1
+        if updated["construction_cursor"]["panel"] >= len(panels):
+            updated["phase"] = "terminal"
+            updated["result"] = _regional_construction_result(updated)
+        status = "done" if updated["phase"] == "terminal" else "yield"
+        return KernelResult(
+            state=_regional_validate_state(updated), status=status, work=used,
+            output=updated["result"] if status == "done" else None,
+        )
+    if updated["task"] == "expand":
+        _regional_expand_execution(updated)
+        updated["phase"] = "terminal"
+        updated["result"] = _regional_execution_result(updated)
+        updated["journal"].append({"kind": "expansion", "tick": updated["ticks"]})
+        return KernelResult(
+            state=_regional_validate_state(updated), status="done", work=1,
+            output=updated["result"],
+        )
+    while used < quantum and updated["ticks"] < updated["horizon"]:
+        counts = _regional_step_execution(updated)
+        updated["ticks"] += 1
+        updated["advance_cursor"]["tick"] = updated["ticks"]
+        updated["ledger"]["ticks"] += 1
+        updated["ledger"]["reduced_steps"] += counts["reduced_steps"]
+        updated["ledger"]["full_steps"] += counts["full_steps"]
+        updated["journal"].append({
+            "kind": "advance", "tick": updated["ticks"],
+            "mode": updated["mode"], "error_bound": updated["error_radius"],
+        })
+        used += 1
+    if updated["ticks"] >= updated["horizon"]:
+        updated["phase"] = "terminal"
+        updated["result"] = _regional_execution_result(updated)
+    return KernelResult(
+        state=_regional_validate_state(updated),
+        status="done" if updated["phase"] == "terminal" else "yield",
+        work=used,
+        output=updated["result"] if updated["phase"] == "terminal" else None,
+    )
+__all__ = [
+    "SCHEMA", "condense_workspace", "advance_transceiver", "reset_transceiver",
+    "inspect_transceiver", "validate_transceiver",
+    "REGIONAL_KERNEL_NAME", "REGIONAL_KERNEL_MAX_WORK",
+    "REGIONAL_STATE_SCHEMA", "REGIONAL_RESULT_SCHEMA", "REGIONAL_TASK_SCHEMA",
+    "regional_state", "regional_construction_state", "regional_condensation_state",
+    "regional_advance_state", "regional_expansion_state", "regional_kernel",
+]

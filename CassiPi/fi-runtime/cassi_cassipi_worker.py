@@ -24,7 +24,6 @@ try:
         OwnerAdapterError,
         PROTOCOL_ID,
     )
-    from cassi_cassipi_import import CassiPiLegacyImporter, ImportError as CassiPiImportError
     from cassi_field_owner import CapacityLimits, FieldIntelligenceError, FieldIntelligenceOwner
     from cassi_resonant_view import content_type, html, snapshot
 except ModuleNotFoundError as exc:
@@ -58,6 +57,8 @@ SNAPSHOT_PATH = "/v1/view/snapshot"
 DESCRIPTOR_NAME = "runtime.json"
 LOCK_NAME = "owner.lock"
 MAX_REQUEST_BYTES = 1 << 20
+_VIEW_SNAPSHOT_MAX_AGE_SECONDS = 5.0
+_DESCRIPTOR_REFRESH_SECONDS = 2.0
 _SCOPE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}\Z")
 
 
@@ -358,6 +359,9 @@ class OwnerRuntime:
         self._closed = False
         self._scope_tokens: dict[str, Mapping[str, str]] = {}
         self._view_tokens: set[str] = set()
+        self._view_snapshot_workspace: Any = None
+        self._view_snapshot_data: Mapping[str, Any] | None = None
+        self._view_snapshot_captured = 0.0
         self._scheduler_state = "running"
         self._scheduler_stop = threading.Event()
         self._scheduler_thread: threading.Thread | None = None
@@ -371,12 +375,15 @@ class OwnerRuntime:
         self._scheduler_skipped = 0
         self._scheduler_backlogged = 0
         self._scheduler_last_failure: Mapping[str, Any] | None = None
+        self._scheduler_last_skip: Mapping[str, Any] | None = None
+        self._main_status: Mapping[str, Any] | None = None
+        self._main_initialization: Mapping[str, Any] | None = None
+        self._descriptor_last_persist = 0.0
         self._capture_path = data_home / "capture-control.json"
         self._capture = self._load_capture()
         if self._capture["paused"]:
             self._scheduler_state = "paused"
         self._forget_tokens: dict[str, Mapping[str, Any]] = {}
-        self._importer = CassiPiLegacyImporter(adapter, data_home)
         self._executor = OrderedMutationExecutor()
         if self._realtime:
             self._scheduler_thread = threading.Thread(
@@ -428,8 +435,30 @@ class OwnerRuntime:
             with self._lock:
                 interval_epoch = self._tick_epoch
 
+    def _record_skip_locked(self, reason: str) -> None:
+        self._scheduler_last_skip = {"reason": reason, "wall_time": time.time()}
+
+    def _record_main_locked(self, inspection: Mapping[str, Any]) -> None:
+        task = inspection.get("task")
+        self._main_status = {
+            "computer_id": inspection.get("computer_id", "main"),
+            "status": inspection.get("status"),
+            "task_status": task.get("status") if isinstance(task, Mapping) else None,
+            "state_sha256": inspection.get("state_sha256"),
+            "inspected_wall_time": time.time(),
+        }
+
+    def _refresh_descriptor_locked(self) -> None:
+        """Keep the published descriptor's live scheduler view bounded-stale."""
+        now = time.monotonic()
+        if now - self._descriptor_last_persist < _DESCRIPTOR_REFRESH_SECONDS:
+            return
+        self._persist_descriptor_locked()
+
     def _scheduled_advance(self, tick_epoch: int) -> Mapping[str, Any] | None:
-        """Run one timer batch after rechecking its admission fence."""
+        """Deliver one identified transition request to the regional computer."""
+        initialize = False
+        operation_id: str | None = None
         with self._lock:
             if (
                 self._stopping
@@ -438,30 +467,149 @@ class OwnerRuntime:
                 or tick_epoch != self._tick_epoch
             ):
                 self._scheduler_skipped += 1
+                self._record_skip_locked("scheduler-not-advancing")
+                self._refresh_descriptor_locked()
                 return None
-            operation_id = f"heartbeat:{self.adapter.owner.state.generation + 1}"
-        result = self.adapter.advance(
-            operation_id=operation_id,
-            ticks=1,
-            source_enabled=True,
+            computers = self.adapter.owner.state.computers
+            computer = next(
+                (
+                    row
+                    for row in computers
+                    if row.computer_id == "main"
+                ),
+                None,
+            )
+            if computer is None:
+                if (
+                    not self._realtime
+                    or self._main_initialization is not None
+                    or computers
+                ):
+                    # Preserve a resident owner exactly: the heartbeat never
+                    # reconfigures or resets an existing owner, never
+                    # manufactures a 'main' beside unrelated resident
+                    # computers, and re-initializes at most once per launch.
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked("main-absent")
+                    self._refresh_descriptor_locked()
+                    return None
+                # A cold-start realtime owner admits no work yet because it
+                # owns no computer at all: configure the one canonical 'main'
+                # computer through the owner's own operation path.
+                initialize = True
+            else:
+                inspection = computer.inspect()
+                self._record_main_locked(inspection)
+                if inspection["status"] != "running":
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked(
+                        f"not-running:{inspection['status']}"
+                    )
+                    self._refresh_descriptor_locked()
+                    return None
+                task = inspection.get("task")
+                session = inspection.get("session")
+                task_status = (
+                    task.get("status") if isinstance(task, Mapping) else None
+                )
+                session_status = (
+                    session.get("status") if isinstance(session, Mapping) else None
+                )
+                if task_status == "idle":
+                    # No work is admitted: rest is exact, and the heartbeat
+                    # invents no cognitive outcome for it.
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked("no-admitted-work")
+                    self._refresh_descriptor_locked()
+                    return None
+                terminal = {"halted", "exhausted", "faulted", "counter-exhausted"}
+                if task_status in terminal or (
+                    task_status is None and session_status in terminal
+                ):
+                    # A finished task holds its exact end state; further
+                    # heartbeat advances would publish transitions with no
+                    # machine work behind them.
+                    reason = task_status or session_status
+                    self._scheduler_skipped += 1
+                    self._record_skip_locked(f"no-admitted-work:{reason}")
+                    self._refresh_descriptor_locked()
+                    return None
+                operation_id = f"heartbeat:{self.adapter.owner.state.generation + 1}"
+        if initialize:
+            return self._initialize_main_computer()
+        assert operation_id is not None
+        result = self.adapter.owner.operate_computer(
+            operation_id,
+            computer_id="main",
+            action="advance",
+            arguments={"steps": 1},
         )
         with self._lock:
             self._tick_epoch += 1
             self._scheduler_ticks += 1
             self._scheduler_last_tick = time.monotonic()
+            self._refresh_descriptor_locked()
+        return result
+
+    def _initialize_main_computer(self) -> Mapping[str, Any] | None:
+        """Admit the canonical 'main' computer once on an empty cold-start owner."""
+        with self._lock:
+            operation_id = (
+                f"heartbeat-initialize:{self.adapter.owner.state.generation + 1}"
+            )
+        try:
+            result = self.adapter.owner.operate_computer(
+                operation_id,
+                computer_id="main",
+                action="configure",
+                arguments={},
+            )
+        except (OwnerWorkerError, OwnerAdapterError, FieldIntelligenceError) as exc:
+            code = getattr(exc, "code", type(exc).__name__)
+            with self._lock:
+                self._main_initialization = {
+                    "operation_id": operation_id,
+                    "wall_time": time.time(),
+                    "status": "failed",
+                    "code": code,
+                }
+                self._scheduler_last_failure = {
+                    "code": code,
+                    "message": str(exc),
+                    "wall_time": time.time(),
+                }
+                self._record_skip_locked("initialization-failed")
+                self._refresh_descriptor_locked()
+            return None
+        receipt = result.get("receipt") if isinstance(result, Mapping) else None
+        with self._lock:
+            self._main_initialization = {
+                "operation_id": operation_id,
+                "wall_time": time.time(),
+                "status": "configured",
+                "computer_state_sha256": (
+                    receipt.get("state_sha256")
+                    if isinstance(receipt, Mapping)
+                    else None
+                ),
+            }
+            if isinstance(receipt, Mapping):
+                self._record_main_locked(receipt)
+            self._tick_epoch += 1
+            self._scheduler_ticks += 1
+            self._scheduler_last_tick = time.monotonic()
+            self._refresh_descriptor_locked()
         return result
 
     def _scheduler_metadata(self) -> Mapping[str, Any]:
         queue = self._executor.metrics()
         elapsed = max(0.0, time.monotonic() - self._scheduler_started)
         achieved = self._scheduler_ticks / elapsed if elapsed > 0.0 else 0.0
-        workspace = self.adapter.owner.state.resonant_workspace
-        assert workspace is not None
         return {
             "mode": "realtime" if self._realtime else "logical",
             "state": self._scheduler_state,
             "cadence_seconds": 0.25,
-            "target_field_time_wall_time_ratio": workspace.profile.time_step / 0.25,
+            "target_transitions_per_second": 4.0,
             "maximum_batch_frequency_hz": 4.0,
             "achieved_cadence_hz": achieved,
             "ticks_completed": self._scheduler_ticks,
@@ -470,6 +618,19 @@ class OwnerRuntime:
             "queue_count": queue["queue_count"],
             "backlog_limit": queue["backlog_limit"],
             "last_numerical_failure": self._scheduler_last_failure,
+            "main_computer": (
+                dict(self._main_status) if self._main_status is not None else None
+            ),
+            "main_initialization": (
+                dict(self._main_initialization)
+                if self._main_initialization is not None
+                else None
+            ),
+            "last_skip": (
+                dict(self._scheduler_last_skip)
+                if self._scheduler_last_skip is not None
+                else None
+            ),
         }
 
     def bind_descriptor(self, descriptor: Mapping[str, Any]) -> None:
@@ -480,6 +641,7 @@ class OwnerRuntime:
     def _persist_descriptor_locked(self) -> None:
         if self._descriptor is None:
             return
+        self._descriptor_last_persist = time.monotonic()
         descriptor = dict(self._descriptor)
         descriptor.update(
             {
@@ -496,10 +658,31 @@ class OwnerRuntime:
         self._descriptor = descriptor
         _atomic_private_write(self._descriptor_path, _canonical_json(descriptor))
 
+    def _view_snapshot_locked(self) -> Mapping[str, Any]:
+        """Reuse the bounded viewer projection while its source is unchanged
+        and its reported age stays bounded; an idle field is re-read so the
+        viewer always shows the actual current field without inventing a
+        transition."""
+        workspace = self.adapter.owner.state.resonant_workspace
+        age = time.monotonic() - self._view_snapshot_captured
+        if (
+            workspace is not self._view_snapshot_workspace
+            or self._view_snapshot_data is None
+            or age >= _VIEW_SNAPSHOT_MAX_AGE_SECONDS
+        ):
+            self._view_snapshot_data = snapshot(self.adapter)
+            self._view_snapshot_workspace = workspace
+            self._view_snapshot_captured = time.monotonic()
+        age = max(0.0, time.monotonic() - self._view_snapshot_captured)
+        sampling = dict(self._view_snapshot_data["sampling"])
+        sampling["snapshot_age_seconds"] = age
+        view = dict(self._view_snapshot_data)
+        view["sampling"] = sampling
+        return _parse_json(_canonical_json(view))
+
     def view_snapshot(self) -> Mapping[str, Any]:
         """Serialize one coherent owner snapshot through the mutation queue."""
-        encoded = self._executor.submit(lambda: _canonical_json(snapshot(self.adapter)))
-        return _parse_json(encoded)
+        return self._executor.submit(self._view_snapshot_locked)
 
     def close(self) -> None:
         with self._lock:
@@ -926,26 +1109,11 @@ class OwnerRuntime:
 
     def dispatch(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
         def ordered() -> Mapping[str, Any]:
-            workspace = self.adapter.owner.state.resonant_workspace
-            if workspace is None:
-                raise OwnerWorkerError(
-                    "INCOMPATIBLE_STATE",
-                    "canonical owner lacks its resonant workspace",
-                    status=503,
-                )
-            before = workspace.field_ticks
+            operation = request.get("operation")
             try:
                 return self._dispatch_impl(request)
             finally:
-                workspace = self.adapter.owner.state.resonant_workspace
-                if workspace is None:
-                    raise OwnerWorkerError(
-                        "INCOMPATIBLE_STATE",
-                        "canonical owner lost its resonant workspace",
-                        status=503,
-                    )
-                after = workspace.field_ticks
-                if after != before:
+                if operation == "computer":
                     with self._lock:
                         self._tick_epoch += 1
         return self._executor.submit(ordered)
@@ -1040,173 +1208,24 @@ class OwnerRuntime:
                         "recovery": dict(self.recovery),
                     },
                 }
-            elif operation == "think":
-                think_request = self._attached_request(params)
-                if self._capture["paused"]:
-                    raise OwnerWorkerError(
-                        "CAPTURE_PAUSED",
-                        "capture is paused; explicit think is not admitted",
-                        status=409,
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.think(
-                    think_request,
-                    scope={
-                        key: binding[key]
-                        for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")
-                    },
-                )
-            elif operation == "advance":
+            elif operation == "computer":
                 request = self._attached_request(params)
                 _exact_keys(
                     request,
-                    {"operation_id", "ticks"},
-                    {"expected_state_sha256", "source_enabled"},
+                    {
+                        "schema", "operation_id", "computer_id",
+                        "action",
+                    },
+                    {"arguments", "expected_state_sha256"},
                 )
                 if self._capture["paused"]:
                     raise OwnerWorkerError(
                         "CAPTURE_PAUSED",
-                        "capture is paused; explicit advance is not admitted",
-                        status=409,
-                    )
-                result = self.adapter.advance(
-                    operation_id=_scope(request["operation_id"], "operation_id"),
-                    ticks=request["ticks"],
-                    source_enabled=request.get("source_enabled", True),
-                    expected_state_sha256=request.get("expected_state_sha256"),
-                )
-            elif operation == "condense_transceiver":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {
-                        "schema", "operation_id", "transceiver_id", "chart_ids",
-                        "input_ids", "output_ids", "context",
-                    },
-                    {
-                        "observed", "rank", "error_allowance", "input_bound",
-                        "horizon_ticks", "expected_state_sha256",
-                    },
-                )
-                if request["schema"] != "cassipi.condense-transceiver.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "transceiver condensation schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.condense_transceiver(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "configure_temporal":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "memory_id", "action_ids", "observation_ids"},
-                    {"max_states", "context", "expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.configure-temporal.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "temporal configuration schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.configure_temporal(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "learn_temporal":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "memory_id", "source"},
-                    {"context", "expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.learn-temporal.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "temporal learning schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.learn_temporal(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "advance_temporal":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "memory_id", "action", "observation"},
-                    {"participant_id", "expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.advance-temporal.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "temporal advance schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.advance_temporal(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "reset_temporal":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "memory_id"},
-                    {"participant_id", "known_start", "expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.reset-temporal.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "temporal reset schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.reset_temporal(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "condense_temporal_skill":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "memory_id", "skill_id", "goal_observations"},
-                    {"forbidden_observations", "expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.condense-temporal-skill.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "temporal skill schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.condense_temporal_skill(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "inspect_temporal":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "memory_id"}, {"action", "skill_id", "participant_id"})
-                if request["schema"] != "cassipi.inspect-temporal.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "temporal inspection schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.inspect_temporal(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "select_temporal_action":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "memory_id", "skill_ids", "operations"},
-                    {
-                        "participant_id", "minimum_margin",
-                        "expected_state_sha256",
-                    },
-                )
-                if request["schema"] != "cassipi.select-temporal-action.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH",
-                        "temporal action-selection schema is incompatible",
+                        "capture is paused; computer work is not admitted",
                         status=409,
                     )
                 binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.select_temporal_action(
+                result = self.adapter.computer(
                     request,
                     scope={
                         key: binding[key]
@@ -1216,99 +1235,6 @@ class OwnerRuntime:
                         )
                     },
                 )
-            elif operation == "bind_temporal":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "operation_id", "memory_id", "participant_id"}, {"known_start", "expected_state_sha256"})
-                if request["schema"] != "cassipi.bind-temporal.v1":
-                    raise OwnerWorkerError("PROTOCOL_MISMATCH", "temporal binding schema is incompatible", status=409)
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.bind_temporal(request, scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")})
-            elif operation == "inquire_temporal":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "memory_id", "operations"}, {"participant_id", "skill_id", "goal_observations", "horizon", "max_nodes", "forbidden_observations"})
-                if request["schema"] != "cassipi.inquire-temporal.v1":
-                    raise OwnerWorkerError("PROTOCOL_MISMATCH", "temporal inquiry schema is incompatible", status=409)
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.inquire_temporal(request, scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")})
-            elif operation == "compose_temporal_task":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "operation_id", "task_id", "steps"}, {"context", "expected_state_sha256"})
-                if request["schema"] != "cassipi.compose-temporal-task.v1":
-                    raise OwnerWorkerError("PROTOCOL_MISMATCH", "temporal task composition schema is incompatible", status=409)
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.compose_temporal_task(request, scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")})
-            elif operation == "inspect_temporal_task":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "task_id"})
-                if request["schema"] != "cassipi.inspect-temporal-task.v1":
-                    raise OwnerWorkerError("PROTOCOL_MISMATCH", "temporal task inspection schema is incompatible", status=409)
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.inspect_temporal_task(request, scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")})
-            elif operation == "propose_temporal_task":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "operation_id", "task_id", "allowed_actions"}, {"expected_state_sha256"})
-                if request["schema"] != "cassipi.propose-temporal-task.v1":
-                    raise OwnerWorkerError("PROTOCOL_MISMATCH", "temporal task proposal schema is incompatible", status=409)
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.propose_temporal_task(request, scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")})
-            elif operation == "acknowledge_temporal_task":
-                request = self._attached_request(params)
-                _exact_keys(request, {"schema", "operation_id", "task_id", "proposal_id", "participant_id", "action", "observation"}, {"expected_state_sha256"})
-                if request["schema"] != "cassipi.acknowledge-temporal-task.v1":
-                    raise OwnerWorkerError("PROTOCOL_MISMATCH", "temporal task acknowledgement schema is incompatible", status=409)
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.acknowledge_temporal_task(request, scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")})
-
-
-            elif operation == "advance_transceivers":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "stimuli", "context"},
-                    {"ticks", "connections", "force_full", "expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.advance-transceivers.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "transceiver advance schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.advance_transceivers(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "reset_transceiver":
-                request = self._attached_request(params)
-                _exact_keys(
-                    request,
-                    {"schema", "operation_id", "transceiver_id"},
-                    {"expected_state_sha256"},
-                )
-                if request["schema"] != "cassipi.reset-transceiver.v1":
-                    raise OwnerWorkerError(
-                        "PROTOCOL_MISMATCH", "transceiver reset schema is incompatible", status=409
-                    )
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.reset_transceiver(
-                    request,
-                    scope={key: binding[key] for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")},
-                )
-            elif operation == "inspect_transceivers":
-                request = self._attached_request(params)
-                _exact_keys(request, set())
-                binding = self._scope_tokens[params["scope_token"]]
-                result = self.adapter.inspect_transceivers(
-                    scope={
-                        key: binding[key]
-                        for key in ("profile_id", "project_id", "session_id", "branch_id", "task_scope")
-                    }
-                )
-            elif operation == "query":
-                request = self._attached_request(params)
-                _exact_keys(request, {"query_id"})
-                result = self.adapter.query(request["query_id"])
-            elif operation == "inspect_resonance":
-                _exact_keys(params, set())
-                result = self.adapter.inspect_resonance()
             elif operation == "bindings":
                 result = self.adapter.bindings(self._attached_request(params))
             elif operation == "observe":
@@ -1319,10 +1245,6 @@ class OwnerRuntime:
                 result = self.adapter.correct(self._attached_request(params))
             elif operation == "forget_preview":
                 result = self.adapter.forget_preview(self._attached_request(params))
-            elif operation == "import_preview":
-                result = self._importer.preview(self._attached_request(params))
-            elif operation == "import_commit":
-                result = self._importer.commit(self._attached_request(params))
             elif operation == "capture_status":
                 result = self._capture_status(params)
             elif operation == "capture_set":
@@ -1383,7 +1305,7 @@ class OwnerRuntime:
 
 def _error_response(
     request_id: str,
-    error: OwnerWorkerError | OwnerAdapterError | CassiPiImportError | FieldIntelligenceError,
+    error: OwnerWorkerError | OwnerAdapterError | FieldIntelligenceError,
 ) -> Mapping[str, Any]:
     details = dict(getattr(error, "details", {}))
     payload: dict[str, Any] = {
@@ -1492,8 +1414,6 @@ def _handler(runtime: OwnerRuntime) -> type[BaseHTTPRequestHandler]:
             except OwnerAdapterError as exc:
                 self._send(exc.status, _error_response(request_id, exc))
             except FieldIntelligenceError as exc:
-                self._send(409, _error_response(request_id, exc))
-            except CassiPiImportError as exc:
                 self._send(409, _error_response(request_id, exc))
             except OwnerWorkerError as exc:
                 self._send(exc.status, _error_response(request_id, exc))

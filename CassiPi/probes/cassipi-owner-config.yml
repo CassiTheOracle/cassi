@@ -6,7 +6,7 @@ compaction:
   asyncEnabled: false
   idleEnabled: false
   midTurnEnabled: false
-  thresholdTokens: 28000
+  thresholdTokens: 60000
   reserveTokens: 4000
   keepRecentTokens: 64
   supersedeReads: false

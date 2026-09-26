@@ -8,8 +8,8 @@ renders exactly that snapshot, including unavailable values instead of
 inventing telemetry.
 """
 
+import time
 from typing import Any, Mapping
-
 from cassi_resonant_field import ResonantProfile, measure_body_response
 
 VIEW_SCHEMA = "cassifi.cassipi-resonant-view.v1"
@@ -99,6 +99,36 @@ def _measurement_metadata(resonance: Mapping[str, Any]) -> Mapping[str, Any]:
     }
 
 
+def _bounded_rows(rows: Any, limit: int) -> tuple[list[Any], int]:
+    """Select evenly spaced viewer rows without changing owner field data."""
+    if not isinstance(rows, (list, tuple)):
+        return [], 0
+    count = len(rows)
+    if count <= limit:
+        return list(rows), count
+    indices = [round(index * (count - 1) / (limit - 1)) for index in range(limit)]
+    return [rows[index] for index in indices], count
+
+
+def _bounded_strands(strands: Any, limit: int = 256) -> tuple[dict[str, Any], dict[str, Any]]:
+    result: dict[str, Any] = {}
+    coverage: dict[str, Any] = {}
+    if not isinstance(strands, Mapping):
+        return result, coverage
+    for name in ("yang", "yin"):
+        strand = strands.get(name)
+        rows = strand.get("samples") if isinstance(strand, Mapping) else None
+        samples, total = _bounded_rows(rows, limit)
+        result[name] = {"samples": samples}
+        coverage[name] = {
+            "source_samples": total,
+            "viewer_samples": len(samples),
+            "coverage": len(samples) / total if total else 0.0,
+            "decimated": len(samples) < total,
+        }
+    return result, coverage
+
+
 def snapshot(adapter: Any) -> Mapping[str, Any]:
     """Build a bounded, credential-free read-only snapshot from owner state."""
     resonance = adapter.inspect_resonance()
@@ -120,19 +150,45 @@ def snapshot(adapter: Any) -> Mapping[str, Any]:
             "counterflow_rail_power",
             "cycle_power",
             "cycle_power_absolute",
-            "edge_powers",
         )
         if key in resonance
     }
+    residual, residual_count = _bounded_rows(resonance.get("semantic_residual"), 256)
+    if "semantic_residual" in diagnostics:
+        diagnostics["semantic_residual"] = residual
     pool_sample = resonance.get("pool_sample")
+    strands, strand_coverage = _bounded_strands(resonance.get("strands"))
+    raw_edges = resonance.get("edge_powers", [])
+    edge_powers, edge_count = _bounded_rows(raw_edges, 256)
+    source_version = resonance.get(
+        "workspace_state_sha256",
+        resonance.get("state_sha256", status.get("field_state_sha256")),
+    )
+    captured_at = time.time()
     sampling = {
-        "snapshot_age_seconds": resonance.get("snapshot_age_seconds"),
+        "snapshot_age_seconds": 0.0,
+        "source_version": source_version,
+        "source_timestamp_unix": captured_at,
         "field_time_step": resonance.get("field_time_step"),
         "pool_sample_count": len(pool_sample) if isinstance(pool_sample, (list, tuple)) else 0,
         "ports_per_strand": resonance.get("port_count"),
         "ports_per_pool": resonance.get("ports_per_pool"),
+        "strands": strand_coverage,
+        "edges": {
+            "source_samples": edge_count,
+            "viewer_samples": len(edge_powers),
+            "coverage": len(edge_powers) / edge_count if edge_count else 0.0,
+            "decimated": len(edge_powers) < edge_count,
+        },
+        "vectors": {
+            "semantic_residual": {
+                "source_samples": residual_count,
+                "viewer_samples": len(residual),
+                "coverage": len(residual) / residual_count if residual_count else 0.0,
+                "decimated": len(residual) < residual_count,
+            },
+        },
     }
-    strands = resonance.get("strands")
     return {
         "schema": SNAPSHOT_SCHEMA,
         "runtime_id": status.get("runtime_id"),
@@ -146,14 +202,16 @@ def snapshot(adapter: Any) -> Mapping[str, Any]:
         "breath_phase": resonance.get("breath_phase"),
         "supported_cognition": resonance.get("supported_cognition"),
         "direction": resonance.get("direction"),
-        "strands": dict(strands) if isinstance(strands, Mapping) else {},
+        "strands": strands,
         "pools": _pool_rows(resonance),
-        "edge_powers": resonance.get("edge_powers", []),
+        "edge_powers": edge_powers,
         "diagnostics": diagnostics,
         "measurement": _measurement_metadata(resonance),
         "sampling": sampling,
         "ledger": resonance.get("ledger", {}),
     }
+
+
 
 
 
@@ -231,9 +289,9 @@ function render(s) {
   const poolSel=document.getElementById("pool-filter"), previousPool=poolSel.value, pools=s.pools||[]; poolSel.innerHTML='<option value="all">all</option>'+pools.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(""); if([...poolSel.options].some(option=>option.value===previousPool))poolSel.value=previousPool;
   ["pool-filter","strand-filter","frequency-filter","rate-filter","current-filter","phase-overlay"].forEach(id=>document.getElementById(id).onchange=()=>{draw(s);renderPools(s);});
   renderPools(s); draw(s); const m=s.measurement||{}, sampling=s.sampling||{};
-  const rows=Object.entries({...s.diagnostics||{},...s.ledger||{},rate_label:m.rate_label,rate_units:m.rate_units,is_eigenfrequency:m.is_eigenfrequency,measurement_assumptions:m.assumptions,sampling_limits:m.sampling_limits,body_response_calibration:s.body_response,snapshot_age_seconds:sampling.snapshot_age_seconds,field_time_step:sampling.field_time_step});
+  const rows=Object.entries({...s.diagnostics||{},...s.ledger||{},rate_label:m.rate_label,rate_units:m.rate_units,is_eigenfrequency:m.is_eigenfrequency,measurement_assumptions:m.assumptions,sampling_limits:m.sampling_limits,body_response_calibration:s.body_response,source_version:sampling.source_version,source_timestamp_unix:sampling.source_timestamp_unix,snapshot_age_seconds:sampling.snapshot_age_seconds,viewer_coverage:{strands:sampling.strands,edges:sampling.edges,vectors:sampling.vectors},field_time_step:sampling.field_time_step});
   document.getElementById("ledger").innerHTML=rows.map(([k,v])=>`<tr><th>${esc(k)}</th><td>${esc(val(v))}</td></tr>`).join("");
-  document.getElementById("status").textContent="canonical snapshot "+s.state_sha256;
+  document.getElementById("status").textContent=`canonical snapshot ${s.state_sha256}; age ${(Number(sampling.snapshot_age_seconds)||0).toFixed(2)}s; viewer coverage ${Object.entries(sampling.strands||{}).map(([k,v])=>`${k} ${v.viewer_samples}/${v.source_samples}`).join(", ")}`;
 }
 function renderPools(s) {
   const chosen=document.getElementById("pool-filter").value, m=s.measurement||{}, peaks=(s.body_response||{}).peaks||[], pools=(s.pools||[]).map((p,index)=>({...p,response_peak:(peaks.find(peak=>peak.pool===index)||{}).frequency??null}));

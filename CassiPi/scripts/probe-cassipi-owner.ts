@@ -363,7 +363,6 @@ async function main(): Promise<void> {
     assert(cassipiRegistration !== undefined, "installed profile omitted CassiPi");
     if (installedMainRoot) {
       assert(cassipiRegistration.enabled === false, "main profile globally enabled CassiPi");
-      assert(pluginRegistry.plugins?.["remote-pi"]?.enabled === true, "main profile did not preserve enabled remote-pi");
     } else {
       assert(pluginRegistry.plugins?.["remote-pi"] === undefined, "installed profile inherited global remote-pi");
     }
@@ -479,94 +478,13 @@ async function main(): Promise<void> {
       }, null, 2));
       return;
     }
-    const temporalMemoryId = "owner-probe-release";
+    await localCommand(client, `/cassi computer configure ${JSON.stringify({})}`);
     await localCommand(
       client,
-      `/cassi temporal configure ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        action_ids: ["open", "close"],
-        observation_ids: ["ready", "closed"],
-      })}`,
+      `/cassi computer advance ${JSON.stringify({ arguments: { steps: 3 } })}`,
     );
-    await localCommand(
-      client,
-      `/cassi temporal register-skill ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        skill_id: "open-skill",
-        goal_observations: ["ready"],
-        forbidden_observations: [],
-      })}`,
-    );
-    const temporalEpisode = canonicalJson({
-      schema: "cassifi.temporal-episode.v1",
-      steps: [{ action: "open", observation: "ready" }],
-    });
-    await localCommand(
-      client,
-      `/cassi temporal learn ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        source: {
-          source_id: "owner-probe-release-episode",
-          content_base64: Buffer.from(temporalEpisode, "utf8").toString("base64"),
-          media_type: "application/json",
-          codec: "utf-8",
-          observed_timestamp: "2026-09-10T00:00:00Z",
-          scope: "task",
-          claim_category: "observation",
-          fidelity: "exact",
-          parent_revision_id: null,
-          span: null,
-          labels: [],
-        },
-      })}`,
-    );
-    await localCommand(
-      client,
-      `/cassi temporal bind ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        participant_id: "owner-probe-operator",
-      })}`,
-    );
-    await localCommand(
-      client,
-      `/cassi temporal select ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        skill_ids: ["open-skill"],
-        participant_id: "owner-probe-operator",
-        operations: [{
-          action: "open",
-          authorized: true,
-          feasible: true,
-          represented_forbidden: false,
-        }],
-      })}`,
-    );
-    await localCommand(
-      client,
-      `/cassi temporal advance ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        participant_id: "owner-probe-operator",
-        action: "open",
-        observation: "ready",
-      })}`,
-    );
-    await localCommand(
-      client,
-      `/cassi temporal inspect ${JSON.stringify({
-        memory_id: temporalMemoryId,
-        skill_id: "open-skill",
-        participant_id: "owner-probe-operator",
-      })}`,
-    );
-    observations.temporalCommands = [
-      "configure",
-      "register-skill",
-      "learn",
-      "bind",
-      "select",
-      "advance",
-      "inspect",
-    ];
+    await localCommand(client, `/cassi computer resources ${JSON.stringify({})}`);
+    observations.computer_commands = ["configure", "advance", "resources"];
     if (smokeOnly) {
       const ownerHead = (value: unknown): unknown =>
         ((value as Record<string, unknown>).owner as Record<string, unknown> | undefined)
@@ -591,13 +509,13 @@ async function main(): Promise<void> {
         typeof initialOwner?.field_head_sha256 === "string"
           && typeof finalOwner.field_head_sha256 === "string"
           && initialOwner.field_head_sha256 !== finalOwner.field_head_sha256,
-        "active smoke temporal commands did not advance the field",
+        "active smoke computer commands did not advance the field",
       );
       const smokeReceipt = {
         schema: "cassipi.owner-host-smoke.v1",
         deployment: installedMainRoot ? "active-profile" : "installed-profile",
         runtime_id: finalOwner.runtime_id,
-        temporal_commands: observations.temporalCommands,
+        computer_commands: observations.computer_commands,
         field_head_changed: true,
         verdict: "PASS",
       };

@@ -185,46 +185,6 @@ export interface ProjectionResult {
     remaining_tokens: number;
   };
 }
-export interface TemporalMutationResult extends Record<string, Json> {
-  checkpoint_receipt: Record<string, Json>;
-  receipt: Record<string, Json>;
-}
-
-export function decodeTemporalReadResult(value: unknown, label: string): Record<string, Json> {
-  return jsonRecord(value, label);
-}
-
-export function decodeTemporalMutationResult(value: unknown, label: string): TemporalMutationResult {
-  const root = jsonRecord(value, label);
-  const receipt = jsonRecord(root.receipt, `${label} receipt`);
-  const checkpointReceipt = jsonRecord(root.checkpoint_receipt, `${label} checkpoint receipt`);
-  return {
-    ...root,
-    checkpoint_receipt: checkpointReceipt,
-    receipt,
-  };
-}
-
-export function assertHostOwnedProposal(
-  value: Record<string, Json>,
-  label: string,
-): void {
-  if (value.execution_authorized !== false) {
-    throw new TypeError(`${label} did not preserve host execution authority`);
-  }
-}
-
-export function decodeTemporalSelectionResult(
-  value: unknown,
-  label: string,
-): Record<string, Json> {
-  const root = jsonRecord(value, label);
-  if (root.read_only !== true || root.memory_unchanged !== true) {
-    throw new TypeError(`${label} is not a read-only field selection`);
-  }
-  return root;
-}
-
 
 export function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");

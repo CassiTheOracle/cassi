@@ -186,7 +186,12 @@ def install(
         "compaction.midTurnEnabled": True,
         "compaction.dropUseless": False,
         "compaction.supersedeReads": False,
-        "compaction.thresholdTokens": 28000,
+        # The host's threshold must clear the floor it cannot summarize: the fixed
+        # provider overhead (system prompt plus tool catalog, ~22k tokens) plus the
+        # field summary the owner writes (~4k tokens). A threshold at the floor makes
+        # the host compact, find nothing left to summarize, and drop the pending turn
+        # without an error. 60000 leaves room for a pending prompt at any window size.
+        "compaction.thresholdTokens": 60000,
         "compaction.reserveTokens": 4000,
         "compaction.keepRecentTokens": 64,
         "startup.setupWizard": False,

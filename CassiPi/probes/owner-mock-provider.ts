@@ -15,7 +15,7 @@ export default function ownerMockProvider(pi: ExtensionAPI): void {
   const mock = createMockModel({
     id: "cassipi-owner-probe",
     provider: "cassipi-owner-probe",
-    contextWindow: 32_000,
+    contextWindow: 128_000,
     maxTokens: 256,
     handler: context => {
       log({ event: "provider_request", messages: context.messages });
@@ -37,7 +37,7 @@ export default function ownerMockProvider(pi: ExtensionAPI): void {
         reasoning: false,
         input: ["text"],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 32_000,
+        contextWindow: 128_000,
         maxTokens: 256,
       },
     ],

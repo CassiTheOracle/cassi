@@ -22,10 +22,12 @@ The packaged host is supported and measured on Windows 11 x64. Other operating s
 - Oh My Pi owns model/provider calls, tools, approvals, transcripts, and UI.
 - The patched host exposes one singleton `context.owner` seam and routes provider context, compaction, handoff, tree movement, branching, and session identity changes through it.
 - The CassiPi extension is the one host adapter, one `cassi_memory` tool, and one `/cassi` command.
-- The packaged Python worker delegates exact evidence, adaptive state, checkpoints, and field queries to the current CassiFI `FieldIntelligenceOwner`. Its thin CassiPi adapter owns only host bindings, lifecycle markers, projections, import state, and the RPC boundary.
+- The packaged Python worker delegates exact evidence, adaptive state, checkpoints, and field queries to the current CassiFI `FieldIntelligenceOwner`. Its thin CassiPi adapter owns only host bindings, lifecycle markers, projections, and the RPC boundary.
 - Source bytes remain in CassiFI's bounded exact-evidence store. Atlas checkpoints contain the numeric field and source revision identities, never unbounded transcript text or a second learned text model.
 
 The worker listens only on loopback, authenticates every request with a per-launch bearer secret and a per-scope token, rejects incompatible runtime identities, and allows one process owner per data directory.
+
+The launcher overlay keeps the host's compaction threshold clear of the floor the host cannot summarize: its own system prompt and tool catalog (about 22k tokens on the pinned host) plus the field summary the owner writes (about 4k tokens). A threshold at that floor makes the host compact, find nothing left to summarize, and drop the pending turn without reporting an error, so the installer writes `compaction.thresholdTokens: 60000` and the owner probe keeps the same headroom.
 
 ## Build the private artifacts
 
@@ -46,7 +48,7 @@ npm run package:release
 - the compatible Windows x64 host binary;
 - `release-manifest.json`, containing every artifact hash and compatibility identity.
 
-No evidence store, imported memory, session transcript, runtime descriptor, bearer secret, test fixture, `.probe` directory, or `.host-work` checkout is included. The verified v3 runtime closure contains 12 allowlisted Python files: the current CassiFI field, atlas, cognition, owner, resonant/temporal/transceiver capabilities, importer, and loopback worker. It contains no trained checkpoint, corpus, tokenizer, embedding model, or legacy Qi runtime.
+No evidence store, imported memory, session transcript, runtime descriptor, bearer secret, test fixture, `.probe` directory, or `.host-work` checkout is included. The verified runtime closure contains 73 allowlisted Python files: the current CassiFI field, atlas, cognition, owner, learning computer, regional and program runtimes, resident hive, affect, communication, temporal, and transceiver capabilities, and the loopback worker. It contains no trained checkpoint, corpus, tokenizer, embedding model, or legacy Qi runtime.
 
 ## Install into a separate profile
 
@@ -80,7 +82,7 @@ Use `--profile <name>` for another isolated named profile. Launch the rehearsal 
 C:\Users\Carina\.omp\profiles\cassipi-rehearsal\launch-cassipi.cmd
 ```
 
-`C:\Users\Carina\.bun\bin\cassipi.cmd` is the short command for the active-profile installation. `omp` currently uses the ordinary installed Oh My Pi 18.1.16 host with enabled `remote-pi`; `cassipi` uses the independently pinned Oh My Pi 18.1.10 host with global extensions disabled and CassiPi loaded explicitly. The two commands share the active profile’s model roles, provider credentials, presentation settings, and task configuration, but only `cassipi` activates exclusive field ownership.
+`C:\Users\Carina\.bun\bin\cassipi.cmd` is the short command for the active-profile installation. `omp` currently uses the ordinary installed Oh My Pi 18.3.2 host with enabled `remote-pi`; `cassipi` uses the independently pinned Oh My Pi 18.1.10 host with global extensions disabled and CassiPi loaded explicitly. The two commands share the active profile’s model roles, provider credentials, presentation settings, and task configuration, but only `cassipi` activates exclusive field ownership.
 
 Verify the isolated installed artifact with `npm run probe:installed`. Verify the named profile’s actual launcher and persistent data home with an owner-RPC status check, then verify both active-profile launch paths without an external provider:
 
@@ -114,39 +116,31 @@ Direct user controls use the one `/cassi` command:
 /cassi pause
 /cassi resume
 /cassi recovery
-/cassi import preview omp-session project C:/path/to/session.jsonl
-/cassi import commit <preview-id>
+/cassi computer <action> <json-object>
 ```
 
-The v3 temporal surface is deliberately host-controlled and remains inside `/cassi`, not a second model-callable tool:
+The computer surface is deliberately host-controlled and remains inside `/cassi`, not a second model-callable tool. It drives the resident regional computer of the current CassiFI runtime:
 
 ```text
-/cassi temporal configure <json>
-/cassi temporal register-skill <json>
-/cassi temporal learn <json>
-/cassi temporal bind <json>
-/cassi temporal select <json>
-/cassi temporal advance <json>
-/cassi temporal inspect <json>
-/cassi temporal inquire <json>
-/cassi temporal compose-task <json>
-/cassi temporal propose-task <json>
-/cassi temporal acknowledge-task <json>
+/cassi computer configure {"arguments":{"resident_pages":8}}
+/cassi computer advance {"arguments":{"steps":4}}
+/cassi computer submit {"arguments":{"kernel":"python","state":{...}}}
+/cassi computer resources {}
+/cassi computer residency {}
+/cassi computer circulation {}
 ```
 
-Each operation has an exact allowlisted request shape, is bound to the authenticated host scope, and uses an operation-specific result decoder. Proposed actions remain proposals; field state never bypasses Oh My Pi execution approval.
+`<action>` is one of the runtime's canonical actions (`configure`, `load`, `advance`, `submit`, `call`, `cancel-call`, `invoke`, `invoke-settled`, `authorized-invoke`, `restart`, `grow`, `solve`, `continue-solve`, `residency`, `circulation`, `communicate`, `cancel-communication`, `resources`, `adopt-paged`, `bind-method-inputs`, `place`, `enable-ngram`, `learn-ngram`). Each action has an exact set of required and optional argument keys, and any other key is rejected. The command is bound to the authenticated host scope; mutating actions carry a deterministic operation ID so a repeated identical command replays instead of executing twice; the read-only `resources`, `residency`, and `circulation` actions carry none. Command results are echoed as the runtime's own bounded receipts. Proposed actions remain proposals; field state never bypasses Oh My Pi execution approval.
 
 `/cassi forget` first shows the exact revision closure and external-copy limits. Nothing changes if confirmation is declined. Approval mints a hidden, one-use, short-lived token; the worker revokes the approved revisions, removes their managed exact bytes and field contributions, publishes a verified successor checkpoint, and verifies that they cannot be projected or exactly recalled. Oh My Pi transcripts and external backups are reported as external copies and are not silently claimed as erased.
 
 `/cassi pause` persists capture state across worker and host restarts. While paused, context ownership remains fail-closed and write operations are rejected. `/cassi status` reports readiness, authenticated scope, runtime and manifest identities, field/journal/checkpoint heads, capture state, the latest projection accounting, the current provider-context receipt, and startup recovery status. If the worker is unavailable, status reports an explicit unavailable state rather than implying native fallback.
 
-## Read-only migration
+## Migration
 
-Supported adapters are `mnemic`, `thalamus`, `mnemopi`, and `omp-session`. Preview validates the known schema/version, source bounds, UTF-8, lineage where present, exact source-file hash, dataset hash, provenance gaps, duplicate-content groups, wider source scopes, terminal records, and required disk space. Preview does not mutate the source or adaptive field.
+The current runtime no longer packages or dispatches the read-only predecessor importer. `CassiFI/runtime/test_cassipi_worker.py` pins that absence: importing `cassi_cassipi_import` from the built runtime must fail, and operations the worker does not implement are rejected as `UNSUPPORTED_OPERATION`. `CassiFI/runtime/cassi_cassipi_import.py` still exists in CassiFI’s own tree with its adapter tests, but it is not part of the shipped runtime closure and CassiPi no longer exposes it through `/cassi`.
 
-Commit requires direct confirmation of that exact preview. The importer rescans the source and rejects any changed file, resumes from committed record bindings after interruption, and preserves records with identical text when their provenance differs. Invalidated, deleted, revoked, superseded, inactive, and tombstone records remain archived but cannot be projected. A SQLite source with a live WAL is rejected; create a consistent SQLite backup or export first rather than copying only the main database file.
-
-The v3 cutover deliberately does not load prototype Qi checkpoints or earlier CassiPi adaptive sidecars. They remain untouched outside the current data path. Only supported exact source records cross the boundary through the read-only importer; no predecessor learned tensor is treated as current field intelligence.
+Moving predecessor memory into a live field is an explicit CassiFI-side operation, not part of the CassiPi host surface. The cutover does not load prototype Qi checkpoints or earlier CassiPi adaptive sidecars; nothing on the predecessor side is treated as current field intelligence.
 
 ## Recovery and rollback
 
@@ -170,18 +164,20 @@ npm run probe:field-control
 npm run probe:owner
 npm run probe:ordinary
 npm run measure:integration
-python -m pytest ../CassiFI/test_field_intelligence.py ../CassiFI/runtime/test_cassipi_worker.py ../CassiFI/runtime/test_cassipi_runtime_package.py ../CassiFI/runtime/test_cassipi_forget_generation.py ../CassiFI/runtime/test_cassipi_import.py -q
+python -m pytest ../CassiFI/test_field_intelligence.py ../CassiFI/runtime/test_cassipi_worker.py ../CassiFI/runtime/test_cassipi_runtime_package.py ../CassiFI/runtime/test_cassipi_forget_generation.py ../CassiFI/runtime/test_packaged_learning_computer.py ../CassiFI/runtime/test_cassipi_import.py -q
 bun test ./.host-work/patched/packages/coding-agent/test/extensions-runner.test.ts ./.host-work/patched/packages/coding-agent/test/agent-session-handoff.test.ts ./.host-work/patched/packages/coding-agent/test/agent-session-prune-persistence.test.ts
 bun --cwd=.host-work/patched/packages/coding-agent run check:types
 ```
 
-`verify:release-host` hashes both the patched 18.1.10 executable and `oh-my-pi-18.1.10-context-owner.patch`, compares those bytes with the generated private-release manifest, recomputes the patched-source identity from the verified patch hash and upstream commit, and executes the patched host's `--version` path. The installer independently performs the same binary, patch, and patched-source identity checks before mutating a profile and records the accepted identities in its receipt. The separate historical `verify:host-pin` command checks the original unpatched `omp/18.1.10` binary identity and therefore requires that stock binary to be supplied or restored; the ordinary installation has since advanced to 18.1.16 and is deliberately not downgraded.
+`verify:release-host` hashes both the patched 18.1.10 executable and `oh-my-pi-18.1.10-context-owner.patch`, compares those bytes with the generated private-release manifest, recomputes the patched-source identity from the verified patch hash and upstream commit, and executes the patched host's `--version` path. The installer independently performs the same binary, patch, and patched-source identity checks before mutating a profile and records the accepted identities in its receipt. The separate historical `verify:host-pin` command checks the original unpatched `omp/18.1.10` binary identity and therefore requires that stock binary to be supplied or restored; the ordinary installation has since advanced past 18.1.10 and is deliberately not downgraded.
 
-`probe:field-control`, `probe:owner`, and `measure:integration` use the locally packaged runtime, isolated data, and no external provider. The field-control probe verifies the v3 control schema, intentional field advancement during query-time `think`, exact reopen identity before replay, source-backed message stability, and temporal state persistence across adapter restart. The owner probe runs the actual patched host against a local mock provider and exercises the explicit temporal command surface, field-selected prior evidence, repeated manual compaction, summarized and unsummarized tree movement, handoff, branch creation, new/resumed sessions, persistent owner markers, and clean worker shutdown.
+Set `CASSIPI_TRACE_FILE` to a writable path to record every owner operation and context-owner hook invocation as JSON lines. A turn that produces no provider request leaves no other trace, so this is how an owner-side wait is separated from a host-side one.
 
-`probes/receipts/case-matrix.json` records 23 PASS cases, one remaining interactive `/clear` scenario, and one failed live-provider request-budget case. The failed gate preserves the functional compaction/resume evidence instead of relabeling the run as a pass.
+`probe:field-control`, `probe:owner`, and `measure:integration` use the locally packaged runtime, isolated data, and no external provider. The field-control probe verifies the adapter's control schema, intentional field advancement during query-time `think`, exact reopen identity before replay, source-backed message stability, and temporal state persistence across adapter restart. The owner probe runs the actual patched host against a local mock provider and exercises the host-controlled computer command surface, field-selected prior evidence, repeated manual compaction, summarized and unsummarized tree movement, handoff, branch creation, new/resumed sessions, persistent owner markers, and clean worker shutdown.
 
-The generated active-profile `cassipi` launcher was exercised with the local mock provider and disposable agent, session, and field roots. It loaded `cassifi.cassipi-field-intelligence.v3` through `cassipi-owner.json`; no live field state was changed. The ordinary-profile RPC smoke uses the installed Oh My Pi 18.1.16 path and global extension registry with the explicit bounded-startup overlay `probes/ordinary-smoke-config.yml`; it records the selected agent directory, agent-config hash, and overlay path, asserts that CassiPi is disabled and `remote-pi` is enabled, and completes a deterministic local-provider turn. It is a registry/provider coexistence check, not an unmodified active-configuration startup benchmark.
+`probes/receipts/case-matrix.json` is the historical v3-era battery receipt: 23 PASS cases, one remaining interactive `/clear` scenario, and one failed live-provider request-budget case. The failed gate preserves the functional compaction/resume evidence instead of relabeling the run as a pass.
+
+The generated active-profile `cassipi` launcher was exercised with the local mock provider and disposable agent, session, and field roots. It loaded `cassifi.cassipi-field-intelligence.v3` through `cassipi-owner.json`; no live field state was changed. The ordinary-profile RPC smoke uses the installed Oh My Pi 18.3.2 path and global extension registry with the explicit bounded-startup overlay `probes/ordinary-smoke-config.yml`; it records the selected agent directory, agent-config hash, overlay path, and the observed plugin-registry state, asserts that CassiPi stays globally disabled, and completes a deterministic local-provider turn. It is a registry/provider coexistence check, not an unmodified active-configuration startup benchmark.
 
 `npm run probe:installed` exercises the named profile's installed host, extension, and runtime but deliberately redirects its session and field data into `.probe`; its durable result is `probes/receipts/installed-owner-lifecycle.json`. It proves installed-artifact behavior, not startup from the named profile's persistent `<profile-root>/cassipi` field. The separate `--live-profile-status` launcher check starts that persistent data home, retrieves authenticated owner status, and requires clean descriptor removal after shutdown.
 
@@ -191,18 +187,18 @@ The `cassipi-live` trial authenticated one profile-local OpenAI OAuth credential
 
 The request-budget gate failed. Two prompt turns produced four external `openai-codex/gpt-5.6-sol` requests: the resumed turn emitted two tool-use responses containing four `cassi_memory` calls before its final response. `--no-tools` suppressed built-in tools but did not suppress the CassiPi extension tool. The complete session used 27,789 tokens and $0.1039848; no further provider request was made. The receipt records response, compaction, session, config, host, and raw-receipt hashes.
 
-The worker shut down, and the synthetic session, workspace, and field were removed after receipt capture; the profile-local OAuth credential remains. The historical live-trial receipt observed the ordinary host at Oh My Pi 18.1.13; that version is retained in the receipt as historical evidence. The current ordinary `omp` host is 18.1.16 with `remote-pi@0.7.0`, while `cassipi` remains isolated on the pinned 18.1.10 owner host. Production provider cutover remains held.
+The worker shut down, and the synthetic session, workspace, and field were removed after receipt capture; the profile-local OAuth credential remains. The historical live-trial receipt observed the ordinary host at Oh My Pi 18.1.13; that version is retained in the receipt as historical evidence. The current ordinary `omp` host is 18.3.2 with `remote-pi@0.7.0`, while `cassipi` remains isolated on the pinned 18.1.10 owner host. Production provider cutover remains held.
 
 ### Measured supported envelope
 
-`probes/receipts/integration-envelope.json` is the Windows 11 x64 measurement from the locally packaged `cassifi.cassipi-field-intelligence.v3` runtime. The closure contains the current CassiFI variational field, atlas, cognition, owner, resonant/temporal/transceiver capabilities, and the CassiPi adapter/importer/worker. It packages no trained checkpoint or text encoder. The conservative exercised envelope was:
+`probes/receipts/integration-envelope.json` is the Windows 11 x64 measurement from the locally packaged `cassifi.cassipi-field-intelligence.v4` runtime. The closure contains the current CassiFI variational field, atlas, cognition, owner, learning computer, regional and program runtimes, resident hive, affect, communication, temporal, and transceiver capabilities, and the CassiPi adapter/worker. It packages no trained checkpoint or text encoder. The conservative exercised envelope was:
 
 - 64 configured short candidates, with one field-selected candidate in this measured run;
 - one 785,403-byte exact binary source inside the 1,048,576-byte worker request envelope;
 - task, branch, project, and profile memory scopes;
 - three attached clients spanning sibling branches and an unrelated project.
 
-A same-scope repeated query preserved selected source identities and projected messages. Private sibling-branch and unrelated-project learning did not change those identities or messages, and no private source appeared in another client’s inventory or projection. Concurrent v3 inventories use optimistic ownership: one request commits its persistent `think` transition and stale peers fail closed with `STALE_FIELD_HEAD`; scope-leakage projections are then evaluated sequentially against fresh heads.
+A same-scope repeated query preserved selected source identities and projected messages. Private sibling-branch and unrelated-project learning did not change those identities or messages, and no private source appeared in another client’s inventory or projection. Concurrent inventories use optimistic ownership: one request commits its persistent transition and stale peers fail closed with `STALE_FIELD_HEAD`; scope-leakage projections are then evaluated sequentially against fresh heads.
 
 The current receipt records worker RSS, cold start/restart, cold and warm projection latency, compaction lifecycle latency, and the three-client optimistic-concurrency inventory wall time. These figures are regenerated by `npm run measure:integration`; the receipt, rather than prose copied from an older runtime, is the numeric authority.
 
@@ -224,6 +220,6 @@ The run used disposable workspaces and data homes, synthetic project data, the i
 
 ## Distribution boundary
 
-This package is marked `private` and is an internal Cassi artifact. No public release or redistribution license is granted here. The package allowlist contains only the CassiPi adapter, the 12-file current CassiFI v3 runtime closure, and this guide; it excludes evidence stores, memories, transcripts, credentials, probes, checkouts, research corpora, paper sources, training data, checkpoints, and unrelated experiment artifacts. Upstream Oh My Pi and third-party components retain their own licenses.
+This package is marked `private` and is an internal Cassi artifact. No public release or redistribution license is granted here. The package allowlist contains only the CassiPi adapter, the current CassiFI runtime closure, and this guide; it excludes evidence stores, memories, transcripts, credentials, probes, checkouts, research corpora, paper sources, training data, checkpoints, and unrelated experiment artifacts. Upstream Oh My Pi and third-party components retain their own licenses.
 
 The isolated provider comparison is complete. The subsequent live-profile trial is held at a failed request-budget gate; any further provider use requires a bounded extension-tool path and fresh explicit approval.

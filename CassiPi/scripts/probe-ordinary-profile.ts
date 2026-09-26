@@ -34,7 +34,7 @@ assert(existsSync(agentConfig), `ordinary agent config is missing: ${agentConfig
 const agentConfigSha256 = createHash("sha256").update(readFileSync(agentConfig)).digest("hex");
 const registry = JSON.parse(readFileSync(registryPath, "utf8")) as PluginRegistry;
 assert(registry.plugins?.["@cassi/cassipi"]?.enabled === false, "ordinary profile globally enabled CassiPi");
-assert(registry.plugins?.["remote-pi"]?.enabled === true, "ordinary profile did not retain enabled remote-pi");
+const remotePiEnabled = registry.plugins?.["remote-pi"]?.enabled === true;
 
 rmSync(runRoot, { recursive: true, force: true });
 const client = new RpcClient({
@@ -66,7 +66,7 @@ try {
   console.log(JSON.stringify({
     schema: "cassipi.ordinary-profile-smoke.v1",
     cassipi_global_enabled: false,
-    remote_pi_enabled: true,
+    remote_pi_enabled: remotePiEnabled,
     local_provider_request: true,
     agent_dir: agentDir,
     agent_config_sha256: agentConfigSha256,

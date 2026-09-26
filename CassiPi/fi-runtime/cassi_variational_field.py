@@ -85,12 +85,16 @@ this operator implements the two block flows of the potential written above.
 
 from __future__ import annotations
 
+import json
 import math
+import struct
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping, Sequence
 
 import torch
 from torch import Tensor
+
+from cassi_field_regions import KernelResult
 
 STATE_SCHEMA = "cassifi.variational-field.v1"
 
@@ -395,3 +399,1303 @@ class VariationalField:
             raise ValueError("checkpoint belongs to a different field interpretation")
         self.validate(payload["field"])
         return payload["field"].detach().to(device=device).clone()
+ 
+REGIONAL_KERNEL_NAME = "numerical.variational"
+REGIONAL_KERNEL_MAX_WORK = 4_096
+REGIONAL_STATE_SCHEMA = "cassifi.regional-variational-field-state.v1"
+REGIONAL_RESULT_SCHEMA = "cassifi.regional-kernel-result.v1"
+
+_REGIONAL_MAX_DIMENSION = 128
+_REGIONAL_MAX_FACTORS = 64
+_REGIONAL_MAX_SCOPE = 16
+_REGIONAL_MAX_ITERATIONS = 4_096
+_REGIONAL_WORD_MAX = 2**32 - 1
+_REGIONAL_EPSILON = 2.220446049250313e-16
+
+
+class VariationalRegionalError(ValueError):
+    """A regional variational task or bounded transition is invalid."""
+
+
+def _regional_integer(
+    value: Any,
+    name: str,
+    *,
+    minimum: int = 0,
+    maximum: int = 2**31 - 1,
+) -> int:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or value < minimum
+        or value > maximum
+    ):
+        raise VariationalRegionalError(
+            f"{name} must be an integer in [{minimum}, {maximum}]"
+        )
+    return int(value)
+
+
+def _regional_number(
+    value: Any,
+    name: str,
+    *,
+    nonnegative: bool = False,
+    positive: bool = False,
+) -> float:
+    if isinstance(value, bool):
+        raise VariationalRegionalError(f"{name} must be finite")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise VariationalRegionalError(f"{name} must be finite") from exc
+    if (
+        not math.isfinite(number)
+        or (nonnegative and number < 0.0)
+        or (positive and number <= 0.0)
+    ):
+        qualifier = (
+            "finite and nonnegative"
+            if nonnegative
+            else "finite and positive"
+            if positive
+            else "finite"
+        )
+        raise VariationalRegionalError(f"{name} must be {qualifier}")
+    return number
+
+
+def _regional_json(value: Any, name: str = "regional state") -> bytes:
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise VariationalRegionalError(f"{name} is not canonical JSON") from exc
+
+
+def _regional_float_words(value: Any, name: str) -> list[int]:
+    number = _regional_number(value, name)
+    raw = struct.pack("<d", number)
+    return [
+        int.from_bytes(raw[:4], "little"),
+        int.from_bytes(raw[4:], "little"),
+    ]
+
+
+def _regional_decode_float_words(
+    words: Any,
+    name: str,
+    *,
+    count: int | None = None,
+) -> list[float]:
+    if not isinstance(words, list):
+        raise VariationalRegionalError(f"{name} must be a word list")
+    if len(words) % 2:
+        raise VariationalRegionalError(f"{name} has an odd word count")
+    if count is not None and len(words) != 2 * count:
+        raise VariationalRegionalError(f"{name} has the wrong word count")
+    decoded: list[float] = []
+    for offset in range(0, len(words), 2):
+        low = _regional_integer(
+            words[offset], f"{name} word", maximum=_REGIONAL_WORD_MAX
+        )
+        high = _regional_integer(
+            words[offset + 1], f"{name} word", maximum=_REGIONAL_WORD_MAX
+        )
+        number = struct.unpack(
+            "<d", low.to_bytes(4, "little") + high.to_bytes(4, "little")
+        )[0]
+        if not math.isfinite(number):
+            raise VariationalRegionalError(f"{name} contains a nonfinite number")
+        decoded.append(number)
+    return decoded
+
+
+def _regional_vector_words(values: Sequence[Any], name: str) -> list[int]:
+    words: list[int] = []
+    for index, value in enumerate(values):
+        words.extend(_regional_float_words(value, f"{name}[{index}]"))
+    return words
+
+
+def _regional_decode_matrix_words(
+    words: Any,
+    rows: int,
+    columns: int,
+    name: str,
+) -> list[list[float]]:
+    values = _regional_decode_float_words(
+        words, name, count=rows * columns
+    )
+    return [
+        values[row * columns : (row + 1) * columns]
+        for row in range(rows)
+    ]
+
+
+def _regional_norm(values: Sequence[float], name: str) -> float:
+    scale = max((abs(float(value)) for value in values), default=0.0)
+    if not math.isfinite(scale):
+        raise VariationalRegionalError(f"{name} is nonfinite")
+    if scale == 0.0:
+        return 0.0
+    scaled = math.sqrt(
+        sum((float(value) / scale) ** 2 for value in values)
+    )
+    result = scale * scaled
+    if not math.isfinite(result):
+        raise VariationalRegionalError(f"{name} exceeds the finite range")
+    return result
+
+
+def _regional_eigenvalues(matrix: Sequence[Sequence[float]]) -> list[float]:
+    """Deterministically diagonalize a small symmetric matrix for guards."""
+    size = len(matrix)
+    working = [list(row) for row in matrix]
+    if any(len(row) != size for row in working):
+        raise VariationalRegionalError("regional covariance is not square")
+    for row in working:
+        if any(not math.isfinite(value) for value in row):
+            raise VariationalRegionalError("regional covariance is nonfinite")
+    if size <= 1:
+        return [working[0][0]] if size else []
+    limit = max(16, 16 * size * size)
+    for _ in range(limit):
+        p, q = 0, 1
+        largest = 0.0
+        for row in range(size):
+            for column in range(row + 1, size):
+                magnitude = abs(working[row][column])
+                if magnitude > largest:
+                    largest = magnitude
+                    p, q = row, column
+        diagonal_scale = max(
+            1.0,
+            max(abs(working[index][index]) for index in range(size)),
+        )
+        if largest <= 32.0 * _REGIONAL_EPSILON * diagonal_scale:
+            break
+        app, aqq, apq = working[p][p], working[q][q], working[p][q]
+        angle = 0.5 * math.atan2(2.0 * apq, aqq - app)
+        cosine, sine = math.cos(angle), math.sin(angle)
+        for index in range(size):
+            if index in (p, q):
+                continue
+            aip, aiq = working[index][p], working[index][q]
+            working[index][p] = working[p][index] = (
+                cosine * aip - sine * aiq
+            )
+            working[index][q] = working[q][index] = (
+                sine * aip + cosine * aiq
+            )
+        working[p][p] = (
+            cosine * cosine * app
+            - 2.0 * sine * cosine * apq
+            + sine * sine * aqq
+        )
+        working[q][q] = (
+            sine * sine * app
+            + 2.0 * sine * cosine * apq
+            + cosine * cosine * aqq
+        )
+        working[p][q] = working[q][p] = 0.0
+    values = [working[index][index] for index in range(size)]
+    if any(not math.isfinite(value) for value in values):
+        raise VariationalRegionalError("regional covariance spectrum is nonfinite")
+    return values
+
+
+def _regional_spd_inverse(
+    matrix: Sequence[Sequence[float]],
+    *,
+    ridge: float,
+    norm_bound: float,
+    name: str,
+) -> list[list[float]]:
+    size = len(matrix)
+    if size < 1 or size > _REGIONAL_MAX_SCOPE:
+        raise VariationalRegionalError(f"{name} dimension is outside the bound")
+    copied = [list(row) for row in matrix]
+    if any(len(row) != size for row in copied):
+        raise VariationalRegionalError(f"{name} must be square")
+    for row in copied:
+        if any(not math.isfinite(value) for value in row):
+            raise VariationalRegionalError(f"{name} is nonfinite")
+    for row in range(size):
+        for column in range(row):
+            if copied[row][column] != copied[column][row]:
+                raise VariationalRegionalError(f"{name} must be symmetric")
+    upper = ridge + norm_bound * norm_bound
+    if not math.isfinite(upper):
+        raise VariationalRegionalError(f"{name} spectral bound is nonfinite")
+    spectrum = _regional_eigenvalues(copied)
+    tolerance = (
+        128.0 * _REGIONAL_EPSILON * size * max(1.0, upper)
+    )
+    if (
+        min(spectrum) < ridge - tolerance
+        or max(spectrum) > upper + tolerance
+    ):
+        raise VariationalRegionalError(
+            f"{name} leaves its declared spectral bounds"
+        )
+    lower: list[list[float]] = [
+        [0.0 for _ in range(size)] for _ in range(size)
+    ]
+    for row in range(size):
+        for column in range(row + 1):
+            value = copied[row][column] - sum(
+                lower[row][index] * lower[column][index]
+                for index in range(column)
+            )
+            if row == column:
+                if not math.isfinite(value) or value <= 0.0:
+                    raise VariationalRegionalError(
+                        f"{name} must be positive definite"
+                    )
+                lower[row][column] = math.sqrt(value)
+            else:
+                divisor = lower[column][column]
+                if divisor <= 0.0 or not math.isfinite(divisor):
+                    raise VariationalRegionalError(
+                        f"{name} must be positive definite"
+                    )
+                lower[row][column] = value / divisor
+    inverse = [[0.0 for _ in range(size)] for _ in range(size)]
+    for column in range(size):
+        forward = [0.0 for _ in range(size)]
+        for row in range(size):
+            rhs = 1.0 if row == column else 0.0
+            forward[row] = (
+                rhs
+                - sum(lower[row][index] * forward[index] for index in range(row))
+            ) / lower[row][row]
+        backward = [0.0 for _ in range(size)]
+        for row in range(size - 1, -1, -1):
+            backward[row] = (
+                forward[row]
+                - sum(
+                    lower[index][row] * backward[index]
+                    for index in range(row + 1, size)
+                )
+            ) / lower[row][row]
+        for row in range(size):
+            inverse[row][column] = backward[row]
+    if any(
+        not math.isfinite(value)
+        for row in inverse
+        for value in row
+    ):
+        raise VariationalRegionalError(f"{name} inverse is nonfinite")
+    return inverse
+
+
+def _regional_spd_solve(
+    matrix: Sequence[Sequence[float]],
+    vector: Sequence[float],
+    *,
+    name: str,
+) -> list[float]:
+    size = len(matrix)
+    if len(vector) != size:
+        raise VariationalRegionalError(f"{name} dimensions do not match")
+    if not size:
+        return []
+    copied = [list(row) for row in matrix]
+    if any(
+        len(row) != size or any(not math.isfinite(value) for value in row)
+        for row in copied
+    ) or any(not math.isfinite(value) for value in vector):
+        raise VariationalRegionalError(f"{name} is nonfinite")
+    if any(
+        copied[row][column] != copied[column][row]
+        for row in range(size)
+        for column in range(row)
+    ):
+        raise VariationalRegionalError(f"{name} must be symmetric")
+    lower = [[0.0 for _ in range(size)] for _ in range(size)]
+    for row in range(size):
+        for column in range(row + 1):
+            value = copied[row][column] - sum(
+                lower[row][index] * lower[column][index]
+                for index in range(column)
+            )
+            if row == column:
+                if not math.isfinite(value) or value <= 0.0:
+                    raise VariationalRegionalError(
+                        f"{name} must be positive definite"
+                    )
+                lower[row][column] = math.sqrt(value)
+            else:
+                lower[row][column] = value / lower[column][column]
+    forward = [0.0 for _ in range(size)]
+    for row in range(size):
+        forward[row] = (
+            vector[row]
+            - sum(lower[row][index] * forward[index] for index in range(row))
+        ) / lower[row][row]
+    result = [0.0 for _ in range(size)]
+    for row in range(size - 1, -1, -1):
+        result[row] = (
+            forward[row]
+            - sum(
+                lower[index][row] * result[index]
+                for index in range(row + 1, size)
+            )
+        ) / lower[row][row]
+    if any(not math.isfinite(value) for value in result):
+        raise VariationalRegionalError(f"{name} solution is nonfinite")
+    return result
+
+
+def _regional_precision(
+    geometry: Mapping[str, Any],
+    covariance: Sequence[Sequence[Sequence[float]]],
+) -> list[list[float]]:
+    dimension = int(geometry["dimension"])
+    ridge = _regional_decode_float_words(
+        geometry["ridge_words"], "regional ridge", count=1
+    )[0]
+    norm_bound = _regional_decode_float_words(
+        geometry["norm_bound_words"], "regional norm bound", count=1
+    )[0]
+    precision = [
+        [0.0 for _ in range(dimension)] for _ in range(dimension)
+    ]
+    for factor, reference in enumerate(geometry["factor_refs"]):
+        scope = [int(value) for value in reference["coordinates"]]
+        inverse = _regional_spd_inverse(
+            covariance[factor],
+            ridge=ridge,
+            norm_bound=norm_bound,
+            name=f"regional covariance factor {factor}",
+        )
+        for local_row, global_row in enumerate(scope):
+            for local_column, global_column in enumerate(scope):
+                precision[global_row][global_column] += inverse[
+                    local_row
+                ][local_column]
+    if any(
+        not math.isfinite(value)
+        for row in precision
+        for value in row
+    ):
+        raise VariationalRegionalError("regional precision is nonfinite")
+    return precision
+
+
+def _regional_validate_state(state: Any) -> None:
+    required = {
+        "schema", "geometry", "task", "continuation", "work", "result"
+    }
+    if not isinstance(state, Mapping) or set(state) != required:
+        raise VariationalRegionalError("regional variational state is invalid")
+    if state["schema"] != REGIONAL_STATE_SCHEMA:
+        raise VariationalRegionalError("regional variational state schema is invalid")
+    geometry = state["geometry"]
+    if (
+        not isinstance(geometry, Mapping)
+        or set(geometry)
+        != {
+            "dimension",
+            "factor_refs",
+            "ridge_words",
+            "norm_bound_words",
+            "phi_words",
+        }
+    ):
+        raise VariationalRegionalError("regional variational geometry is invalid")
+    dimension = _regional_integer(
+        geometry["dimension"],
+        "regional dimension",
+        minimum=1,
+        maximum=_REGIONAL_MAX_DIMENSION,
+    )
+    references = geometry["factor_refs"]
+    if (
+        not isinstance(references, list)
+        or not references
+        or len(references) > _REGIONAL_MAX_FACTORS
+    ):
+        raise VariationalRegionalError("regional factor references are invalid")
+    covered: set[int] = set()
+    for factor, reference in enumerate(references):
+        if (
+            not isinstance(reference, Mapping)
+            or set(reference) != {"factor_id", "scope_ref", "coordinates"}
+            or reference["factor_id"] != factor
+            or reference["scope_ref"] != f"scope:{factor}"
+        ):
+            raise VariationalRegionalError("regional factor reference is invalid")
+        coordinates = reference["coordinates"]
+        if (
+            not isinstance(coordinates, list)
+            or not coordinates
+            or len(coordinates) > _REGIONAL_MAX_SCOPE
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 0 <= value < dimension
+                for value in coordinates
+            )
+            or len(coordinates) != len(set(coordinates))
+        ):
+            raise VariationalRegionalError("regional factor scope is invalid")
+        covered.update(coordinates)
+    if covered != set(range(dimension)):
+        raise VariationalRegionalError(
+            "regional factor geometry does not cover the workspace"
+        )
+    ridge = _regional_decode_float_words(
+        geometry["ridge_words"], "regional ridge", count=1
+    )[0]
+    norm_bound = _regional_decode_float_words(
+        geometry["norm_bound_words"], "regional norm bound", count=1
+    )[0]
+    phi = _regional_decode_float_words(
+        geometry["phi_words"], "regional phi", count=1
+    )[0]
+    if ridge <= 0.0 or norm_bound <= 0.0 or phi <= 0.0:
+        raise VariationalRegionalError(
+            "regional geometry parameters must be positive"
+        )
+    if not math.isfinite(ridge + norm_bound * norm_bound):
+        raise VariationalRegionalError("regional spectral bound is nonfinite")
+
+    task = state["task"]
+    task_keys = {
+        "covariance_words",
+        "workspace_words",
+        "rhs_words",
+        "observed_indices",
+        "observed_words",
+        "duration_words",
+        "uncertainty_words",
+        "allowance_words",
+        "readout",
+        "panel_size",
+        "max_iterations",
+    }
+    if not isinstance(task, Mapping) or set(task) != task_keys:
+        raise VariationalRegionalError("regional variational task is invalid")
+    covariance_words = task["covariance_words"]
+    if (
+        not isinstance(covariance_words, list)
+        or len(covariance_words) != len(references)
+    ):
+        raise VariationalRegionalError("regional covariance words are invalid")
+    for factor, reference in enumerate(references):
+        size = len(reference["coordinates"])
+        covariance_values = _regional_decode_float_words(
+            covariance_words[factor],
+            f"regional covariance factor {factor}",
+            count=size * size,
+        )
+        covariance_matrix = [
+            covariance_values[row * size : (row + 1) * size]
+            for row in range(size)
+        ]
+        _regional_spd_inverse(
+            covariance_matrix,
+            ridge=ridge,
+            norm_bound=norm_bound,
+            name=f"regional covariance factor {factor}",
+        )
+    workspace = _regional_decode_float_words(
+        task["workspace_words"],
+        "regional workspace",
+        count=dimension,
+    )
+    indices = task["observed_indices"]
+    if (
+        not isinstance(indices, list)
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not 0 <= value < dimension
+            for value in indices
+        )
+        or len(indices) != len(set(indices))
+    ):
+        raise VariationalRegionalError("regional observed indices are invalid")
+    observed = _regional_decode_float_words(
+        task["observed_words"],
+        "regional observations",
+        count=len(indices),
+    )
+    duration = _regional_decode_float_words(
+        task["duration_words"], "regional duration", count=1
+    )[0]
+    uncertainty = _regional_decode_float_words(
+        task["uncertainty_words"], "regional uncertainty", count=1
+    )[0]
+    allowance = _regional_decode_float_words(
+        task["allowance_words"], "regional allowance", count=1
+    )[0]
+    if duration <= 0.0 or uncertainty < 0.0 or allowance <= 0.0:
+        raise VariationalRegionalError(
+            "regional duration, uncertainty, or allowance is invalid"
+        )
+    if _regional_norm(observed, "regional observation") + uncertainty > norm_bound:
+        raise VariationalRegionalError(
+            "regional observation uncertainty exceeds the norm bound"
+        )
+    panel_size = _regional_integer(
+        task["panel_size"],
+        "regional panel size",
+        minimum=1,
+        maximum=dimension,
+    )
+    max_iterations = _regional_integer(
+        task["max_iterations"],
+        "regional maximum iterations",
+        minimum=1,
+        maximum=_REGIONAL_MAX_ITERATIONS,
+    )
+    readout = task["readout"]
+    if readout is not None:
+        if (
+            not isinstance(readout, Mapping)
+            or set(readout) != {"rows", "columns", "words"}
+        ):
+            raise VariationalRegionalError("regional readout is invalid")
+        rows = _regional_integer(
+            readout["rows"], "regional readout rows", minimum=2, maximum=256
+        )
+        columns = _regional_integer(
+            readout["columns"],
+            "regional readout columns",
+            minimum=1,
+            maximum=_REGIONAL_MAX_DIMENSION,
+        )
+        if columns != dimension:
+            raise VariationalRegionalError(
+                "regional readout dimension does not match geometry"
+            )
+        _regional_decode_float_words(
+            readout["words"],
+            "regional readout words",
+            count=rows * columns,
+        )
+
+    continuation = state["continuation"]
+    continuation_keys = {
+        "phase", "panel_cursor", "iteration", "free_indices", "residual_norm"
+    }
+    if (
+        not isinstance(continuation, Mapping)
+        or set(continuation) != continuation_keys
+        or continuation["phase"] not in {"running", "done", "fault"}
+    ):
+        raise VariationalRegionalError("regional continuation is invalid")
+    free = [
+        index for index in range(dimension) if index not in set(indices)
+    ]
+    if continuation["free_indices"] != free:
+        raise VariationalRegionalError("regional free-coordinate cursor is invalid")
+    _regional_decode_float_words(
+        task["rhs_words"],
+        "regional implicit right hand side",
+        count=len(free),
+    )
+    panel_cursor = _regional_integer(
+        continuation["panel_cursor"],
+        "regional panel cursor",
+        maximum=len(free),
+    )
+    iteration = _regional_integer(
+        continuation["iteration"],
+        "regional iteration cursor",
+        maximum=max_iterations,
+    )
+    residual = continuation["residual_norm"]
+    if residual is not None:
+        _regional_number(residual, "regional residual norm", nonnegative=True)
+    if not free and panel_cursor != 0:
+        raise VariationalRegionalError("regional empty solve cursor is invalid")
+    if panel_cursor == 0 and iteration == 0 and residual is not None:
+        raise VariationalRegionalError("regional initial residual is invalid")
+    work = state["work"]
+    if (
+        not isinstance(work, Mapping)
+        or set(work) != {"panels", "iterations", "total"}
+    ):
+        raise VariationalRegionalError("regional work ledger is invalid")
+    panels = _regional_integer(
+        work["panels"], "regional panel work", maximum=2**53 - 1
+    )
+    iterations = _regional_integer(
+        work["iterations"],
+        "regional completed iterations",
+        maximum=2**53 - 1,
+    )
+    total = _regional_integer(
+        work["total"], "regional accumulated work", maximum=2**53 - 1
+    )
+    if panels != total or iterations != iteration:
+        raise VariationalRegionalError("regional work ledger is inconsistent")
+    result = state["result"]
+    if continuation["phase"] == "running" and result is not None:
+        raise VariationalRegionalError("running regional state has a result")
+    if continuation["phase"] in {"done", "fault"} and not isinstance(
+        result, Mapping
+    ):
+        raise VariationalRegionalError("terminal regional state has no result")
+    _regional_json(state)
+    del workspace, ridge, phi, panels, iterations, total
+
+
+def regional_state(
+    model: VariationalField,
+    field: Tensor,
+    indices: Sequence[int] = (),
+    values: Any = (),
+    *,
+    duration: float = 1.0,
+    panel_size: int = 1,
+    max_iterations: int = 256,
+    uncertainty: float = 0.0,
+    allowance: float = 1e-12,
+    readout: Any = None,
+) -> dict[str, Any]:
+    """Lower one fixed-memory relaxation into typed regional task data."""
+    if not isinstance(model, VariationalField):
+        raise VariationalRegionalError("regional variational model is invalid")
+    try:
+        model.validate(field)
+    except (ValueError, TypeError, RuntimeError) as exc:
+        raise VariationalRegionalError(str(exc)) from exc
+    dimension = model.dimension
+    try:
+        observed_indices = list(indices)
+    except TypeError as exc:
+        raise VariationalRegionalError(
+            "regional observed indices must be a sequence"
+        ) from exc
+    if (
+        any(
+            isinstance(index, bool)
+            or not isinstance(index, int)
+            or not 0 <= index < dimension
+            for index in observed_indices
+        )
+        or len(observed_indices) != len(set(observed_indices))
+    ):
+        raise VariationalRegionalError("regional observed indices are invalid")
+    try:
+        observed_values = list(values)
+    except TypeError as exc:
+        raise VariationalRegionalError(
+            "regional observations must be a sequence"
+        ) from exc
+    if len(observed_values) != len(observed_indices):
+        raise VariationalRegionalError(
+            "regional observations do not match their coordinates"
+        )
+    observed = [
+        _regional_number(value, f"regional observation[{index}]")
+        for index, value in enumerate(observed_values)
+    ]
+    duration_value = _regional_number(
+        duration, "regional duration", positive=True
+    )
+    uncertainty_value = _regional_number(
+        uncertainty, "regional uncertainty", nonnegative=True
+    )
+    allowance_value = _regional_number(
+        allowance, "regional allowance", positive=True
+    )
+    panel_value = _regional_integer(
+        panel_size,
+        "regional panel size",
+        minimum=1,
+        maximum=dimension,
+    )
+    iteration_value = _regional_integer(
+        max_iterations,
+        "regional maximum iterations",
+        minimum=1,
+        maximum=_REGIONAL_MAX_ITERATIONS,
+    )
+    if _regional_norm(observed, "regional observation") + uncertainty_value > model.observation_norm_bound:
+        raise VariationalRegionalError(
+            "regional observation uncertainty exceeds the norm bound"
+        )
+    if readout is not None:
+        try:
+            readout_tensor = torch.as_tensor(
+                readout, dtype=torch.float64, device="cpu"
+            )
+        except (TypeError, ValueError, RuntimeError) as exc:
+            raise VariationalRegionalError("regional readout is invalid") from exc
+        if (
+            readout_tensor.ndim != 2
+            or readout_tensor.shape[0] < 2
+            or readout_tensor.shape[1] != dimension
+            or readout_tensor.requires_grad
+            or not bool(torch.isfinite(readout_tensor).all())
+        ):
+            raise VariationalRegionalError("regional readout is invalid")
+        readout_value: dict[str, Any] | None = {
+            "rows": int(readout_tensor.shape[0]),
+            "columns": int(readout_tensor.shape[1]),
+            "words": _regional_vector_words(
+                readout_tensor.reshape(-1).tolist(), "regional readout"
+            ),
+        }
+    else:
+        readout_value = None
+    parts = model._parts(field)
+    covariance_words: list[list[int]] = []
+    factor_refs: list[dict[str, Any]] = []
+    for factor, scope in enumerate(model.scopes):
+        covariance = model._covariance(parts, factor)
+        covariance_words.append(
+            _regional_vector_words(
+                covariance.reshape(-1).tolist(),
+                f"regional covariance factor {factor}",
+            )
+        )
+        factor_refs.append(
+            {
+                "factor_id": factor,
+                "scope_ref": f"scope:{factor}",
+                "coordinates": list(scope),
+            }
+        )
+    workspace = model._workspace(parts).tolist()
+    free = [
+        index for index in range(dimension) if index not in set(observed_indices)
+    ]
+    state = {
+        "schema": REGIONAL_STATE_SCHEMA,
+        "geometry": {
+            "dimension": dimension,
+            "factor_refs": factor_refs,
+            "ridge_words": _regional_float_words(model.ridge, "regional ridge"),
+            "norm_bound_words": _regional_float_words(
+                model.observation_norm_bound, "regional norm bound"
+            ),
+            "phi_words": _regional_float_words(model.phi, "regional phi"),
+        },
+        "task": {
+            "covariance_words": covariance_words,
+            "workspace_words": _regional_vector_words(
+                workspace, "regional workspace"
+            ),
+            "rhs_words": [],
+            "observed_indices": observed_indices,
+            "observed_words": _regional_vector_words(
+                observed, "regional observations"
+            ),
+            "duration_words": _regional_float_words(
+                duration_value, "regional duration"
+            ),
+            "uncertainty_words": _regional_float_words(
+                uncertainty_value, "regional uncertainty"
+            ),
+            "allowance_words": _regional_float_words(
+                allowance_value, "regional allowance"
+            ),
+            "readout": readout_value,
+            "panel_size": panel_value,
+            "max_iterations": iteration_value,
+        },
+        "continuation": {
+            "phase": "running",
+            "panel_cursor": 0,
+            "iteration": 0,
+            "free_indices": free,
+            "residual_norm": None,
+        },
+        "work": {"panels": 0, "iterations": 0, "total": 0},
+        "result": None,
+    }
+    covariance_values, workspace_values, observed_keys, observed_values, duration_number, _, _ = (
+        _regional_task_values(state)
+    )
+    regional_precision = _regional_precision(
+        state["geometry"], covariance_values
+    )
+    fixed_rhs = [
+        workspace_values[index]
+        - duration_number
+        * sum(
+            regional_precision[row][observed_index] * observed_values[column]
+            for column, observed_index in enumerate(observed_keys)
+        )
+        for row, index in enumerate(free)
+    ]
+    state["task"]["rhs_words"] = _regional_vector_words(
+        fixed_rhs, "regional implicit right hand side"
+    )
+    _regional_validate_state(state)
+    return state
+
+
+def _regional_task_values(
+    state: Mapping[str, Any],
+) -> tuple[
+    list[list[list[float]]],
+    list[float],
+    list[int],
+    list[float],
+    float,
+    float,
+    float,
+]:
+    geometry = state["geometry"]
+    task = state["task"]
+    covariance: list[list[list[float]]] = []
+    for factor, reference in enumerate(geometry["factor_refs"]):
+        size = len(reference["coordinates"])
+        values = _regional_decode_float_words(
+            task["covariance_words"][factor],
+            f"regional covariance factor {factor}",
+            count=size * size,
+        )
+        covariance.append(
+            [
+                values[row * size : (row + 1) * size]
+                for row in range(size)
+            ]
+        )
+    dimension = int(geometry["dimension"])
+    workspace = _regional_decode_float_words(
+        task["workspace_words"], "regional workspace", count=dimension
+    )
+    indices = [int(value) for value in task["observed_indices"]]
+    observed = _regional_decode_float_words(
+        task["observed_words"],
+        "regional observations",
+        count=len(indices),
+    )
+    duration = _regional_decode_float_words(
+        task["duration_words"], "regional duration", count=1
+    )[0]
+    uncertainty = _regional_decode_float_words(
+        task["uncertainty_words"], "regional uncertainty", count=1
+    )[0]
+    allowance = _regional_decode_float_words(
+        task["allowance_words"], "regional allowance", count=1
+    )[0]
+    return (
+        covariance,
+        workspace,
+        indices,
+        observed,
+        duration,
+        uncertainty,
+        allowance,
+    )
+
+
+def _regional_output(
+    state: Mapping[str, Any],
+    workspace: Sequence[float],
+    precision: Sequence[Sequence[float]],
+    residual_norm: float,
+    *,
+    status: str,
+) -> dict[str, Any]:
+    geometry = state["geometry"]
+    task = state["task"]
+    dimension = int(geometry["dimension"])
+    indices = [int(value) for value in task["observed_indices"]]
+    ridge = _regional_decode_float_words(
+        geometry["ridge_words"], "regional ridge", count=1
+    )[0]
+    covariance, _, _, _, _, uncertainty, allowance = _regional_task_values(state)
+    energy = 0.0
+    for factor, reference in enumerate(geometry["factor_refs"]):
+        scope = [int(value) for value in reference["coordinates"]]
+        inverse = _regional_spd_inverse(
+            covariance[factor],
+            ridge=ridge,
+            norm_bound=_regional_decode_float_words(
+                geometry["norm_bound_words"], "regional norm bound", count=1
+            )[0],
+            name=f"regional covariance factor {factor}",
+        )
+        size = len(scope)
+        local = [workspace[index] for index in scope]
+        covariance_matrix = covariance[factor]
+        lower: list[list[float]] = [
+            [0.0 for _ in range(size)] for _ in range(size)
+        ]
+        for row in range(size):
+            for column in range(row + 1):
+                value = covariance_matrix[row][column] - sum(
+                    lower[row][index] * lower[column][index]
+                    for index in range(column)
+                )
+                if row == column:
+                    lower[row][column] = math.sqrt(value)
+                else:
+                    lower[row][column] = value / lower[column][column]
+        logdet = (
+            2.0 * sum(math.log(lower[index][index]) for index in range(size))
+            - size * math.log(ridge)
+        )
+        quadratic = sum(
+            local[row] * inverse[row][column] * local[column]
+            for row in range(size)
+            for column in range(size)
+        )
+        trace = sum(inverse[index][index] for index in range(size))
+        energy += 0.5 * (logdet + ridge * trace - size + quadratic)
+    if not math.isfinite(energy):
+        raise VariationalRegionalError("regional output energy is nonfinite")
+    action: dict[str, Any] | None = None
+    readout = task["readout"]
+    if readout is not None:
+        matrix = _regional_decode_matrix_words(
+            readout["words"],
+            int(readout["rows"]),
+            int(readout["columns"]),
+            "regional readout words",
+        )
+        scale = max(
+            (abs(value) for row in matrix for value in row),
+            default=0.0,
+        ) or 1.0
+        normalized = [[value / scale for value in row] for row in matrix]
+        scores = [
+            sum(row[index] * workspace[index] for index in range(dimension))
+            for row in normalized
+        ]
+        if any(not math.isfinite(value) for value in scores):
+            raise VariationalRegionalError("regional readout scores are nonfinite")
+        winner = max(range(len(scores)), key=lambda index: scores[index])
+        competitors = [
+            index for index in range(len(scores)) if index != winner
+        ]
+        free = [
+            index
+            for index in range(dimension)
+            if index not in set(indices)
+        ]
+        response = [
+            [0.0 for _ in indices] for _ in range(dimension)
+        ]
+        for column, index in enumerate(indices):
+            response[index][column] = 1.0
+        if free and indices:
+            cross = [
+                [precision[row][index] for index in indices]
+                for row in free
+            ]
+            hessian = [
+                [precision[row][column] for column in free]
+                for row in free
+            ]
+            for column in range(len(indices)):
+                solved = _regional_spd_solve(
+                    hessian,
+                    [-cross[row][column] for row in range(len(free))],
+                    name="regional readout response",
+                )
+                for row, index in enumerate(free):
+                    response[index][column] = solved[row]
+        gaps: list[float] = []
+        norms: list[float] = []
+        worst: list[float] = []
+        for competitor in competitors:
+            difference = [
+                normalized[winner][index] - normalized[competitor][index]
+                for index in range(dimension)
+            ]
+            gap = sum(difference[index] * workspace[index] for index in range(dimension))
+            sensitivity = [
+                sum(difference[index] * response[index][column] for index in range(dimension))
+                for column in range(len(indices))
+            ]
+            norm = _regional_norm(sensitivity, "regional readout sensitivity")
+            gaps.append(gap)
+            norms.append(norm)
+            worst.append(gap - uncertainty * norm)
+        evaluation = [
+            abs(gap) + uncertainty * abs(norm)
+            for gap, norm in zip(gaps, norms)
+        ]
+        guards = [
+            64.0 * _REGIONAL_EPSILON * max(1.0, value)
+            for value in evaluation
+        ]
+        certified = bool(worst) and all(
+            margin > guard for margin, guard in zip(worst, guards)
+        )
+        limiting = min(range(len(worst)), key=lambda index: worst[index]) if worst else 0
+        limiting_norm = norms[limiting] if norms else 0.0
+        perturbation = (
+            [
+                -uncertainty * value / limiting_norm
+                for value in (
+                    [
+                        sum(
+                            (
+                                normalized[winner][index]
+                                - normalized[competitors[limiting]][index]
+                            )
+                            * response[index][column]
+                            for index in range(dimension)
+                        )
+                        for column in range(len(indices))
+                    ]
+                )
+            ]
+            if limiting_norm > 0.0
+            else [0.0 for _ in indices]
+        )
+        distances = [
+            max(0.0, gap / norm)
+            if norm > 0.0
+            else (0.0 if gap <= 0.0 else math.inf)
+            for gap, norm in zip(gaps, norms)
+        ]
+        stability = min(distances) if distances else None
+        action = {
+            "nominal_action": winner,
+            "certified_action": winner if certified else None,
+            "readout_scale": scale,
+            "normalized_scores": scores,
+            "competitors": competitors,
+            "normalized_nominal_margins": gaps,
+            "normalized_sensitivity_norms": norms,
+            "normalized_worst_case_margins": worst,
+            "numerical_margin_guards": guards,
+            "linear_stability_radius": (
+                stability if stability is not None and math.isfinite(stability) else None
+            ),
+            "limiting_competitor": (
+                competitors[limiting] if competitors else None
+            ),
+            "worst_case_observation_delta": perturbation,
+        }
+    return {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "status": status,
+        "workspace_words": _regional_vector_words(
+            workspace, "regional output workspace"
+        ),
+        "workspace": [float(value) for value in workspace],
+        "iterations": int(state["work"]["iterations"]),
+        "panels": int(state["work"]["panels"]),
+        "work": int(state["work"]["total"]),
+        "residual_norm": float(residual_norm),
+        "uncertainty": uncertainty,
+        "allowance": allowance,
+        "energy": energy,
+        "precision": [list(row) for row in precision],
+        "action": action,
+    }
+
+
+def _regional_fault(state: dict[str, Any], message: str) -> dict[str, Any]:
+    state["continuation"] = {
+        **dict(state["continuation"]),
+        "phase": "fault",
+    }
+    result = {
+        "schema": REGIONAL_RESULT_SCHEMA,
+        "family": REGIONAL_KERNEL_NAME,
+        "status": "fault",
+        "error_type": "VariationalRegionalError",
+        "message": str(message),
+    }
+    state["result"] = result
+    return result
+
+
+def regional_kernel(
+    state: Any,
+    arguments: Mapping[str, Any],
+    quantum: int,
+) -> KernelResult:
+    """Perform bounded Gauss--Seidel panels over serialized variational data."""
+    _regional_validate_state(state)
+    if not isinstance(arguments, Mapping) or arguments:
+        raise VariationalRegionalError(
+            "regional variational kernel takes no arguments"
+        )
+    bound = _regional_integer(
+        quantum,
+        "regional variational quantum",
+        minimum=1,
+        maximum=REGIONAL_KERNEL_MAX_WORK,
+    )
+    current = json.loads(_regional_json(dict(state)))
+    phase = current["continuation"]["phase"]
+    if phase == "done":
+        return KernelResult(
+            state=current,
+            status="done",
+            work=0,
+            output=current["result"],
+        )
+    if phase == "fault":
+        return KernelResult(
+            state=current,
+            status="fault",
+            work=0,
+            output=current["result"],
+        )
+    geometry = current["geometry"]
+    task = current["task"]
+    covariance, workspace, indices, observed, duration, _, allowance = (
+        _regional_task_values(current)
+    )
+    dimension = int(geometry["dimension"])
+    precision = _regional_precision(geometry, covariance)
+    for column, index in enumerate(indices):
+        workspace[index] = observed[column]
+    free = [int(value) for value in current["continuation"]["free_indices"]]
+    if not free:
+        current["task"]["workspace_words"] = _regional_vector_words(
+            workspace, "regional workspace"
+        )
+        current["continuation"]["phase"] = "done"
+        current["continuation"]["residual_norm"] = 0.0
+        current["result"] = _regional_output(
+            current, workspace, precision, 0.0, status="done"
+        )
+        return KernelResult(
+            state=current, status="done", work=0, output=current["result"]
+        )
+    hessian = [
+        [precision[row][column] for column in free] for row in free
+    ]
+    rhs = _regional_decode_float_words(
+        task["rhs_words"],
+        "regional implicit right hand side",
+        count=len(free),
+    )
+    system = [
+        [
+            (1.0 if row == column else 0.0)
+            + duration * hessian[row][column]
+            for column in range(len(free))
+        ]
+        for row in range(len(free))
+    ]
+    if any(
+        not math.isfinite(value)
+        for value in rhs
+    ) or any(
+        not math.isfinite(value)
+        for row in system
+        for value in row
+    ):
+        raise VariationalRegionalError(
+            "regional implicit system is nonfinite"
+        )
+    consumed = 0
+    panel_size = int(task["panel_size"])
+    max_iterations = int(task["max_iterations"])
+    while consumed < bound and current["continuation"]["phase"] == "running":
+        cursor = int(current["continuation"]["panel_cursor"])
+        end = min(cursor + panel_size, len(free))
+        for local in range(cursor, end):
+            diagonal = system[local][local]
+            value = (
+                rhs[local]
+                - sum(
+                    system[local][other] * workspace[free[other]]
+                    for other in range(len(free))
+                    if other != local
+                )
+            ) / diagonal
+            if not math.isfinite(value):
+                raise VariationalRegionalError(
+                    "regional continuation produced a nonfinite value"
+                )
+            workspace[free[local]] = value
+        consumed += 1
+        current["work"]["panels"] += 1
+        current["work"]["total"] += 1
+        current["continuation"]["panel_cursor"] = end
+        current["task"]["workspace_words"] = _regional_vector_words(
+            workspace, "regional workspace"
+        )
+        if end != len(free):
+            continue
+        iteration = int(current["continuation"]["iteration"]) + 1
+        current["continuation"]["iteration"] = iteration
+        current["work"]["iterations"] = iteration
+        current["continuation"]["panel_cursor"] = 0
+        residual_values = [
+            sum(
+                system[row][column] * workspace[free[column]]
+                for column in range(len(free))
+            )
+            - rhs[row]
+            for row in range(len(free))
+        ]
+        residual_norm = _regional_norm(
+            residual_values, "regional continuation residual"
+        )
+        current["continuation"]["residual_norm"] = residual_norm
+        guard = 64.0 * _REGIONAL_EPSILON * max(
+            1.0, _regional_norm(rhs, "regional implicit right hand side")
+        )
+        if residual_norm <= allowance + guard:
+            exact = _regional_spd_solve(
+                system, rhs, name="regional implicit system"
+            )
+            for local, index in enumerate(free):
+                workspace[index] = exact[local]
+            final_residual = _regional_norm(
+                [
+                    sum(
+                        system[row][column] * exact[column]
+                        for column in range(len(free))
+                    )
+                    - rhs[row]
+                    for row in range(len(free))
+                ],
+                "regional final residual",
+            )
+            current["continuation"]["residual_norm"] = final_residual
+            current["task"]["workspace_words"] = _regional_vector_words(
+                workspace, "regional workspace"
+            )
+            current["continuation"]["phase"] = "done"
+            current["result"] = _regional_output(
+                current, workspace, precision, final_residual, status="done"
+            )
+        elif iteration >= max_iterations:
+            current["result"] = _regional_fault(
+                current,
+                "regional iteration allowance exhausted before convergence",
+            )
+    status = "yield"
+    output = None
+    if current["continuation"]["phase"] == "done":
+        status, output = "done", current["result"]
+    elif current["continuation"]["phase"] == "fault":
+        status, output = "fault", current["result"]
+    return KernelResult(
+        state=current,
+        status=status,
+        work=consumed,
+        output=output,
+    )
+
+
+__all__ = [
+    "REGIONAL_KERNEL_MAX_WORK",
+    "REGIONAL_KERNEL_NAME",
+    "REGIONAL_RESULT_SCHEMA",
+    "REGIONAL_STATE_SCHEMA",
+    "STATE_SCHEMA",
+    "VariationalField",
+    "VariationalRegionalError",
+    "regional_kernel",
+    "regional_state",
+]

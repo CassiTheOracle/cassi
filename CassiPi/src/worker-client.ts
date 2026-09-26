@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { appendFileSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -68,6 +69,21 @@ export interface WorkerClientOptions {
 function defaultRuntimeRoot(): string {
   const here = dirname(fileURLToPath(import.meta.url));
   return resolve(here, "..", "fi-runtime");
+}
+
+/**
+ * Append one JSON line per owner interaction when `CASSIPI_TRACE_FILE` is set.
+ * The host stalls (no `agent_end`) without any other visible state, so the trace
+ * is the only way to tell an owner-side wait from a host-side one.
+ */
+export function traceOwnerEvent(event: string, data: Record<string, unknown> = {}): void {
+  const target = process.env.CASSIPI_TRACE_FILE;
+  if (!target) return;
+  try {
+    appendFileSync(target, `${JSON.stringify({ at: new Date().toISOString(), event, ...data })}\n`);
+  } catch {
+    // Tracing must never change owner behavior.
+  }
 }
 
 function parseDescriptor(value: unknown): OwnerDescriptor {
@@ -211,9 +227,18 @@ export class CassiPiWorkerClient {
       scopeToken = requiredString(bound.scope_token, "authenticated host scope token");
       this.#scopeTokens.set(scopeKey, scopeToken);
     }
+    const startedAt = Date.now();
+    traceOwnerEvent("owner:start", { operation });
     try {
-      return await this.rpc(operation, { client_id: this.clientId, scope_token: scopeToken, request }, signal);
+      const result = await this.rpc(operation, { client_id: this.clientId, scope_token: scopeToken, request }, signal);
+      traceOwnerEvent("owner:done", { operation, ms: Date.now() - startedAt });
+      return result;
     } catch (error) {
+      traceOwnerEvent("owner:error", {
+        operation,
+        ms: Date.now() - startedAt,
+        code: error instanceof CassiPiOwnerError ? error.code : String(error),
+      });
       if (error instanceof CassiPiOwnerError) {
         throw new CassiPiOwnerError(
           error.code,

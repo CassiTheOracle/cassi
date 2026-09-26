@@ -1,2 +1,6 @@
+fi-runtime/__pycache__/
 fi-runtime/**/__pycache__/
-fi-runtime/**/*.pyc
+__pycache__/
+**/__pycache__/
+*.pyc
+**/*.pyc

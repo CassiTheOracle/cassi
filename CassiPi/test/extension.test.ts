@@ -57,10 +57,6 @@ function harness(
   sessionEntries: Array<Record<string, unknown>> = [],
   bindingRows: Array<Record<string, unknown>> = [],
   activeBranchEntries: Array<Record<string, unknown>> = sessionEntries,
-  temporalOverrides: {
-    proposalAuthorized?: boolean;
-    selectionMutable?: boolean;
-  } = {},
 ) {
   const operations: Array<{ operation: string; request: Record<string, unknown>; scope: unknown }> = [];
   let projectionSourceHash = "4".repeat(64);
@@ -248,61 +244,12 @@ function harness(
           authorization_consumed: true,
         };
       }
-      if (operation === "import_preview") {
+      if (operation === "computer") {
         return {
-          schema: "cassipi.import-preview.v1",
-          preview_id: PREVIEW,
-          adapter: "omp-session",
-          record_count: 2,
-          memory_scope: "project",
-          source_path: request.source_path,
-        };
-      }
-      if (operation === "import_commit") {
-        return {
-          schema: "cassipi.import-commit.v1",
-          preview_id: PREVIEW,
-          imported_records: 2,
-          status: "committed",
-        };
-      }
-      if (
-        operation === "configure_temporal"
-        || operation === "learn_temporal"
-        || operation === "advance_temporal"
-        || operation === "reset_temporal"
-        || operation === "bind_temporal"
-        || operation === "condense_temporal_skill"
-        || operation === "compose_temporal_task"
-        || operation === "propose_temporal_task"
-        || operation === "acknowledge_temporal_task"
-      ) {
-        return {
-          receipt: {
-            operation_id: request.operation_id,
-            state_sha256: HEAD,
-            ...(operation === "compose_temporal_task" || operation === "propose_temporal_task"
-              ? { execution_authorized: temporalOverrides.proposalAuthorized ?? false }
-              : {}),
-          },
-          checkpoint_receipt: { manifest_sha256: HEAD },
-        };
-      }
-      if (operation === "select_temporal_action") {
-        return {
-          schema: "cassifi.temporal-resonant-action-selection.v1",
-          read_only: !(temporalOverrides.selectionMutable ?? false),
-          memory_unchanged: !(temporalOverrides.selectionMutable ?? false),
-          selected: null,
-        };
-      }
-      if (
-        operation === "inspect_temporal"
-        || operation === "inquire_temporal"
-        || operation === "inspect_temporal_task"
-      ) {
-        return {
-          schema: "cassifi.temporal-inspection.v1",
+          schema: "cassipi.computer-result.v1",
+          computer_id: request.computer_id,
+          action: request.action,
+          operation_id: request.operation_id ?? null,
           state_sha256: HEAD,
         };
       }
@@ -935,156 +882,105 @@ describe("CassiPi extension boundary", () => {
     expect(observation?.request.source).toMatchObject({ parent_revision_id: oldRevision });
   });
 
-  test("explicit temporal commands reach v4 without adding a model-facing tool", async () => {
+  test("computer configure reaches v4 through one worker RPC with a deterministic operation_id", async () => {
     const value = harness();
     const command = value.commands.get("cassi")!;
     await command.handler(
-      `temporal configure ${JSON.stringify({
-        memory_id: "release-flow",
-        action_ids: ["open", "close"],
-        observation_ids: ["ready", "closed"],
-      })}`,
-      value.context,
-    );
-    await command.handler(
-      `temporal learn ${JSON.stringify({
-        memory_id: "release-flow",
-        source: {
-          source_id: "release-flow-episode",
-          content_base64: "eyJzY2hlbWEiOiJjYXNzaWZpLnRlbXBvcmFsLWVwaXNvZGUudjEiLCJzdGVwcyI6W119",
-          media_type: "application/json",
-          codec: "utf-8",
-          observed_timestamp: "2026-09-10T00:00:00Z",
-          scope: "task",
-          claim_category: "observation",
-          fidelity: "exact",
-          parent_revision_id: null,
-          span: null,
-          labels: [],
-        },
-      })}`,
-      value.context,
-    );
-    await command.handler(
-      `temporal inspect ${JSON.stringify({ memory_id: "release-flow" })}`,
+      `computer configure ${JSON.stringify({ arguments: { profile: "default" } })}`,
       value.context,
     );
 
     expect(value.tools).toHaveLength(1);
-    expect(value.operations.map(row => row.operation)).toEqual([
-      "configure_temporal",
-      "learn_temporal",
-      "inspect_temporal",
-    ]);
+    expect(value.operations.map(row => row.operation)).toEqual(["computer"]);
     expect(value.operations[0]?.request).toMatchObject({
-      schema: "cassipi.configure-temporal.v1",
-      memory_id: "release-flow",
-      action_ids: ["open", "close"],
-      observation_ids: ["ready", "closed"],
+      schema: "cassipi.computer.v1",
+      computer_id: "main",
+      action: "configure",
+      arguments: { profile: "default" },
     });
-    expect(value.operations[0]?.request.operation_id).toMatch(/^temporal-command:/u);
+    expect(value.operations[0]?.request.operation_id).toMatch(/^computer-configure:[0-9a-f]{64}$/u);
     expect(value.operations[0]?.scope).toMatchObject({
       profile_id: "profile-a",
       session_id: "session-a",
     });
-    expect(value.operations[2]?.request).toEqual({
-      schema: "cassipi.inspect-temporal.v1",
-      memory_id: "release-flow",
-    });
   });
 
-  test("temporal commands reject malformed or undeclared fields before owner mutation", async () => {
+  test(
+    "the same computer command issued twice produces the same operation_id; different arguments produce a different one",
+    async () => {
+      const value = harness();
+      const command = value.commands.get("cassi")!;
+      await command.handler(`computer advance ${JSON.stringify({ arguments: { steps: 3 } })}`, value.context);
+      await command.handler(`computer advance ${JSON.stringify({ arguments: { steps: 3 } })}`, value.context);
+      await command.handler(`computer advance ${JSON.stringify({ arguments: { steps: 4 } })}`, value.context);
+
+      const [first, second, third] = value.operations.map(row => row.request.operation_id);
+      expect(first).toEqual(second);
+      expect(third).not.toEqual(first);
+    },
+  );
+
+  test("read-only computer actions send no operation_id", async () => {
     const value = harness();
     const command = value.commands.get("cassi")!;
-    await expect(command.handler("temporal configure not-json", value.context)).rejects.toThrow(
-      "requires one valid JSON object",
-    );
+    await command.handler(`computer resources ${JSON.stringify({})}`, value.context);
+    await command.handler(`computer residency ${JSON.stringify({})}`, value.context);
+    await command.handler(`computer circulation ${JSON.stringify({})}`, value.context);
+
+    expect(value.operations).toHaveLength(3);
+    for (const row of value.operations) {
+      expect(row.request.operation_id).toBeUndefined();
+    }
+    expect(value.operations.map(row => row.request.action)).toEqual([
+      "resources",
+      "residency",
+      "circulation",
+    ]);
+  });
+
+  test("computer command validation rejects bad input before any worker RPC", async () => {
+    const value = harness();
+    const command = value.commands.get("cassi")!;
+
+    await expect(
+      command.handler(`computer bogus-action ${JSON.stringify({})}`, value.context),
+    ).rejects.toThrow("unknown computer action");
+
+    await expect(
+      command.handler(`computer advance ${JSON.stringify({})}`, value.context),
+    ).rejects.toThrow("missing required arguments");
+
     await expect(
       command.handler(
-        `temporal advance ${JSON.stringify({
-          memory_id: "release-flow",
-          action: "open",
-          observation: "ready",
-          invented: true,
-        })}`,
+        `computer advance ${JSON.stringify({ arguments: { steps: 3, invented: true } })}`,
         value.context,
       ),
-    ).rejects.toThrow("unsupported fields");
+    ).rejects.toThrow("unsupported arguments");
+
+    await expect(
+      command.handler(
+        `computer configure ${JSON.stringify({ expected_state_sha256: "not-hex" })}`,
+        value.context,
+      ),
+    ).rejects.toThrow("exact lowercase SHA-256");
+
     expect(value.operations).toEqual([]);
   });
 
-  test("temporal selection stays read-only and task proposals stay host-owned", async () => {
-    const safe = harness();
-    const safeCommand = safe.commands.get("cassi")!;
-    await safeCommand.handler(
-      `temporal select ${JSON.stringify({
-        memory_id: "release-flow",
-        skill_ids: ["open-skill"],
-        operations: [{
-          action: "open",
-          authorized: true,
-          feasible: true,
-          represented_forbidden: false,
-        }],
-      })}`,
-      safe.context,
-    );
-    await safeCommand.handler(
-      `temporal propose-task ${JSON.stringify({
-        task_id: "release-task",
-        allowed_actions: [{ participant_id: "operator", action: "open" }],
-      })}`,
-      safe.context,
-    );
+  test("retired temporal and import commands are rejected with the current usage", async () => {
+    const value = harness();
+    const command = value.commands.get("cassi")!;
+    const usage =
+      "usage: /cassi [status|inspect|remember|correct|forget|pause|resume|recovery|computer <action> <json-object>]";
 
-    const unsafeProposal = harness(false, undefined, [], [], [], {
-      proposalAuthorized: true,
-    });
     await expect(
-      unsafeProposal.commands.get("cassi")!.handler(
-        `temporal propose-task ${JSON.stringify({
-          task_id: "release-task",
-          allowed_actions: [{ participant_id: "operator", action: "open" }],
-        })}`,
-        unsafeProposal.context,
-      ),
-    ).rejects.toThrow("did not preserve host execution authority");
-
-    const mutableSelection = harness(false, undefined, [], [], [], {
-      selectionMutable: true,
-    });
+      command.handler(`temporal configure ${JSON.stringify({})}`, value.context),
+    ).rejects.toThrow(usage);
     await expect(
-      mutableSelection.commands.get("cassi")!.handler(
-        `temporal select ${JSON.stringify({
-          memory_id: "release-flow",
-          skill_ids: ["open-skill"],
-          operations: [{
-            action: "open",
-            authorized: true,
-            feasible: true,
-            represented_forbidden: false,
-          }],
-        })}`,
-        mutableSelection.context,
-      ),
-    ).rejects.toThrow("not a read-only field selection");
-  });
+      command.handler("import preview omp-session project fixture.jsonl", value.context),
+    ).rejects.toThrow(usage);
+    await expect(command.handler(`import commit ${PREVIEW}`, value.context)).rejects.toThrow(usage);
 
-  test("import preview is non-mutating and commit requires direct confirmation", async () => {
-    const canceled = harness(false);
-    const command = canceled.commands.get("cassi")!;
-    await command.handler("import preview omp-session project fixture.jsonl", canceled.context);
-    await command.handler(`import commit ${PREVIEW}`, canceled.context);
-    expect(canceled.operations.map(row => row.operation)).toEqual(["import_preview"]);
-
-    const approved = harness(true);
-    const approvedCommand = approved.commands.get("cassi")!;
-    await approvedCommand.handler("import preview omp-session project fixture.jsonl", approved.context);
-    await approvedCommand.handler(`import commit ${PREVIEW}`, approved.context);
-    expect(approved.operations.map(row => row.operation)).toEqual([
-      "import_preview",
-      "import_commit",
-    ]);
-    expect(approved.operations[1]?.request.preview_id).toBe(PREVIEW);
+    expect(value.operations).toEqual([]);
   });
 });

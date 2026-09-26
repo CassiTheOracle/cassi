@@ -117,6 +117,11 @@ def package_release(destination: Path) -> dict[str, Any]:
     runtime = verify_runtime(ROOT / "fi-runtime")
     runtime_manifest = runtime["manifest"]
     runtime_manifest_sha256 = _sha256(ROOT / "fi-runtime" / "runtime-manifest.json")
+    # Exercising the runtime writes Python bytecode caches next to the modules. They
+    # are not source, npm keeps them when a directory is listed in `files`, and the
+    # allowlist check below rejects them, so prune them before packing.
+    for cache in list((ROOT / "fi-runtime").rglob("__pycache__")) + list((ROOT / "src").rglob("__pycache__")):
+        shutil.rmtree(cache, ignore_errors=True)
     upstream_path = ROOT / "host" / "upstream-18.1.10.json"
     upstream = json.loads(upstream_path.read_text(encoding="utf-8"))
     pinned_package = upstream["package"]

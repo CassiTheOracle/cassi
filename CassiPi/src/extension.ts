@@ -10,10 +10,6 @@ import {
   OWNER_ID,
   PROTOCOL_ID,
   canonicalJson,
-  assertHostOwnedProposal,
-  decodeTemporalMutationResult,
-  decodeTemporalReadResult,
-  decodeTemporalSelectionResult,
   decodeLifecycleCancel,
   decodeLifecycleCommit,
   decodeLifecyclePending,
@@ -37,34 +33,10 @@ import {
   type OwnerStatus,
   type ProjectionResult,
 } from "./protocol.js";
-import { CassiPiOwnerError, CassiPiWorkerClient, type WorkerClientOptions } from "./worker-client.js";
+import { CassiPiOwnerError, CassiPiWorkerClient, traceOwnerEvent, type WorkerClientOptions } from "./worker-client.js";
 
 type EventHandler = (event: unknown, context: ExtensionContext) => unknown | Promise<unknown>;
 type MemoryScope = "task" | "branch" | "project" | "profile";
-type TemporalCommandName =
-  | "acknowledge-task"
-  | "advance"
-  | "bind"
-  | "compose-task"
-  | "configure"
-  | "inquire"
-  | "inspect"
-  | "inspect-task"
-  | "learn"
-  | "propose-task"
-  | "register-skill"
-  | "reset"
-  | "select";
-
-interface TemporalCommandSpec {
-  operation: string;
-  schema: string;
-  required: readonly string[];
-  optional: readonly string[];
-  mutation: boolean;
-  hostOwnedProposal?: boolean;
-  readOnlySelection?: boolean;
-}
 
 
 interface TypeBoxBuilder {
@@ -361,154 +333,116 @@ function memoryToolParameters(type: TypeBoxBuilder): unknown {
     closed,
   );
 }
-const TEMPORAL_COMMAND_SPECS: Record<TemporalCommandName, TemporalCommandSpec> = {
-  "acknowledge-task": {
-    operation: "acknowledge_temporal_task",
-    schema: "cassipi.acknowledge-temporal-task.v1",
-    required: ["task_id", "proposal_id", "participant_id", "action", "observation"],
-    optional: ["expected_state_sha256"],
-    mutation: true,
-  },
-  advance: {
-    operation: "advance_temporal",
-    schema: "cassipi.advance-temporal.v1",
-    required: ["memory_id", "action", "observation"],
-    optional: ["participant_id", "expected_state_sha256"],
-    mutation: true,
-  },
-  bind: {
-    operation: "bind_temporal",
-    schema: "cassipi.bind-temporal.v1",
-    required: ["memory_id", "participant_id"],
-    optional: ["known_start", "expected_state_sha256"],
-    mutation: true,
-  },
-  "compose-task": {
-    operation: "compose_temporal_task",
-    schema: "cassipi.compose-temporal-task.v1",
-    required: ["task_id", "steps"],
-    optional: ["expected_state_sha256"],
-    mutation: true,
-    hostOwnedProposal: true,
-  },
-  configure: {
-    operation: "configure_temporal",
-    schema: "cassipi.configure-temporal.v1",
-    required: ["memory_id", "action_ids", "observation_ids"],
-    optional: ["max_states", "expected_state_sha256"],
-    mutation: true,
-  },
-  inquire: {
-    operation: "inquire_temporal",
-    schema: "cassipi.inquire-temporal.v1",
-    required: ["memory_id", "operations"],
-    optional: [
-      "participant_id",
-      "skill_id",
-      "goal_observations",
-      "horizon",
-      "max_nodes",
-      "forbidden_observations",
-    ],
-    mutation: false,
-  },
-  inspect: {
-    operation: "inspect_temporal",
-    schema: "cassipi.inspect-temporal.v1",
-    required: ["memory_id"],
-    optional: ["action", "skill_id", "participant_id"],
-    mutation: false,
-  },
-  "inspect-task": {
-    operation: "inspect_temporal_task",
-    schema: "cassipi.inspect-temporal-task.v1",
-    required: ["task_id"],
-    optional: [],
-    mutation: false,
-  },
-  learn: {
-    operation: "learn_temporal",
-    schema: "cassipi.learn-temporal.v1",
-    required: ["memory_id", "source"],
-    optional: ["expected_state_sha256"],
-    mutation: true,
-  },
-  "propose-task": {
-    operation: "propose_temporal_task",
-    schema: "cassipi.propose-temporal-task.v1",
-    required: ["task_id", "allowed_actions"],
-    optional: ["expected_state_sha256"],
-    mutation: true,
-    hostOwnedProposal: true,
-  },
-  "register-skill": {
-    operation: "condense_temporal_skill",
-    schema: "cassipi.condense-temporal-skill.v1",
-    required: ["memory_id", "skill_id", "goal_observations"],
-    optional: ["forbidden_observations", "expected_state_sha256"],
-    mutation: true,
-  },
-  reset: {
-    operation: "reset_temporal",
-    schema: "cassipi.reset-temporal.v1",
-    required: ["memory_id"],
-    optional: ["participant_id", "known_start", "expected_state_sha256"],
-    mutation: true,
-  },
-  select: {
-    operation: "select_temporal_action",
-    schema: "cassipi.select-temporal-action.v1",
-    required: ["memory_id", "skill_ids", "operations"],
-    optional: ["participant_id", "minimum_margin", "expected_state_sha256"],
-    mutation: false,
-    readOnlySelection: true,
-  },
-};
-
-function temporalCommandName(value: string): TemporalCommandName {
-  if (Object.hasOwn(TEMPORAL_COMMAND_SPECS, value)) return value as TemporalCommandName;
-  throw new CassiPiOwnerError(
-    "COMMAND_USAGE",
-    "usage: /cassi temporal <configure|learn|advance|reset|bind|register-skill|inspect|select|inquire|compose-task|inspect-task|propose-task|acknowledge-task> <json-object>",
-    400,
-  );
+interface ComputerActionSpec {
+  required: readonly string[];
+  optional: readonly string[];
 }
 
-function temporalCommandPayload(
-  command: TemporalCommandName,
+const COMPUTER_ACTION_SPECS: Record<string, ComputerActionSpec> = {
+  configure: { required: [], optional: ["profile", "resident_pages", "resource_limits"] },
+  load: { required: ["program"], optional: ["left", "right", "entry"] },
+  advance: { required: ["steps"], optional: [] },
+  submit: { required: ["kernel", "state"], optional: ["arguments", "kind", "steps"] },
+  call: {
+    required: ["call_id", "kernel", "return_binding"],
+    optional: [
+      "allowance",
+      "allowance_id",
+      "arguments",
+      "dependencies",
+      "expected_return",
+      "kind",
+      "request_identity",
+      "reservation",
+      "state",
+      "steps",
+    ],
+  },
+  "cancel-call": { required: ["call_id"], optional: [] },
+  invoke: { required: ["arguments"], optional: ["steps"] },
+  "invoke-settled": { required: ["arguments"], optional: ["steps", "reserve_fraction"] },
+  "authorized-invoke": { required: ["arguments", "grant", "scope", "target"], optional: ["steps"] },
+  restart: { required: [], optional: ["left", "right", "entry"] },
+  grow: { required: ["stack_capacity"], optional: ["max_steps", "relocate_regions"] },
+  solve: { required: ["source"], optional: ["budget", "learn", "method"] },
+  "continue-solve": { required: ["source"], optional: ["budget"] },
+  residency: { required: [], optional: [] },
+  circulation: { required: [], optional: [] },
+  communicate: { required: ["intent", "dispatch"], optional: ["event"] },
+  "cancel-communication": { required: ["event_id", "intent_sha256"], optional: [] },
+  resources: { required: [], optional: ["limits"] },
+  "adopt-paged": { required: ["resident_pages"], optional: [] },
+  "bind-method-inputs": { required: ["values"], optional: ["u32_words"] },
+  place: { required: ["pages", "tier"], optional: ["root_sha256", "max_pages", "continuation"] },
+  "enable-ngram": { required: ["model_id", "table_id"], optional: ["width", "rank"] },
+  "learn-ngram": { required: ["table_vector", "hidden", "feedback"], optional: [] },
+};
+
+const COMPUTER_READ_ONLY_ACTIONS: Record<string, true> = { resources: true, residency: true, circulation: true };
+
+function computerActionSpec(action: string): ComputerActionSpec {
+  const spec = COMPUTER_ACTION_SPECS[action];
+  if (!spec) {
+    throw new CassiPiOwnerError(
+      "INVALID_COMPUTER_COMMAND",
+      `unknown computer action '${action}'; allowed: ${Object.keys(COMPUTER_ACTION_SPECS).sort().join(", ")}`,
+      400,
+    );
+  }
+  return spec;
+}
+
+function computerCommandPayload(
+  action: string,
+  spec: ComputerActionSpec,
   text: string,
-): Record<string, Json> {
+): { argumentsValue: Record<string, Json>; computerId: string; expectedStateSha256: string | undefined } {
   let decoded: unknown;
   try {
     decoded = JSON.parse(text);
   } catch {
-    throw new CassiPiOwnerError(
-      "COMMAND_USAGE",
-      `/cassi temporal ${command} requires one valid JSON object`,
-      400,
-    );
+    throw new CassiPiOwnerError("COMMAND_USAGE", "usage: /cassi computer <action> <json-object>", 400);
   }
-  const payload = jsonRecord(decoded, `temporal ${command} payload`);
-  const spec = TEMPORAL_COMMAND_SPECS[command];
-  const unexpected = Object.keys(payload).filter(
-    key => !spec.required.includes(key) && !spec.optional.includes(key),
+  const command = jsonRecord(decoded, `computer ${action} command`);
+  const unexpectedTopLevel = Object.keys(command).filter(
+    key => key !== "arguments" && key !== "computer_id" && key !== "expected_state_sha256",
   );
-  if (unexpected.length > 0) {
+  if (unexpectedTopLevel.length > 0) {
     throw new CassiPiOwnerError(
-      "INVALID_TEMPORAL_COMMAND",
-      `temporal ${command} has unsupported fields: ${unexpected.sort().join(", ")}`,
+      "INVALID_COMPUTER_COMMAND",
+      `computer command has unsupported fields: ${unexpectedTopLevel.sort().join(", ")}`,
       400,
     );
   }
-  const missing = spec.required.filter(key => payload[key] === undefined);
+  if (command.arguments !== undefined && !isRecord(command.arguments)) {
+    throw new CassiPiOwnerError("INVALID_COMPUTER_COMMAND", "computer arguments must be an object", 400);
+  }
+  const argumentsValue = jsonRecord(command.arguments ?? {}, `computer ${action} arguments`);
+  const missing = spec.required.filter(key => argumentsValue[key] === undefined);
   if (missing.length > 0) {
     throw new CassiPiOwnerError(
-      "INVALID_TEMPORAL_COMMAND",
-      `temporal ${command} is missing required fields: ${missing.join(", ")}`,
+      "INVALID_COMPUTER_COMMAND",
+      `computer ${action} is missing required arguments: ${missing.join(", ")}`,
       400,
     );
   }
-  return payload;
+  const unexpectedArguments = Object.keys(argumentsValue).filter(
+    key => !spec.required.includes(key) && !spec.optional.includes(key),
+  );
+  if (unexpectedArguments.length > 0) {
+    throw new CassiPiOwnerError(
+      "INVALID_COMPUTER_COMMAND",
+      `computer ${action} has unsupported arguments: ${unexpectedArguments.sort().join(", ")}`,
+      400,
+    );
+  }
+  const computerId = command.computer_id === undefined
+    ? "main"
+    : requiredString(command.computer_id, "computer_id");
+  const expectedStateSha256 = command.expected_state_sha256 === undefined
+    ? undefined
+    : exactRevisionId(command, "expected_state_sha256");
+  return { argumentsValue, computerId, expectedStateSha256 };
 }
 
 function isAgentMessage(value: unknown): value is AgentMessage {
@@ -915,7 +849,6 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
   const cursors = new Map<string, Cursor>();
   const branchIds = new Map<string, string>();
   const pendingLifecycle = new Map<string, PendingLifecycle>();
-  const importPreviews = new Map<string, Json>();
   let pendingProjection: HostProjectionBinding | undefined;
   let lastProjectionReceipt: Record<string, Json> | undefined;
   let providerTurnSelection: ProviderTurnSelection | undefined;
@@ -2231,38 +2164,40 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
   function commandScope(value: string): MemoryScope {
     return memoryScopeField({ scope: value });
   }
-  async function runTemporalCommand(args: string, context: ExtensionContext): Promise<void> {
+  async function runComputerCommand(args: string, context: ExtensionContext): Promise<void> {
     const separator = args.search(/\s/u);
-    const command = temporalCommandName(separator < 0 ? args : args.slice(0, separator));
+    const action = separator < 0 ? args : args.slice(0, separator);
     const payloadText = separator < 0 ? "" : args.slice(separator).trim();
-    const spec = TEMPORAL_COMMAND_SPECS[command];
-    const payload = temporalCommandPayload(command, payloadText);
-    const request: Record<string, unknown> = {
-      schema: spec.schema,
-      ...payload,
-    };
-    if (spec.mutation) request.operation_id = `temporal-command:${randomUUID()}`;
-
-    const current = await scope(context);
-    const raw = await client.owner(
-      spec.operation,
-      request,
-      undefined,
-      authenticatedScope(current),
-    );
-    let result: Record<string, Json>;
-    if (spec.mutation) {
-      const mutation = decodeTemporalMutationResult(raw, `temporal ${command} result`);
-      if (spec.hostOwnedProposal) {
-        assertHostOwnedProposal(mutation.receipt, `temporal ${command} result`);
-      }
-      result = mutation;
-      pendingProjection = undefined;
-    } else if (spec.readOnlySelection) {
-      result = decodeTemporalSelectionResult(raw, `temporal ${command} result`);
-    } else {
-      result = decodeTemporalReadResult(raw, `temporal ${command} result`);
+    if (!action || !payloadText) {
+      throw new CassiPiOwnerError("COMMAND_USAGE", "usage: /cassi computer <action> <json-object>", 400);
     }
+    const spec = computerActionSpec(action);
+    const { argumentsValue, computerId, expectedStateSha256 } = computerCommandPayload(
+      action,
+      spec,
+      payloadText,
+    );
+    const current = await scope(context);
+    const request: Record<string, unknown> = { schema: "cassipi.computer.v1" };
+    if (!Object.hasOwn(COMPUTER_READ_ONLY_ACTIONS, action)) {
+      request.operation_id = `computer-${action}:${sha256(
+        canonicalJson({
+          profile_id: current.profileId,
+          project_id: current.projectId,
+          session_id: current.sessionId,
+          branch_id: current.branchId,
+          task_scope: current.taskScope,
+          action,
+          arguments: argumentsValue,
+          ...(expectedStateSha256 !== undefined ? { expected_state_sha256: expectedStateSha256 } : {}),
+        }),
+      )}`;
+    }
+    request.computer_id = computerId;
+    request.action = action;
+    request.arguments = argumentsValue;
+    if (expectedStateSha256 !== undefined) request.expected_state_sha256 = expectedStateSha256;
+    const result = await client.owner("computer", request, undefined, authenticatedScope(current));
     notifyJson(context, result);
   }
 
@@ -2270,8 +2205,8 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
   async function runCassiCommand(args: string, context: ExtensionContext): Promise<void> {
     const trimmed = args.trim();
     const [action = "status", ...rest] = trimmed ? trimmed.split(/\s+/u) : [];
-    if (action === "temporal") {
-      await runTemporalCommand(trimmed.slice(action.length).trim(), context);
+    if (action === "computer") {
+      await runComputerCommand(trimmed.slice(action.length).trim(), context);
       return;
     }
     if (action === "status") {
@@ -2464,97 +2399,9 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
       notifyJson(context, result);
       return;
     }
-    if (action === "import" && rest[0] === "preview") {
-      if (rest.length < 4) {
-        throw new CassiPiOwnerError(
-          "COMMAND_USAGE",
-          "usage: /cassi import preview <mnemic|thalamus|mnemopi|omp-session> <task|branch|project|profile> <path>",
-          400,
-        );
-      }
-      const adapter = rest[1] ?? "";
-      const memoryScope = memoryScopeField({ scope: rest[2] });
-      const pathText = rest.slice(3).join(" ");
-      const unquotedPath =
-        pathText.length >= 2
-        && (
-          (pathText.startsWith("\"") && pathText.endsWith("\""))
-          || (pathText.startsWith("'") && pathText.endsWith("'"))
-        )
-          ? pathText.slice(1, -1)
-          : pathText;
-      const current = await scope(context);
-      const preview = await client.owner(
-        "import_preview",
-        {
-          schema: "cassipi.import-preview.v1",
-          adapter,
-          source_path: resolve(context.cwd, unquotedPath),
-          memory_scope: memoryScope,
-          profile_id: current.profileId,
-          project_id: current.projectId,
-          session_id: current.sessionId,
-          branch_id: current.branchId,
-          task_scope: current.taskScope,
-        },
-        undefined,
-        authenticatedScope(current),
-      );
-      const previewId = requiredString(
-        isRecord(preview) ? preview.preview_id : undefined,
-        "import preview_id",
-      );
-      importPreviews.set(previewId, preview);
-      notifyJson(context, preview);
-      return;
-    }
-    if (action === "import" && rest[0] === "commit") {
-      const previewId = exactRevisionId({ preview_id: rest[1] }, "preview_id");
-      const preview = importPreviews.get(previewId);
-      if (!preview) {
-        throw new CassiPiOwnerError(
-          "IMPORT_PREVIEW_NOT_LOADED",
-          "run the matching /cassi import preview command in this process before committing",
-          409,
-        );
-      }
-      if (!context.hasUI) {
-        throw new CassiPiOwnerError(
-          "INTERACTIVE_APPROVAL_REQUIRED",
-          "legacy import commit requires direct interactive approval",
-          403,
-        );
-      }
-      const approved = await context.ui.confirm(
-        "Commit this Cassi memory import?",
-        canonicalJson(preview),
-      );
-      if (!approved) {
-        context.ui.notify("Cassi memory import canceled; no records were committed.", "info");
-        return;
-      }
-      const current = await scope(context);
-      const result = await client.owner(
-        "import_commit",
-        {
-          schema: "cassipi.import-commit.v1",
-          preview_id: previewId,
-          profile_id: current.profileId,
-          project_id: current.projectId,
-          session_id: current.sessionId,
-          branch_id: current.branchId,
-          task_scope: current.taskScope,
-        },
-        undefined,
-        authenticatedScope(current),
-      );
-      pendingProjection = undefined;
-      notifyJson(context, result);
-      return;
-    }
     throw new CassiPiOwnerError(
       "COMMAND_USAGE",
-      "usage: /cassi [status|inspect|remember|correct|forget|pause|resume|recovery|temporal <operation> <json-object>|import preview|import commit]",
+      "usage: /cassi [status|inspect|remember|correct|forget|pause|resume|recovery|computer <action> <json-object>]",
       400,
     );
   }
@@ -2593,10 +2440,15 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
     api.on("context", async (event, context) =>
       serialize(async () => {
         try {
+          traceOwnerEvent("hook:context:enter");
           const projected = await projectMessages(context, contextMessages(event));
           pendingProjection = projected.binding;
+          traceOwnerEvent("hook:context:exit", { messages: projected.messages.length });
           return { messages: projected.messages, ownerProjection: projected.binding };
         } catch (error) {
+          traceOwnerEvent("hook:context:error", {
+            code: error instanceof CassiPiOwnerError ? error.code : error instanceof Error ? error.name : String(error),
+          });
           pendingProjection = undefined;
           throw errorWithCode(error);
         }
@@ -2604,6 +2456,7 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
     );
 
     api.on("before_provider_request", event => {
+      traceOwnerEvent("hook:before_provider_request", { projected: pendingProjection !== undefined });
       if (!pendingProjection) {
         throw new CassiPiOwnerError("OWNER_PROJECTION_MISSING", "provider request has no fresh FI projection", 409);
       }
@@ -2624,6 +2477,11 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
           ...agentMessages(preparation.messagesToSummarize, "compaction messagesToSummarize"),
           ...agentMessages(preparation.turnPrefixMessages, "compaction turnPrefixMessages"),
         ];
+        traceOwnerEvent("hook:before_compact:enter", {
+          reason: stringField(event, "reason") ?? "compact",
+          messages: messages.length,
+          budget: compactionTokenBudget(context, preparation),
+        });
         const rewrite = await prepareFieldRewrite(
           context,
           "compact",
@@ -2632,6 +2490,7 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
           stringField(event, "reason") ?? "compact",
           abortSignal(event),
         );
+        traceOwnerEvent("hook:before_compact:exit", { rewrite: rewrite !== undefined });
         if (!rewrite) return { cancel: true };
         const tokensBefore = requiredInteger(preparation.tokensBefore, "compaction tokensBefore");
         if (tokensBefore < 0) throw new CassiPiOwnerError("INVALID_HOST_EVENT", "compaction tokensBefore is negative", 409);
@@ -2647,7 +2506,12 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
       }),
     );
     api.on("session_compact", (_event, context) =>
-      serialize(() => commitLifecycle(context, pendingForKind("compact"))),
+      serialize(async () => {
+        traceOwnerEvent("hook:compact:enter");
+        const committed = await commitLifecycle(context, pendingForKind("compact"));
+        traceOwnerEvent("hook:compact:exit");
+        return committed;
+      }),
     );
 
     api.on("session_before_handoff", (event, context) =>
