@@ -1338,6 +1338,28 @@ python cassi_field_foundry.py report cassitheory
 python cassi_field_foundry.py prune cassitheory --keep 2
 ```
 
+## The thinking field
+
+`cassi_thinking_field.py` is the field that joins thinking cells into one
+organism. Each cell is a site, and each idea the organism holds is a mode
+present at every site as a Yang/Yin density pair. Three processes run on it.
+Conversion at each site follows the canonical law: the imbalance
+`E_Y - φE_I` relaxes at rate `λ(1-q)(1+φ)` with the density conserved, gated
+by the canonical Qi diagnostic. Circulation moves Yang forward along every
+directed synapse and Yin backward, each cell passing exactly what its
+neighbour receives, so a ring gives a counter-current loop and any directed
+graph gives a larger brain under the same law. Fading removes a small uniform
+fraction per unit time, so an idea no cell keeps feeding dims away, and
+`forget` removes a faded idea's mode.
+
+Cells act on the field only by depositing Yang or Yin at their own site or by
+draining it. The readouts are measurements of the state: `churn` is the local
+conversion power, showing where the field is still working something out;
+`resonance` is the geometric mean of an idea's Qi over every cell, high only
+when every cell holds the idea densely and in golden balance; and the field is
+at rest when no site churns. `to_json`, `save`, and `load` persist the complete
+state. `../CassiQwen/cassi_thinking_brain.py` runs brain-backed neurons on it.
+
 ## Active implementation
 
 The canonical runtime is a CPU/float64 regional field computer. Individual
@@ -1384,6 +1406,7 @@ do not own a second adaptive runtime. This repository root contains:
 | [`verify_computation_policy_scenario.py`](verify_computation_policy_scenario.py) | Independent v4 context, selection, row, policy, reload, slice, aggregate, and mutation verifier |
 | [`cassi_variational_field.py`](cassi_variational_field.py) | Variational state codec, bounded regional transition, and standalone numerical reference |
 | [`cassi_resonant_field.py`](cassi_resonant_field.py) | Seven-pool state codec, reversible helical packet basis, bounded packet impulses, regional wave transition, and frozen L-parent register/application (`write_parent_registers`, `freeze_parent`, `read_frozen_parent`, `apply_frozen_parent_to_child`, `recompute_parent_summary_from_child`) |
+| [`cassi_emergent_field.py`](cassi_emergent_field.py) | Two-fluid field whose own medium density adapts to Qi intensity, and the brain's note codec: ideas are the field's standing notes, links are the medium imprint left by two notes played at one pitch, and recall subtracts blank physics before listening for the partner note. `note_codebook` picks notes that cannot make one another sound except through a stored link |
 | [`cassi_field_transceiver.py`](cassi_field_transceiver.py) | Temporal-realization state codec, compact/full execution, error bounds, and regional transition |
 | [`cassi_temporal_field.py`](cassi_temporal_field.py) | Predictive-state, skill, evidence-revision, and policy regional transition |
 | [`cassi_temporal_inquiry.py`](cassi_temporal_inquiry.py) | Bounded observation-contingent inquiry regional transition |
