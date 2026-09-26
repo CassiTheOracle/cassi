@@ -7,7 +7,7 @@ clause-field solver are rejected as routes to `P = NP`. These are
 mechanism-level results, not a proof that `P != NP` and not a claim that every
 Cassi-inspired algorithm must fail.
 
-The investigation and beyond-resolution continuation produced twenty-four useful
+The investigation and beyond-resolution continuation produced thirty useful
 results:
 
 1. the fixed-source Cassi two-fluid field has an exact gapless/gapped
@@ -181,6 +181,24 @@ results:
     there are zero rank-two/distinct eligible pairs. This is a targeted
     extension-domain null, not the complete order-ten symmetry cover or an
     arbitrary-order theorem.
+29. a complete isomorphism census of connected simple cubic formulas through
+    order fourteen (`4,186,557` classes) finds the first nondegenerate
+    exclusive pairs at order thirteen and closes the Result AD fork: the
+    degeneracy closure holds through order twelve and fails at thirteen. All
+    `29` cells in `15` formulas are opposite edges of an M(K4) class geometry
+    whose width-two frames are exactly its K4 stars. Four stars give an
+    affine port relation; one order-fourteen formula keeps three stars and
+    realizes one-in-three, so width-two frame relations are not confined to a
+    Schaefer-tractable class. No cell is admissible under the Result V
+    certificate, because two stars always differ by two exchanges.
+30. double-switch joins of the three-star and four-star census cells
+    (`3,834,684` composites) couple `765,720` always-star core pairs only
+    by independence (`576,256`) or a welding bijection (`189,464`). Single-bit
+    readers appear only when a gadget loses its core, and in `2,538,032`
+    relay composites a reader never passes its bit to a second one-in-three
+    core. All measured core couplings are 0/1/all constraints, a tractable
+    constraint class, so the measurements point toward polynomial
+    width-two frame recognition rather than a one-in-three SAT encoding.
 
 The first two results make the CassiCosmos boundary unusually clear. Its
 isolated field is an auditable linear signal processor. Combinatorial search
@@ -2891,6 +2909,178 @@ subset. The standard-library verifier imports neither the targeted runner nor
 the production kernel; it independently reconstructs source joins, generation,
 exact bases, pair records, digests, aggregate denominators, and assessment.
 
+### Result AE—the complete census through order fourteen finds K4-star cells from order thirteen
+
+Result AE replaces the targeted extension domain with a complete isomorphism
+census. For every order `n` from `6` to `14`, nauty `genbg` `2.8.8` lists each
+connected simple bipartite graph with `n` variable and `n` clause vertices,
+all of degree three and with pairwise-distinct clause neighbourhoods, once per
+isomorphism class that preserves the two sides. A formula reaches the exact
+analysis when its GF(2) and GF(p) nullities are both at least three. Each
+modular nullity bounds the rational nullity from above, so the screen drops no
+target. Every target receives an exact rational class-frame profile: kernel
+columns grouped into projective classes, every width-two class frame, every
+exclusive pair, and the dual-parallel and primal-twin tests of Results AA-AD.
+A **cell** is an exclusive pair that is neither dual-parallel nor a primal
+twin, the rank-two/distinct eligible pair of Results Y-AD.
+
+| order | classes | targets | exclusive pairs | dual-parallel | primal twins | cells | cell formulas |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| `6` | `4` | `0` | `0` | `0` | `0` | `0` | `0` |
+| `7` | `10` | `0` | `0` | `0` | `0` | `0` | `0` |
+| `8` | `32` | `0` | `0` | `0` | `0` | `0` | `0` |
+| `9` | `147` | `5` | `10` | `3` | `7` | `0` | `0` |
+| `10` | `822` | `1` | `3` | `3` | `3` | `0` | `0` |
+| `11` | `5,551` | `5` | `13` | `13` | `13` | `0` | `0` |
+| `12` | `43,833` | `632` | `773` | `154` | `667` | `0` | `0` |
+| `13` | `386,935` | `357` | `744` | `658` | `732` | `6` | `3` |
+| `14` | `3,749,223` | `2,546` | `5,277` | `4,916` | `5,232` | `23` | `12` |
+
+A pair can be both dual-parallel and a primal twin, so those columns overlap.
+The census agrees with the earlier covers where they meet: the five order-nine
+target classes are exactly the canonical classes of the `1,402` Result Z
+targets, and the single order-ten target class is the class of the twelve
+nullity-three Result AD candidates. The degeneracy closure of Results AA-AD
+therefore holds through order twelve and fails at order thirteen; there is no
+arbitrary-order proof to find.
+
+All `15` cell formulas share one mechanism. Each has nullity three, and its
+class geometry contains four lines of at least three classes that meet
+pairwise in six distinct classes, a copy of M(K4): the six meets are the edges
+of K4 and the four lines are its triangles. The width-two frames are exactly
+the K4 stars, the three edges at one vertex, taken at the vertices whose star
+covers every class. In a star, each remaining edge closes a triangle with two
+star edges; every other spanning tree of K4 leaves a four-cycle. Every cell is
+a pair of opposite K4 edges. A star contains exactly one edge of each of the
+three perfect matchings of K4, so opposite edges are exclusive automatically,
+and they are nondegenerate because their kernel columns are independent and
+their primal columns differ.
+
+Each matching therefore carries one port bit: which of its two edges the frame
+contains. The four stars form the even-parity code on the three bits, and
+`14` of the `15` formulas keep all four stars with an affine port relation. The
+order-fourteen formula with SHA-256 prefix `da277dcc` carries a seventh class
+on one K4 line. The star that omits that line leaves the class uncovered, so
+three stars survive. Three points of the even-parity code are the one-in-three
+relation after flipping one port, and the census finds no Schaefer closure for
+it: frame relations of cubic incidence duals are not confined to a tractable
+Schaefer class.
+
+The Result V certificate rejects all `29` census cells: every exchange graph
+is disconnected, both truth fibres are disconnected, and no single exchange
+flips the truth state. The star geometry forces this, because two stars share
+exactly one edge and every pair of frames differs by two exchanges. All `15`
+cell formulas are unsatisfiable as exact-one formulas, and each cell formula's
+class-frame expansion equals the production width-two basis census.
+
+One Result AD matching-extension step from the twelve order-fourteen cell
+formulas reaches `95,182` distinct order-fifteen children in `16,657`
+isomorphism classes. `2,226` are targets and `163` carry `326` cells. Each of
+the `163` again has nullity three and frames equal to the surviving stars of
+an M(K4) core: `146` keep two stars and `17` keep four. `127` of the two-star
+formulas are satisfiable, each with one exact-one solution; the other `36` are
+unsatisfiable. All `163` port relations are affine and none of the `326` cells
+is admissible.
+
+The exclusive-pair width barrier of cubic incidence duals is thus the K4-star
+mechanism wherever it has been measured. The admissible-cell interface of
+Result V cannot use it, because star frames never differ by one exchange. The
+three-star gadget opens a different route. If star gadgets can be joined with
+local port couplings, width-two frame recognition encodes one-in-three SAT and
+is NP-complete; if every coupling stays affine or functional, the star
+geometry may instead give a polynomial recognizer.
+
+Reproduce from `CassiFI` with:
+
+```powershell
+python run_cubic_cell_census_probe.py --orders 6-14 --extend-levels 1
+```
+
+The census needs nauty in the `Ubuntu-24.04` WSL distribution. Order fourteen
+costs `47,224` CPU-seconds across `64` `genbg` residue classes; the slices are
+cached under `CassiFI/_diag/cubic_cell_census/`.
+
+### Result AF—star cells couple by independence or welding, never by one bit
+
+Result AF tests the coupling question of Result AE on two census cell
+formulas: `G3`, the order-fourteen three-star formula `da277dcc`, whose frames
+realize one-in-three on its three ports, and `Q13`, the order-thirteen
+four-star formula with the smallest formula digest, whose frames realize even
+parity. For each gadget pair the probe applies every double switch that
+trades two incidence edges of one gadget with two of the other. A switch keeps
+every row and column at weight three, so each composite is again a simple
+cubic formula. Frames come from the class search in arithmetic modulo
+`2^61 - 1`, and the exact rational profile of the census runner reproduces
+all `1,470` stored example rows.
+
+| gadgets | composites | no frame | product | bijection | function | partial |
+|---|---:|---:|---:|---:|---:|---:|
+| `G3 x G3` | `1,474,746` | `541,406` | `889,932` | `42,400` | `864` | `144` |
+| `G3 x Q13` | `1,268,640` | `257,272` | `947,394` | `63,704` | `232` | `38` |
+| `Q13 x Q13` | `1,091,298` | `108,016` | `917,964` | `65,100` | `204` | `14` |
+
+The kind columns classify the relation the frames induce between the two
+gadgets' port states: independent sides (product), each side determining the
+other (bijection), one side determining the other (function), or neither
+(partial).
+
+The K4 cores give the sharper count. The `2,927,990` composites with a frame
+contain `765,720` pairs of cores that are stars in every frame. Their centres
+are independent in `576,256` pairs and locked by a bijection in `189,464`; no
+other relation occurs. A double switch either leaves two star cores
+independent or welds them to one shared centre. Welding also manufactures
+one-in-three from parity: in `63,360` `Q13 x Q13` composites each four-star
+core keeps three stars and the two cores are locked together.
+
+A single-bit relation appears only where a gadget loses its core. In `14`
+composites one gadget becomes a two-state **reader** whose state is one port
+bit of the other gadget's intact core; in two `G3 x Q13` composites the
+reader follows a bit of the intact one-in-three core. Partial relations never
+join two star cores. All `68` partial composites with altered port states
+keep either one star core or two with independent centres, so their ports no
+longer follow a core. The `128` partial composites with both gadgets inside
+their own states are two-fans, `a = a0` or `b = b0`, between two-state
+remnants, and in every stored example none of the six K4 cores stays a star
+in every frame.
+
+The chain stage asks whether a reader relays its bit. Both `G3 x Q13` reader
+composites receive a fresh `G3` by every double switch between a pair of
+edges in the reader's rows and an ordered pair of `G3` edges: `2,538,032`
+composites, `2,159,880` with a frame, and `364/364` stored rows exactly
+rechecked. The two `G3` cores are independent in all `2,159,880`. While the
+reader follows the first core (`1,756,572` composites) the new core ignores
+it; the `672` composites in which the reader couples to the new core are
+exactly those in which it no longer follows the first. A reader serves one
+core.
+
+Every measured relation between intact star cores is complete, a permutation,
+or a two-fan: the 0/1/all constraints of
+[Cooper, Cohen, and Jeavons](https://www.sciencedirect.com/science/article/abs/pii/0004370294900213).
+Constraint problems built from these relations are solvable in polynomial
+time, and any binary relation outside the class, closed under relabeling,
+gives NP-complete problems. The reader lies outside the class but does not
+compose in the measured topology. The three-star gadget thus supplies
+one-in-three clauses with no measured way to share a variable between them,
+and the couplings point toward polynomial recognition. They also match the
+tree 2-spanner theorem of
+[Cai and Corneil](https://doi.org/10.1137/S0895480192237403): a nonseparable
+graph has a tree 2-spanner exactly when some spanning tree meets each
+triconnected component in a spanning star. The matroid counterpart splits
+the kernel matroid along 2-separations into 3-connected components; welded
+cores share a component and independent cores are separated.
+
+This is a finite census of two gadgets, one double switch per join and one
+relay topology. It is neither a recognition theorem nor a hardness proof.
+
+Reproduce from `CassiFI` with:
+
+```powershell
+python run_cubic_cell_coupling_probe.py
+```
+
+With `16` workers the pair stage takes about `950` s and the chain stage
+about `1,440` s.
+
 
 > The ground-set frame question for cubic incidence duals is decidable without
 > free-subset enumeration, and connected chains of the two width-three controls
@@ -2951,10 +3141,18 @@ compression attempts now have precise outcomes. The next work is:
    and a width-two basis, and every deterministic recursive path reaches one
    of four constructive family-level terminal structures in at most two
    further steps. No population case has a behavior signature absent from its
-   representative. The remaining fork is arbitrary-order: prove the
-   degeneracy-and-quotient closure, or falsify it with a targeted canonical
-   order-ten nondegenerate-exclusive search. Another unconditioned random
-   sample is not.
+   representative. Result AE settles that arbitrary-order fork: the complete
+   census through order fourteen holds the closure through order twelve and
+   breaks it at thirteen with K4-star cells. Result AF finds those cells
+   coupling under double switches only by independence, welding, two-fans,
+   and one-core readers, all tractable in the measured topologies. The next
+   decisive test is the matroid form of the Cai–Corneil theorem: split every
+   target's kernel matroid along 2-separations, enumerate the width-two
+   frames of each 3-connected component, and recombine them by the 2-sum
+   rule. Agreement with the exact frame sets together with a polynomial
+   bound on the frames of a 3-connected component would give polynomial
+   recognition; a 3-connected component with superpolynomially many frames,
+   or a reader that relays, reopens the one-in-three hardness route.
 2. **Move beyond one uniform matchgate basis.** Test whether locally varying
    edge gauges, bounded-size equality gadgets, higher-dimensional signatures,
    or non-matchgate determinant identities can aggregate the correlated
@@ -3083,6 +3281,8 @@ python -m pytest test_cubic_exclusive_width_barrier_probe.py -q
 python run_cubic_lift_realization_probe.py
 python verify_cubic_lift_realization_probe.py _diag/cubic_lift_realization_probe.json
 python -m pytest test_cubic_lift_realization_probe.py -q
+python run_cubic_cell_census_probe.py --orders 6-14 --extend-levels 1
+python run_cubic_cell_coupling_probe.py
 ```
 
 The raw receipt is `_diag/p_vs_np_probe.json`. The verifier checks the frozen
@@ -3340,6 +3540,23 @@ runner nor the production kernel implementation; it independently rebuilds
 the source cover, exact bases, pair categories, canonicalization, controls,
 digests, and aggregates.
 
+The cubic cell-census receipt is `CassiFI/_diag/cubic_cell_census_probe.json`.
+It is schema `cassifi.cubic-cell-census-probe.v1` and records the nauty
+commands and version, the per-order accounting of classes, modular screens,
+targets, nullities, exclusive pairs, degeneracy categories and cells, and a
+full profile of every cell formula: class geometry, class frames, M(K4) core,
+port relation with Schaefer tags, exact-one solution count, production
+width-two basis agreement, and Result V admissibility verdicts. The extension
+stage records its parent, child, class and target accounting with the same
+profile for every order-fifteen cell formula.
+
+The cubic cell-coupling receipt is `CassiFI/_diag/cubic_cell_coupling_probe.json`.
+It is schema `cassifi.cubic-cell-coupling-probe.v1`, binds the census receipt
+by SHA-256, and records both gadget formulas, every pair-stage outcome with
+its nullity, frame count, cross-class count and port relation, the K4 core
+classes with their centre relations, the chain-stage outcomes for both reader
+bases, and the exact rational recheck of every stored row.
+
 ## Primary references
 
 - [Clay Mathematics Institute: P versus NP](https://www.claymath.org/millennium/p-vs-np/)
@@ -3365,4 +3582,5 @@ digests, and aggregates.
 - [Geelen: Recognizing Frame Matroids—matrix-algorithm abstract](https://uwaterloo.ca/combinatorics-and-optimization/events/tutte-colloquium-jim-geelen)
 - [Seymour: Recognizing Graphic Matroids](https://doi.org/10.1007/BF02579179)
 - [Cai and Corneil: Tree Spanners](https://doi.org/10.1137/S0895480192237403)
+- [Cooper, Cohen, and Jeavons: Characterising Tractable Constraints](https://www.sciencedirect.com/science/article/abs/pii/0004370294900213)
 - [Otachi, Bodlaender, and van Leeuwen: Complexity Results for the Spanning Tree Congestion Problem](https://ics-archive.science.uu.nl/research/techreps/repo/CS-2010/2010-007.pdf)
