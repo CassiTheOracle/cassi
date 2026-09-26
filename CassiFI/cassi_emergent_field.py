@@ -1,4 +1,4 @@
-"""Emergent two-fluid field memory: a large vocabulary of chords and sequences.
+"""Emergent two-fluid field memory: chords over every note the lattice owns.
 
 The field holds the memory; the brain is a mathematical machine that encodes
 into the field and decodes out of it.
@@ -6,32 +6,49 @@ into the field and decodes out of it.
 Field.  The canonical Yang/Yin pair runs on a medium whose density ``rho``
 belongs to the field itself:
 
-    rho (Y'' + gamma Y') = lap Y - w^2 (Y - phi I) + drive
-    rho (I'' + gamma I') = lap I + w^2 (Y - phi I)
+    rho (Y'' + gamma Y') = lap Y - omega^2 (Y - phi I) + drive_Y
+    rho (I'' + gamma I') = lap I + omega^2 (Y - phi I) + drive_I
+
+The pair splits exactly into two waves.  Their sum, the Qi wave S = Y + I,
+feels no coupling at all:
+
+    rho (S'' + gamma S') = lap S + drive_Y + drive_I
+
+Their imbalance eps = Y - phi I is the counterflow, a wave with mass
+omega phi: rho (eps'' + gamma eps') = lap eps - omega^2 phi^2 eps + drive_Y - phi drive_I.
+The brain drives Yang and Yin in golden proportion, drive_Y = phi drive_I, so
+the counterflow is never excited: eps stays exactly zero, the pair moves as
+one Qi wave with Y = S / phi and I = S / phi^2, and the field steps S alone.
 
 Where Qi intensity gathers the medium thickens, and it relaxes without it:
 
-    rho' = eta * <S^2> / (<S^2> + I_half) * (rho_max - rho) - mu * (rho - 1),   S = Y + I
+    rho' = eta * <S^2> / (<S^2> + I_half) * (rho_max - rho) - mu * (rho - 1)
+
+Many chords may sound at once, each on its own Qi wave over the one medium;
+the medium hears the sum of their intensities, and far below its saturation
+that is exactly what playing them one after another would leave.
 
 On a blank medium the field's standing waves (its notes) are exact and never
-mix: psi_k = prod_axis cos(pi k_axis (x_axis + 1/2) / n).  Nothing else is coded.
+mix: psi_k = prod_axis cos(pi k_axis (x_axis + 1/2) / n), one note per cell.
+Driven at the pitch w, a note of stiffness lambda resonates at lambda = w^2.
+Every other note answers cleanly, so the brain plays all of them.  Nothing
+else is coded.
 
-Brain.  An idea is a chord: a blend of every note below the shared pitch with
-random phases, shaped so its brightness |S(x)|^2 is nearly even across the
-field.  Two chords A and B played together at one pitch leave
+Brain.  An idea is a chord: a blend of every clean note with random phases,
+shaped so its brightness |S(x)|^2 is nearly even across the field.  Two
+chords A and B played together at one pitch leave
 |A|^2 + |B|^2 + 2 Re(A conj B) in the medium; the even self terms only retune
 each note in place, so the imprint that couples notes is the link itself.
-The medium couples notes through K_km = integral (rho - 1) psi_k psi_m, and K
+The medium couples notes through K_km = sum_x (rho - 1) psi_k psi_m, and K
 is the memory.
 
 To read, the brain bows a chord (a smooth swell, so the field does not ring),
-listens to both fluids note by note, and inverts the known physics exactly:
-it subtracts the blank response and undoes each note's own 2x2 Yang/Yin
-transfer, both measured once on a blank field like tuning an instrument.
+listens to the Qi wave note by note, and inverts the known physics exactly:
+it subtracts the blank response and divides by each note's own answer to the
+drive, both measured once on a blank field like tuning an instrument.
 What remains is K applied to the chord, which carries |A|^2 B = B for a
-stored link.  Random chords are nearly orthogonal, so decoding is a
-correlation against the chords the brain can name, and capacity grows with
-the number of notes, i.e. with the field's volume.
+stored link.  Random chords over N notes overlap by about 1/sqrt(N), so the
+number of links a field holds grows with N, i.e. with its number of cells.
 
 Sequences.  Each idea owns two chords, one it sends with and one it receives
 with.  A step a -> b is stored by playing a's sending chord with b's receiving
@@ -43,20 +60,16 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import itertools
 import json
 import math
 import os
 import time
-from collections import Counter
+from collections import Counter, OrderedDict
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterator, Mapping, Sequence
 
 import torch
-
-PHI = (1.0 + math.sqrt(5.0)) / 2.0
-STATE = ("Y", "I", "vY", "vI", "rho", "S2")
 
 
 @dataclass(frozen=True)
@@ -64,7 +77,6 @@ class EmergentProfile:
     dims: int = 3
     size: int = 64
     dt: float = 0.25
-    omega2: float = 1.0
     gamma: float = 0.01
     pitch: float = 2.0
     eta: float = 0.0002
@@ -73,6 +85,9 @@ class EmergentProfile:
     rho_max: float = 3.0
     mu: float = 0.000001
     onset: float = 50.0
+    # A note is clean when its Qi answer to the drive stays within this gain of resonance.
+    clean_gain: float = 4.0
+    dtype: str = "float32"
     device: str = "cpu"
 
 
@@ -92,144 +107,134 @@ def _envelope(t: float, onset: float) -> float:
     return 1.0 if t >= onset else math.sin(0.5 * math.pi * t / onset) ** 2
 
 
+def _complex(real: torch.dtype) -> torch.dtype:
+    return torch.complex64 if real == torch.float32 else torch.complex128
+
+
 class EmergentField:
-    """One continuing field; its entire adaptive state is the tensors in ``STATE``."""
+    """One continuing medium; its entire adaptive state is ``imprint``.  The Qi wave is silent between plays.
+
+    ``imprint`` is the medium's thickening rho - 1: what it holds.  Keeping it
+    apart from the blank density leaves every digit of the float to the memory.
+    """
 
     def __init__(self, profile: EmergentProfile = EmergentProfile()) -> None:
         self.p = profile
-        shape, dev = (profile.size,) * profile.dims, torch.device(profile.device)
-        for name in STATE:
-            setattr(self, name, torch.zeros(shape, dtype=torch.float64, device=dev))
-        self.rho += 1.0
+        self.imprint = torch.zeros((profile.size,) * profile.dims, dtype=getattr(torch, profile.dtype),
+                                   device=torch.device(profile.device))
         self.t = 0.0
 
-    def step(self, steps: int, drive: torch.Tensor | None = None, plastic: bool = True) -> None:
-        """Advance the live field under a complex phasor drive ``D`` (physical drive Re(D e^{i w t}))."""
-        p, dt, w, d = self.p, self.p.dt, self.p.pitch, self.p.dims
-        Y, I, vY, vI = (x.unsqueeze(0) for x in (self.Y, self.I, self.vY, self.vI))
-        for i in range(steps):
-            eps = Y - PHI * I
-            force = _lap(Y, d) - p.omega2 * eps
-            if drive is not None:
-                env = _envelope(i * dt, p.onset)
-                force = force + env * (drive.real * math.cos(w * self.t) - drive.imag * math.sin(w * self.t))
-            vY += dt * (force / self.rho - p.gamma * vY)
-            vI += dt * ((_lap(I, d) + p.omega2 * eps) / self.rho - p.gamma * vI)
-            Y += dt * vY
-            I += dt * vI
-            self.t += dt
-            if plastic:
-                S = (Y + I)[0]
-                self.S2 += (dt / p.intensity_tau) * (S * S - self.S2)
-                self.rho += dt * (p.eta * self.S2 / (self.S2 + p.intensity_half) * (p.rho_max - self.rho)
-                                  - p.mu * (self.rho - 1.0))
+    @property
+    def rho(self) -> torch.Tensor:
+        return self.imprint + 1.0
 
-    def listen(self, drive_Y: torch.Tensor, drive_I: torch.Tensor | None, steps: int,
-               rho: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor]:
-        """Play a batch of phasor drives on a quiet copy of the fast field and demodulate.
+    def _sound(self, drive: torch.Tensor, steps: int, rho: torch.Tensor) -> Iterator[tuple[torch.Tensor, float]]:
+        """Play a batch of Qi drives (B, *grid), each on its own quiet wave, from rest at local time 0.
 
-        The medium is only read.  Every play starts from rest at local time 0,
-        so identical drives give identical answers.  Returns the complex
-        Yang and Yin amplitudes heard over the second half of the play.
+        The physical drive is Re(D e^{i w t}) under a bowed envelope, given to
+        Yang and Yin in golden proportion.  Yields the Qi wave S and the local
+        time after every step; ``rho`` is read live, so a player that thickens
+        it as it goes is heard.
         """
         p, dt, w, d = self.p, self.p.dt, self.p.pitch, self.p.dims
-        rho = self.rho if rho is None else rho
-        Y = torch.zeros(drive_Y.shape, dtype=torch.float64, device=drive_Y.device)
-        I, vY, vI = torch.zeros_like(Y), torch.zeros_like(Y), torch.zeros_like(Y)
-        hY = torch.zeros_like(drive_Y, dtype=torch.complex128)
-        hI = torch.zeros_like(hY)
-        start, t = steps // 2, 0.0
-        for i in range(steps):
+        S = torch.zeros(drive.shape, dtype=rho.dtype, device=drive.device)
+        vS = torch.zeros_like(S)
+        Dr, Di = drive.real.contiguous(), drive.imag.contiguous()
+        keep, t = 1.0 - dt * p.gamma, 0.0
+        for _ in range(steps):
             c, s = (_envelope(t, p.onset) * x for x in (math.cos(w * t), math.sin(w * t)))
-            eps = Y - PHI * I
-            fY = _lap(Y, d) - p.omega2 * eps + drive_Y.real * c - drive_Y.imag * s
-            fI = _lap(I, d) + p.omega2 * eps
-            if drive_I is not None:
-                fI = fI + drive_I.real * c - drive_I.imag * s
-            vY += dt * (fY / rho - p.gamma * vY)
-            vI += dt * (fI / rho - p.gamma * vI)
-            Y += dt * vY
-            I += dt * vI
+            force = _lap(S, d).add_(Dr, alpha=c).add_(Di, alpha=-s)
+            vS.mul_(keep).addcdiv_(force, rho, value=dt)
+            S.add_(vS, alpha=dt)
             t += dt
-            if i >= start:
-                phase = complex(math.cos(w * t), -math.sin(w * t))
-                hY += Y * phase
-                hI += I * phase
-        scale = 2.0 / (steps - start)
-        return hY * scale, hI * scale
+            yield S, t
 
-    def calm(self) -> None:
-        """Let the fast field fall silent; the medium keeps what it holds."""
-        for name in ("Y", "I", "vY", "vI", "S2"):
-            getattr(self, name).zero_()
+    def listen(self, drive: torch.Tensor, steps: int, blank: bool = False) -> torch.Tensor:
+        """Hear a batch of Qi drives over a medium that is only read (or over a blank one).
+
+        Identical drives give identical answers.  Returns the complex Qi
+        amplitude heard over the second half of the play.
+        """
+        rho = torch.ones_like(self.imprint) if blank else self.rho
+        w, start = self.p.pitch, steps // 2
+        re = torch.zeros(drive.shape, dtype=rho.dtype, device=drive.device)
+        im = torch.zeros_like(re)
+        for i, (S, t) in enumerate(self._sound(drive, steps, rho)):
+            if i >= start:
+                re.add_(S, alpha=math.cos(w * t))
+                im.add_(S, alpha=-math.sin(w * t))
+        return torch.complex(re, im) * (2.0 / (steps - start))
+
+    def play(self, drive: torch.Tensor, steps: int) -> None:
+        """Sound a batch of Qi drives together and let the medium keep what it hears.
+
+        The medium thickens where the plays' intensities gather.  Its gate
+        stays far below saturation (S^2 << I_half), so B plays sounding
+        together imprint the sum of what each would alone.
+        """
+        p, dt, imprint = self.p, self.p.dt, self.imprint
+        rho, S2 = self.rho, torch.zeros_like(imprint)
+        for S, _ in self._sound(drive, steps, rho):
+            S2 += (dt / p.intensity_tau) * (S.square().sum(0) - S2)
+            imprint += dt * (p.eta * S2 / (S2 + p.intensity_half) * (p.rho_max - rho) - p.mu * imprint)
+            torch.add(imprint, 1.0, out=rho)
+        self.t += steps * dt
 
     def rest(self, duration: float) -> None:
         """Silence for ``duration``: the exact solution of the medium law with no Qi present.
 
-        With the fast field silent, rho' = -mu (rho - 1), so every imprint fades
-        by the same factor exp(-mu * duration).  No stepping is needed.
+        With nothing sounding, rho' = -mu (rho - 1), so every imprint fades by
+        the same factor exp(-mu * duration).  No stepping is needed.
         """
-        self.calm()
-        self.rho.sub_(1.0).mul_(math.exp(-self.p.mu * duration)).add_(1.0)
+        self.imprint *= math.exp(-self.p.mu * duration)
         self.t += duration
-
-    def save(self, path: Path) -> None:
-        torch.save({"profile": asdict(self.p), "t": self.t,
-                    **{k: getattr(self, k).cpu() for k in STATE}}, path)
-
-    @classmethod
-    def load(cls, path: Path, device: str = "cpu") -> "EmergentField":
-        raw = torch.load(path, map_location=device)
-        field = cls(EmergentProfile(**{**raw["profile"], "device": device}))
-        field.t = raw["t"]
-        for k in STATE:
-            setattr(field, k, raw[k].to(device))
-        return field
 
 
 class NoteCodec:
-    """The brain's instrument: notes below the pitch, chords over them, exact decoding."""
+    """The brain's instrument: every clean note of the lattice, chords over them, exact decoding."""
 
-    def __init__(self, field: EmergentField, top: int, read_steps: int = 800,
-                 batch_cells: int = 24_000_000) -> None:
+    def __init__(self, field: EmergentField, read_steps: int = 800, batch_cells: int = 24_000_000) -> None:
         p = field.p
-        n, dev = p.size, field.Y.device
-        if 3 * top >= n:
-            raise ValueError("notes up to `top` would alias on this grid")
-        self.field, self.read_steps, self.top = field, read_steps, top
-        self.batch = max(1, batch_cells // n ** p.dims)
-        tone = lambda k: 2.0 - 2.0 * math.cos(math.pi * k / n)
-        w2, g = p.pitch ** 2, p.gamma * p.pitch
-        notes = []
-        for k in itertools.product(range(1, top + 1), repeat=p.dims):
-            lam = sum(tone(x) for x in k)
-            det = complex(-w2 + lam + p.omega2, g) * complex(-w2 + lam + p.omega2 * PHI, g) - p.omega2 ** 2 * PHI
-            # Keep notes below the pitch and away from the Yin-branch resonance.
-            if lam < 0.8 * w2 and abs(complex(-w2 + lam + p.omega2 * PHI, g) / det) < 1.5:
-                notes.append(k)
-        self.notes = notes
-        self.index = torch.tensor(notes, dtype=torch.long, device=dev) - 1
+        n, d, dev = p.size, p.dims, field.imprint.device
+        self.field, self.read_steps = field, read_steps
+        self.cplx = _complex(field.imprint.dtype)
+        self.batch = max(1, batch_cells // n ** d)
+        k = torch.arange(n, dtype=torch.float64, device=dev)
+        tone = 2.0 - 2.0 * torch.cos(math.pi * k / n)
+        lam = torch.zeros((n,) * d, dtype=torch.float64, device=dev)
+        for axis in range(d):
+            shape = [1] * d
+            shape[axis] = n
+            lam = lam + tone.view(shape)
+        # Continuous-time Qi answer of each note at the pitch; keep the clean ones.
+        gain = 1.0 / torch.complex(lam - p.pitch ** 2, torch.full_like(lam, p.gamma * p.pitch)).abs()
+        clean = gain <= p.clean_gain
+        clean[(0,) * d] = False                      # the uniform note is where even imprints land
+        self.index = torch.nonzero(clean)            # (notes, dims)
         coord = (torch.arange(n, dtype=torch.float64, device=dev) + 0.5) / n
-        basis = torch.stack([torch.cos(math.pi * k * coord) for k in range(1, top + 1)], dim=1)
-        self.basis = (basis / basis.norm(dim=0, keepdim=True)).to(torch.complex128)   # (n, top)
-        self.volume = float(n ** p.dims) ** 0.5
+        basis = torch.cos(math.pi * coord[:, None] * k[None, :])
+        self.basis = (basis / basis.norm(dim=0, keepdim=True)).to(self.cplx)     # (n, n)
+        self.volume = float(n ** d) ** 0.5
         self._calibrate()
+
+    @property
+    def count(self) -> int:
+        return int(self.index.shape[0])
 
     # -- spectral transforms -------------------------------------------------
     def to_grid(self, amps: torch.Tensor) -> torch.Tensor:
         """Note amplitudes (B, notes) -> field pattern (B, *grid)."""
-        top = self.basis.shape[1]
-        spec = torch.zeros((amps.shape[0],) + (top,) * self.field.p.dims, dtype=torch.complex128,
-                           device=amps.device)
-        spec[(slice(None),) + tuple(self.index.T)] = amps
-        for axis in range(self.field.p.dims):
+        n, d = self.field.p.size, self.field.p.dims
+        spec = torch.zeros((amps.shape[0],) + (n,) * d, dtype=self.cplx, device=amps.device)
+        spec[(slice(None),) + tuple(self.index.T)] = amps.to(self.cplx)
+        for _ in range(d):
             spec = torch.tensordot(spec, self.basis, dims=([1], [1]))    # rolls the axis to the end
         return spec
 
     def to_notes(self, grid: torch.Tensor) -> torch.Tensor:
         """Field pattern (B, *grid) -> note amplitudes (B, notes)."""
-        spec = grid
-        for axis in range(self.field.p.dims):
+        spec = grid.to(self.cplx)
+        for _ in range(self.field.p.dims):
             spec = torch.tensordot(spec, self.basis, dims=([1], [0]))
         return spec[(slice(None),) + tuple(self.index.T)]
 
@@ -237,35 +242,24 @@ class NoteCodec:
     def _calibrate(self) -> None:
         """Tune the instrument on a blank medium: every note at once, at two phases.
 
-        ``T`` is each note's 2x2 Yang/Yin transfer.  ``quad`` is the blank
-        answer to the quadrature phase; together with the in-phase answer it
-        gives the blank response to any drive exactly, leftover ringing included.
+        ``G`` is each note's Qi answer to the in-phase drive and ``quad`` its
+        answer to the quadrature phase; together they give the blank response
+        to any drive exactly, leftover ringing included.
         """
-        ones = torch.ones((1, len(self.notes)), dtype=torch.complex128, device=self.index.device)
+        ones = torch.ones((1, self.count), dtype=self.cplx, device=self.index.device)
         pattern = self.to_grid(ones) * self.volume
-        blank = torch.ones_like(self.field.rho)
-        zero = torch.zeros_like(pattern)
-        heard = [self.field.listen(pattern, None, self.read_steps, rho=blank),
-                 self.field.listen(zero, pattern, self.read_steps, rho=blank),
-                 self.field.listen(1j * pattern, None, self.read_steps, rho=blank)]
-        (hYy, hIy), (hYi, hIi), (hYq, hIq) = [[self.to_notes(h)[0] / self.volume for h in pair] for pair in heard]
-        T = torch.stack([torch.stack([hYy, hYi], -1), torch.stack([hIy, hIi], -1)], -2)
-        # The medium records S = Y + I.  Keep notes whose S answers the Yang drive well.
-        G = T[:, 0, 0] + T[:, 1, 0]
-        keep = G.abs() >= 0.25 * G.abs().median()
-        self.notes = [k for k, ok in zip(self.notes, keep.tolist()) if ok]
-        self.index = self.index[keep]
-        self.T, self.G = T[keep], G[keep]
-        self.Tinv = torch.linalg.inv(self.T)                                  # (notes, 2, 2)
-        self.quad = torch.stack([hYq, hIq], -1)[keep]                        # (notes, 2)
+        G, quad = [self.to_notes(self.field.listen(drive, self.read_steps, blank=True))[0] / self.volume
+                   for drive in (pattern, 1j * pattern)]
+        # Keep notes whose Qi answers, and whose measured answer stayed clean on the discrete lattice.
+        keep = (G.abs() >= 0.1 * G.abs().median()) & (G.abs() <= 2.0 * self.field.p.clean_gain)
+        self.index, self.G, self.quad = self.index[keep], G[keep], quad[keep]
 
     def blank(self, drive_notes: torch.Tensor) -> torch.Tensor:
-        """Exact blank-medium answer (B, notes, 2) to Yang drives given per note."""
-        x, y = drive_notes.real[..., None], drive_notes.imag[..., None]
-        return x * self.T[:, :, 0] + y * self.quad
+        """Exact blank-medium Qi answer (B, notes) to drives given per note."""
+        return drive_notes.real * self.G + drive_notes.imag * self.quad
 
     # -- chords --------------------------------------------------------------
-    def chords(self, generators: list[torch.Generator], rounds: int = 40) -> torch.Tensor:
+    def chords(self, generators: list[torch.Generator], rounds: int = 30) -> torch.Tensor:
         """Random chords (one per generator) whose brightness |S(x)|^2 is as even as the notes allow.
 
         An even chord's own imprint on the medium is uniform, and a uniform
@@ -275,17 +269,14 @@ class NoteCodec:
         """
         out = []
         for start in range(0, len(generators), self.batch):
-            phase = torch.stack([torch.rand(len(self.notes), generator=g, dtype=torch.float64)
+            phase = torch.stack([torch.rand(self.count, generator=g, dtype=torch.float64)
                                  for g in generators[start:start + self.batch]]) * (2.0 * math.pi)
-            amps = torch.polar(torch.ones_like(phase), phase).to(self.index.device)
+            amps = torch.polar(torch.ones_like(phase), phase).to(self.index.device, self.cplx)
             for _ in range(rounds):
                 grid = self.to_grid(amps)
                 amps = self.to_notes(grid / grid.abs().clamp_min(1e-12))
             out.append(amps / amps.norm(dim=-1, keepdim=True))
         return torch.cat(out)
-
-    def chord(self, generator: torch.Generator, rounds: int = 40) -> torch.Tensor:
-        return self.chords([generator], rounds)[0]
 
     def unevenness(self, chord: torch.Tensor) -> float:
         """Relative spread of the chord's brightness across the field (speckle is 1)."""
@@ -293,31 +284,28 @@ class NoteCodec:
         return float(bright.std() / bright.mean())
 
     def drive(self, chords: torch.Tensor) -> torch.Tensor:
-        """Phasor drive that makes the coherent amplitude S of every note equal the chord."""
+        """Qi drive that makes the amplitude of every note equal the chord."""
         return self.to_grid(chords / self.G) * self.volume
 
     def write(self, a: torch.Tensor, b: torch.Tensor, steps: int) -> None:
-        """Play two chords together; the medium keeps the product of their shapes."""
-        self.field.step(steps, self.drive((a + b)[None])[0])
-        self.field.calm()
+        """Play chord pairs together, row by row; the medium keeps the product of each pair's shapes."""
+        for part in (a + b).to(self.cplx).split(self.batch):
+            self.field.play(self.drive(part), steps)
 
     def trace(self, chords: torch.Tensor) -> torch.Tensor:
         """K applied to each chord (rows), with the chord's own direction removed."""
         out = []
-        for part in chords.split(self.batch):
-            D = self.drive(part)
-            hY, hI = self.field.listen(D, None, self.read_steps)
-            heard = torch.stack([self.to_notes(hY), self.to_notes(hI)], -1) / self.volume   # (B, notes, 2)
-            residual = heard - self.blank(part / self.G)
-            # The medium's source enters both fluids; together they carry K applied to S.
-            source = torch.einsum("nij,bnj->bni", self.Tinv, residual).sum(-1)
+        for part in chords.to(self.cplx).split(self.batch):
+            heard = self.to_notes(self.field.listen(self.drive(part), self.read_steps)) / self.volume
+            # What the medium scattered, as the drive that would have produced it.
+            source = (heard - self.blank(part / self.G)) / self.G
             own = (source * part.conj()).sum(-1, keepdim=True) / (part.abs() ** 2).sum(-1, keepdim=True)
             out.append(source - own * part)
         return torch.cat(out)
 
     @staticmethod
     def similarity(traces: torch.Tensor, chords: torch.Tensor) -> torch.Tensor:
-        a = traces / traces.norm(dim=-1, keepdim=True).clamp_min(1e-300)
+        a = traces / traces.norm(dim=-1, keepdim=True).clamp_min(1e-30)
         b = chords / chords.norm(dim=-1, keepdim=True)
         return (a @ b.conj().T).abs()
 
@@ -327,7 +315,8 @@ class SequenceMemory:
 
     An idea's chords are computed from its name, so the brain can name any idea
     without keeping a table of meanings.  The list of names is the vocabulary
-    the brain listens for; everything relational is the medium.
+    the brain listens for; everything relational is the medium.  Chords are
+    recomposed on demand and only a bounded working set is kept at hand.
 
     * ``link(a, b)`` plays a's sending chord with b's receiving chord.
     * ``forget(a, b)`` replays them in anti-phase: the cross imprint cancels.
@@ -337,59 +326,90 @@ class SequenceMemory:
       used stands out over what was not.
     """
 
-    ROLES = ("send", "receive")
+    SCHEMA = "cassifi.emergent-sequence-memory.v3"
 
     def __init__(self, codec: NoteCodec, *, salt: str = "cassi", write_steps: int = 1000,
-                 z_heard: float = 5.0) -> None:
-        self.codec, self.salt, self.write_steps, self.z_heard = codec, salt, write_steps, z_heard
+                 alarm: float = 1e-3, working_bytes: int = 2 ** 31) -> None:
+        self.codec, self.salt, self.write_steps, self.alarm = codec, salt, write_steps, alarm
         self.names: list[str] = []
         self.index: dict[str, int] = {}
-        empty = torch.zeros((0, len(codec.notes)), dtype=torch.complex128, device=codec.index.device)
-        self.send, self.receive = empty, empty.clone()
         self.used: dict[tuple[str, str], int] = {}
+        self._working: OrderedDict[tuple[str, str], torch.Tensor] = OrderedDict()
+        row_bytes = codec.count * torch.empty((), dtype=codec.cplx).element_size()
+        self._working_rows = max(64, working_bytes // row_bytes)
+        # Steps the brain links in one play: two chords each, well within the working set.
+        self.hand = self._working_rows // 4
         # The noise floor of an unlinked chord: |<trace, chord>| for a random unit chord.
-        self.floor = math.sqrt(math.log(2.0) / len(codec.notes))
+        self.floor = math.sqrt(math.log(2.0) / codec.count)
 
     def _generator(self, name: str, role: str) -> torch.Generator:
         seed = int.from_bytes(hashlib.sha256(f"{self.salt}\x1f{role}\x1f{name}".encode()).digest()[:8], "little")
         return torch.Generator().manual_seed(seed & (2 ** 63 - 1))
 
-    def ideas(self, names: list[str]) -> list[int]:
-        """Indices of ``names``, composing chords for any the brain has not named before."""
-        new = [n for n in dict.fromkeys(names) if n not in self.index]
-        if new:
-            for role in self.ROLES:
-                chords = self.codec.chords([self._generator(n, role) for n in new])
-                setattr(self, role, torch.cat([getattr(self, role), chords]))
-            for n in new:
+    def ideas(self, names: Sequence[str]) -> list[int]:
+        """Indices of ``names`` in the vocabulary, adding any the brain has not named before."""
+        for n in names:
+            if n not in self.index:
                 self.index[n] = len(self.names)
                 self.names.append(n)
         return [self.index[n] for n in names]
 
-    def link(self, a: str, b: str) -> None:
-        i, j = self.ideas([a, b])
-        self.codec.write(self.send[i], self.receive[j], self.write_steps)
+    def chords(self, role: str, names: Sequence[str]) -> torch.Tensor:
+        """The ``role`` chords of ``names`` (rows), composing any not at hand in bounded slices."""
+        self.ideas(names)
+        rows = []
+        for start in range(0, len(names), self._working_rows // 2):
+            part = names[start:start + self._working_rows // 2]
+            missing = [n for n in dict.fromkeys(part) if (role, n) not in self._working]
+            if missing:
+                made = self.codec.chords([self._generator(n, role) for n in missing])
+                for n, chord in zip(missing, made):
+                    self._working[(role, n)] = chord.clone()
+            for n in part:
+                self._working.move_to_end((role, n))
+                rows.append(self._working[(role, n)])
+            while len(self._working) > self._working_rows:
+                self._working.popitem(last=False)
+        return torch.stack(rows)
 
-    def forget(self, a: str, b: str) -> None:
-        i, j = self.ideas([a, b])
-        self.codec.write(self.send[i], -self.receive[j], self.write_steps)
-        self.used.pop((a, b), None)
+    def link(self, steps: Sequence[tuple[str, str]], sign: float = 1.0) -> None:
+        """Play each step's sending chord with its receiving chord, every step at once."""
+        for start in range(0, len(steps), self.hand):
+            part = steps[start:start + self.hand]
+            self.codec.write(self.chords("send", [a for a, _ in part]),
+                             sign * self.chords("receive", [b for _, b in part]), self.write_steps)
 
-    def scores(self, cues: list[str], backward: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
+    def forget(self, steps: Sequence[tuple[str, str]]) -> None:
+        """Replay steps in anti-phase: their cross imprints cancel."""
+        self.link(steps, -1.0)
+        for step in steps:
+            self.used.pop(step, None)
+
+    def strength(self, trace: torch.Tensor, role: str, names: Sequence[str]) -> torch.Tensor:
+        """|<trace, chord>| of every named chord, composed in bounded slices."""
+        step = max(1, self._working_rows // 2)
+        return torch.cat([(trace @ self.chords(role, names[i:i + step]).conj().T).abs()
+                          for i in range(0, len(names), step)], dim=-1)
+
+    def scores(self, cues: Sequence[str], backward: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
         """(similarity, strength) of every known idea answering each cue."""
-        idx = self.ideas(cues)
-        played, heard = (self.receive, self.send) if backward else (self.send, self.receive)
-        trace = self.codec.trace(played[idx])
-        strength = (trace @ heard.conj().T).abs()
-        return strength / trace.norm(dim=-1, keepdim=True).clamp_min(1e-300), strength
+        played, heard = ("receive", "send") if backward else ("send", "receive")
+        trace = self.codec.trace(self.chords(played, cues))
+        strength = self.strength(trace, heard, list(self.names))
+        return strength / trace.norm(dim=-1, keepdim=True).clamp_min(1e-30), strength
 
-    def heard(self, similarity: torch.Tensor) -> list[int]:
-        """Ideas that stand clearly above the murmur.
+    def threshold(self, candidates: int) -> float:
+        """Clarity an idea needs to be heard among ``candidates``.
 
         An unlinked chord's similarity has a Rayleigh spread with median
-        ``floor``; exceeding ``z_heard`` times it by chance has probability 2^-(z_heard^2).
+        ``floor``; exceeding z times it by chance has probability 2^-(z^2).  The
+        threshold keeps the chance that any murmur is heard at ``alarm``.
         """
-        loud = torch.nonzero(similarity > self.z_heard * self.floor).flatten().tolist()
+        return math.sqrt(math.log2(max(candidates, 1) / self.alarm))
+
+    def heard(self, similarity: torch.Tensor) -> list[int]:
+        """Ideas that stand clearly above the murmur."""
+        loud = torch.nonzero(similarity > self.threshold(similarity.shape[-1]) * self.floor).flatten().tolist()
         return sorted(loud, key=lambda i: -float(similarity[i]))
 
     def predict(self, cues: list[str], backward: bool = False, top: int = 5) -> list[list[dict]]:
@@ -429,9 +449,7 @@ class SequenceMemory:
     def sleep(self, duration: float) -> dict:
         """Rehearse every step recalled since the last sleep, then rest for ``duration``."""
         rehearsed = sorted(self.used)
-        for a, b in rehearsed:
-            i, j = self.ideas([a, b])
-            self.codec.write(self.send[i], self.receive[j], self.write_steps)
+        self.link(rehearsed)
         self.used.clear()
         self.codec.field.rest(duration)
         return {"rehearsed": [list(s) for s in rehearsed],
@@ -439,22 +457,20 @@ class SequenceMemory:
 
     def state(self) -> dict[str, Any]:
         field = self.codec.field
-        return {"schema": "cassifi.emergent-sequence-memory.v1", "profile": asdict(field.p), "t": field.t,
-                "top": self.codec.top, "read_steps": self.codec.read_steps, "salt": self.salt,
-                "write_steps": self.write_steps, "z_heard": self.z_heard, "names": list(self.names),
-                "used": [[a, b, n] for (a, b), n in self.used.items()],
-                **{k: getattr(field, k).cpu() for k in STATE}}
+        return {"schema": self.SCHEMA, "profile": asdict(field.p), "t": field.t, "imprint": field.imprint.cpu(),
+                "read_steps": self.codec.read_steps, "salt": self.salt,
+                "write_steps": self.write_steps, "alarm": self.alarm, "names": list(self.names),
+                "used": [[a, b, n] for (a, b), n in self.used.items()]}
 
     @classmethod
     def from_state(cls, raw: Mapping[str, Any], device: str = "cpu") -> "SequenceMemory":
-        if raw.get("schema") != "cassifi.emergent-sequence-memory.v1":
+        if raw.get("schema") != cls.SCHEMA:
             raise ValueError("not an emergent sequence memory")
         field = EmergentField(EmergentProfile(**{**raw["profile"], "device": device}))
         field.t = raw["t"]
-        for k in STATE:
-            setattr(field, k, raw[k].to(device))
-        memory = cls(NoteCodec(field, raw["top"], read_steps=raw["read_steps"]), salt=raw["salt"],
-                     write_steps=raw["write_steps"], z_heard=raw["z_heard"])
+        field.imprint = raw["imprint"].to(device)
+        memory = cls(NoteCodec(field, read_steps=raw["read_steps"]), salt=raw["salt"],
+                     write_steps=raw["write_steps"], alarm=raw["alarm"])
         memory.ideas(list(raw["names"]))
         memory.used = {(a, b): n for a, b, n in raw["used"]}
         return memory
@@ -467,8 +483,8 @@ class SequenceMemory:
         return cls.from_state(torch.load(path, map_location=device), device)
 
     @classmethod
-    def create(cls, profile: EmergentProfile, top: int = 20, **kwargs: Any) -> "SequenceMemory":
-        return cls(NoteCodec(EmergentField(profile), top), **kwargs)
+    def create(cls, profile: EmergentProfile, **kwargs: Any) -> "SequenceMemory":
+        return cls(NoteCodec(EmergentField(profile)), **kwargs)
 
 
 def _atomic_save(payload: Mapping[str, Any], path: Path) -> None:
@@ -483,11 +499,17 @@ class TemporalMedium:
 
     Every step of every admitted episode becomes one link: the context in which
     an action was taken points to the observation that followed.  The context
-    is a superposed chord, one voice per recent step, each voice bound to the
-    current action and quieter the further back it lies.  Recall plays the
-    present context; stored contexts answer in proportion to how much of their
-    history they share with it, so an exact repeat answers loudest and a
-    partly familiar situation still hears its nearest experiences.
+    is one chord made of nested voices, equally loud: the action alone, the
+    action after the last step, after the last two steps, and so on to
+    ``depth``.  Two contexts share exactly the voices of the history they have
+    in common.
+
+    To recall, the brain plays one voice at a time, the most specific first,
+    and trusts the most specific voice the medium answers.  An exact repeat
+    answers through its deepest voice; a new situation falls back to the
+    experiences that share the most recent history with it.  Playing a voice
+    alone hears every link that contains it at full strength, so even the
+    faint general memories come back clearly.
 
     ``sync`` makes the medium's imprints match the admitted evidence exactly:
     new steps are linked, and steps whose evidence was revoked are replayed in
@@ -497,37 +519,66 @@ class TemporalMedium:
     while predicting since the last sleep is played once more, and then the
     medium rests in silence, which fades every imprint by the same factor.
     Experiences that were used grow relative to those that were not.
+
+    ``choose`` plays every candidate action at once, lets the medium imagine
+    the outcomes, plays the imagined futures again, and acts on the action
+    whose futures carry the goal loudest.  When no goal is heard, it takes the
+    action the medium knows least about: the one answered only by its most
+    general memories, or not at all.
     """
 
-    SCHEMA = "cassifi.emergent-temporal-medium.v1"
+    SCHEMA = "cassifi.emergent-temporal-medium.v3"
+    START = ("^", "^")
 
-    def __init__(self, memory: SequenceMemory, *, depth: int = 4, decay: float = 0.6) -> None:
-        self.memory, self.depth, self.decay = memory, depth, decay
+    def __init__(self, memory: SequenceMemory, *, depth: int = 4) -> None:
+        self.memory, self.depth = memory, depth
         self.absorbed: Counter[str] = Counter()
         self.recognised: Counter[str] = Counter()
         self.rehearsed: Counter[str] = Counter()
+        # What each voice was last heard to answer, valid until the medium or its outcomes change.
+        self._answers: dict[str, tuple[torch.Tensor, torch.Tensor]] = {}
+        self._answer_outcomes: list[str] = []
+        self._spoken: set[str] = set()
 
     def _voices(self, history: Sequence[Mapping[str, str]], action: str) -> list[str]:
-        recent = list(history)[-self.depth:][::-1]
-        if not recent:
-            return [f"do:{action}|start"]
-        return [f"do:{action}|{k}:{s['action']}>{s['observation']}" for k, s in enumerate(recent, 1)]
+        steps = [self.START] * self.depth + [(s["action"], s["observation"]) for s in history]
+        recent = steps[len(steps) - self.depth:]
+        return [f"do:{action}|" + "|".join(f"{a}>{o}" for a, o in recent[self.depth - k:])
+                for k in range(self.depth + 1)]
 
-    def _cue(self, voices: list[str]) -> torch.Tensor:
-        idx = self.memory.ideas(voices)
-        weights = torch.tensor([self.decay ** k for k in range(len(voices))], dtype=torch.complex128,
-                               device=self.memory.send.device)
-        cue = weights @ self.memory.send[idx]
+    def _cue(self, voices: Sequence[str]) -> torch.Tensor:
+        cue = self.memory.chords("send", voices).sum(0)
         return cue / cue.norm()
 
     def transitions(self, episode: Sequence[Mapping[str, str]]) -> list[str]:
         return [json.dumps([self._voices(episode[:t], step["action"]), step["observation"]])
                 for t, step in enumerate(episode)]
 
-    def _write(self, key: str, sign: float) -> None:
-        voices, observation = json.loads(key)
-        (j,) = self.memory.ideas([f"see:{observation}"])
-        self.memory.codec.write(self._cue(voices), sign * self.memory.receive[j], self.memory.write_steps)
+    def _write(self, keys: Sequence[str], sign: float) -> None:
+        """Play every key's context cue with its observation's receiving chord, all keys at once."""
+        if not keys:
+            return
+        self._answers.clear()
+        hand = self.memory.hand
+        for start in range(0, len(keys), hand):
+            part = [json.loads(key) for key in keys[start:start + hand]]
+            cues = torch.stack([self._cue(voices) for voices, _ in part])
+            answers = self.memory.chords("receive", [f"see:{observation}" for _, observation in part])
+            self.memory.codec.write(cues, sign * answers, self.memory.write_steps)
+
+    def _hear(self, voices: Sequence[str], outcomes: list[str]) -> tuple[torch.Tensor, torch.Tensor]:
+        """(strength, clarity) of every outcome answering each voice; voices already heard are not replayed."""
+        if outcomes != self._answer_outcomes:
+            self._answers.clear()
+            self._answer_outcomes = list(outcomes)
+        new = [v for v in dict.fromkeys(voices) if v not in self._answers]
+        if new:
+            trace = self.memory.codec.trace(self.memory.chords("send", new))
+            strength = self.memory.strength(trace, "receive", outcomes)
+            clarity = strength / trace.norm(dim=-1, keepdim=True).clamp_min(1e-30) / self.memory.floor
+            self._answers.update(zip(new, zip(strength, clarity)))
+        rows = [self._answers[v] for v in voices]
+        return torch.stack([r[0] for r in rows]), torch.stack([r[1] for r in rows])
 
     def sync(self, episodes: Sequence[Sequence[Mapping[str, str]]]) -> dict[str, int]:
         """Link every admitted step not yet in the medium; erase every step no longer admitted."""
@@ -536,72 +587,144 @@ class TemporalMedium:
         gone = {key: self.rehearsed.pop(key) for key in list(self.rehearsed) if not want[key]}
         for key in gone:
             self.recognised.pop(key, None)
-        for key, count in sorted((drop + Counter(gone)).items()):
-            for _ in range(count):
-                self._write(key, -1.0)
-        for key, count in sorted(add.items()):
-            for _ in range(count):
-                self._write(key, 1.0)
+        self._write([key for key, count in sorted((drop + Counter(gone)).items()) for _ in range(count)], -1.0)
+        self._write([key for key, count in sorted(add.items()) for _ in range(count)], 1.0)
         self.absorbed = want
+        self._spoken = {voice for key in want for voice in json.loads(key)[0]}
         return {"linked": sum(add.values()), "erased": sum(drop.values()) + sum(gone.values()),
                 "steps": sum(want.values())}
 
-    def predict(self, history: Sequence[Mapping[str, str]], actions: Sequence[str]) -> list[dict[str, Any]]:
-        """What the medium expects each action to produce after ``history`` (one listen for all)."""
+    def predict_batch(self, queries: Sequence[tuple[Sequence[Mapping[str, str]], str]],
+                      record: bool = True) -> list[dict[str, Any]]:
+        """What the medium expects each (history, action) to produce, and how well it knows.
+
+        Every voice of every query is played, one listen per depth.  A voice
+        that answers adds its outcomes with weight 4^k, so each step of shared
+        history counts four times more than the one before it.  A voice that
+        stays silent adds the same weight to not knowing.  ``confidence`` is
+        the known share; ``distribution`` spreads it over the outcomes.  A
+        voice the brain never played into the medium cannot answer and is not
+        played; voices heard since the medium last changed are not replayed.
+        """
+        out: list[dict[str, Any]] = [{"action": a, "supported": False, "observation": None, "depth": -1,
+                                      "confidence": 0.0, "clarity": 0.0, "distribution": {}} for _, a in queries]
         outcomes = sorted(n for n in self.memory.names if n.startswith("see:"))
         if not outcomes:
-            return [{"action": a, "supported": False, "observation": None, "distribution": {}} for a in actions]
-        cues = torch.stack([self._cue(self._voices(history, a)) for a in actions])
-        trace = self.memory.codec.trace(cues)
-        heard = self.memory.receive[self.memory.ideas(outcomes)]
-        strength = (trace @ heard.conj().T).abs()
-        clarity = strength / trace.norm(dim=-1, keepdim=True).clamp_min(1e-300) / self.memory.floor
-        out = []
-        for action, k_row, c_row in zip(actions, strength, clarity):
-            loud = c_row > self.memory.z_heard
-            share = torch.where(loud, k_row, torch.zeros_like(k_row))
-            total = float(share.sum())
-            best = int(torch.argmax(c_row))
-            if bool(loud.any()):
-                key = json.dumps([self._voices(history, action), outcomes[best][4:]])
+            return out
+        voice_sets = [self._voices(h, a) for h, a in queries]
+        bar = self.memory.threshold(len(outcomes) * (self.depth + 1))
+        weights = [4.0 ** k for k in range(self.depth + 1)]
+        blend = torch.zeros(len(queries), len(outcomes), dtype=torch.float64)
+        clarity_at = torch.zeros(len(queries), len(outcomes), dtype=torch.float64)
+        deepest = [-1] * len(queries)
+        for k in range(self.depth + 1):
+            playable = [q for q in range(len(queries)) if voice_sets[q][k] in self._spoken]
+            if not playable:
+                continue
+            strength, clarity = self._hear([voice_sets[q][k] for q in playable], outcomes)
+            loud = clarity > bar
+            share = torch.where(loud, strength, torch.zeros_like(strength)).double().cpu()
+            answered = loud.any(dim=-1).cpu()
+            rows = torch.tensor(playable)[answered]
+            blend[rows] += weights[k] * share[answered] / share[answered].sum(-1, keepdim=True)
+            clarity_at[rows] = clarity.double().cpu()[answered]
+            for q in rows.tolist():
+                deepest[q] = k
+        total = sum(weights)
+        for q, (history, action) in enumerate(queries):
+            if deepest[q] < 0:
+                continue
+            known = float(blend[q].sum())
+            best = int(torch.argmax(blend[q]))
+            observation = outcomes[best][4:]
+            if record and deepest[q] == self.depth:
+                key = json.dumps([voice_sets[q], observation])
                 if self.absorbed[key]:
                     self.recognised[key] += 1
-            out.append({
-                "action": action,
-                "supported": bool(loud.any()),
-                "observation": outcomes[best][4:] if bool(loud.any()) else None,
-                "clarity": round(float(c_row[best]), 2),
-                "strength": float(k_row[best]),
-                "distribution": {outcomes[i][4:]: round(float(share[i]) / total, 4)
-                                 for i in torch.nonzero(loud).flatten().tolist()} if total else {},
+            out[q].update({
+                "supported": True, "observation": observation, "depth": deepest[q],
+                "confidence": round(known / total, 4), "clarity": round(float(clarity_at[q, best]), 2),
+                "distribution": {outcomes[i][4:]: round(float(blend[q, i]) / known, 4)
+                                 for i in torch.nonzero(blend[q]).flatten().tolist()},
             })
         return out
+
+    def predict(self, history: Sequence[Mapping[str, str]], actions: Sequence[str]) -> list[dict[str, Any]]:
+        return self.predict_batch([(history, a) for a in actions])
+
+    def _imagine(self, histories: list[list[Mapping[str, str]]], reach: list[float], actions: Sequence[str],
+                 goals: set[str], avoid: set[str], depth: int, discount: float, beam: int,
+                 record: bool) -> list[list[dict[str, Any]]]:
+        """Value of every action after every history: goal loudness now plus imagined futures.
+
+        What the medium does not know is worth nothing, so a future counts in
+        proportion to the confidence it is imagined with.  Only the ``beam``
+        futures most likely to be reached are imagined further.
+        """
+        preds = self.predict_batch([(h, a) for h in histories for a in actions], record=record)
+        rows = [preds[i * len(actions):(i + 1) * len(actions)] for i in range(len(histories))]
+        futures: list[tuple[int, int, float, float, list[Mapping[str, str]]]] = []
+        for hi, row in enumerate(rows):
+            for ai, pred in enumerate(row):
+                chance = {obs: pred["confidence"] * share for obs, share in pred["distribution"].items()}
+                pred["value"] = sum(p * ((obs in goals) - (obs in avoid)) for obs, p in chance.items())
+                if depth > 1:
+                    for obs, p in chance.items():
+                        if obs not in goals and obs not in avoid:
+                            futures.append((hi, ai, p, reach[hi] * p,
+                                            [*histories[hi], {"action": pred["action"], "observation": obs}]))
+        futures = sorted(futures, key=lambda f: -f[3])[:beam]
+        if futures:
+            later = self._imagine([f[4] for f in futures], [f[3] for f in futures], actions, goals, avoid,
+                                  depth - 1, discount, beam, False)
+            for (hi, ai, share, _, _), options in zip(futures, later):
+                rows[hi][ai]["value"] += discount * share * max(o["value"] for o in options)
+        return rows
+
+    def choose(self, history: Sequence[Mapping[str, str]], actions: Sequence[str], *,
+               goals: Sequence[str] = (), avoid: Sequence[str] = (), depth: int = 5,
+               discount: float = 0.7, beam: int = 16) -> dict[str, Any]:
+        """Act on the action whose imagined futures carry the goal loudest (see class notes)."""
+        if not actions:
+            raise ValueError("choose needs at least one action")
+        rows = self._imagine([list(history)], [1.0], actions, set(goals), set(avoid), depth, discount, beam, True)[0]
+        best = max(rows, key=lambda r: r["value"])
+        if best["value"] > 0.0:
+            reason = "goal"
+        else:
+            safe = [r for r in rows if r["value"] >= 0.0] or rows
+            best, reason = min(safe, key=lambda r: r["confidence"]), "curiosity"
+        return {"action": best["action"], "reason": reason,
+                "candidates": [{k: r[k] for k in ("action", "value", "observation", "depth", "confidence",
+                                                  "distribution")} for r in rows]}
 
     def sleep(self, duration: float) -> dict[str, Any]:
         """Replay each recognised experience once, then rest in silence for ``duration``."""
         replayed = sorted(self.recognised)
+        self._write(replayed, 1.0)
         for key in replayed:
-            self._write(key, 1.0)
             self.rehearsed[key] += 1
         self.recognised.clear()
         self.memory.codec.field.rest(duration)
+        self._answers.clear()
         return {"replayed": len(replayed),
                 "faded_by": round(1.0 - math.exp(-self.memory.codec.field.p.mu * duration), 6)}
 
     def save(self, path: Path) -> None:
         _atomic_save({**self.memory.state(), "medium_schema": self.SCHEMA, "depth": self.depth,
-                      "decay": self.decay, "absorbed": dict(self.absorbed),
-                      "recognised": dict(self.recognised), "rehearsed": dict(self.rehearsed)}, path)
+                      "absorbed": dict(self.absorbed), "recognised": dict(self.recognised),
+                      "rehearsed": dict(self.rehearsed)}, path)
 
     @classmethod
     def load(cls, path: Path, device: str = "cpu") -> "TemporalMedium":
         raw = torch.load(path, map_location=device)
         if raw.get("medium_schema") != cls.SCHEMA:
             raise ValueError(f"{path} is not an emergent temporal medium")
-        medium = cls(SequenceMemory.from_state(raw, device), depth=raw["depth"], decay=raw["decay"])
+        medium = cls(SequenceMemory.from_state(raw, device), depth=raw["depth"])
         medium.absorbed = Counter(raw["absorbed"])
         medium.recognised = Counter(raw["recognised"])
         medium.rehearsed = Counter(raw["rehearsed"])
+        medium._spoken = {voice for key in medium.absorbed for voice in json.loads(key)[0]}
         return medium
 
 
@@ -612,10 +735,10 @@ def _paths(tree: dict) -> list[list[str]]:
 
 
 def episode(out: Path, sequences: int, length: int, rest_steps: int,
-            profile: EmergentProfile = EmergentProfile(), top: int = 20, seed: int = 7) -> dict:
+            profile: EmergentProfile = EmergentProfile(), seed: int = 7) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
-    memory = SequenceMemory.create(profile, top, salt=f"episode-{seed}")
+    memory = SequenceMemory.create(profile, salt=f"episode-{seed}")
     field, codec = memory.codec.field, memory.codec
     # Disjoint sequences, plus a branch that leaves the first one halfway.
     seqs = [[str(i) for i in range(k * length, (k + 1) * length)] for k in range(sequences)]
@@ -624,11 +747,8 @@ def episode(out: Path, sequences: int, length: int, rest_steps: int,
     ideas = sequences * length + length // 2
     memory.ideas([str(i) for i in range(ideas)])
     links = [(s[i], s[i + 1]) for s in [*seqs, branch] for i in range(len(s) - 1)]
-    order = torch.randperm(len(links), generator=torch.Generator().manual_seed(seed)).tolist()
-    for j in order:
-        memory.link(*links[j])
-    field.step(rest_steps)
-    field.calm()
+    memory.link(links)
+    field.rest(rest_steps * profile.dt)
     t_write = time.perf_counter()
 
     table, _ = memory.scores(memory.names)
@@ -649,7 +769,7 @@ def episode(out: Path, sequences: int, length: int, rest_steps: int,
                        "forward_exact": sorted(forward) == sorted(expected),
                        "backward_paths": back, "backward_exact": back == [s[::-1]]})
     report = {
-        "profile": asdict(profile), "notes": len(codec.notes), "ideas": ideas, "links": len(links),
+        "profile": asdict(profile), "notes": codec.count, "ideas": ideas, "links": len(links),
         "links_detected": int((detected & truth).sum()), "false_links": int((detected & ~truth).sum()),
         "silent_endings": sum(int(not detected[memory.index[s[-1]]].any()) for s in [*seqs[1:], branch]),
         "endings": len(seqs),
@@ -667,11 +787,11 @@ def episode(out: Path, sequences: int, length: int, rest_steps: int,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         fig, axes = plt.subplots(1, 2, figsize=(10, 4.6))
-        rho = field.rho.cpu()
+        rho = field.rho.float().cpu()
         axes[0].imshow((rho if profile.dims == 2 else rho[profile.size // 2]).numpy(), cmap="magma")
         axes[0].set_title("medium (middle slice)")
         axes[0].axis("off")
-        axes[1].imshow(table.cpu().numpy(), cmap="viridis")
+        axes[1].imshow(table.float().cpu().numpy(), cmap="viridis")
         axes[1].set_xlabel("idea heard")
         axes[1].set_ylabel("idea played")
         axes[1].set_title(f"{len(links)} stored steps among {ideas} ideas")
@@ -692,11 +812,11 @@ def main() -> None:
     ap.add_argument("--rest-steps", type=int, default=3000)
     ap.add_argument("--dims", type=int, default=3)
     ap.add_argument("--size", type=int, default=64)
-    ap.add_argument("--top", type=int, default=20)
+    ap.add_argument("--dtype", default="float32", choices=("float32", "float64"))
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     a = ap.parse_args()
-    profile = replace(EmergentProfile(), dims=a.dims, size=a.size, device=a.device)
-    r = episode(a.out, a.sequences, a.length, a.rest_steps, profile, top=a.top)
+    profile = replace(EmergentProfile(), dims=a.dims, size=a.size, dtype=a.dtype, device=a.device)
+    r = episode(a.out, a.sequences, a.length, a.rest_steps, profile)
     print(json.dumps({k: v for k, v in r.items() if k not in ("profile", "trains")}, indent=1))
 
 

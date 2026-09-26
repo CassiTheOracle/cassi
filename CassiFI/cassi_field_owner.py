@@ -13918,7 +13918,7 @@ class FieldIntelligenceOwner:
         return change
 
     def grow_temporal_medium(
-        self, memory_id: str, *, size: int = 64, top: int = 20, device: str | None = None,
+        self, memory_id: str, *, size: int = 32, device: str | None = None,
     ) -> Mapping[str, Any]:
         """Give a temporal memory an emergent medium and let it absorb every admitted episode."""
         with self._lock:
@@ -13928,12 +13928,12 @@ class FieldIntelligenceOwner:
                 from cassi_emergent_field import EmergentProfile, SequenceMemory, TemporalMedium
                 device = device or ("cuda" if torch.cuda.is_available() else "cpu")
                 profile = EmergentProfile(size=size, device=device)
-                medium = TemporalMedium(SequenceMemory.create(profile, top, salt=memory_id))
+                medium = TemporalMedium(SequenceMemory.create(profile, salt=memory_id))
                 medium.save(self._temporal_medium_path(memory_id))
                 self.__dict__.setdefault("_temporal_media", {})[memory_id] = medium
             change = self._sync_temporal_medium(memory_id)
             medium = self._temporal_medium(memory_id)
-            return {"memory_id": memory_id, **dict(change), "notes": len(medium.memory.codec.notes),
+            return {"memory_id": memory_id, **dict(change), "notes": medium.memory.codec.count,
                     "ideas": len(medium.memory.names)}
 
     def predict_temporal_medium(
@@ -13966,6 +13966,41 @@ class FieldIntelligenceOwner:
             receipt = medium.sleep(duration)
             medium.save(self._temporal_medium_path(memory_id))
             return {"memory_id": memory_id, **receipt}
+
+    def choose_temporal_medium_action(
+        self,
+        memory_id: str,
+        *,
+        actions: Sequence[str],
+        goals: Sequence[str] = (),
+        avoid: Sequence[str] = (),
+        depth: int = 5,
+        participant_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Let the medium choose: play every action, imagine its futures, act toward the goals.
+
+        ``goals`` and ``avoid`` are observations.  Without a heard goal the
+        medium picks the action it knows least about.
+        """
+        with self._lock:
+            row = self._temporal_memory(memory_id)
+            if self._temporal_medium(row.memory_id) is None:
+                raise FieldIntelligenceError("NOT_FOUND", "temporal memory has no emergent medium")
+            if not 1 <= depth <= 6:
+                raise FieldIntelligenceError("INVALID_TEMPORAL", "choice depth must be between 1 and 6")
+            self._sync_temporal_medium(row.memory_id)
+            history = self._temporal_apply(row.history, participant_id=participant_id)
+            actions = [_identifier(action, "action") for action in actions]
+            if not actions:
+                raise FieldIntelligenceError("INVALID_TEMPORAL", "choice needs at least one action")
+            goals = [_identifier(goal, "observation") for goal in goals]
+            avoid = [_identifier(item, "observation") for item in avoid]
+            medium = self._temporal_medium(row.memory_id)
+            recognised = sum(medium.recognised.values())
+            choice = medium.choose(history, actions, goals=goals, avoid=avoid, depth=depth)
+            if sum(medium.recognised.values()) != recognised:
+                medium.save(self._temporal_medium_path(row.memory_id))
+            return {"memory_id": row.memory_id, "history_steps": len(history), **choice}
 
     def select_temporal_action(
         self,
