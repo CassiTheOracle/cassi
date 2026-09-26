@@ -1,6 +1,6 @@
 # Cassi Psychology: The Mind as a Two-Fluid Field
 
-## Status: Synthesis—2026-09-25
+## Status: Synthesis—September 2026
 
 ## Abstract
 

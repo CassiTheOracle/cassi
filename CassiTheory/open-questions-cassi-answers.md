@@ -1,6 +1,6 @@
 # Cassi Answers to the Open Questions of Physics
 
-## Status: Comprehensive catalog—2026-09-25
+## Status: Comprehensive catalog—September 2026
 
 ## Abstract
 

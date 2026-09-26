@@ -1,6 +1,6 @@
 # Cassi Parameter Inventory
 
-## Status: Reference—2026-09-25
+## Status: Reference—September 2026
 
 ## Classification Legend
 

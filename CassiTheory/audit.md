@@ -1,6 +1,6 @@
 # Cassi Framework: Prediction vs Experiment Audit
 
-## Status: Reference—2026-09-25
+## Status: Reference—September 2026
 
 ## Abstract
 
@@ -807,13 +807,13 @@ Gaussian width 2 cells) after 2 time units of noise burn-in. Complexity
 is scored as PCI (Lempel–Ziv complexity normalized as Casali et al.
 2013, *Sci Transl Med* 5:198ra105); the human TMS-EEG reference
 range—wake $0.44$–$0.67$, NREM/anesthesia $0.12$–$0.31$, cutoff
-$\mathrm{PCI}^*=0.31$—is reported below as context, not as part of any
-registered verdict.
+$\mathrm{PCI}^*=0.31$—is reported below as context outside the
+registered verdicts.
 
 | Claim | Decisive measurement | Status |
 |---|---|---|
 | The gate's self-feedback drives the pulse's evoked complexity above the pinch (`two-fluid/run_zap_and_zip.py`, 640 trials, primary $\sigma=0.02$, $\mathrm{PCI}_{\max}$ over two sites, permutation significance at family-wise $\alpha=0.01$) | Above/live $0.203$ beats above/off by only $0.0007$ and below/live by $0.12$; gate$\times$state interaction $-0.0005$; SUPPORTED required $\geq 0.05$ over both comparisons. Secondary $\sigma=0.005$ at site c1: above/live $0.484$, above/off $0.461$, below/live $0.141$, below/off $0.144$; spread (fraction of sources ever significant) $0.19$ above vs $0.018$ below; the above-pinch echo peaks late (82 of 1728 sources at $t=14.6$ after the pulse), the below-pinch echo peaks at once (19 sources at $t=0.2$) and stays near the pulse site | **NULL** |
-| The complexity gap is carried by the faster expansion below the pinch (conversion Hubble law $H=0.059$ below vs $0.010$ above, damping the below-pinch flow about six times faster) rather than by the state itself (`two-fluid/run_zap_expansion.py`, 128 trials, $H=0$ and $a$ held at its prepared value from trial start, $\sigma=0.005$, site c1, gate live) | Frozen: above $0.466$, below $0.203$; $\mathrm{gap}_{\mathrm{frozen}}=0.263$ vs $\mathrm{gap}_{\mathrm{live}}=0.343$—77% of the live gap survives with expansion off | **SHARED** (between the $\leq 0.5\times$ EXPANSION and $\geq 0.8\times$ STATE bounds) |
+| The faster expansion below the pinch (conversion Hubble law $H=0.059$ below vs $0.010$ above, damping the below-pinch flow about six times faster) carries the complexity gap (`two-fluid/run_zap_expansion.py`, 128 trials, $H=0$ and $a$ held at its prepared value from trial start, $\sigma=0.005$, site c1, gate live) | Frozen: above $0.466$, below $0.203$; $\mathrm{gap}_{\mathrm{frozen}}=0.263$ vs $\mathrm{gap}_{\mathrm{live}}=0.343$—77% of the live gap survives with expansion off | **SHARED** (between the $\leq 0.5\times$ EXPANSION and $\geq 0.8\times$ STATE bounds) |
 | The two pinch regimes differ in how a perturbation grows through the flow (`two-fluid/run_zap_chaos.py`, 32 twin pairs of pulse and control trials from identical noise, growth rate $\Lambda$ of flow separation $d_u$ over $t=4$–$12$) | Below/live $\Lambda=0.233$ (doubling $3.0$), below/off $0.232$; above/live $\Lambda=0.594$ (doubling $1.2$), above/off $0.603$—every above-pinch pair grows faster than every below-pinch pair. Gate effect $\lvert\Delta\Lambda\rvert<0.05$ in both states ($+0.0001$ below, $-0.008$ above). By $t=20$ the pulse has changed the above-pinch flow by 133% of its rms (Yang displacement $5{,}520\times$ the pulse) versus 0.3% below ($10\times$); weak-force attenuation $s_f=f^2/(f^2+\sigma_g^2)$ is below $0.03$ in 90% of cells, so the pulse enters the flow weakly in both states | **SEPARATED**, **GATE-INDEPENDENT** |
 
 The two pinch regimes answer a local pulse very differently: above the
@@ -823,7 +823,7 @@ states sit on either side of the human PCI cutoff, though that
 calibration is human TMS-EEG and the pinch–anesthesia mapping stays a
 Hypothesized coordinate mapping
 (`consciousness/consciousness-from-phi.md` §2.1). The gate's
-self-feedback—the mechanism the theory credits with self-reference—
+self-feedback, the mechanism the theory credits with self-reference,
 contributes nothing measurable to the echo or to perturbation growth
 in any of the three tests; the contrast is carried by the state
 itself, about a quarter of it by the faster expansion below the pinch
