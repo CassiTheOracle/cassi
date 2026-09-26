@@ -3393,6 +3393,12 @@ class AtlasCheckpointStore:
         manifest_cache: dict[str, Mapping[str, Any]] = getattr(
             self, "_compaction_manifest_cache", {}
         )
+        # Page byte sizes come from immutable content-addressed objects, so a
+        # manifest's page cost stays exact for the life of the process; a
+        # publication therefore revisits it without restating every page.
+        page_size_cache: dict[str, Mapping[str, int] | None] = getattr(
+            self, "_compaction_page_size_cache", {}
+        )
         manifest_paths: dict[str, Path] | None = getattr(
             self, "_compaction_manifest_paths", None
         )
@@ -3404,11 +3410,13 @@ class AtlasCheckpointStore:
             }
             self._compaction_manifest_paths = manifest_paths
             self._compaction_manifest_cache = manifest_cache
+            self._compaction_page_size_cache = page_size_cache
         entries: list[tuple[int, Path, Mapping[str, Any]]] = []
         for name, path in tuple(manifest_paths.items()):
             if not path.is_file():
                 manifest_paths.pop(name, None)
                 manifest_cache.pop(name, None)
+                page_size_cache.pop(name, None)
                 continue
             manifest = manifest_cache.get(name)
             if manifest is None:
@@ -3424,7 +3432,6 @@ class AtlasCheckpointStore:
         computational_count = sum(
             row[2].get("transition", {}).get("kind") in _COMPUTATIONAL_TRANSITIONS for row in entries
         )
-        page_size_cache: dict[str, Mapping[str, int] | None] = {}
 
         def _page_sizes(
             entry: tuple[int, Path, Mapping[str, Any]]
@@ -3538,11 +3545,13 @@ class AtlasCheckpointStore:
                 path.unlink(missing_ok=True)
                 manifest_paths.pop(path.name, None)
                 manifest_cache.pop(path.name, None)
+                page_size_cache.pop(path.name, None)
         except BaseException:
             # A partially completed deletion must not leave stale disposable
             # metadata in use by the next publication in this process.
             self._compaction_manifest_paths = None
             self._compaction_manifest_cache = {}
+            self._compaction_page_size_cache = {}
             raise
         # Roots include retained exact-evidence/effect history and staged
         # publications. Collect only unreachable content-addressed field pages.
@@ -3551,6 +3560,7 @@ class AtlasCheckpointStore:
             if not path.is_file():
                 manifest_paths.pop(name, None)
                 manifest_cache.pop(name, None)
+                page_size_cache.pop(name, None)
                 continue
             manifest = manifest_cache.get(name)
             if manifest is None:

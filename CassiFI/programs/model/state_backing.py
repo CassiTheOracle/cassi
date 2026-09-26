@@ -411,6 +411,16 @@ class SnapshotStore:
         # key by the digest of their content.
         self._deferred_manifests: dict[str, bytes] = {}
         self._deferred_arrays: dict[str, np.ndarray] = {}
+        # Read-only arrays whose digest a deferred save already computed, keyed
+        # by identity so a later stage that passes the same array reuses it.
+        self._deferred_digests: dict[
+            int,
+            tuple[
+                weakref.ReferenceType[np.ndarray],
+                tuple[int, int, str, tuple[int, ...], tuple[int, ...]],
+                str,
+            ],
+        ] = {}
         self.counters = {
             "backing_repairs": 0,
             "backings_pruned": 0,
@@ -423,6 +433,9 @@ class SnapshotStore:
             "chunk_reuses": 0,
             "chunk_writes": 0,
             "deferred_arrays": 0,
+            "deferred_array_reuses": 0,
+            "deferred_digest_reuses": 0,
+            "deferred_evictions": 0,
             "deferred_snapshots": 0,
             "durability_syncs": 0,
             "manifest_reuses": 0,
@@ -904,7 +917,10 @@ class SnapshotStore:
         """Digest one array for a deferred snapshot without publishing bytes.
 
         Deferred saves skip every backing write; the rendering owner seals one
-        snapshot per publication, so only that snapshot's bytes reach disk.
+        snapshot per publication, so only that snapshot's bytes reach disk.  A
+        stage that hands the same read-only array to the next stage would
+        otherwise pay the full digest again: a read-only array whose whole base
+        chain is read-only cannot change contents, so its digest is reused.
         """
         if not isinstance(array, np.ndarray):
             raise TypeError(f"snapshot array {name!r} is not a numpy array")
@@ -913,12 +929,34 @@ class SnapshotStore:
         if array.flags.writeable:
             raise SnapshotStoreError("deferred snapshot arrays must be read-only")
         nbytes = int(array.nbytes)
+        signature = self._immutable_signature(array)
+        identity = id(array)
+        if signature is not None:
+            remembered = self._deferred_digests.get(identity)
+            if (
+                remembered is not None
+                and remembered[0]() is array
+                and remembered[1] == signature
+            ):
+                self.counters["deferred_digest_reuses"] += 1
+                return remembered[2], nbytes
         source = array if array.flags.c_contiguous else np.ascontiguousarray(array)
         try:
             view = memoryview(source).cast("B")
         except (TypeError, ValueError):
             view = memoryview(source.tobytes(order="C"))
         digest = hashlib.sha256(view).hexdigest()
+        if signature is not None:
+            def forget(reference: weakref.ReferenceType[np.ndarray]) -> None:
+                current = self._deferred_digests.get(identity)
+                if current is not None and current[0] is reference:
+                    self._deferred_digests.pop(identity, None)
+
+            self._deferred_digests[identity] = (
+                weakref.ref(array, forget),
+                signature,
+                digest,
+            )
         return digest, nbytes
 
     def _deferred_backing_known(self, digest: str) -> bool:
@@ -947,15 +985,29 @@ class SnapshotStore:
             )
         if self._deferred_backing_known(digest):
             return digest, nbytes
+        with self._deferred_lock:
+            if digest in self._deferred_arrays:
+                # The bytes are already reserved for the sealed snapshot; a
+                # later stage does not have to stat the blobs directory again.
+                self.counters["deferred_array_reuses"] += 1
+                return digest, nbytes
         if self._backing_matches(self.blobs / f"{digest}.bin", digest, nbytes):
             self.counters["blob_reuses"] += 1
             return digest, nbytes
+        overflow: list[tuple[str, np.ndarray]] = []
         with self._deferred_lock:
             if digest not in self._deferred_arrays:
                 self._deferred_arrays[digest] = array
                 self.counters["deferred_arrays"] += 1
                 while len(self._deferred_arrays) > _DEFERRED_ARRAY_LIMIT:
-                    self._deferred_arrays.pop(next(iter(self._deferred_arrays)))
+                    evicted_digest = next(iter(self._deferred_arrays))
+                    overflow.append((evicted_digest, self._deferred_arrays.pop(evicted_digest)))
+        # A sealed snapshot can still name an array this process no longer
+        # holds, so eviction publishes those exact bytes instead of dropping
+        # the only copy: every later manifest reuses the backing.
+        for evicted_digest, evicted in overflow:
+            self._write_deferred_array(evicted, evicted_digest, int(evicted.nbytes))
+            self.counters["deferred_evictions"] += 1
         return digest, nbytes
 
     def _finalize_manifest(
@@ -1437,9 +1489,13 @@ class SnapshotStore:
                 self._deferred_backings = True
                 continue
             # A republished backing is a new file: forgetting it here keeps the
-            # flush record meaning "these bytes reached the disk".
+            # flush record meaning "these bytes reached the disk", and the
+            # verified-digest record keeps meaning "this file holds them".
             with self._durability_lock:
                 self._known_durable.pop(entry.path, None)
+                for key in tuple(self._verified_blobs):
+                    if key[0] == entry.path:
+                        del self._verified_blobs[key]
             removed += 1
             freed += size
         return removed, freed

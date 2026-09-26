@@ -232,3 +232,76 @@ def test_prune_reclaims_chunks_a_loaded_page_still_holds(tmp_path):
     restored, metadata = store.load(descriptor)
     assert metadata == {"step": 4}
     assert restored["page"].tobytes() == page.tobytes()
+
+
+def test_deferred_eviction_publishes_bytes_a_sealed_snapshot_still_names(tmp_path, monkeypatch):
+    """A deferred snapshot seals even when its arrays outlive the in-memory cap."""
+
+    monkeypatch.setattr(state_backing, "_DEFERRED_ARRAY_LIMIT", 2)
+    store = SnapshotStore(tmp_path / "state", retain_generations=4)
+    arrays: dict[str, np.ndarray] = {}
+    for step in range(6):
+        array = np.full(64, step + 1, dtype=np.uint8)
+        array.setflags(write=False)
+        arrays[f"layer.{step}"] = array
+        store.save(dict(arrays), {"step": step}, reuse_immutable_arrays=True,
+                   durable=False, defer_publication=True)
+
+    sealed = store.save(dict(arrays), {"step": 6}, reuse_immutable_arrays=True,
+                        durable=False, defer_publication=True)
+    assert store.counters["deferred_evictions"] > 0
+    assert store.make_durable(sealed) == sealed
+
+    restored, metadata = SnapshotStore(tmp_path / "state").load(sealed)
+    assert metadata == {"step": 6}
+    for name, array in arrays.items():
+        assert restored[name].tobytes() == array.tobytes()
+
+
+def test_pruned_blob_is_republished_when_a_later_deferred_snapshot_names_it(tmp_path):
+    """A swept backing stops counting as published, so the next seal rewrites it."""
+
+    store = SnapshotStore(tmp_path / "state", retain_generations=1)
+    page = np.arange(64, dtype=np.uint8)
+    page.setflags(write=False)
+    first = store.save({"page": page}, {"step": 0})
+    blob = store.root / _manifest(store, first)["arrays"]["page"]["blob"]
+    assert blob.exists()
+
+    store.save({"other": np.full(64, 9, dtype=np.uint8)}, {"step": 1})
+    assert not blob.exists()
+
+    sealed = store.save({"page": page}, {"step": 2}, reuse_immutable_arrays=True,
+                        durable=False, defer_publication=True)
+    assert not blob.exists()
+    assert store.make_durable(sealed) == sealed
+    assert blob.exists()
+
+    restored, metadata = SnapshotStore(tmp_path / "state").load(sealed)
+    assert metadata == {"step": 2}
+    assert restored["page"].tobytes() == page.tobytes()
+
+
+def test_deferred_save_reuses_the_digest_of_an_unchanged_read_only_array(tmp_path):
+    """A later deferred save of the same read-only array skips rehashing it."""
+
+    store = SnapshotStore(tmp_path / "state", retain_generations=4)
+    state = np.arange(64, dtype=np.uint8)
+    state.setflags(write=False)
+    step = np.arange(64, dtype=np.uint8)
+    step.setflags(write=False)
+
+    first = store.save({"state": state, "step": step}, {"step": 0}, durable=False,
+                       defer_publication=True)
+    changed = np.full(64, 5, dtype=np.uint8)
+    changed.setflags(write=False)
+    second = store.save({"state": state, "step": changed}, {"step": 1}, durable=False,
+                        defer_publication=True)
+
+    assert store.counters["deferred_digest_reuses"] == 1
+    assert store.make_durable(second) == second
+    restored, metadata = SnapshotStore(tmp_path / "state").load(second)
+    assert metadata == {"step": 1}
+    assert restored["state"].tobytes() == state.tobytes()
+    assert restored["step"].tobytes() == changed.tobytes()
+    assert first["snapshot_sha256"] != second["snapshot_sha256"]
