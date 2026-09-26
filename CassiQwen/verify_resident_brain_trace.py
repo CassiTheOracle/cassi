@@ -113,6 +113,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--scratch", default=None)
     parser.add_argument("--receipt", default=None)
     parser.add_argument(
+        "--native-exe",
+        default=None,
+        help="field-runtime binary the resident brain drives instead of the default build",
+    )
+    parser.add_argument(
         "--work-trace",
         default=None,
         help="write the timed completion's CassiFI work-trace summary here",
@@ -136,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         "max_new": args.max_new,
         "prompt_tokens": 0,
         "scratch": str(scratch),
+        "native_exe": args.native_exe,
         "runs": {},
     }
     entity = None
@@ -148,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
             resident_threads=args.threads,
             max_response_tokens=max(64, args.max_new + 32),
             research_resident_enabled=True,
+            program_native_runtime_executable=(
+                Path(args.native_exe).resolve() if args.native_exe else None
+            ),
         )
         for label, max_tokens in (("warm", args.warm), ("timed", args.max_new)):
             if max_tokens <= 0:

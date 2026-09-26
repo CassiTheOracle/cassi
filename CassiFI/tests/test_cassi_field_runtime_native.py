@@ -885,3 +885,261 @@ def test_native_draft_round_rejects_a_proposal_outside_the_draft_bound(
             draws=[0.0] * (native.MAX_DRAFT_TOKENS + 2),
             operation_ids=[f"op-{index}" for index in range(native.MAX_DRAFT_TOKENS + 2)],
         )
+
+
+def _delta_words(start: int, count: int) -> bytes:
+    import numpy as np
+
+    return np.arange(start, start + count, dtype="<u4").tobytes()
+
+
+def _delta_attach_client(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    delta_refusal: str | None = None,
+    chunk_bytes: int = 1 << 20,
+) -> tuple[native.NativeFieldRuntimeClient, list[tuple[int, dict[int, tuple[int, bytes]]]]]:
+    """A client whose transport answers imports according to the wire contract."""
+
+    client = object.__new__(native.NativeFieldRuntimeClient)
+    client.service_generation = 7
+    calls: list[tuple[int, dict[int, tuple[int, bytes]]]] = []
+    delta_id = "image-delta:1"
+    full_id = "image-import:1"
+
+    def request(kind: int, fields: Any) -> dict[int, tuple[int, bytes]]:
+        decoded = {tag: (wire, value) for tag, wire, value in fields}
+        calls.append((kind, decoded))
+        if kind == native.IMPORT_IMAGE_DELTA:
+            if delta_refusal is not None:
+                raise native.NativeFieldRuntimeError(delta_refusal)
+            return {
+                1: (native.WIRE_UTF8, b"import-open"),
+                2: (native.WIRE_UTF8, delta_id.encode()),
+                3: (native.WIRE_U64, chunk_bytes.to_bytes(8, "little")),
+            }
+        if kind == native.IMPORT_IMAGE_INFO:
+            return {
+                1: (native.WIRE_UTF8, b"import-open"),
+                2: (native.WIRE_UTF8, full_id.encode()),
+                3: (native.WIRE_U64, (native.MAX_FIELD_BYTES).to_bytes(8, "little")),
+            }
+        if kind in {native.IMPORT_IMAGE_CHUNK, native.IMPORT_DELTA_CHUNK}:
+            offset = native._field_u64(decoded, 2)
+            size = native._field_u64(decoded, 4)
+            return {
+                1: (native.WIRE_UTF8, b"import-chunk-accepted"),
+                2: (native.WIRE_UTF8, native._field_text(decoded, 1).encode()),
+                3: (native.WIRE_U64, (offset + size).to_bytes(8, "little")),
+            }
+        assert kind == native.FINISH_IMAGE_IMPORT
+        return {
+            1: (native.WIRE_UTF8, b"attached"),
+            2: (native.WIRE_UTF8, b"owner-1"),
+            3: (native.WIRE_U64, (0).to_bytes(8, "little")),
+            4: (native.WIRE_UTF8, b"a" * 64),
+        }
+
+    monkeypatch.setattr(client, "_request", request, raising=False)
+    monkeypatch.setattr(client, "verify_device", lambda *args, **kwargs: None, raising=False)
+    return client, calls
+
+
+def _delta_attach(
+    client: native.NativeFieldRuntimeClient,
+    packed_words: bytes,
+    *,
+    base: native.NativeAttachBase | None,
+    shape: tuple[int, ...],
+) -> dict[str, Any]:
+    return client.attach_packed(
+        "owner-1",
+        shape,
+        packed_words,
+        profile_sha256="c" * 64,
+        state_sha256="d" * 64,
+        catalog_sha256="e" * 64,
+        fence=4,
+        base=base,
+    )
+
+
+def _delta_chunks(
+    calls: list[tuple[int, dict[int, tuple[int, bytes]]]],
+) -> list[tuple[int, int]]:
+    return [
+        (native._field_u64(fields, 2), native._field_u64(fields, 4))
+        for kind, fields in calls
+        if kind == native.IMPORT_DELTA_CHUNK
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_native_packed_attach_delta_transfers_only_changed_ranges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Four pages: the second is rewritten, the third matches the base, the
+    # fourth is appended. Only the changed and appended pages may be sent.
+    page = native._PACKED_PAGE_WORDS
+    page_bytes = page * 4
+    base_words = _delta_words(0, page * 3)
+    new_words = (
+        base_words[:page_bytes]
+        + _delta_words(5_000_000, page)
+        + base_words[page_bytes * 2 : page_bytes * 3]
+        + _delta_words(9_000_000, page)
+    )
+    shape = (1, len(new_words) // 4, 1)
+    base = native.NativeAttachBase(
+        payload=base_words,
+        shape=(1, page * 3, 1),
+        fence=3,
+        state_sha256="b" * 64,
+    )
+    client, calls = _delta_attach_client(monkeypatch)
+    attachment = _delta_attach(client, new_words, base=base, shape=shape)
+
+    kinds = [kind for kind, _ in calls]
+    assert kinds[0] == native.IMPORT_IMAGE_DELTA
+    assert native.IMPORT_IMAGE_INFO not in kinds
+    assert kinds[-1] == native.FINISH_IMAGE_IMPORT
+    opened = calls[0][1]
+    assert native._field_u64(opened, 10) == 3
+    assert native._field_text(opened, 11) == "b" * 64
+    assert native._field_u64(opened, 8) == len(new_words) * 2
+    assert native._field_bytes(opened, 9) == hashlib.sha256(new_words).digest()
+    assert _delta_chunks(calls) == [
+        (page * 8, page * 8),
+        (page * 8 * 3, page * 8),
+    ]
+    assert attachment["status"] == "attached"
+    assert attachment["owner_id"] == "owner-1"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_native_packed_attach_delta_sends_nothing_for_an_identical_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = native._PACKED_PAGE_WORDS
+    words = _delta_words(0, page * 2)
+    shape = (1, page * 2, 1)
+    base = native.NativeAttachBase(
+        payload=words,
+        shape=shape,
+        fence=3,
+        state_sha256="b" * 64,
+    )
+    client, calls = _delta_attach_client(monkeypatch)
+    _delta_attach(client, words, base=base, shape=shape)
+
+    assert [kind for kind, _ in calls] == [
+        native.IMPORT_IMAGE_DELTA,
+        native.FINISH_IMAGE_IMPORT,
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_native_packed_attach_delta_splits_a_run_at_the_chunk_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A runtime with a small chunk bound still receives the run as
+    # contiguous chunks that tile it exactly.
+    page = native._PACKED_PAGE_WORDS
+    canonical_page = page * 8
+    chunk_bytes = canonical_page // 2
+    base_words = _delta_words(0, page)
+    new_words = base_words + _delta_words(3_000_000, page * 2)
+    shape = (1, page * 3, 1)
+    base = native.NativeAttachBase(
+        payload=base_words,
+        shape=(1, page, 1),
+        fence=3,
+        state_sha256="b" * 64,
+    )
+    client, calls = _delta_attach_client(monkeypatch, chunk_bytes=chunk_bytes)
+    _delta_attach(client, new_words, base=base, shape=shape)
+
+    chunks = _delta_chunks(calls)
+    assert len(chunks) == 4
+    cursor = canonical_page
+    for start, size in chunks:
+        assert start == cursor
+        assert size == chunk_bytes
+        cursor += size
+    assert cursor == canonical_page * 3
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_native_packed_attach_delta_falls_back_when_the_base_is_gone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = native._PACKED_PAGE_WORDS
+    base_words = _delta_words(0, page)
+    new_words = _delta_words(4_000_000, page * 2)
+    shape = (1, page * 2, 1)
+    base = native.NativeAttachBase(
+        payload=base_words,
+        shape=(1, page, 1),
+        fence=3,
+        state_sha256="b" * 64,
+    )
+    client, calls = _delta_attach_client(
+        monkeypatch, delta_refusal="image delta requires a resident base"
+    )
+    attachment = _delta_attach(client, new_words, base=base, shape=shape)
+
+    kinds = [kind for kind, _ in calls]
+    assert kinds[0] == native.IMPORT_IMAGE_DELTA
+    assert native.IMPORT_IMAGE_INFO in kinds
+    assert native.IMPORT_DELTA_CHUNK not in kinds
+    full_chunks = [
+        (native._field_u64(fields, 2), native._field_u64(fields, 4))
+        for kind, fields in calls
+        if kind == native.IMPORT_IMAGE_CHUNK
+    ]
+    assert full_chunks == [(0, len(new_words) * 2)]
+    assert attachment["status"] == "attached"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_native_packed_attach_delta_falls_back_on_a_runtime_without_the_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = native._PACKED_PAGE_WORDS
+    words = _delta_words(0, page)
+    shape = (1, page, 1)
+    base = native.NativeAttachBase(
+        payload=words,
+        shape=shape,
+        fence=3,
+        state_sha256="b" * 64,
+    )
+    client, calls = _delta_attach_client(
+        monkeypatch, delta_refusal="request kind is unsupported"
+    )
+    attachment = _delta_attach(client, words, base=base, shape=shape)
+
+    kinds = [kind for kind, _ in calls]
+    assert native.IMPORT_IMAGE_INFO in kinds
+    assert native.IMPORT_DELTA_CHUNK not in kinds
+    assert attachment["status"] == "attached"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_native_packed_attach_delta_keeps_other_refusals_loud(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = native._PACKED_PAGE_WORDS
+    words = _delta_words(0, page)
+    shape = (1, page, 1)
+    base = native.NativeAttachBase(
+        payload=words,
+        shape=shape,
+        fence=3,
+        state_sha256="b" * 64,
+    )
+    client, calls = _delta_attach_client(monkeypatch, delta_refusal="stale-publication-fence")
+    with pytest.raises(native.NativeFieldRuntimeError, match="stale-publication-fence"):
+        _delta_attach(client, words, base=base, shape=shape)
+
+    assert [kind for kind, _ in calls] == [native.IMPORT_IMAGE_DELTA]

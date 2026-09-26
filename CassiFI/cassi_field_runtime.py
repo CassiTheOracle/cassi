@@ -18,6 +18,7 @@ import numpy as np
 from cassi_field_computer import ComputerState, PagedComputerState
 from cassi_field_regions import PERSISTENCE_PAGE_WORDS
 from cassi_field_runtime_native import (
+    NativeAttachBase,
     NativeFieldRuntimeClient,
     NativeFieldRuntimeError,
     NativeGroupRow,
@@ -547,6 +548,20 @@ class ResidentFieldRuntime:
         )
         if self._native_client is not None:
             if isinstance(state, PagedComputerState):
+                # The runtime seeds a delta attach from the image it already
+                # holds for this owner; it refuses a base it no longer has and
+                # the client answers with the full image.
+                base = (
+                    NativeAttachBase(
+                        payload=current.image.payload,
+                        shape=tuple(current.image.shape),
+                        fence=current.fence,
+                        state_sha256=current.image.state_sha256,
+                    )
+                    if current is not None
+                    and current.service_generation == self.service_generation
+                    else None
+                )
                 native_attachment = self._native_client.attach_packed(
                     owner_id,
                     image.shape,
@@ -555,6 +570,7 @@ class ResidentFieldRuntime:
                     state_sha256=state_sha256,
                     catalog_sha256=catalog_sha256,
                     fence=fence,
+                    base=base,
                 )
             else:
                 native_attachment = self._native_client.attach(

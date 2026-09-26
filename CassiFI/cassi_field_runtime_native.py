@@ -16,7 +16,7 @@ import tempfile
 import threading
 import time
 from collections.abc import Mapping
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 import uuid
 
 import numpy as np
@@ -29,6 +29,8 @@ MAX_FRAME_BODY = 8 << 20
 MAX_FIELD_BYTES = 64 << 20
 MAX_LOGICAL_IMAGE_BYTES = 1 << 30
 MAX_WORD_OPERATIONS_PER_FRAME = 32_000
+# The runtime keeps one page digest per 64 KiB of packed u32 words.
+_PACKED_PAGE_WORDS = (64 << 10) // 4
 
 HELLO = 1
 STATUS = 2
@@ -59,6 +61,8 @@ GRAPH_SITE_PREFLIGHT = 26
 LEAVE_GROUP = 27
 JOIN_GROUP = 28
 VERIFY_MODEL_DRAFT = 29
+IMPORT_IMAGE_DELTA = 30
+IMPORT_DELTA_CHUNK = 31
 GRAPH_SITE_WIRE_VERSION = 3
 GRAPH_SITE_RECEIPT_WIRE_VERSION = 3
 MAX_GRAPH_SITE_TEXT = 4096
@@ -1692,6 +1696,32 @@ def _decode_group_results(blob: bytes, expected_rows: int) -> list[dict[str, Any
     return rows
 
 
+@dataclass(frozen=True, slots=True)
+class NativeAttachBase:
+    """The owner image a delta attach starts from.
+
+    ``payload`` is the packed u32 image the runtime is expected to hold for
+    the owner at ``fence`` and ``state_sha256``; the runtime seeds the new
+    image from it and receives only the byte ranges that changed.
+    """
+
+    payload: bytes
+    shape: tuple[int, ...]
+    fence: int
+    state_sha256: str
+
+
+# A delta attach falls back to the full image when the runtime no longer holds
+# the declared base, and when the runtime predates the delta protocol; every
+# other refusal is a real error.
+_DELTA_BASE_REFUSALS = (
+    "image delta requires a resident base",
+    "image delta base disagrees",
+    "image delta base shape disagrees",
+    "request kind is unsupported",
+)
+
+
 class NativeFieldRuntimeClient:
     """One authenticated connection; the owner remains the only publisher."""
 
@@ -2062,8 +2092,15 @@ class NativeFieldRuntimeClient:
         state_sha256: str,
         catalog_sha256: str,
         fence: int = 0,
+        base: NativeAttachBase | None = None,
     ) -> dict[str, Any]:
-        """Attach packed u32 words without constructing a full float64 image."""
+        """Attach packed u32 words without constructing a full float64 image.
+
+        ``base`` names the owner image the runtime already holds. When it still
+        matches, the runtime seeds the new image from its copy and receives
+        only the byte ranges that changed; a runtime that no longer holds the
+        base takes the full image transfer instead.
+        """
 
         self.verify_device("attach")
         extents = tuple(shape)
@@ -2088,6 +2125,22 @@ class NativeFieldRuntimeClient:
         def canonical_chunk(start_word: int, stop_word: int) -> bytes:
             packed = packed_words[start_word * 4 : stop_word * 4]
             return np.frombuffer(packed, dtype="<u4").astype(np.float64).tobytes(order="C")
+
+        if base is not None:
+            delta = self._attach_packed_delta(
+                owner_id,
+                extents,
+                packed_words,
+                shape_bytes,
+                profile,
+                state,
+                catalog,
+                fence,
+                base,
+                canonical_chunk,
+            )
+            if delta is not None:
+                return delta
 
         digest_builder = hashlib.sha256()
         for start in range(0, total_words, 4096):
@@ -2137,6 +2190,137 @@ class NativeFieldRuntimeClient:
                     or _field_u64(chunk_response, 3) != next_offset
                 ):
                     raise NativeFieldRuntimeError("native image import chunk acknowledgment disagrees")
+            response = self._request(FINISH_IMAGE_IMPORT, (_utf8(1, transfer_id),))
+        except BaseException:
+            try:
+                self._request(CANCEL_IMAGE_IMPORT, (_utf8(1, transfer_id),))
+            except Exception:
+                pass
+            raise
+        if _field_text(response, 1) != "attached" or _field_text(response, 2) != owner_id:
+            raise NativeFieldRuntimeError("native runtime did not attach imported image")
+        return {
+            "status": _field_text(response, 1),
+            "owner_id": _field_text(response, 2),
+            "word_count": _field_u64(response, 3),
+            "packed_sha256": _field_text(response, 4),
+        }
+
+    def _attach_packed_delta(
+        self,
+        owner_id: str,
+        extents: tuple[int, ...],
+        packed_words: bytes,
+        shape_bytes: bytes,
+        profile: str,
+        state: str,
+        catalog: str,
+        fence: int,
+        base: NativeAttachBase,
+        canonical_chunk: Callable[[int, int], bytes],
+    ) -> dict[str, Any] | None:
+        """Attach only the word ranges that changed against ``base``.
+
+        ``None`` means the runtime refused the declared base and the caller
+        sends the full image.
+        """
+
+        payload = base.payload
+        base_extents = tuple(base.shape)
+        if (
+            not isinstance(payload, bytes)
+            or len(payload) % 4
+            or not isinstance(base.fence, int)
+            or isinstance(base.fence, bool)
+            or base.fence < 0
+            or not isinstance(base.state_sha256, str)
+            or len(base.state_sha256) != 64
+        ):
+            return None
+        total_words = len(packed_words) // 4
+        base_words = np.frombuffer(payload, dtype="<u4")
+        words = np.frombuffer(packed_words, dtype="<u4")
+        flat = len(extents) == 3 and extents[0] == 1 and extents[-1] == 1
+        base_flat = len(base_extents) == 3 and base_extents[0] == 1 and base_extents[-1] == 1
+        if base_extents == extents:
+            if base_words.size != total_words:
+                return None
+        elif not (flat and base_flat and base_words.size <= total_words):
+            return None
+        ranges: list[tuple[int, int]] = []
+        first_changed = -1
+        for first in range(0, total_words, _PACKED_PAGE_WORDS):
+            last = min(total_words, first + _PACKED_PAGE_WORDS)
+            segment = words[first:last]
+            if first >= base_words.size:
+                same = not bool(segment.any())
+            elif last <= base_words.size:
+                same = bool(np.array_equal(base_words[first:last], segment))
+            else:
+                covered = int(base_words.size) - first
+                same = bool(np.array_equal(base_words[first:], segment[:covered])) and not bool(
+                    segment[covered:].any()
+                )
+            if same:
+                if first_changed >= 0:
+                    ranges.append((first_changed, first))
+                    first_changed = -1
+            elif first_changed < 0:
+                first_changed = first
+        if first_changed >= 0:
+            ranges.append((first_changed, total_words))
+        try:
+            response = self._request(
+                IMPORT_IMAGE_DELTA,
+                (
+                    _utf8(1, owner_id),
+                    _u64(2, self.service_generation),
+                    _u64(3, fence),
+                    _utf8(4, profile),
+                    _utf8(5, state),
+                    _utf8(6, catalog),
+                    _bytes(7, shape_bytes),
+                    _u64(8, total_words * 8),
+                    _bytes(9, hashlib.sha256(packed_words).digest()),
+                    _u64(10, base.fence),
+                    _utf8(11, base.state_sha256),
+                ),
+            )
+        except NativeFieldRuntimeError as error:
+            if any(marker in str(error) for marker in _DELTA_BASE_REFUSALS):
+                return None
+            raise
+        transfer_id = _field_text(response, 2)
+        try:
+            if _field_text(response, 1) != "import-open":
+                raise NativeFieldRuntimeError("native runtime did not open image delta")
+            chunk_bytes = _field_u64(response, 3)
+            if not 0 < chunk_bytes <= MAX_FIELD_BYTES or chunk_bytes % 8:
+                raise NativeFieldRuntimeError("native import chunk bound is invalid")
+            words_per_chunk = max(1, chunk_bytes // 8)
+            for run_start, run_stop in ranges:
+                for start in range(run_start, run_stop, words_per_chunk):
+                    stop = min(run_stop, start + words_per_chunk)
+                    chunk = canonical_chunk(start, stop)
+                    with _StagingMapping.from_bytes(chunk) as mapping:
+                        chunk_response = self._request(
+                            IMPORT_DELTA_CHUNK,
+                            (
+                                _utf8(1, transfer_id),
+                                _u64(2, start * 8),
+                                _u64(3, mapping.value),
+                                _u64(4, len(chunk)),
+                                _bytes(5, hashlib.sha256(chunk).digest()),
+                            ),
+                        )
+                    if (
+                        _field_text(chunk_response, 1) != "import-chunk-accepted"
+                        or _field_text(chunk_response, 2) != transfer_id
+                        or _field_u64(chunk_response, 3) != stop * 8
+                    ):
+                        raise NativeFieldRuntimeError(
+                            "native image delta chunk acknowledgment disagrees"
+                        )
             response = self._request(FINISH_IMAGE_IMPORT, (_utf8(1, transfer_id),))
         except BaseException:
             try:

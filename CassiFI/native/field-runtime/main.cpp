@@ -83,6 +83,14 @@ struct PendingImport {
     std::vector<std::byte> payload;
     std::size_t next_offset{};
     std::chrono::steady_clock::time_point last_activity{};
+    // A delta transfer seeds the assembled image from the resident base and
+    // carries only changed ranges; ``payload`` stays empty for it.
+    bool delta{};
+    cfr::Digest words_sha256{};
+    std::vector<std::uint32_t> base_words;
+    std::vector<cfr::Digest> base_page_sha256;
+    std::vector<std::uint8_t> touched_pages;
+    std::size_t accounted_bytes{};
 };
 
 class RuntimeState {
@@ -108,6 +116,8 @@ public:
         case cfr::MessageKind::import_image: return import_image(request, client_pid);
         case cfr::MessageKind::import_image_info: return begin_image_import(request);
         case cfr::MessageKind::import_image_chunk: return import_image_chunk(request, client_pid);
+        case cfr::MessageKind::import_image_delta: return begin_image_delta(request);
+        case cfr::MessageKind::import_delta_chunk: return import_delta_chunk(request, client_pid);
         case cfr::MessageKind::finish_image_import: return finish_image_import(request);
         case cfr::MessageKind::cancel_image_import: return cancel_image_import(request);
         case cfr::MessageKind::export_candidate_info: return export_candidate_info(request);
@@ -153,7 +163,7 @@ private:
     std::size_t pending_import_bytes_{};
 
     void erase_import(std::unordered_map<std::string, PendingImport>::iterator found) {
-        pending_import_bytes_ -= found->second.payload.size();
+        pending_import_bytes_ -= found->second.accounted_bytes;
         if (auto owner = owner_import_.find(found->second.owner_id);
             owner != owner_import_.end() && owner->second == found->first) owner_import_.erase(owner);
         imports_.erase(found);
@@ -406,6 +416,68 @@ private:
         pending.shape = shape;
         pending.payload_sha256 = digest;
         pending.payload.resize(static_cast<std::size_t>(total64));
+        pending.accounted_bytes = static_cast<std::size_t>(total64);
+        pending.last_activity = std::chrono::steady_clock::now();
+        owner_import_.emplace(owner, transfer_id);
+        try { imports_.emplace(transfer_id, std::move(pending)); }
+        catch (...) { owner_import_.erase(owner); throw; }
+        pending_import_bytes_ += static_cast<std::size_t>(total64);
+        return cfr::Body{}.text(kStatus, "import-open").text(kValue, transfer_id).u64(3, cfr::kMaxTransferChunkBytes);
+    }
+
+    cfr::Body begin_image_delta(const cfr::Body& request) {
+        require_hello();
+        auto owner = bounded_identifier(request.require_text(1), "owner identity");
+        const auto generation = request.require_u64(2); const auto fence = request.require_u64(3);
+        if (generation != service_generation_) throw cfr::ProtocolError("stale-runtime-generation");
+        if (owner_candidate_.contains(owner)) throw cfr::ProtocolError("owner has an in-flight candidate");
+        const auto profile = request.require_text(4); const auto state_sha = request.require_text(5); const auto catalog = request.require_text(6);
+        cfr::require_hex_sha256(profile, "profile_sha256"); cfr::require_hex_sha256(state_sha, "state_sha256"); cfr::require_hex_sha256(catalog, "catalog_sha256");
+        const auto shape = cfr::decode_shape(request.require_bytes(7));
+        const auto expected_bytes = cfr::checked_word_count(shape) * sizeof(double);
+        const auto total64 = request.require_u64(8);
+        if (total64 != expected_bytes || total64 > cfr::kMaxLogicalFieldBytes || total64 > std::numeric_limits<std::size_t>::max()) throw cfr::ProtocolError("logical image transfer size does not match shape");
+        const auto declared = request.require_bytes(9); if (declared.size() != 32U) throw cfr::ProtocolError("logical image delta digest size is invalid");
+        cfr::Digest words_digest{}; std::copy(declared.begin(), declared.end(), words_digest.begin());
+        const auto base_fence = request.require_u64(10); const auto base_state = request.require_text(11);
+        cfr::require_hex_sha256(base_state, "base_state_sha256");
+        const auto current = attachments_.find(owner);
+        if (current == attachments_.end()) throw cfr::ProtocolError("image delta requires a resident base");
+        const auto& base = current->second.image;
+        if (base.fence != base_fence || base.state_sha256 != base_state)
+            throw cfr::ProtocolError("image delta base disagrees");
+        const auto count = static_cast<std::size_t>(total64 / sizeof(double));
+        const auto flat = [](std::span<const std::uint32_t> extents) {
+            return extents.size() == 3U && extents.front() == 1U && extents.back() == 1U;
+        };
+        if (!(shape == base.shape || (flat(shape) && flat(base.shape) && count >= base.words.size())))
+            throw cfr::ProtocolError("image delta base shape disagrees");
+        if (fence < base.fence) throw cfr::ProtocolError("stale-publication-fence");
+        if (const auto prior = owner_import_.find(owner); prior != owner_import_.end())
+            erase_import(imports_.find(prior->second));
+        if (total64 > kMaxPendingImportBytes - pending_import_bytes_)
+            throw cfr::ProtocolError("aggregate pending image imports exceed their bound");
+        std::string transfer_id;
+        do { transfer_id = "image-delta:" + std::to_string(random_u64()); } while (imports_.contains(transfer_id));
+        constexpr auto page_words = cfr::kPageBytes / sizeof(std::uint32_t);
+        PendingImport pending;
+        pending.transfer_id = transfer_id;
+        pending.owner_id = owner;
+        pending.service_generation = generation;
+        pending.fence = fence;
+        pending.profile_sha256 = profile;
+        pending.state_sha256 = state_sha;
+        pending.catalog_sha256 = catalog;
+        pending.shape = shape;
+        pending.delta = true;
+        pending.words_sha256 = words_digest;
+        pending.base_words.assign(count, 0U);
+        std::copy(base.words.begin(), base.words.end(), pending.base_words.begin());
+        pending.base_page_sha256 = base.page_sha256;
+        pending.touched_pages.assign(std::max<std::size_t>(1U, (count + page_words - 1U) / page_words), 0U);
+        for (auto page = pending.base_page_sha256.size(); page < pending.touched_pages.size(); ++page)
+            pending.touched_pages[page] = 1U;
+        pending.accounted_bytes = static_cast<std::size_t>(total64);
         pending.last_activity = std::chrono::steady_clock::now();
         owner_import_.emplace(owner, transfer_id);
         try { imports_.emplace(transfer_id, std::move(pending)); }
@@ -432,12 +504,76 @@ private:
         return cfr::Body{}.text(kStatus, "import-chunk-accepted").text(kValue, transfer_id).u64(3, transfer.next_offset);
     }
 
+    cfr::Body import_delta_chunk(const cfr::Body& request, std::uint32_t client_pid) {
+        require_hello();
+        const auto transfer_id = request.require_text(1);
+        auto found = imports_.find(transfer_id);
+        if (found == imports_.end()) throw cfr::ProtocolError("image import is unknown");
+        auto& transfer = found->second;
+        if (!transfer.delta) throw cfr::ProtocolError("image import is not a delta transfer");
+        const auto offset64 = request.require_u64(2); const auto handle = request.require_u64(3); const auto size64 = request.require_u64(4);
+        const auto limit = transfer.base_words.size() * sizeof(double);
+        if (offset64 % sizeof(double) != 0U || offset64 < transfer.next_offset || size64 == 0 ||
+                size64 > cfr::kMaxTransferChunkBytes || size64 > std::numeric_limits<std::size_t>::max() ||
+                size64 % sizeof(double) != 0U || offset64 > limit || size64 > limit - static_cast<std::size_t>(offset64))
+            throw cfr::ProtocolError("image delta chunk is outside its bound");
+        const auto declared = request.require_bytes(5); if (declared.size() != 32U) throw cfr::ProtocolError("image delta chunk digest size is invalid");
+        cfr::Digest digest{}; std::copy(declared.begin(), declared.end(), digest.begin());
+        const auto bytes = read_client_mapping(client_pid, handle, static_cast<std::size_t>(size64));
+        if (cfr::sha256(bytes) != digest) throw cfr::ProtocolError("image delta chunk digest mismatch");
+        const auto first_word = static_cast<std::size_t>(offset64 / sizeof(double));
+        const auto word_count = static_cast<std::size_t>(size64 / sizeof(double));
+        for (std::size_t index = 0; index < word_count; ++index) {
+            std::uint64_t bits{}; std::memcpy(&bits, bytes.data() + index * sizeof(double), sizeof(bits));
+            const double value = std::bit_cast<double>(bits);
+            if (!std::isfinite(value) || value < 0.0 || value > double(std::numeric_limits<std::uint32_t>::max()) ||
+                    std::floor(value) != value || (value == 0.0 && std::signbit(value)))
+                throw cfr::ProtocolError("unsupported-image-encoding");
+            transfer.base_words[first_word + index] = static_cast<std::uint32_t>(value);
+        }
+        constexpr auto page_words = cfr::kPageBytes / sizeof(std::uint32_t);
+        for (auto page = first_word / page_words; page <= (first_word + word_count - 1U) / page_words; ++page)
+            transfer.touched_pages[page] = 1U;
+        transfer.next_offset = static_cast<std::size_t>(offset64) + static_cast<std::size_t>(size64);
+        transfer.last_activity = std::chrono::steady_clock::now();
+        return cfr::Body{}.text(kStatus, "import-chunk-accepted").text(kValue, transfer_id).u64(3, transfer.next_offset);
+    }
+
     cfr::Body finish_image_import(const cfr::Body& request) {
         require_hello();
         const auto transfer_id = request.require_text(1);
         auto found = imports_.find(transfer_id);
         if (found == imports_.end()) throw cfr::ProtocolError("image import is unknown");
         auto& transfer = found->second;
+        if (transfer.delta) {
+            if (transfer.service_generation != service_generation_ ||
+                    cfr::sha256(std::as_bytes(std::span(transfer.base_words))) != transfer.words_sha256) {
+                erase_import(found);
+                throw cfr::ProtocolError("image delta digest or generation mismatch");
+            }
+            try {
+                cfr::PackedImage image;
+                image.owner_id = transfer.owner_id;
+                image.service_generation = transfer.service_generation;
+                image.fence = transfer.fence;
+                image.profile_sha256 = transfer.profile_sha256;
+                image.state_sha256 = transfer.state_sha256;
+                image.catalog_sha256 = transfer.catalog_sha256;
+                image.shape = transfer.shape;
+                image.words = std::move(transfer.base_words);
+                image.canonical_bytes_sha256 = cfr::canonical_image_digest(image.words);
+                image.page_sha256 = std::move(transfer.base_page_sha256);
+                constexpr auto page_words = cfr::kPageBytes / sizeof(std::uint32_t);
+                image.page_sha256.resize(std::max<std::size_t>(1U, (image.words.size() + page_words - 1U) / page_words));
+                cfr::refresh_changed_page_hashes(image, transfer.touched_pages);
+                auto response = publish_attachment(transfer.owner_id, std::move(image));
+                erase_import(found);
+                return response;
+            } catch (...) {
+                erase_import(found);
+                throw;
+            }
+        }
         if (transfer.next_offset != transfer.payload.size()) throw cfr::ProtocolError("image import is incomplete");
         if (transfer.service_generation != service_generation_ || cfr::sha256(transfer.payload) != transfer.payload_sha256) {
             erase_import(found);

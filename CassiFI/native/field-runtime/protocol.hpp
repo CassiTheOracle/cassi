@@ -72,6 +72,8 @@ enum class MessageKind : std::uint16_t {
     leave_group = 27,
     join_group = 28,
     verify_model_draft = 29,
+    import_image_delta = 30,
+    import_delta_chunk = 31,
     response_bit = 0x8000,
     error = 0xffff,
 };
