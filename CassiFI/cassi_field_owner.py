@@ -36,6 +36,7 @@ from cassi_field_atlas import (
     _method_applicability_matches,
     _method_context_accepted,
     canonical_json_bytes,
+    canonical_json_field_bytes,
     sha256_value,
     surface_field_inputs,
 )
@@ -379,6 +380,24 @@ def _digest(value: Any, label: str) -> str:
             "INVALID_IDENTITY", f"{label} must be a lowercase SHA-256 digest"
         )
     return value
+
+def _stage_request_digest(request: Mapping[str, Any]) -> str:
+    """The request's own digest, computed only when the caller did not stamp it.
+
+    ``runtime.py`` stamps every stage request with ``request_sha256``; the
+    fallback exists for requests built elsewhere, and computing it eagerly cost
+    one canonical encoding of the whole request on every stage.
+    """
+
+    stamped = request.get("request_sha256")
+    if isinstance(stamped, str) and stamped:
+        return stamped
+    return hashlib.sha256(
+        canonical_json_bytes(
+            {key: value for key, value in request.items() if key != "request_sha256"}
+        )
+    ).hexdigest()
+
 
 def _regional_source_dependencies(value: Any) -> tuple[str, ...]:
     """Collect explicitly typed evidence references from a regional request."""
@@ -19380,10 +19399,11 @@ class FieldIntelligenceOwner:
                 "resident token batching requires task resume",
             )
         try:
-            stage_request = json.loads(
-                canonical_json_bytes(dict(request)).decode("utf-8")
-            )
-        except (TypeError, ValueError) as exc:
+            # One canonical encoding per stage request: the same bytes give the
+            # detached executor request and the request-row digest below.
+            stage_request_bytes = canonical_json_bytes(dict(request))
+            stage_request = json.loads(stage_request_bytes.decode("utf-8"))
+        except (TypeError, ValueError, FieldIntelligenceError) as exc:
             raise FieldIntelligenceError(
                 "INVALID_COMPUTER",
                 "resident model stage request is not canonical",
@@ -19405,7 +19425,7 @@ class FieldIntelligenceOwner:
                 transient_payload
             ).hexdigest()
         request_sha256 = hashlib.sha256(
-            canonical_json_bytes(request_row)
+            canonical_json_field_bytes(request_row, "stage_request", stage_request_bytes)
         ).hexdigest()
         # Same-operation callers wait for one exact replay while this owner's
         # mutation lock is released for resident computation.
@@ -19598,17 +19618,8 @@ class FieldIntelligenceOwner:
                         "stage": current_request.get("stage"),
                         "layer": current_request.get("layer"),
                         "position": current_request.get("position"),
-                        "stage_request_sha256": current_request.get(
-                            "request_sha256",
-                            hashlib.sha256(
-                                canonical_json_bytes(
-                                    {
-                                        key: value
-                                        for key, value in current_request.items()
-                                        if key != "request_sha256"
-                                    }
-                                )
-                            ).hexdigest(),
+                        "stage_request_sha256": _stage_request_digest(
+                            current_request
                         ),
                     }
                     # Keep the membrane candidate private through the token:

@@ -178,6 +178,24 @@ def _json_plain(value: Any) -> Any:
     return json.loads(canonical_json_bytes(value))
 
 
+def canonical_json_field_bytes(
+    row: Mapping[str, Any], field: str, value_bytes: bytes
+) -> bytes:
+    """Canonical row bytes with one field's precomputed canonical bytes spliced.
+
+    A field whose canonical bytes are already known (base64 text, or a nested
+    object encoded once) needs no JSON escaping, so encoding the row with an
+    empty value for that field and inserting the bytes yields the canonical
+    row bytes directly.  The direct encoding remains the fallback.
+    """
+
+    skeleton = canonical_json_bytes({**row, field: ""}) if field in row else None
+    needle = b'"' + field.encode("utf-8") + b'":""'
+    if skeleton is not None and skeleton.count(needle) == 1:
+        return skeleton.replace(needle, needle[:-2] + value_bytes)
+    return canonical_json_bytes(row)
+
+
 def canonical_json_bytes(value: Any) -> bytes:
     options = {
         "ensure_ascii": False,
@@ -211,12 +229,9 @@ def _row_bytes(row: Mapping[str, Any]) -> bytes:
     """
     field_b64 = row.get("field_b64")
     if isinstance(field_b64, str) and len(field_b64) > 4096:
-        raw = canonical_json_bytes({**row, "field_b64": ""})
-        needle = b'"field_b64":""'
-        if raw.count(needle) == 1:
-            return raw.replace(
-                needle, b'"field_b64":"' + field_b64.encode("ascii") + b'"'
-            )
+        return canonical_json_field_bytes(
+            row, "field_b64", b'"' + field_b64.encode("ascii") + b'"'
+        )
     return canonical_json_bytes(row)
 
 
