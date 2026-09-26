@@ -47,6 +47,11 @@ _KNOWN_DURABLE_LIMIT = 1 << 15
 # seals one of them, so the bound only needs to cover the stages that can
 # still be named between two seals.
 _DEFERRED_ARRAY_LIMIT = 1 << 12
+# Bounded window a run's own state directory keeps once superseded.
+# Deletion never removes content a still-named (CURRENT/keep) record
+# references; it only retires manifests/backings nothing names anymore.
+_DEFAULT_RETAIN_GENERATIONS = 16
+_DEFAULT_RETAIN_BYTES = 8 << 30
 
 
 class SnapshotStoreError(ValueError):
@@ -229,6 +234,37 @@ def _manifest_array_entry(
     return entry
 
 
+def _manifest_backing_refs(manifest: Mapping[str, Any]) -> list[tuple[str, str, int]]:
+    """Return every ``(kind, sha256, nbytes)`` backing a manifest references."""
+
+    entries = manifest.get("arrays")
+    if not isinstance(entries, dict):
+        raise SnapshotCorruptionError("snapshot manifest fields are invalid")
+    refs: list[tuple[str, str, int]] = []
+    for name, item in entries.items():
+        if not isinstance(name, str) or not isinstance(item, dict):
+            raise SnapshotCorruptionError("snapshot array entry is invalid")
+        if item.get("storage") == _CHUNKED_ARRAY_STORAGE:
+            raw_chunks = item.get("chunks")
+            if not isinstance(raw_chunks, list):
+                raise SnapshotCorruptionError(f"array {name} chunk list is invalid")
+            for index, raw_chunk in enumerate(raw_chunks):
+                if not isinstance(raw_chunk, dict):
+                    raise SnapshotCorruptionError(f"array {name} chunk entry is invalid")
+                sha = _digest_text(raw_chunk.get("sha256"), f"array {name} chunk {index} sha256")
+                nbytes = raw_chunk.get("nbytes")
+                if isinstance(nbytes, bool) or not isinstance(nbytes, int) or nbytes < 0:
+                    raise SnapshotCorruptionError(f"array {name} chunk {index} nbytes is invalid")
+                refs.append(("chunk", sha, nbytes))
+        else:
+            sha = _digest_text(item.get("sha256"), f"array {name} sha256")
+            nbytes = item.get("nbytes")
+            if isinstance(nbytes, bool) or not isinstance(nbytes, int) or nbytes < 0:
+                raise SnapshotCorruptionError(f"array {name} nbytes is invalid")
+            refs.append(("blob", sha, nbytes))
+    return refs
+
+
 def _shape(value: Any) -> tuple[int, ...]:
     if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)):
         raise SnapshotDescriptorError("snapshot array shape must be a list")
@@ -301,6 +337,8 @@ class SnapshotStore:
         max_total_bytes: int = _DEFAULT_MAX_TOTAL_BYTES,
         chunk_bytes: int = _DEFAULT_ARRAY_CHUNK_BYTES,
         chunk_threshold_bytes: int = _DEFAULT_CHUNK_THRESHOLD_BYTES,
+        retain_generations: int = _DEFAULT_RETAIN_GENERATIONS,
+        retain_bytes: int = _DEFAULT_RETAIN_BYTES,
     ) -> None:
         if isinstance(max_array_bytes, bool) or not isinstance(max_array_bytes, int) or max_array_bytes <= 0:
             raise ValueError("max_array_bytes must be a positive integer")
@@ -314,6 +352,14 @@ class SnapshotStore:
             or chunk_threshold_bytes < 0
         ):
             raise ValueError("chunk_threshold_bytes must be a nonnegative integer")
+        if (
+            isinstance(retain_generations, bool)
+            or not isinstance(retain_generations, int)
+            or retain_generations < 1
+        ):
+            raise ValueError("retain_generations must be a positive integer")
+        if isinstance(retain_bytes, bool) or not isinstance(retain_bytes, int) or retain_bytes < 1:
+            raise ValueError("retain_bytes must be a positive integer")
         root = Path(state_directory)
         try:
             root.mkdir(parents=True, exist_ok=True)
@@ -332,6 +378,11 @@ class SnapshotStore:
         self.max_total_bytes = max_total_bytes
         self.chunk_bytes = chunk_bytes
         self.chunk_threshold_bytes = chunk_threshold_bytes
+        self.retain_generations = retain_generations
+        self.retain_bytes = retain_bytes
+        # Set when a sweep meets a backing an open mapping still holds; the
+        # next prune walks the backings again instead of skipping that pass.
+        self._deferred_backings = False
         self._verified_blobs: dict[tuple[str, int, int, int], str] = {}
         self._immutable_arrays: dict[
             int,
@@ -362,11 +413,13 @@ class SnapshotStore:
         self._deferred_arrays: dict[str, np.ndarray] = {}
         self.counters = {
             "backing_repairs": 0,
+            "backings_pruned": 0,
             "blob_cache_hits": 0,
             "blob_reuses": 0,
             "immutable_array_reuses": 0,
             "blob_verifications": 0,
             "blob_writes": 0,
+            "bytes_pruned": 0,
             "chunk_reuses": 0,
             "chunk_writes": 0,
             "deferred_arrays": 0,
@@ -374,6 +427,7 @@ class SnapshotStore:
             "durability_syncs": 0,
             "manifest_reuses": 0,
             "manifest_writes": 0,
+            "snapshots_pruned": 0,
         }
 
     @staticmethod
@@ -590,7 +644,15 @@ class SnapshotStore:
         digest = entry[2]
         nbytes = signature[1]
         target = self.blobs / f"{digest}.bin"
-        self._verify_blob(target, digest, nbytes)
+        try:
+            self._verify_blob(target, digest, nbytes)
+        except SnapshotCorruptionError:
+            if target.is_file():
+                raise
+            # Prune retired this backing while the array stayed in memory; its
+            # bytes are unchanged, so republish them under the same digest.
+            self._immutable_arrays.pop(id(array), None)
+            return None
         self.counters["blob_reuses"] += 1
         self.counters["immutable_array_reuses"] += 1
         return digest, nbytes
@@ -632,7 +694,17 @@ class SnapshotStore:
             return None
         digest, chunks, chunk_bytes = entry[2], entry[3], entry[4]
         for chunk_digest, nbytes in chunks:
-            self._verify_blob(_chunk_path(self.chunks, chunk_digest), chunk_digest, nbytes)
+            backing = _chunk_path(self.chunks, chunk_digest)
+            try:
+                self._verify_blob(backing, chunk_digest, nbytes)
+            except SnapshotCorruptionError:
+                if backing.is_file():
+                    raise
+                # A retired snapshot took this chunk while the array stayed in
+                # memory.  Its bytes are unchanged, so the digest still names
+                # exactly what a fresh publication would write.
+                self._immutable_chunked_arrays.pop(id(array), None)
+                return None
         self.counters["chunk_reuses"] += len(chunks)
         self.counters["immutable_array_reuses"] += 1
         return digest, chunks, chunk_bytes
@@ -1123,6 +1195,7 @@ class SnapshotStore:
         if durable:
             self._ensure_durable([*backings, manifest_path])
             self._publish_current(descriptor)
+            self.prune()
         return descriptor
 
     def make_durable(self, descriptor: Mapping[str, Any] | str | os.PathLike[str]) -> dict[str, Any]:
@@ -1177,7 +1250,199 @@ class SnapshotStore:
         }
         self._ensure_durable([*backings, self.snapshots / f"{digest}.json"])
         self._publish_current(resolved)
+        self.prune()
         return resolved
+
+    def prune(
+        self,
+        *,
+        keep: Iterable[str] = (),
+        generations: int | None = None,
+        max_bytes: int | None = None,
+    ) -> dict[str, Any]:
+        """Retire snapshots outside a bounded generation/byte window.
+
+        ``CURRENT`` (if the pointer exists and is readable) and every digest
+        in ``keep`` are always retained, together with at least the single
+        newest manifest.  Remaining manifests are walked newest-first and
+        retained while the retained count stays below ``generations`` and the
+        *unique* backing bytes the retained window references stay at or
+        under ``max_bytes`` (a backing shared by two retained manifests is
+        only counted once); once either bound is exhausted every older,
+        unprotected manifest is dropped.  Manifests this call drops are
+        deleted, then any ``blobs``/``chunks`` file no retained manifest
+        references is deleted too.  A backing an open mapping still holds
+        stays on disk and marks the store so that the next prune walks the
+        backings again, after its reader lets go.  If a retained manifest
+        cannot be read or parsed, no backing is deleted this call -- this
+        process cannot tell which bytes an unreadable retained manifest still
+        needs, so it errs toward keeping everything under ``blobs``/``chunks``
+        instead.
+        """
+
+        effective_generations = self.retain_generations if generations is None else generations
+        if (
+            isinstance(effective_generations, bool)
+            or not isinstance(effective_generations, int)
+            or effective_generations < 1
+        ):
+            raise ValueError("generations must be a positive integer")
+        effective_max_bytes = self.retain_bytes if max_bytes is None else max_bytes
+        if (
+            isinstance(effective_max_bytes, bool)
+            or not isinstance(effective_max_bytes, int)
+            or effective_max_bytes < 1
+        ):
+            raise ValueError("max_bytes must be a positive integer")
+
+        protected: set[str] = {_digest_text(item, "keep digest") for item in keep}
+        try:
+            current_map = json.loads(self.current.read_bytes().decode("utf-8"))
+            protected.add(_digest_text(current_map.get("snapshot_sha256"), "CURRENT snapshot_sha256"))
+        except (OSError, UnicodeError, json.JSONDecodeError, AttributeError, SnapshotStoreError):
+            pass
+
+        try:
+            manifest_entries = [
+                (entry.name[: -len(".json")], entry.stat().st_mtime_ns, entry.path)
+                for entry in os.scandir(self.snapshots)
+                if entry.name.endswith(".json") and entry.is_file(follow_symlinks=False)
+            ]
+        except OSError as exc:
+            raise SnapshotStoreError("snapshot directory could not be listed") from exc
+
+        def _bin_dir_bytes(directory: Path) -> int:
+            total = 0
+            try:
+                with os.scandir(directory) as handle:
+                    for entry in handle:
+                        if entry.name.endswith(".bin") and entry.is_file(follow_symlinks=False):
+                            total += entry.stat(follow_symlinks=False).st_size
+            except OSError as exc:
+                raise SnapshotStoreError(f"{directory.name} directory could not be listed") from exc
+            return total
+
+        if len(manifest_entries) <= effective_generations and not self._deferred_backings:
+            if _bin_dir_bytes(self.blobs) + _bin_dir_bytes(self.chunks) <= effective_max_bytes:
+                return {
+                    "kept": [digest for digest, _mtime, _path in manifest_entries],
+                    "removed_manifests": [],
+                    "removed_backings": 0,
+                    "freed_bytes": 0,
+                    "backing_gc": "skipped",
+                }
+
+        manifest_entries.sort(key=lambda item: (-item[1], item[0]))
+        if manifest_entries:
+            protected.add(manifest_entries[0][0])
+
+        kept: list[str] = []
+        removed_manifests: list[str] = []
+        retained_backings: set[tuple[str, str]] = set()
+        total_bytes = 0
+        count = 0
+        backing_gc_failed = False
+
+        for digest, _mtime, path_str in manifest_entries:
+            is_protected = digest in protected
+            if not is_protected and count >= effective_generations:
+                removed_manifests.append(digest)
+                continue
+            try:
+                manifest = json.loads(Path(path_str).read_bytes().decode("utf-8"))
+                if not isinstance(manifest, dict):
+                    raise SnapshotCorruptionError("snapshot manifest is not an object")
+                refs = _manifest_backing_refs(manifest)
+            except (OSError, UnicodeError, json.JSONDecodeError, SnapshotStoreError):
+                if is_protected:
+                    backing_gc_failed = True
+                    kept.append(digest)
+                    count += 1
+                else:
+                    removed_manifests.append(digest)
+                continue
+            if is_protected:
+                kept.append(digest)
+                count += 1
+                for kind, sha, nbytes in refs:
+                    if (kind, sha) not in retained_backings:
+                        retained_backings.add((kind, sha))
+                        total_bytes += nbytes
+                continue
+            new_bytes = sum(nbytes for kind, sha, nbytes in refs if (kind, sha) not in retained_backings)
+            if total_bytes + new_bytes <= effective_max_bytes:
+                kept.append(digest)
+                count += 1
+                total_bytes += new_bytes
+                retained_backings.update((kind, sha) for kind, sha, _nbytes in refs)
+            else:
+                removed_manifests.append(digest)
+
+        for digest in removed_manifests:
+            try:
+                (self.snapshots / f"{digest}.json").unlink()
+            except FileNotFoundError:
+                pass
+
+        removed_backings = 0
+        freed_bytes = 0
+        backing_gc = "skipped"
+        if not backing_gc_failed:
+            backing_gc = "ran"
+            self._deferred_backings = False
+            retained_blobs = {sha for kind, sha in retained_backings if kind == "blob"}
+            retained_chunks = {sha for kind, sha in retained_backings if kind == "chunk"}
+            blob_removed, blob_freed = self._sweep_backings(self.blobs, retained_blobs)
+            chunk_removed, chunk_freed = self._sweep_backings(self.chunks, retained_chunks)
+            removed_backings = blob_removed + chunk_removed
+            freed_bytes = blob_freed + chunk_freed
+
+        self.counters["snapshots_pruned"] += len(removed_manifests)
+        self.counters["backings_pruned"] += removed_backings
+        self.counters["bytes_pruned"] += freed_bytes
+
+        return {
+            "kept": kept,
+            "removed_manifests": removed_manifests,
+            "removed_backings": removed_backings,
+            "freed_bytes": freed_bytes,
+            "backing_gc": backing_gc,
+        }
+
+    def _sweep_backings(self, directory: Path, retained: set[str]) -> tuple[int, int]:
+        """Delete every ``*.bin`` file in ``directory`` whose stem is not ``retained``."""
+
+        try:
+            with os.scandir(directory) as handle:
+                entries = list(handle)
+        except OSError as exc:
+            raise SnapshotStoreError(f"{directory.name} directory could not be listed") from exc
+        removed = 0
+        freed = 0
+        for entry in entries:
+            if not entry.name.endswith(".bin") or not entry.is_file(follow_symlinks=False):
+                continue
+            digest = entry.name[: -len(".bin")]
+            if digest in retained:
+                continue
+            try:
+                size = entry.stat(follow_symlinks=False).st_size
+                os.remove(entry.path)
+            except FileNotFoundError:
+                continue
+            except OSError:
+                # An open mapping or a concurrent writer still holds this
+                # backing; the next prune reclaims it once they let go.
+                self.counters["backings_busy"] = self.counters.get("backings_busy", 0) + 1
+                self._deferred_backings = True
+                continue
+            # A republished backing is a new file: forgetting it here keeps the
+            # flush record meaning "these bytes reached the disk".
+            with self._durability_lock:
+                self._known_durable.pop(entry.path, None)
+            removed += 1
+            freed += size
+        return removed, freed
 
     def _read_manifest(self, descriptor: Mapping[str, Any] | str | os.PathLike[str]) -> tuple[dict[str, Any], str]:
         if isinstance(descriptor, (str, os.PathLike)):
@@ -1225,6 +1490,10 @@ class SnapshotStore:
                 raise SnapshotCorruptionError("snapshot manifest size is invalid")
             raw = manifest_path.read_bytes()
             manifest = json.loads(raw.decode("utf-8"))
+        except FileNotFoundError as exc:
+            raise SnapshotCorruptionError(
+                "snapshot manifest is absent (retired by retention or never published)"
+            ) from exc
         except SnapshotStoreError:
             raise
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:

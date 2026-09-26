@@ -172,3 +172,63 @@ def test_torn_backing_is_republished_from_exact_bytes(tmp_path):
     restored, metadata = _chunked_store(tmp_path / "state").load(descriptor)
     assert metadata == {"step": 1}
     assert restored["kv"].tobytes() == array.tobytes()
+
+
+def test_prune_reclaims_exclusive_chunks_and_keeps_shared_ones(tmp_path):
+    store = SnapshotStore(
+        tmp_path / "state",
+        chunk_bytes=256,
+        chunk_threshold_bytes=128,
+        retain_generations=2,
+    )
+    shared = np.arange(768, dtype=np.uint8)
+    descriptors = []
+    for step in range(4):
+        changing = np.full(768, step, dtype=np.uint8)
+        descriptors.append(store.save({"shared": shared, "changing": changing}, {"step": step}))
+
+    assert len(list(store.snapshots.glob("*.json"))) == 2
+    with pytest.raises(SnapshotCorruptionError):
+        store.load(descriptors[0])
+
+    restored, metadata = store.load(descriptors[-1])
+    assert metadata == {"step": 3}
+    assert restored["shared"].tobytes() == shared.tobytes()
+    assert restored["changing"].tobytes() == np.full(768, 3, dtype=np.uint8).tobytes()
+
+    # The chunks two retained manifests share must survive exactly once,
+    # and no chunk that only a removed manifest referenced remains.
+    remaining_chunks = {path.name for path in store.chunks.glob("*.bin")}
+    expected_chunks = {
+        chunk["sha256"] + ".bin"
+        for descriptor in descriptors[-2:]
+        for array in _manifest(store, descriptor)["arrays"].values()
+        for chunk in array["chunks"]
+    }
+    assert remaining_chunks == expected_chunks
+
+
+def test_prune_reclaims_chunks_a_loaded_page_still_holds(tmp_path):
+    """A loaded page whose chunks prune emptied is rewritten, not called corrupt."""
+
+    store = SnapshotStore(
+        tmp_path / "state",
+        chunk_bytes=256,
+        chunk_threshold_bytes=128,
+        retain_generations=1,
+    )
+    page = np.arange(1024, dtype=np.uint8)
+    first = store.save({"page": page}, {"step": 0})
+    held, _metadata = store.load(first)
+    retired = _manifest(store, first)["arrays"]["page"]["chunks"]
+
+    for step in range(1, 4):
+        store.save({"page": np.full(1024, step, dtype=np.uint8)}, {"step": step})
+    for chunk in retired:
+        assert not (store.root / chunk["blob"]).exists()
+
+    descriptor = store.save({"page": held["page"]}, {"step": 4}, reuse_immutable_arrays=True)
+
+    restored, metadata = store.load(descriptor)
+    assert metadata == {"step": 4}
+    assert restored["page"].tobytes() == page.tobytes()

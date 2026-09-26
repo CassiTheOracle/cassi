@@ -891,6 +891,15 @@ def _put_object(directory: Path, payload: bytes) -> str:
     return _put_addressed_object(directory, digest, payload)
 
 
+def _stat_size(path: Path) -> int:
+    """A file's byte size, tolerating one already removed by a race or a prior compaction."""
+
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
 class OwnerProcessLock:
     """Nonblocking cross-process exclusion for the sole persistent publisher."""
 
@@ -960,6 +969,7 @@ class CapacityLimits:
     max_prepared_branches: int = 64
     max_pending_operations: int = 1024
     max_history_entries: int = 4096
+    max_history_bytes: int = 4 << 30
     max_checkpoint_frequency: int = 1
 
     def __post_init__(self) -> None:
@@ -982,6 +992,7 @@ class CapacityLimits:
             "max_prepared_branches",
             "max_pending_operations",
             "max_history_entries",
+            "max_history_bytes",
             "max_checkpoint_frequency",
         )
         for name in names:
@@ -1002,6 +1013,7 @@ class CapacityLimits:
                 "max_branches_per_query",
                 "max_charts",
                 "max_checkpoint_frequency",
+                "max_history_bytes",
                 "max_history_entries",
                 "max_operator_effort",
                 "max_pending_operations",
@@ -3346,6 +3358,32 @@ class AtlasCheckpointStore:
             return False
         return int(sequence_text) <= int(floor["watermarks"].get(producer, -1))
 
+    def _manifest_page_byte_sizes(
+        self, manifest: Mapping[str, Any]
+    ) -> Mapping[str, int] | None:
+        """Best-effort byte cost of the pages one retained manifest names.
+
+        A missing or corrupt state descriptor leaves the entry's true
+        footprint unknowable; the caller must then treat the entry as
+        unbounded rather than risk discarding page objects a retained
+        manifest still references.
+        """
+
+        try:
+            descriptor_sha = _digest(manifest["state_descriptor_sha256"], "state descriptor")
+            descriptor = _canonical_read(self.objects / descriptor_sha)
+            pages = descriptor["pages"]
+            if not isinstance(pages, list):
+                raise TypeError("state descriptor pages must be a list")
+            return {
+                page_sha: _stat_size(self.objects / page_sha)
+                for page_sha in (
+                    _digest(value, "state page identity") for value in pages
+                )
+            }
+        except (FieldIntelligenceError, OSError, ValueError, TypeError, KeyError):
+            return None
+
     def _compact_history_for(self, successor: AtlasState) -> None:
         # Manifest files are immutable content-addressed objects.  Keep a
         # disposable index of the files seen under the owner lock so a normal
@@ -3386,11 +3424,61 @@ class AtlasCheckpointStore:
         computational_count = sum(
             row[2].get("transition", {}).get("kind") in _COMPUTATIONAL_TRANSITIONS for row in entries
         )
-        if computational_count + 1 <= self.limits.max_history_entries:
+        page_size_cache: dict[str, Mapping[str, int] | None] = {}
+
+        def _page_sizes(
+            entry: tuple[int, Path, Mapping[str, Any]]
+        ) -> Mapping[str, int] | None:
+            name = entry[1].name
+            if name not in page_size_cache:
+                page_size_cache[name] = self._manifest_page_byte_sizes(entry[2])
+            return page_size_cache[name]
+
+        total_seen_pages: set[str] = set()
+        total_page_bytes = 0
+        for entry in entries:
+            sizes = _page_sizes(entry)
+            if sizes is None:
+                continue
+            total_page_bytes += sum(
+                size for sha, size in sizes.items() if sha not in total_seen_pages
+            )
+            total_seen_pages.update(sizes)
+        if (
+            computational_count + 1 <= self.limits.max_history_entries
+            and total_page_bytes <= self.limits.max_history_bytes
+        ):
             return
         entries.sort(key=lambda item: (item[0], item[1].name))
-        tail_count = max(1, self.limits.max_history_entries // 2)
-        anchor = entries[-tail_count]
+        # Keep the newest entries, newest first, while both the count and the
+        # unique-page-byte budget hold; the newest entry is always kept even
+        # if it alone exceeds the byte budget.  An entry whose page bytes
+        # cannot be measured is kept rather than risked: the kept set stays a
+        # suffix of generation order, so the floor logic below is unaffected.
+        count_cap = max(1, self.limits.max_history_entries // 2)
+        retain_seen_pages: set[str] = set()
+        retain_page_bytes = 0
+        retain_count = 0
+        retain_index = len(entries) - 1
+        for position in range(len(entries) - 1, -1, -1):
+            sizes = _page_sizes(entries[position])
+            is_newest = position == len(entries) - 1
+            if sizes is None:
+                added_bytes = 0
+                fits = True
+            else:
+                added_bytes = sum(
+                    size for sha, size in sizes.items() if sha not in retain_seen_pages
+                )
+                fits = retain_page_bytes + added_bytes <= self.limits.max_history_bytes
+            if not is_newest and not (retain_count + 1 <= count_cap and fits):
+                break
+            retain_count += 1
+            if sizes is not None:
+                retain_page_bytes += added_bytes
+                retain_seen_pages.update(sizes)
+            retain_index = position
+        anchor = entries[retain_index]
         floor = self._history_floor()
         protected_operations = {
             f"proposal:{row.operation_id}"

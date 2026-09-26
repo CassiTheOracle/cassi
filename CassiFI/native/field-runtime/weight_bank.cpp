@@ -45,6 +45,32 @@ bool checked_add(size_t a, size_t b, size_t & out) {
     return true;
 }
 
+// Multiply-accumulate work one more CPU thread must receive before it saves
+// more arithmetic than its wake-up and barrier synchronization cost.
+constexpr double kCpuWorkPerThread = 16.0 * 1024.0 * 1024.0;
+
+// Runs `graph` on `backend`. A CPU backend gets only as many of its
+// `max_threads` as the graph's arithmetic can use: a decode-step projection
+// finishes on one thread before eight threads could all be scheduled, while
+// the vocabulary head spreads across all of them. Each output element is
+// computed by exactly one thread, so the result is identical for any count.
+ggml_status compute_graph(ggml_backend_t backend, ggml_cgraph * graph, int32_t max_threads) {
+    if (ggml_backend_is_cpu(backend)) {
+        double work = 0.0;
+        const int nodes = ggml_graph_n_nodes(graph);
+        for (int i = 0; i < nodes; ++i) {
+            const ggml_tensor * node = ggml_graph_node(graph, i);
+            const double elements = static_cast<double>(ggml_nelements(node));
+            const bool product = node->op == GGML_OP_MUL_MAT || node->op == GGML_OP_MUL_MAT_ID;
+            work += product ? elements * static_cast<double>(node->src[0]->ne[0]) : elements;
+        }
+        const double limit = static_cast<double>(std::max<int32_t>(max_threads, 1));
+        const double wanted = std::clamp(std::ceil(work / kCpuWorkPerThread), 1.0, limit);
+        ggml_backend_cpu_set_n_threads(backend, static_cast<int>(wanted));
+    }
+    return ggml_backend_graph_compute(backend, graph);
+}
+
 bool checked_mul(size_t a, size_t b, size_t & out) {
     if (a != 0 && b > std::numeric_limits<size_t>::max() / a) return false;
     out = a * b;
@@ -312,6 +338,7 @@ struct AffineCoefficients {
 struct DeviceEpochState {
     WeightBank * owner = nullptr;
     ggml_backend_t backend = nullptr;
+    int32_t threads = 1;
     ggml_context * field_context = nullptr;
     ggml_backend_buffer_t field_buffer = nullptr;
     std::unordered_map<std::string, std::unique_ptr<AffineCoefficients>> affine_coefficients;
@@ -680,9 +707,9 @@ struct DeviceGraphWorkspace {
         return buffer != nullptr;
     }
 
-    bool compute(ggml_backend_t backend) const {
+    bool compute(ggml_backend_t backend, int32_t max_threads) const {
         return graph != nullptr && backend != nullptr &&
-            ggml_backend_graph_compute(backend, graph) == GGML_STATUS_SUCCESS;
+            compute_graph(backend, graph, max_threads) == GGML_STATUS_SUCCESS;
     }
 };
 
@@ -1098,10 +1125,7 @@ int WeightBank::matvec(const char * name, const float * input, size_t input_coun
         0,
         cols * sizeof(float)
     );
-    const ggml_status status = ggml_backend_graph_compute(
-        backend_,
-        plan.graph
-    );
+    const ggml_status status = compute_graph(backend_, plan.graph, threads_);
     if (status != GGML_STATUS_SUCCESS) {
         return fail(
             CASSIFI_WEIGHT_BANK_BACKEND_ERROR,
@@ -1236,7 +1260,7 @@ int WeightBank::matvec_batch_core(
         if (plan_result != CASSIFI_WEIGHT_BANK_OK) return plan_result;
         MatvecPlan & plan = *plan_slot;
         ggml_backend_tensor_set(plan.input, inputs, 0, input_bytes);
-        const ggml_status status = ggml_backend_graph_compute(backend_, plan.graph);
+        const ggml_status status = compute_graph(backend_, plan.graph, threads_);
         if (status != GGML_STATUS_SUCCESS) {
             return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend matvec batch failed");
         }
@@ -1599,7 +1623,7 @@ int WeightBank::matvec_many(
             );
         }
         ggml_backend_tensor_set(plan->input, input, 0, input_bytes);
-        const ggml_status status = ggml_backend_graph_compute(backend_, plan->graph);
+        const ggml_status status = compute_graph(backend_, plan->graph, threads_);
         if (status != GGML_STATUS_SUCCESS) {
             return fail(
                 CASSIFI_WEIGHT_BANK_BACKEND_ERROR,
@@ -1937,6 +1961,7 @@ int WeightBank::device_epoch_begin(
         }
         epoch->owner = this;
         epoch->backend = backend_;
+        epoch->threads = threads_;
         epoch->mode_count = mode_count;
         epoch->gain_ppm = gain_ppm;
         ggml_init_params params{};
@@ -2113,7 +2138,7 @@ int WeightBank::device_tensor_download_many(
         if (!workspace.allocate(epoch->backend)) {
             return resource_wait(device_context_bytes(workspace.context), "batched capture staging buffer");
         }
-        if (!workspace.compute(epoch->backend)) {
+        if (!workspace.compute(epoch->backend, epoch->threads)) {
             return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend batched device download graph failed");
         }
         ggml_backend_tensor_get(packed, out, 0, total_bytes);
@@ -2278,7 +2303,7 @@ int WeightBank::device_embedding(
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "embedding gather graph");
     const int32_t index_value = static_cast<int32_t>(token);
     ggml_backend_tensor_set(index, &index_value, 0, sizeof(index_value));
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device embedding graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device embedding graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2401,7 +2426,7 @@ int WeightBank::device_matvec_many(
         if (!workspace.allocate(epoch->backend)) {
             return resource_wait(device_context_bytes(workspace.context), "projection graph");
         }
-        if (!workspace.compute(epoch->backend)) {
+        if (!workspace.compute(epoch->backend, epoch->threads)) {
             return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device projection graph failed");
         }
         *out_values = std::move(values);
@@ -2439,7 +2464,7 @@ int WeightBank::device_unary(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 16)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device unary graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "unary graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device unary graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device unary graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2468,7 +2493,7 @@ int WeightBank::device_scale(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 16)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device scale graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "scale graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device scale graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device scale graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2594,7 +2619,7 @@ int WeightBank::device_low_rank_affine(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 32)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build low-rank affine graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "low-rank affine graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML low-rank affine graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML low-rank affine graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2630,7 +2655,7 @@ int WeightBank::device_binary(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 16)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device binary graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "binary graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device binary graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device binary graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2665,7 +2690,7 @@ int WeightBank::device_concat(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 24)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device concat graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "concat graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device concat graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device concat graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2731,7 +2756,7 @@ int WeightBank::device_norm_rows(
     if (!workspace.build(roots, 48)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device row-normalization graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "row-normalization graph");
     ggml_backend_tensor_set(epsilon_value, &epsilon, 0, sizeof(epsilon));
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device row-normalization graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device row-normalization graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2780,7 +2805,7 @@ int WeightBank::device_mul_rows(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 32)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device row-multiply graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "row-multiply graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device row-multiply graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device row-multiply graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2815,7 +2840,7 @@ int WeightBank::device_exp_clipped(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 24)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device clipped-exponential graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "clipped-exponential graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device clipped-exponential graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device clipped-exponential graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2843,7 +2868,7 @@ int WeightBank::device_softplus(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 24)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device softplus graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "softplus graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device softplus graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device softplus graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2881,7 +2906,7 @@ int WeightBank::device_probability(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 32)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device probability graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "probability graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device probability graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device probability graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -2962,7 +2987,7 @@ int WeightBank::device_recurrent_conv(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, node_capacity)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device recurrent-convolution graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "recurrent-convolution graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device recurrent-convolution graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device recurrent-convolution graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -3089,7 +3114,7 @@ int WeightBank::device_recurrent_state_op(
     }
     if (!workspace.build(roots, node_capacity)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device recurrent-state graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "recurrent-state graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device recurrent-state graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device recurrent-state graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -3206,7 +3231,7 @@ int WeightBank::device_rope(
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "RoPE graph");
     const int32_t position_value = static_cast<int32_t>(position);
     ggml_backend_tensor_set(position_tensor, &position_value, 0, sizeof(position_value));
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device RoPE graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device RoPE graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -3263,7 +3288,7 @@ int WeightBank::device_attention_scores(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 32)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device attention-score graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "attention-score graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device attention-score graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device attention-score graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -3323,7 +3348,7 @@ int WeightBank::device_attention_context(
     std::vector<ggml_tensor *> roots{copy};
     if (!workspace.build(roots, 40)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "failed to build device attention-context graph");
     if (!workspace.allocate(epoch->backend)) return resource_wait(device_context_bytes(workspace.context), "attention-context graph");
-    if (!workspace.compute(epoch->backend)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device attention-context graph failed");
+    if (!workspace.compute(epoch->backend, epoch->threads)) return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend device attention-context graph failed");
     *out_value = std::move(value);
     return CASSIFI_WEIGHT_BANK_OK;
 }
@@ -3510,7 +3535,7 @@ int WeightBank::device_exchange(
                 return resource_wait(device_context_bytes(workspace.context), "membrane exchange graph");
             }
             ggml_backend_tensor_set(indices, row_indices.data(), 0, chunk_width * sizeof(int32_t));
-            if (!workspace.compute(epoch->backend)) {
+            if (!workspace.compute(epoch->backend, epoch->threads)) {
                 return fail(CASSIFI_WEIGHT_BANK_BACKEND_ERROR, "GGML backend membrane exchange graph failed");
             }
         }

@@ -118,6 +118,8 @@ def _record(runtime: _RecordingRuntime, *, run: Mapping[str, Any] | None) -> dic
 def _prepared_swarm(
     monkeypatch: pytest.MonkeyPatch,
     captured: dict[str, Any],
+    *,
+    graph_sites: bool = True,
 ) -> swarm_module.ProgrammableSwarm:
     swarm = swarm_module.ProgrammableSwarm()
     monkeypatch.setattr(swarm, "_release_native_seats", lambda *args, **kwargs: ())
@@ -126,7 +128,8 @@ def _prepared_swarm(
         "_ensure_native_task_history",
         lambda record, history, require_cache: {"status": "native-history-current"},
     )
-    monkeypatch.setattr(swarm, "_prepare_native_graph_site_dispatch", lambda record: None)
+    if graph_sites:
+        monkeypatch.setattr(swarm, "_prepare_native_graph_site_dispatch", lambda record: None)
 
     def continue_wait(
         record: Mapping[str, Any],
@@ -242,3 +245,163 @@ def test_singleton_commits_one_token_when_a_graph_site_defers_the_run(
     assert captured["result"] is not None
     assert "steps" not in captured["result"]
     assert captured["result"]["token"] == 701
+
+
+class _BoundaryRuntime(_RecordingRuntime):
+    """Refuses the prompt-boundary preflight once, then serves a ready one."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.preflights = 0
+
+    def candidate_preflight(
+        self,
+        task_id: str,
+        source_sha256: str,
+        tokens: Sequence[int],
+        **kwargs: Any,
+    ) -> Mapping[str, Any]:
+        self.calls.append(("preflight", tuple(tokens), {"task_id": task_id, **kwargs}))
+        self.preflights += 1
+        if self.preflights == 1:
+            raise RuntimeError(
+                "native graph-site preflight refused: "
+                "native_sequence_not_at_single_token_boundary"
+            )
+        return {
+            "schema": "cassifi.native-graph-site-preflight.v1",
+            "ready": True,
+            "task_id": task_id,
+            "native_operation_id": kwargs["native_operation_id"],
+            "sequence_id": kwargs["sequence_id"],
+            "source_sha256": source_sha256,
+            "input_tokens": list(tokens),
+            "sampler": dict(kwargs["sampler"]),
+            "next_position": len(tokens) - 1,
+            "sites": (),
+        }
+
+
+class _StubOwner:
+    """Issues a ticket naming exactly the WAIT request it was handed."""
+
+    class _State:
+        state_sha256 = "9" * 64
+
+    def __init__(self) -> None:
+        self.state = self._State()
+
+    def issue_native_graph_site_ticket(
+        self,
+        *,
+        computer_id: str,
+        task_id: str,
+        operation_id: str,
+        preflight: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        return {
+            "task_id": task_id,
+            "operation_id": operation_id,
+            "native_operation_id": operation_id,
+            "sequence_id": preflight["sequence_id"],
+            "source_sha256": preflight["source_sha256"],
+            "sampler": dict(preflight["sampler"]),
+            "computer_id": computer_id,
+        }
+
+
+def _graph_site_state(source_sha256: str) -> dict[str, Any]:
+    return {
+        "tasks": {
+            "task-1": {
+                "state": {
+                    "request": {"graph_site_modes": {"attention-memory": "replace"}}
+                }
+            }
+        },
+        "model_policies": {
+            source_sha256: {
+                "graph_sites": {
+                    "source_sha256": source_sha256,
+                    "methods": {
+                        "method-1": {
+                            "specialist": "attention-memory",
+                            "admitted": True,
+                            "backed_off": False,
+                            "method": {"verb": "replace"},
+                            "applicability": {"source_sha256": source_sha256},
+                        }
+                    },
+                }
+            }
+        },
+    }
+
+
+def test_prompt_boundary_defers_one_step_then_dispatches_the_graph_site(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runtime = _BoundaryRuntime()
+    captured: dict[str, Any] = {}
+    swarm = _prepared_swarm(monkeypatch, captured, graph_sites=False)
+    member = type("Member", (), {"owner": _StubOwner(), "computer_id": "computer-1"})()
+    monkeypatch.setattr(swarm, "_member", lambda member_id: member)
+
+    def continue_wait(
+        record: Mapping[str, Any],
+        result: Mapping[str, Any] | None,
+        registration: Mapping[str, Any],
+        prior_receipt: Mapping[str, Any] | None,
+        **kwargs: Any,
+    ) -> Mapping[str, Any]:
+        captured["result"] = result
+        captured["graph_bundle"] = kwargs.get("graph_bundle")
+        return {"status": "serviced", "native_model": {"step": result, "run": None}}
+
+    monkeypatch.setattr(swarm, "_continue_native_model_wait", continue_wait)
+
+    prompt = (9707, 11, 1879, 374, 283)
+    first = _record(
+        runtime,
+        run={
+            "bound": 4,
+            "operation_ids": ("op-0", "op-1", "op-2", "op-3"),
+            "draws": (0.0, 0.25, 0.5, 0.75),
+        },
+    )
+    first["state"] = _graph_site_state(first["source_sha256"])
+    first["history"] = prompt
+
+    swarm._service_native_singleton(
+        first, {"registration": "one"}, None, incompatible=(), fallback_reason="", cleanup=False
+    )
+
+    # The unserviced prompt refuses a graph-site dispatch, so the singleton
+    # steps one ordinary token and reaches the sequence's first boundary.
+    assert [call[0] for call in runtime.calls] == ["preflight", "step"]
+    assert first["native_graph_site_deferred"] is True
+    accepted = captured["result"]["token"]
+
+    second = _record(
+        runtime,
+        run={
+            "bound": 4,
+            "operation_ids": ("op-0", "op-1", "op-2", "op-3"),
+            "draws": (0.0, 0.25, 0.5, 0.75),
+        },
+    )
+    second["state"] = _graph_site_state(second["source_sha256"])
+    second["history"] = (*prompt, accepted)
+    second["operation_id"] = "op-1"
+
+    swarm._service_native_singleton(
+        second, {"registration": "two"}, None, incompatible=(), fallback_reason="", cleanup=False
+    )
+
+    assert [call[0] for call in runtime.calls] == ["preflight", "step", "preflight"]
+    bundle = captured["graph_bundle"]
+    assert bundle is not None
+    assert bundle["tokens"] == list(second["history"])
+    assert bundle["ticket"]["sequence_id"] == second["sequence_id"]
+    assert bundle["ticket"]["task_id"] == second["native_task_id"]
+    assert runtime.preflights == 2

@@ -2102,8 +2102,11 @@ class ProgrammableSwarm:
             or normalized_preflight.get("input_tokens")
             != list(record["history"])
             or normalized_preflight.get("sampler") != dict(record["sampler"])
+            # The boundary is the one unserviced token of the sequence's token
+            # log, and the preflight names its position: a history of N tokens
+            # holds its pending token at N - 1.
             or normalized_preflight.get("next_position")
-            != len(record["history"])
+            != len(record["history"]) - 1
         ):
             raise ProgrammableSwarmError(
                 "native graph-site preflight does not match its exact WAIT request"
