@@ -13930,18 +13930,29 @@ class FieldIntelligenceOwner:
             self._temporal_episode(self.evidence.read(self.evidence.source(revision)))
             for revision in row.source_revision_ids if revision in active
         ]
-        change = medium.sync(episodes)
-        if change["linked"] or change["erased"]:
+        change = dict(medium.sync(episodes))
+        size = medium.memory.codec.field.p.size
+        while medium.crowded:
+            size = 2 * round(0.75 * size)
+            medium = medium.regrown(size)
+            self._temporal_media[memory_id] = medium
+            change["regrown_to"] = size
+        if change["linked"] or change["erased"] or "regrown_to" in change:
             medium.save(self._temporal_medium_path(memory_id))
         return change
 
     def grow_temporal_medium(
         self, memory_id: str, *, size: int = 32, device: str | None = None,
     ) -> Mapping[str, Any]:
-        """Give a temporal memory an emergent medium and let it absorb every admitted episode."""
+        """Give a temporal memory an emergent medium and let it absorb every admitted episode.
+
+        A medium smaller than ``size`` is regrown to it by replay, and a medium
+        grows by half its side whenever its links crowd it.
+        """
         with self._lock:
             memory_id = self._temporal_memory(memory_id).memory_id
-            if self._temporal_medium(memory_id) is None:
+            medium = self._temporal_medium(memory_id)
+            if medium is None:
                 import torch
                 from cassi_emergent_field import EmergentProfile, SequenceMemory, TemporalMedium
                 device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -13949,10 +13960,13 @@ class FieldIntelligenceOwner:
                 medium = TemporalMedium(SequenceMemory.create(profile, salt=memory_id))
                 medium.save(self._temporal_medium_path(memory_id))
                 self.__dict__.setdefault("_temporal_media", {})[memory_id] = medium
+            elif medium.memory.codec.field.p.size < size:
+                self._temporal_media[memory_id] = medium.regrown(size)
+                self._temporal_media[memory_id].save(self._temporal_medium_path(memory_id))
             change = self._sync_temporal_medium(memory_id)
             medium = self._temporal_medium(memory_id)
-            return {"memory_id": memory_id, **dict(change), "notes": medium.memory.codec.count,
-                    "ideas": len(medium.memory.names)}
+            return {"memory_id": memory_id, **dict(change), "size": medium.memory.codec.field.p.size,
+                    "notes": medium.memory.codec.count, "ideas": len(medium.memory.names)}
 
     def predict_temporal_medium(
         self, memory_id: str, *, actions: Sequence[str], participant_id: str | None = None,

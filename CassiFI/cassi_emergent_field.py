@@ -116,6 +116,20 @@ def _complex(real: torch.dtype) -> torch.dtype:
     return torch.complex64 if real == torch.float32 else torch.complex128
 
 
+def _mul32(x: torch.Tensor, c: int) -> torch.Tensor:
+    """x * c mod 2^32 for 32-bit x in int64 lanes, never overflowing them."""
+    return ((x & 0xFFFF) * c + ((((x >> 16) * (c & 0xFFFF)) & 0xFFFF) << 16)) & 0xFFFFFFFF
+
+
+def _mix32(x: torch.Tensor) -> torch.Tensor:
+    """A bijective 32-bit integer hash (lowbias32)."""
+    x = x ^ (x >> 16)
+    x = _mul32(x, 0x7FEB352D)
+    x = x ^ (x >> 15)
+    x = _mul32(x, 0x846CA68B)
+    return x ^ (x >> 16)
+
+
 _WAVE_SOURCE = r"""
 extern "C" __global__ void wave_step(const float* __restrict__ S, float* __restrict__ Sn, float* __restrict__ V,
     const float* __restrict__ rho, const float* __restrict__ Dr, const float* __restrict__ Di,
@@ -454,8 +468,8 @@ class NoteCodec:
         return drive_notes.real * G + drive_notes.imag * quad
 
     # -- chords --------------------------------------------------------------
-    def chords(self, generators: list[torch.Generator], rounds: int = 30) -> torch.Tensor:
-        """Random chords (one per generator) whose brightness |S(x)|^2 is as even as the notes allow.
+    def even(self, amps: torch.Tensor, rounds: int = 30) -> torch.Tensor:
+        """Chords (rows) reshaped until their brightness |S(x)|^2 is as even as the notes allow, unit norm.
 
         An even chord's own imprint on the medium is uniform, and a uniform
         imprint only retunes every note in place.  So what the medium records
@@ -463,14 +477,31 @@ class NoteCodec:
         shape is found by alternating between the note band and flat modulus.
         """
         out = []
-        for start in range(0, len(generators), self.batch):
-            phase = torch.stack([torch.rand(self.count, generator=g, dtype=torch.float64)
-                                 for g in generators[start:start + self.batch]]) * (2.0 * math.pi)
-            amps = torch.polar(torch.ones_like(phase), phase).to(self.index.device, self.cplx)
+        for part in amps.to(self.index.device, self.cplx).split(self.batch):
             for _ in range(rounds):
-                grid = self.to_grid(amps)
-                amps = self.to_notes(grid / grid.abs().clamp_min(1e-12))
-            out.append(amps / amps.norm(dim=-1, keepdim=True))
+                grid = self.to_grid(part)
+                part = self.to_notes(grid / grid.abs().clamp_min(1e-12))
+            out.append(part / part.norm(dim=-1, keepdim=True))
+        return torch.cat(out)
+
+    def phases(self, keys: torch.Tensor) -> torch.Tensor:
+        """Random phases (B, notes) in [0, 2 pi), one row per 64-bit key given as two 32-bit halves (B, 2).
+
+        Each phase is a counter hash of the key and the note's ordinal in
+        32-bit integer arithmetic, so it is the same on every device and is
+        made where the notes live.
+        """
+        keys = keys.to(self.index.device, torch.int64)
+        note = torch.arange(self.count, dtype=torch.int64, device=self.index.device)
+        h = _mix32(_mix32(note[None, :] ^ keys[:, :1]) ^ keys[:, 1:])
+        return (h.to(torch.float64) + 0.5) * (2.0 * math.pi / 2.0 ** 32)
+
+    def chords(self, keys: torch.Tensor, rounds: int = 8) -> torch.Tensor:
+        """Random even chords, one per key (see ``phases``); eight rounds leave the brightness within 1%."""
+        out = []
+        for part in keys.split(self.batch):
+            phase = self.phases(part)
+            out.append(self.even(torch.polar(torch.ones_like(phase), phase), rounds))
         return torch.cat(out)
 
     def unevenness(self, chord: torch.Tensor) -> float:
@@ -522,7 +553,7 @@ class SequenceMemory:
       used stands out over what was not.
     """
 
-    SCHEMA = "cassifi.emergent-sequence-memory.v3"
+    SCHEMA = "cassifi.emergent-sequence-memory.v4"
 
     def __init__(self, codec: NoteCodec, *, salt: str = "cassi", write_steps: int = 1000,
                  alarm: float = 1e-3, working_bytes: int = 2 ** 31) -> None:
@@ -538,9 +569,9 @@ class SequenceMemory:
         # The noise floor of an unlinked chord: |<trace, chord>| for a random unit chord.
         self.floor = math.sqrt(math.log(2.0) / codec.count)
 
-    def _generator(self, name: str, role: str) -> torch.Generator:
-        seed = int.from_bytes(hashlib.sha256(f"{self.salt}\x1f{role}\x1f{name}".encode()).digest()[:8], "little")
-        return torch.Generator().manual_seed(seed & (2 ** 63 - 1))
+    def _key(self, name: str, role: str) -> tuple[int, int]:
+        digest = hashlib.sha256(f"{self.salt}\x1f{role}\x1f{name}".encode()).digest()
+        return int.from_bytes(digest[:4], "little"), int.from_bytes(digest[4:8], "little")
 
     def ideas(self, names: Sequence[str]) -> list[int]:
         """Indices of ``names`` in the vocabulary, adding any the brain has not named before."""
@@ -558,7 +589,7 @@ class SequenceMemory:
             part = names[start:start + self._working_rows // 2]
             missing = [n for n in dict.fromkeys(part) if (role, n) not in self._working]
             if missing:
-                made = self.codec.chords([self._generator(n, role) for n in missing])
+                made = self.codec.chords(torch.tensor([self._key(n, role) for n in missing], dtype=torch.int64))
                 for n, chord in zip(missing, made):
                     self._working[(role, n)] = chord.clone()
             for n in part:
@@ -695,10 +726,15 @@ class TemporalMedium:
 
     Every step of every admitted episode becomes one link: the context in which
     an action was taken points to the observation that followed.  The context
-    is one chord made of nested voices, equally loud: the action alone, the
-    action after the last step, after the last two steps, and so on to
-    ``depth``.  Two contexts share exactly the voices of the history they have
-    in common.
+    is one chord made of nested voices: the action alone, the action after the
+    last step, after the last two steps, and so on to ``depth``, each voice
+    twice as loud as the one before it.  The rare specific voices carry most
+    of the chord, and the general ones, shared by many contexts, stay loud by
+    their number.  Two contexts share exactly the voices of the history they
+    have in common.
+
+    A medium holds about ``ROOM`` notes per link before its rarest memories
+    blur; ``regrown`` replays the whole experience into a larger lattice.
 
     To recall, the brain plays one voice at a time, the most specific first,
     and trusts the most specific voice the medium answers.  An exact repeat
@@ -723,8 +759,9 @@ class TemporalMedium:
     general memories, or not at all.
     """
 
-    SCHEMA = "cassifi.emergent-temporal-medium.v3"
+    SCHEMA = "cassifi.emergent-temporal-medium.v4"
     START = ("^", "^")
+    ROOM = 400
 
     def __init__(self, memory: SequenceMemory, *, depth: int = 4) -> None:
         self.memory, self.depth = memory, depth
@@ -743,7 +780,9 @@ class TemporalMedium:
                 for k in range(self.depth + 1)]
 
     def _cue(self, voices: Sequence[str]) -> torch.Tensor:
-        cue = self.memory.chords("send", voices).sum(0)
+        chords = self.memory.chords("send", voices)
+        loud = torch.tensor([2.0 ** k for k in range(len(voices))], dtype=chords.real.dtype, device=chords.device)
+        cue = (loud[:, None] * chords).sum(0)
         return cue / cue.norm()
 
     def transitions(self, episode: Sequence[Mapping[str, str]]) -> list[str]:
@@ -905,6 +944,35 @@ class TemporalMedium:
         self._answers.clear()
         return {"replayed": len(replayed),
                 "faded_by": round(1.0 - math.exp(-self.memory.codec.field.p.mu * duration), 6)}
+
+    @property
+    def crowded(self) -> bool:
+        """True once every link has fewer than ``ROOM`` notes to itself.
+
+        A memory met once answers through its deepest voice with clarity about
+        sqrt(notes / links) less what repeated memories add to the murmur; at
+        ``ROOM`` notes per link it still stands clearly above the hearing bar.
+        """
+        links = sum(self.absorbed.values()) + sum(self.rehearsed.values())
+        return links * self.ROOM > self.memory.codec.count
+
+    def regrown(self, size: int) -> "TemporalMedium":
+        """The same experience replayed into a fresh medium of side ``size``.
+
+        Every admitted step is linked once more and every rehearsal as often
+        as it was rehearsed, so what was used still stands out; the uniform
+        fade of past rests, which never changed how the memories compare, is
+        left behind.
+        """
+        old = self.memory
+        memory = SequenceMemory.create(replace(old.codec.field.p, size=size), salt=old.salt,
+                                       write_steps=old.write_steps, alarm=old.alarm)
+        grown = TemporalMedium(memory, depth=self.depth)
+        grown._write([key for key, count in sorted((self.absorbed + self.rehearsed).items())
+                      for _ in range(count)], 1.0)
+        grown.absorbed, grown.rehearsed = Counter(self.absorbed), Counter(self.rehearsed)
+        grown.recognised, grown._spoken = Counter(self.recognised), set(self._spoken)
+        return grown
 
     def save(self, path: Path) -> None:
         _atomic_save({**self.memory.state(), "medium_schema": self.SCHEMA, "depth": self.depth,
