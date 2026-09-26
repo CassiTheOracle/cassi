@@ -590,3 +590,298 @@ def test_graph_site_preflight_accepts_the_history_that_includes_its_accepted_tok
             sampler=sampler,
             native_operation_id="operation",
         )
+def _draft_rows_wire(rows: Sequence[dict[str, Any]]) -> bytes:
+    payload = bytearray(struct.pack("<I", len(rows)))
+    for row in rows:
+        payload.extend(struct.pack("<i", int(row["token"])))
+        payload.extend(struct.pack("<B", 1 if row["end_of_generation"] else 0))
+        payload.extend(_graph_site_text(str(row["replay_sha256"])))
+        payload.extend(struct.pack("<Q", int(row["token_count"])))
+        payload.extend(_graph_site_text(str(row["stage_trace_sha256"])))
+        for key in (
+            "exact_stages",
+            "embedding_stages",
+            "attention_stages",
+            "ffn_stages",
+            "head_stages",
+            "ggml_nodes",
+            "logical_weight_bytes",
+        ):
+            payload.extend(struct.pack("<Q", int(row[key])))
+        for key in (
+            "sampler_sha256",
+            "native_predecessor_sha256",
+            "native_successor_sha256",
+            "input_tokens_sha256",
+            "native_operation_id",
+            "sequence_id",
+        ):
+            payload.extend(_graph_site_text(str(row[key])))
+        payload.extend(struct.pack("<Q", int(row["position"])))
+        payload.extend(struct.pack("<B", 1 if row["draft_matched"] else 0))
+    return bytes(payload)
+
+
+def _decode_draft_request(payload: bytes) -> dict[str, Any]:
+    cursor = 0
+
+    def take(count: int) -> bytes:
+        nonlocal cursor
+        value = payload[cursor : cursor + count]
+        cursor += count
+        return value
+
+    def u32() -> int:
+        return struct.unpack("<I", take(4))[0]
+
+    def i32() -> int:
+        return struct.unpack("<i", take(4))[0]
+
+    def text() -> str:
+        return take(u32()).decode("utf-8")
+
+    def i32_vector() -> list[int]:
+        return [i32() for _ in range(u32())]
+
+    decoded = {
+        "task_id": text(),
+        "source_sha256": text(),
+        "tokens": i32_vector(),
+        "draft_tokens": i32_vector(),
+        "sampler_mode": text(),
+        "temperature": struct.unpack("<d", take(8))[0],
+        "top_k": u32(),
+        "draws": [struct.unpack("<d", take(8))[0] for _ in range(u32())],
+        "operation_ids": [text() for _ in range(u32())],
+        "sequence_id": text(),
+    }
+    assert cursor == len(payload)
+    return decoded
+
+
+def _draft_round_rows(
+    request: dict[str, Any],
+    *,
+    tokens: Sequence[int],
+    matches: Sequence[bool],
+) -> list[dict[str, Any]]:
+    """Build the rows the native runtime would emit for one round."""
+
+    history = list(request["tokens"])
+    rows: list[dict[str, Any]] = []
+    for index, token in enumerate(tokens):
+        sampler, sampler_sha256 = native._model_sampler(
+            request["sampler_mode"],
+            request["temperature"],
+            request["top_k"],
+            request["draws"][index],
+        )
+        rows.append(
+            {
+                "token": int(token),
+                "end_of_generation": False,
+                "replay_sha256": f"{index + 1:064x}",
+                "token_count": len(history) + 1,
+                "stage_trace_sha256": f"{index + 11:064x}",
+                "exact_stages": 50,
+                "embedding_stages": 1,
+                "attention_stages": 24,
+                "ffn_stages": 24,
+                "head_stages": 1,
+                "ggml_nodes": 1846,
+                "logical_weight_bytes": 552075584,
+                "sampler_sha256": sampler_sha256,
+                "native_predecessor_sha256": "a" * 64 if index == 0 else "",
+                "native_successor_sha256": "b" * 64 if index + 1 == len(tokens) else "",
+                "input_tokens_sha256": native._model_token_history(history)[2],
+                "native_operation_id": request["operation_ids"][index],
+                "sequence_id": request["sequence_id"],
+                "position": len(history),
+                "draft_matched": bool(matches[index]),
+            }
+        )
+        history.append(int(token))
+    return rows
+
+
+def _draft_client(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    prior_tokens: Sequence[int],
+    accepted_token: int | None,
+    source_sha256: str,
+    rows_for: Any,
+) -> tuple[native.NativeFieldRuntimeClient, list[dict[str, Any]]]:
+    client = object.__new__(native.NativeFieldRuntimeClient)
+    client.service_generation = 4
+    client._pending_graph_site_candidates = {}
+    client._model_task_states = {
+        "task": {
+            "source_sha256": source_sha256,
+            "input_tokens": tuple(prior_tokens),
+            "accepted_token_id": accepted_token,
+            "accepted_steps": [],
+            "initialized": True,
+        }
+    }
+    captured: list[dict[str, Any]] = []
+
+    def request(kind: int, fields: Sequence[tuple[int, int, bytes]]) -> dict[int, tuple[int, bytes]]:
+        assert kind == native.VERIFY_MODEL_DRAFT
+        decoded = _decode_draft_request(fields[0][2])
+        captured.append(decoded)
+        return {
+            1: (native.WIRE_UTF8, b"model-draft-rows"),
+            2: (native.WIRE_BYTES, _draft_rows_wire(rows_for(decoded))),
+        }
+
+    monkeypatch.setattr(client, "_request", request)
+    return client, captured
+
+
+def test_native_draft_round_commits_the_accepted_prefix_and_its_bonus(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_sha256 = "d" * 64
+    proposal = [220, 16, 15]
+
+    def rows_for(request: dict[str, Any]) -> list[dict[str, Any]]:
+        return _draft_round_rows(
+            request, tokens=[220, 16, 15, 11], matches=[True, True, True, False]
+        )
+
+    client, captured = _draft_client(
+        monkeypatch,
+        prior_tokens=[9707, 11, 1879, 374],
+        accepted_token=283,
+        source_sha256=source_sha256,
+        rows_for=rows_for,
+    )
+    result = client.verify_model_draft(
+        "task",
+        source_sha256,
+        [9707, 11, 1879, 374, 283],
+        proposal,
+        draws=[0.0, 0.25, 0.5, 0.75],
+        operation_ids=["op-0", "op-1", "op-2", "op-3"],
+        sequence_id="task-seq",
+    )
+    assert captured[0]["draft_tokens"] == proposal
+    assert captured[0]["tokens"] == [9707, 11, 1879, 374, 283]
+    assert captured[0]["draws"] == [0.0, 0.25, 0.5, 0.75]
+    assert captured[0]["operation_ids"] == ["op-0", "op-1", "op-2", "op-3"]
+    assert captured[0]["sequence_id"] == "task-seq"
+    assert result["committed"] == 4
+    assert [row["token"] for row in result["rows"]] == [220, 16, 15, 11]
+    assert [row["draft_matched"] for row in result["rows"]] == [True, True, True, False]
+    assert result["rows"][0]["input_tokens"] == [9707, 11, 1879, 374, 283]
+    assert result["rows"][3]["input_tokens"] == [9707, 11, 1879, 374, 283, 220, 16, 15]
+    assert result["rows"][0]["native_predecessor_sha256"] == "a" * 64
+    assert result["rows"][3]["native_successor_sha256"] == "b" * 64
+    state = client._model_task_states["task"]
+    assert state["input_tokens"] == [9707, 11, 1879, 374, 283, 220, 16, 15]
+    assert state["accepted_token_id"] == 11
+    assert len(state["accepted_steps"]) == 4
+    assert state["accepted_steps"][2]["native_operation_id"] == "op-2"
+
+
+def test_native_draft_round_rejects_a_row_that_left_its_round(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_sha256 = "d" * 64
+
+    def rows_for(request: dict[str, Any]) -> list[dict[str, Any]]:
+        rows = _draft_round_rows(request, tokens=[220, 16], matches=[True, False])
+        rows[1]["native_operation_id"] = "op-elsewhere"
+        return rows
+
+    client, _ = _draft_client(
+        monkeypatch,
+        prior_tokens=[1, 2],
+        accepted_token=3,
+        source_sha256=source_sha256,
+        rows_for=rows_for,
+    )
+    with pytest.raises(native.NativeFieldRuntimeError, match="disagrees with its round"):
+        client.verify_model_draft(
+            "task",
+            source_sha256,
+            [1, 2, 3],
+            [220, 16],
+            draws=[0.0, 0.0, 0.0],
+            operation_ids=["op-0", "op-1", "op-2"],
+        )
+
+
+def test_native_draft_round_stops_at_the_owners_stop_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_sha256 = "d" * 64
+
+    def rows_for(request: dict[str, Any]) -> list[dict[str, Any]]:
+        return _draft_round_rows(
+            request, tokens=[220, 99, 15], matches=[True, True, False]
+        )
+
+    client, _ = _draft_client(
+        monkeypatch,
+        prior_tokens=[1, 2],
+        accepted_token=3,
+        source_sha256=source_sha256,
+        rows_for=rows_for,
+    )
+    result = client.verify_model_draft(
+        "task",
+        source_sha256,
+        [1, 2, 3],
+        [220, 99, 15],
+        draws=[0.0, 0.0, 0.0, 0.0],
+        operation_ids=["op-0", "op-1", "op-2", "op-3"],
+        stop_tokens=[99],
+    )
+    assert [row["token"] for row in result["rows"]] == [220, 99]
+    assert result["committed"] == 2
+    state = client._model_task_states["task"]
+    assert state["input_tokens"] == [1, 2, 3, 220]
+    assert state["accepted_token_id"] == 99
+    assert len(state["accepted_steps"]) == 2
+
+
+def test_native_draft_round_rejects_a_proposal_outside_the_draft_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_sha256 = "d" * 64
+    client, _ = _draft_client(
+        monkeypatch,
+        prior_tokens=[1, 2],
+        accepted_token=3,
+        source_sha256=source_sha256,
+        rows_for=lambda request: [],
+    )
+    with pytest.raises(native.NativeFieldRuntimeError, match="draws must carry one entry"):
+        client.verify_model_draft(
+            "task",
+            source_sha256,
+            [1, 2, 3],
+            [220, 16],
+            draws=[0.0, 0.0],
+            operation_ids=["op-0", "op-1"],
+        )
+    with pytest.raises(native.NativeFieldRuntimeError, match="unique and match the draws"):
+        client.verify_model_draft(
+            "task",
+            source_sha256,
+            [1, 2, 3],
+            [220, 16],
+            draws=[0.0, 0.0, 0.0],
+            operation_ids=["op-0", "op-0", "op-2"],
+        )
+    with pytest.raises(native.NativeFieldRuntimeError, match="exceeds its bound"):
+        client.verify_model_draft(
+            "task",
+            source_sha256,
+            [1, 2, 3],
+            list(range(native.MAX_DRAFT_TOKENS + 1)),
+            draws=[0.0] * (native.MAX_DRAFT_TOKENS + 2),
+            operation_ids=[f"op-{index}" for index in range(native.MAX_DRAFT_TOKENS + 2)],
+        )

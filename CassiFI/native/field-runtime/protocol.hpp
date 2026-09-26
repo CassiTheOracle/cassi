@@ -71,6 +71,7 @@ enum class MessageKind : std::uint16_t {
     graph_site_preflight = 26,
     leave_group = 27,
     join_group = 28,
+    verify_model_draft = 29,
     response_bit = 0x8000,
     error = 0xffff,
 };
@@ -1348,6 +1349,182 @@ inline GraphSiteReceiptWire decode_graph_site_receipt(std::span<const std::byte>
     detail::validate_graph_site_receipt(value);
     return value;
 }
+
+// A one-pass draft verification admits several committed tokens (the
+// already-pending target sample, the matched prefix of a proposed draft,
+// and the target's own sample at the first divergence or as a bonus once
+// the whole draft matches) in one native call.  Each row carries exactly
+// the fields an ordinary STEP_MODEL response carries for one token, so the
+// caller and the owner replay every row the same way regardless of which
+// path produced it.
+struct ModelDraftRowWire {
+    std::int32_t token{};
+    std::uint8_t end_of_generation{};
+    std::string replay_sha256;
+    std::uint64_t token_count{};
+    std::string stage_trace_sha256;
+    std::uint64_t exact_stages{};
+    std::uint64_t embedding_stages{};
+    std::uint64_t attention_stages{};
+    std::uint64_t ffn_stages{};
+    std::uint64_t head_stages{};
+    std::uint64_t ggml_nodes{};
+    std::uint64_t logical_weight_bytes{};
+    std::string sampler_sha256;
+    std::string native_predecessor_sha256;
+    std::string native_successor_sha256;
+    std::string input_tokens_sha256;
+    std::string native_operation_id;
+    std::string sequence_id;
+    std::uint64_t position{};
+    std::uint8_t draft_matched{};
+};
+
+inline constexpr std::size_t kMaxModelDraftRows = 16;
+
+inline std::vector<std::byte> encode_model_draft_rows(const std::vector<ModelDraftRowWire>& rows) {
+    if (rows.empty() || rows.size() > kMaxModelDraftRows)
+        throw ProtocolError("model draft row batch size is invalid");
+    std::vector<std::byte> out;
+    detail::append_u32(out, static_cast<std::uint32_t>(rows.size()));
+    for (const auto& value : rows) {
+        detail::append_i32(out, value.token);
+        detail::append_u8(out, value.end_of_generation);
+        detail::append_site_text(out, value.replay_sha256);
+        detail::append_u64(out, value.token_count);
+        detail::append_site_text(out, value.stage_trace_sha256);
+        detail::append_u64(out, value.exact_stages);
+        detail::append_u64(out, value.embedding_stages);
+        detail::append_u64(out, value.attention_stages);
+        detail::append_u64(out, value.ffn_stages);
+        detail::append_u64(out, value.head_stages);
+        detail::append_u64(out, value.ggml_nodes);
+        detail::append_u64(out, value.logical_weight_bytes);
+        detail::append_site_text(out, value.sampler_sha256);
+        detail::append_site_text(out, value.native_predecessor_sha256);
+        detail::append_site_text(out, value.native_successor_sha256);
+        detail::append_site_text(out, value.input_tokens_sha256);
+        detail::append_site_text(out, value.native_operation_id);
+        detail::append_site_text(out, value.sequence_id);
+        detail::append_u64(out, value.position);
+        detail::append_u8(out, value.draft_matched);
+    }
+    return out;
+}
+
+inline std::vector<ModelDraftRowWire> decode_model_draft_rows(std::span<const std::byte> bytes) {
+    if (bytes.empty() || bytes.size() > kMaxFrameBodyBytes)
+        throw ProtocolError("model draft row batch payload size is invalid");
+    detail::RowReader reader(bytes);
+    const auto count = reader.u32();
+    if (count == 0 || count > kMaxModelDraftRows)
+        throw ProtocolError("model draft row batch count is invalid");
+    std::vector<ModelDraftRowWire> rows;
+    rows.reserve(count);
+    for (std::uint32_t index = 0; index < count; ++index) {
+        ModelDraftRowWire value{};
+        value.token = reader.i32();
+        value.end_of_generation = reader.u8();
+        value.replay_sha256 = detail::read_site_text(reader);
+        value.token_count = reader.u64();
+        value.stage_trace_sha256 = detail::read_site_text(reader);
+        value.exact_stages = reader.u64();
+        value.embedding_stages = reader.u64();
+        value.attention_stages = reader.u64();
+        value.ffn_stages = reader.u64();
+        value.head_stages = reader.u64();
+        value.ggml_nodes = reader.u64();
+        value.logical_weight_bytes = reader.u64();
+        value.sampler_sha256 = detail::read_site_text(reader);
+        value.native_predecessor_sha256 = detail::read_site_text(reader);
+        value.native_successor_sha256 = detail::read_site_text(reader);
+        value.input_tokens_sha256 = detail::read_site_text(reader);
+        value.native_operation_id = detail::read_site_text(reader);
+        value.sequence_id = detail::read_site_text(reader);
+        value.position = reader.u64();
+        value.draft_matched = reader.u8();
+        rows.push_back(std::move(value));
+    }
+    if (!reader.done()) throw ProtocolError("model draft row batch payload has trailing bytes");
+    return rows;
+}
+
+// The request for one draft-verification round.  ``tokens`` is the
+// committed history before any of this round's tokens; ``draft_tokens[0]``
+// is checked with an ordinary exact-pipeline sample (the context cannot
+// enter the fork's one-pass verifier without an already-pending sample),
+// and ``draft_tokens[1:]`` are verified in that one native pass.  ``draws``
+// and ``native_operation_ids`` each have exactly ``draft_tokens.size() + 1``
+// entries: one per draft position plus one for the target's own sample at
+// the first divergence or bonus.
+struct ModelDraftVerifyRequestWire {
+    std::string task_id;
+    std::string source_sha256;
+    std::vector<std::int32_t> tokens;
+    std::vector<std::int32_t> draft_tokens;
+    std::string sampler_mode;
+    double sampler_temperature{};
+    std::uint32_t sampler_top_k{};
+    std::vector<double> draws;
+    std::vector<std::string> native_operation_ids;
+    std::string sequence_id;
+};
+
+inline std::vector<std::byte> encode_model_draft_verify_request(const ModelDraftVerifyRequestWire& value) {
+    std::vector<std::byte> out;
+    detail::append_site_text(out, value.task_id);
+    detail::append_site_text(out, value.source_sha256);
+    detail::append_u32(out, static_cast<std::uint32_t>(value.tokens.size()));
+    for (auto token : value.tokens) detail::append_i32(out, token);
+    detail::append_u32(out, static_cast<std::uint32_t>(value.draft_tokens.size()));
+    for (auto token : value.draft_tokens) detail::append_i32(out, token);
+    detail::append_site_text(out, value.sampler_mode);
+    detail::append_f64(out, value.sampler_temperature);
+    detail::append_u32(out, value.sampler_top_k);
+    detail::append_u32(out, static_cast<std::uint32_t>(value.draws.size()));
+    for (auto draw : value.draws) detail::append_f64(out, draw);
+    detail::append_u32(out, static_cast<std::uint32_t>(value.native_operation_ids.size()));
+    for (const auto& id : value.native_operation_ids) detail::append_site_text(out, id);
+    detail::append_site_text(out, value.sequence_id);
+    return out;
+}
+
+inline ModelDraftVerifyRequestWire decode_model_draft_verify_request(std::span<const std::byte> bytes) {
+    if (bytes.empty() || bytes.size() > kMaxFrameBodyBytes)
+        throw ProtocolError("model draft verify request payload size is invalid");
+    detail::RowReader reader(bytes);
+    ModelDraftVerifyRequestWire value{};
+    value.task_id = detail::read_site_text(reader);
+    value.source_sha256 = detail::read_site_text(reader);
+    const auto token_count = reader.u32();
+    if (token_count == 0 || token_count > kMaxFrameBodyBytes / sizeof(std::int32_t))
+        throw ProtocolError("model draft verify token history size is invalid");
+    value.tokens.reserve(token_count);
+    for (std::uint32_t index = 0; index < token_count; ++index) value.tokens.push_back(reader.i32());
+    const auto draft_count = reader.u32();
+    if (draft_count == 0 || draft_count > kMaxModelDraftRows)
+        throw ProtocolError("model draft verify draft token count is invalid");
+    value.draft_tokens.reserve(draft_count);
+    for (std::uint32_t index = 0; index < draft_count; ++index) value.draft_tokens.push_back(reader.i32());
+    value.sampler_mode = detail::read_site_text(reader);
+    value.sampler_temperature = reader.f64();
+    value.sampler_top_k = reader.u32();
+    const auto draw_count = reader.u32();
+    if (draw_count != draft_count + 1U)
+        throw ProtocolError("model draft verify draw count must be one more than the draft");
+    value.draws.reserve(draw_count);
+    for (std::uint32_t index = 0; index < draw_count; ++index) value.draws.push_back(reader.f64());
+    const auto operation_id_count = reader.u32();
+    if (operation_id_count != draw_count)
+        throw ProtocolError("model draft verify operation id count must match the draw count");
+    value.native_operation_ids.reserve(operation_id_count);
+    for (std::uint32_t index = 0; index < operation_id_count; ++index)
+        value.native_operation_ids.push_back(detail::read_site_text(reader));
+    value.sequence_id = detail::read_site_text(reader);
+    if (!reader.done()) throw ProtocolError("model draft verify request payload has trailing bytes");
+    return value;
+}
+
 
 namespace detail {
 inline void validate_graph_site_replay_step(const GraphSiteReplayStepWire& value) {

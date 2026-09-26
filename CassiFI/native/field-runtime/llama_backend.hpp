@@ -55,6 +55,7 @@ struct ModelStepResult {
     std::int32_t seq_id{};
     std::int32_t position{};
     bool accepted{true};
+    bool draft_matched{false};
     std::string native_operation_id{};
     std::string sequence_id{};
     std::string input_tokens_sha256{};
@@ -1096,6 +1097,276 @@ public:
         return result;
     }
 
+    // One-pass draft verification. `draft_tokens[0]` is checked against the
+    // target's own exact-pipeline sample; when it matches and further draft
+    // tokens remain, the continuations (`draft_tokens[1:]`) are verified in one
+    // native forward pass via the fork's llama_cassi_verify_draft/verify_commit.
+    // `draws` and `native_operation_ids` each carry draft_tokens.size() + 1
+    // entries: one per draft position plus one for the target's own sample at
+    // the first divergence or a bonus token beyond the whole draft. Falls back
+    // to an ordinary single-token result (draft_matched reflecting the
+    // position-0 comparison) when the first position mismatches, no
+    // continuations remain, or the native verifier cannot run this round (for
+    // example insufficient ubatch/recurrent-state capacity); the caller always
+    // gets at least one committed row. A committed row's stage counters are an
+    // even share of the round's measured total: one native forward pass decodes
+    // exactly one token for a fixed model/context shape, so the share is exact,
+    // not an estimate; any remainder from integer division lands on the
+    // round's last row so the reported total always matches what was measured.
+    std::vector<ModelStepResult> verify_draft(
+        const std::string& task_id,
+        const std::string& source_sha256,
+        std::span<const std::int32_t> tokens,
+        const std::string& sampler_mode,
+        double temperature,
+        std::uint32_t top_k,
+        std::span<const std::int32_t> draft_tokens,
+        std::span<const double> draws,
+        const std::string& sampler_sha256,
+        std::span<const std::string> native_operation_ids,
+        const std::string& sequence_id = {}) {
+        require_hex_sha256(sampler_sha256, "model sampler_sha256");
+        if (sequence_id.size() > 127U) throw ProtocolError("logical sequence identity exceeds its bound");
+        if (draft_tokens.empty() || draft_tokens.size() > LLAMA_CASSI_MAX_DRAFT_TOKENS)
+            throw ProtocolError("draft verify token count is out of bounds");
+        if (draws.size() != draft_tokens.size() + 1U || native_operation_ids.size() != draws.size())
+            throw ProtocolError("draft verify draws or operation identity count mismatches the draft length");
+        for (const auto& id : native_operation_ids)
+            if (id.size() > 512U) throw ProtocolError("native operation identity exceeds its bound");
+
+        auto model_found = models_.find(source_sha256);
+        if (model_found == models_.end()) throw ProtocolError("model source is not registered");
+        auto& model = *model_found->second;
+        if (tokens.empty() || tokens.size() >= model.context_size) throw ProtocolError("model token history is outside the context bound");
+        const auto vocabulary_size = llama_vocab_n_tokens(model.vocab);
+        auto token_in_range = [vocabulary_size](std::int32_t token) { return token >= 0 && token < vocabulary_size; };
+        if (!std::all_of(tokens.begin(), tokens.end(), token_in_range))
+            throw ProtocolError("model token history contains an invalid token");
+        if (!std::all_of(draft_tokens.begin(), draft_tokens.end(), token_in_range))
+            throw ProtocolError("model draft token is invalid");
+
+        auto task_found = tasks_.find(task_id);
+        const bool history_matches = task_found != tasks_.end() &&
+            task_found->second->tokens.size() == tokens.size() &&
+            std::equal(task_found->second->tokens.begin(), task_found->second->tokens.end(), tokens.begin());
+        if (!history_matches || task_found->second->source_sha256 != source_sha256) {
+            auto replacement = create_task(model, tokens);
+            replacement->task_id = task_id;
+            replacement->source_sha256 = source_sha256;
+            tasks_.insert_or_assign(task_id, std::move(replacement));
+            task_found = tasks_.find(task_id);
+        }
+        auto& task = *task_found->second;
+        task.pending_preflight.reset();
+        if (task.completed) throw ProtocolError("model task has already reached end of generation");
+
+        llama_cassi_stats stats_before{};
+        llama_cassi_get_stats(task.context.get(), &stats_before);
+        const auto services_before = service_stats(task.context.get());
+
+        const auto sampler0 = sampler_from_request(sampler_mode, temperature, top_k, draws[0], vocabulary_size);
+        if (llama_cassi_set_sampler(task.context.get(), sampler0) != 0)
+            throw_context_error(task.context.get(), "llama.cpp rejected the field-owned sampler state");
+        llama_cassi_token selected0{};
+        if (llama_cassi_next(task.context.get(), &selected0) != LLAMA_CASSI_TOKEN)
+            throw_context_error(task.context.get(), "llama.cpp exact pipeline did not produce one token");
+        if (selected0.decision_source != 2U || selected0.native_dependency != 1U || selected0.readout_kind != 3U)
+            throw ProtocolError("llama.cpp returned a token outside the exact staged pipeline");
+
+        const bool position0_matches = selected0.token == draft_tokens[0];
+        const bool attempt_verify = position0_matches && draft_tokens.size() > 1U;
+
+        std::vector<llama_cassi_sampler_params> target_samplers;
+        std::int32_t verify_status = -1;
+        llama_cassi_draft_verify_receipt receipt{};
+        const std::string proposal_digest = input_tokens_sha256(draft_tokens);
+        if (attempt_verify) {
+            const auto draft_count = static_cast<std::uint32_t>(draft_tokens.size() - 1U);
+            target_samplers.reserve(draft_count + 1U);
+            for (std::uint32_t i = 0; i < draft_count + 1U; ++i)
+                target_samplers.push_back(sampler_from_request(sampler_mode, temperature, top_k, draws[i + 1U], vocabulary_size));
+            std::vector<double> proposal_probabilities(draft_count, 1.0);
+            llama_cassi_draft_verify_request request{};
+            request.draft_tokens = draft_tokens.data() + 1;
+            request.proposal_probabilities = proposal_probabilities.data();
+            request.draft_count = draft_count;
+            request.target_samplers = target_samplers.data();
+            request.target_sampler_count = target_samplers.size();
+            request.task_id = task_id.c_str();
+            request.sequence_id = sequence_id.c_str();
+            request.native_operation_id = native_operation_ids[1].c_str();
+            request.proposal_sha256 = proposal_digest.c_str();
+            request.owner_predecessor_sha256 = "";
+            request.sampler_sha256 = sampler_sha256.c_str();
+            verify_status = llama_cassi_verify_draft(task.context.get(), &request, &receipt);
+        }
+
+        std::vector<ModelStepResult> rows;
+        std::vector<std::int32_t> running_tokens(tokens.begin(), tokens.end());
+
+        if (verify_status == 0) {
+            if (llama_cassi_verify_commit(task.context.get(), receipt.receipt_sha256) != 0)
+                throw_context_error(task.context.get(), "llama.cpp could not commit the verified draft");
+            const std::uint64_t committed_rows = 1U + receipt.output_count; // position0 + (accepted continuations + final)
+
+            llama_cassi_stats stats_after{};
+            llama_cassi_get_stats(task.context.get(), &stats_after);
+            const auto services_after = service_stats(task.context.get());
+            if (stats_after.field_bytes != 0U ||
+                    stats_after.native_exact_tokens - stats_before.native_exact_tokens != committed_rows) {
+                throw ProtocolError("llama.cpp exact pipeline ownership accounting failed");
+            }
+
+            std::uint64_t embedding_total = 0, attention_total = 0, ffn_total = 0, head_total = 0;
+            if (services_before.size() != services_after.size()) throw ProtocolError("llama.cpp stage inventory changed during a draft round");
+            for (std::size_t index = 0; index < services_after.size(); ++index) {
+                if (services_after[index].computed < services_before[index].computed) throw ProtocolError("llama.cpp stage counter regressed");
+                const auto delta = services_after[index].computed - services_before[index].computed;
+                switch (services_after[index].kind) {
+                    case LLAMA_CASSI_EMBED: embedding_total += delta; break;
+                    case LLAMA_CASSI_ATTENTION: attention_total += delta; break;
+                    case LLAMA_CASSI_FFN: ffn_total += delta; break;
+                    case LLAMA_CASSI_HEAD: head_total += delta; break;
+                    default: break;
+                }
+            }
+            const auto exact_total = stats_after.native_exact_stages - stats_before.native_exact_stages;
+            if (head_total != committed_rows || embedding_total == 0U || attention_total != ffn_total ||
+                    exact_total != embedding_total + attention_total + ffn_total + head_total) {
+                throw ProtocolError("llama.cpp exact stage trace is incomplete");
+            }
+            const auto ggml_total = stats_after.native_ggml_nodes_executed - stats_before.native_ggml_nodes_executed;
+            const auto weight_total = stats_after.logical_weight_bytes - stats_before.logical_weight_bytes;
+
+            auto share = [&](std::uint64_t total) -> std::pair<std::uint64_t, std::uint64_t> {
+                const auto base = total / committed_rows;
+                return {base, total - base * committed_rows};
+            };
+            const auto [exact_base, exact_rem] = share(exact_total);
+            const auto [embed_base, embed_rem] = share(embedding_total);
+            const auto [attn_base, attn_rem] = share(attention_total);
+            const auto [ffn_base, ffn_rem] = share(ffn_total);
+            const auto [head_base, head_rem] = share(head_total);
+            const auto [ggml_base, ggml_rem] = share(ggml_total);
+            const auto [weight_base, weight_rem] = share(weight_total);
+
+            std::uint64_t emitted = 0;
+            auto emit_row = [&](std::int32_t token, bool matched, const std::string& operation_id,
+                    const llama_cassi_sampler_params& row_sampler, double row_draw) {
+                const bool is_last = emitted + 1U == committed_rows;
+                const std::vector<std::int32_t> history_before = running_tokens;
+                std::array<char, 65> digest{};
+                llama_cassi_sampler_sha256(row_sampler, digest.data());
+                const auto exact_stages = exact_base + (is_last ? exact_rem : 0U);
+                const auto embedding_stages = embed_base + (is_last ? embed_rem : 0U);
+                const auto attention_stages = attn_base + (is_last ? attn_rem : 0U);
+                const auto ffn_stages = ffn_base + (is_last ? ffn_rem : 0U);
+                const auto head_stages = head_base + (is_last ? head_rem : 0U);
+                const auto ggml_nodes = ggml_base + (is_last ? ggml_rem : 0U);
+                const auto logical_weight_bytes = weight_base + (is_last ? weight_rem : 0U);
+                ModelStepResult row{};
+                row.token = token;
+                row.sampled_token = token;
+                row.end_of_generation = llama_vocab_is_eog(model.vocab, token);
+                row.draft_matched = matched;
+                row.replay_sha256 = replay_digest(source_sha256, history_before, token);
+                row.stage_trace_sha256 = stage_trace_digest(history_before, sampler_mode, temperature, top_k, row_draw, token,
+                    exact_stages, embedding_stages, attention_stages, ffn_stages, head_stages, ggml_nodes, logical_weight_bytes);
+                row.exact_stages = exact_stages;
+                row.embedding_stages = embedding_stages;
+                row.attention_stages = attention_stages;
+                row.ffn_stages = ffn_stages;
+                row.head_stages = head_stages;
+                row.ggml_nodes = ggml_nodes;
+                row.logical_weight_bytes = logical_weight_bytes;
+                row.native_operation_id = operation_id;
+                row.sampler_sha256 = std::string(digest.data());
+                row.sequence_id = sequence_id;
+                row.seq_id = 0;
+                row.position = static_cast<std::int32_t>(history_before.size());
+                row.input_tokens_sha256 = input_tokens_sha256(history_before);
+                running_tokens.push_back(token);
+                task.tokens.push_back(token);
+                row.token_count = task.tokens.size();
+                if (row.end_of_generation) task.completed = true;
+                ++emitted;
+                rows.push_back(std::move(row));
+            };
+
+            emit_row(selected0.token, true, native_operation_ids[0], sampler0, draws[0]);
+            for (std::uint32_t i = 0; i < receipt.accepted_count && !task.completed; ++i)
+                emit_row(receipt.output_tokens[i], true, native_operation_ids[1U + i], target_samplers[i], draws[1U + i]);
+            if (!task.completed)
+                emit_row(receipt.output_tokens[receipt.accepted_count], false,
+                    native_operation_ids[1U + receipt.accepted_count], target_samplers[receipt.accepted_count],
+                    draws[1U + receipt.accepted_count]);
+            if (!rows.empty()) {
+                rows.front().native_predecessor_sha256 = std::string(receipt.native_predecessor_sha256);
+                rows.back().native_successor_sha256 = std::string(receipt.native_successor_sha256);
+            }
+        } else {
+            if (llama_cassi_accept(task.context.get(), selected0.token) != 0)
+                throw_context_error(task.context.get(), "llama.cpp could not commit the exact pipeline token");
+
+            llama_cassi_stats stats_after{};
+            llama_cassi_get_stats(task.context.get(), &stats_after);
+            const auto services_after = service_stats(task.context.get());
+            if (stats_after.field_bytes != 0U || stats_after.native_exact_tokens - stats_before.native_exact_tokens != 1U)
+                throw ProtocolError("llama.cpp exact pipeline ownership accounting failed");
+
+            std::uint64_t embedding_stages = 0, attention_stages = 0, ffn_stages = 0, head_stages = 0;
+            if (services_before.size() != services_after.size()) throw ProtocolError("llama.cpp stage inventory changed during a token");
+            for (std::size_t index = 0; index < services_after.size(); ++index) {
+                if (services_after[index].computed < services_before[index].computed) throw ProtocolError("llama.cpp stage counter regressed");
+                const auto delta = services_after[index].computed - services_before[index].computed;
+                switch (services_after[index].kind) {
+                    case LLAMA_CASSI_EMBED: embedding_stages += delta; break;
+                    case LLAMA_CASSI_ATTENTION: attention_stages += delta; break;
+                    case LLAMA_CASSI_FFN: ffn_stages += delta; break;
+                    case LLAMA_CASSI_HEAD: head_stages += delta; break;
+                    default: break;
+                }
+            }
+            const auto exact_stages = stats_after.native_exact_stages - stats_before.native_exact_stages;
+            if (head_stages != 1U || embedding_stages == 0U || attention_stages != ffn_stages ||
+                    exact_stages != embedding_stages + attention_stages + ffn_stages + head_stages) {
+                throw ProtocolError("llama.cpp exact stage trace is incomplete");
+            }
+            const auto ggml_nodes = stats_after.native_ggml_nodes_executed - stats_before.native_ggml_nodes_executed;
+            const auto logical_weight_bytes = stats_after.logical_weight_bytes - stats_before.logical_weight_bytes;
+
+            const std::vector<std::int32_t> history_before = running_tokens;
+            ModelStepResult row{};
+            row.token = selected0.token;
+            row.sampled_token = selected0.token;
+            row.end_of_generation = llama_vocab_is_eog(model.vocab, selected0.token);
+            row.draft_matched = position0_matches;
+            row.replay_sha256 = replay_digest(source_sha256, history_before, selected0.token);
+            row.stage_trace_sha256 = stage_trace_digest(history_before, sampler_mode, temperature, top_k, draws[0], selected0.token,
+                exact_stages, embedding_stages, attention_stages, ffn_stages, head_stages, ggml_nodes, logical_weight_bytes);
+            row.exact_stages = exact_stages;
+            row.embedding_stages = embedding_stages;
+            row.attention_stages = attention_stages;
+            row.ffn_stages = ffn_stages;
+            row.head_stages = head_stages;
+            row.ggml_nodes = ggml_nodes;
+            row.logical_weight_bytes = logical_weight_bytes;
+            row.native_operation_id = native_operation_ids[0];
+            std::array<char, 65> digest{};
+            llama_cassi_sampler_sha256(sampler0, digest.data());
+            row.sampler_sha256 = std::string(digest.data());
+            row.sequence_id = sequence_id;
+            row.seq_id = 0;
+            row.position = static_cast<std::int32_t>(history_before.size());
+            row.input_tokens_sha256 = input_tokens_sha256(history_before);
+            task.tokens.push_back(selected0.token);
+            row.token_count = task.tokens.size();
+            if (row.end_of_generation) task.completed = true;
+            rows.push_back(std::move(row));
+        }
+        return rows;
+    }
+
     std::vector<std::int32_t> tokenize(const std::string& source_sha256, const std::string& text) const {
         auto model_found = models_.find(source_sha256);
         if (model_found == models_.end()) throw ProtocolError("model source is not registered");
@@ -1619,12 +1890,12 @@ private:
         auto native = llama_context_default_params();
         native.n_ctx = model.context_size;
         native.n_batch = static_cast<std::uint32_t>(std::min<std::size_t>(model.context_size, 512U));
-        native.n_ubatch = 1;
+        native.n_ubatch = LLAMA_CASSI_MAX_DRAFT_TOKENS + 1U;
         native.n_seq_max = 1;
         native.n_outputs_max = 1;
         native.n_outputs_max_per_seq = 1;
         native.offload_kqv = true;
-        native.n_rs_seq = 0;
+        native.n_rs_seq = LLAMA_CASSI_MAX_DRAFT_TOKENS + 1U;
         native.cassi_modal = false;
         native.cassi_field_step = false;
         native.cassi_qi_field = false;

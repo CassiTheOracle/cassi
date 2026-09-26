@@ -131,6 +131,7 @@ public:
         case cfr::MessageKind::drop_group: return drop_group(request);
         case cfr::MessageKind::leave_group: return leave_group(request);
         case cfr::MessageKind::join_group: return join_group(request);
+        case cfr::MessageKind::verify_model_draft: return verify_model_draft(request);
         default: throw cfr::ProtocolError("request kind is unsupported");
         }
     }
@@ -878,6 +879,61 @@ private:
             .text(26, result.sequence_id)
             .text(27, result.ticket_id);
         return response;
+    }
+
+    cfr::Body verify_model_draft(const cfr::Body& request) {
+        require_hello();
+        if (!llama_.available()) throw cfr::ProtocolError("model runtime unavailable: " + llama_.reason());
+        const auto decoded = cfr::decode_model_draft_verify_request(request.require_bytes(1));
+        const auto task_id = bounded_identifier(decoded.task_id, "model task identity");
+        cfr::require_hex_sha256(decoded.source_sha256, "model source_sha256");
+        if (decoded.sampler_mode != "greedy" && decoded.sampler_mode != "categorical")
+            throw cfr::ProtocolError("model draft verify sampler mode is unsupported");
+        if (!(decoded.sampler_temperature > 0.0) || !std::isfinite(decoded.sampler_temperature))
+            throw cfr::ProtocolError("model draft verify temperature is invalid");
+        for (const auto draw : decoded.draws)
+            if (!(draw >= 0.0 && draw < 1.0) || !std::isfinite(draw))
+                throw cfr::ProtocolError("model draft verify draw is outside its bound");
+        if (std::any_of(decoded.native_operation_ids.begin(), decoded.native_operation_ids.end(),
+                [](const std::string& value) { return value.empty() || value.size() > 512U; }))
+            throw cfr::ProtocolError("model draft verify operation identity is invalid");
+        if (decoded.sequence_id.size() > 127U)
+            throw cfr::ProtocolError("model draft verify sequence identity exceeds its bound");
+        const auto native_sampler_sha256 = llama_.effective_sampler_sha256(decoded.source_sha256,
+            decoded.sampler_mode, decoded.sampler_temperature, decoded.sampler_top_k, decoded.draws.front());
+        const auto rows = llama_.verify_draft(task_id, decoded.source_sha256, decoded.tokens,
+            decoded.sampler_mode, decoded.sampler_temperature, decoded.sampler_top_k, decoded.draft_tokens,
+            decoded.draws, native_sampler_sha256, decoded.native_operation_ids, decoded.sequence_id);
+        std::vector<cfr::ModelDraftRowWire> wire;
+        wire.reserve(rows.size());
+        for (const auto& row : rows) {
+            cfr::ModelDraftRowWire value{};
+            value.token = row.token;
+            value.end_of_generation = row.end_of_generation ? 1U : 0U;
+            value.replay_sha256 = row.replay_sha256;
+            value.token_count = row.token_count;
+            value.stage_trace_sha256 = row.stage_trace_sha256;
+            value.exact_stages = row.exact_stages;
+            value.embedding_stages = row.embedding_stages;
+            value.attention_stages = row.attention_stages;
+            value.ffn_stages = row.ffn_stages;
+            value.head_stages = row.head_stages;
+            value.ggml_nodes = row.ggml_nodes;
+            value.logical_weight_bytes = row.logical_weight_bytes;
+            value.sampler_sha256 = row.sampler_sha256;
+            value.native_predecessor_sha256 = row.native_predecessor_sha256;
+            value.native_successor_sha256 = row.native_successor_sha256;
+            value.input_tokens_sha256 = row.input_tokens_sha256;
+            value.native_operation_id = row.native_operation_id;
+            value.sequence_id = row.sequence_id;
+            value.position = static_cast<std::uint64_t>(row.position);
+            value.draft_matched = row.draft_matched ? 1U : 0U;
+            wire.push_back(std::move(value));
+        }
+        const auto encoded = cfr::encode_model_draft_rows(wire);
+        return cfr::Body{}
+            .text(kStatus, "model-draft-rows")
+            .bytes(kValue, encoded);
     }
 
     cfr::Body drop_model_task(const cfr::Body& request) {

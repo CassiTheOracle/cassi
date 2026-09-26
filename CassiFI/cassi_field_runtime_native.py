@@ -58,6 +58,7 @@ DROP_GROUP = 25
 GRAPH_SITE_PREFLIGHT = 26
 LEAVE_GROUP = 27
 JOIN_GROUP = 28
+VERIFY_MODEL_DRAFT = 29
 GRAPH_SITE_WIRE_VERSION = 3
 GRAPH_SITE_RECEIPT_WIRE_VERSION = 3
 MAX_GRAPH_SITE_TEXT = 4096
@@ -82,6 +83,7 @@ _REQUEST_KIND_NAMES = {
     STEP_GROUP: "step-group",
     DROP_GROUP: "drop-group",
     GRAPH_SITE_PREFLIGHT: "graph-site-preflight",
+    VERIFY_MODEL_DRAFT: "verify-model-draft",
 }
 
 
@@ -971,6 +973,117 @@ def _model_sampler(
             "draw": draw,
         }
     )
+
+
+# One draft round proposes at most eight tokens; the target's own sample at the
+# first divergence or beyond the whole draft is one row more.
+MAX_DRAFT_TOKENS = 8
+MAX_DRAFT_ROWS = 16
+
+
+def _draft_site_text(value: str, label: str) -> bytes:
+    payload = value.encode("utf-8")
+    if len(payload) > MAX_GRAPH_SITE_TEXT:
+        raise NativeFieldRuntimeError(f"{label} exceeds its bound")
+    return struct.pack("<I", len(payload)) + payload
+
+
+def _encode_model_draft_verify_request(
+    task_id: str,
+    source_sha256: str,
+    tokens: Sequence[int],
+    draft_tokens: Sequence[int],
+    sampler_mode: str,
+    temperature: float,
+    top_k: int,
+    draws: Sequence[float],
+    operation_ids: Sequence[str],
+    sequence_id: str,
+) -> bytes:
+    """Encode one draft-verification round exactly as the native runtime reads it."""
+
+    out = bytearray()
+    out += _draft_site_text(task_id, "native model task id")
+    out += _draft_site_text(source_sha256, "model source digest")
+    out += struct.pack("<I", len(tokens))
+    for token in tokens:
+        out += struct.pack("<i", token)
+    out += struct.pack("<I", len(draft_tokens))
+    for token in draft_tokens:
+        out += struct.pack("<i", token)
+    out += _draft_site_text(sampler_mode, "draft sampler mode")
+    out += struct.pack("<d", temperature)
+    out += struct.pack("<I", top_k)
+    out += struct.pack("<I", len(draws))
+    for draw in draws:
+        out += struct.pack("<d", draw)
+    out += struct.pack("<I", len(operation_ids))
+    for item in operation_ids:
+        out += _draft_site_text(item, "draft operation id")
+    out += _draft_site_text(sequence_id, "draft sequence id")
+    return bytes(out)
+
+
+def _decode_model_draft_rows(payload: bytes) -> list[dict[str, Any]]:
+    """Decode the committed rows of one draft-verification round."""
+
+    cursor = 0
+
+    def take(count: int) -> bytes:
+        nonlocal cursor
+        if count > len(payload) - cursor:
+            raise NativeFieldRuntimeError("native draft row batch is truncated")
+        value = payload[cursor : cursor + count]
+        cursor += count
+        return value
+
+    def u8() -> int:
+        return take(1)[0]
+
+    def u32() -> int:
+        return struct.unpack("<I", take(4))[0]
+
+    def u64() -> int:
+        return struct.unpack("<Q", take(8))[0]
+
+    def i32() -> int:
+        return struct.unpack("<i", take(4))[0]
+
+    def site_text() -> str:
+        return take(u32()).decode("utf-8")
+
+    count = u32()
+    if not 0 < count <= MAX_DRAFT_ROWS:
+        raise NativeFieldRuntimeError("native draft row batch count is invalid")
+    rows: list[dict[str, Any]] = []
+    for _ in range(count):
+        rows.append(
+            {
+                "token": i32(),
+                "end_of_generation": bool(u8()),
+                "replay_sha256": site_text(),
+                "token_count": u64(),
+                "stage_trace_sha256": site_text(),
+                "exact_stages": u64(),
+                "embedding_stages": u64(),
+                "attention_stages": u64(),
+                "ffn_stages": u64(),
+                "head_stages": u64(),
+                "ggml_nodes": u64(),
+                "logical_weight_bytes": u64(),
+                "sampler_sha256": site_text(),
+                "native_predecessor_sha256": site_text(),
+                "native_successor_sha256": site_text(),
+                "input_tokens_sha256": site_text(),
+                "native_operation_id": site_text(),
+                "sequence_id": site_text(),
+                "position": u64(),
+                "draft_matched": bool(u8()),
+            }
+        )
+    if cursor != len(payload):
+        raise NativeFieldRuntimeError("native draft row batch has trailing bytes")
+    return rows
 
 
 def _graph_ticket_for_step(
@@ -3410,6 +3523,215 @@ class NativeFieldRuntimeClient:
                     pass
                 self._graph_site_preflights.pop(task_id, None)
             raise
+
+    def verify_model_draft(
+        self,
+        task_id: str,
+        source_sha256: str,
+        tokens: Sequence[int],
+        draft_tokens: Sequence[int],
+        *,
+        sampler_mode: str = "greedy",
+        temperature: float = 1.0,
+        top_k: int = 0,
+        draws: Sequence[float],
+        operation_ids: Sequence[str],
+        sequence_id: str | None = None,
+        stop_tokens: Sequence[int] = (),
+    ) -> dict[str, Any]:
+        """Commit one proposed draft round through a single native pass.
+
+        ``tokens`` is the committed history before the round and
+        ``draft_tokens`` the proposal.  ``draws`` and ``operation_ids`` each
+        carry one entry per draft position plus the target's own sample at the
+        first divergence or its bonus token beyond the whole draft.  The
+        runtime always commits at least one token, so ``rows`` holds between
+        one and ``len(draft_tokens) + 1`` step results shaped exactly like the
+        ones ``step_model`` reports, one per committed token.
+        """
+
+        task_id = _text(task_id, "task_id")
+        if len(task_id.encode("utf-8")) > 127:
+            raise NativeFieldRuntimeError("native model task id exceeds the C API bound")
+        logical_sequence_id = (
+            _text(sequence_id, "sequence_id") if sequence_id is not None else None
+        )
+        if logical_sequence_id is not None and len(logical_sequence_id.encode("utf-8")) > 127:
+            raise NativeFieldRuntimeError("native graph-site sequence id exceeds the C API bound")
+        source_sha256 = _digest(source_sha256, "source_sha256")
+        input_tokens, _, _ = _model_token_history(tokens)
+        proposed, _, _ = _model_token_history(draft_tokens)
+        if len(proposed) > MAX_DRAFT_TOKENS:
+            raise NativeFieldRuntimeError("native draft proposal exceeds its bound")
+        if isinstance(draws, (str, bytes, bytearray, Mapping)) or not isinstance(draws, Sequence):
+            raise NativeFieldRuntimeError("draft draws must be a sequence")
+        round_draws: list[float] = []
+        for draw in draws:
+            if (
+                isinstance(draw, bool)
+                or not isinstance(draw, (int, float))
+                or not math.isfinite(draw)
+                or not 0.0 <= draw < 1.0
+            ):
+                raise NativeFieldRuntimeError("draft draw is outside its bound")
+            round_draws.append(float(draw))
+        if len(round_draws) != len(proposed) + 1:
+            raise NativeFieldRuntimeError(
+                "draft draws must carry one entry per draft position plus one"
+            )
+        if isinstance(operation_ids, (str, bytes, bytearray, Mapping)) or not isinstance(
+            operation_ids, Sequence
+        ):
+            raise NativeFieldRuntimeError("draft operation ids must be a sequence")
+        round_operations: list[str] = []
+        for item in operation_ids:
+            value = _text(item, "operation_id")
+            if len(value.encode("utf-8")) > 127:
+                raise NativeFieldRuntimeError("native operation id exceeds the C API bound")
+            round_operations.append(value)
+        if (
+            len(round_operations) != len(round_draws)
+            or len(set(round_operations)) != len(round_operations)
+        ):
+            raise NativeFieldRuntimeError(
+                "draft operation ids must be unique and match the draws"
+            )
+        samplers = [_model_sampler(sampler_mode, temperature, top_k, draw) for draw in round_draws]
+        if self._pending_graph_site_candidates:
+            raise NativeFieldRuntimeError("a native graph-site candidate is awaiting owner acknowledgment")
+        stop_set = {int(item) for item in stop_tokens}
+        prior = self._model_task_states.get(task_id)
+        if prior is not None and prior.get("source_sha256") != source_sha256:
+            raise NativeFieldRuntimeError("native model task source identity changed")
+        if prior is not None and prior.get("accepted_token_id") is not None:
+            expected_tokens = tuple(prior["input_tokens"]) + (prior["accepted_token_id"],)
+            if input_tokens != expected_tokens:
+                raise NativeFieldRuntimeError(
+                    "native model draft round is not the next accepted token history"
+                )
+
+        request = _encode_model_draft_verify_request(
+            task_id,
+            source_sha256,
+            input_tokens,
+            proposed,
+            str(samplers[0][0]["mode"]),
+            float(samplers[0][0]["temperature"]),
+            int(samplers[0][0]["top_k"]),
+            round_draws,
+            round_operations,
+            logical_sequence_id or "",
+        )
+        response = self._request(VERIFY_MODEL_DRAFT, (_bytes(1, request),))
+        if _field_text(response, 1) != "model-draft-rows":
+            raise NativeFieldRuntimeError("native draft round returned an invalid status")
+        rows = _decode_model_draft_rows(_field_bytes(response, 2))
+        if len(rows) > len(round_draws):
+            raise NativeFieldRuntimeError("native draft round committed more rows than it was offered")
+
+        history = list(input_tokens)
+        steps: list[dict[str, Any]] = []
+        for index, row in enumerate(rows):
+            _digest(row["replay_sha256"], "replay_sha256")
+            _digest(row["stage_trace_sha256"], "stage_trace_sha256")
+            if row["native_predecessor_sha256"]:
+                _digest(row["native_predecessor_sha256"], "native_predecessor_sha256")
+            if row["native_successor_sha256"]:
+                _digest(row["native_successor_sha256"], "native_successor_sha256")
+            if (
+                row["native_operation_id"] != round_operations[index]
+                or row["sampler_sha256"] != samplers[index][1]
+                or row["position"] != len(input_tokens) + index
+                or row["token_count"] != len(input_tokens) + index + 1
+                or row["input_tokens_sha256"] != _model_token_history(history)[2]
+                or row["sequence_id"] != (logical_sequence_id or "")
+            ):
+                raise NativeFieldRuntimeError("native draft row disagrees with its round")
+            if (
+                row["embedding_stages"] < 1
+                or row["head_stages"] != 1
+                or row["attention_stages"] != row["ffn_stages"]
+                or row["exact_stages"]
+                != row["embedding_stages"]
+                + row["attention_stages"]
+                + row["ffn_stages"]
+                + row["head_stages"]
+                or row["ggml_nodes"] < row["exact_stages"]
+                or row["logical_weight_bytes"] < 1
+            ):
+                raise NativeFieldRuntimeError("native draft row stage accounting is inconsistent")
+            if index < len(proposed) and row["draft_matched"] and row["token"] != proposed[index]:
+                raise NativeFieldRuntimeError("native draft row accepted a token it did not match")
+            if index + 1 < len(rows) and row["token"] != proposed[index]:
+                raise NativeFieldRuntimeError("native draft row does not match the proposal it committed")
+            if row["end_of_generation"] and index + 1 != len(rows):
+                raise NativeFieldRuntimeError("native draft round continued past end of generation")
+            steps.append(
+                {
+                    "status": "model-step",
+                    "token": row["token"],
+                    "sampled_token": row["token"],
+                    "end_of_generation": row["end_of_generation"],
+                    "token_count": row["token_count"],
+                    "replay_sha256": row["replay_sha256"],
+                    "stage_trace_sha256": row["stage_trace_sha256"],
+                    "exact_stages": row["exact_stages"],
+                    "embedding_stages": row["embedding_stages"],
+                    "attention_stages": row["attention_stages"],
+                    "ffn_stages": row["ffn_stages"],
+                    "head_stages": row["head_stages"],
+                    "ggml_nodes": row["ggml_nodes"],
+                    "logical_weight_bytes": row["logical_weight_bytes"],
+                    "sampler": samplers[index][0],
+                    "sampler_sha256": samplers[index][1],
+                    "native_operation_id": row["native_operation_id"],
+                    "sequence_id": row["sequence_id"] or None,
+                    "position": row["position"],
+                    "input_tokens_sha256": row["input_tokens_sha256"],
+                    "input_tokens": list(history),
+                    "draft_matched": row["draft_matched"],
+                    "draft_token_id": proposed[index] if index < len(proposed) else None,
+                    "native_predecessor_sha256": row["native_predecessor_sha256"] or None,
+                    "native_successor_sha256": row["native_successor_sha256"] or None,
+                }
+            )
+            history.append(row["token"])
+            if row["token"] in stop_set:
+                # The owner ends the request here; the native cache may hold
+                # later committed tokens, which the next dispatch reconciles.
+                break
+
+        state = self._model_task_states.setdefault(
+            task_id,
+            {
+                "service_generation": self.service_generation,
+                "source_sha256": source_sha256,
+                "accepted_steps": [],
+                "initialized": True,
+            },
+        )
+        state["source_sha256"] = source_sha256
+        for step in steps:
+            state["accepted_steps"].append(
+                {
+                    "input_tokens_sha256": step["input_tokens_sha256"],
+                    "sampler_sha256": step["sampler_sha256"],
+                    "native_operation_id": step["native_operation_id"],
+                    "position": step["position"],
+                }
+            )
+        state["input_tokens"] = history[:-1]
+        state["accepted_token_id"] = history[-1]
+        state["initialized"] = True
+        return {
+            "status": "model-draft-rows",
+            "rows": steps,
+            "committed": len(steps),
+            "draft_matched": bool(steps[0]["draft_matched"]),
+            "input_tokens": list(input_tokens),
+            "input_tokens_sha256": _model_token_history(input_tokens)[2],
+            "accepted_token_id": history[-1],
+        }
 
     def drop_model_task(self, task_id: str) -> dict[str, str]:
         task_id = _text(task_id, "task_id")

@@ -1249,16 +1249,25 @@ def _start_native_transformer(
     # and exact pre-drawn sampler value, so each admitted token replays as the
     # same row the one-token path would produce.
     speculation = state.get("speculation")
+    speculating = (
+        isinstance(speculation, Mapping) and speculation.get("status") == "active"
+    )
+    draft_tokens: list[int] = []
+    draft_remaining = 0
+    if speculating:
+        draft_all = speculation.get("draft_tokens") or ()
+        cursor = int(speculation.get("cursor", 0))
+        draft_tokens = [int(item) for item in draft_all[cursor:]]
+        draft_remaining = len(draft_tokens)
     bound = min(
         NATIVE_TOKEN_RUN_MAX,
         int(state["request"]["max_new_tokens"]) - len(state["generated_tokens"]),
+        (draft_remaining + 1) if speculating else NATIVE_TOKEN_RUN_MAX,
     )
     if (
         bound > 1
         and not state["branch_stack"]
-        and not (
-            isinstance(speculation, Mapping) and speculation.get("status") == "active"
-        )
+        and (not speculating or draft_remaining > 0)
     ):
         prefix = operation_id.rsplit("-", 1)[0]
         counter = int(state["counters"]["operation"])
@@ -1278,6 +1287,14 @@ def _start_native_transformer(
                 for _ in range(bound - 1)
             ],
         }
+        if speculating:
+            # The draft's own proposed tokens for this round; the native
+            # side verifies them in one pass and falls back to ordinary
+            # per-token steps whenever it cannot (see the swarm dispatch).
+            # Position ``bound - 1`` has no draft entry: it is always the
+            # target's own sample, either the first divergence or a bonus
+            # token once the whole draft matches.
+            request["run"]["draft_tokens"] = draft_tokens[: bound - 1]
     state["operations"][operation_id] = {
         "phase": "proposed",
         "request": request,

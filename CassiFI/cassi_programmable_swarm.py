@@ -1894,6 +1894,22 @@ class ProgrammableSwarm:
                 "operation_ids": tuple(operation_ids),
                 "draws": tuple(float(item) for item in draws),
             }
+            draft_tokens = run.get("draft_tokens") if isinstance(run, Mapping) else None
+            if draft_tokens is not None:
+                if (
+                    not isinstance(draft_tokens, list)
+                    or len(draft_tokens) != bound - 1
+                    or any(
+                        isinstance(item, bool)
+                        or not isinstance(item, int)
+                        or not 0 <= item <= 0x7FFFFFFF
+                        for item in draft_tokens
+                    )
+                ):
+                    raise ProgrammableSwarmError(
+                        "native model token run draft is invalid"
+                    )
+                run_plan["draft_tokens"] = tuple(draft_tokens)
         tasks = state.get("tasks")
         task = tasks.get(task_id) if isinstance(tasks, Mapping) else None
         if not isinstance(task, Mapping) or not isinstance(task.get("state"), Mapping):
@@ -3364,29 +3380,48 @@ class ProgrammableSwarm:
                 )
             else:
                 # One owner round admits the whole run; the native context
-                # extends its KV cache incrementally across positions.
+                # extends its KV cache incrementally across positions.  A
+                # run that carries the program's draft tokens commits the
+                # whole round through a single verification pass instead.
                 history = list(record["history"])
                 steps: list[Mapping[str, Any]] = []
-                for draw, operation_id in zip(run["draws"], run["operation_ids"]):
-                    step = runtime.step_model(
+                draft_tokens = run.get("draft_tokens")
+                if draft_tokens:
+                    verified = runtime.verify_model_draft(
                         record["native_task_id"],
                         record["source_sha256"],
                         history,
+                        draft_tokens,
                         sampler_mode=sampler["mode"],
                         temperature=sampler["temperature"],
                         top_k=sampler["top_k"],
-                        draw=draw,
+                        draws=run["draws"],
+                        operation_ids=run["operation_ids"],
                         sequence_id=record["sequence_id"],
-                        native_operation_id=operation_id,
+                        stop_tokens=record["stop_tokens"],
                     )
-                    steps.append(step)
-                    token = int(step["token"])
-                    history.append(token)
-                    if (
-                        step.get("end_of_generation") is True
-                        or token in record["stop_tokens"]
-                    ):
-                        break
+                    steps = list(verified["rows"])
+                else:
+                    for draw, operation_id in zip(run["draws"], run["operation_ids"]):
+                        step = runtime.step_model(
+                            record["native_task_id"],
+                            record["source_sha256"],
+                            history,
+                            sampler_mode=sampler["mode"],
+                            temperature=sampler["temperature"],
+                            top_k=sampler["top_k"],
+                            draw=draw,
+                            sequence_id=record["sequence_id"],
+                            native_operation_id=operation_id,
+                        )
+                        steps.append(step)
+                        token = int(step["token"])
+                        history.append(token)
+                        if (
+                            step.get("end_of_generation") is True
+                            or token in record["stop_tokens"]
+                        ):
+                            break
                 result = {"steps": steps}
             elapsed = (time.perf_counter_ns() - step_started_ns) / 1e9
         else:
