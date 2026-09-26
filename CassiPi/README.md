@@ -189,6 +189,8 @@ Set `CASSIPI_TRACE_FILE` to a writable path to record every owner operation and 
 
 `measure_stock_compaction.py` accounts for the host's own compaction over the local session store, and `measure_real_session.py` replays a real session's compaction segment into a disposable field runtime with zero provider calls, projecting at several evidence caps and verifying that a relevance-rejected revision still returns exactly. Both write receipts under `probes/receipts/`.
 
+`probes/receipts/owner-source-checkout.json` is the current `probe:owner` receipt against the locally packaged runtime: the patched host with the mock provider, three field-owned compactions, handoff, new, resume, branch, summarized and unsummarized tree movement, and clean worker shutdown.
+
 `probes/receipts/case-matrix.json` is the historical v3-era battery receipt: 23 PASS cases, one remaining interactive `/clear` scenario, and one failed live-provider request-budget case. The failed gate preserves the functional compaction/resume evidence instead of relabeling the run as a pass.
 
 The generated active-profile `cassipi` launcher was exercised with the local mock provider and disposable agent, session, and field roots. It loaded `cassifi.cassipi-field-intelligence.v3` through `cassipi-owner.json`; no live field state was changed. The ordinary-profile RPC smoke uses the installed Oh My Pi 18.3.2 path and global extension registry with the explicit bounded-startup overlay `probes/ordinary-smoke-config.yml`; it records the selected agent directory, agent-config hash, overlay path, and the observed plugin-registry state, asserts that CassiPi stays globally disabled, and completes a deterministic local-provider turn. It is a registry/provider coexistence check, not an unmodified active-configuration startup benchmark.
@@ -218,6 +220,7 @@ The current receipt records worker RSS, cold start/restart, cold and warm projec
 
 
 `probes/receipts/local-artifact-retention.json` records the only two intentionally retained ignored artifacts: raw synthetic provider-comparison arms needed to audit the canonical comparison receipt, and the pre-upgrade private release snapshot needed for local rollback. Disposable owner sessions, v2 debug runtimes, temporary rehearsal state, loose archives, and stock-host probe state are removed after verification.
+
 Budget sweeps used 468 tokens at 512, 768, and 2,048-token budgets for the selected mandatory source. Projection made zero external-model calls and declared no adaptive sidecar or semantic ranker. Requests up to the 1,048,576-byte transport ceiling reached request validation; oversized requests returned HTTP 413. A hard worker stop was recovered, and replaying a committed operation did not mutate the recovered owner state.
 
 The enforced CassiFI limits are 16 MiB per exact source, 2 GiB total exact evidence, 64 MiB encoded atlas state, 100,000 variables, 100,000 charts, 64 branches per query, and 4,096 solver iterations. These are admission boundaries, not claims that the measurement filled them.
