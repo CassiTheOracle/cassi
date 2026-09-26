@@ -370,15 +370,20 @@ class ResonantProfile:
 
     @property
     def coordinates(self) -> tuple[tuple[float, float, float], ...]:
-        # Two strands make one complete turn over the longitudinal extent.
+        pi = math.pi
+        two_pi = 2.0 * pi
+        total_iter = self.pools * self.ports_per_pool
         rows: list[tuple[float, float, float]] = []
-        for pool in range(self.pools):
-            for local in range(self.ports_per_pool):
-                t = (pool + (local + 0.5) / self.ports_per_pool) / self.pools
-                angle = 2.0 * math.pi * t
-                radius = 1.0 + 0.08 * math.sin(math.pi * t)
-                rows.append((t, radius * math.cos(angle), radius * math.sin(angle)))
-        return tuple(rows + [(t, -x, -y) for t, x, y in rows])
+        for i in range(total_iter):
+            t = (i + 0.5) / total_iter
+            sin_pi_t = math.sin(pi * t)
+            radius = 1.0 + 0.08 * sin_pi_t
+            angle = two_pi * t
+            x = radius * math.cos(angle)
+            y = radius * math.sin(angle)
+            rows.append((t, x, y))
+            rows.append((t, -x, -y))
+        return tuple(rows)
 
     @property
     def volumes(self) -> tuple[float, ...]:
