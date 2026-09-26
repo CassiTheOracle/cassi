@@ -229,35 +229,47 @@ def rref(
     values = [list(row) for row in matrix]
     row_count = len(values)
     column_count = len(values[0]) if values else 0
+
     pivots: list[int] = []
     pivot_row = 0
+
     for column in range(column_count):
-        source = next(
-            (
-                row
-                for row in range(pivot_row, row_count)
-                if values[row][column]
-            ),
-            None,
-        )
+        # Find pivot manually to avoid generator overhead
+        source = None
+        for row in range(pivot_row, row_count):
+            if values[row][column]:
+                source = row
+                break
+
         if source is None:
             continue
+
+        # Swap rows
         values[pivot_row], values[source] = values[source], values[pivot_row]
+
+        # Scale pivot row
         scale = values[pivot_row][column]
-        values[pivot_row] = [value / scale for value in values[pivot_row]]
+        pivot_row_values = values[pivot_row]
+        for i in range(len(pivot_row_values)):
+            pivot_row_values[i] /= scale
+
+        # Eliminate other rows
         for row in range(row_count):
             if row == pivot_row:
                 continue
+
             factor = values[row][column]
             if factor:
-                values[row] = [
-                    left - factor * right
-                    for left, right in zip(values[row], values[pivot_row])
-                ]
+                # Manual loop for row operation to avoid zip/list comp overhead
+                row_values = values[row]
+                for i in range(len(row_values)):
+                    row_values[i] -= factor * pivot_row_values[i]
+
         pivots.append(column)
         pivot_row += 1
         if pivot_row == row_count:
             break
+
     return values, tuple(pivots)
 
 
