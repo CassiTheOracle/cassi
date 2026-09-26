@@ -487,6 +487,80 @@ and the recipient's real owner checkpoint. The leader-side loop is
 `CassiFI/run_cassi_hive_leader.py`; promotion requires explicit independent
 support and is idempotent across restarts.
 
+## Cassi's thinking brain
+
+`cassi_thinking_brain.py` runs a brain made of thinking neurons joined by one
+circulating Yang/Yin field (`../CassiFI/README.md`, "The thinking field"). Each
+neuron is the live Qwen brain holding one way of thinking. Intuition, the
+analogist, the imaginer, and the explorer open possibilities; the mathematician
+and the skeptic close them into results; an integrator hub exchanges with every
+neuron and holds the brain's current picture, its state of mind, which every
+neuron reads beside its own ideas when it fires. The default `cortex` layout
+alternates generative and consolidating neurons around a loop of `--size`
+neurons (default 8) with the integrator at its centre. The `ring` layout is the
+three-neuron loop intuition → mathematician → skeptic.
+
+Along each synapse Yang travels forward and Yin travels back, so open
+possibilities stream from generative neurons into consolidating ones while
+established results flow back to the neurons that opened them. The field
+decides what each neuron perceives (the eight brightest ideas at its own site,
+its working memory), when it fires (the conversion power of the ideas it owes
+work on, recovering after each firing), and what the brain concludes (the idea
+whose Qi is high at every neuron at once). Up to `--parallel` neurons think at
+once, one per brain slot. When the server's shared context is full, a neuron
+waits for other slots to finish; a request the server still refuses becomes a
+silent act carrying the server's error.
+
+Mathematicians, skeptics, and the imaginer write and run real Python. Scripts
+arrive as plain text, a neuron may fix a failing script twice from its own
+traceback, and a mathematician's `proven` stands only on a script that ran
+cleanly; otherwise the verdict is recorded as `supported` with the claim kept
+beside it. Skeptics and the explorer search the CassiTheory library on the
+CassiFI field shelf and cite exact passages.
+
+A verdict reaches every idea making the same claim: the judging neuron names
+the ideas it perceives that say the same thing, and its verdict lands on each
+one it has not judged yet. A judgment a neuron already holds stays with it,
+so association spreads a finding to restatements while every direct judgment
+keeps its evidence. When a neuron's verdict on an idea came only by
+association and another neuron judged that idea the other way, the idea is
+contested: the neuron examines it itself, told where its verdict came from,
+and its direct verdict replaces the associative one. An answer that names its
+better claim among the same-claim ideas has mixed up the two lists and passes
+no verdict along. A verdict that weakens or refutes an idea may carry a
+replacement statement, a skeptic's objection or a mathematician's correction.
+The replacement enters the field even when working memory is full and goes to
+the other kind of consolidating neuron, so mathematicians check objections and
+skeptics attack corrections. When the better claim is already present at the
+judging neuron's site, the replacement names that idea and backs it with Yang,
+so the brain strengthens a claim it holds instead of restating it. Conjectures
+and the integrator's syntheses wait for room, and the integrator fires once at
+least two other neurons have judged since it last fired.
+
+The field holds at most 48 ideas at once. An idea that fades below perception
+at every neuron leaves the field; its record, verdicts, and lineage stay in
+`state.json`, and new ideas take its place. When no neuron owes work, the
+brain rests: the field breathes without firing, ideas fade and leave, and
+fired neurons recover until one wakes. A run stops at rest only when 256
+breaths wake nobody.
+
+```
+python cassi_thinking_brain.py think --home _diag/thinking-brain/RUN --question "..." --acts 48
+python cassi_thinking_brain.py resume --home _diag/thinking-brain/RUN --acts 24
+python cassi_thinking_brain.py status --home _diag/thinking-brain/RUN
+```
+
+`--brain` names the loopback llama.cpp server (default `http://127.0.0.1:8084`,
+the port `start-llama-server.ps1` serves). Every act, script, output, and
+citation is appended to `records.jsonl` in the home, and `state.json` holds the
+field and each neuron's verdict memory, so a stopped brain resumes where it left
+off. When the server stops answering for about a minute, the neurons already
+thinking finish, the run saves with status `waiting-for-brain`, and the command
+exits with code 3; `resume` continues from the last finished act. The printed
+conclusion ranks ideas by resonance, gives the firing rhythm, and calls the
+brain `settled` when its leading idea resonates at least φ times more strongly
+than the next, `split` otherwise.
+
 
 ## Current operational state
 
