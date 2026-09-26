@@ -1,0 +1,168 @@
+# Standard Model—Couplings, Gauge Structure, and CP from φ
+
+## Status: Index—September 2026
+
+## Abstract
+
+Six documents cover the Standard Model's gauge structure, couplings, loop
+corrections, and flavor sector through the Cassi $\varphi$-fixed point. The
+canonical state remains the real-density pair $E_Y,E_I$; an additional
+isospinor/gauge extension organizes the conditional symmetry-breaking chain
+and supplies the asserted Weinberg boundary. The coupling-normalization
+mechanism remains Hypothesized. Read `sm-from-phi.md` for the breaking chain,
+`su2-gauge-extension.md` for the gauge mechanics and closure audit,
+`sm-radiative-corrections.md` for running, `gut-embedding.md` for unification,
+and the flavor-sector documents for CP and neutrino masses.
+
+## Document Index
+
+| # | Document | Domain | Epistemic |
+|---|----------|--------|-----------|
+| 1 | `sm-from-phi.md` | Electroweak breaking, gauge structure, fermion masses | Derived chain; Weinberg boundary asserted |
+| 2 | `su2-gauge-extension.md` | Gauge extension of the two-fluid | Derived algebra; coupling boundary asserted |
+| 3 | `gut-embedding.md` | SU(5) / SO(10) unification, proton decay | Hypothesized |
+| 4 | `cp-violation.md` | CKM phase, Jarlskog invariant, strong CP | Hypothesized particle-sector CP/chiral map; Mapped $\delta_{\text{CKM}}$ and strong-CP span |
+| 5 | `neutrino-mass.md` | Seesaw scale, neutrino masses | Hypothesized |
+| 6 | `sm-radiative-corrections.md` | Loop corrections: RGE, Δα, Δr, m_W, λ | Derived |
+
+## Document Summaries
+
+### `sm-from-phi.md`—Standard Model from φ
+
+The entry point for the directory: it records the conditional gauge structure
+$\mathrm{SU}(3)_C \times \mathrm{SU}(2)_L \times \mathrm{U}(1)_Y$ organized by
+successive truncations of the continued-fraction expansion of $\varphi$, and
+records $\sin^2\theta_W=\varphi^{-3}\approx0.236$ as the fixed-point boundary
+value. The curvature–orbit normalization attempt and its action-level blocker
+are in `su2-gauge-extension.md` §3.2.1. The conditional Higgs construction
+gives $m_W/m_Z=\sqrt{1-\varphi^{-3}}\approx0.874$ before the $\rho$ correction;
+quark confinement uses a conditional Qi coherence threshold, and the CKM and
+Yukawa sectors are documented below.
+
+### `su2-gauge-extension.md`—SU(2) × U(1) Gauge Extension of the Cassi Two-Fluid
+
+Treats the canonical state as the real-density pair $(E_Y,E_I)$ and records
+the SU(2) gauge algebra and neutral mass matrix for an additional complex
+isospinor sector. Mapping $(E_Y,E_I)$ into that sector and assigning a
+compact $\mathrm{U}(1)\cong\mathrm{SO}(2)$ representation are **Hypothesized**
+additional structures; within that extension,
+$\langle\Psi\rangle\propto(\sqrt{\varphi},1)^T$ and the exact identity
+$\sin^2\theta_W=\varphi^{-3}\iff(g/g')^2=2\varphi$ are recorded as an
+asserted boundary. Section §3.2.1 tests a curvature–orbit candidate and finds
+the missing metric and orbit-matching rule. Running and measured-scale
+comparisons are in `sm-radiative-corrections.md`.
+
+The pure Yang–Mills comparison is in
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.30. Its state
+space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
+theory, with no isospinor matter or symmetry-breaking potential. It gives
+regulated electric-loop and projective-information boundaries, a
+volume-uniform interacting gap at sufficiently strong bare coupling and an
+exact finite-depth vacuum dressing with a local quadratic remainder. The
+exact ground-state transform identifies each finite gap with the
+gauge-invariant Poincaré rate of the true vacuum measure. A conditional
+full-holonomy block theorem isolates the additional local-rate,
+tensorization and cover estimates needed for a continuum-directed bound. An
+exact Haar-isometric path-holonomy map preserves endpoint gauge covariance
+and has path-length-weighted electric-Casimir compression, but the fixed
+$2\times2$ refinement excludes that bare cylindrical map as an exact
+full-Hamiltonian block: four unresolved fine plaquette characters give
+leakage norm $2x_f$. With all eight outer links fundamental, the internal
+Gauss fibre has exactly 14 states once $j_{\max}\geq1$ and conditional
+electric spacing $2g^2/a$; Wilson multiplication changes the fixed boundary
+representation sector.
+
+Sections 9.20–9.22 keep the round spatial regulator, intrinsic link sphere
+and gauge quotient distinct. The free spatial coexact frequency $2/R$
+vanishes as $R\to\infty$ and is not an interacting Hamiltonian gap. The
+auxiliary one-link curvature bound has no asserted map to the Hamiltonian
+coupling or exact vacuum. Exact factor-two disintegration gives the
+all-function conditional recurrence $\lambda_f\geq C_*^{-1}$, hence
+$\lambda_{\mathrm{gi}}\geq\lambda_f$, under its stated coarse, fibre and
+transported-score estimates. The conditional Poisson inverse sharpens this
+to $\lambda_f\geq C_{-1}^{-1}$ using the minimum vertical transport cost
+$\vartheta$ and gives an exact coarse/vertical/output margin budget. The
+118/90 geometry, 86/32 transport-score and 58/30 recovery controls pass.
+
+The finite-graph form theorem removes the character cutoff at fixed graph,
+coupling and low-energy index. On periodic cubic lattices, the normalized
+ground-space density further gives the fixed-support bound
+$\operatorname{Tr}(\rho_{0,L}Q_{C,S})\leq2x|S|/\kappa_C$, uniformly in
+spatial volume. The associated 16/16 primary and 17/17 independent checks
+pass. An exact product family with bounded electric energy density has
+discarded whole-wavefunction norm tending to one at fixed cutoff.
+
+Conditional on the finite-volume ground densities and that local estimate,
+trace-norm precompactness and a diagonal extraction give a compatible,
+symmetry-invariant locally normal ground-state subsequence at each fixed
+regulator and coupling. Its algebraic ground inequality holds on the local
+gauge-invariant $*$-algebra whose operators have finite Peter–Weyl matrix
+support. The executable controls pass 18/18 primary and 19/19 independently
+and explicitly leave the interacting ground densities and uniform tail
+estimate outside their proof surface.
+Full-sequence convergence, phase uniqueness, clustering, coupled
+boundary-sector amplitudes and self-energy control, a uniform
+interacting-vacuum residual-recovery floor and transported-score upper bound,
+weak-coupling fibre and coarse-margin estimates, the continuum construction
+and a regulator-independent mass remain open. This comparison makes no
+electroweak or QCD particle identification.
+
+At fixed Wilson coupling, the conditional Euclidean theorem extracts a
+reflection-positive DLR subsequence, while a separate anisotropic theorem
+identifies the Kogut–Susskind generator on every fixed finite spatial graph.
+The universal two-loop Wilson scale supplies the weak-coupling yardstick:
+simultaneous cutoff removal and infinite volume require $g_0\to0$ and
+$NF_W(g_0)\to\infty$, and a finite positive excitation requires
+$a\Delta_W/F_W$ bounded above and below in a nonzero local channel. The
+80/80 primary and 20/20 independent scaling controls pass. These are
+necessary scale conditions; no interacting continuum trajectory, continuum
+theory or physical gap is constructed.
+
+### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
+
+Derives the complete one-loop (plus leading two-loop) radiative-correction
+program that carries the $\varphi$-anchored inputs to the Z-pole:
+gauge-coupling running with thresholds, the running of $\alpha$
+($\bar\alpha^{-1}(m_Z)=128.95$ from $\alpha(0)+\Delta\alpha$), the $\Delta r$
+master relation and the $W$-mass output ($m_W=80.363$ GeV versus
+$80.360\pm0.011$), the Weinberg-angle running (exact at
+$\mu_*\approx233$ GeV, +2.1% at $m_Z$), and input-sensitive Higgs quartic
+running. Local outputs come from `computations/sm_radiative_corrections.py`;
+the external NNLO comparison and the $\varphi$-boundary residuals
+($\alpha_s$ $2\times$, $\alpha_1$/$\alpha_2$ ~25%) retain their documented
+status.
+
+### `gut-embedding.md`—SU(5) / SO(10) GUT Embedding
+
+Explores conditional SU(5) / SO(10) embeddings of the Standard Model gauge
+groups at the $\varphi$-fixed point. SM running alone has no common
+intersection ($\alpha_1=\alpha_2$ at $10^{13}$ GeV,
+$\alpha_2=\alpha_3$ at $10^{17}$ GeV), so the
+$M_{\text{GUT}}\approx2\times10^{16}$ GeV anchor of the conditional
+proton-lifetime estimate requires beyond-SM content ($\Delta b=1.70$). The
+SU(5) estimate is $\tau(p\to e^+\pi^0)\approx1.3\times10^{37}\ \text{yr}$;
+SO(10) adds the right-handed neutrino in the $\mathbf{16}$ and changes the
+unification and proton-decay assumptions.
+
+### `cp-violation.md`—CP Violation from the Golden Ratio
+
+Treats the canonical $E_Y,E_I$ pair as real densities: $\eta_{\mathrm{dens}}=(\varphi-1)/(\varphi+1)=\varphi^{-3}$ is a density diagnostic with no intrinsic CP/chiral transformation law. A **Hypothesized** particle-sector complex/spinor observation map may use this scalar as a chiral bookkeeping parameter; within that conditional map, the ledgered CKM candidate $\delta_{\text{CKM}}=\pi\varphi^{-2}\approx68.8^\circ$ is **Mapped** against data. The Yukawa-determinant $J_{\text{CP}}$ candidate is dimensionally incomplete. A resolved-flavour two-singlet comparison proves that exact conjugate textures have opposite baryon yields with identical registered Cassi inputs, so leptogenesis CP selection returns `DOES NOT EMERGE`.
+
+### `neutrino-mass.md`—Neutrino Mass from φ
+
+Explains the selected seesaw coordinate at cascade step 20 and presents the
+Mapped Fibonacci-partition spectrum
+$m_1=0.00356$, $m_2=0.00931$, $m_3=0.05019\ \text{eV}$ in normal ordering.
+The resolved-flavour matter-history comparator instead uses a minimal
+two-singlet seesaw whose light matrix has rank at most two and therefore
+$m_1=0$. One microscopic completion cannot realize both spectra without
+another mass source or a changed action. The full analysis lives in
+`foundations/neutrino-masses.md`; `standard-model/neutrino-mass.md` is the
+pedagogical entry point. Status: Hypothesized mechanism / Mapped spectrum /
+Calibrated empirical comparator.
+
+## Cross-References
+
+- `foundations/unified-lagrangian.md`—the unified Cassi Lagrangian from which the SM-from-φ breaking chain descends
+- `foundations/xi-derivation.md`—derivation of the gravity coupling $\xi = \varphi^6$, the framework's last free parameter
+- `predictions/falsifiable-predictions.md`—the prediction catalog hosting this directory's results ($m_W/m_Z$, $\sin^2\theta_W$, $\delta_{\text{CKM}}$, proton lifetime, neutrino splittings)

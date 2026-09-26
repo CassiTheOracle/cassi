@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_cassi_qwen_l16_hidden_state.gd" id="1_verify"]
+
+[node name="VerifyCassiQwenL16HiddenState" type="Node"]
+script = ExtResource("1_verify")

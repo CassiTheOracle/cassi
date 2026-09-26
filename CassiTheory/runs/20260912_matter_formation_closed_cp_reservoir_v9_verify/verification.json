@@ -1,0 +1,86 @@
+{
+  "controls": {
+    "charge_ledger_scale": 26.42574926536904,
+    "corrected_post_overlap_charge_drift": 1.5102276206065658e-06,
+    "cp_max_charge_sum_error": 0.0,
+    "cp_max_even_metric_error": 0.0,
+    "cp_max_raw_state_error": 0.0,
+    "energy_ledger_scale": 2317.142120945706,
+    "late_max_core_energy_per_charge": 89.86787183764591,
+    "late_mean_core_density": 0.002179917284204719,
+    "late_min_abs_core_charge": 0.6524284441205783,
+    "max_charge_ledger_residual": 1.5252102366858367e-05,
+    "max_energy_ledger_residual": 0.00014560213185177417,
+    "reservoir_control_max_error": 0.0,
+    "resolution_relative_errors": {
+      "absolute_core_charge": 0.05587877019631758,
+      "core_energy": 0.05329756849187739,
+      "core_fraction": 0.004639191862135045,
+      "exterior_support_fraction": 0.01901628516879683,
+      "rms_radius": 0.0019058738807724697
+    },
+    "source_tail_ratio": 0.26111969767610854,
+    "vacuum_late_core_density": 0.003264022887430253
+  },
+  "elapsed_seconds": 63.31279799999902,
+  "environment": {
+    "numpy": "2.5.1",
+    "python": "3.12.10"
+  },
+  "independent_sources": {
+    "primary_solver": {
+      "path": "computations/matter_formation_closed_cp_reservoir_v9.py",
+      "sha256": "9c5ad7b239860dc4762aee6d93b962e90882df6e30e428aaaaebc4336488d245"
+    },
+    "protocol": {
+      "path": "computations/matter-formation-closed-cp-reservoir-v9-prereg.md",
+      "sha256": "a4626bd919ae9cf219c039cd9592257c9b062bc494376523327cca6a9638d437"
+    }
+  },
+  "numerical_pass": true,
+  "predicates": {
+    "charge_ledger": true,
+    "charge_magnitude": false,
+    "core_density_amplified": false,
+    "core_retention": false,
+    "corrected_post_overlap_charge_drift": true,
+    "cp_conjugacy": true,
+    "cp_raw_state": true,
+    "energy_ledger": true,
+    "finite_state": true,
+    "localized_support_max": false,
+    "localized_support_mean": false,
+    "reservoir_control": true,
+    "resolution": false,
+    "source_decoupling": false,
+    "subthreshold_core_energy_per_charge": false
+  },
+  "primary_receipt": {
+    "path": "runs/20260912_matter_formation_closed_cp_reservoir_v9/result.json",
+    "sha256": "c95676b725dd239f1e7d19d16d8c07c471a63f4635377127b75efa64221eece4"
+  },
+  "protocol_sha256": "a4626bd919ae9cf219c039cd9592257c9b062bc494376523327cca6a9638d437",
+  "raw_archive_checks": {
+    "negative": true,
+    "positive": true,
+    "positive_fine": true,
+    "reservoir_control": true,
+    "vacuum_control": true
+  },
+  "raw_archive_max_abs_error": {
+    "negative": 2.3070434451710753e-13,
+    "positive": 2.3070434451710753e-13,
+    "positive_fine": 7.39575067854048e-13,
+    "reservoir_control": 2.3225865675158275e-13,
+    "vacuum_control": 1.0633161018347437e-13
+  },
+  "reproduced_primary_verdict": "DOES NOT EMERGE\u2014conditional closed CP-odd-reservoir vacuum-to-carrier formation",
+  "schema": "cassi.matter-formation.closed-cp-reservoir.v9.verification",
+  "summary_checks": {
+    "negative": true,
+    "positive": true,
+    "positive_fine": true,
+    "reservoir_control": true,
+    "vacuum_control": true
+  }
+}

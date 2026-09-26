@@ -1,0 +1,54 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://scripts/verify_rotation_observability.gd" id="2_verify"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 0
+background_clear_color = Color(0.002, 0.006, 0.018, 1)
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.7
+glow_strength = 0.8
+
+[node name="VerifyRotationObservability" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 20, 95)
+fov = 58.0
+near = 0.1
+far = 1000.0
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+grid_N = 64
+N_particles = 64
+particle_size = 2.0
+cluster_radius = 15.0
+num_clusters = 1
+cluster_separation = 0.0
+playing = false
+gravity_mode = 0
+initial_condition = 1
+initial_v_circ_factor = 0.6
+meshless_mode = true
+gridless_physics = true
+meshless_gravity = true
+boxless_field = true
+physics_decoupled = true
+physics_frame_budget = 0.0
+max_steps_per_frame = 1
+suppress_readbacks = false
+auto_frame_camera_on_start = false
+particle_merge = false
+black_holes_enabled = false
+rotation_stress_enabled = false
+rotation_orientation_render_enabled = false
+rotation_grid_N = 4
+rotation_rungs = 2
+
+[node name="Verify" type="Node" parent="."]
+script = ExtResource("2_verify")

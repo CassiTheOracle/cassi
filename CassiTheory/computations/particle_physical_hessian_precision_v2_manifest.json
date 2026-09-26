@@ -1,0 +1,23 @@
+{
+  "frozen_utc": "2026-09-03T05:58:42Z",
+  "schema": "cassi.particle-physical-hessian.manifest.v1",
+  "sha256": {
+    "computations/particle_physical_hessian_precision_v2.py": "13b8dd2d3451960276cc5be31f0b62a99f821603b389beb09eea37e118ddf0de",
+    "computations/particle_physical_hessian.py": "4a0e324142ba937388498890cb73089b677f7c3c1e9d8f6c3e3c54295b702b35",
+    "computations/particle_stationary_bvp.py": "3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1",
+    "computations/particle_stationary_precision_v5_manifest.json": "1307cc689272eb0100655299232719079ca34697e6e6f74451efb50270d6fc33",
+    "computations/particle_stationary_precision_v5.py": "ca0f824261612e007689d1be1028a33faa9edb4e55c3b6a6372731cc904749dc",
+    "computations/particle-physical-hessian-precision-v2-prereg.md": "7ec3ed173bfc1c8f1824423a7c02c18e19a265bd0ed87396cc5b3cd1bf129c54",
+    "computations/particle-stationary-bvp-pre-registration.md": "5ed7b77312ee28019d246f8a01420fc9b1ad4c6a015e27a4c04f7b04d3225e9e",
+    "computations/particle-stationary-precision-v5-prereg.md": "b95d9f1bbf361161fcc2b1647e1ee707c1ded004be683a791748c1508b6dc0e1",
+    "computations/verify_particle_physical_hessian_precision_v2.py": "c4b903a9ebfe146176b2f5b1475cd7f6e78606341645d220c48525e723d4b6c0",
+    "computations/verify_particle_stationary_precision_v5.py": "e970991cd4947bf6bc4259dec8cb5b5f1ae38546c949d68616639f733b18e87f",
+    "foundations/core-trapped-charge-support.md": "b18f94ab7cac17cfcac1dcbcb62e24970c3479dbbec2f62b24e331d711c6f01b",
+    "foundations/matter-completion-boundary.md": "3ec218459045a613cbbed55a2ff095a68b677da8c234c0d8a95bdbd6c09c3701",
+    "foundations/nonabelian-magnetic-core-boundary.md": "f23cfd51d261fb34e6742baace93c5a81f9fda7fcd5e17ca0cab048b352860a1",
+    "foundations/particle-stationary-action-closure.md": "87e005a5995b1dd36f013f416d1df6d493d863c90f946228bb601dcf867a3f82",
+    "runs/20260902_particle_stationary_precision_v5/fields_block01.npz": "ac4c54fa0e5ed61f73cb86b5e83d0061806fc2e5d1725894bad9e8e89457a61e",
+    "runs/20260902_particle_stationary_precision_v5/results.json": "9decc9a751d7c833f92754eb3e5187da9056bc5ddda0c9bd125e188f4e90cfa5",
+    "runs/20260902_particle_stationary_precision_v5/verification.json": "7667c9617c3e4bd237e77e84226c78805d224002a18a192f25cce24cd2ce4b32"
+  }
+}

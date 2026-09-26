@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PPP",
+    "PCP",
+    "PPP"
+  ],
+  "key": {
+    "P": "minecraft:paper",
+    "C": "minecraft:compass"
+  },
+  "result": {
+    "id": "cassicraft:field_chart",
+    "count": 1
+  }
+}

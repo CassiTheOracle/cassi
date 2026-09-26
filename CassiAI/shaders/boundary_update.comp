@@ -1,0 +1,94 @@
+#version 460
+
+// ──────────────────────────────────────────────────────────────────────
+// boundary_update.comp — Qi field boundary residual accumulation
+//
+// Accumulates persistent Qi patterns at the 6 faces of the 16×16×16
+// grid. Each face stores a (16×16 × DIM × 2) buffer of field values
+// that persist across windows.
+//
+// pass == 0: INJECT  — read from boundary_residuals, write into face
+//                      voxels of psi (seeding the field with past context)
+// pass == 1: ACCUM   — read from psi face voxels, accumulate into
+//                      boundary_residuals with φ-decay
+//
+// Face order (binding 21 layout): +h, -h, +w, -w, +d, -d
+// Each face: FACE_SIZE = 256 * DIM * 2 floats
+// ──────────────────────────────────────────────────────────────────────
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0)  buffer PsiBuf        { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf     { float params[]; };
+layout(std430, binding = 21) buffer BoundaryResiduals { float boundary[]; };
+
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+    int   pads[5];
+} pc;
+
+#define DIM 128
+#define N_VOXELS 4096
+#define VOX_STRIDE (DIM * 2)
+#define FACE_VOXELS 256
+#define FACE_SIZE (FACE_VOXELS * DIM * 2)
+#define PHI_INV 0.618033988749895
+
+// ── Face-to-grid voxel mapping ──
+// face_vox = h + w*D + d*D*W  (h,w,d ∈ [0,15])
+// Each face fixes one coordinate to 0 or 15
+uint map_face_voxel(uint face, uint fv) {
+    uint h = fv % 16u;
+    uint w = (fv / 16u) % 16u;
+    uint d = fv / 256u;
+    uint voxel;
+    switch (face) {
+        case 0u: voxel = 15u + w * 16u + d * 256u; break;  // +h
+        case 1u: voxel =  0u + w * 16u + d * 256u; break;  // -h
+        case 2u: voxel = h + 15u * 16u + d * 256u; break;  // +w
+        case 3u: voxel = h +  0u * 16u + d * 256u; break;  // -w
+        case 4u: voxel = h + w * 16u + 15u * 256u; break;  // +d
+        case 5u: voxel = h + w * 16u +  0u * 256u; break;  // -d
+        default: voxel = 0u; break;
+    }
+    return voxel;
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    // Each invocation handles one (face, face_voxel, dim) tuple
+    uint per_face = FACE_VOXELS * DIM;  // 256 * 128 = 32,768
+    if (idx >= 6u * per_face) return;
+
+    uint face   = idx / per_face;
+    uint inner  = idx % per_face;
+    uint fv     = inner / DIM;   // voxel within face [0, 255]
+    uint dim    = inner % DIM;   // field dimension [0, 127]
+
+    uint voxel = map_face_voxel(face, fv);
+    uint psi_off_r = voxel * VOX_STRIDE + dim * 2;
+    uint psi_off_i = psi_off_r + 1;
+
+    // Boundary buffer offset for this (face, fv, dim, real/imag)
+    uint buf_base_r = face * FACE_SIZE + fv * DIM * 2 + dim * 2;
+    uint buf_base_i = buf_base_r + 1;
+
+    if (pc.pass == 0u) {
+        // INJECT: boundary → psi face voxels
+        psi[psi_off_r] = boundary[buf_base_r];
+        psi[psi_off_i] = boundary[buf_base_i];
+    } else {
+        // ACCUM: psi face voxels → boundary with φ-decay
+        // boundary = boundary_decay * boundary + (1-boundary_decay) * psi
+        float rho = params[12];
+        if (rho == 0.0) rho = exp(-PHI_INV * PHI_INV * PHI_INV);  // ~0.539
+        float alpha = 1.0 - rho;
+        boundary[buf_base_r] = rho * boundary[buf_base_r] + alpha * psi[psi_off_r];
+        boundary[buf_base_i] = rho * boundary[buf_base_i] + alpha * psi[psi_off_i];
+    }
+}

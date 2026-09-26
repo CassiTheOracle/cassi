@@ -1,0 +1,51 @@
+{
+  "name": "@cassicore/dreamer-reverie-subconscious",
+  "version": "0.1.0",
+  "description": "Reflective cognition subsystems extracted from CassiCore: the dreamer (offline dream cycles), reverie (slow-path insights), and subconscious (anomaly/system observers). History-preserved import splice; depends on @cassicore/foundation, @cassicore/mnemic-field, @cassicore/lamina-locus-bridge and vendored type/runtime stubs pending later phases.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./dreamer": {
+      "types": "./dist/dreamer/index.d.ts",
+      "import": "./dist/dreamer/index.js"
+    },
+    "./reverie": {
+      "types": "./dist/reverie/index.d.ts",
+      "import": "./dist/reverie/index.js"
+    },
+    "./subconscious": {
+      "types": "./dist/subconscious/index.d.ts",
+      "import": "./dist/subconscious/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "@cassicore/lamina-locus-bridge": "*",
+    "@cassicore/mnemic-field": "*",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

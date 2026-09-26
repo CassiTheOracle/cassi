@@ -1,0 +1,91 @@
+#version 460
+
+// ──────────────────────────────────────────────────────────────
+// qi_grad.comp — Per-voxel Qi gradient magnitude
+//
+// Computes |∇Q| where Q = 1/(1+ε²) at each voxel, using central
+// finite differences with forward/backward fallback at boundaries.
+//
+// The gradient magnitude drives Qi-attention modulation in the
+// nonlinear PDE step: voxels with high ∇Q get reduced advection,
+// letting fast local dynamics (nonlinearity, dispersion) dominate.
+// Attention is the flow of the Qi fluid toward prediction error.
+// ──────────────────────────────────────────────────────────────
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 17) buffer VoxelEpsMemory { float eps_mem[]; };
+layout(std430, binding = 24) buffer QiGrad         { float qi_grad[]; };
+
+// ── Grid dimensions ──
+#define D 16   // depth
+#define W 16   // width
+#define H 16   // height
+#define NM1 15 // N-1 = 15
+#define N_VOXELS 4096
+#define STRIDE_W D          // 16 — voxel stride across width
+#define STRIDE_H (D * W)   // 256 — voxel stride across height
+
+void main() {
+    uint v = gl_GlobalInvocationID.x;
+    if (v >= N_VOXELS) return;
+
+    // Qi = 1/(1+ε²) for each voxel
+    float eps2 = eps_mem[v];
+    float qi_v = 1.0 / (1.0 + eps2 + 1e-10);
+
+    // ── 3D grid coordinates ──
+    uint h = v % D;
+    uint w = (v / D) % W;
+    uint d = v / (D * W);
+
+    // ── Finite-difference gradient components ──
+
+    // h-axis (depth)
+    float dx;
+    if (h > 0u && h < NM1) {
+        // Central difference
+        float qi_right = 1.0 / (1.0 + eps_mem[v + 1] + 1e-10);
+        float qi_left  = 1.0 / (1.0 + eps_mem[v - 1] + 1e-10);
+        dx = (qi_right - qi_left) * 0.5;
+    } else if (h > 0u) {
+        // Backward difference (h == NM1 — far edge)
+        dx = qi_v - 1.0 / (1.0 + eps_mem[v - 1] + 1e-10);
+    } else if (h < NM1) {
+        // Forward difference (h == 0 — near edge)
+        dx = 1.0 / (1.0 + eps_mem[v + 1] + 1e-10) - qi_v;
+    } else {
+        dx = 0.0; // only 1 voxel in this dimension (shouldn't happen)
+    }
+
+    // w-axis (width)
+    float dy;
+    if (w > 0u && w < NM1) {
+        float qi_right = 1.0 / (1.0 + eps_mem[v + STRIDE_W] + 1e-10);
+        float qi_left  = 1.0 / (1.0 + eps_mem[v - STRIDE_W] + 1e-10);
+        dy = (qi_right - qi_left) * 0.5;
+    } else if (w > 0u) {
+        dy = qi_v - 1.0 / (1.0 + eps_mem[v - STRIDE_W] + 1e-10);
+    } else if (w < NM1) {
+        dy = 1.0 / (1.0 + eps_mem[v + STRIDE_W] + 1e-10) - qi_v;
+    } else {
+        dy = 0.0;
+    }
+
+    // d-axis (height)
+    float dz;
+    if (d > 0u && d < NM1) {
+        float qi_right = 1.0 / (1.0 + eps_mem[v + STRIDE_H] + 1e-10);
+        float qi_left  = 1.0 / (1.0 + eps_mem[v - STRIDE_H] + 1e-10);
+        dz = (qi_right - qi_left) * 0.5;
+    } else if (d > 0u) {
+        dz = qi_v - 1.0 / (1.0 + eps_mem[v - STRIDE_H] + 1e-10);
+    } else if (d < NM1) {
+        dz = 1.0 / (1.0 + eps_mem[v + STRIDE_H] + 1e-10) - qi_v;
+    } else {
+        dz = 0.0;
+    }
+
+    float grad_mag = sqrt(dx * dx + dy * dy + dz * dz);
+    qi_grad[v] = grad_mag;
+}

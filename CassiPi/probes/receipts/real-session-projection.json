@@ -1,0 +1,299 @@
+{
+  "budget": {
+    "evidence_caps_tokens": [
+      16384,
+      49152
+    ],
+    "host_overhead_tokens": 22000,
+    "output_reserve_tokens": 8192,
+    "provider_calls": 0
+  },
+  "cold_start_ms": 1274.7,
+  "created_at": "2026-09-26T08:54:59Z",
+  "mandatory_exact_recall": {
+    "exact_bytes_present": true,
+    "revision_id": "d5e78dbf50b343b827fc7b5970bbf55de9cddfb2ced726d223f6c752cb7f5a6d",
+    "selected_count": 23,
+    "selected_tokens": 49074
+  },
+  "problems": [],
+  "projections": [
+    {
+      "accounting": {
+        "context_window_tokens": 46576,
+        "fixed_tokens": 30192,
+        "model_id": "local-measurement-model",
+        "remaining_tokens": 138,
+        "schema": "cassipi.projection-budget.v1",
+        "selected_evidence_tokens": 16246,
+        "tokenizer_id": "measurement-byte4-v1",
+        "used_tokens": 46438
+      },
+      "candidate_count": 154,
+      "context_window_tokens": 46576,
+      "evidence_cap_tokens": 16384,
+      "latency_ms": 15.9,
+      "previews": [
+        {
+          "field_score": -2.3357983217655347,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "reference",
+          "tokens": 192
+        },
+        {
+          "field_score": -2.3374420889867693,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 4292
+        },
+        {
+          "field_score": -0.40665522729778514,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "assistant-text",
+          "tokens": 758
+        },
+        {
+          "field_score": -2.337388224567146,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 5960
+        },
+        {
+          "field_score": -2.3374823062629573,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 4304
+        },
+        {
+          "field_score": -0.40667829088409196,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "assistant-text",
+          "tokens": 740
+        }
+      ],
+      "selected_count": 6,
+      "selected_mandatory": 0,
+      "selected_tokens": 16246,
+      "tail_present": {
+        "latest_assistant": false
+      }
+    },
+    {
+      "accounting": {
+        "context_window_tokens": 79344,
+        "fixed_tokens": 30192,
+        "model_id": "local-measurement-model",
+        "remaining_tokens": 58,
+        "schema": "cassipi.projection-budget.v1",
+        "selected_evidence_tokens": 49094,
+        "tokenizer_id": "measurement-byte4-v1",
+        "used_tokens": 79286
+      },
+      "candidate_count": 154,
+      "context_window_tokens": 79344,
+      "evidence_cap_tokens": 49152,
+      "latency_ms": 30.6,
+      "previews": [
+        {
+          "field_score": -2.3375454483360287,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "reference",
+          "tokens": 192
+        },
+        {
+          "field_score": -2.337484125686965,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "reference",
+          "tokens": 192
+        },
+        {
+          "field_score": -2.335798321537416,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 29373
+        },
+        {
+          "field_score": -2.337592450805815,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "reference",
+          "tokens": 192
+        },
+        {
+          "field_score": -2.3374420887586504,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 4292
+        },
+        {
+          "field_score": -0.40665522734732495,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "assistant-text",
+          "tokens": 758
+        },
+        {
+          "field_score": -2.3375128479877385,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "reference",
+          "tokens": 192
+        },
+        {
+          "field_score": -2.337388224339027,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 5960
+        },
+        {
+          "field_score": -2.337514628612527,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "reference",
+          "tokens": 192
+        },
+        {
+          "field_score": -2.337482306034839,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 4304
+        },
+        {
+          "field_score": -2.3375859398206673,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "typed-account",
+          "tokens": 2707
+        },
+        {
+          "field_score": -0.4066782909336318,
+          "mandatory": false,
+          "message_role": null,
+          "native_entry_id": null,
+          "preview": "null",
+          "representation": "assistant-text",
+          "tokens": 740
+        }
+      ],
+      "selected_count": 12,
+      "selected_mandatory": 0,
+      "selected_tokens": 49094,
+      "tail_present": {
+        "latest_assistant": false
+      }
+    }
+  ],
+  "replayed_segment": {
+    "byte_estimated_tokens": 260322,
+    "entries": 300,
+    "observe_ms": 24374.2,
+    "observed_bytes": 1041288,
+    "observed_sources": 300,
+    "raw_bytes": 1041288,
+    "roles": {
+      "assistant": 146,
+      "developer": 2,
+      "toolResult": 152
+    },
+    "selection": "digested-by-last-compaction",
+    "skipped_oversized_sources": [],
+    "slowest_observations": [
+      {
+        "bytes": 3058,
+        "entry_id": "0c8f388f",
+        "observe_ms": 153.9
+      },
+      {
+        "bytes": 498,
+        "entry_id": "2e4e0a05",
+        "observe_ms": 142.3
+      },
+      {
+        "bytes": 5646,
+        "entry_id": "6f2e0fa6",
+        "observe_ms": 137.1
+      },
+      {
+        "bytes": 1397,
+        "entry_id": "bdbf7b4a",
+        "observe_ms": 134.6
+      },
+      {
+        "bytes": 1312,
+        "entry_id": "f44d55c2",
+        "observe_ms": 131.3
+      }
+    ]
+  },
+  "runtime": {
+    "manifest_sha256": "bda7a024d05d2d2d772fe3bc0717ded60d066bedf409f8b36a9cf5402c5bdd58",
+    "runtime_id": "cassifi.cassipi-field-intelligence.v4"
+  },
+  "schema": "cassipi.real-session-projection.v1",
+  "session": {
+    "bytes": 304836722,
+    "compaction_events": 188,
+    "cwd": "C:\\Users\\Carina\\workspaces\\Cassi",
+    "id": "01a0a14d-5f7e-7546-82d7-faf00e13208b",
+    "last_compaction": {
+      "index": 42477,
+      "summary_chars": 498,
+      "tokens_after": 40883,
+      "tokens_before": 200142
+    },
+    "path": "C:\\Users\\Carina\\.omp\\agent\\sessions\\-workspaces-cassi\\2026-09-14T19-03-17-630Z_01a0a14d-5f7e-7546-82d7-faf00e13208b.jsonl",
+    "session_wide_compaction_accounting": {
+      "compaction_events": 188,
+      "provider_input_tokens_spent_summarizing": 36518179,
+      "retained_after_compactions": 8790274,
+      "summary_tokens_est": 23406
+    }
+  },
+  "verdict": "PASS"
+}

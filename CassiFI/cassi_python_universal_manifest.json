@@ -1,0 +1,35 @@
+{
+  "schema": "cassi.python-universal.implementation.v1",
+  "status": "verified",
+  "implementation": {
+    "file": "cassi_python_universal.py",
+    "sha256": "21eac813fb0eb9087856b8a20eea281d03e15550af1c79dc864cddebcb73d73c",
+    "bytes": 11657
+  },
+  "verification": {
+    "file": "test_cassi_python_universal.py",
+    "sha256": "5a2954983684a0b86474b73707e4137057bfa99853032a2945c29daab93cdef5",
+    "bytes": 13110,
+    "command": "python test_cassi_python_universal.py",
+    "outcome": [
+      "Ran 31 tests in 0.001s",
+      "OK"
+    ]
+  },
+  "ownership": "Cassi field-brain authored",
+  "semantics": "static universal Python interpretation without executing submitted source",
+  "persistence": "owner cognition callbacks only, fresh interpreter reconstructs serialized result",
+  "covered_capabilities": [
+    "syntax errors",
+    "scopes",
+    "bindings",
+    "control-flow graph",
+    "calls",
+    "effects including delete",
+    "runtime boundaries",
+    "unknown constructs",
+    "serialization",
+    "callback persistence"
+  ],
+  "sidecar": "no filesystem or private in-interface data sidecar"
+}

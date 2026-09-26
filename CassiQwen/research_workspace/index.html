@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Cassi Research Workspace</title>
+  <link rel="stylesheet" href="/workspace/styles.css">
+  <script src="/workspace/app.js" defer></script>
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span></div>
+      <div><strong>Cassi</strong><small>Research that carries forward</small></div>
+    </div>
+    <div id="connection-state" class="connection-state offline"><i></i><span>Connecting…</span></div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="eyebrow">Entity</div>
+      <button id="field-viewer-link" class="program-button field-viewer-link" type="button">
+        <strong>Living field</strong><small>Read-only field inspection</small>
+      </button>
+      <div class="eyebrow">Research projects</div>
+      <button id="refresh-programs" class="icon-button" type="button" title="Refresh programs" aria-label="Refresh programs">↻</button>
+      <div id="program-list" class="program-list"><p class="quiet">Loading continuing projects…</p></div>
+      <details class="create-program">
+        <summary>New project</summary>
+        <form id="program-form">
+          <label for="program-brief">What would you like Cassi to investigate or make?
+            <textarea id="program-brief" name="brief" required rows="5" placeholder="Describe the question, result, or artifact you want."></textarea>
+          </label>
+          <p class="quiet">One brief is enough. Cassi develops the questions, sources, and methods.</p>
+          <details class="brief-context">
+            <summary>Optional context & work environment</summary>
+            <label for="program-context">Anything else useful? (optional)
+              <textarea id="program-context" name="context" rows="3" placeholder="A useful output, boundary, or deadline."></textarea>
+            </label>
+            <label class="brief-environment" for="program-linux-desktop">
+              <input id="program-linux-desktop" name="linux_desktop" type="checkbox">
+              Use the dedicated Linux desktop for this project
+            </label>
+            <p class="quiet brief-environment-note">Attaches only that project’s exact desktop source. Computer input still needs its separate mission approval.</p>
+          </details>
+          <button class="primary wide" type="submit">Start research</button>
+        </form>
+      </details>
+    </aside>
+
+    <main>
+      <section id="welcome" class="welcome">
+        <div class="orb" aria-hidden="true"><span></span></div>
+        <p class="eyebrow">Cassi's continuing research</p>
+        <h1>One workspace for a living research project.</h1>
+        <p>Give Cassi a short brief. She will develop the questions, sources, and methods, then keep the evidence and unfinished work together so you can return to it.</p>
+      </section>
+
+      <section id="embodied-field-view" class="embodied-field-view" aria-labelledby="embodied-field-title">
+        <header class="embodied-heading">
+          <div>
+            <p class="eyebrow">Canonical field · read-only</p>
+            <h2 id="embodied-field-title">Living field</h2>
+            <p class="quiet">A bounded snapshot of the existing owner field. Looking, freezing, comparing, and replaying captures do not change it.</p>
+          </div>
+          <div class="embodied-actions">
+            <button id="embodied-field-refresh" class="primary" type="button">Refresh live sample</button>
+            <button id="embodied-field-freeze" type="button" disabled>Freeze current view</button>
+            <button id="embodied-field-capture" type="button" disabled>Capture snapshot</button>
+          </div>
+        </header>
+        <p id="embodied-field-status" class="embodied-status quiet" role="status" aria-live="polite">Waiting for the canonical field snapshot…</p>
+        <dl class="embodied-meta">
+          <div><dt>Field state SHA-256</dt><dd id="embodied-field-hash">Unavailable</dd></div>
+          <div><dt>Owner generation</dt><dd id="embodied-field-generation">Unavailable</dd></div>
+          <div><dt>Displayed sample</dt><dd id="embodied-field-sample-time">Unavailable</dd></div>
+        </dl>
+
+        <div class="embodied-overview">
+          <section class="embodied-card" aria-labelledby="embodied-layout-title">
+            <header class="embodied-card-heading">
+              <div><p class="eyebrow">Declared structure</p><h3 id="embodied-layout-title">Layout</h3></div>
+              <span id="embodied-layout-state" class="chip">Unavailable</span>
+            </header>
+            <p id="embodied-layout-note" class="quiet">Layout has not been reported.</p>
+            <pre id="embodied-layout">Waiting for owner data…</pre>
+          </section>
+          <section class="embodied-card" aria-labelledby="embodied-circulation-title">
+            <header class="embodied-card-heading">
+              <div><p class="eyebrow">Signed exchange</p><h3 id="embodied-circulation-title">Circulation</h3></div>
+              <span id="embodied-circulation-state" class="chip">Unavailable</span>
+            </header>
+            <p id="embodied-circulation-note" class="quiet">Circulation has not been reported.</p>
+            <div id="embodied-circulation-signs" class="embodied-sign-list"></div>
+            <details class="embodied-raw">
+              <summary>Full circulation readout</summary>
+              <pre id="embodied-circulation">Waiting for owner data…</pre>
+            </details>
+          </section>
+        </div>
+
+        <div class="embodied-regions-layout">
+          <section class="embodied-card" aria-labelledby="embodied-regions-title">
+            <header class="embodied-card-heading">
+              <div><p class="eyebrow">Owner-reported values</p><h3 id="embodied-regions-title">Regional quantities</h3></div>
+              <span id="embodied-region-count" class="chip">0 regions</span>
+            </header>
+            <div class="embodied-region-controls">
+              <label for="embodied-region-select">Selected region
+                <select id="embodied-region-select" disabled><option>No regions reported</option></select>
+              </label>
+              <div class="embodied-zoom" role="group" aria-label="Coordinate projection zoom">
+                <button id="embodied-zoom-out" type="button" aria-label="Zoom out" disabled>−</button>
+                <button id="embodied-zoom-reset" type="button" aria-label="Reset zoom" disabled>Reset</button>
+                <button id="embodied-zoom-in" type="button" aria-label="Zoom in" disabled>+</button>
+              </div>
+            </div>
+            <div class="embodied-map-wrap">
+              <svg id="embodied-map" class="hidden" viewBox="0 0 720 400" role="group" aria-label="Static coordinate projection of owner-reported region coordinates"></svg>
+              <p id="embodied-map-empty" class="quiet">No common two-coordinate regional projection has been reported.</p>
+            </div>
+            <p id="embodied-map-caption" class="embodied-caption">No anatomy, connections, or motion are inferred.</p>
+            <p id="embodied-region-note" class="quiet">Regional data is unavailable.</p>
+            <div id="embodied-regions" class="embodied-region-list"></div>
+          </section>
+
+          <section class="embodied-card" aria-labelledby="embodied-detail-title">
+            <header class="embodied-card-heading">
+              <div><p class="eyebrow">Meaning · provenance stays visible</p><h3 id="embodied-detail-title">Selected region</h3></div>
+            </header>
+            <pre id="embodied-region-detail">Select a reported region to inspect its actual values.</pre>
+            <div class="embodied-meaning-heading">
+              <p class="eyebrow">Assessed exchange context · source-bound</p>
+              <span id="embodied-exchange-meaning-state" class="chip">Unavailable</span>
+            </div>
+            <p id="embodied-exchange-meaning-note" class="quiet">Assessment-linked exchange context has not been reported.</p>
+            <label class="embodied-exchange-picker" for="embodied-exchange-meaning-select">Select linked interface / concern
+              <select id="embodied-exchange-meaning-select" disabled aria-describedby="embodied-exchange-meaning-note"><option>No linked assessed exchange</option></select>
+            </label>
+            <div id="embodied-exchange-meaning-detail" class="embodied-exchange-detail" aria-live="polite"></div>
+            <div class="embodied-meaning-heading">
+              <p class="eyebrow">Semantic bindings</p>
+              <span id="embodied-meaning-state" class="chip">Unavailable</span>
+            </div>
+            <p id="embodied-meaning-note" class="quiet">Meaning has not been reported.</p>
+            <div id="embodied-meanings" class="embodied-meaning-list"></div>
+          </section>
+        </div>
+
+        <section class="embodied-card embodied-history" aria-labelledby="embodied-history-title">
+          <header class="embodied-card-heading">
+            <div><p class="eyebrow">Browser-session captures only</p><h3 id="embodied-history-title">Freeze, compare, replay</h3></div>
+            <span id="embodied-capture-count" class="chip">0 captures</span>
+          </header>
+          <p id="embodied-history-note" class="quiet">Capture snapshots for stepwise replay or comparison. Captures are not persisted to the field or across page reloads; no interpolation is used.</p>
+          <div class="embodied-history-grid">
+            <div class="embodied-history-tool">
+              <label for="embodied-replay-select">Replay a captured state
+                <select id="embodied-replay-select" disabled><option>No captures yet</option></select>
+              </label>
+              <div class="embodied-button-row">
+                <button id="embodied-replay-previous" type="button" disabled>Previous capture</button>
+                <button id="embodied-replay-show" type="button" disabled>Show selected</button>
+                <button id="embodied-replay-next" type="button" disabled>Next capture</button>
+              </div>
+            </div>
+            <div class="embodied-history-tool">
+              <label for="embodied-compare-a">Compare captured states
+                <select id="embodied-compare-a" disabled><option>No captures yet</option></select>
+              </label>
+              <label for="embodied-compare-b">Against
+                <select id="embodied-compare-b" disabled><option>No captures yet</option></select>
+              </label>
+              <button id="embodied-compare-run" type="button" disabled>Compare snapshots</button>
+            </div>
+          </div>
+          <div id="embodied-comparison" class="embodied-comparison" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section id="program-view" class="program-view hidden">
+        <header class="program-header">
+          <div>
+            <p class="eyebrow">Active program</p>
+            <h1 id="program-title">—</h1>
+            <p id="program-mission" class="mission"></p>
+          </div>
+          <div class="program-meta">
+            <span id="program-status" class="chip">unknown</span>
+            <span id="owner-revision" class="revision">owner —</span>
+          </div>
+        </header>
+        <details class="create-program" id="responsibility-panel">
+          <summary>Responsibility and consequences</summary>
+          <div id="program-responsibility" class="quiet"></div>
+          <form id="consequence-form">
+            <label>Area
+              <select name="dimension">
+                <option value="material_security">Material security</option>
+                <option value="agency">Agency and choice</option>
+                <option value="development">Development</option>
+                <option value="shared_power">Shared power</option>
+                <option value="regeneration">Regeneration</option>
+                <option value="correction">Correction</option>
+              </select>
+            </label>
+            <label>Affected group or pseudonym<input name="affected" required placeholder="Use a group or pseudonym"></label>
+            <label>What happened<textarea name="observation" rows="2" required></textarea></label>
+            <label>Evidence or report source<input name="evidence" required placeholder="For example: firsthand report, artifact ID, or dated source"></label>
+            <label>What remains uncertain<input name="uncertainty" required></label>
+            <label>Status
+              <select name="status">
+                <option value="reported">Reported; needs investigation</option>
+                <option value="disputed">Disputed; needs correction</option>
+                <option value="observed">Source-backed observation</option>
+              </select>
+            </label>
+            <label>Unfinished follow-up (optional)<textarea name="follow_up" rows="2"></textarea></label>
+            <label>Report being reviewed (optional)
+              <select name="review_of_assessment_id">
+                <option value="">New consequence report</option>
+              </select>
+            </label>
+            <p class="quiet">A linked response closes the named follow-up only when the affected group matches, status is source-backed observation, and no follow-up remains. Reports stay caller-reported, not independently verified.</p>
+            <button type="submit" class="primary">Record consequence</button>
+          </form>
+        </details>
+
+        <nav class="tabs" aria-label="Program views">
+          <button class="tab active" type="button" data-tab="workspace">Workspace</button>
+          <button class="tab" type="button" data-tab="computations">Computations</button>
+          <button class="tab" type="button" data-tab="events">Live events <span id="event-count" class="count">0</span></button>
+          <button class="tab" type="button" data-tab="surface">Surface</button>
+        </nav>
+
+        <section id="tab-workspace" class="tab-panel active">
+          <div class="toolbar">
+            <div class="segmented" role="group" aria-label="Workspace category">
+              <select id="workspace-category">
+                <option value="objects">Objects</option>
+                <option value="guidance">Guidance</option>
+                <option value="branches">Branches</option>
+                <option value="comparisons">Comparisons</option>
+                <option value="retained">Retained methods</option>
+                <option value="forecasts">Forecasts</option>
+                <option value="outcomes">Outcomes</option>
+                <option value="events">Workspace events</option>
+              </select>
+              <button id="workspace-refresh" type="button">Refresh</button>
+            </div>
+            <div class="toolbar-spacer"></div>
+            <span id="workspace-phase" class="chip">—</span>
+            <button id="workspace-pause" type="button">Pause</button>
+            <button id="workspace-resume" type="button">Resume</button>
+          </div>
+          <div id="workspace-summary" class="summary-strip"></div>
+          <div id="workspace-rows" class="workspace-rows"></div>
+          <div class="pager">
+            <button id="workspace-prev" type="button">← Previous</button>
+            <span id="workspace-page">0–0 of 0</span>
+            <button id="workspace-next" type="button">Next →</button>
+          </div>
+
+          <div class="action-grid">
+            <details open>
+              <summary>Propose guidance</summary>
+              <form id="proposal-form">
+                <label>Request ID<input name="request_id" required placeholder="question-1"></label>
+                <label>Target references<input name="target_refs" placeholder="world-1, method-2"></label>
+                <label>Intended role<input name="intended_role" required placeholder="test this mechanism"></label>
+                <label>Arguments (JSON)<textarea name="arguments" rows="3">{}</textarea></label>
+                <label>Expected versions (JSON)<textarea name="expected_versions" rows="2">{}</textarea></label>
+                <button class="primary" type="submit">Propose</button>
+              </form>
+            </details>
+
+            <details>
+              <summary>Investigate or settle a branch</summary>
+              <form id="workspace-branch-form">
+                <label>Guidance request ID<input name="request_id" required></label>
+                <label>Branch ID<input name="branch_id" required></label>
+                <label>Program references<input name="program_refs" placeholder="python-program-1"></label>
+                <label>Assumptions (JSON)<textarea name="assumptions" rows="2">[]</textarea></label>
+                <button type="submit" data-workspace-branch="investigate" class="primary">Start branch</button>
+                <label>Result (JSON)<textarea name="result" rows="3">{}</textarea></label>
+                <label>Actual cost (JSON)<textarea name="actual_cost" rows="2">{}</textarea></label>
+                <div class="button-row">
+                  <button type="submit" data-workspace-branch="completed">Settle complete</button>
+                  <button type="submit" data-workspace-branch="failed" class="danger">Settle failed</button>
+                </div>
+              </form>
+            </details>
+
+            <details>
+              <summary>Compare branches and retain a method</summary>
+              <form id="compare-form">
+                <label>Comparison ID<input name="comparison_id" required></label>
+                <label>Branch IDs<input name="branch_ids" required placeholder="branch-a, branch-b"></label>
+                <label>Shared conditions (JSON)<textarea name="shared_conditions" rows="2">{}</textarea></label>
+                <label>Differences (JSON)<textarea name="differences" rows="2">[]</textarea></label>
+                <label>Interpretation (JSON)<textarea name="interpretation" rows="2">{}</textarea></label>
+                <button class="primary" type="submit">Compare</button>
+              </form>
+              <hr>
+              <form id="retain-form">
+                <label>Retention ID<input name="retention_id" required></label>
+                <label>Object references<input name="object_refs" required placeholder="method-1@1"></label>
+                <label>Comparison references<input name="comparison_refs" placeholder="comparison-1"></label>
+                <label>Applicability (JSON)<textarea name="applicability" rows="2">{}</textarea></label>
+                <label>Exceptions (JSON)<textarea name="exceptions" rows="2">[]</textarea></label>
+                <button class="primary" type="submit">Retain method</button>
+              </form>
+            </details>
+
+            <details>
+              <summary>Admit a typed record revision</summary>
+              <form id="admit-form">
+                <label>Record (canonical JSON)<textarea name="record" rows="10" required placeholder='{"schema":"cassifi.python-program.v1", ...}'></textarea></label>
+                <label>Visibility<select name="visibility"><option value="private">Private</option><option value="shared">Shared</option></select></label>
+                <label>Principals<input name="principals" placeholder="cassi, collaborator"></label>
+                <button class="primary" type="submit">Admit revision</button>
+              </form>
+            </details>
+          </div>
+        </section>
+
+        <section id="tab-computations" class="tab-panel">
+          <div class="computation-layout">
+            <form id="computation-form" class="computation-form">
+              <div class="section-heading"><div><p class="eyebrow">New resident work</p><h2>Launch computation</h2></div></div>
+              <div class="two-col">
+                <label>Computation ID<input name="computation_id" required placeholder="derive-1"></label>
+                <label>Language<select name="language"><option value="python">Python</option><option value="model">Model graph</option></select></label>
+              </div>
+              <label>Source / graph JSON<textarea name="source" rows="11" required spellcheck="false" placeholder="total = sum(range(11))&#10;print(total)"></textarea></label>
+              <div class="two-col">
+                <label>Capabilities<input name="capabilities" placeholder="effect-proposal, model-request"></label>
+                <label>Backend<select name="backend"><option value="logical-cpu">Logical CPU</option><option value="native-cpu">Native CPU</option><option value="vulkan">Vulkan</option></select></label>
+              </div>
+              <details class="advanced">
+                <summary>Limits and profile</summary>
+                <label>Limits (JSON)<textarea name="limits" rows="3">{}</textarea></label>
+                <label>Profile (JSON)<textarea name="profile" rows="3">{"steps":0}</textarea></label>
+                <label>Payload (JSON)<textarea name="payload" rows="3">{}</textarea></label>
+              </details>
+              <button class="primary wide" type="submit">Admit to the swarm</button>
+            </form>
+            <div>
+              <div class="section-heading"><div><p class="eyebrow">Continuations</p><h2>Resident computations</h2></div><button id="refresh-computations" type="button">Refresh</button></div>
+              <div id="computation-list" class="computation-list"></div>
+            </div>
+          </div>
+          <section id="computation-inspector" class="inspector hidden">
+            <header><div><p class="eyebrow">Inspection</p><h2 id="inspector-title">—</h2></div><button id="close-inspector" type="button">Close</button></header>
+            <pre id="inspector-json"></pre>
+          </section>
+        </section>
+
+        <section id="tab-events" class="tab-panel">
+          <div class="toolbar">
+            <span id="events-state" class="chip">disconnected</span>
+            <button id="events-reconnect" type="button">Reconnect from cursor</button>
+            <button id="events-clear" type="button">Clear view</button>
+          </div>
+          <div id="event-list" class="event-list"></div>
+        </section>
+
+        <section id="tab-surface" class="tab-panel" aria-labelledby="surface-heading">
+          <div class="surface-toolbar">
+            <div>
+              <p class="eyebrow">Entity-mediated environment access</p>
+              <h2 id="surface-heading">Surface</h2>
+            </div>
+            <div class="surface-mode">
+              <span id="surface-mode" class="chip">disconnected</span>
+              <span id="surface-connection" class="quiet">Not connected</span>
+            </div>
+          </div>
+          <p class="surface-safety">Observation is read-only: it never sends application input. All effects pass through the authenticated entity broker. Closing or disconnecting this viewer does not stop the environment.</p>
+          <div class="surface-toolbar surface-source-toolbar">
+            <label>Backend<select id="surface-backend"><option value="">Connect to load capabilities</option></select></label>
+            <label>Available source<select id="surface-source"><option value="">Select a backend</option></select></label>
+            <div class="button-row">
+              <button id="surface-refresh-sources" type="button">Refresh sources</button>
+              <button id="surface-bind" class="primary" type="button" disabled>Bind source</button>
+            </div>
+          </div>
+          <div id="surface-message" class="surface-message quiet" role="status" aria-live="polite">Connect to the entity to discover supported surfaces.</div>
+
+          <div class="surface-layout">
+            <section class="surface-frame-card" aria-label="Live surface observation">
+              <header class="surface-card-header">
+                <div><p class="eyebrow">Live observation</p><h3 id="surface-source-title">No source bound</h3></div>
+                <span id="surface-frame-status" class="surface-status">No frame</span>
+              </header>
+              <div id="surface-frame-stage" class="surface-frame-stage">
+                <img id="surface-frame" alt="Latest captured environment frame" class="hidden">
+                <div id="surface-overlay" class="surface-overlay" aria-hidden="true"></div>
+                <p id="surface-frame-empty" class="quiet">Bind a supported source to begin read-only observation.</p>
+              </div>
+              <div class="surface-annotation-tools">
+                <button id="surface-annotate-point" type="button" disabled>Mark point</button>
+                <button id="surface-annotate-region" type="button" disabled>Mark region</button>
+                <button id="surface-clear-annotation" type="button" disabled>Clear annotation</button>
+                <span id="surface-annotation-status" class="quiet" role="status">Point and region notes stay separate from the captured pixels.</span>
+              </div>
+              <label class="surface-annotation-question">Focused question for Cassi<textarea id="surface-annotation-instruction" maxlength="512" rows="2" placeholder="What should Cassi inspect here within this existing program?"></textarea></label>
+              <div id="surface-annotation-list" class="surface-annotation-list" aria-live="polite"></div>
+              <div class="surface-observation-meta">
+                <span>Age <strong id="surface-frame-age">—</strong></span>
+                <span>Coverage <strong id="surface-frame-coverage">—</strong></span>
+                <span>Sequence <strong id="surface-frame-sequence">—</strong></span>
+                <span>Geometry <strong id="surface-frame-geometry">—</strong></span>
+              </div>
+              <div class="surface-overlay-note">Annotations are a separate transparent overlay; captured pixels remain unchanged.</div>
+            </section>
+
+            <aside class="surface-side">
+              <section class="surface-card">
+                <header class="surface-card-header"><div><p class="eyebrow">Control boundary</p><h3>Bound source</h3></div></header>
+                <dl class="surface-facts">
+                  <div><dt>Source</dt><dd id="surface-bound-source">—</dd></div>
+                  <div><dt>Instance</dt><dd id="surface-instance">—</dd></div>
+                  <div><dt>Environment incarnation</dt><dd id="surface-environment">—</dd></div>
+                  <div><dt>Epoch / geometry</dt><dd id="surface-epoch">—</dd></div>
+                  <div><dt>Capture / input state</dt><dd id="surface-input-state">—</dd></div>
+                  <div><dt>Declared capture modalities</dt><dd id="surface-modalities">Not reported</dd></div>
+                  <div><dt>Supplemental observations</dt><dd id="surface-supplemental">Not reported</dd></div>
+                  <div><dt>Visual input to brain</dt><dd id="surface-brain-visual">Not reported</dd></div>
+                  <div><dt>Supported operations</dt><dd id="surface-operations">—</dd></div>
+                  <div><dt>Authority</dt><dd id="surface-authority">No active authority</dd></div>
+                  <div><dt>Resource waits</dt><dd id="surface-resource-waits">None reported</dd></div>
+                </dl>
+              </section>
+              <section class="surface-card">
+                <header class="surface-card-header"><div><p class="eyebrow">Mission context</p><h3>Target & objective</h3></div></header>
+                <p id="surface-current-objective" class="surface-current-objective quiet">No active program objective.</p>
+                <form id="surface-intent-form">
+                  <label>Target<input name="target" required maxlength="240" placeholder="What is the intended target?"></label>
+                  <label>Objective<textarea name="objective" required maxlength="1200" rows="3" placeholder="What outcome is sought?"></textarea></label>
+                  <label>Attention<textarea name="attention" maxlength="1200" rows="2" placeholder="What should the entity attend to?"></textarea></label>
+                  <label>Expected consequence<textarea name="expected_consequence" required maxlength="1200" rows="2" placeholder="What changes are expected?"></textarea></label>
+                  <label>Authorized operation<select id="surface-operation" disabled><option value="">No supported operation</option></select></label>
+                  <label>Operation payload (JSON)<textarea id="surface-payload" rows="3" spellcheck="false">{}</textarea></label>
+                  <label>Uncertainty<textarea name="uncertainty" maxlength="1200" rows="2" placeholder="What is unknown or uncertain?"></textarea></label>
+                  <fieldset id="surface-grant-operations" class="surface-grant-operations" disabled>
+                    <legend>Delegated operation scope</legend>
+                    <p class="quiet">Choose only the supported operations this mission may request. Nothing is selected by default.</p>
+                    <div id="surface-operation-options"></div>
+                  </fieldset>
+                  <label>Grant duration (seconds)<input name="grant_duration" type="number" min="10" max="3600" step="1" value="120" required></label>
+                  <label>Updates per broker lease<input id="surface-grant-updates" name="grant_updates" type="number" min="1" max="4096" step="1" value="128" required></label>
+                  <label>Human approval window (seconds)<input id="surface-authority-duration" name="authority_duration" type="number" min="60" max="86400" step="1" value="3600" required></label>
+                  <label>Approved updates per lease<input id="surface-authority-updates" name="authority_max_updates" type="number" min="1" max="4096" step="1" value="4096" required></label>
+                  <p id="surface-human-authority-status" class="quiet" role="status" aria-live="polite">No locally approved mission window is active.</p>
+                  <button id="surface-approve-authority" class="primary wide" type="button" disabled>Approve local mission window</button>
+                  <div class="button-row">
+                    <button id="surface-assist" type="button">Enter assisting</button>
+                    <button id="surface-delegate" class="primary" type="button">Enter delegated</button>
+                  </div>
+                  <button id="surface-submit-intent" class="primary wide" type="submit" disabled>Submit brokered intent</button>
+                </form>
+              </section>
+            </aside>
+          </div>
+
+          <section class="surface-card surface-outcome-card">
+            <header class="surface-card-header"><div><p class="eyebrow">Observed execution</p><h3>Outcome & uncertainty</h3></div><button id="surface-refresh-status" type="button">Refresh status</button></header>
+            <div class="surface-ledger">
+              <div><span>Expected consequence</span><p id="surface-expected">No intent recorded.</p></div>
+              <div><span>Outcome</span><p id="surface-outcome">No operation result yet.</p></div>
+              <div><span>Uncertainty</span><p id="surface-uncertainty">—</p></div>
+              <div><span>Last disposition</span><p id="surface-disposition">—</p></div>
+            </div>
+            <details id="surface-reconcile" class="surface-reconcile hidden">
+              <summary>Record an independently observed outcome</summary>
+              <p class="quiet">Only reconcile from real source evidence. An uncertain or partial delivery is never replayed automatically.</p>
+              <label>Observed outcome (JSON)<textarea id="surface-reconcile-outcome" rows="4" spellcheck="false">{}</textarea></label>
+              <button id="surface-reconcile-submit" type="button">Reconcile current operation</button>
+            </details>
+          </section>
+
+          <section class="surface-card surface-controls">
+            <header class="surface-card-header"><div><p class="eyebrow">Trusted controls</p><h3>Human authority & safety</h3></div></header>
+            <p class="quiet">Every control below is an authenticated broker operation; no actuator credential is held or exposed by this page. Emergency neutralize is a separate explicit action.</p>
+            <div class="surface-control-buttons">
+              <button id="surface-pause" type="button">Pause</button>
+              <button id="surface-neutralize" class="danger" type="button">Revoke / emergency neutralize</button>
+              <button id="surface-take-control" type="button">Take control</button>
+              <button id="surface-release-human" type="button">Release human control</button>
+              <button id="surface-resume" type="button">Resume</button>
+              <button id="surface-detach" class="danger" type="button">Detach viewer</button>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

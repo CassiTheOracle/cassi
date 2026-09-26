@@ -1,0 +1,22 @@
+{
+  "schema": "cassi.fi.public-release-policy.v1",
+  "release_id": "cassifi-paper-public-1",
+  "code_license": "Apache-2.0",
+  "paper_license": "CC BY 4.0",
+  "corpus_distribution": {
+    "policy": "exclude_all_bytes",
+    "reason": "Redistribution permission is not established for any local corpus."
+  },
+  "checkpoint_distribution": {
+    "policy": "synthetic_fixture_only",
+    "reason": "Trained and historical checkpoints are excluded. Evaluation uses one declared synthetic prompt and continuation generated from fixed public text."
+  },
+  "historical_evidence_distribution": {
+    "policy": "exclude_raw_history",
+    "reason": "Historical artifacts may contain private paths, large derived state, or material without redistribution permission."
+  },
+  "reference_receipts": [
+    "evidence/public-reference-evaluation.json"
+  ],
+  "third_party_packages_bundled": false
+}

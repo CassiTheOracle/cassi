@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; connect-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="theme-color" content="#07100f">
+  <title>Cassi · Desktop companion</title>
+  <link rel="stylesheet" href="/companion/styles.css">
+  <script src="/companion/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to companion</a>
+  <header class="topbar">
+    <a class="brand" href="/companion" aria-label="Cassi desktop companion home">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="brand-copy"><span class="brand-name">cassi</span><span class="brand-caption">desktop companion</span></span>
+    </a>
+    <div class="topbar-right">
+      <a class="text-link" href="#embodied-field">Living field</a>
+      <a class="text-link" href="/workspace">Advanced Surface controls <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow">A calmer way to work together</p>
+        <h1 id="page-title">Let Cassi notice<br class="wide-only"> what matters.</h1>
+        <p class="hero-lede">Invite Cassi into a few selected windows. Keep the work yours; share a moment when it helps.</p>
+      </div>
+      <div class="hero-note" aria-label="Companion boundaries">
+        <span class="note-glyph" aria-hidden="true">◌</span>
+        <p><strong>Your apps stay yours.</strong><br>No keyboard or mouse control is granted here. A delegated task needs its own authority.</p>
+      </div>
+    </section>
+
+    <section class="connection-card panel" aria-labelledby="connection-title">
+      <div class="section-heading compact-heading">
+        <div>
+          <p class="eyebrow">Private connection</p>
+          <h2 id="connection-title">Connect to your Cassi entity</h2>
+        </div>
+        <div id="connection-indicator" class="connection-indicator" role="status" aria-live="polite">
+          <span class="status-light" aria-hidden="true"></span><span id="connection-label">Not connected</span>
+        </div>
+      </div>
+      <form id="connect-form" class="connect-form">
+        <button class="button button-primary connect-button" type="submit">Connect</button>
+      </form>
+      <div class="connection-foot">
+        <p id="connection-message" class="muted">Connect to the local entity to review available desktop sources. No API credentials are required.</p>
+        <button id="disconnect-button" class="button button-quiet hidden" type="button">Disconnect</button>
+      </div>
+    </section>
+
+    <section id="embodied-field" class="embodied-section panel" aria-labelledby="embodied-title">
+      <div class="section-heading embodied-heading">
+        <div>
+          <p class="eyebrow">Read-only · admitted state</p>
+          <h2 id="embodied-title">Living field</h2>
+          <p class="section-intro">A source-bound view of the canonical field, its recorded meanings and work organization. Looking, freezing, replaying, and comparing do not create cognitive actions or change the owner.</p>
+        </div>
+        <span id="embodied-state" class="state-pill" role="status" aria-live="polite">Waiting for a snapshot</span>
+      </div>
+
+      <div class="embodied-controls" role="group" aria-label="Read-only field view controls">
+        <button id="embodied-refresh" class="button button-secondary" type="button">Refresh snapshot</button>
+        <button id="embodied-capture" class="button button-secondary" type="button" disabled>Capture latest</button>
+        <button id="embodied-freeze" class="button button-secondary" type="button" aria-pressed="false" disabled>Freeze live view</button>
+        <label class="embodied-option" for="embodied-palette">
+          <span>Palette</span>
+          <select id="embodied-palette">
+            <option value="accessible">Teal / amber</option>
+            <option value="mono">Monochrome</option>
+          </select>
+        </label>
+        <label class="embodied-option embodied-motion" for="embodied-reduced-motion">
+          <input id="embodied-reduced-motion" type="checkbox">
+          <span>Reduce motion</span>
+        </label>
+      </div>
+      <div class="embodied-activity" aria-labelledby="embodied-activity-title">
+        <div class="section-heading small-heading">
+          <div><p class="eyebrow">Successive admitted states</p><h3 id="embodied-activity-title">Measured change</h3></div>
+          <span id="embodied-activity-count" class="muted">Waiting for two distinct states</span>
+        </div>
+        <p id="embodied-activity-note" class="field-note">The graph changes only when owner-reported quantities change. Polling alone is not movement; no numerical time or transport speed is inferred.</p>
+        <div id="embodied-activity-trace" class="embodied-trace" role="img" aria-label="No measured history available"></div>
+        <div id="embodied-transitions" class="embodied-list" aria-label="Recent recorded work transitions"></div>
+      </div>
+      <p id="embodied-message" class="field-note" role="status" aria-live="polite">The viewer reads bounded snapshots from this entity. Coverage, source age, and unavailable data are reported rather than filled in.</p>
+
+      <dl class="embodied-identity" aria-label="Snapshot identity and age">
+        <div><dt>Owner generation</dt><dd id="embodied-generation">Unknown</dd></div>
+        <div><dt>Owner state hash</dt><dd id="embodied-hash">Unknown</dd></div>
+        <div><dt>Declared layout</dt><dd id="embodied-layout">Unknown</dd></div>
+        <div><dt>Entity capture time</dt><dd id="embodied-captured-at">Unknown</dd></div>
+        <div><dt>Snapshot age</dt><dd id="embodied-age">Unknown</dd></div>
+        <div><dt>Reported field time step</dt><dd id="embodied-field-time">Unknown</dd></div>
+        <div><dt>Capture coverage</dt><dd id="embodied-coverage">Unknown</dd></div>
+      </dl>
+
+      <div class="embodied-layout">
+        <section class="embodied-subpanel" aria-labelledby="embodied-map-title">
+          <div class="section-heading small-heading">
+            <div>
+              <p class="eyebrow">Region · flow</p>
+              <h3 id="embodied-map-title">Declared spatial projection</h3>
+            </div>
+            <span id="embodied-region-count" class="count-pill" aria-label="Returned regions">—</span>
+          </div>
+          <p id="embodied-projection-note" class="field-note">Waiting for declared coordinates.</p>
+          <svg id="embodied-map" class="embodied-map" viewBox="0 0 640 360" role="img" aria-labelledby="embodied-map-title embodied-map-description">
+            <desc id="embodied-map-description">The admitted snapshot has not supplied drawable region coordinates.</desc>
+          </svg>
+          <div class="embodied-legend" aria-label="Projection legend">
+            <span><i class="legend-swatch flow-positive" aria-hidden="true"></i>Positive signed current</span>
+            <span><i class="legend-swatch flow-negative" aria-hidden="true"></i>Negative signed current</span>
+            <span><i class="legend-swatch role-outline" aria-hidden="true"></i>Recorded role binding</span>
+            <span>Node size = absolute reported signed current; no unit is inferred.</span>
+          </div>
+          <label class="field embodied-region-nav" for="embodied-region-select"><span>Inspect returned region</span><select id="embodied-region-select"><option value="">No region selected</option></select></label>
+          <div id="embodied-region-inspection" class="embodied-list" aria-live="polite"><p class="empty-note">Select a returned region to inspect its admitted measurements and exact source/meaning bindings.</p></div>
+          <div id="embodied-region-list" class="embodied-list" aria-label="Region measurements"></div>
+          <div class="embodied-role-block">
+            <h4>Recorded roles and orientation</h4>
+            <div id="embodied-roles" class="embodied-list"></div>
+            <div id="embodied-orientation" class="embodied-list"><p class="empty-note">Orientation data unavailable.</p></div>
+          </div>
+        </section>
+
+        <section class="embodied-subpanel" aria-labelledby="embodied-organization-title">
+          <div class="section-heading small-heading">
+            <div>
+              <p class="eyebrow">Meaning · time</p>
+              <h3 id="embodied-organization-title">Working organization</h3>
+            </div>
+            <span id="embodied-work-count" class="count-pill" aria-label="Returned work nodes">—</span>
+          </div>
+          <p id="embodied-work-coverage" class="field-note">Working organization coverage unavailable.</p>
+          <p id="embodied-topology-note" class="field-note">Program relationship graph unavailable until current Program references are received.</p>
+          <svg id="embodied-topology" class="embodied-map embodied-topology" viewBox="0 0 800 180" role="img" aria-labelledby="embodied-organization-title embodied-topology-description">
+            <desc id="embodied-topology-description">Working organization topology is unavailable.</desc>
+          </svg>
+          <div id="embodied-organization" class="embodied-list"></div>
+          <div class="embodied-timeline-block">
+            <h4>Session-only captures</h4>
+            <p class="field-note">Captures remain in this page session. They are not written to the owner or evidence store.</p>
+            <div id="embodied-timeline" class="embodied-timeline" aria-label="Captured snapshot timeline">
+              <p class="empty-note">No snapshots captured in this session.</p>
+            </div>
+            <div class="embodied-replay-controls" role="group" aria-label="Captured snapshot replay controls">
+              <button id="embodied-previous" class="button button-secondary" type="button" disabled>Previous</button>
+              <button id="embodied-play" class="button button-secondary" type="button" disabled>Play replay</button>
+              <button id="embodied-next" class="button button-secondary" type="button" disabled>Next</button>
+              <span id="embodied-replay-status" class="muted">Replay is not active.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="embodied-lower">
+        <section class="embodied-subpanel" aria-labelledby="embodied-exchange-title">
+          <div class="section-heading small-heading">
+            <div>
+              <p class="eyebrow">Source-bound exchange</p>
+              <h3 id="embodied-exchange-title">Concern, source, and receiver</h3>
+            </div>
+          </div>
+          <p class="field-note">Only admitted record references and owner-reported measurements appear here. A link does not prove that recall caused an outcome.</p>
+          <div id="embodied-exchange" class="embodied-list"></div>
+        </section>
+        <section class="embodied-subpanel" aria-labelledby="embodied-semantics-title">
+          <div class="section-heading small-heading">
+            <div>
+              <p class="eyebrow">Recorded references</p>
+              <h3 id="embodied-semantics-title">Meaning bindings</h3>
+            </div>
+          </div>
+          <p id="embodied-semantics-coverage" class="field-note">Semantic coverage unavailable.</p>
+          <div id="embodied-semantics" class="embodied-list"></div>
+        </section>
+      </div>
+
+      <section class="embodied-subpanel embodied-quantitative" aria-labelledby="embodied-quant-title">
+        <div class="section-heading small-heading">
+          <div>
+            <p class="eyebrow">Direct measurements</p>
+            <h3 id="embodied-quant-title">Quantitative view and capture comparison</h3>
+          </div>
+        </div>
+        <p class="field-note">Reported values keep their source key. Units are shown only when the snapshot declares them. Coordinate projections and numerical time are separate from interpretation.</p>
+        <div class="embodied-quant-grid">
+          <div>
+            <h4>Current measurements</h4>
+            <div id="embodied-measurements" class="embodied-list"></div>
+          </div>
+          <div class="embodied-comparison">
+            <h4>Compare two local captures</h4>
+            <div class="embodied-compare-controls">
+              <label class="field" for="embodied-compare-before"><span>Earlier capture</span><select id="embodied-compare-before" disabled><option value="">Capture snapshots first</option></select></label>
+              <label class="field" for="embodied-compare-after"><span>Later capture</span><select id="embodied-compare-after" disabled><option value="">Capture snapshots first</option></select></label>
+              <button id="embodied-compare" class="button button-secondary" type="button" disabled>Compare captures</button>
+            </div>
+            <div id="embodied-comparison" class="embodied-list" aria-live="polite"></div>
+          </div>
+        </div>
+        <details class="embodied-raw">
+          <summary>Exact bounded snapshot payload</summary>
+          <pre id="embodied-payload">No snapshot is available.</pre>
+        </details>
+      </section>
+    </section>
+    <section id="invitation-section" class="invitation-section" aria-labelledby="invitation-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">01 · Choose the view</p>
+          <h2 id="invitation-title">What may Cassi see?</h2>
+          <p class="section-intro">Choose exact windows. A preview is only shown here; watching begins only after you confirm the session.</p>
+        </div>
+        <button id="refresh-sources" class="button button-secondary" type="button" disabled>Refresh sources</button>
+      </div>
+
+      <div id="sources-message" class="inline-message" role="status" aria-live="polite">Connect to discover available desktop sources.</div>
+      <div id="source-grid" class="source-grid" aria-label="Available desktop sources"></div>
+
+      <div class="invitation-lower">
+        <section class="setup-card panel" aria-labelledby="purpose-title">
+          <div class="section-heading small-heading">
+            <div>
+              <p class="eyebrow">A little context</p>
+              <h3 id="purpose-title">What are you working on?</h3>
+            </div>
+            <span class="optional-label">Optional</span>
+          </div>
+          <label class="field" for="session-purpose">
+            <span>Purpose for this session</span>
+            <textarea id="session-purpose" rows="3" maxlength="600" placeholder="For example: comparing two approaches to a scene"></textarea>
+          </label>
+          <p class="field-note">A purpose can help connect this session to existing work. Leave it blank for general desktop learning.</p>
+
+          <fieldset class="mode-picker">
+            <legend>How should Cassi show up?</legend>
+            <label class="mode-option">
+              <input type="radio" name="session-mode" value="watch" checked>
+              <span class="mode-copy"><strong>Watch with me</strong><span>Quiet observation. No suggestions are surfaced here.</span></span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="session-mode" value="suggest">
+              <span class="mode-copy"><strong>Suggest</strong><span>Relevant, supported ideas may appear when useful.</span></span>
+            </label>
+          </fieldset>
+        </section>
+
+        <section class="agreement-card panel" aria-labelledby="agreement-title">
+          <div class="section-heading small-heading">
+            <div>
+              <p class="eyebrow">Before you begin</p>
+              <h3 id="agreement-title">A clear agreement</h3>
+            </div>
+            <span class="agreement-mark" aria-hidden="true">◇</span>
+          </div>
+          <dl class="agreement-list">
+            <div><dt>Scope</dt><dd id="agreement-scope">No windows selected.</dd></div>
+            <div><dt>What Cassi can see</dt><dd>Anything visible inside the windows you select, including other tabs and overlays.</dd></div>
+            <div><dt>Input & audio</dt><dd>This page requests no app input, microphone, or audio capture.</dd></div>
+            <div><dt>Visual capability</dt><dd id="agreement-visual">Waiting for entity capability details.</dd></div>
+            <div><dt>Where processing happens</dt><dd id="agreement-processing">Not reported by the connected entity.</dd></div>
+            <div><dt>What may be kept</dt><dd id="agreement-retention">Waiting for the entity's retention summary.</dd></div>
+          </dl>
+          <label class="consent-check">
+            <input id="consent-check" type="checkbox">
+            <span>I understand this observation scope and choose to begin.</span>
+          </label>
+          <button id="start-session" class="button button-primary start-button" type="button" disabled>Watch with me</button>
+          <p id="start-note" class="field-note">Connect to your entity to review the current scope and retention summary.</p>
+        </section>
+      </div>
+    </section>
+
+    <section id="session-section" class="session-section hidden" aria-labelledby="session-title">
+      <div class="session-bar panel" aria-label="Session status and controls">
+        <div class="session-identity">
+          <span class="session-mark" aria-hidden="true"><span></span></span>
+          <div>
+            <p class="eyebrow">Cassi is here</p>
+            <h2 id="session-title">Desktop session</h2>
+          </div>
+        </div>
+        <div class="session-status-block">
+          <span id="session-state" class="state-pill" role="status" aria-live="polite">Connecting…</span>
+          <span id="session-source" class="session-source">Selected sources</span>
+        </div>
+        <div class="session-controls" aria-label="Session actions">
+          <button id="mode-toggle" class="button button-secondary" type="button" aria-label="Change suggestion mode">Mode: Watch</button>
+          <button id="pause-resume" class="button button-secondary" type="button">Pause</button>
+          <button id="finish-session" class="button button-primary" type="button">Finish session</button>
+        </div>
+      </div>
+
+      <div id="session-alert" class="inline-message hidden" role="status" aria-live="polite"></div>
+      <div class="work-grid">
+        <section class="work-main">
+          <section class="live-card panel" aria-labelledby="live-title">
+            <div class="section-heading live-heading">
+              <div>
+                <p class="eyebrow">A window into the work</p>
+                <h3 id="live-title">What Cassi can see</h3>
+              </div>
+              <div class="age-pair" aria-label="Observation timing">
+                <span><i class="age-dot capture-dot" aria-hidden="true"></i><span class="sr-only">Capture age: </span><strong id="capture-age">—</strong> capture</span>
+                <span><i class="age-dot interpretation-dot" aria-hidden="true"></i><span class="sr-only">Interpretation age: </span><strong id="interpretation-age">—</strong> understanding</span>
+              </div>
+            </div>
+            <p id="capability-note" class="capability-note">Visual capability has not been reported.</p>
+            <div id="live-frame-wrap" class="live-frame-wrap">
+              <div id="live-frame-empty" class="frame-placeholder" role="status">
+                <span class="placeholder-orbit" aria-hidden="true">◌</span>
+                <p>Waiting for an approved window.</p>
+                <span>The display is read-only. An explicit moment can pin a source-linked capture.</span>
+              </div>
+              <img id="live-frame" class="live-frame hidden" alt="Current, read-only view of the approved desktop source">
+              <span id="live-frame-label" class="frame-label hidden">Current view</span>
+            </div>
+            <div class="live-footer">
+              <span id="live-source-label" class="muted">No active source</span>
+              <button id="pin-moment" class="button button-primary" type="button" disabled>Show something</button>
+            </div>
+          </section>
+
+          <section id="moment-panel" class="moment-card panel hidden" aria-labelledby="moment-title">
+            <div class="section-heading small-heading">
+              <div>
+                <p class="eyebrow">02 · Share a moment</p>
+                <h3 id="moment-title">Pin this view</h3>
+              </div>
+              <button id="close-moment" class="button button-quiet" type="button">Close</button>
+            </div>
+            <p class="pinned-explanation"><strong>Historical view.</strong> This image and its coordinates stay tied to the captured source version, even if the window changes size. Marking it never clicks or draws on your app.</p>
+            <div class="moment-layout">
+              <div class="pinned-view">
+                <div id="pinned-stage" class="picture-stage">
+                  <img id="pinned-image" alt="Pinned historical image for annotation">
+                  <svg id="annotation-overlay" class="annotation-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="Annotation layer; marks apply only to this companion image">
+                    <circle id="annotation-point" class="annotation-point" cx="500" cy="500" r="16" hidden></circle>
+                    <rect id="annotation-region" class="annotation-region" x="450" y="450" width="100" height="100" hidden></rect>
+                  </svg>
+                </div>
+                <p id="pin-metadata" class="pin-metadata">Pinned source and publication details are unavailable.</p>
+              </div>
+              <div class="moment-tools">
+                <fieldset class="annotation-mode">
+                  <legend>Mark on the image</legend>
+                  <label class="choice-pill"><input type="radio" name="annotation-kind" value="point" checked><span>Point</span></label>
+                  <label class="choice-pill"><input type="radio" name="annotation-kind" value="region"><span>Region</span></label>
+                </fieldset>
+                <p id="annotation-hint" class="field-note">Click the pinned image to place a point, or use the coordinate fields below.</p>
+                <div class="coordinate-grid" aria-label="Keyboard coordinate entry in percent of pinned image">
+                  <label class="field"><span>Left / X (%)</span><input id="coord-x" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="50"></label>
+                  <label class="field"><span>Top / Y (%)</span><input id="coord-y" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="50"></label>
+                  <label class="field region-coordinate"><span>Width (%)</span><input id="coord-width" type="number" inputmode="decimal" min="0.5" max="100" step="0.5" value="10"></label>
+                  <label class="field region-coordinate"><span>Height (%)</span><input id="coord-height" type="number" inputmode="decimal" min="0.5" max="100" step="0.5" value="10"></label>
+                </div>
+                <label class="field" for="moment-kind">
+                  <span>What kind of moment?</span>
+                  <select id="moment-kind">
+                    <option value="important">This matters</option>
+                    <option value="mistake">That was a mistake</option>
+                    <option value="method">Remember this method</option>
+                  </select>
+                </label>
+                <label class="field" for="moment-instruction">
+                  <span>What should Cassi understand?</span>
+                  <textarea id="moment-instruction" rows="3" maxlength="1000" required placeholder="Add a short note about this moment"></textarea>
+                </label>
+                <fieldset id="method-details" class="method-details hidden">
+                  <legend>Make this method reusable</legend>
+                  <p class="field-note">Describe when to use it and how to recognize success. Your words stay linked to this exact view.</p>
+                  <div class="method-grid">
+                    <label class="field"><span>Purpose</span><input id="method-purpose" type="text" maxlength="300" placeholder="The goal this method serves"></label>
+                    <label class="field"><span>Recognize the situation</span><input id="method-conditions" type="text" maxlength="400" placeholder="When this approach applies"></label>
+                    <label class="field method-wide"><span>Steps</span><textarea id="method-steps" rows="2" maxlength="800" placeholder="What to do, in order"></textarea></label>
+                    <label class="field"><span>Parameters, if any</span><input id="method-parameters" type="text" maxlength="300" placeholder="Values or choices that may vary"></label>
+                    <label class="field"><span>Expected result</span><input id="method-expected" type="text" maxlength="400" placeholder="What would show it worked"></label>
+                    <label class="field"><span>Stop when</span><input id="method-stop" type="text" maxlength="400" placeholder="When to stop or hand back control"></label>
+                    <label class="field"><span>If it fails</span><input id="method-recovery" type="text" maxlength="400" placeholder="A safe recovery or next check"></label>
+                  </div>
+                </fieldset>
+                <button id="send-moment" class="button button-primary" type="button" disabled>Share this moment with Cassi</button>
+                <p id="moment-message" class="field-note" role="status" aria-live="polite">The mark will stay attached to this image version.</p>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <aside class="work-aside" aria-label="Cassi's understanding and help">
+          <section class="understanding-card panel" aria-labelledby="understanding-title">
+            <div class="section-heading small-heading">
+              <div>
+                <p class="eyebrow">03 · The shared read</p>
+                <h3 id="understanding-title">What I understood</h3>
+              </div>
+              <span id="lesson-count" class="count-pill" aria-label="Number of lessons">0</span>
+            </div>
+            <p class="section-intro">A useful thought is a starting point, not a proven rule. Check its support and uncertainty.</p>
+            <div id="lessons-list" class="stack-list"><p class="empty-note">Nothing has been shared in this session yet.</p></div>
+          </section>
+
+          <section id="questions-card" class="questions-card panel" aria-labelledby="questions-title">
+            <div class="section-heading small-heading">
+              <div>
+                <p class="eyebrow">Quiet inbox</p>
+                <h3 id="questions-title">Questions for later</h3>
+              </div>
+              <span id="question-count" class="count-pill" aria-label="Number of questions">0</span>
+            </div>
+            <p class="field-note">Cassi keeps these here; nothing interrupts your work.</p>
+            <div id="questions-list" class="stack-list"><p class="empty-note">No open questions to show.</p></div>
+          </section>
+
+          <section id="suggestions-card" class="suggestions-card panel" aria-labelledby="suggestions-title">
+            <div class="section-heading small-heading">
+              <div>
+                <p class="eyebrow">Only when invited</p>
+                <h3 id="suggestions-title">Ideas for this work</h3>
+              </div>
+              <span id="suggestion-count" class="count-pill" aria-label="Number of suggestions">0</span>
+            </div>
+            <p id="suggestion-mode-note" class="field-note">Switch to Suggest when you want relevant, supported ideas here.</p>
+            <div id="suggestions-list" class="stack-list"><p class="empty-note">Suggestions stay quiet in Watch mode.</p></div>
+          </section>
+        </aside>
+      </div>
+
+      <section class="session-tools panel" aria-label="Session recovery and details">
+        <div class="recovery-actions">
+          <div>
+            <p class="eyebrow">Session controls</p>
+            <h3>Keep the boundary clear</h3>
+            <p class="field-note">Pause stops new collection after the entity confirms its stop fence. Finish ends collection; it does not remove earlier learning.</p>
+          </div>
+          <div class="button-row">
+            <button id="discard-recent" class="button button-secondary" type="button" disabled>Discard recent…</button>
+            <button id="stop-processing" class="button button-danger" type="button" disabled>Stop processing this session</button>
+          </div>
+        </div>
+        <details class="advanced-details">
+          <summary>Details · capability, source identity, retention, and receipts</summary>
+          <div class="detail-columns">
+            <section><h4>Observation scope</h4><pre id="details-bindings">Not available.</pre></section>
+            <section><h4>Publication and capability</h4><pre id="details-publication">Not available.</pre></section>
+            <section><h4>Processing and privacy</h4><pre id="details-processing">Not available.</pre></section>
+            <section><h4>Retention summary</h4><pre id="details-retention">Not available.</pre></section>
+            <section><h4>Last response</h4><pre id="details-response">No session response yet.</pre></section>
+          </div>
+          <div id="advanced-corrections" class="advanced-corrections"></div>
+        </details>
+      </section>
+    </section>
+
+    <section class="authority-card panel" aria-labelledby="authority-title">
+      <div class="authority-glyph" aria-hidden="true">↗</div>
+      <div>
+        <p class="eyebrow">A separate kind of help</p>
+        <h2 id="authority-title">Want Cassi to do something with you?</h2>
+        <p>Observation never grants input access. A delegated task needs a separate, exact task and permission review in the existing Surface controls.</p>
+      </div>
+      <a class="button button-secondary" href="/workspace">Review task authority <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <footer class="page-footer"><span>Selected sources only · no automatic control</span><span>Images and annotations stay separate</span></footer>
+
+  <dialog id="action-dialog" class="action-dialog" aria-labelledby="dialog-title">
+    <form method="dialog" class="dialog-shell">
+      <div class="dialog-heading">
+        <p class="eyebrow">A deliberate choice</p>
+        <h2 id="dialog-title">Confirm this action</h2>
+      </div>
+      <div id="dialog-content" class="dialog-content"></div>
+      <div id="dialog-actions" class="dialog-actions"></div>
+    </form>
+  </dialog>
+  <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

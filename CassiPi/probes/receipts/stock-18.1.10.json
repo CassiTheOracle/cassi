@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "probe": "untouched-stock-host-lifecycle",
+  "createdAt": "2026-09-05T02:13:55.888Z",
+  "host": {
+    "version": "18.1.10",
+    "binary": "C:/Users/Carina/.bun/bin/omp.exe",
+    "binarySha256": "00b25bb0ad2992d252326a7ecea2527cfb85019b4a6d24a67842cf3712cd6625",
+    "package": "@oh-my-pi/pi-coding-agent@18.1.10"
+  },
+  "isolation": {
+    "agentDir": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\.probe\\stock-18.1.10\\agent",
+    "sessionDir": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\.probe\\stock-18.1.10\\sessions",
+    "extension": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\probes\\host-lifecycle-extension.ts",
+    "config": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\probes\\host-probe-config.yml"
+  },
+  "observations": {
+    "session": {
+      "sessionId": "01a06f57-891d-7339-a2e6-5cac1b6d5c5e",
+      "sessionFile": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\.probe\\stock-18.1.10\\sessions\\2026-09-05T02-13-22-845Z_01a06f57-891d-7339-a2e6-5cac1b6d5c5e.jsonl"
+    },
+    "automaticCompaction": {
+      "before": {
+        "event": "session_before_compact",
+        "at": "2026-09-05T02:13:25.511Z",
+        "mode": "normal",
+        "customInstructions": null,
+        "firstKeptEntryId": "485701f3",
+        "tokensBefore": 72,
+        "messagesToSummarize": 2,
+        "recentMessages": 2,
+        "branchEntries": 8
+      },
+      "after": {
+        "event": "session_compact",
+        "at": "2026-09-05T02:13:25.512Z",
+        "fromExtension": true,
+        "summary": "probe-compaction:automatic",
+        "firstKeptEntryId": "485701f3",
+        "details": {
+          "probe": true,
+          "requested": false
+        }
+      }
+    },
+    "manualCompaction": {
+      "before": {
+        "event": "session_before_compact",
+        "at": "2026-09-05T02:13:25.559Z",
+        "mode": "normal",
+        "customInstructions": "manual-shape",
+        "firstKeptEntryId": "a4be2a05",
+        "tokensBefore": 72,
+        "messagesToSummarize": 6,
+        "recentMessages": 2,
+        "branchEntries": 17
+      },
+      "result": {
+        "summary": "probe-compaction:manual-shape",
+        "shortSummary": "probe compaction",
+        "firstKeptEntryId": "a4be2a05",
+        "tokensBefore": 72,
+        "details": {
+          "probe": true,
+          "requested": true
+        }
+      }
+    },
+    "treeWithoutSummary": {
+      "before": {
+        "event": "session_before_tree",
+        "at": "2026-09-05T02:13:25.570Z",
+        "mode": "normal",
+        "targetId": "646fcec7",
+        "oldLeafId": "50071c94",
+        "commonAncestorId": "646fcec7",
+        "entriesToSummarize": 17,
+        "userWantsSummary": false
+      },
+      "after": {
+        "event": "session_tree",
+        "at": "2026-09-05T02:13:25.571Z",
+        "newLeafId": "c96c3818",
+        "oldLeafId": "50071c94",
+        "fromExtension": null,
+        "summary": null
+      }
+    },
+    "treeWithSummary": {
+      "before": {
+        "event": "session_before_tree",
+        "at": "2026-09-05T02:13:25.632Z",
+        "mode": "normal",
+        "targetId": "50071c94",
+        "oldLeafId": "9416280c",
+        "commonAncestorId": "c96c3818",
+        "entriesToSummarize": 2,
+        "userWantsSummary": true
+      },
+      "after": {
+        "event": "session_tree",
+        "at": "2026-09-05T02:13:25.632Z",
+        "newLeafId": "ec7c199b",
+        "oldLeafId": "9416280c",
+        "fromExtension": true,
+        "summary": "probe-tree-summary:50071c94"
+      }
+    },
+    "treeCancellation": {
+      "event": "probe_tree_command",
+      "at": "2026-09-05T02:13:25.662Z",
+      "targetId": "9416280c",
+      "summarize": true,
+      "cancelled": true
+    },
+    "treeErrorFailOpen": {
+      "event": "session_tree",
+      "at": "2026-09-05T02:13:25.666Z",
+      "newLeafId": "8922087a",
+      "oldLeafId": "ec7c199b",
+      "fromExtension": false,
+      "summary": "User explored another conversation branch, then returned here.\nExploration summary:Probe response 1: lifecycle turn complete."
+    },
+    "compactionCancellation": {
+      "requestResult": {
+        "error": "Compaction cancelled"
+      },
+      "before": {
+        "event": "session_before_compact",
+        "at": "2026-09-05T02:13:25.766Z",
+        "mode": "cancel",
+        "customInstructions": "cancelled-compaction",
+        "firstKeptEntryId": "5ea564b0",
+        "tokensBefore": 72,
+        "messagesToSummarize": 9,
+        "recentMessages": 2,
+        "branchEntries": 15
+      }
+    },
+    "compactionErrorFailOpen": {
+      "result": {
+        "summary": "Probe response 1: lifecycle turn complete.",
+        "shortSummary": "Probe response 1: lifecycle turn complete.",
+        "firstKeptEntryId": "5ea564b0",
+        "tokensBefore": 72,
+        "details": {
+          "readFiles": [],
+          "modifiedFiles": []
+        }
+      },
+      "after": {
+        "event": "session_compact",
+        "at": "2026-09-05T02:13:25.792Z",
+        "fromExtension": false,
+        "summary": "Probe response 1: lifecycle turn complete.",
+        "firstKeptEntryId": "5ea564b0",
+        "details": {
+          "readFiles": [],
+          "modifiedFiles": []
+        }
+      }
+    },
+    "compactionTimeoutFailOpen": {
+      "elapsedMs": 30034,
+      "result": {
+        "rpcError": "Timeout waiting for response to compact. Stderr: "
+      },
+      "after": {
+        "event": "session_compact",
+        "at": "2026-09-05T02:13:55.861Z",
+        "fromExtension": false,
+        "summary": "Probe response 1: lifecycle turn complete.",
+        "firstKeptEntryId": "befc1b0e",
+        "details": {
+          "readFiles": [],
+          "modifiedFiles": []
+        }
+      }
+    }
+  },
+  "verdict": {
+    "customManualAndAutomaticCompaction": "observed",
+    "requestedAndUnrequestedTreeSummaries": "observed",
+    "treeCancellation": "observed",
+    "compactionCancellation": "observed",
+    "errorBehavior": "fail-open to native implementation",
+    "timeoutBehavior": "fail-open to native implementation"
+  },
+  "eventCounts": {
+    "context": 18,
+    "extension_loaded": 1,
+    "probe_mode": 5,
+    "probe_tree_command": 4,
+    "session_before_compact": 5,
+    "session_before_tree": 4,
+    "session_compact": 4,
+    "session_start": 1,
+    "session_tree": 3
+  }
+}

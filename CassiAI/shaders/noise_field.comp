@@ -1,0 +1,77 @@
+#version 460
+
+// ──────────────────────────────────────────────────────────────────
+// noise_field.comp — Add controlled Gaussian noise to the field
+//
+// psi[i] += sigma · N(0, 1)  for all components.
+//
+// Used for field-diffusion training: by adding noise before the PDE
+// runs, the model learns to produce fields that the PDE can denoise.
+// This forces the byte embeddings to structure the field at φ-scaled
+// coherence lengths — the PDE's natural denoising scale.
+//
+// Noise level sigma comes from params[14]. During training, sigma is
+// sampled from Uniform(0, sigma_max) per window. During generation,
+// sigma follows an annealing schedule.
+//
+// RNG: Hash-based Box-Muller for Gaussian noise. Deterministic given
+// (voxel, dim, step) — no state needed.
+// ──────────────────────────────────────────────────────────────────
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0)  buffer PsiBuf    { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf { float params[]; };
+
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+    int   pads[5];
+} pc;
+
+#define N_VOXELS 4096
+#define DIM 128
+#define STRIDE (DIM * 2)
+
+// ── Deterministic hash RNG ──
+uint hash(uint x) {
+    x ^= x >> 16;
+    x *= 0x45d9f3bu;
+    x ^= x >> 16;
+    x *= 0x45d9f3bu;
+    x ^= x >> 16;
+    return x;
+}
+
+vec2 box_muller(uint seed) {
+    // Generate two uniform random numbers in (0, 1)
+    uint h1 = hash(seed);
+    uint h2 = hash(seed + 0x9e3779b9u);
+    float u1 = float(h1) / 4294967295.0;
+    float u2 = float(h2) / 4294967295.0;
+    // Box-Muller transform
+    float r = sqrt(-2.0 * log(max(u1, 1e-10)));
+    float theta = 6.2831853 * u2;
+    return vec2(r * cos(theta), r * sin(theta));
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    uint total = N_VOXELS * STRIDE;
+    if (idx >= total) return;
+
+    float sigma = params[14];
+    if (sigma <= 0.0) return;  // noise disabled
+
+    // Deterministic seed from (voxel, dim, step) — step from pc.pads[2]? No, use global step
+    // Simple: use idx + pc.pads[3] as seed (pads[3] is seed from push constant)
+    int seed_int = pc.pads[3];
+    uint seed = idx ^ uint(seed_int);
+    vec2 noise = box_muller(seed);
+
+    psi[idx] += sigma * ((idx % 2u == 0u) ? noise.x : noise.y);
+}

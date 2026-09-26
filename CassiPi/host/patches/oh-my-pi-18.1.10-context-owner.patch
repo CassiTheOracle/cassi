@@ -1,0 +1,2801 @@
+diff --git a/packages/coding-agent/src/config/settings-schema.ts b/packages/coding-agent/src/config/settings-schema.ts
+index bdad59976..0f09dd494 100644
+--- a/packages/coding-agent/src/config/settings-schema.ts
++++ b/packages/coding-agent/src/config/settings-schema.ts
+@@ -2489,6 +2489,16 @@ export const SETTINGS_SCHEMA = {
+ 	// ────────────────────────────────────────────────────────────────────────
+ 	// Context
+ 	// ────────────────────────────────────────────────────────────────────────
++	"context.owner": {
++		type: "string",
++		default: "",
++		ui: {
++			tab: "context",
++			group: "General",
++			label: "Context Owner",
++			description: "Require one extension to own every mutable context operation; empty keeps native behavior",
++		},
++	},
+ 
+ 	// Context promotion
+ 	"contextPromotion.enabled": {
+diff --git a/packages/coding-agent/src/extensibility/extensions/loader.ts b/packages/coding-agent/src/extensibility/extensions/loader.ts
+index a94f67e14..b728f5191 100644
+--- a/packages/coding-agent/src/extensibility/extensions/loader.ts
++++ b/packages/coding-agent/src/extensibility/extensions/loader.ts
+@@ -35,9 +35,11 @@ import { installLegacyPiSpecifierShim, loadLegacyPiModule } from "../plugins/leg
+ import { getAllPluginExtensionPaths } from "../plugins/loader";
+ 
+ import { resolvePath, withHostGuard } from "../utils";
++import { CONTEXT_OWNER_API_VERSION, ContextOwnershipError } from "./types";
+ import type {
+ 	AssistantThinkingRenderer,
+ 	ComposerShapeDefinition,
++	ContextOwnerRegistration,
+ 	Extension,
+ 	ExtensionAPI,
+ 	ExtensionContext,
+@@ -47,6 +49,7 @@ import type {
+ 	MessageRenderer,
+ 	PreparedExtension,
+ 	ProviderConfig,
++	RegisteredContextOwner,
+ 	RegisteredCommand,
+ 	ToolDefinition,
+ 	ToolInfo,
+@@ -75,6 +78,35 @@ export class ExtensionRuntimeNotInitializedError extends Error {
+ export class ExtensionRuntime implements IExtensionRuntime {
+ 	flagValues = new Map<string, boolean | string>();
+ 	pendingProviderRegistrations: Array<{ name: string; config: ProviderConfig; sourceId: string }> = [];
++	contextOwnerRegistration?: RegisteredContextOwner;
++	contextOwnerConflict?: string;
++
++	registerContextOwner(registration: ContextOwnerRegistration, sourceId: string): void {
++		const id = registration.id.trim();
++		if (!/^[a-z][a-z0-9.-]{0,63}$/.test(id)) {
++			throw new ContextOwnershipError(
++				"OWNER_ID_MISMATCH",
++				`Invalid context owner id "${registration.id}"`,
++				registration.id,
++			);
++		}
++		if (registration.apiVersion !== CONTEXT_OWNER_API_VERSION) {
++			throw new ContextOwnershipError(
++				"OWNER_API_UNSUPPORTED",
++				`Context owner "${id}" requested unsupported API version ${String(registration.apiVersion)}`,
++				id,
++			);
++		}
++		const existing = this.contextOwnerRegistration;
++		if (existing) {
++			const message =
++				`Context owner "${id}" from ${sourceId} conflicts with ` +
++				`"${existing.id}" from ${existing.extensionPath}`;
++			this.contextOwnerConflict = message;
++			throw new ContextOwnershipError("OWNER_CONFLICT", message, id);
++		}
++		this.contextOwnerRegistration = { id, apiVersion: registration.apiVersion, extensionPath: sourceId };
++	}
+ 
+ 	registerProvider(name: string, config: ProviderConfig, sourceId: string): void {
+ 		this.pendingProviderRegistrations.push({ name, config, sourceId });
+@@ -176,6 +208,10 @@ class ConcreteExtensionAPI implements ExtensionAPI, IExtensionRuntime {
+ 		list.push(handler);
+ 		this.extension.handlers.set(event, list);
+ 	}
++	registerContextOwner(registration: ContextOwnerRegistration): void {
++		this.runtime.registerContextOwner(registration, this.extension.path);
++		this.extension.contextOwner = { ...registration, id: registration.id.trim() };
++	}
+ 
+ 	registerTool<TParams extends TSchema = TSchema, TDetails = unknown>(tool: ToolDefinition<TParams, TDetails>): void {
+ 		const registered = {
+@@ -366,6 +402,8 @@ async function runExtensionFactory(
+ 	runtime: IExtensionRuntime,
+ ): Promise<void> {
+ 	const providerRegistrationCheckpoint = [...runtime.pendingProviderRegistrations];
++	const contextOwnerCheckpoint = runtime.contextOwnerRegistration;
++	const contextOwnerConflictCheckpoint = runtime.contextOwnerConflict;
+ 
+ 	try {
+ 		await factory(api);
+@@ -375,6 +413,10 @@ async function runExtensionFactory(
+ 			runtime.pendingProviderRegistrations.length,
+ 			...providerRegistrationCheckpoint,
+ 		);
++		runtime.contextOwnerRegistration = contextOwnerCheckpoint;
++		if (runtime.contextOwnerConflict === contextOwnerConflictCheckpoint) {
++			runtime.contextOwnerConflict = contextOwnerConflictCheckpoint;
++		}
+ 		throw error;
+ 	}
+ }
+diff --git a/packages/coding-agent/src/extensibility/extensions/runner.ts b/packages/coding-agent/src/extensibility/extensions/runner.ts
+index e2bbea877..c68cdebf6 100644
+--- a/packages/coding-agent/src/extensibility/extensions/runner.ts
++++ b/packages/coding-agent/src/extensibility/extensions/runner.ts
+@@ -2,6 +2,7 @@
+  * Extension runner - executes extensions and manages their lifecycle.
+  */
+ import { AsyncLocalStorage } from "node:async_hooks";
++import { isDeepStrictEqual } from "node:util";
+ import type {
+ 	AgentMessage,
+ 	AgentTool,
+@@ -9,6 +10,7 @@ import type {
+ 	AgentToolResult,
+ 	AgentToolUpdateCallback,
+ } from "@oh-my-pi/pi-agent-core";
++import { Tokenizer } from "@oh-my-pi/pi-agent-core";
+ import type { CredentialDisabledEvent, ImageContent, Model, ProviderResponseMetadata } from "@oh-my-pi/pi-ai";
+ import type { KeyId } from "@oh-my-pi/pi-tui";
+ import { logger } from "@oh-my-pi/pi-utils";
+@@ -23,6 +25,7 @@ import { addFileDeleteFallback, addFileWriteFallback } from "../../tools/file-wr
+ import type { BranchHandler, NavigateTreeHandler, NewSessionHandler } from "../session-handler-types";
+ import { ManagedTimers } from "./managed-timers";
+ import { createExtensionModelQuery } from "./model-api";
++import { CONTEXT_OWNER_API_VERSION, ContextOwnershipError } from "./types";
+ import type {
+ 	AfterProviderResponseEvent,
+ 	AssistantThinkingRenderer,
+@@ -35,6 +38,9 @@ import type {
+ 	ContextEvent,
+ 	ContextEventResult,
+ 	ContextUsage,
++	ContextOwnerOperationBinding,
++	ContextOwnerProjectionBinding,
++	ContextOwnerProviderRequestResult,
+ 	Extension,
+ 	ExtensionActions,
+ 	ExtensionCommandContext,
+@@ -59,6 +65,7 @@ import type {
+ 	ResourcesDiscoverResult,
+ 	SessionBeforeBranchResult,
+ 	SessionBeforeCompactResult,
++	SessionBeforeHandoffResult,
+ 	SessionBeforeSwitchResult,
+ 	SessionBeforeTreeResult,
+ 	SessionCompactingResult,
+@@ -74,12 +81,31 @@ import type {
+ 	UserPythonEvent,
+ 	UserPythonEventResult,
+ } from "./types";
++const CONTEXT_MUTATING_EVENTS = new Set([
++	"context",
++	"before_agent_start",
++	"before_provider_request",
++	"session_before_handoff",
++	"session_before_switch",
++	"session_before_branch",
++	"session_before_compact",
++	"session.compacting",
++	"session_before_tree",
++]);
+ 
+ /** Combined result from all before_agent_start handlers */
+ interface BeforeAgentStartCombinedResult {
+ 	messages?: NonNullable<BeforeAgentStartEventResult["message"]>[];
+ 	systemPrompt?: string[];
+ }
++interface PendingContextOwnerProjection {
++	binding: ContextOwnerProjectionBinding;
++	messages: AgentMessage[];
++	sourceBranchEntryIds: string[];
++	sourcePersistedMessages: AgentMessage[];
++	sourceMessages: AgentMessage[];
++}
++
+ 
+ export type ExtensionErrorListener = (error: ExtensionError) => void;
+ 
+@@ -345,13 +371,21 @@ type RunnerEmitEvent = Exclude<
+ 
+ type SessionBeforeEvent = Extract<
+ 	RunnerEmitEvent,
+-	{ type: "session_before_switch" | "session_before_branch" | "session_before_compact" | "session_before_tree" }
++	{
++		type:
++			| "session_before_switch"
++			| "session_before_branch"
++			| "session_before_compact"
++			| "session_before_handoff"
++			| "session_before_tree";
++	}
+ >;
+ 
+ type SessionBeforeEventResult =
+ 	| SessionBeforeSwitchResult
+ 	| SessionBeforeBranchResult
+ 	| SessionBeforeCompactResult
++	| SessionBeforeHandoffResult
+ 	| SessionBeforeTreeResult;
+ 
+ type RunnerEmitResult<TEvent extends RunnerEmitEvent> = TEvent extends { type: "session_before_switch" }
+@@ -360,13 +394,15 @@ type RunnerEmitResult<TEvent extends RunnerEmitEvent> = TEvent extends { type: "
+ 		? SessionBeforeBranchResult | undefined
+ 		: TEvent extends { type: "session_before_compact" }
+ 			? SessionBeforeCompactResult | undefined
+-			: TEvent extends { type: "session_before_tree" }
+-				? SessionBeforeTreeResult | undefined
+-				: TEvent extends { type: "session.compacting" }
+-					? SessionCompactingResult | undefined
+-					: TEvent extends { type: "session_stop" }
+-						? SessionStopEventResult | undefined
+-						: undefined;
++			: TEvent extends { type: "session_before_handoff" }
++				? SessionBeforeHandoffResult | undefined
++				: TEvent extends { type: "session_before_tree" }
++					? SessionBeforeTreeResult | undefined
++					: TEvent extends { type: "session.compacting" }
++						? SessionCompactingResult | undefined
++						: TEvent extends { type: "session_stop" }
++							? SessionStopEventResult | undefined
++							: undefined;
+ 
+ // Session-lifecycle handler types live once in session-handler-types (imported
+ // above for local use); re-exported here to keep this module's public API stable.
+@@ -458,6 +494,9 @@ export class ExtensionRunner {
+ 	#toolRegistrationScope = new AsyncLocalStorage<ToolRegistrationScope>();
+ 	#toolRegistrationBarrier: Promise<void> | undefined;
+ 	#initialized = false;
++	#requiredContextOwnerId?: string;
++	#contextOwnerExtension?: Extension;
++	#pendingContextOwnerProjection?: PendingContextOwnerProjection;
+ 	/**
+ 	 * Buffer for `credential_disabled` events received via {@link emitCredentialDisabled}
+ 	 * before {@link initialize} has run. Drained through {@link emit} once initialize sets
+@@ -611,6 +650,56 @@ export class ExtensionRunner {
+ 		this.#uiContext = noOpUIContext;
+ 		this.#getMemoryFn = getMemory;
+ 		this.#getAsyncJobSnapshotFn = getAsyncJobSnapshot ?? (() => null);
++		const requiredOwnerId = (settings?.get("context.owner") ?? "").trim() || undefined;
++		this.#requiredContextOwnerId = requiredOwnerId;
++		if (!requiredOwnerId) return;
++
++		if (runtime.contextOwnerConflict) {
++			throw new ContextOwnershipError("OWNER_CONFLICT", runtime.contextOwnerConflict, requiredOwnerId);
++		}
++		const registration = runtime.contextOwnerRegistration;
++		if (!registration) {
++			throw new ContextOwnershipError(
++				"REQUIRED_OWNER_MISSING",
++				`Context owner "${requiredOwnerId}" is required but no extension registered it`,
++				requiredOwnerId,
++			);
++		}
++		if (registration.apiVersion !== CONTEXT_OWNER_API_VERSION) {
++			throw new ContextOwnershipError(
++				"OWNER_API_UNSUPPORTED",
++				`Context owner "${registration.id}" uses unsupported API version ${String(registration.apiVersion)}`,
++				registration.id,
++			);
++		}
++		if (registration.id !== requiredOwnerId) {
++			throw new ContextOwnershipError(
++				"OWNER_ID_MISMATCH",
++				`Context owner "${requiredOwnerId}" is required, but "${registration.id}" registered`,
++				requiredOwnerId,
++			);
++		}
++		const ownerExtension = extensions.find(extension => extension.path === registration.extensionPath);
++		if (!ownerExtension) {
++			throw new ContextOwnershipError(
++				"REQUIRED_OWNER_MISSING",
++				`Context owner "${requiredOwnerId}" did not finish loading`,
++				requiredOwnerId,
++			);
++		}
++		for (const extension of extensions) {
++			if (extension === ownerExtension) continue;
++			for (const eventType of CONTEXT_MUTATING_EVENTS) {
++				if (!extension.handlers.get(eventType)?.length) continue;
++				throw new ContextOwnershipError(
++					"COMPETING_CONTEXT_MUTATOR",
++					`Extension ${extension.path} registers competing "${eventType}" context mutation`,
++					requiredOwnerId,
++					eventType,
++				);
++			}
++		}
++		this.#contextOwnerExtension = ownerExtension;
+ 	}
+ 
+ 	/**
+@@ -643,6 +732,19 @@ export class ExtensionRunner {
+ 		return this.sessionManager.getSessionId();
+ 	}
+ 
++	getContextOwnerCapability(): {
++		apiVersion: typeof CONTEXT_OWNER_API_VERSION;
++		requiredOwnerId?: string;
++		registeredOwnerId?: string;
++		active: boolean;
++	} {
++		return {
++			apiVersion: CONTEXT_OWNER_API_VERSION,
++			requiredOwnerId: this.#requiredContextOwnerId,
++			registeredOwnerId: this.runtime.contextOwnerRegistration?.id,
++			active: this.#contextOwnerExtension !== undefined,
++		};
++	}
+ 	initialize(
+ 		actions: ExtensionActions,
+ 		contextActions: ExtensionContextActions,
+@@ -1076,6 +1178,18 @@ export class ExtensionRunner {
+ 	}
+ 
+ 	hasHandlers(eventType: string): boolean {
++		if (
++			this.#contextOwnerExtension &&
++			(eventType === "context" ||
++				eventType === "before_provider_request" ||
++				eventType === "session_before_switch" ||
++				eventType === "session_before_branch" ||
++				eventType === "session_before_compact" ||
++				eventType === "session_before_handoff" ||
++				eventType === "session_before_tree")
++		) {
++			return true;
++		}
+ 		for (const ext of this.extensions) {
+ 			const handlers = ext.handlers.get(eventType);
+ 			if (handlers && handlers.length > 0) {
+@@ -1084,6 +1198,9 @@ export class ExtensionRunner {
+ 		}
+ 		return false;
+ 	}
++	isContextOwnerActive(): boolean {
++		return this.#contextOwnerExtension !== undefined;
++	}
+ 
+ 	getMessageRenderer(customType: string): MessageRenderer | undefined {
+ 		for (const ext of this.extensions) {
+@@ -1253,12 +1370,164 @@ export class ExtensionRunner {
+ 			event.type === "session_before_switch" ||
+ 			event.type === "session_before_branch" ||
+ 			event.type === "session_before_compact" ||
++			event.type === "session_before_handoff" ||
+ 			event.type === "session_before_tree"
+ 		);
+ 	}
+ 	#isSessionShutdownEvent(event: RunnerEmitEvent): event is Extract<RunnerEmitEvent, { type: "session_shutdown" }> {
+ 		return event.type === "session_shutdown";
+ 	}
++	#getContextOwnerHandlers(eventType: string, required: boolean) {
++		const extension = this.#contextOwnerExtension;
++		if (!extension) return undefined;
++		const handlers = extension.handlers.get(eventType) ?? [];
++		if (handlers.length === 0 && !required) return undefined;
++		if (handlers.length !== 1) {
++			throw new ContextOwnershipError(
++				"OWNER_HANDLER_MISSING",
++				`Context owner "${this.#requiredContextOwnerId}" must register exactly one "${eventType}" handler`,
++				this.#requiredContextOwnerId,
++				eventType,
++			);
++		}
++		return { extension, handler: handlers[0]! };
++	}
++
++	#throwContextOwnerHandlerFailure(kind: "timeout" | "error", message: string, eventType: string): never {
++		throw new ContextOwnershipError(
++			kind === "timeout" ? "OWNER_HANDLER_TIMEOUT" : "OWNER_HANDLER_FAILED",
++			`Context owner "${this.#requiredContextOwnerId}" ${kind} during "${eventType}": ${message}`,
++			this.#requiredContextOwnerId,
++			eventType,
++		);
++	}
++	#validateContextOwnerBinding(
++		value: unknown,
++		eventType: string,
++		requireCurrentLeaf = true,
++	): ContextOwnerOperationBinding {
++		if (typeof value !== "object" || value === null || Array.isArray(value)) {
++			throw new ContextOwnershipError(
++				"OWNER_BINDING_INVALID",
++				`Context owner "${this.#requiredContextOwnerId}" returned no operation binding for "${eventType}"`,
++				this.#requiredContextOwnerId,
++				eventType,
++			);
++		}
++		const binding = value as Partial<ContextOwnerOperationBinding>;
++		const invalidString =
++			typeof binding.ownerId !== "string" ||
++			binding.ownerId.length === 0 ||
++			typeof binding.operationId !== "string" ||
++			binding.operationId.length === 0 ||
++			typeof binding.sourceSessionId !== "string" ||
++			binding.sourceSessionId.length === 0 ||
++			typeof binding.headId !== "string" ||
++			binding.headId.length === 0 ||
++			typeof binding.checkpointId !== "string" ||
++			binding.checkpointId.length === 0 ||
++			typeof binding.checkpointHash !== "string" ||
++			binding.checkpointHash.length === 0 ||
++			typeof binding.sourceRootDigest !== "string" ||
++			binding.sourceRootDigest.length === 0;
++		const invalidNullableId =
++			(binding.sourceLeafId !== null && typeof binding.sourceLeafId !== "string") ||
++			(binding.coveredThroughEntryId !== null && typeof binding.coveredThroughEntryId !== "string");
++		if (
++			invalidString ||
++			invalidNullableId ||
++			binding.ownerId !== this.#requiredContextOwnerId ||
++			binding.apiVersion !== CONTEXT_OWNER_API_VERSION ||
++			!Number.isSafeInteger(binding.revocationEpoch) ||
++			(binding.revocationEpoch ?? -1) < 0 ||
++			binding.sourceSessionId !== this.sessionManager.getSessionId() ||
++			(requireCurrentLeaf && binding.sourceLeafId !== this.sessionManager.getLeafId())
++		) {
++			throw new ContextOwnershipError(
++				"OWNER_BINDING_INVALID",
++				`Context owner "${this.#requiredContextOwnerId}" returned a stale or malformed operation binding for "${eventType}"`,
++				this.#requiredContextOwnerId,
++				eventType,
++			);
++		}
++		return binding as ContextOwnerOperationBinding;
++	}
++
++	#validateContextOwnerProjection(
++		value: unknown,
++		eventType: string,
++		requireCurrentLeaf = true,
++	): ContextOwnerProjectionBinding {
++		const binding = this.#validateContextOwnerBinding(
++			value,
++			eventType,
++			requireCurrentLeaf,
++		) as Partial<ContextOwnerProjectionBinding>;
++		if (
++			typeof binding.projectionId !== "string" ||
++			binding.projectionId.length === 0 ||
++			!Number.isSafeInteger(binding.tokenCount) ||
++			(binding.tokenCount ?? -1) < 0 ||
++			!Number.isSafeInteger(binding.tokenBudget) ||
++			(binding.tokenBudget ?? -1) < 0
++		) {
++			throw new ContextOwnershipError(
++				"OWNER_BINDING_INVALID",
++				`Context owner "${this.#requiredContextOwnerId}" returned a malformed projection binding`,
++				this.#requiredContextOwnerId,
++				eventType,
++			);
++		}
++		return binding as ContextOwnerProjectionBinding;
++	}
++
++	#sameContextOwnerProjection(left: ContextOwnerProjectionBinding, right: ContextOwnerProjectionBinding): boolean {
++		return (
++			left.ownerId === right.ownerId &&
++			left.apiVersion === right.apiVersion &&
++			left.operationId === right.operationId &&
++			left.sourceSessionId === right.sourceSessionId &&
++			left.sourceLeafId === right.sourceLeafId &&
++			left.headId === right.headId &&
++			left.checkpointId === right.checkpointId &&
++			left.checkpointHash === right.checkpointHash &&
++			left.sourceRootDigest === right.sourceRootDigest &&
++			left.coveredThroughEntryId === right.coveredThroughEntryId &&
++			left.revocationEpoch === right.revocationEpoch &&
++			left.projectionId === right.projectionId &&
++			left.tokenCount === right.tokenCount &&
++			left.tokenBudget === right.tokenBudget
++		);
++	}
++	#isExpectedContextSourceAdvance(pending: PendingContextOwnerProjection): boolean {
++		if (pending.binding.sourceLeafId === this.sessionManager.getLeafId()) return true;
++
++		const branch = this.sessionManager.getBranch();
++		const appendedEntries = branch.slice(pending.sourceBranchEntryIds.length);
++		if (
++			branch.length < pending.sourceBranchEntryIds.length ||
++			appendedEntries.length === 0 ||
++			appendedEntries.some(entry => entry.type !== "message" && entry.type !== "custom_message")
++		) {
++			return false;
++		}
++		for (let index = 0; index < pending.sourceBranchEntryIds.length; index++) {
++			if (branch[index]?.id !== pending.sourceBranchEntryIds[index]) return false;
++		}
++
++		const persistedMessages = this.sessionManager.buildSessionContext().messages;
++		if (
++			persistedMessages.length !== pending.sourcePersistedMessages.length + appendedEntries.length ||
++			persistedMessages.length > pending.sourceMessages.length
++		) {
++			return false;
++		}
++		for (let index = 0; index < pending.sourcePersistedMessages.length; index++) {
++			if (!isDeepStrictEqual(persistedMessages[index], pending.sourcePersistedMessages[index])) return false;
++		}
++		return persistedMessages.every((message, index) => isDeepStrictEqual(message, pending.sourceMessages[index]));
++	}
++
+ 	async #runHandlerWithTimeout<TEvent extends { type: string }, R>(
+ 		handler: (event: TEvent, ctx: ExtensionContext) => Promise<R | undefined> | R | undefined,
+ 		event: TEvent,
+@@ -1352,6 +1621,54 @@ export class ExtensionRunner {
+ 		// message_update / tool_execution_* per delta with usually no extension
+ 		// subscribed; building `ctx` for a zero-handler event is pure waste.
+ 		let ctx: ExtensionContext | undefined;
++		if (this.#contextOwnerExtension && this.#isSessionBeforeEvent(event)) {
++			const owned = this.#getContextOwnerHandlers(event.type, true)!;
++			ctx = this.createContext();
++			const handlerResult = await this.#runHandlerWithTimeout(
++				owned.handler,
++				event,
++				ctx,
++				owned.extension,
++				handlerTimeoutForEvent(event.type),
++				(kind, message) => this.#throwContextOwnerHandlerFailure(kind, message, event.type),
++				"signal" in event && event.signal instanceof AbortSignal ? event.signal : undefined,
++			);
++			if (!handlerResult || typeof handlerResult !== "object") {
++				throw new ContextOwnershipError(
++					"OWNER_RESULT_INVALID",
++					`Context owner "${this.#requiredContextOwnerId}" returned no result for "${event.type}"`,
++					this.#requiredContextOwnerId,
++					event.type,
++				);
++			}
++			const ownerResult = handlerResult as { cancel?: unknown; ownerBinding?: unknown };
++			if (ownerResult.cancel !== undefined && typeof ownerResult.cancel !== "boolean") {
++				throw new ContextOwnershipError(
++					"OWNER_RESULT_INVALID",
++					`Context owner "${this.#requiredContextOwnerId}" returned an invalid cancellation for "${event.type}"`,
++					this.#requiredContextOwnerId,
++					event.type,
++				);
++			}
++			if (ownerResult.cancel !== true) {
++				this.#validateContextOwnerBinding(ownerResult.ownerBinding, event.type);
++			}
++			return handlerResult as RunnerEmitResult<TEvent>;
++		}
++		if (this.#contextOwnerExtension && event.type === "session.compacting") {
++			const owned = this.#getContextOwnerHandlers(event.type, false);
++			if (!owned) return undefined as RunnerEmitResult<TEvent>;
++			const handlerResult = await this.#runHandlerWithTimeout(
++				owned.handler,
++				event,
++				this.createContext(),
++				owned.extension,
++				handlerTimeoutForEvent(event.type),
++				(kind, message) => this.#throwContextOwnerHandlerFailure(kind, message, event.type),
++			);
++			return handlerResult as RunnerEmitResult<TEvent>;
++		}
++
+ 		let result: SessionBeforeEventResult | SessionCompactingResult | SessionStopEventResult | undefined;
+ 
+ 		if (this.#isSessionShutdownEvent(event)) {
+@@ -1616,6 +1933,44 @@ export class ExtensionRunner {
+ 	}
+ 
+ 	async emitContext(messages: AgentMessage[]): Promise<AgentMessage[]> {
++		if (this.#contextOwnerExtension) {
++			this.#pendingContextOwnerProjection = undefined;
++			const owned = this.#getContextOwnerHandlers("context", true)!;
++			let ownedMessages: AgentMessage[];
++			try {
++				ownedMessages = structuredClone(messages);
++			} catch {
++				ownedMessages = [...messages];
++			}
++			const event: ContextEvent = { type: "context", messages: ownedMessages };
++			const handlerResult = await this.#runHandlerWithTimeout(
++				owned.handler,
++				event,
++				this.createContext(),
++				owned.extension,
++				extensionHandlerTimeoutMs,
++				(kind, message) => this.#throwContextOwnerHandlerFailure(kind, message, "context"),
++			);
++			const result = handlerResult as ContextEventResult | undefined;
++			if (!result || !Array.isArray(result.messages)) {
++				throw new ContextOwnershipError(
++					"OWNER_RESULT_INVALID",
++					`Context owner "${this.#requiredContextOwnerId}" returned no message projection`,
++					this.#requiredContextOwnerId,
++					"context",
++				);
++			}
++			const binding = this.#validateContextOwnerProjection(result.ownerProjection, "context");
++			this.#pendingContextOwnerProjection = {
++				binding,
++				messages: result.messages,
++				sourceBranchEntryIds: this.sessionManager.getBranch().map(entry => entry.id),
++				sourcePersistedMessages: this.sessionManager.buildSessionContext().messages,
++				sourceMessages: [...messages],
++			};
++			return result.messages;
++		}
++
+ 		const ctx = this.createContext();
+ 
+ 		// Check if any extensions actually have context handlers before cloning
+@@ -1663,6 +2018,93 @@ export class ExtensionRunner {
+ 
+ 	/** Runs request payload hooks with the model used for that provider request. */
+ 	async emitBeforeProviderRequest(payload: unknown, model?: Model): Promise<BeforeProviderRequestEventResult> {
++		if (this.#contextOwnerExtension) {
++			const pending = this.#pendingContextOwnerProjection;
++			if (!pending) {
++				throw new ContextOwnershipError(
++					"OWNER_PROJECTION_MISSING",
++					`Context owner "${this.#requiredContextOwnerId}" has no prepared projection for this provider request`,
++					this.#requiredContextOwnerId,
++					"before_provider_request",
++				);
++			}
++			try {
++				const owned = this.#getContextOwnerHandlers("before_provider_request", true)!;
++				const handlerResult = await this.#runHandlerWithTimeout(
++					owned.handler,
++					{ type: "before_provider_request", payload },
++					this.createContext(model),
++					owned.extension,
++					extensionHandlerTimeoutMs,
++					(kind, message) => this.#throwContextOwnerHandlerFailure(kind, message, "before_provider_request"),
++				);
++				if (
++					typeof handlerResult !== "object" ||
++					handlerResult === null ||
++					Array.isArray(handlerResult) ||
++					!Object.prototype.hasOwnProperty.call(handlerResult, "payload")
++				) {
++					throw new ContextOwnershipError(
++						"OWNER_RESULT_INVALID",
++						`Context owner "${this.#requiredContextOwnerId}" did not acknowledge the provider request`,
++						this.#requiredContextOwnerId,
++						"before_provider_request",
++					);
++				}
++				const result = handlerResult as ContextOwnerProviderRequestResult;
++				// The agent loop can persist source messages after `context` and before
++				// the wire hook. Accept only that append-only transition: the original
++				// branch must remain a prefix and its resolved messages must remain a
++				// prefix of the source messages that were actually projected.
++				const acknowledged = this.#validateContextOwnerProjection(
++					result.ownerProjection,
++					"before_provider_request",
++					false,
++				);
++				if (!this.#isExpectedContextSourceAdvance(pending)) {
++					throw new ContextOwnershipError(
++						"OWNER_BINDING_INVALID",
++						`Context owner "${this.#requiredContextOwnerId}" projection source changed before the provider request`,
++						this.#requiredContextOwnerId,
++						"before_provider_request",
++					);
++				}
++				if (!this.#sameContextOwnerProjection(pending.binding, acknowledged)) {
++					throw new ContextOwnershipError(
++						"OWNER_PROJECTION_STALE",
++						`Context owner "${this.#requiredContextOwnerId}" acknowledged a different projection`,
++						this.#requiredContextOwnerId,
++						"before_provider_request",
++					);
++				}
++				if (!model) {
++					throw new ContextOwnershipError(
++						"OWNER_PROJECTION_OVER_BUDGET",
++						`Context owner "${this.#requiredContextOwnerId}" cannot verify projection budget without a model`,
++						this.#requiredContextOwnerId,
++						"before_provider_request",
++					);
++				}
++				const messageTokens = new Tokenizer(model).countMessages(pending.messages);
++				if (
++					messageTokens !== acknowledged.tokenCount ||
++					acknowledged.tokenCount > acknowledged.tokenBudget ||
++					model.contextWindow === null ||
++					acknowledged.tokenBudget > model.contextWindow
++				) {
++					throw new ContextOwnershipError(
++						"OWNER_PROJECTION_OVER_BUDGET",
++						`Context owner "${this.#requiredContextOwnerId}" projection exceeds or misstates its provider budget`,
++						this.#requiredContextOwnerId,
++						"before_provider_request",
++					);
++				}
++				return result.payload;
++			} finally {
++				this.#pendingContextOwnerProjection = undefined;
++			}
++		}
++
+ 		const ctx = this.createContext(model);
+ 		let currentPayload = payload;
+ 
+@@ -1717,6 +2159,30 @@ export class ExtensionRunner {
+ 		images: ImageContent[] | undefined,
+ 		systemPrompt: string[],
+ 	): Promise<BeforeAgentStartCombinedResult | undefined> {
++		if (this.#contextOwnerExtension) {
++			const owned = this.#getContextOwnerHandlers("before_agent_start", false);
++			if (!owned) return undefined;
++			const handlerResult = await this.#runHandlerWithTimeout(
++				owned.handler,
++				{ type: "before_agent_start", prompt, images, systemPrompt },
++				this.createContext(),
++				owned.extension,
++				extensionHandlerTimeoutMs,
++				(kind, message) => this.#throwContextOwnerHandlerFailure(kind, message, "before_agent_start"),
++			);
++			if (!handlerResult) return undefined;
++			const result = handlerResult as BeforeAgentStartEventResult;
++			return {
++				messages: result.message ? [result.message] : undefined,
++				systemPrompt:
++					result.systemPrompt === undefined
++						? undefined
++						: typeof result.systemPrompt === "string"
++							? [result.systemPrompt]
++							: result.systemPrompt,
++			};
++		}
++
+ 		const ctx = this.createContext();
+ 		const messages: NonNullable<BeforeAgentStartEventResult["message"]>[] = [];
+ 		let currentSystemPrompt = systemPrompt;
+diff --git a/packages/coding-agent/src/extensibility/extensions/types.ts b/packages/coding-agent/src/extensibility/extensions/types.ts
+index e79897301..b5b16a283 100644
+--- a/packages/coding-agent/src/extensibility/extensions/types.ts
++++ b/packages/coding-agent/src/extensibility/extensions/types.ts
+@@ -91,10 +91,13 @@ import type {
+ 	GoalUpdatedEvent,
+ 	RetryFallbackAppliedEvent,
+ 	RetryFallbackSucceededEvent,
++	ContextOwnerProjectionBinding,
+ 	SessionBeforeBranchEvent,
+ 	SessionBeforeBranchResult,
+ 	SessionBeforeCompactEvent,
+ 	SessionBeforeCompactResult,
++	SessionBeforeHandoffEvent,
++	SessionBeforeHandoffResult,
+ 	SessionBeforeSwitchEvent,
+ 	SessionBeforeSwitchResult,
+ 	SessionBeforeTreeEvent,
+@@ -103,6 +106,7 @@ import type {
+ 	SessionCompactEvent,
+ 	SessionCompactingEvent,
+ 	SessionCompactingResult,
++	SessionHandoffEvent,
+ 	SessionEvent,
+ 	SessionShutdownEvent,
+ 	SessionStartEvent,
+@@ -720,6 +724,10 @@ export interface ResourcesDiscoverResult {
+ // ============================================================================
+ 
+ export type {
++	ContextOwnerOperationBinding,
++	ContextOwnerOperationKind,
++	ContextOwnerProjectionBinding,
++	PersistedContextOwnerBinding,
+ 	SessionBeforeBranchEvent,
+ 	SessionBeforeCompactEvent,
+ 	SessionBeforeSwitchEvent,
+@@ -1108,6 +1116,14 @@ export type ExtensionEvent =
+ 
+ export interface ContextEventResult {
+ 	messages?: AgentMessage[];
++	/** Required from the active owner; binds this exact projection to its field checkpoint. */
++	ownerProjection?: ContextOwnerProjectionBinding;
++}
++
++export interface ContextOwnerProviderRequestResult {
++	payload: unknown;
++	/** Must exactly match the immediately preceding owner projection. */
++	ownerProjection: ContextOwnerProjectionBinding;
+ }
+ 
+ export type BeforeProviderRequestEventResult = unknown;
+@@ -1147,6 +1163,7 @@ export interface BeforeAgentStartEventResult {
+ export type {
+ 	SessionBeforeBranchResult,
+ 	SessionBeforeCompactResult,
++	SessionBeforeHandoffResult,
+ 	SessionBeforeSwitchResult,
+ 	SessionBeforeTreeResult,
+ 	SessionCompactingResult,
+@@ -1205,6 +1222,47 @@ export type ExtensionServiceTier<Family extends ServiceTierFamily> = Family exte
+ 	: Family extends "google"
+ 		? "flex" | "priority"
+ 		: ServiceTier;
++export const CONTEXT_OWNER_API_VERSION = 1 as const;
++
++/** Declares one extension as the exclusive owner of mutable context for an owned profile. */
++export interface ContextOwnerRegistration {
++	id: string;
++	apiVersion: typeof CONTEXT_OWNER_API_VERSION;
++}
++
++/** Registration bound by the host to the extension factory that declared it. */
++export interface RegisteredContextOwner extends ContextOwnerRegistration {
++	extensionPath: string;
++}
++
++export type ContextOwnershipErrorCode =
++	| "REQUIRED_OWNER_MISSING"
++	| "OWNER_API_UNSUPPORTED"
++	| "OWNER_ID_MISMATCH"
++	| "OWNER_CONFLICT"
++	| "COMPETING_CONTEXT_MUTATOR"
++	| "OWNER_HANDLER_MISSING"
++	| "OWNER_HANDLER_FAILED"
++	| "OWNER_HANDLER_TIMEOUT"
++	| "OWNER_RESULT_INVALID"
++	| "OWNER_BINDING_INVALID"
++	| "OWNER_PROJECTION_MISSING"
++	| "OWNER_PROJECTION_STALE"
++	| "OWNER_PROJECTION_OVER_BUDGET"
++	| "OWNED_OPERATION_UNSUPPORTED";
++
++export class ContextOwnershipError extends Error {
++	override readonly name = "ContextOwnershipError";
++
++	constructor(
++		public readonly code: ContextOwnershipErrorCode,
++		message: string,
++		public readonly ownerId?: string,
++		public readonly eventType?: string,
++	) {
++		super(message);
++	}
++}
+ 
+ /**
+  * ExtensionAPI passed to extension factory functions.
+@@ -1229,6 +1287,19 @@ export interface ExtensionAPI {
+ 	/** Injected pi-coding-agent exports for accessing SDK utilities */
+ 	pi: typeof PiCodingAgent;
+ 
++	// =========================================================================
++	// Context ownership
++	// =========================================================================
++
++	/**
++	 * Declare this extension as the singleton mutable-context owner.
++	 *
++	 * Registration is inert unless the active profile sets `context.owner` to
++	 * the same id. The host rejects unsupported API versions and every second
++	 * registration instead of selecting an owner by extension load order.
++	 */
++	registerContextOwner(registration: ContextOwnerRegistration): void;
++
+ 	// =========================================================================
+ 	// Event Subscription
+ 	// =========================================================================
+@@ -1251,6 +1322,11 @@ export interface ExtensionAPI {
+ 	): void;
+ 	on(event: "session.compacting", handler: ExtensionHandler<SessionCompactingEvent, SessionCompactingResult>): void;
+ 	on(event: "session_compact", handler: ExtensionHandler<SessionCompactEvent>): void;
++	on(
++		event: "session_before_handoff",
++		handler: ExtensionHandler<SessionBeforeHandoffEvent, SessionBeforeHandoffResult>,
++	): void;
++	on(event: "session_handoff", handler: ExtensionHandler<SessionHandoffEvent>): void;
+ 	on(event: "session_shutdown", handler: ExtensionHandler<SessionShutdownEvent>): void;
+ 	on(event: "session_before_tree", handler: ExtensionHandler<SessionBeforeTreeEvent, SessionBeforeTreeResult>): void;
+ 	on(event: "session_tree", handler: ExtensionHandler<SessionTreeEvent>): void;
+@@ -1685,8 +1761,12 @@ export type SetServiceTierHandler = (family: ServiceTierFamily, tier: ServiceTie
+ /** Shared state created by loader, used during registration and runtime. */
+ export interface ExtensionRuntimeState {
+ 	flagValues: Map<string, boolean | string>;
++	contextOwnerRegistration?: RegisteredContextOwner;
++	contextOwnerConflict?: string;
+ 	/** Provider registrations queued during extension loading, processed during session initialization */
+ 	pendingProviderRegistrations: Array<{ name: string; config: ProviderConfig; sourceId: string }>;
++	/** Register one context owner during extension loading. */
++	registerContextOwner(registration: ContextOwnerRegistration, sourceId: string): void;
+ 	/** Queue a provider registration until initialization, then apply it immediately. */
+ 	registerProvider(name: string, config: ProviderConfig, sourceId: string): void;
+ 	/** Remove a queued or initialized provider registration. */
+@@ -1750,6 +1830,7 @@ export interface Extension {
+ 	path: string;
+ 	resolvedPath: string;
+ 	label?: string;
++	contextOwner?: ContextOwnerRegistration;
+ 	handlers: Map<string, HandlerFn[]>;
+ 	tools: Map<string, RegisteredTool<any, any>>;
+ 	toolRegistrationListeners?: Set<ToolRegistrationListener>;
+diff --git a/packages/coding-agent/src/extensibility/shared-events.ts b/packages/coding-agent/src/extensibility/shared-events.ts
+index b4d35b0f3..bf955ba2b 100644
+--- a/packages/coding-agent/src/extensibility/shared-events.ts
++++ b/packages/coding-agent/src/extensibility/shared-events.ts
+@@ -17,7 +17,16 @@ import type { CompactionPreparation, CompactionResult } from "@oh-my-pi/pi-agent
+ import type { AssistantRetryRecovery, ImageContent, TextContent, ToolResultMessage } from "@oh-my-pi/pi-ai";
+ import type { Rule } from "../capability/rule";
+ import type { Goal, GoalModeState } from "../goals/state";
+-import type { BranchSummaryEntry, CompactionEntry, SessionEntry } from "../session/session-entries";
++import {
++	CONTEXT_OWNER_BINDING_CUSTOM_TYPE,
++	type ContextOwnerOperationBinding,
++	type ContextOwnerOperationKind,
++	type ContextOwnerProjectionBinding,
++	type PersistedContextOwnerBinding,
++	type BranchSummaryEntry,
++	type CompactionEntry,
++	type SessionEntry,
++} from "../session/session-entries";
+ import type { TodoItem } from "../tools/todo";
+ 
+ // ============================================================================
+@@ -29,12 +38,20 @@ export interface SessionStartEvent {
+ 	type: "session_start";
+ }
+ 
++export { CONTEXT_OWNER_BINDING_CUSTOM_TYPE };
++export type {
++	ContextOwnerOperationBinding,
++	ContextOwnerOperationKind,
++	ContextOwnerProjectionBinding,
++	PersistedContextOwnerBinding,
++};
++
+ /** Fired before switching to another session (can be cancelled) */
+ export interface SessionBeforeSwitchEvent {
+ 	type: "session_before_switch";
+ 	/** Reason for the switch */
+-	reason: "new" | "resume" | "fork";
+-	/** Session file we're switching to (only for "resume") */
++	reason: "new" | "resume" | "reload" | "fork" | "move" | "clear";
++	/** Session file we're switching to (for resume/reload) */
+ 	targetSessionFile?: string;
+ }
+ 
+@@ -42,7 +59,7 @@ export interface SessionBeforeSwitchEvent {
+ export interface SessionSwitchEvent {
+ 	type: "session_switch";
+ 	/** Reason for the switch */
+-	reason: "new" | "resume" | "fork";
++	reason: "new" | "resume" | "reload" | "fork" | "move" | "clear";
+ 	/** Session file we came from */
+ 	previousSessionFile: string | undefined;
+ }
+@@ -63,6 +80,12 @@ export interface SessionBranchEvent {
+ /** Fired before context compaction (can be cancelled or customized) */
+ export interface SessionBeforeCompactEvent {
+ 	type: "session_before_compact";
++	/** Rewrite path that requested the compaction. */
++	reason: "manual" | "automatic" | "shake";
++	/** Native automatic trigger when reason is "automatic". */
++	automaticReason?: "overflow" | "threshold" | "idle" | "incomplete";
++	/** Native shake mode when the owner is preparing a requested reduction. */
++	shakeMode?: "elide" | "images" | "thinking";
+ 	/** Compaction preparation with messages to summarize, file ops, previous summary, etc. */
+ 	preparation: CompactionPreparation;
+ 	/** Branch entries (root to current leaf). Use to inspect custom state or previous compactions. */
+@@ -87,6 +110,22 @@ export interface SessionCompactEvent {
+ 	/** Whether the compaction entry was provided by an extension/hook */
+ 	fromExtension: boolean;
+ }
++/** Fired before a handoff document is generated. */
++export interface SessionBeforeHandoffEvent {
++	type: "session_before_handoff";
++	branchEntries: SessionEntry[];
++	preparation: CompactionPreparation;
++	customInstructions?: string;
++	signal: AbortSignal;
++}
++
++/** Fired after a handoff document is generated. */
++export interface SessionHandoffEvent {
++	type: "session_handoff";
++	document: string;
++	savedPath?: string;
++	fromExtension: boolean;
++}
+ 
+ /** Fired on process exit (SIGINT/SIGTERM) */
+ export interface SessionShutdownEvent {
+@@ -158,6 +197,8 @@ export type SessionEvent =
+ 	| SessionBeforeCompactEvent
+ 	| SessionCompactingEvent
+ 	| SessionCompactEvent
++	| SessionBeforeHandoffEvent
++	| SessionHandoffEvent
+ 	| SessionStopEvent
+ 	| SessionShutdownEvent
+ 	| SessionBeforeTreeEvent
+@@ -348,6 +389,8 @@ export interface ToolResultEventResult {
+ export interface SessionBeforeSwitchResult {
+ 	/** If true, cancel the switch */
+ 	cancel?: boolean;
++	/** Required when a context owner allows the transition. */
++	ownerBinding?: ContextOwnerOperationBinding;
+ }
+ 
+ /** Return type for `session_before_branch` handlers */
+@@ -370,6 +413,8 @@ export interface SessionBeforeBranchResult {
+ 	 * - neither → branch happens AND messages rewind to branch point (default)
+ 	 */
+ 	skipConversationRestore?: boolean;
++	/** Required when a context owner allows the branch. */
++	ownerBinding?: ContextOwnerOperationBinding;
+ }
+ 
+ /** Return type for `session_before_compact` handlers */
+@@ -378,6 +423,15 @@ export interface SessionBeforeCompactResult {
+ 	cancel?: boolean;
+ 	/** Custom compaction result - SessionManager adds id/parentId */
+ 	compaction?: CompactionResult;
++	/** Required with an owner-provided compaction. */
++	ownerBinding?: ContextOwnerOperationBinding;
++}
++/** Return type for `session_before_handoff` handlers. */
++export interface SessionBeforeHandoffResult {
++	cancel?: boolean;
++	handoff?: { document: string; savedPath?: string };
++	/** Required with an owner-provided handoff. */
++	ownerBinding?: ContextOwnerOperationBinding;
+ }
+ 
+ /** Return type for `session.compacting` handlers */
+@@ -414,4 +468,6 @@ export interface SessionBeforeTreeResult {
+ 		summary: string;
+ 		details?: unknown;
+ 	};
++	/** Required when a context owner allows the navigation. */
++	ownerBinding?: ContextOwnerOperationBinding;
+ }
+diff --git a/packages/coding-agent/src/modes/controllers/command-controller.ts b/packages/coding-agent/src/modes/controllers/command-controller.ts
+index 85dbe4389..22ce83965 100644
+--- a/packages/coding-agent/src/modes/controllers/command-controller.ts
++++ b/packages/coding-agent/src/modes/controllers/command-controller.ts
+@@ -1504,7 +1504,7 @@ export class CommandController {
+ 			result.blocksDropped +
+ 			(result.imagesDropped ?? 0) +
+ 			(result.thinkingBlocksDropped ?? 0);
+-		if (dropped === 0) {
++		if (dropped === 0 && !result.ownerCompaction) {
+ 			this.ctx.showStatus("Nothing to shake.");
+ 			return;
+ 		}
+diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
+index d647c7908..f65acf9e3 100644
+--- a/packages/coding-agent/src/sdk.ts
++++ b/packages/coding-agent/src/sdk.ts
+@@ -2130,7 +2130,9 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 			}
+ 
+ 			inlineExtensions.push(...(options.extensions ?? []));
+-			inlineExtensions.push(createAutoresearchExtension);
++			if (!(settings.get("context.owner") ?? "").trim()) {
++				inlineExtensions.push(createAutoresearchExtension);
++			}
+ 			if (customTools.length > 0) {
+ 				inlineExtensions.push(createCustomToolsExtension(customTools, customToolSourcePaths));
+ 			}
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index ea17642ee..a240aba1d 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -142,7 +142,7 @@ import type {
+ 	TurnEndEvent,
+ 	TurnStartEvent,
+ } from "../extensibility/extensions";
+-import { emitSessionShutdownEvent } from "../extensibility/extensions";
++import { ContextOwnershipError, emitSessionShutdownEvent } from "../extensibility/extensions";
+ import { ManagedTimers } from "../extensibility/extensions/managed-timers";
+ import { createExtensionModelQuery } from "../extensibility/extensions/model-api";
+ import type { CompactOptions, ContextUsage } from "../extensibility/extensions/types";
+@@ -346,7 +346,12 @@ import {
+ import type { BuildSessionContextOptions, SessionContext } from "./session-context";
+ import { getRestorableSessionModels } from "./session-context";
+ import { formatSessionDumpText } from "./session-dump-format";
+-import type { BranchSummaryEntry, NewSessionOptions } from "./session-entries";
++import type {
++	BranchSummaryEntry,
++	ContextOwnerOperationBinding,
++	ContextOwnerOperationKind,
++	NewSessionOptions,
++} from "./session-entries";
+ import { SessionHandoff, type SessionHandoffHost } from "./session-handoff";
+ import {
+ 	COMPACTION_CHECK_NONE,
+@@ -4684,6 +4689,17 @@ export class AgentSession {
+ 		};
+ 	}
+ 
++	async #persistContextOwnerBinding(
++		operationKind: ContextOwnerOperationKind,
++		binding: ContextOwnerOperationBinding | undefined,
++		committedEntryId?: string,
++	): Promise<void> {
++		if (!binding) return;
++		await this.sessionManager.appendEntriesAtomically(() => {
++			this.sessionManager.appendContextOwnerBinding(operationKind, binding, committedEntryId);
++		});
++	}
++
+ 	/**
+ 	 * Reset the current conversation in place: drop every message, queued turn,
+ 	 * and pending tool call from the model's context while keeping the session
+@@ -4710,6 +4726,20 @@ export class AgentSession {
+ 		// after the boundary and re-enter the supposedly empty context. The
+ 		// sibling boundary op (branchFromBtw) guards on the same predicates.
+ 		if (this.isStreaming || this.isBashRunning || this.isEvalRunning) return undefined;
++		const previousSessionFile = this.sessionFile;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_switch")
++		) {
++			const result = (await this.#extensionRunner.emit({
++				type: "session_before_switch",
++				reason: "clear",
++				targetSessionFile: previousSessionFile,
++			})) as SessionBeforeSwitchResult | undefined;
++			if (result?.cancel) return undefined;
++			ownerBinding = result?.ownerBinding;
++		}
+ 		const droppedCount = this.agent.state.messages.length;
+ 
+ 		// Tear down the same per-turn runtime state that newSession() resets across
+@@ -4773,10 +4803,25 @@ export class AgentSession {
+ 		// boundary, so a rebuild across a `/clear` (theme change, focus attach,
+ 		// on-disk record and the plain `transcript:true` export path keep the full
+ 		// pre-reset history.
+-		this.sessionManager.appendResetBoundary();
++		if (ownerBinding) {
++			const binding = ownerBinding;
++			await this.sessionManager.appendEntriesAtomically(() => {
++				const boundaryId = this.sessionManager.appendResetBoundary();
++				this.sessionManager.appendContextOwnerBinding("clear", binding, boundaryId);
++			});
++		} else {
++			this.sessionManager.appendResetBoundary();
++		}
+ 
+ 		resetCapabilities();
+ 		await this.refreshBaseSystemPrompt();
++		if (this.#extensionRunner) {
++			await this.#extensionRunner.emit({
++				type: "session_switch",
++				reason: "clear",
++				previousSessionFile,
++			});
++		}
+ 
+ 		return { droppedCount };
+ 	}
+@@ -7565,9 +7610,13 @@ export class AgentSession {
+ 	async newSession(options?: NewSessionOptions): Promise<boolean> {
+ 		this.#assertVibeSessionTransitionAllowed("start a new session");
+ 		const previousSessionFile = this.sessionFile;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 
+ 		// Emit session_before_switch event with reason "new" (can be cancelled)
+-		if (this.#extensionRunner?.hasHandlers("session_before_switch")) {
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_switch")
++		) {
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_switch",
+ 				reason: "new",
+@@ -7576,6 +7625,7 @@ export class AgentSession {
+ 			if (result?.cancel) {
+ 				return false;
+ 			}
++			ownerBinding = result?.ownerBinding;
+ 		}
+ 
+ 		this.#disconnectFromAgent();
+@@ -7639,6 +7689,7 @@ export class AgentSession {
+ 			this.#scheduledHiddenNextTurnGeneration = undefined;
+ 			this.#queuedMessageDrainBlocked = false;
+ 			this.#usagePreflightReadyForNextModelCall = false;
++			await this.#persistContextOwnerBinding(options?.parentSession ? "fork" : "new", ownerBinding);
+ 
+ 			this.sessionManager.appendThinkingLevelChange(this.thinkingLevel, this.configuredThinkingLevel());
+ 			this.sessionManager.appendServiceTierChange(this.#models.serviceTierEntry());
+@@ -7695,9 +7746,13 @@ export class AgentSession {
+ 		this.#assertVibeSessionTransitionAllowed("fork the session");
+ 		const previousSessionFile = this.sessionFile;
+ 		const previousSessionId = this.sessionManager.getSessionId();
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 
+ 		// Emit session_before_switch event with reason "fork" (can be cancelled)
+-		if (this.#extensionRunner?.hasHandlers("session_before_switch")) {
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_switch")
++		) {
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_switch",
+ 				reason: "fork",
+@@ -7706,6 +7761,7 @@ export class AgentSession {
+ 			if (result?.cancel) {
+ 				return false;
+ 			}
++			ownerBinding = result?.ownerBinding;
+ 		}
+ 
+ 		await this.#bash.flushPending();
+@@ -7738,6 +7794,7 @@ export class AgentSession {
+ 			this.#recovery.reanchorServedAttribution(previousSessionId);
+ 
+ 			await copySessionArtifacts(forkResult.oldSessionFile, forkResult.newSessionFile);
++			await this.#persistContextOwnerBinding("fork", ownerBinding);
+ 
+ 			// Update agent session ID
+ 			this.#freshProviderSessionId = undefined;
+@@ -7766,9 +7823,25 @@ export class AgentSession {
+ 	/** Move the active session and artifacts after enforcing mode transition invariants. */
+ 	async moveSession(newCwd: string, targetSessionDir?: string): Promise<void> {
+ 		this.#assertVibeSessionTransitionAllowed("move the session");
++		const previousSessionFile = this.sessionFile;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_switch")
++		) {
++			const result = (await this.#extensionRunner.emit({
++				type: "session_before_switch",
++				reason: "move",
++			})) as SessionBeforeSwitchResult | undefined;
++			if (result?.cancel) throw new Error("Session move cancelled");
++			ownerBinding = result?.ownerBinding;
++		}
+ 		await this.sessionManager.moveTo(newCwd, targetSessionDir);
++		await this.#persistContextOwnerBinding("move", ownerBinding);
++		if (this.#extensionRunner) {
++			await this.#extensionRunner.emit({ type: "session_switch", reason: "move", previousSessionFile });
++		}
+ 	}
+-
+ 	// =========================================================================
+ 	// Model Management
+ 	// =========================================================================
+@@ -8694,7 +8767,7 @@ export class AgentSession {
+ 	async reload(): Promise<void> {
+ 		const sessionFile = this.sessionFile;
+ 		if (!sessionFile) return;
+-		const switched = await this.switchSession(sessionFile);
++		const switched = await this.switchSession(sessionFile, { reason: "reload" });
+ 		if (!switched) throw new Error("Session reload cancelled");
+ 	}
+ 	/**
+@@ -8709,23 +8782,30 @@ export class AgentSession {
+ 			onCwdChange?: (newCwd: string, previousCwd: string) => Promise<boolean>;
+ 			/** Collab snapshot adoption keeps the guest's process cwd and marks the replica runtime-only. */
+ 			preserveLocalCwd?: boolean;
++			reason?: "resume" | "reload";
+ 		},
+ 	): Promise<boolean> {
++		const reason = options?.reason ?? "resume";
+ 		const previousSessionFile = this.sessionManager.getSessionFile();
+ 		const switchingToDifferentSession = previousSessionFile
+ 			? path.resolve(previousSessionFile) !== path.resolve(sessionPath)
+ 			: true;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 		// Emit session_before_switch event (can be cancelled)
+-		if (this.#extensionRunner?.hasHandlers("session_before_switch")) {
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_switch")
++		) {
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_switch",
+-				reason: "resume",
++				reason,
+ 				targetSessionFile: sessionPath,
+ 			})) as SessionBeforeSwitchResult | undefined;
+ 
+ 			if (result?.cancel) {
+ 				return false;
+ 			}
++			ownerBinding = result?.ownerBinding;
+ 		}
+ 
+ 		this.#disconnectFromAgent();
+@@ -8842,7 +8922,7 @@ export class AgentSession {
+ 			if (this.#extensionRunner) {
+ 				await this.#extensionRunner.emit({
+ 					type: "session_switch",
+-					reason: "resume",
++					reason,
+ 					previousSessionFile,
+ 				});
+ 			}
+@@ -8967,6 +9047,7 @@ export class AgentSession {
+ 				const costs = await loadAdvisorTranscriptCosts(this.sessionFile, { providersBySlug });
+ 				this.#advisors.restoreCost(costs, providersBySlug);
+ 			}
++			await this.#persistContextOwnerBinding(reason, ownerBinding);
+ 			this.#bash.finishSessionTransition(bashTransition, true);
+ 			if (previousSessionState.sessionId !== this.sessionManager.getSessionId()) {
+ 				this.#notifySessionChangeCallbacks();
+@@ -9083,9 +9164,13 @@ export class AgentSession {
+ 		const selectedImages = this.#extractUserMessageImages(selectedEntry.message.content);
+ 
+ 		let skipConversationRestore = false;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 
+ 		// Emit session_before_branch event (can be cancelled)
+-		if (this.#extensionRunner?.hasHandlers("session_before_branch")) {
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_branch")
++		) {
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_branch",
+ 				entryId,
+@@ -9095,6 +9180,7 @@ export class AgentSession {
+ 				return { selectedText, selectedImages, cancelled: true };
+ 			}
+ 			skipConversationRestore = result?.skipConversationRestore ?? false;
++			ownerBinding = result?.ownerBinding;
+ 		}
+ 
+ 		// Clear pending messages (bound to old session state)
+@@ -9139,6 +9225,7 @@ export class AgentSession {
+ 			this.#syncAgentSessionId();
+ 			this.#memory.rekeyForCurrentSessionId();
+ 			await this.#memory.resetContextForNewTranscript();
++			await this.#persistContextOwnerBinding("branch", ownerBinding);
+ 
+ 			// Reload messages from entries (works for both file and in-memory mode)
+ 			const sessionContext = this.buildDisplaySessionContext();
+@@ -9177,6 +9264,7 @@ export class AgentSession {
+ 		sessionId: string,
+ 	): Promise<{ cancelled: boolean; sessionFile: string | undefined }> {
+ 		const previousSessionFile = this.sessionFile;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 		if (!this.sessionManager.getSessionFile()) {
+ 			throw new Error("Cannot branch /btw: session is not persisted");
+ 		}
+@@ -9196,7 +9284,10 @@ export class AgentSession {
+ 			throw new Error("Cannot branch /btw while session maintenance or user work is still running");
+ 		}
+ 
+-		if (this.#extensionRunner?.hasHandlers("session_before_branch")) {
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_branch")
++		) {
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_branch",
+ 				entryId: leafId,
+@@ -9205,6 +9296,7 @@ export class AgentSession {
+ 			if (result?.cancel) {
+ 				return { cancelled: true, sessionFile: previousSessionFile };
+ 			}
++			ownerBinding = result?.ownerBinding;
+ 		}
+ 
+ 		if (this.sessionManager.getSessionId() !== sessionId || this.sessionManager.getLeafId() !== leafId) {
+@@ -9259,12 +9351,23 @@ export class AgentSession {
+ 			this.#clearSessionScopedToolState();
+ 
+ 			this.#rehydrateCheckpointRewindState();
+-			this.sessionManager.appendMessage({
+-				role: "user",
+-				content: [{ type: "text", text: question }],
+-				timestamp: Date.now(),
+-			});
+-			this.sessionManager.appendMessage(sanitizeAssistantForReparentedHistory(assistantMessage));
++			const appendBranchMessages = () => {
++				this.sessionManager.appendMessage({
++					role: "user",
++					content: [{ type: "text", text: question }],
++					timestamp: Date.now(),
++				});
++				return this.sessionManager.appendMessage(sanitizeAssistantForReparentedHistory(assistantMessage));
++			};
++			if (ownerBinding) {
++				const binding = ownerBinding;
++				await this.sessionManager.appendEntriesAtomically(() => {
++					const committedEntryId = appendBranchMessages();
++					this.sessionManager.appendContextOwnerBinding("branch", binding, committedEntryId);
++				});
++			} else {
++				appendBranchMessages();
++			}
+ 			this.#todo.syncFromBranch();
+ 			this.#freshProviderSessionId = undefined;
+ 			this.#syncAgentSessionId();
+@@ -9448,10 +9551,14 @@ export class AgentSession {
+ 		// Set up abort controller for summarization
+ 		this.#branchSummaryAbortController = new AbortController();
+ 		let hookSummary: { summary: string; details?: unknown } | undefined;
++		let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 		let fromExtension = false;
+ 
+ 		// Emit session_before_tree event
+-		if (this.#extensionRunner?.hasHandlers("session_before_tree")) {
++		if (
++			this.#extensionRunner?.isContextOwnerActive?.() ||
++			this.#extensionRunner?.hasHandlers("session_before_tree")
++		) {
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_tree",
+ 				preparation,
+@@ -9461,11 +9568,26 @@ export class AgentSession {
+ 			if (result?.cancel) {
+ 				return { cancelled: true };
+ 			}
++			ownerBinding = result?.ownerBinding;
+ 
+ 			if (result?.summary && options.summarize) {
+ 				hookSummary = result.summary;
+ 				fromExtension = true;
+ 			}
++			if (
++				this.#extensionRunner?.isContextOwnerActive?.() &&
++				options.summarize &&
++				entriesToSummarize.length > 0 &&
++				!result?.summary
++			) {
++				const ownerId = this.#extensionRunner.getContextOwnerCapability().requiredOwnerId;
++				throw new ContextOwnershipError(
++					"OWNER_RESULT_INVALID",
++					`Context owner "${ownerId}" returned no tree summary`,
++					ownerId,
++					"session_before_tree",
++				);
++			}
+ 		}
+ 
+ 		// Run default summarizer if needed
+@@ -9519,6 +9641,7 @@ export class AgentSession {
+ 		// new sibling answer — the trigger for resuming the agent afterwards so the
+ 		// model consumes it, mirroring a live `ask` completion (issue #6483).
+ 		let isAskReanswerCompletion = false;
++		let askReanswerMessage: ToolResultMessage | undefined;
+ 
+ 		if (targetEntry.type === "message" && targetEntry.message.role === "user") {
+ 			// User message: leaf = parent (null if root), text goes to editor
+@@ -9547,7 +9670,7 @@ export class AgentSession {
+ 			// off the same `ask` toolCall instead of reusing `targetId` — the
+ 			// original answer's branch stays reachable (issue #5642).
+ 			const reanswer = options.reanswerAskResult;
+-			const toolResultMessage: ToolResultMessage = {
++			askReanswerMessage = {
+ 				role: "toolResult",
+ 				toolCallId: targetEntry.message.toolCallId,
+ 				toolName: "ask",
+@@ -9556,7 +9679,7 @@ export class AgentSession {
+ 				isError: reanswer.isError === true,
+ 				timestamp: Date.now(),
+ 			};
+-			newLeafId = this.sessionManager.appendMessageToBranch(toolResultMessage, targetEntry.parentId);
++			newLeafId = targetEntry.parentId;
+ 			isAskReanswerCompletion = true;
+ 		} else {
+ 			// Non-user message (or a user-invoked skill-prompt injection): land the
+@@ -9571,9 +9694,13 @@ export class AgentSession {
+ 		const bashTransition = this.#bash.beginSessionTransition();
+ 		let summaryEntry: BranchSummaryEntry | undefined;
+ 		let branchTransitioned = false;
+-		try {
++		const commitTree = (): string | undefined => {
++			let committedEntryId: string | undefined;
++			if (askReanswerMessage) {
++				newLeafId = this.sessionManager.appendMessageToBranch(askReanswerMessage, newLeafId);
++				committedEntryId = newLeafId;
++			}
+ 			if (summaryText) {
+-				// Create summary at target position (can be null for root)
+ 				const summaryId = this.sessionManager.branchWithSummary(
+ 					newLeafId,
+ 					summaryText,
+@@ -9581,10 +9708,21 @@ export class AgentSession {
+ 					fromExtension,
+ 				);
+ 				summaryEntry = this.sessionManager.getEntry(summaryId) as BranchSummaryEntry;
+-			} else if (newLeafId === null) {
+-				this.sessionManager.resetLeaf();
++				return summaryId;
++			}
++			if (newLeafId === null) this.sessionManager.resetLeaf();
++			else this.sessionManager.branch(newLeafId);
++			return committedEntryId;
++		};
++		try {
++			if (ownerBinding) {
++				const binding = ownerBinding;
++				await this.sessionManager.appendEntriesAtomically(() => {
++					const committedEntryId = commitTree();
++					this.sessionManager.appendContextOwnerBinding("tree", binding, committedEntryId);
++				});
+ 			} else {
+-				this.sessionManager.branch(newLeafId);
++				commitTree();
+ 			}
+ 			this.#bash.markSessionTransition(bashTransition);
+ 			branchTransitioned = true;
+diff --git a/packages/coding-agent/src/session/session-entries.ts b/packages/coding-agent/src/session/session-entries.ts
+index 175bc81b8..dda7c6fa8 100644
+--- a/packages/coding-agent/src/session/session-entries.ts
++++ b/packages/coding-agent/src/session/session-entries.ts
+@@ -52,6 +52,49 @@ export interface SessionHeader {
+ 	/** Provider prompt-cache identity inherited by exact-route full forks. */
+ 	providerPromptCacheKey?: string;
+ }
++export const CONTEXT_OWNER_BINDING_CUSTOM_TYPE = "context_owner_binding";
++
++/** Owner-issued identity for one history rewrite or session transition. */
++export interface ContextOwnerOperationBinding {
++	ownerId: string;
++	apiVersion: number;
++	operationId: string;
++	sourceSessionId: string;
++	sourceLeafId: string | null;
++	headId: string;
++	checkpointId: string;
++	checkpointHash: string;
++	sourceRootDigest: string;
++	coveredThroughEntryId: string | null;
++	revocationEpoch: number;
++}
++
++/** Single-use binding for the exact projection serialized into one provider request. */
++export interface ContextOwnerProjectionBinding extends ContextOwnerOperationBinding {
++	projectionId: string;
++	tokenCount: number;
++	tokenBudget: number;
++}
++
++export type ContextOwnerOperationKind =
++	| "compact"
++	| "handoff"
++	| "branch"
++	| "tree"
++	| "clear"
++	| "new"
++	| "resume"
++	| "reload"
++	| "fork"
++	| "move";
++
++/** Durable host receipt committed beside an owner-controlled rewrite. */
++export interface PersistedContextOwnerBinding extends ContextOwnerOperationBinding {
++	operationKind: ContextOwnerOperationKind;
++	targetSessionId: string;
++	targetLeafId: string | null;
++	committedEntryId?: string;
++}
+ 
+ export interface NewSessionOptions {
+ 	parentSession?: string;
+diff --git a/packages/coding-agent/src/session/session-maintenance.ts b/packages/coding-agent/src/session/session-maintenance.ts
+index a9f67b381..702512293 100644
+--- a/packages/coding-agent/src/session/session-maintenance.ts
++++ b/packages/coding-agent/src/session/session-maintenance.ts
+@@ -58,8 +58,12 @@ import * as snapcompact from "@oh-my-pi/snapcompact";
+ import type { ModelRegistry } from "../config/model-registry";
+ import { MODEL_ROLE_IDS } from "../config/model-roles";
+ import type { CompactionSettings as ConfiguredCompactionSettings, Settings } from "../config/settings";
+-import type { ExtensionRunner, SessionBeforeCompactResult } from "../extensibility/extensions";
+-import type { CompactOptions, ContextUsage } from "../extensibility/extensions/types";
++import type {
++	ExtensionRunner,
++	SessionBeforeCompactResult,
++	SessionBeforeHandoffResult,
++} from "../extensibility/extensions";
++import { ContextOwnershipError, type CompactOptions, type ContextUsage } from "../extensibility/extensions/types";
+ import type { GoalModeState } from "../goals/state";
+ import { resolveMemoryBackend } from "../memory-backend/resolve";
+ import type { MemoryBackendOperationContext } from "../memory-backend/types";
+@@ -87,7 +91,12 @@ import {
+ } from "./role-models";
+ import type { SessionContext } from "./session-context";
+ import { getLatestCompactionEntry, getOpenAiRemoteCompactionPayload } from "./session-context";
+-import type { CompactionEntry, SessionEntry } from "./session-entries";
++import type {
++	CompactionEntry,
++	ContextOwnerOperationBinding,
++	ContextOwnerOperationKind,
++	SessionEntry,
++} from "./session-entries";
+ import type { SessionManager } from "./session-manager";
+ import type { ShakeMode, ShakeResult } from "./shake-types";
+ import { resolveSpeculationLeadTokens, SPECULATION_LEAD_MIN_TOKENS } from "./speculation-lead";
+@@ -235,6 +244,11 @@ interface SpeculationRun {
+ 	contextTokensAtStart: number;
+ 	armed?: ArmedSpeculation;
+ }
++interface OwnedCompactionTrigger {
++	reason: "manual" | "shake";
++	shakeMode?: ShakeMode;
++	signal?: AbortSignal;
++}
+ 
+ function mergeLlmCompactionPreserveData(
+ 	hookPreserveData: Record<string, unknown> | undefined,
+@@ -549,6 +563,15 @@ export class SessionMaintenance {
+ 	 * skips the disk rewrite.
+ 	 */
+ 	async dropImages(): Promise<{ removed: number }> {
++		if (this.#host.extensionRunner?.isContextOwnerActive?.()) {
++			const ownerId = this.#host.extensionRunner.getContextOwnerCapability().requiredOwnerId;
++			throw new ContextOwnershipError(
++				"OWNED_OPERATION_UNSUPPORTED",
++				`Context owner "${ownerId}" cannot safely preserve provider structure for direct image removal; use /compact instead.`,
++				ownerId,
++				"session_before_compact",
++			);
++		}
+ 		const branchEntries = this.#host.sessionManager.getBranch();
+ 		let removed = 0;
+ 		for (const entry of branchEntries) {
+@@ -601,6 +624,30 @@ export class SessionMaintenance {
+ 	 * No-op (zero counts) when nothing is eligible.
+ 	 */
+ 	async shake(mode: ShakeMode, opts: { config?: ShakeConfig; signal?: AbortSignal } = {}): Promise<ShakeResult> {
++		if (this.#host.extensionRunner?.isContextOwnerActive?.()) {
++			if (mode !== "elide") {
++				throw new ContextOwnershipError(
++					"OWNED_OPERATION_UNSUPPORTED",
++					`Context owner "${this.#host.extensionRunner.getContextOwnerCapability().requiredOwnerId}" cannot safely preserve provider structure for /shake ${mode}; use /compact instead.`,
++					this.#host.extensionRunner.getContextOwnerCapability().requiredOwnerId,
++					"session_before_compact",
++				);
++			}
++			const tokensBefore = this.#tokenizer.countMessages(this.#host.messages());
++			await this.compact(undefined, undefined, 0, undefined, {
++				reason: "shake",
++				shakeMode: mode,
++				signal: opts.signal,
++			});
++			const tokensAfter = this.#tokenizer.countMessages(this.#host.messages());
++			return {
++				mode,
++				toolResultsDropped: 0,
++				blocksDropped: 0,
++				tokensFreed: Math.max(0, tokensBefore - tokensAfter),
++				ownerCompaction: true,
++			};
++		}
+ 		if (mode === "images") {
+ 			const { removed } = await this.#host.dropImages();
+ 			return { mode, toolResultsDropped: 0, blocksDropped: 0, imagesDropped: removed, tokensFreed: 0 };
+@@ -740,6 +787,7 @@ export class SessionMaintenance {
+ 		options?: CompactOptions,
+ 		methodOffset = 0,
+ 		retryController?: AbortController,
++		ownedTrigger: OwnedCompactionTrigger = { reason: "manual" },
+ 	): Promise<CompactionResult> {
+ 		const ownsCompactionController = retryController === undefined;
+ 		if (this.#compactionAbortController && this.#compactionAbortController !== retryController) {
+@@ -748,6 +796,16 @@ export class SessionMaintenance {
+ 		// Resolve the `/compact <mode>` subcommand up front so input validation
+ 		// runs before we disconnect/abort the active agent operation below.
+ 		const compactMode = options?.mode ? findCompactMode(options.mode) : undefined;
++		const ownerActive = this.#host.extensionRunner?.isContextOwnerActive?.() === true;
++		if (ownerActive && compactMode && compactMode.name !== "soft") {
++			const ownerId = this.#host.extensionRunner?.getContextOwnerCapability().requiredOwnerId;
++			throw new ContextOwnershipError(
++				"OWNED_OPERATION_UNSUPPORTED",
++				`Context owner "${ownerId}" does not allow /compact ${compactMode.name}; use /compact for the owned strategy.`,
++				ownerId,
++				"session_before_compact",
++			);
++		}
+ 		// Modes that produce no LLM summary (snapcompact) have nothing to focus.
+ 		// Reject focus text loudly so programmatic callers don't silently lose
+ 		// instructions (the slash path pre-validates via parseCompactArgs).
+@@ -763,6 +821,13 @@ export class SessionMaintenance {
+ 		let compactionCommitted = false;
+ 		let methodAttempted = false;
+ 		const compactionAbortController = retryController ?? new AbortController();
++		const externalSignal = ownedTrigger.signal;
++		const abortFromExternalSignal = () => compactionAbortController.abort(externalSignal?.reason);
++		if (externalSignal?.aborted) {
++			abortFromExternalSignal();
++		} else {
++			externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
++		}
+ 		const manualCompactionCleanup = ownsCompactionController ? Promise.withResolvers<void>() : undefined;
+ 		if (ownsCompactionController) {
+ 			this.#compactionAbortController = compactionAbortController;
+@@ -783,34 +848,41 @@ export class SessionMaintenance {
+ 			}
+ 
+ 			const compactionSettings = this.#host.settings.getGroup("compaction");
+-			methods = resolveCompactionMethodOrder(compactMode?.overrides.methodOrder ?? compactionSettings.methodOrder);
++			methods = ownerActive
++				? ["soft"]
++				: resolveCompactionMethodOrder(compactMode?.overrides.methodOrder ?? compactionSettings.methodOrder);
+ 			const explicitSnapcompact = compactMode?.name === "snapcompact";
+ 			let selectedMethod: CompactionMethod | undefined;
+-			for (let index = methodOffset; index < methods.length; index++) {
+-				const method = methods[index];
+-				if (method === "remote") {
+-					if (canUseRemoteCompaction(activeModel, resolveMethodSettings(compactionSettings, method))) {
+-						selectedMethod = method;
+-						selectedMethodIndex = index;
+-						break;
++			if (ownerActive) {
++				selectedMethod = "soft";
++				selectedMethodIndex = 0;
++			} else {
++				for (let index = methodOffset; index < methods.length; index++) {
++					const method = methods[index];
++					if (method === "remote") {
++						if (canUseRemoteCompaction(activeModel, resolveMethodSettings(compactionSettings, method))) {
++							selectedMethod = method;
++							selectedMethodIndex = index;
++							break;
++						}
++						continue;
+ 					}
+-					continue;
+-				}
+-				if (method === "snapcompact") {
+-					if (
+-						explicitSnapcompact ||
+-						(!customInstructions && !options?.internalGuidance && activeModel.input.includes("image"))
+-					) {
++					if (method === "snapcompact") {
++						if (
++							explicitSnapcompact ||
++							(!customInstructions && !options?.internalGuidance && activeModel.input.includes("image"))
++						) {
++							selectedMethod = method;
++							selectedMethodIndex = index;
++							break;
++						}
++						continue;
++					}
++					if (method === "soft") {
+ 						selectedMethod = method;
+ 						selectedMethodIndex = index;
+ 						break;
+ 					}
+-					continue;
+-				}
+-				if (method === "soft") {
+-					selectedMethod = method;
+-					selectedMethodIndex = index;
+-					break;
+ 				}
+ 			}
+ 			if (!selectedMethod) {
+@@ -850,10 +922,16 @@ export class SessionMaintenance {
+ 			let hookCompaction: CompactionResult | undefined;
+ 			let fromExtension = false;
+ 			let preserveData: Record<string, unknown> | undefined;
++			let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 
+-			if (this.#host.extensionRunner?.hasHandlers("session_before_compact")) {
++			if (
++				this.#host.extensionRunner?.isContextOwnerActive?.() ||
++				this.#host.extensionRunner?.hasHandlers("session_before_compact")
++			) {
+ 				const result = (await this.#host.extensionRunner.emit({
+ 					type: "session_before_compact",
++					reason: ownedTrigger.reason,
++					shakeMode: ownedTrigger.shakeMode,
+ 					preparation,
+ 					branchEntries: pathEntries,
+ 					customInstructions,
+@@ -867,6 +945,15 @@ export class SessionMaintenance {
+ 				if (result?.compaction) {
+ 					hookCompaction = result.compaction;
+ 					fromExtension = true;
++					ownerBinding = result.ownerBinding;
++				} else if (ownerActive) {
++					const ownerId = this.#host.extensionRunner.getContextOwnerCapability().requiredOwnerId;
++					throw new ContextOwnershipError(
++						"OWNER_RESULT_INVALID",
++						`Context owner "${ownerId}" returned no compaction for "${ownedTrigger.reason}"`,
++						ownerId,
++						"session_before_compact",
++					);
+ 				}
+ 			}
+ 
+@@ -1092,6 +1179,8 @@ export class SessionMaintenance {
+ 				method: fromExtension ? undefined : selectedMethod,
+ 				codexCompaction,
+ 				advisorResetReason: "compact",
++				ownerBinding,
++				ownerOperationKind: "compact",
+ 			});
+ 
+ 			const compactionResult: CompactionResult = {
+@@ -1107,6 +1196,7 @@ export class SessionMaintenance {
+ 		} catch (error) {
+ 			const err = error instanceof Error ? error : new Error(String(error));
+ 			if (
++				!ownerActive &&
+ 				methodAttempted &&
+ 				!compactionCommitted &&
+ 				!compactionAbortController.signal.aborted &&
+@@ -1141,6 +1231,7 @@ export class SessionMaintenance {
+ 				}
+ 				manualCompactionCleanup?.resolve();
+ 			}
++			externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+ 		}
+ 	}
+ 
+@@ -1210,6 +1301,33 @@ export class SessionMaintenance {
+ 	 * live agent is not aborted; generation reads a snapshot of the live
+ 	 * messages through the cache-friendly side-request pipeline.
+ 	 */
++	async #commitHandoffResult(
++		result: HandoffResult,
++		preparation: CompactionPreparation,
++		fromExtension: boolean,
++		ownerBinding?: ContextOwnerOperationBinding,
++	): Promise<HandoffResult> {
++		const { summary, details } = handoffSummaryFromDocument(result.document, preparation);
++		await this.#commitCompactionEntry({
++			summary,
++			shortSummary: undefined,
++			firstKeptEntryId: preparation.firstKeptEntryId,
++			tokensBefore: preparation.tokensBefore,
++			details,
++			fromExtension,
++			preserveData: undefined,
++			method: "handoff",
++			codexCompaction: undefined,
++			advisorResetReason: "handoff",
++			ownerBinding,
++			ownerOperationKind: "handoff",
++		});
++		if (this.#host.extensionRunner) {
++			await this.#host.extensionRunner.emit({ type: "session_handoff", ...result, fromExtension });
++		}
++		return result;
++	}
++
+ 	async handoff(customInstructions?: string, options?: SessionHandoffOptions): Promise<HandoffResult | undefined> {
+ 		if (this.isCompacting) throw new Error("Compaction already in progress");
+ 		this.cancelSpeculation();
+@@ -1226,22 +1344,33 @@ export class SessionMaintenance {
+ 			this.#tokenizer,
+ 		);
+ 		if (!preparation) throw new Error("Nothing to hand off (already compacted)");
++		if (
++			this.#host.extensionRunner?.isContextOwnerActive?.() ||
++			this.#host.extensionRunner?.hasHandlers("session_before_handoff")
++		) {
++			const hookResult = (await this.#host.extensionRunner.emit({
++				type: "session_before_handoff",
++				branchEntries: entries,
++				preparation,
++				customInstructions,
++				signal: options?.signal ?? new AbortController().signal,
++			})) as SessionBeforeHandoffResult | undefined;
++			if (hookResult?.cancel) return undefined;
++			if (hookResult?.handoff) {
++				return await this.#commitHandoffResult(hookResult.handoff, preparation, true, hookResult.ownerBinding);
++			}
++			if (this.#host.extensionRunner.isContextOwnerActive?.()) {
++				throw new ContextOwnershipError(
++					"OWNER_RESULT_INVALID",
++					"Context owner did not return a handoff document",
++					this.#host.extensionRunner.getContextOwnerCapability().requiredOwnerId,
++					"session_before_handoff",
++				);
++			}
++		}
+ 		const result = await this.#host.generateHandoffDocument(customInstructions, options);
+ 		if (!result) return undefined;
+-		const { summary, details } = handoffSummaryFromDocument(result.document, preparation);
+-		await this.#commitCompactionEntry({
+-			summary,
+-			shortSummary: undefined,
+-			firstKeptEntryId: preparation.firstKeptEntryId,
+-			tokensBefore: preparation.tokensBefore,
+-			details,
+-			fromExtension: false,
+-			preserveData: undefined,
+-			method: "handoff",
+-			codexCompaction: undefined,
+-			advisorResetReason: "handoff",
+-		});
+-		return result;
++		return await this.#commitHandoffResult(result, preparation, false);
+ 	}
+ 
+ 	/**
+@@ -1502,21 +1631,35 @@ export class SessionMaintenance {
+ 		providerReplayThroughEntryId?: string;
+ 		advisorResetReason: string;
+ 		detachExtensionEmit?: boolean;
++		ownerBinding?: ContextOwnerOperationBinding;
++		ownerOperationKind?: ContextOwnerOperationKind;
+ 	}): Promise<CompactionEntry | undefined> {
+-		const entryId = this.#host.sessionManager.appendCompaction(
+-			args.summary,
+-			args.shortSummary,
+-			args.firstKeptEntryId,
+-			args.tokensBefore,
+-			{
+-				details: args.details,
+-				fromExtension: args.fromExtension,
+-				preserveData: args.preserveData,
+-				method: args.method,
+-				providerReplayThroughEntryId: args.providerReplayThroughEntryId,
+-				tokensAfter: this.#projectCompactedContextTokens(args),
+-			},
+-		);
++		const appendCompaction = () =>
++			this.#host.sessionManager.appendCompaction(
++				args.summary,
++				args.shortSummary,
++				args.firstKeptEntryId,
++				args.tokensBefore,
++				{
++					details: args.details,
++					fromExtension: args.fromExtension,
++					preserveData: args.preserveData,
++					method: args.method,
++					providerReplayThroughEntryId: args.providerReplayThroughEntryId,
++					tokensAfter: this.#projectCompactedContextTokens(args),
++				},
++			);
++		const entryId = args.ownerBinding
++			? await this.#host.sessionManager.appendEntriesAtomically(() => {
++					const committedEntryId = appendCompaction();
++					this.#host.sessionManager.appendContextOwnerBinding(
++						args.ownerOperationKind ?? "compact",
++						args.ownerBinding!,
++						committedEntryId,
++					);
++					return committedEntryId;
++				})
++			: appendCompaction();
+ 		const newEntries = this.#host.sessionManager.getEntries();
+ 		const sessionContext = this.#host.buildDisplaySessionContext();
+ 		this.#host.agent.replaceMessages(sessionContext.messages);
+@@ -2050,10 +2193,11 @@ export class SessionMaintenance {
+ 			return COMPACTION_CHECK_NONE;
+ 		}
+ 
+-		// Stale-result pass runs every turn, before any threshold gating: it is
+-		// cheap (bails when no candidate) and independent of the compaction
+-		// setting.
+-		const supersedeResult = await this.#pruneStaleToolResults();
++		// The stock stale-result pass rewrites persisted history before the
++		// compaction hook. An active context owner must see the untouched branch
++		// and decide what survives, so owned profiles skip this native pre-pass.
++		const ownerActive = this.#host.extensionRunner?.isContextOwnerActive?.() === true;
++		const supersedeResult = ownerActive ? undefined : await this.#pruneStaleToolResults();
+ 
+ 		const compactionSettings = this.#host.settings.getGroup("compaction");
+ 		if (!compactionSettings.enabled || !hasConfiguredCompactionMethod(compactionSettings))
+@@ -2062,7 +2206,7 @@ export class SessionMaintenance {
+ 		// Case 4: Threshold - turn succeeded but context is getting large
+ 		// Skip if this was an error (non-overflow errors don't have usage data)
+ 		if (assistantMessage.stopReason === "error") return COMPACTION_CHECK_NONE;
+-		const pruneResult = await this.#pruneToolOutputs();
++		const pruneResult = ownerActive ? undefined : await this.#pruneToolOutputs();
+ 		const maintenanceTokensFreed = (supersedeResult?.tokensSaved ?? 0) + (pruneResult?.tokensSaved ?? 0);
+ 		// `errorIsFromBeforeCompaction` (computed above) is the general
+ 		// "this assistant message predates the latest compaction" predicate here,
+@@ -2974,8 +3118,11 @@ export class SessionMaintenance {
+ 		} = {},
+ 	): Promise<CompactionCheckResult> {
+ 		const compactionSettings = this.#host.settings.getGroup("compaction");
++		const ownerActive = this.#host.extensionRunner?.isContextOwnerActive?.() === true;
+ 		if (reason !== "idle" && !compactionSettings.enabled) return COMPACTION_CHECK_NONE;
+-		const methods = resolveCompactionMethodOrder(compactionSettings.methodOrder);
++		const methods: CompactionMethod[] = ownerActive
++			? ["soft"]
++			: resolveCompactionMethodOrder(compactionSettings.methodOrder);
+ 		if (methods.length === 0) return COMPACTION_CHECK_NONE;
+ 		const generation = this.#host.promptGeneration();
+ 		const terminalTextAnswer =
+@@ -2986,20 +3133,25 @@ export class SessionMaintenance {
+ 		const startIndex = options.methodIndex ?? 0;
+ 		let methodIndex = -1;
+ 		let method: CompactionMethod | undefined;
+-		for (let index = startIndex; index < methods.length; index++) {
+-			const candidate = methods[index];
+-			const available =
+-				candidate === "remote"
+-					? canUseRemoteCompaction(this.#model, resolveMethodSettings(compactionSettings, candidate))
+-					: candidate === "snapcompact"
+-						? this.#model?.input.includes("image") === true
+-						: candidate === "handoff"
+-							? reason !== "overflow"
+-							: true;
+-			if (!available) continue;
+-			method = candidate;
+-			methodIndex = index;
+-			break;
++		if (ownerActive) {
++			method = "soft";
++			methodIndex = 0;
++		} else {
++			for (let index = startIndex; index < methods.length; index++) {
++				const candidate = methods[index];
++				const available =
++					candidate === "remote"
++						? canUseRemoteCompaction(this.#model, resolveMethodSettings(compactionSettings, candidate))
++						: candidate === "snapcompact"
++							? this.#model?.input.includes("image") === true
++							: candidate === "handoff"
++								? reason !== "overflow"
++								: true;
++				if (!available) continue;
++				method = candidate;
++				methodIndex = index;
++				break;
++			}
+ 		}
+ 		if (!method) return COMPACTION_CHECK_NONE;
+ 
+@@ -3010,7 +3162,7 @@ export class SessionMaintenance {
+ 		// Snapcompact is local and instant, so an armed LLM summary (possible
+ 		// only when settings/model changed since arming) never overrides it.
+ 		const claimedSpec = this.#claimArmedSpeculation();
+-		const armedSpec = method === "snapcompact" ? undefined : claimedSpec;
++		const armedSpec = ownerActive || method === "snapcompact" ? undefined : claimedSpec;
+ 
+ 		const effectiveSettings = resolveMethodSettings(compactionSettings, method);
+ 		const fallbackFromShake = options.fallbackFromShake === true;
+@@ -3143,8 +3295,8 @@ export class SessionMaintenance {
+ 				return COMPACTION_CHECK_NONE;
+ 			}
+ 
+-			const availableModels = this.#host.modelRegistry.getAvailable();
+-			if (availableModels.length === 0) {
++			const availableModels = ownerActive ? [] : this.#host.modelRegistry.getAvailable();
++			if (!ownerActive && availableModels.length === 0) {
+ 				await this.#emitLifecycleEvent(
+ 					{
+ 						type: "auto_compaction_end",
+@@ -3163,6 +3315,15 @@ export class SessionMaintenance {
+ 
+ 			let pathEntriesForCompaction = pathEntries;
+ 			let preparation = prepareCompaction(pathEntriesForCompaction, effectiveSettings, this.#model, this.#tokenizer);
++			if (!preparation && ownerActive) {
++				const ownerId = this.#host.extensionRunner?.getContextOwnerCapability().requiredOwnerId;
++				throw new ContextOwnershipError(
++					"OWNED_OPERATION_UNSUPPORTED",
++					`Context owner "${ownerId}" cannot compact this branch because no legal compaction boundary exists`,
++					ownerId,
++					"session_before_compact",
++				);
++			}
+ 			if (!preparation) {
+ 				// prepareCompaction found nothing to summarize because the kept region
+ 				// is a single oversized recent turn — findCutPoint never cuts inside a
+@@ -3304,10 +3465,16 @@ export class SessionMaintenance {
+ 			let fromExtension = false;
+ 			let preserveData: Record<string, unknown> | undefined;
+ 			let codexCompaction: CodexCompactionContext | undefined;
++			let ownerBinding: ContextOwnerOperationBinding | undefined;
+ 
+-			if (this.#host.extensionRunner?.hasHandlers("session_before_compact")) {
++			if (
++				this.#host.extensionRunner?.isContextOwnerActive?.() ||
++				this.#host.extensionRunner?.hasHandlers("session_before_compact")
++			) {
+ 				const hookResult = (await this.#host.extensionRunner.emit({
+ 					type: "session_before_compact",
++					reason: "automatic",
++					automaticReason: reason,
+ 					preparation,
+ 					branchEntries: pathEntriesForCompaction,
+ 					customInstructions: undefined,
+@@ -3331,6 +3498,15 @@ export class SessionMaintenance {
+ 				if (hookResult?.compaction) {
+ 					hookCompaction = hookResult.compaction;
+ 					fromExtension = true;
++					ownerBinding = hookResult.ownerBinding;
++				} else if (ownerActive) {
++					const ownerId = this.#host.extensionRunner.getContextOwnerCapability().requiredOwnerId;
++					throw new ContextOwnershipError(
++						"OWNER_RESULT_INVALID",
++						`Context owner "${ownerId}" returned no automatic compaction`,
++						ownerId,
++						"session_before_compact",
++					);
+ 				}
+ 			}
+ 
+@@ -3733,6 +3909,7 @@ export class SessionMaintenance {
+ 				details,
+ 				preserveData,
+ 				fromExtension,
++				ownerBinding,
+ 				codexCompaction,
+ 				method: fromExtension ? undefined : method,
+ 				action,
+@@ -3770,7 +3947,7 @@ export class SessionMaintenance {
+ 					: reason === "incomplete"
+ 						? `Incomplete response recovery failed: ${errorMessage}`
+ 						: `Auto-compaction failed: ${errorMessage}`;
+-			if (!compactionCommitted && methodIndex + 1 < methods.length) {
++			if (!ownerActive && !compactionCommitted && methodIndex + 1 < methods.length) {
+ 				logger.warn("Automatic compaction method failed; trying next preference", {
+ 					method,
+ 					error: errorMessage,
+@@ -3802,6 +3979,7 @@ export class SessionMaintenance {
+ 				},
+ 				options.detachPostCommit === true,
+ 			);
++			if (ownerActive) throw error;
+ 		} finally {
+ 			if (this.#autoCompactionAbortController === autoCompactionAbortController) {
+ 				this.#autoCompactionAbortController = undefined;
+@@ -3825,6 +4003,7 @@ export class SessionMaintenance {
+ 		details: unknown;
+ 		preserveData: Record<string, unknown> | undefined;
+ 		fromExtension: boolean;
++		ownerBinding?: ContextOwnerOperationBinding;
+ 		codexCompaction: CodexCompactionContext | undefined;
+ 		method: CompactionMethod | undefined;
+ 		providerReplayThroughEntryId?: string;
+@@ -3863,6 +4042,8 @@ export class SessionMaintenance {
+ 			tokensBefore: args.tokensBefore,
+ 			details: args.details,
+ 			fromExtension: args.fromExtension,
++			ownerBinding: args.ownerBinding,
++			ownerOperationKind: "compact",
+ 			preserveData: args.preserveData,
+ 			codexCompaction: args.codexCompaction,
+ 			method: args.method,
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index 6561abca4..a4a41a1be 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -37,6 +37,10 @@ import {
+ 	type BranchSummaryEntry,
+ 	type CompactionEntry,
+ 	type CredentialPinEntry,
++	CONTEXT_OWNER_BINDING_CUSTOM_TYPE,
++	type ContextOwnerOperationBinding,
++	type ContextOwnerOperationKind,
++	type PersistedContextOwnerBinding,
+ 	CURRENT_SESSION_VERSION,
+ 	type CustomEntry,
+ 	type CustomMessageEntry,
+@@ -2456,6 +2460,21 @@ export class SessionManager {
+ 		return entry.id;
+ 	}
+ 
++	appendContextOwnerBinding(
++		operationKind: ContextOwnerOperationKind,
++		binding: ContextOwnerOperationBinding,
++		committedEntryId?: string,
++	): string {
++		const data: PersistedContextOwnerBinding = {
++			...binding,
++			operationKind,
++			targetSessionId: this.#sessionId,
++			targetLeafId: this.#index.leafId(),
++			committedEntryId,
++		};
++		return this.appendCustomEntry(CONTEXT_OWNER_BINDING_CUSTOM_TYPE, data);
++	}
++
+ 	/**
+ 	 * Rewrite the session file after in-place entry updates (e.g. pruning old tool
+ 	 * outputs). Use sparingly.
+diff --git a/packages/coding-agent/src/session/shake-types.ts b/packages/coding-agent/src/session/shake-types.ts
+index 209e7c0b7..f93f33d3f 100644
+--- a/packages/coding-agent/src/session/shake-types.ts
++++ b/packages/coding-agent/src/session/shake-types.ts
+@@ -21,12 +21,17 @@ export interface ShakeResult {
+ 	thinkingBlocksDropped?: number;
+ 	/** Estimated context tokens reclaimed. */
+ 	tokensFreed: number;
++	/** The active context owner replaced direct shaking with one owned compaction. */
++	ownerCompaction?: boolean;
+ 	/** Session artifact holding the dropped originals, when persisted. */
+ 	artifactId?: string;
+ }
+ 
+ /** One-line operator summary of a {@link ShakeResult} (shared by TUI + ACP). */
+ export function formatShakeSummary(result: ShakeResult): string {
++	if (result.ownerCompaction) {
++		return `Reduced context through its configured owner (~${result.tokensFreed} tokens freed).`;
++	}
+ 	if (result.mode === "images") {
+ 		const n = result.imagesDropped ?? 0;
+ 		return n === 0
+diff --git a/packages/coding-agent/test/agent-session-handoff.test.ts b/packages/coding-agent/test/agent-session-handoff.test.ts
+index a282104b6..04b2f3aae 100644
+--- a/packages/coding-agent/test/agent-session-handoff.test.ts
++++ b/packages/coding-agent/test/agent-session-handoff.test.ts
+@@ -1,6 +1,6 @@
+ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
+ import * as path from "node:path";
+-import { Agent, type AgentMessage, type StreamFn } from "@oh-my-pi/pi-agent-core";
++import { Agent, type AgentMessage, type StreamFn, Tokenizer } from "@oh-my-pi/pi-agent-core";
+ import * as compactionModule from "@oh-my-pi/pi-agent-core/compaction";
+ import type { AssistantMessage, Model, ToolCall } from "@oh-my-pi/pi-ai";
+ import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
+@@ -9,6 +9,10 @@ import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+ import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
+ import {
++	type ContextOwnerOperationBinding,
++	type ContextOwnerProjectionBinding,
++	type ExtensionAPI,
++	type ExtensionContext,
+ 	ExtensionRunner,
+ 	loadExtensionFromFactory,
+ 	loadExtensions,
+@@ -135,6 +139,103 @@ describe("AgentSession handoff", () => {
+ 		} catch {}
+ 		vi.restoreAllMocks();
+ 	});
++	async function replaceSessionWithOwner(
++		configure: (
++			pi: ExtensionAPI,
++			bind: (context: ExtensionContext, operation: string) => ContextOwnerOperationBinding,
++		) => void,
++	): Promise<void> {
++		await session.dispose();
++		sessionManager = SessionManager.create(tempDir.path(), tempDir.path());
++		const settings = Settings.isolated({
++			"context.owner": "cassipi",
++			"compaction.enabled": true,
++			"compaction.autoContinue": false,
++			"compaction.asyncEnabled": false,
++			"compaction.keepRecentTokens": 1,
++		});
++		const extensionsResult = await loadExtensions([], tempDir.path());
++		const owner = await loadExtensionFromFactory(
++			pi => {
++				pi.registerContextOwner({ id: "cassipi", apiVersion: 1 });
++				const bind = (context: ExtensionContext, operation: string): ContextOwnerOperationBinding => ({
++					ownerId: "cassipi",
++					apiVersion: 1,
++					operationId: `${operation}-${Bun.randomUUIDv7()}`,
++					sourceSessionId: context.sessionManager.getSessionId(),
++					sourceLeafId: context.sessionManager.getLeafId(),
++					headId: "test-head",
++					checkpointId: "test-checkpoint",
++					checkpointHash: "test-checkpoint-hash",
++					sourceRootDigest: "test-source-root",
++					coveredThroughEntryId: context.sessionManager.getLeafId(),
++					revocationEpoch: 0,
++				});
++				let pendingProjection: ContextOwnerProjectionBinding | undefined;
++				pi.on("context", (event, context) => {
++					const activeModel = context.model ?? model;
++					const tokenCount = new Tokenizer(activeModel).countMessages(event.messages);
++					pendingProjection = {
++						...bind(context, "projection"),
++						projectionId: Bun.randomUUIDv7(),
++						tokenCount,
++						tokenBudget: activeModel.contextWindow ?? tokenCount,
++					};
++					return { messages: event.messages, ownerProjection: pendingProjection };
++				});
++				pi.on("before_provider_request", event => ({
++					payload: event.payload,
++					ownerProjection: pendingProjection!,
++				}));
++				configure(pi, bind);
++			},
++			tempDir.path(),
++			new EventBus(),
++			extensionsResult.runtime,
++			"cassipi-owner",
++		);
++		const extensionRunner = new ExtensionRunner(
++			[owner],
++			extensionsResult.runtime,
++			tempDir.path(),
++			sessionManager,
++			modelRegistry,
++			undefined,
++			settings,
++		);
++		session = new AgentSession({
++			agent: new Agent({
++				initialState: { model, systemPrompt: ["Test"], tools: [], messages: [] },
++			}),
++			sessionManager,
++			settings,
++			modelRegistry,
++			extensionRunner,
++		});
++		sessionManager.appendMessage({
++			role: "user",
++			content: [{ type: "text", text: "seed" }],
++			timestamp: Date.now() - 2,
++		});
++		sessionManager.appendMessage({
++			role: "assistant",
++			content: [{ type: "text", text: "seed response" }],
++			api: model.api,
++			provider: model.provider,
++			model: model.id,
++			stopReason: "stop",
++			usage: {
++				input: 16,
++				output: 8,
++				cacheRead: 0,
++				cacheWrite: 0,
++				totalTokens: 24,
++				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
++			},
++			timestamp: Date.now() - 1,
++		});
++		session.agent.replaceMessages(session.buildDisplaySessionContext().messages);
++	}
+ 
+ 	it("commits a handoff document as an in-place compaction", async () => {
+ 		const handoffText = "## Goal\nContinue from here";
+@@ -160,6 +261,123 @@ describe("AgentSession handoff", () => {
+ 		expect(events.filter(event => event.type === "auto_compaction_end")).toHaveLength(0);
+ 	});
+ 
++	it("routes an owned handoff through the owner without native generation", async () => {
++		let compactionFromExtension: boolean | undefined;
++		await replaceSessionWithOwner((pi, bind) => {
++			pi.on("session_before_handoff", (_event, context) => ({
++				handoff: { document: "## Goal\nContinue from field-owned context" },
++				ownerBinding: bind(context, "handoff"),
++			}));
++			pi.on("session_compact", event => {
++				compactionFromExtension = event.fromExtension;
++			});
++		});
++		const generateHandoffSpy = vi.spyOn(compactionModule, "generateHandoffFromContext");
++
++		const result = await session.handoff();
++
++		expect(result?.document).toBe("## Goal\nContinue from field-owned context");
++		expect(generateHandoffSpy).not.toHaveBeenCalled();
++		expect(compactionFromExtension).toBe(true);
++		const branch = sessionManager.getBranch();
++		const compaction = branch.findLast(entry => entry.type === "compaction");
++		expect(compaction).toMatchObject({ type: "compaction", summary: expect.stringContaining(result!.document) });
++		expect(branch.at(-1)).toMatchObject({
++			type: "custom",
++			customType: "context_owner_binding",
++			data: { operationKind: "handoff", committedEntryId: compaction?.id },
++		});
++	});
++	it("routes owned compact and shake reductions without native fallthrough", async () => {
++		const reasons: Array<{ reason: string; shakeMode?: string }> = [];
++		await replaceSessionWithOwner((pi, bind) => {
++			pi.on("session_before_compact", (event, context) => {
++				reasons.push({ reason: event.reason, shakeMode: event.shakeMode });
++				return {
++					compaction: {
++						summary: `field-owned ${event.reason}`,
++						firstKeptEntryId: event.preparation.firstKeptEntryId,
++						tokensBefore: event.preparation.tokensBefore,
++					},
++					ownerBinding: bind(context, `compact-${event.reason}`),
++				};
++			});
++		});
++		const nativeCompactSpy = vi.spyOn(compactionModule, "compact");
++
++		const manual = await session.compact();
++		expect(manual.summary).toBe("field-owned manual");
++		expect(nativeCompactSpy).not.toHaveBeenCalled();
++
++		sessionManager.appendMessage({
++			role: "user",
++			content: [{ type: "text", text: "continue" }],
++			timestamp: Date.now() - 2,
++		});
++		sessionManager.appendMessage({
++			role: "assistant",
++			content: [{ type: "text", text: "continued response" }],
++			api: model.api,
++			provider: model.provider,
++			model: model.id,
++			stopReason: "stop",
++			usage: {
++				input: 16,
++				output: 8,
++				cacheRead: 0,
++				cacheWrite: 0,
++				totalTokens: 24,
++				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
++			},
++			timestamp: Date.now() - 1,
++		});
++
++		const shaken = await session.shake("elide");
++		expect(shaken.ownerCompaction).toBe(true);
++		expect(nativeCompactSpy).not.toHaveBeenCalled();
++		expect(reasons).toEqual([
++			{ reason: "manual", shakeMode: undefined },
++			{ reason: "shake", shakeMode: "elide" },
++		]);
++
++		await expect(session.shake("images")).rejects.toMatchObject({ code: "OWNED_OPERATION_UNSUPPORTED" });
++		await expect(session.dropImages()).rejects.toMatchObject({ code: "OWNED_OPERATION_UNSUPPORTED" });
++		await expect(session.compact(undefined, { mode: "snapcompact" })).rejects.toMatchObject({
++			code: "OWNED_OPERATION_UNSUPPORTED",
++		});
++	});
++	it("commits clear and its owner binding together", async () => {
++		await replaceSessionWithOwner((pi, bind) => {
++			pi.on("session_before_switch", (event, context) => ({
++				ownerBinding: bind(context, event.reason),
++			}));
++		});
++
++		await session.resetSessionContext();
++
++		const branch = sessionManager.getBranch();
++		const boundary = branch.findLast(entry => entry.type === "reset_boundary");
++		expect(boundary).toBeDefined();
++		expect(branch.at(-1)).toMatchObject({
++			type: "custom",
++			customType: "context_owner_binding",
++			data: { operationKind: "clear", committedEntryId: boundary?.id },
++		});
++	});
++	it("fails closed before clear mutates history when the owner lacks its handler", async () => {
++		await replaceSessionWithOwner(() => {});
++		const branchBefore = sessionManager.getBranch().map(entry => entry.id);
++		const messagesBefore = session.agent.state.messages;
++
++		await expect(session.resetSessionContext()).rejects.toMatchObject({
++			code: "OWNER_HANDLER_MISSING",
++			eventType: "session_before_switch",
++		});
++
++		expect(sessionManager.getBranch().map(entry => entry.id)).toEqual(branchBefore);
++		expect(session.agent.state.messages).toEqual(messagesBefore);
++	});
++
+ 	it("runs handoff generation through the configured side stream function", async () => {
+ 		const handoffText = "## Goal\nContinue via side stream";
+ 		let sideStreamCalls = 0;
+diff --git a/packages/coding-agent/test/agent-session-prune-persistence.test.ts b/packages/coding-agent/test/agent-session-prune-persistence.test.ts
+index 438f0de4e..f1287f746 100644
+--- a/packages/coding-agent/test/agent-session-prune-persistence.test.ts
++++ b/packages/coding-agent/test/agent-session-prune-persistence.test.ts
+@@ -2,12 +2,19 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+ import * as path from "node:path";
+ import { Agent } from "@oh-my-pi/pi-agent-core";
+ import { USELESS_NOTICE } from "@oh-my-pi/pi-agent-core/compaction/pruning";
++import type { Model } from "@oh-my-pi/pi-ai";
+ import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
+ import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+ import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
++import {
++	ExtensionRunner,
++	loadExtensionFromFactory,
++	loadExtensions,
++} from "@oh-my-pi/pi-coding-agent/extensibility/extensions";
+ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
+ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
+ import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
++import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
+ import { TempDir } from "@oh-my-pi/pi-utils";
+ 
+ /**
+@@ -25,6 +32,8 @@ describe("AgentSession per-turn prune persistence", () => {
+ 	let session: AgentSession;
+ 	let sessionManager: SessionManager;
+ 	let authStorage: AuthStorage;
++	let modelRegistry: ModelRegistry;
++	let model: Model;
+ 
+ 	const BIG_CALL_ID = "call-big-useless";
+ 
+@@ -32,12 +41,12 @@ describe("AgentSession per-turn prune persistence", () => {
+ 		tempDir = TempDir.createSync("@pi-prune-persistence-");
+ 		authStorage = await AuthStorage.create(path.join(tempDir.path(), "testauth.db"));
+ 		authStorage.setRuntimeApiKey("anthropic", "test-key");
+-		const modelRegistry = new ModelRegistry(authStorage);
++		modelRegistry = new ModelRegistry(authStorage);
+ 		sessionManager = SessionManager.create(tempDir.path(), tempDir.path());
+ 
+ 		const bundled = getBundledModel("anthropic", "claude-sonnet-4-5");
+ 		if (!bundled) throw new Error("Expected built-in anthropic model to exist");
+-		const model = { ...bundled, contextWindow: 200_000, maxTokens: 64_000 };
++		model = { ...bundled, contextWindow: 200_000, maxTokens: 64_000 };
+ 
+ 		const now = Date.now();
+ 		const usageZero = {
+@@ -162,4 +171,74 @@ describe("AgentSession per-turn prune persistence", () => {
+ 		const rebuiltText = rebuilt.content.find(block => block.type === "text");
+ 		expect(rebuiltText?.type === "text" ? rebuiltText.text : undefined).toBe(USELESS_NOTICE);
+ 	});
++
++	it("leaves stale tool results untouched when a context owner is active", async () => {
++		await sessionManager.flush();
++		const sessionFile = sessionManager.getSessionFile();
++		if (!sessionFile) throw new Error("Expected a persisted session file");
++		await session.dispose();
++		sessionManager = await SessionManager.open(sessionFile, tempDir.path());
++
++		const settings = Settings.isolated({
++			"context.owner": "cassipi",
++			"compaction.enabled": false,
++			"compaction.dropUseless": true,
++			"compaction.supersedeReads": true,
++		});
++		const extensionsResult = await loadExtensions([], tempDir.path());
++		const owner = await loadExtensionFromFactory(
++			pi => {
++				pi.registerContextOwner({ id: "cassipi", apiVersion: 1 });
++				pi.on("context", event => ({ messages: event.messages }));
++				pi.on("before_provider_request", event => event.payload);
++			},
++			tempDir.path(),
++			new EventBus(),
++			extensionsResult.runtime,
++			"cassipi-owner",
++		);
++		const extensionRunner = new ExtensionRunner(
++			[owner],
++			extensionsResult.runtime,
++			tempDir.path(),
++			sessionManager,
++			modelRegistry,
++			undefined,
++			settings,
++		);
++		session = new AgentSession({
++			agent: new Agent({
++				initialState: { model, systemPrompt: ["Test"], tools: [], messages: [] },
++			}),
++			sessionManager,
++			settings,
++			modelRegistry,
++			extensionRunner,
++		});
++		session.agent.replaceMessages(session.buildDisplaySessionContext().messages);
++
++		const finalAssistant = {
++			role: "assistant" as const,
++			content: [{ type: "text" as const, text: "Continuing." }],
++			api: "anthropic-messages" as const,
++			provider: "anthropic" as const,
++			model: "claude-sonnet-4-5",
++			stopReason: "stop" as const,
++			usage: {
++				input: 100,
++				output: 10,
++				cacheRead: 0,
++				cacheWrite: 0,
++				totalTokens: 110,
++				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
++			},
++			timestamp: Date.now(),
++		};
++		session.agent.emitExternalEvent({ type: "message_end", message: finalAssistant });
++		session.agent.emitExternalEvent({ type: "agent_end", messages: [finalAssistant] });
++		await session.waitForIdle();
++
++		expect(liveResultText()).toStartWith("match line\n");
++		expect(liveResultText()).not.toBe(USELESS_NOTICE);
++	});
+ });
+diff --git a/packages/coding-agent/test/extensions-runner.test.ts b/packages/coding-agent/test/extensions-runner.test.ts
+index d4132c16f..b38c98f6c 100644
+--- a/packages/coding-agent/test/extensions-runner.test.ts
++++ b/packages/coding-agent/test/extensions-runner.test.ts
+@@ -3950,4 +3950,223 @@ describe("ExtensionRunner", () => {
+ 			expect(await runner.emitInput("rewrite me", [image], "interactive")).toEqual({ text: "REWRITE ME" });
+ 		});
+ 	});
++
++	describe("context ownership", () => {
++		it("requires the configured singleton owner at startup", async () => {
++			const loaded = await loadTestExtensions();
++
++			expect(
++				() =>
++					new ExtensionRunner(
++						loaded.extensions,
++						loaded.runtime,
++						tempDir.path(),
++						sessionManager,
++						modelRegistry,
++						undefined,
++						Settings.isolated({ "context.owner": "cassipi" }),
++					),
++			).toThrow(
++				expect.objectContaining({
++					code: "REQUIRED_OWNER_MISSING",
++					ownerId: "cassipi",
++				}),
++			);
++		});
++
++		it("rejects a second owner instead of choosing by load order", async () => {
++			for (const name of ["a", "b"]) {
++				fs.writeFileSync(
++					path.join(extensionsDir, `${name}.ts`),
++					`export default pi => pi.registerContextOwner({ id: "${name}", apiVersion: 1 });`,
++				);
++			}
++			const loaded = await loadTestExtensions();
++
++			expect(
++				() =>
++					new ExtensionRunner(
++						loaded.extensions,
++						loaded.runtime,
++						tempDir.path(),
++						sessionManager,
++						modelRegistry,
++						undefined,
++						Settings.isolated({ "context.owner": "cassipi" }),
++					),
++			).toThrow(expect.objectContaining({ code: "OWNER_CONFLICT" }));
++		});
++
++		it("propagates owner failures instead of returning unowned context", async () => {
++			fs.writeFileSync(
++				path.join(extensionsDir, "owner.ts"),
++				`export default pi => {
++					pi.registerContextOwner({ id: "cassipi", apiVersion: 1 });
++					pi.on("context", () => { throw new Error("worker unavailable"); });
++				};`,
++			);
++			const loaded = await loadTestExtensions();
++			const runner = new ExtensionRunner(
++				loaded.extensions,
++				loaded.runtime,
++				tempDir.path(),
++				sessionManager,
++				modelRegistry,
++				undefined,
++				Settings.isolated({ "context.owner": "cassipi" }),
++			);
++
++			await expect(runner.emitContext([])).rejects.toEqual(
++				expect.objectContaining({
++					code: "OWNER_HANDLER_FAILED",
++					eventType: "context",
++				}),
++			);
++		});
++
++		it("fails closed when the owner handler times out", async () => {
++			testSetExtensionHandlerTimeoutMs(5);
++			fs.writeFileSync(
++				path.join(extensionsDir, "owner.ts"),
++				`export default pi => {
++					pi.registerContextOwner({ id: "cassipi", apiVersion: 1 });
++					pi.on("context", async () => await Promise.withResolvers().promise);
++				};`,
++			);
++			const loaded = await loadTestExtensions();
++			const runner = new ExtensionRunner(
++				loaded.extensions,
++				loaded.runtime,
++				tempDir.path(),
++				sessionManager,
++				modelRegistry,
++				undefined,
++				Settings.isolated({ "context.owner": "cassipi" }),
++			);
++
++			await expect(runner.emitContext([])).rejects.toEqual(
++				expect.objectContaining({
++					code: "OWNER_HANDLER_TIMEOUT",
++					eventType: "context",
++				}),
++			);
++		});
++
++		it("accepts input persistence but rejects branch-switched owner acknowledgement", async () => {
++			fs.writeFileSync(
++				path.join(extensionsDir, "owner.ts"),
++				`export default pi => {
++					let projection;
++					const binding = context => ({
++						ownerId: "cassipi",
++						apiVersion: 1,
++						operationId: "projection-operation",
++						sourceSessionId: context.sessionManager.getSessionId(),
++						sourceLeafId: context.sessionManager.getLeafId(),
++						headId: "head",
++						checkpointId: "checkpoint",
++						checkpointHash: "hash",
++						sourceRootDigest: "root",
++						coveredThroughEntryId: context.sessionManager.getLeafId(),
++						revocationEpoch: 0,
++						projectionId: "projection",
++						tokenCount: 0,
++						tokenBudget: 100000,
++					});
++					pi.registerContextOwner({ id: "cassipi", apiVersion: 1 });
++					pi.on("context", (event, context) => {
++						projection = binding(context);
++						return { messages: [], ownerProjection: projection };
++					});
++					pi.on("before_provider_request", event => ({
++						payload: event.payload,
++						ownerProjection: projection,
++					}));
++				};`,
++			);
++			const loaded = await loadTestExtensions();
++			const runner = new ExtensionRunner(
++				loaded.extensions,
++				loaded.runtime,
++				tempDir.path(),
++				sessionManager,
++				modelRegistry,
++				undefined,
++				Settings.isolated({ "context.owner": "cassipi" }),
++			);
++			const model = getBundledModel("anthropic", "claude-sonnet-4-5");
++			if (!model) throw new Error("Expected bundled model");
++
++			const prompt = { role: "user" as const, content: "persisted after projection", timestamp: Date.now() };
++			expect(await runner.emitContext([prompt])).toEqual([]);
++			const rootId = sessionManager.appendMessage(prompt);
++			expect(await runner.emitBeforeProviderRequest({ request: 1 }, model)).toEqual({ request: 1 });
++			await expect(runner.emitBeforeProviderRequest({ request: 2 }, model)).rejects.toMatchObject({
++				code: "OWNER_PROJECTION_MISSING",
++			});
++
++			const mainLeafId = sessionManager.appendMessage({
++				role: "user",
++				content: "main branch",
++				timestamp: Date.now(),
++			});
++			sessionManager.branch(rootId);
++			sessionManager.appendMessage({ role: "user", content: "alternate branch", timestamp: Date.now() });
++			await runner.emitContext(sessionManager.buildSessionContext().messages);
++			sessionManager.branch(mainLeafId);
++			await expect(runner.emitBeforeProviderRequest({ request: 3 }, model)).rejects.toMatchObject({
++				code: "OWNER_BINDING_INVALID",
++			});
++		});
++
++		it("rejects a stale owner acknowledgement before the provider call", async () => {
++			fs.writeFileSync(
++				path.join(extensionsDir, "owner.ts"),
++				`export default pi => {
++					let projection;
++					pi.registerContextOwner({ id: "cassipi", apiVersion: 1 });
++					pi.on("context", (event, context) => {
++						projection = {
++							ownerId: "cassipi",
++							apiVersion: 1,
++							operationId: "projection-operation",
++							sourceSessionId: context.sessionManager.getSessionId(),
++							sourceLeafId: context.sessionManager.getLeafId(),
++							headId: "head",
++							checkpointId: "checkpoint",
++							checkpointHash: "hash",
++							sourceRootDigest: "root",
++							coveredThroughEntryId: context.sessionManager.getLeafId(),
++							revocationEpoch: 0,
++							projectionId: "projection",
++							tokenCount: 0,
++							tokenBudget: 100000,
++						};
++						return { messages: event.messages, ownerProjection: projection };
++					});
++					pi.on("before_provider_request", event => ({
++						payload: event.payload,
++						ownerProjection: { ...projection, projectionId: "stale" },
++					}));
++				};`,
++			);
++			const loaded = await loadTestExtensions();
++			const runner = new ExtensionRunner(
++				loaded.extensions,
++				loaded.runtime,
++				tempDir.path(),
++				sessionManager,
++				modelRegistry,
++				undefined,
++				Settings.isolated({ "context.owner": "cassipi" }),
++			);
++			const model = getBundledModel("anthropic", "claude-sonnet-4-5");
++			if (!model) throw new Error("Expected bundled model");
++
++			await runner.emitContext([]);
++			await expect(runner.emitBeforeProviderRequest({ request: true }, model)).rejects.toMatchObject({
++				code: "OWNER_PROJECTION_STALE",
++			});
++		});
++	});
+ });

@@ -1,0 +1,16 @@
+# Cassi's host integration is a separate profile bundle for the local entity.
+- insert:
+    - id: cassi-entity
+      name: '../../../workspaces/Cassi/CassiQwen/dsh-cassi-entity/index.js'
+      config:
+        baseUrl: !!js process.env.CASSI_ENTITY_URL ?? 'http://127.0.0.1:8090'
+        projectId: cassi-workspace
+        allowedProjectIds: [cassi-workspace]
+        allowedRoots: []
+        allowedTools: []
+        networkHosts: []
+        maxEvidenceBytes: 16384
+        sourceRoots: []
+        workOrderTools: [cassi_read_source]
+        workOrderLedgerFile: !!js process.env.CASSI_WORK_ORDER_LEDGER ?? 'CassiQwen/_diag/field-brain-entity/work-orders.jsonl'
+        preAuthorizedEffects: [read-only, observation]

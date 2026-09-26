@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_mind_engine.gd" id="1_eng"]
+
+[node name="MindEngine" type="Node"]
+script = ExtResource("1_eng")
+grid_n = 32
+auto_step = false
+bridge_port = 7599

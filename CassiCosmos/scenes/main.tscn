@@ -1,0 +1,74 @@
+[gd_scene format=3 uid="uid://dtufpuhg6tm7q"]
+
+[ext_resource type="Script" uid="uid://cpylwlq6s4kty" path="res://scripts/free_camera.gd" id="1_cam"]
+[ext_resource type="Script" uid="uid://r5j3yyj5b160" path="res://scripts/cassi_sim.gd" id="2_sim"]
+[ext_resource type="Script" uid="uid://b1oh314kc0pg8" path="res://scripts/sim_ui.gd" id="3_ui"]
+[ext_resource type="Script" uid="uid://cguh5v40tabwa" path="res://scripts/cassi_presentation_director.gd" id="4_dir"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.006, 0.012, 0.035, 1)
+sky_horizon_color = Color(0.025, 0.05, 0.11, 1)
+ground_bottom_color = Color(0.006, 0.012, 0.035, 1)
+ground_horizon_color = Color(0.025, 0.05, 0.11, 1)
+sun_angle_max = 0.0
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("Sky_main")
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.65
+glow_strength = 0.75
+glow_bloom = 0.08
+glow_hdr_threshold = 0.8
+
+[node name="Main" type="Node3D" unique_id=2078421686]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1910698047]
+environment = SubResource("env")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1501670894]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 300, 500)
+fov = 70.0
+script = ExtResource("1_cam")
+
+[node name="PresentationDirector" type="Node" parent="." unique_id=1605336596]
+script = ExtResource("4_dir")
+
+[node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
+script = ExtResource("2_sim")
+N_particles = 2000000
+dt = 0.1
+cluster_radius = 300.0
+num_clusters = 10
+black_holes_enabled = true
+rotation_stress_enabled = true
+bh_accretion = false
+vsync_enabled = true
+river_calibrate_gn = true
+field_attractor_init = true
+initial_condition = 7
+initial_motion = 1
+initial_speed = 1.0
+gridless_physics = true
+tree_hierarchical_refit = true
+q_weighted_com = true
+compact_render_data = true
+presentation_color_scheme = 1
+presentation_trails_enabled = true
+presentation_volume_history_enabled = true
+qi_cycle = Vector2(0.005, 1)
+qi_approach = Vector2(0.8, 1)
+volume_dynamic_resolution = true
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
+
+[node name="SimUI" type="Control" parent="UILayer" unique_id=551568303]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+script = ExtResource("3_ui")

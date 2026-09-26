@@ -1,0 +1,41 @@
+========================================================================================
+FULL H(z) SIMULTANEOUS FIT — Planck (67.4 ± 0.5) + SH0ES (73.0 ± 1.0)
+========================================================================================
+  z_grid: 5000 points, z ∈ [0, 1200]; CMB window z ∈ [1000, 1100]
+  ODE w(a): a ∈ [0.010, 8.0], CPL fit over a ∈ [0.3, 1]: w₀ = -0.8392, wₐ = +0.4393 (bare form; doctrine values are the ξ-corrected pair −0.87, +0.012)
+  ODE w at a = 0.01 (z = 99, right-clamp for z > 99): +0.3680
+
+  Model                        w₀, wₐ   ⟨R⟩_CMB   H₀^CMB D_C ratio     H₀*  χ²_CMB  χ²_SH0ES  χ²_tot  sep (σ)
+  --------------------------------------------------------------------------------------------------------
+  ΛCDM                              —   1.00000    67.40    1.0000   68.52    5.02     20.07   25.09     5.01
+  Cassi baseline         (-0.870, +0.012)   1.00000    67.40    0.9878   68.52    5.02     20.07   25.09     5.01
+  Cassi coupling         (-0.870, -0.380)   1.00000    67.40    0.9979   68.52    5.02     20.07   25.09     5.01
+  Cassi ODE pipeline                —   1.10952    74.78    0.9629   74.43    0.51      2.03    2.54     1.59
+
+VERDICT
+-------
+  1. ΛCDM: anchors H₀^CMB = 67.4 vs H₀^SH0ES = 73.0 sit 5.0σ apart; χ² = 25.1 for the best single H₀ = 68.52. The tension is unresolved (5.0σ is the standard Planck-vs-SH0ES statement).
+  2. Cassi baseline: H₀^CMB = 67.40 (⟨R⟩_CMB = 1.00000); anchors 5.0σ apart; χ² = 25.09 (Δχ² vs ΛCDM = +0.0) → NOT RESOLVED.
+  2. Cassi coupling: H₀^CMB = 67.40 (⟨R⟩_CMB = 1.00000); anchors 5.0σ apart; χ² = 25.09 (Δχ² vs ΛCDM = -0.0) → NOT RESOLVED.
+  2. Cassi ODE pipeline: H₀^CMB = 74.78 (⟨R⟩_CMB = 1.10952); anchors 1.6σ apart; χ² = 2.54 (Δχ² vs ΛCDM = +22.5) → RESOLVED.
+
+  The decisive comparison is the CMB-epoch expansion ratio ⟨R⟩_CMB:
+    • The calibrated CPL values (baseline wₐ = +0.012 and the ratified
+      coupling wₐ = −0.38) give ⟨R⟩_CMB ≈ 1.0000: dark energy is negligible
+      at z ≈ 1000−1100 in both models, so the Cassi w(a) does NOT move the
+      CMB anchor. Under the calibrated values the H₀ tension is not resolved
+      by the w(a) mechanism (the D_C(z*) cross-check shifts the anchor by
+      ≲2 km/s/Mpc, and in the wrong direction).
+    • The documented ΔH₀ = −7.2 km/s/Mpc (−9.9%) comes from the ODE model,
+      whose w(a) is clamped to +0.37 (radiation-like) at z > 99 — an
+      extrapolation beyond the ODE's calibrated range (a ≥ 0.01) and outside
+      the DESI-anchored window (a ∈ [0.3, 1]). That early-time behavior, not
+      the calibrated w₀ = −0.87, drives the claimed resolution.
+  Honest verdict: the full simultaneous fit does not support "evolving Ω_Λ
+  reconciles H₀" with the calibrated baseline (χ² ≈ 25, same as ΛCDM). The
+  framework's w(a) resolves the tension only if the ODE's radiation-like
+  early-time extrapolation is physics; that requires a radiation-inclusive
+  treatment of the two-fluid H(z) before the registry's "full H(z) fit"
+  can be closed as a resolution.
+
+========================================================================================

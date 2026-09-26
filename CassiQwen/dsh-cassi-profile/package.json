@@ -1,0 +1,16 @@
+{
+  "name": "cassi-dsh-profile",
+  "private": true,
+  "dependencies": {
+    "@cassi/dsh-cassi-entity": "file:../dsh-cassi-entity"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@cassi/dsh-cassi-entity"
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// wu_xing_modulate.comp — Five-element modulation from dual-pentagon geometry
+//
+// Geometric origin (bubble_pole_pentagons.py §6):
+//   The bubble has TWO poles (north/south) at h=0 and h=15.
+//   Each pole hosts m=5 standing wave lobes (5th harmonic) forming
+//   a pentagon with 5 vertices. Two poles × 5 vertices = 10 total
+//   coherence vertices → λ = 1/10 emerges from vertex count.
+//
+//   The two pentagons are complementary: one Yang-led (north pole),
+//   one Yin-led (south pole). Their interference in the equatorial
+//   region creates the 5-lobe pattern. C(5,2)=10 vertex pairs in a
+//   single pentagon = 2 poles × 5 vertices each — self-consistent.
+//
+//   The 5-fold symmetry is selected by:
+//     1. Pole-to-pole distance L = 2/φ, λ_5 = L/5 (standing wave)
+//     2. Ratio 5/3 ≈ φ — maximal de-resonance of 5th and 3rd
+//     3. φ aspect ratio of elliptical cross-section selects pentagon
+//
+//   λ = 1/10 = 0.1 — derived, not tuned. Zero free parameters.
+//   Wood⊣Earth, Fire⊣Metal, Earth⊣Water, Metal⊣Wood, Water⊣Fire
+//
+// These are pure geometry — 72° vertex spacing, 144° star diagonals.
+// No Qi-density classification. The pentagon is geometric, not dynamic
+// (run_pde_bubble_spiral.py: "the pentagon/spiral is a geometric
+//  property of the phi-ellipsoid, not a PDE emergent phenomenon").
+//
+// Single invocation (global_size = 1), runs after qi_accum.
+// ═══════════════════════════════════════════════════════════════════
+
+layout(local_size_x = 1) in;
+
+#define PHI       1.618033988749895
+#define PHI_INV   0.618033988749895
+#define N_BANDS   13
+#define N_CHANNELS 5
+
+layout(std430, binding = 14) buffer QiOutput {
+    float qi_value; float best_amp; uint best_voxel;
+    uint sampled_byte; float sampled_prob;
+    float logits[256]; uint argmax_byte; float argmax_prob;
+    float wood; float fire; float metal; float earth; float water_q;
+    float eps_memory;
+    float _pad_proj_center[256 * 128];
+} qi_out;
+
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };
+
+void main() {
+    // ── Channel opennesses (analytically derived from pentagon geometry) ──
+    float b[N_CHANNELS];
+    b[0] = 1.0 / (PHI * PHI * PHI);     // φ⁻³ ≈ 0.236 — Wood
+    b[1] = b[0] * PHI_INV;               // φ⁻⁴ ≈ 0.146 — Fire
+    b[2] = b[1] * PHI_INV;               // φ⁻⁵ ≈ 0.090 — Earth
+    b[3] = b[2] * PHI_INV;               // φ⁻⁶ ≈ 0.056 — Metal
+    b[4] = b[3] * PHI_INV;               // φ⁻⁷ ≈ 0.034 — Water
+
+    // ── Channel-to-chakra centers (Gaussian positioning along spine) ──
+    float c0[N_CHANNELS] = float[](0.0, 3.0, 6.0, 9.0, 12.0);
+    float sigma = 2.0;
+    float two_sigma2 = 2.0 * sigma * sigma;
+
+    // ── Sheng/Ke adjacency (structural: pentagon vertex geometry) ──
+    int sheng_parent[N_CHANNELS] = int[](4, 0, 1, 2, 3);  // (n-1) mod 5
+    int ke_ctrl[N_CHANNELS]     = int[](2, 3, 4, 0, 1);  // (n+2) mod 5
+
+    // ── Per-chakra parameter modulation ──
+    for (int c = 0; c < N_BANDS; c++) {
+        float chakra_frac = float(c) / float(N_BANDS - 1);
+
+        float nu_s    = 1.0;  // diffusion
+        float g_s     = 1.0;  // nonlinear coupling
+        float chi_s   = 1.0;  // dispersion
+        float alpha_s = 1.0;  // self-focusing
+        float adv_s   = 1.0;  // advection
+
+        for (int i = 0; i < N_CHANNELS; i++) {
+            float dc = chakra_frac * float(N_BANDS - 1) - c0[i];
+            float w_c = exp(-dc * dc / two_sigma2);
+            float contrib = b[i] * w_c;
+
+            if (i == 0) {  // Wood — growth in lower chakras
+                adv_s += 0.25 * contrib;
+                g_s   += 0.10 * contrib;
+            } else if (i == 1) {  // Fire — dispersion in mid chakras
+                chi_s += 0.25 * contrib;
+                g_s   += 0.15 * contrib;
+            } else if (i == 2) {  // Earth — equilibrium pull
+                nu_s    = mix(nu_s,    1.0, 0.03 * contrib);
+                g_s     = mix(g_s,     1.0, 0.03 * contrib);
+                chi_s   = mix(chi_s,   1.0, 0.03 * contrib);
+                alpha_s = mix(alpha_s, 1.0, 0.03 * contrib);
+                adv_s   = mix(adv_s,   1.0, 0.03 * contrib);
+            } else if (i == 3) {  // Metal — contraction in upper chakras
+                nu_s    += 0.15 * contrib;
+                alpha_s -= 0.10 * contrib;
+            } else {  // Water — storage at root
+                g_s   += 0.15 * contrib;
+                adv_s -= 0.15 * contrib;
+            }
+
+            // Sheng: this channel's generator feeds it
+            int p = sheng_parent[i];
+            float dp = chakra_frac * float(N_BANDS - 1) - c0[p];
+            float wp = exp(-dp * dp / two_sigma2);
+            adv_s += 0.10 * 0.15 * b[p] * wp;
+
+            // Ke: this channel's controller damps it
+            int k = ke_ctrl[i];
+            float dk = chakra_frac * float(N_BANDS - 1) - c0[k];
+            float wk = exp(-dk * dk / two_sigma2);
+            nu_s *= 1.0 - 0.05 * 0.08 * b[k] * wk;
+        }
+
+        chakra_params[c * 5 + 0] = clamp(nu_s,    0.1, 5.0);
+        chakra_params[c * 5 + 1] = clamp(g_s,     0.1, 5.0);
+        chakra_params[c * 5 + 2] = clamp(chi_s,   0.1, 5.0);
+        chakra_params[c * 5 + 3] = clamp(alpha_s, 0.1, 5.0);
+        chakra_params[c * 5 + 4] = clamp(adv_s,   0.1, 5.0);
+    }
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="CassiFI">
+  <Profiles>
+    <SystemCollector Id="CassiQiSystemCollector" Name="Cassi Qi Flow system collector">
+      <BufferSize Value="1024" />
+      <Buffers Value="256" />
+    </SystemCollector>
+    <EventCollector Id="CassiQiEventCollector" Name="Cassi Qi Flow event collector">
+      <BufferSize Value="1024" />
+      <Buffers Value="256" />
+      <StackCaching>false</StackCaching>
+    </EventCollector>
+    <SystemProvider Id="CassiQiSystemProvider">
+      <Keywords>
+        <Keyword Value="ProcessThread" />
+        <Keyword Value="Loader" />
+        <Keyword Value="FileIO" />
+        <Keyword Value="FileIOInit" />
+        <Keyword Value="NetworkTCPIP" />
+        <Keyword Value="ImageLoad" />
+      </Keywords>
+    </SystemProvider>
+    <EventProvider Id="CassiQiKernelProcess" Name="Microsoft-Windows-Kernel-Process" Level="5" />
+    <EventProvider Id="CassiQiKernelFile" Name="Microsoft-Windows-Kernel-File" Level="5" />
+    <EventProvider Id="CassiQiKernelNetwork" Name="Microsoft-Windows-Kernel-Network" Level="5" />
+    <EventProvider Id="CassiQiKernelImage" Name="Microsoft-Windows-Kernel-Image" Level="5" />
+    <Profile Id="CassiQiFlow" Name="Cassi Qi Flow process/source evidence" Description="Bounded process, module, file, socket, and image evidence for G12E" LoggingMode="File" DetailLevel="Verbose">
+      <Collectors>
+        <SystemCollectorId Value="CassiQiSystemCollector">
+          <SystemProviderId Value="CassiQiSystemProvider" />
+        </SystemCollectorId>
+        <EventCollectorId Value="CassiQiEventCollector">
+          <EventProviders>
+            <EventProviderId Value="CassiQiKernelProcess" />
+            <EventProviderId Value="CassiQiKernelFile" />
+            <EventProviderId Value="CassiQiKernelNetwork" />
+            <EventProviderId Value="CassiQiKernelImage" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>

@@ -1,0 +1,1788 @@
+{
+  "schema": "cassipi.provider-comparison.v3",
+  "createdAt": "2026-09-06T00:16:21.622Z",
+  "verdict": "PASS",
+  "executionVerdict": "PASS",
+  "behaviorVerdict": "PASS",
+  "stockBehaviorVerdict": "FAIL",
+  "efficiencyVerdict": "NO_LARGE_TOKEN_OR_COST_REGRESSION_OBSERVED",
+  "cutoverReadiness": "READY_FOR_EXPLICIT_REVIEW",
+  "safety": {
+    "realProviderCallsExplicitlyEnabled": true,
+    "liveProfileModified": false,
+    "credentialsCopiedOrRecorded": false,
+    "tasksUseSyntheticProjectData": true,
+    "workspacesAreDisposable": true,
+    "actualModelToolWorkRequired": true,
+    "actualFileEditsRequired": true,
+    "harnessInjectedToolOutputsExecutedLocally": true,
+    "harnessInjectedUsageAndCost": 0
+  },
+  "identities": {
+    "hostSha256": "fffe4f525117983255b6777cab746ef2930ffb829c8a6154bad86d375ce0fbc0",
+    "extensionSha256": "f96fb7c881e8d87eeb589ac74ced18120efea6301b45cba81e4cbb21902c27c5",
+    "runtimeManifestSha256": "f60e6581851431e295ba2c15135d24f55609f0bf1b049926c0a4317f753ef0d7",
+    "releaseManifestSha256": "7540af28879570e7c262f15fc75c1e1ffc72aa9089aeb70665abd15e396cefc6",
+    "samePatchedHostForBothArms": true,
+    "installedProfile": "cassipi-rehearsal"
+  },
+  "providers": [
+    "openai-codex/gpt-5.6-sol",
+    "opencode-go/qwen3.8-flash"
+  ],
+  "scenarios": [
+    {
+      "id": "harbor-relay",
+      "description": "Correct a relay endpoint and retry policy, preserve a proposed cache action, then continue from a fresh source revision.",
+      "branchMarkerSha256": "d7d61f53a408c8bd3f2499a1d64420bfb827bec2466ba79b42f09ca1b9b76a80"
+    },
+    {
+      "id": "quartz-batcher",
+      "description": "Correct a batch size and fanout policy, preserve a proposed ledger action, then continue from a fresh source revision.",
+      "branchMarkerSha256": "7cb33ddecaa184f56cb6b443831480a7a7b8d43b8900b6b21e532562329db529"
+    }
+  ],
+  "acceptance": {
+    "armsExpected": 8,
+    "armsAttempted": 8,
+    "armsCompleted": 8,
+    "cassipiTasksExpected": 4,
+    "cassipiTasksPassed": 4,
+    "allCassipiTasksPassed": true,
+    "allStockTasksPassed": false,
+    "compactionsPerArm": 3,
+    "providerTurnsPerArm": 4,
+    "heldOutScenarioCount": 2,
+    "tokenRegressionThreshold": 1.5,
+    "costRegressionThreshold": 1.5
+  },
+  "comparisons": [
+    {
+      "provider": "openai-codex/gpt-5.6-sol",
+      "scenario": "harbor-relay",
+      "stockTaskSuccess": false,
+      "cassipiTaskSuccess": true,
+      "stockExecutionError": null,
+      "cassipiExecutionError": null,
+      "tokenRatioCassiPiToStock": 0.8935649810734737,
+      "costRatioCassiPiToStock": 0.8806171613407088,
+      "sessionStateRatioCassiPiToStock": 1.3704454895031086,
+      "cassipiFieldStateBytes": 23278912
+    },
+    {
+      "provider": "openai-codex/gpt-5.6-sol",
+      "scenario": "quartz-batcher",
+      "stockTaskSuccess": false,
+      "cassipiTaskSuccess": true,
+      "stockExecutionError": null,
+      "cassipiExecutionError": null,
+      "tokenRatioCassiPiToStock": 1.0833036227853758,
+      "costRatioCassiPiToStock": 0.8930362764003785,
+      "sessionStateRatioCassiPiToStock": 1.258473281803839,
+      "cassipiFieldStateBytes": 16270048
+    },
+    {
+      "provider": "opencode-go/qwen3.8-flash",
+      "scenario": "harbor-relay",
+      "stockTaskSuccess": false,
+      "cassipiTaskSuccess": true,
+      "stockExecutionError": null,
+      "cassipiExecutionError": null,
+      "tokenRatioCassiPiToStock": 1.0299334942724605,
+      "costRatioCassiPiToStock": 0.593187366445769,
+      "sessionStateRatioCassiPiToStock": 1.1449119779001946,
+      "cassipiFieldStateBytes": 10489523
+    },
+    {
+      "provider": "opencode-go/qwen3.8-flash",
+      "scenario": "quartz-batcher",
+      "stockTaskSuccess": false,
+      "cassipiTaskSuccess": true,
+      "stockExecutionError": null,
+      "cassipiExecutionError": null,
+      "tokenRatioCassiPiToStock": 0.7195162062441178,
+      "costRatioCassiPiToStock": 0.5145073799635846,
+      "sessionStateRatioCassiPiToStock": 1.1506414524307957,
+      "cassipiFieldStateBytes": 12830660
+    }
+  ],
+  "aggregate": {
+    "completedPairCount": 4,
+    "medianTokenRatioCassiPiToStock": 0.961749237672967,
+    "medianCostRatioCassiPiToStock": 0.7369022638932389
+  },
+  "results": [
+    {
+      "arm": "stock",
+      "provider": "openai-codex/gpt-5.6-sol",
+      "scenario": "harbor-relay",
+      "taskSuccess": false,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": true,
+        "exactSourceContinuation": false,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": false,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": false,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 30260,
+          "correction": 24482,
+          "siblingBranchFixture": 7548,
+          "finalContinuation": 47665
+        },
+        "finalResponseSha256": "1d499e44b73431829c4d948d10139d0b8d4ad4f43124c2f4a10629591b2d2950",
+        "finalResponseChars": 691
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 26644,
+          "summaryChars": 203,
+          "summarySha256": "83ab573a6b3598337ad255d6f9ac95864af13318a21fdb1f8999c9370ff0ced4",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 2,
+          "durationMs": 18599,
+          "summaryChars": 203,
+          "summarySha256": "596353194b9da725e400ff733d10decf6cba016d00d74397d10ac754491a97a1",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 3,
+          "durationMs": 19669,
+          "summaryChars": 203,
+          "summarySha256": "dc010e32d63e733339463314c51d632acdcc27a13fe540f127505e5e205bd0a9",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "9207fd7f",
+        "originalMainLeafId": "5114a7ba",
+        "persistedMainLeafId": "be38272b",
+        "fixtureDurationMs": 7548,
+        "fixtureResponseSha256": "10ca8fd38a72fadb98145896e65577ac728ad40b810b3030480981942358ac16",
+        "fixtureResponseExact": true,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 16,
+          "userMessages": 2,
+          "assistantMessages": 8,
+          "toolCalls": 6,
+          "tokens": {
+            "input": 39728,
+            "output": 1258,
+            "reasoning": 265,
+            "cacheRead": 168320,
+            "cacheWrite": 0,
+            "total": 209306
+          },
+          "costUsd": 0.2514
+        },
+        "navigation": {
+          "toSiblingDurationMs": 3,
+          "returnDurationMs": 66,
+          "toSibling": {
+            "at": "2026-09-05T23:49:04.977Z",
+            "event": "tree-plain",
+            "target": "9207fd7f",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-05T23:49:12.529Z",
+            "event": "tree-plain",
+            "target": "5114a7ba",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 13253,
+        "plainDurationMs": 62,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": false,
+        "summaryResult": {
+          "at": "2026-09-05T23:50:37.574Z",
+          "event": "tree-summary",
+          "target": "4e11c9c7",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-05T23:50:37.589Z",
+          "event": "tree-plain",
+          "target": "85a9c055",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 8,
+        "harnessToolCalls": 0,
+        "toolResults": 7,
+        "observedVerifyFailure": false,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "78518539",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 108002,
+          "sha256": "bb17082010e943254afafaf6b3efcfa584fda0a87c35ec5635fe79f64821c9a0",
+          "durationMs": 34
+        },
+        {
+          "bytes": 108002,
+          "sha256": "4b629953d7abe3cc6b6af247a5be7e5c943c64656b89d27fd35e8d9feccb75cc",
+          "durationMs": 33
+        },
+        {
+          "bytes": 108002,
+          "sha256": "217431eaa357db37146ade5958316fb68c859116928344346eddda877484cd0a",
+          "durationMs": 34
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 30
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 34
+        }
+      },
+      "source": {
+        "finalSha256": "b79fac3a791277a9d7a30f8fcab021e0c4f994f3a2e8702b29fa8e4658279b20",
+        "protectedSha256": "f03add972e25d6996b6e36ef883693bb8644809707712b7070ee9d1dd8bbfd04",
+        "freshenedSourceSha256": "b79fac3a791277a9d7a30f8fcab021e0c4f994f3a2e8702b29fa8e4658279b20"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 21,
+        "userMessages": 3,
+        "assistantMessages": 10,
+        "toolCalls": 7,
+        "tokens": {
+          "input": 39304,
+          "output": 799,
+          "reasoning": 231,
+          "cacheRead": 217472,
+          "cacheWrite": 0,
+          "total": 257575
+        },
+        "costUsd": 0.2601848
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 2050,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 2124,
+          "sessionBytes": 459517,
+          "fieldBytes": 0
+        },
+        "growthBytes": {
+          "workspace": 74,
+          "session": 459517,
+          "field": 0
+        }
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "openai-codex/gpt-5.6-sol",
+      "scenario": "harbor-relay",
+      "taskSuccess": true,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": true,
+        "exactSourceContinuation": true,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": true,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": true,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 59868,
+          "correction": 86850,
+          "siblingBranchFixture": 10388,
+          "finalContinuation": 80696
+        },
+        "finalResponseSha256": "62603350c5d496592c1b379c08261cb0f2e24959e884bb567d1e830600f9a5c8",
+        "finalResponseChars": 891
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 2593,
+          "summaryChars": 16140,
+          "summarySha256": "0fd1692b6fdbdf5d2f91c09512695e8247edd2de4b4b67b475426a9e374ec551",
+          "tokensBefore": 0,
+          "evidenceCount": 9,
+          "exactCount": 0,
+          "projectionCount": 7,
+          "assistantTextProjectionCount": 3,
+          "referenceCount": 2,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 2,
+          "durationMs": 1083,
+          "summaryChars": 15960,
+          "summarySha256": "b13e939c937f6dff15d1799416c929a31fc3d74bf6e8b962a9e0e9d8002887a0",
+          "tokensBefore": 0,
+          "evidenceCount": 12,
+          "exactCount": 0,
+          "projectionCount": 7,
+          "assistantTextProjectionCount": 4,
+          "referenceCount": 5,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 3,
+          "durationMs": 1279,
+          "summaryChars": 16150,
+          "summarySha256": "aaad7d109e41ca86a5ea42dec780209080a80ca120bc11ae08dbea0ea590f8fd",
+          "tokensBefore": 0,
+          "evidenceCount": 12,
+          "exactCount": 0,
+          "projectionCount": 8,
+          "assistantTextProjectionCount": 5,
+          "referenceCount": 4,
+          "nestedEvidenceCount": 0
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "9ee1a534",
+        "originalMainLeafId": "bebe421a",
+        "persistedMainLeafId": "e5cc258a",
+        "fixtureDurationMs": 10388,
+        "fixtureResponseSha256": "10ca8fd38a72fadb98145896e65577ac728ad40b810b3030480981942358ac16",
+        "fixtureResponseExact": true,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 30,
+          "userMessages": 2,
+          "assistantMessages": 9,
+          "toolCalls": 19,
+          "tokens": {
+            "input": 113639,
+            "output": 2358,
+            "reasoning": 828,
+            "cacheRead": 229120,
+            "cacheWrite": 0,
+            "total": 345117
+          },
+          "costUsd": 0.593364
+        },
+        "navigation": {
+          "toSiblingDurationMs": 2552,
+          "returnDurationMs": 567,
+          "toSibling": {
+            "at": "2026-09-05T23:54:06.474Z",
+            "event": "tree-plain",
+            "target": "9ee1a534",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-05T23:54:17.407Z",
+            "event": "tree-plain",
+            "target": "bebe421a",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 564,
+        "plainDurationMs": 1931,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": true,
+        "summaryResult": {
+          "at": "2026-09-05T23:54:33.865Z",
+          "event": "tree-summary",
+          "target": "35aaccac",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-05T23:54:35.774Z",
+          "event": "tree-plain",
+          "target": "9179502b",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 28,
+        "harnessToolCalls": 3,
+        "toolResults": 31,
+        "observedVerifyFailure": true,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "86c2147f",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 108002,
+          "sha256": "bb17082010e943254afafaf6b3efcfa584fda0a87c35ec5635fe79f64821c9a0",
+          "durationMs": 33
+        },
+        {
+          "bytes": 108002,
+          "sha256": "4b629953d7abe3cc6b6af247a5be7e5c943c64656b89d27fd35e8d9feccb75cc",
+          "durationMs": 33
+        },
+        {
+          "bytes": 108002,
+          "sha256": "217431eaa357db37146ade5958316fb68c859116928344346eddda877484cd0a",
+          "durationMs": 33
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 31
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 30
+        }
+      },
+      "source": {
+        "finalSha256": "b79fac3a791277a9d7a30f8fcab021e0c4f994f3a2e8702b29fa8e4658279b20",
+        "protectedSha256": "f03add972e25d6996b6e36ef883693bb8644809707712b7070ee9d1dd8bbfd04",
+        "freshenedSourceSha256": "bf539b6f7bcd41d246819ae7ee088e1e21558e416b4813b48b8011aceda7c08e"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 17,
+        "userMessages": 1,
+        "assistantMessages": 6,
+        "toolCalls": 9,
+        "tokens": {
+          "input": 30967,
+          "output": 1305,
+          "reasoning": 611,
+          "cacheRead": 197888,
+          "cacheWrite": 0,
+          "total": 230160
+        },
+        "costUsd": 0.22912320000000003
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 2050,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 2124,
+          "sessionBytes": 629743,
+          "fieldBytes": 23278912
+        },
+        "growthBytes": {
+          "workspace": 74,
+          "session": 629743,
+          "field": 23278912
+        }
+      }
+    },
+    {
+      "arm": "stock",
+      "provider": "openai-codex/gpt-5.6-sol",
+      "scenario": "quartz-batcher",
+      "taskSuccess": false,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": true,
+        "exactSourceContinuation": false,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": true,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": false,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 23604,
+          "correction": 20004,
+          "siblingBranchFixture": 8112,
+          "finalContinuation": 49238
+        },
+        "finalResponseSha256": "af3a8e1ba636923bfedfbec658fd223e12538dc98ec44d706650d1c9d1fe4026",
+        "finalResponseChars": 902
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 19727,
+          "summaryChars": 205,
+          "summarySha256": "c6d0361317a8c7d17d6d3d9b986b6d760a06a309a92d5b5826a74307e41e03fa",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 2,
+          "durationMs": 17495,
+          "summaryChars": 205,
+          "summarySha256": "2a71fd36d23a0f67965e55db04879e37042fe6f38c441ea9fa75c266c2c9f200",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 3,
+          "durationMs": 19781,
+          "summaryChars": 205,
+          "summarySha256": "405befa0401879169401ad0f7f0fe55ce6abb59a50fcf51fad5a2bd41a8cf248",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "2abcd2b3",
+        "originalMainLeafId": "f83446ee",
+        "persistedMainLeafId": "8b16b407",
+        "fixtureDurationMs": 8112,
+        "fixtureResponseSha256": "10ca8fd38a72fadb98145896e65577ac728ad40b810b3030480981942358ac16",
+        "fixtureResponseExact": true,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 14,
+          "userMessages": 2,
+          "assistantMessages": 6,
+          "toolCalls": 6,
+          "tokens": {
+            "input": 39605,
+            "output": 1145,
+            "reasoning": 229,
+            "cacheRead": 120064,
+            "cacheWrite": 0,
+            "total": 160814
+          },
+          "costUsd": 0.22934559999999998
+        },
+        "navigation": {
+          "toSiblingDurationMs": 54,
+          "returnDurationMs": 66,
+          "toSibling": {
+            "at": "2026-09-05T23:56:48.192Z",
+            "event": "tree-plain",
+            "target": "2abcd2b3",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-05T23:56:56.357Z",
+            "event": "tree-plain",
+            "target": "f83446ee",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 15064,
+        "plainDurationMs": 61,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": false,
+        "summaryResult": {
+          "at": "2026-09-05T23:58:15.369Z",
+          "event": "tree-summary",
+          "target": "7d69fce2",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-05T23:58:15.429Z",
+          "event": "tree-plain",
+          "target": "ade16372",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 15,
+        "harnessToolCalls": 0,
+        "toolResults": 12,
+        "observedVerifyFailure": true,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "b493c8a0",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 110404,
+          "sha256": "5167cb83243c3507526a72923bf3c12fdb63c6fbd9525d93672f61906506e3a4",
+          "durationMs": 33
+        },
+        {
+          "bytes": 110404,
+          "sha256": "af87e4a2a36655c7d2a3217ed4cd93e70b03b69249e856986d381327600ad4f3",
+          "durationMs": 34
+        },
+        {
+          "bytes": 110404,
+          "sha256": "1bc830c9628867c0be55f0312ac620cd70a4ca9e57898b6c47dc039ec52ad4aa",
+          "durationMs": 35
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 32
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 30
+        }
+      },
+      "source": {
+        "finalSha256": "8630dd9ed9bc4a9dfc4d290675618e48512f195d9cf0ea2e32cfef180a78bde5",
+        "protectedSha256": "91a637ef47ced2482a02389b243679ce85e5cc3a298df30544cbe7571648826a",
+        "freshenedSourceSha256": "8630dd9ed9bc4a9dfc4d290675618e48512f195d9cf0ea2e32cfef180a78bde5"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 24,
+        "userMessages": 3,
+        "assistantMessages": 8,
+        "toolCalls": 12,
+        "tokens": {
+          "input": 60244,
+          "output": 1511,
+          "reasoning": 627,
+          "cacheRead": 148608,
+          "cacheWrite": 0,
+          "total": 210363
+        },
+        "costUsd": 0.33063919999999997
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 1934,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 1985,
+          "sessionBytes": 477914,
+          "fieldBytes": 0
+        },
+        "growthBytes": {
+          "workspace": 51,
+          "session": 477914,
+          "field": 0
+        }
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "openai-codex/gpt-5.6-sol",
+      "scenario": "quartz-batcher",
+      "taskSuccess": true,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": true,
+        "exactSourceContinuation": true,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": true,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": true,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 35198,
+          "correction": 49027,
+          "siblingBranchFixture": 12328,
+          "finalContinuation": 87632
+        },
+        "finalResponseSha256": "cc7636292303b2a5daa7ba8a01e585bef03a4b3554466faf25c6698583d5f1c1",
+        "finalResponseChars": 895
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 6056,
+          "summaryChars": 15782,
+          "summarySha256": "8fed99f15a114b468dd94ab918825f69502f8971b7794a9e60ff8caffbdca3db",
+          "tokensBefore": 0,
+          "evidenceCount": 9,
+          "exactCount": 0,
+          "projectionCount": 7,
+          "assistantTextProjectionCount": 3,
+          "referenceCount": 2,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 2,
+          "durationMs": 4610,
+          "summaryChars": 15852,
+          "summarySha256": "2d52274b0725076474c9e2078841b85fb6564100f17b81c13479f9949943e12b",
+          "tokensBefore": 0,
+          "evidenceCount": 12,
+          "exactCount": 0,
+          "projectionCount": 7,
+          "assistantTextProjectionCount": 4,
+          "referenceCount": 5,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 3,
+          "durationMs": 559,
+          "summaryChars": 16042,
+          "summarySha256": "3c0fd84a34db867904343c4386c1b70333e582011ecee507208888c481f88017",
+          "tokensBefore": 0,
+          "evidenceCount": 12,
+          "exactCount": 0,
+          "projectionCount": 8,
+          "assistantTextProjectionCount": 5,
+          "referenceCount": 4,
+          "nestedEvidenceCount": 0
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "d9edd820",
+        "originalMainLeafId": "c3a03521",
+        "persistedMainLeafId": "85c61447",
+        "fixtureDurationMs": 12328,
+        "fixtureResponseSha256": "10ca8fd38a72fadb98145896e65577ac728ad40b810b3030480981942358ac16",
+        "fixtureResponseExact": true,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 18,
+          "userMessages": 2,
+          "assistantMessages": 7,
+          "toolCalls": 9,
+          "tokens": {
+            "input": 102663,
+            "output": 1181,
+            "reasoning": 160,
+            "cacheRead": 129024,
+            "cacheWrite": 0,
+            "total": 232868
+          },
+          "costUsd": 0.48588159999999997
+        },
+        "navigation": {
+          "toSiblingDurationMs": 2114,
+          "returnDurationMs": 3486,
+          "toSibling": {
+            "at": "2026-09-06T00:00:41.469Z",
+            "event": "tree-plain",
+            "target": "d9edd820",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-06T00:00:57.252Z",
+            "event": "tree-plain",
+            "target": "c3a03521",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 377,
+        "plainDurationMs": 993,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": true,
+        "summaryResult": {
+          "at": "2026-09-06T00:01:20.620Z",
+          "event": "tree-summary",
+          "target": "40dc8976",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-06T00:01:21.643Z",
+          "event": "tree-plain",
+          "target": "248f9baa",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 20,
+        "harnessToolCalls": 3,
+        "toolResults": 23,
+        "observedVerifyFailure": true,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "006a1606",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 110404,
+          "sha256": "5167cb83243c3507526a72923bf3c12fdb63c6fbd9525d93672f61906506e3a4",
+          "durationMs": 33
+        },
+        {
+          "bytes": 110404,
+          "sha256": "af87e4a2a36655c7d2a3217ed4cd93e70b03b69249e856986d381327600ad4f3",
+          "durationMs": 34
+        },
+        {
+          "bytes": 110404,
+          "sha256": "1bc830c9628867c0be55f0312ac620cd70a4ca9e57898b6c47dc039ec52ad4aa",
+          "durationMs": 36
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 31
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 30
+        }
+      },
+      "source": {
+        "finalSha256": "8630dd9ed9bc4a9dfc4d290675618e48512f195d9cf0ea2e32cfef180a78bde5",
+        "protectedSha256": "91a637ef47ced2482a02389b243679ce85e5cc3a298df30544cbe7571648826a",
+        "freshenedSourceSha256": "26f7b2212b99ed955799b0c18fdf64eea6706f77cc256c8347f534be70bef5b7"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 19,
+        "userMessages": 1,
+        "assistantMessages": 6,
+        "toolCalls": 11,
+        "tokens": {
+          "input": 50177,
+          "output": 1198,
+          "reasoning": 323,
+          "cacheRead": 176512,
+          "cacheWrite": 0,
+          "total": 227887
+        },
+        "costUsd": 0.2952728
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 1934,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 1985,
+          "sessionBytes": 601442,
+          "fieldBytes": 16270048
+        },
+        "growthBytes": {
+          "workspace": 51,
+          "session": 601442,
+          "field": 16270048
+        }
+      }
+    },
+    {
+      "arm": "stock",
+      "provider": "opencode-go/qwen3.8-flash",
+      "scenario": "harbor-relay",
+      "taskSuccess": false,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": false,
+        "exactSourceContinuation": true,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": false,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": false,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 24624,
+          "correction": 25365,
+          "siblingBranchFixture": 8930,
+          "finalContinuation": 28640
+        },
+        "finalResponseSha256": "569f23a5ebb20ffeea3415dfd90e96931eae10b031cba1fc1d8e69ef32c6a948",
+        "finalResponseChars": 1308
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 26035,
+          "summaryChars": 5384,
+          "summarySha256": "e18fb0867d86900a91b5dd5122e3d60fabc1c26f22b59130dbb60efcd62369e0",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 2,
+          "durationMs": 21267,
+          "summaryChars": 6327,
+          "summarySha256": "2baab3cf3f6b4bcd481a8c65f11fbd7ade485b71c3b81147c89168adf62a9e3d",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 3,
+          "durationMs": 18121,
+          "summaryChars": 6841,
+          "summarySha256": "6da4e8baeda16bf295110e5ca671119465f9f5f8ad792bac0e53be8e4c9c5cfd",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "f0c8e6f4",
+        "originalMainLeafId": "9e7a5d25",
+        "persistedMainLeafId": "71c0b04d",
+        "fixtureDurationMs": 8930,
+        "fixtureResponseSha256": "10ca8fd38a72fadb98145896e65577ac728ad40b810b3030480981942358ac16",
+        "fixtureResponseExact": true,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 16,
+          "userMessages": 2,
+          "assistantMessages": 6,
+          "toolCalls": 8,
+          "tokens": {
+            "input": 36,
+            "output": 2568,
+            "reasoning": 0,
+            "cacheRead": 117569,
+            "cacheWrite": 66165,
+            "total": 186338
+          },
+          "costUsd": 0.016326464
+        },
+        "navigation": {
+          "toSiblingDurationMs": 58,
+          "returnDurationMs": 54,
+          "toSibling": {
+            "at": "2026-09-06T00:03:47.361Z",
+            "event": "tree-plain",
+            "target": "f0c8e6f4",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-06T00:03:56.348Z",
+            "event": "tree-plain",
+            "target": "9e7a5d25",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 7798,
+        "plainDurationMs": 60,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": false,
+        "summaryResult": {
+          "at": "2026-09-06T00:05:16.501Z",
+          "event": "tree-summary",
+          "target": "62403faa",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-06T00:05:16.548Z",
+          "event": "tree-plain",
+          "target": "a0cc1841",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 9,
+        "harnessToolCalls": 0,
+        "toolResults": 5,
+        "observedVerifyFailure": false,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "62fe9e31",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 108002,
+          "sha256": "bb17082010e943254afafaf6b3efcfa584fda0a87c35ec5635fe79f64821c9a0",
+          "durationMs": 33
+        },
+        {
+          "bytes": 108002,
+          "sha256": "4b629953d7abe3cc6b6af247a5be7e5c943c64656b89d27fd35e8d9feccb75cc",
+          "durationMs": 38
+        },
+        {
+          "bytes": 108002,
+          "sha256": "217431eaa357db37146ade5958316fb68c859116928344346eddda877484cd0a",
+          "durationMs": 34
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 30
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 33
+        }
+      },
+      "source": {
+        "finalSha256": "b79fac3a791277a9d7a30f8fcab021e0c4f994f3a2e8702b29fa8e4658279b20",
+        "protectedSha256": "f03add972e25d6996b6e36ef883693bb8644809707712b7070ee9d1dd8bbfd04",
+        "freshenedSourceSha256": "bf539b6f7bcd41d246819ae7ee088e1e21558e416b4813b48b8011aceda7c08e"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 15,
+        "userMessages": 3,
+        "assistantMessages": 6,
+        "toolCalls": 5,
+        "tokens": {
+          "input": 36,
+          "output": 1512,
+          "reasoning": 0,
+          "cacheRead": 82206,
+          "cacheWrite": 85254,
+          "total": 169008
+        },
+        "costUsd": 0.019082136000000006
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 2050,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 2124,
+          "sessionBytes": 432221,
+          "fieldBytes": 0
+        },
+        "growthBytes": {
+          "workspace": 74,
+          "session": 432221,
+          "field": 0
+        }
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "opencode-go/qwen3.8-flash",
+      "scenario": "harbor-relay",
+      "taskSuccess": true,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": true,
+        "exactSourceContinuation": true,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": true,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": true,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 41463,
+          "correction": 47443,
+          "siblingBranchFixture": 11633,
+          "finalContinuation": 45566
+        },
+        "finalResponseSha256": "10dd413d6aeeaa55d7750ae783e3374f3949d7c808943974be59004928082853",
+        "finalResponseChars": 1010
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 6142,
+          "summaryChars": 10049,
+          "summarySha256": "31c27a6ecd37d629f378c472da1ec9ff26bb9d7118973b47d84d600842052925",
+          "tokensBefore": 0,
+          "evidenceCount": 7,
+          "exactCount": 0,
+          "projectionCount": 5,
+          "assistantTextProjectionCount": 3,
+          "referenceCount": 2,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 2,
+          "durationMs": 4189,
+          "summaryChars": 10239,
+          "summarySha256": "c524dc42dcb11cbb4045c4c23e0c4d53b4d0eb47a825993a40f0838a6a465cae",
+          "tokensBefore": 0,
+          "evidenceCount": 7,
+          "exactCount": 0,
+          "projectionCount": 6,
+          "assistantTextProjectionCount": 4,
+          "referenceCount": 1,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 3,
+          "durationMs": 4640,
+          "summaryChars": 9854,
+          "summarySha256": "1a5907e4348e02cbf37cbc0a2cb7705314720579b725796ba6508363ee221b57",
+          "tokensBefore": 0,
+          "evidenceCount": 7,
+          "exactCount": 0,
+          "projectionCount": 6,
+          "assistantTextProjectionCount": 5,
+          "referenceCount": 1,
+          "nestedEvidenceCount": 0
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "5c406c76",
+        "originalMainLeafId": "bd60c96d",
+        "persistedMainLeafId": "e65e9f94",
+        "fixtureDurationMs": 11633,
+        "fixtureResponseSha256": "d0cfc07bc83452981f9c2057a6554e451d270dc49f991b2971d83f3123211ebb",
+        "fixtureResponseExact": false,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 17,
+          "userMessages": 2,
+          "assistantMessages": 7,
+          "toolCalls": 8,
+          "tokens": {
+            "input": 42,
+            "output": 2323,
+            "reasoning": 0,
+            "cacheRead": 186570,
+            "cacheWrite": 81007,
+            "total": 269942
+          },
+          "costUsd": 0.02028463
+        },
+        "navigation": {
+          "toSiblingDurationMs": 1931,
+          "returnDurationMs": 3181,
+          "toSibling": {
+            "at": "2026-09-06T00:07:26.120Z",
+            "event": "tree-plain",
+            "target": "5c406c76",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-06T00:07:40.932Z",
+            "event": "tree-plain",
+            "target": "bd60c96d",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 1068,
+        "plainDurationMs": 3304,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": true,
+        "summaryResult": {
+          "at": "2026-09-06T00:08:09.752Z",
+          "event": "tree-summary",
+          "target": "cbbf31de",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-06T00:08:13.013Z",
+          "event": "tree-plain",
+          "target": "97fd0989",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 12,
+        "harnessToolCalls": 3,
+        "toolResults": 15,
+        "observedVerifyFailure": true,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "19fc5dd8",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 108002,
+          "sha256": "bb17082010e943254afafaf6b3efcfa584fda0a87c35ec5635fe79f64821c9a0",
+          "durationMs": 33
+        },
+        {
+          "bytes": 108002,
+          "sha256": "4b629953d7abe3cc6b6af247a5be7e5c943c64656b89d27fd35e8d9feccb75cc",
+          "durationMs": 32
+        },
+        {
+          "bytes": 108002,
+          "sha256": "217431eaa357db37146ade5958316fb68c859116928344346eddda877484cd0a",
+          "durationMs": 34
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 30
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 29
+        }
+      },
+      "source": {
+        "finalSha256": "b79fac3a791277a9d7a30f8fcab021e0c4f994f3a2e8702b29fa8e4658279b20",
+        "protectedSha256": "f03add972e25d6996b6e36ef883693bb8644809707712b7070ee9d1dd8bbfd04",
+        "freshenedSourceSha256": "bf539b6f7bcd41d246819ae7ee088e1e21558e416b4813b48b8011aceda7c08e"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 11,
+        "userMessages": 1,
+        "assistantMessages": 5,
+        "toolCalls": 4,
+        "tokens": {
+          "input": 24,
+          "output": 1055,
+          "reasoning": 0,
+          "cacheRead": 129227,
+          "cacheWrite": 43761,
+          "total": 174067
+        },
+        "costUsd": 0.011319282000000003
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 2050,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 2124,
+          "sessionBytes": 494855,
+          "fieldBytes": 10489523
+        },
+        "growthBytes": {
+          "workspace": 74,
+          "session": 494855,
+          "field": 10489523
+        }
+      }
+    },
+    {
+      "arm": "stock",
+      "provider": "opencode-go/qwen3.8-flash",
+      "scenario": "quartz-batcher",
+      "taskSuccess": false,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": false,
+        "exactSourceContinuation": true,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": true,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": false,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 19010,
+          "correction": 28754,
+          "siblingBranchFixture": 38987,
+          "finalContinuation": 59920
+        },
+        "finalResponseSha256": "6e392ab3eb9474e62e8945117d1382144c63ad1f103242bbd94adb3ee35eb3a3",
+        "finalResponseChars": 1036
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 17878,
+          "summaryChars": 4408,
+          "summarySha256": "625c44f968cd3f1be49f231f0172ed84a301d53563085b91c4c6d2f04a7305ea",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 2,
+          "durationMs": 15588,
+          "summaryChars": 4339,
+          "summarySha256": "4f12a11a188f37e29d8fb205e90679027b1140cabf4ec72488b132e266d324dc",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        },
+        {
+          "round": 3,
+          "durationMs": 16736,
+          "summaryChars": 4439,
+          "summarySha256": "d1edc02469475a313068c8a9857e05e38f8ed0784d4ff1962403aad90597b92c",
+          "tokensBefore": 0,
+          "evidenceCount": null,
+          "exactCount": null,
+          "projectionCount": null,
+          "assistantTextProjectionCount": null,
+          "referenceCount": null,
+          "nestedEvidenceCount": null
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "1494dec6",
+        "originalMainLeafId": "6c412cc2",
+        "persistedMainLeafId": "30da29da",
+        "fixtureDurationMs": 38987,
+        "fixtureResponseSha256": "d5d7c4afdbb326f9c77b0ee224b21c70a70384123f07cd3e79586c6c1b867353",
+        "fixtureResponseExact": false,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 16,
+          "userMessages": 2,
+          "assistantMessages": 7,
+          "toolCalls": 7,
+          "tokens": {
+            "input": 42,
+            "output": 2103,
+            "reasoning": 0,
+            "cacheRead": 146492,
+            "cacheWrite": 65133,
+            "total": 213770
+          },
+          "costUsd": 0.016365182
+        },
+        "navigation": {
+          "toSiblingDurationMs": 58,
+          "returnDurationMs": 65,
+          "toSibling": {
+            "at": "2026-09-06T00:10:00.565Z",
+            "event": "tree-plain",
+            "target": "1494dec6",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-06T00:10:39.612Z",
+            "event": "tree-plain",
+            "target": "6c412cc2",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 6496,
+        "plainDurationMs": 58,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": false,
+        "summaryResult": {
+          "at": "2026-09-06T00:11:43.091Z",
+          "event": "tree-summary",
+          "target": "3200aa7e",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-06T00:11:43.142Z",
+          "event": "tree-plain",
+          "target": "d3680c46",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 14,
+        "harnessToolCalls": 0,
+        "toolResults": 11,
+        "observedVerifyFailure": true,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "89d226f1",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 110404,
+          "sha256": "5167cb83243c3507526a72923bf3c12fdb63c6fbd9525d93672f61906506e3a4",
+          "durationMs": 33
+        },
+        {
+          "bytes": 110404,
+          "sha256": "af87e4a2a36655c7d2a3217ed4cd93e70b03b69249e856986d381327600ad4f3",
+          "durationMs": 33
+        },
+        {
+          "bytes": 110404,
+          "sha256": "1bc830c9628867c0be55f0312ac620cd70a4ca9e57898b6c47dc039ec52ad4aa",
+          "durationMs": 32
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 30
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 29
+        }
+      },
+      "source": {
+        "finalSha256": "8630dd9ed9bc4a9dfc4d290675618e48512f195d9cf0ea2e32cfef180a78bde5",
+        "protectedSha256": "91a637ef47ced2482a02389b243679ce85e5cc3a298df30544cbe7571648826a",
+        "freshenedSourceSha256": "26f7b2212b99ed955799b0c18fdf64eea6706f77cc256c8347f534be70bef5b7"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 25,
+        "userMessages": 3,
+        "assistantMessages": 10,
+        "toolCalls": 11,
+        "tokens": {
+          "input": 60,
+          "output": 2782,
+          "reasoning": 0,
+          "cacheRead": 203557,
+          "cacheWrite": 100674,
+          "total": 307073
+        },
+        "costUsd": 0.024708252000000003
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 1934,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 1985,
+          "sessionBytes": 458101,
+          "fieldBytes": 0
+        },
+        "growthBytes": {
+          "workspace": 51,
+          "session": 458101,
+          "field": 0
+        }
+      }
+    },
+    {
+      "arm": "cassipi",
+      "provider": "opencode-go/qwen3.8-flash",
+      "scenario": "quartz-batcher",
+      "taskSuccess": true,
+      "checks": {
+        "correctionEditObserved": true,
+        "correctionAdherence": true,
+        "rejectedApproachNotRepeated": true,
+        "rejectedApproachRecalled": true,
+        "exactSourceContinuation": true,
+        "proposalUntouched": true,
+        "abstainedWithoutSource": true,
+        "siblingIsolated": true,
+        "actualToolWork": true,
+        "treeSummaryCreated": true,
+        "treePlainCreatedNoSummary": true,
+        "treeReturnedToMainLeaf": true,
+        "noRecursiveCompactionEvidence": true
+      },
+      "providerTurns": {
+        "count": 4,
+        "latencyMs": {
+          "initialInspection": 50646,
+          "correction": 47379,
+          "siblingBranchFixture": 11532,
+          "finalContinuation": 57867
+        },
+        "finalResponseSha256": "6d5b26a986406e71045cf4cf18ab097a4753da4e0d319bdd43f50e52a3dc2ba0",
+        "finalResponseChars": 1288
+      },
+      "compactions": [
+        {
+          "round": 1,
+          "durationMs": 5257,
+          "summaryChars": 10026,
+          "summarySha256": "2ec74e3b0e0e54e9283ef72e2b631e78222d03890f7b7fa0e730bae64707f5a8",
+          "tokensBefore": 0,
+          "evidenceCount": 7,
+          "exactCount": 0,
+          "projectionCount": 6,
+          "assistantTextProjectionCount": 4,
+          "referenceCount": 1,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 2,
+          "durationMs": 3786,
+          "summaryChars": 10216,
+          "summarySha256": "cd912fdadfc27ef169e9493c6d226ea9a1a42a28600094e5c5885785de7e81d6",
+          "tokensBefore": 0,
+          "evidenceCount": 7,
+          "exactCount": 0,
+          "projectionCount": 7,
+          "assistantTextProjectionCount": 5,
+          "referenceCount": 0,
+          "nestedEvidenceCount": 0
+        },
+        {
+          "round": 3,
+          "durationMs": 3989,
+          "summaryChars": 9833,
+          "summarySha256": "971ecbd840be2f571a528590536fc9bba055afcacd9c89b4a748eeb4896abb06",
+          "tokensBefore": 0,
+          "evidenceCount": 7,
+          "exactCount": 0,
+          "projectionCount": 7,
+          "assistantTextProjectionCount": 6,
+          "referenceCount": 0,
+          "nestedEvidenceCount": 0
+        }
+      ],
+      "branchSetup": {
+        "branchPointId": "e2835017",
+        "originalMainLeafId": "8d0d0d01",
+        "persistedMainLeafId": "0e2ee406",
+        "fixtureDurationMs": 11532,
+        "fixtureResponseSha256": "10ca8fd38a72fadb98145896e65577ac728ad40b810b3030480981942358ac16",
+        "fixtureResponseExact": true,
+        "sourceUnchanged": true,
+        "protectedProposalUnchanged": true,
+        "hostSessionAggregate": {
+          "totalMessages": 20,
+          "userMessages": 2,
+          "assistantMessages": 8,
+          "toolCalls": 10,
+          "tokens": {
+            "input": 48,
+            "output": 2709,
+            "reasoning": 0,
+            "cacheRead": 237966,
+            "cacheWrite": 84210,
+            "total": 324933
+          },
+          "costUsd": 0.021929886000000003
+        },
+        "navigation": {
+          "toSiblingDurationMs": 1622,
+          "returnDurationMs": 2617,
+          "toSibling": {
+            "at": "2026-09-06T00:14:34.462Z",
+            "event": "tree-plain",
+            "target": "e2835017",
+            "cancelled": false
+          },
+          "returned": {
+            "at": "2026-09-06T00:14:48.616Z",
+            "event": "tree-plain",
+            "target": "8d0d0d01",
+            "cancelled": false
+          }
+        }
+      },
+      "navigation": {
+        "summaryDurationMs": 989,
+        "plainDurationMs": 5665,
+        "summaryCreatedEntry": true,
+        "plainCreatedNoEntry": true,
+        "returnedToMainLeaf": true,
+        "summaryResult": {
+          "at": "2026-09-06T00:15:14.916Z",
+          "event": "tree-summary",
+          "target": "177ebd71",
+          "cancelled": false
+        },
+        "plainResult": {
+          "at": "2026-09-06T00:15:20.544Z",
+          "event": "tree-plain",
+          "target": "8c6b978c",
+          "cancelled": false
+        }
+      },
+      "toolEvidence": {
+        "providerToolCalls": 15,
+        "harnessToolCalls": 3,
+        "toolResults": 18,
+        "observedVerifyFailure": true,
+        "observedVerifyPass": true,
+        "observedFreshSourceRead": true,
+        "leafId": "fd440f96",
+        "branchSummaryCount": 1
+      },
+      "harnessInjectedRealToolOutputs": [
+        {
+          "bytes": 110404,
+          "sha256": "5167cb83243c3507526a72923bf3c12fdb63c6fbd9525d93672f61906506e3a4",
+          "durationMs": 33
+        },
+        {
+          "bytes": 110404,
+          "sha256": "af87e4a2a36655c7d2a3217ed4cd93e70b03b69249e856986d381327600ad4f3",
+          "durationMs": 32
+        },
+        {
+          "bytes": 110404,
+          "sha256": "1bc830c9628867c0be55f0312ac620cd70a4ca9e57898b6c47dc039ec52ad4aa",
+          "durationMs": 33
+        }
+      ],
+      "verification": {
+        "correction": {
+          "exitCode": 0,
+          "outputSha256": "d2e3ce782065f1dd4c9aa5b47d217201194d87b4096162a2b7921f6e72bb668c",
+          "durationMs": 31
+        },
+        "final": {
+          "exitCode": 0,
+          "outputSha256": "087c6535234d687c96f1a29aa1f6ce49217339103fbfd36870f1434504738c25",
+          "durationMs": 29
+        }
+      },
+      "source": {
+        "finalSha256": "8630dd9ed9bc4a9dfc4d290675618e48512f195d9cf0ea2e32cfef180a78bde5",
+        "protectedSha256": "91a637ef47ced2482a02389b243679ce85e5cc3a298df30544cbe7571648826a",
+        "freshenedSourceSha256": "26f7b2212b99ed955799b0c18fdf64eea6706f77cc256c8347f534be70bef5b7"
+      },
+      "hostSessionAggregateAfterFinalTurn": {
+        "totalMessages": 13,
+        "userMessages": 1,
+        "assistantMessages": 6,
+        "toolCalls": 5,
+        "tokens": {
+          "input": 30,
+          "output": 1189,
+          "reasoning": 0,
+          "cacheRead": 172803,
+          "cacheWrite": 46922,
+          "total": 220944
+        },
+        "costUsd": 0.012712578000000002
+      },
+      "state": {
+        "initial": {
+          "workspaceBytes": 1934,
+          "sessionBytes": 0,
+          "fieldBytes": 0
+        },
+        "final": {
+          "workspaceBytes": 1985,
+          "sessionBytes": 527110,
+          "fieldBytes": 12830660
+        },
+        "growthBytes": {
+          "workspace": 51,
+          "session": 527110,
+          "field": 12830660
+        }
+      }
+    }
+  ]
+}

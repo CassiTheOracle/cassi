@@ -1,0 +1,16 @@
+# DeepSeek Harness sessions as oh-my-pi models.
+# Install as <profile>/agent/models.yml (user profiles live in ~/.omp/profiles/<name>/agent,
+# the default agent config in ~/.omp/agent). Start the bridge first:
+#   node bridge.mjs --dsh http://127.0.0.1:8787 --port 8791
+providers:
+  dsh:
+    baseUrl: http://127.0.0.1:8791/v1
+    api: openai-completions
+    auth: none
+    discovery:
+      type: openai-models-list
+    modelOverrides:
+      new:
+        supportsTools: false
+        contextWindow: 262144
+        maxTokens: 8192

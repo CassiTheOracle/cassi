@@ -1,0 +1,343 @@
+{
+  "schema": "cassipi.case-matrix-receipt.v1",
+  "generated_at": "2026-09-07T03:11:30Z",
+  "verdict": "FAIL_LIVE_PROVIDER_REQUEST_BUDGET_WITH_FUNCTIONAL_CONTINUITY_PASS",
+  "runtime": {
+    "runtime_id": "cassifi.cassipi-field-intelligence.v2",
+    "manifest_sha256": "f60e6581851431e295ba2c15135d24f55609f0bf1b049926c0a4317f753ef0d7",
+    "closure_sha256": "6acf2ba5a53662188dd515e1268352ccb79591c103aab83a7e3e5fb0e72d910a",
+    "file_count": 7,
+    "external_model_calls_during_local_acceptance": 0
+  },
+  "evidence": {
+    "field_control": "field-control.json",
+    "integration_envelope": "integration-envelope.json",
+    "provider_comparison": "provider-comparison.json (PASS; 8/8 arms executed, 4/4 CassiPi tasks passed across two provider families and two held-out scenarios)",
+    "owner_host_probe": "npm run probe:owner (PASS; disposable receipt generated under .probe)",
+    "field_runtime_tests": "python -B -m pytest test_field_intelligence.py runtime -q",
+    "plugin_tests": "npm run typecheck && npm test",
+    "host_owner_tests": "extensions-runner, handoff, prune-persistence",
+    "host_tree_tests": "tree-navigation, tree-ask-reanswer, branching",
+    "live_provider_verification": "separate_profile_cutover_review.live_profile.external_provider_verification (functional continuity PASS; provider-request budget FAIL)"
+  },
+  "cases": [
+    {
+      "id": "changed-premise",
+      "status": "PASS",
+      "local_evidence": [
+        "Field owner correction, revocation fencing, restart, and current-head projection tests pass.",
+        "Repeated compaction and resume pass through the patched host."
+      ],
+      "provider_evidence": "provider-comparison.json records checks.correctionAdherence=true in all four CassiPi arms."
+    },
+    {
+      "id": "failed-approach",
+      "status": "PASS",
+      "local_evidence": [
+        "Outcome/failure host metadata enters the field-owned chart without a content-derived encoder."
+      ],
+      "provider_evidence": "provider-comparison.json records checks.rejectedApproachRecalled=true and checks.rejectedApproachNotRepeated=true in all four CassiPi arms."
+    },
+    {
+      "id": "exact-working-read-after-edit",
+      "status": "PASS",
+      "local_evidence": [
+        "Exact source bytes, revision identities, active-revision filters, and projection framing pass."
+      ],
+      "provider_evidence": "provider-comparison.json records checks.exactSourceContinuation=true and verification.final.exitCode=0 in all four CassiPi arms."
+    },
+    {
+      "id": "proposal-versus-result",
+      "status": "PASS",
+      "local_evidence": [
+        "Event kind and outcome are distinct fixed field variables; exact results remain source-linked."
+      ],
+      "provider_evidence": "provider-comparison.json records checks.proposalUntouched=true in all four CassiPi arms."
+    },
+    {
+      "id": "repeated-manual-compaction",
+      "status": "PASS",
+      "evidence": "The owner-host probe completes three field-owned compactions and verifies non-recursive background evidence."
+    },
+    {
+      "id": "retry-older-acknowledged-operation",
+      "status": "PASS",
+      "evidence": "Owner restart/replay tests recover acknowledged effects without re-execution or head change."
+    },
+    {
+      "id": "owner-timeout-or-unload",
+      "status": "PASS",
+      "evidence": "Patched host ownership tests fail closed before delegated operations mutate native state."
+    },
+    {
+      "id": "competing-context-owner",
+      "status": "PASS",
+      "evidence": "Extension runner tests reject a second context owner."
+    },
+    {
+      "id": "prepare-ack-lost-before-native-commit",
+      "status": "PASS",
+      "evidence": "Worker lifecycle regression replays prepare and commit identities and preserves the field head."
+    },
+    {
+      "id": "tree-with-summary",
+      "status": "PASS",
+      "evidence": "Owner-host probe and host tree-navigation tests complete the summarized path under owner control."
+    },
+    {
+      "id": "tree-without-summary",
+      "status": "PASS",
+      "evidence": "Owner-host probe and host tree-navigation tests complete the unsummarized path under owner control."
+    },
+    {
+      "id": "tree-cancel-noop-reanswer",
+      "status": "PASS",
+      "evidence": "Host tree-navigation and ask-reanswer suites pass cancellation, no-op, and re-answer paths."
+    },
+    {
+      "id": "fork",
+      "status": "PASS",
+      "evidence": "Owner-host probe branches through the real host; scoped source identities prevent cross-branch revision aliasing."
+    },
+    {
+      "id": "resume-new-handoff-continuity",
+      "status": "PASS",
+      "evidence": "Owner-host probe commits handoff, new-session, branch, and resume markers and reports a persistent field owner."
+    },
+    {
+      "id": "clear",
+      "status": "P12_INTERACTIVE_SCENARIO",
+      "local_evidence": [
+        "Patched-host tests commit the clear lifecycle boundary and fail closed when the owner handler is absent.",
+        "The current v2 lifecycle adapter passes prepare/commit replay tests."
+      ],
+      "remaining_observation": "Run the real local /clear command in the rehearsal TUI; RPC prompt transport does not execute local slash commands."
+    },
+    {
+      "id": "cross-project-session-isolation",
+      "status": "PASS",
+      "evidence": "Integration envelope verifies three attached clients, sibling branches, unrelated projects, and byte-identical unaffected projections."
+    },
+    {
+      "id": "correction",
+      "status": "PASS",
+      "evidence": "Plugin memory-write tests retain target revisions; owner tests enforce active-parent correction and revocation fences."
+    },
+    {
+      "id": "forget",
+      "status": "PASS",
+      "evidence": "One-use authorization, exact-byte removal, contribution revocation, restart persistence, and replay rejection pass."
+    },
+    {
+      "id": "malicious-recalled-text",
+      "status": "PASS",
+      "evidence": "Worker projection test injects a system-directive tag; output remains background evidence and angle brackets are JSON Unicode-escaped."
+    },
+    {
+      "id": "corrupted-archive-or-checkpoint",
+      "status": "PASS",
+      "evidence": "Runtime tamper tests reject modified closure files; owner checkpoint tests validate immutable state identities."
+    },
+    {
+      "id": "import-restart-repeat",
+      "status": "PASS",
+      "evidence": "Importer tests verify restart-safe cursoring, idempotent repeats, terminal archival, and zero adaptive learning for ineligible records."
+    },
+    {
+      "id": "boundary-capacity",
+      "status": "PASS",
+      "evidence": "Integration receipt exercises the exact worker envelope; owner capacity tests fail closed without publishing partial state."
+    },
+    {
+      "id": "worker-startup-contention",
+      "status": "PASS",
+      "evidence": "Worker suite rejects a second owner, authenticates requests, and replaces a stale crash descriptor."
+    },
+    {
+      "id": "unsupported-host-version-or-patch",
+      "status": "PASS",
+      "evidence": "Pinned-host verifier and extension ownership tests reject missing or incompatible ownership contracts."
+    },
+    {
+      "id": "live-provider-continuation-resume-rollback",
+      "status": "FAIL",
+      "functional_checks": {
+        "oauth_profile_isolation": "PASS",
+        "field_owned_manual_compaction": "PASS",
+        "compaction_preserved_current_and_rejected_latches": "PASS",
+        "same_session_resume": "PASS",
+        "exact_resumed_answer": "PASS",
+        "worker_shutdown": "PASS",
+        "default_profile_switch": "PASS_WITH_BASELINE_DRIFT"
+      },
+      "failure": "Two attempted prompt turns produced four external provider requests because the resumed model invoked the CassiPi extension memory tool twice, with two calls per tool-use response. The two-request safety bound was exceeded.",
+      "evidence": "The synthetic session and raw receipt hashes are retained under separate_profile_cutover_review.live_profile.external_provider_verification; no further provider request is permitted for this run."
+    }
+  ],
+  "separate_profile_cutover_review": {
+    "status": "CUTOVER_HELD_PROVIDER_REQUEST_BUDGET_FAIL",
+    "strategy": "separate-named-profile",
+    "target_profile": "cassipi-live",
+    "live_profile_created": true,
+    "rehearsal_profile": {
+      "name": "cassipi-rehearsal",
+      "profile_id": "omp-profile:cassipi-rehearsal",
+      "data_home": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-rehearsal\\cassipi",
+      "runtime_root": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-rehearsal\\local-plugins\\cassipi\\fi-runtime",
+      "installer_sha256": "35f0bde71c782e42da4eefee4b85730ea9c4d1cb086fdd9a6decb6a3a2652b1e",
+      "launcher_sha256": "ce37d9946a100c1df481241b06a26d5d6148800f10f1ee5d04c2b6a56b08ac82",
+      "install_receipt_sha256": "d3e7a75159f92a45b41ba7dd490726a991ec41b773d5848ca5a13ad1aca9a305",
+      "profile_settings": {
+        "context.owner": "cassipi",
+        "memory.backend": "off",
+        "autolearn.enabled": false,
+        "autolearn.autoContinue": false,
+        "compaction.enabled": true,
+        "compaction.methodOrder": [
+          "soft"
+        ],
+        "compaction.asyncEnabled": false,
+        "compaction.autoContinue": false,
+        "compaction.idleEnabled": false,
+        "compaction.midTurnEnabled": true,
+        "compaction.dropUseless": false,
+        "compaction.supersedeReads": false
+      },
+      "launcher_smoke": {
+        "status": "PASS",
+        "provider": "cassipi-owner-probe/cassipi-owner-probe",
+        "provider_requests": 2,
+        "field_profile_id": "omp-profile:cassipi-rehearsal",
+        "field_head_sha256": "95072681fcecc6d87b82cafc1084287d33fe42bb3a10cad9cda50af72b2325a9",
+        "event_head_sha256": "72fb0d25857dc2012d7e540f1a70b52c10724411575320272058205da69383e3",
+        "fallback_data_home_created": false,
+        "worker_shutdown": true
+      },
+      "remote_pi_0_7_0": {
+        "status": "EXPECTED_FAIL_CLOSED",
+        "code": "COMPETING_CONTEXT_MUTATOR",
+        "event_type": "context",
+        "provider_called": false,
+        "profile_policy": "absent"
+      }
+    },
+    "live_profile": {
+      "name": "cassipi-live",
+      "profile_id": "omp-profile:cassipi-live",
+      "profile_root": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-live",
+      "data_home": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-live\\cassipi",
+      "runtime_root": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-live\\local-plugins\\cassipi\\fi-runtime",
+      "release_manifest_sha256": "7540af28879570e7c262f15fc75c1e1ffc72aa9089aeb70665abd15e396cefc6",
+      "host_binary_sha256": "fffe4f525117983255b6777cab746ef2930ffb829c8a6154bad86d375ce0fbc0",
+      "config_sha256": "a40f5d5e1ed0206d7404af52b9302adda0a72e2f846f85aa5d6ebf9ec1494355",
+      "launcher_sha256": "9407c9b86f3e3b2cb0490cff5eea3d744c8712f179e4d5aad35f27c551ba8a0b",
+      "install_receipt_sha256": "766bbdf07987dd463df328f302684d4943353831b315d7ec9ee38a06c33c23ab",
+      "installed_plugins": [
+        "@cassi/cassipi@0.1.0"
+      ],
+      "remote_pi_installed": false,
+      "auth_credentials": 1,
+      "selective_preference_clone": {
+        "status": "PASS",
+        "source_config_sha256": "c379932390f97fdb167c4eb3136397f8b6efa58d9882f40a1adeddbdd433ec72",
+        "copied_leaf_count": 92,
+        "copied_values_sha256": "28c1ede8435c747fe7a651af8bb3cdf13347c48d5c6559e3bbd0eb7dad2ceabc",
+        "skipped_unsupported_legacy_keys": [
+          "tui.scrollbackRebuild",
+          "repeatToolDescriptions"
+        ],
+        "deferred_provider_policy_keys": [
+          "task.agentAdvisor",
+          "retry.fallbackChains"
+        ],
+        "safety_invariant_count": 17,
+        "switch_alias": {
+          "path": "C:\\Users\\Carina\\.bun\\bin\\cassipi.cmd",
+          "sha256": "a200e8179df52ec18b89ca65bb8757d78d8cd7ecdb36268a5f97085a7e24deaa",
+          "resolved_version": "omp/18.1.10",
+          "context_owner": "cassipi",
+          "installed_plugin": "@cassi/cassipi@0.1.0"
+        }
+      },
+      "local_mock_smoke": {
+        "status": "PASS",
+        "provider_requests": 2,
+        "latest_event_id": "7e2bc55705ff095f5d3c2f1fc28f5e4ab9e72d3329e21bff6d8d22c641f8e2d3",
+        "latest_revision_id": "da30a23d7f79e190f3ec77c55021f5824e87b294265225b662dee8ac4cc815a7",
+        "latest_field_head_sha256": "2291779d748d561c5290ad1615b09677cc65a3d6e1a449e2d455a6e7426ee171",
+        "fallback_data_home_created": false,
+        "worker_shutdown": true
+      },
+      "external_provider_verification": {
+        "status": "FAIL_PROVIDER_REQUEST_BUDGET",
+        "provider": "openai-codex",
+        "model": "gpt-5.6-sol",
+        "synthetic_only": true,
+        "imported_user_data": false,
+        "authorization": {
+          "external_request_limit": 2,
+          "prompt_turns_executed": 2,
+          "actual_provider_requests": 4,
+          "budget_respected": false
+        },
+        "first_response": {
+          "exact": false,
+          "exact_after_terminal_punctuation_normalization": true,
+          "response_sha256": "5815f3f375e7143aed4aa486aa1e3ddfb008dec778b1e27a02d3312b84e893d5"
+        },
+        "manual_compaction": {
+          "status": "PASS",
+          "field_owned": true,
+          "preserved_current_latch": true,
+          "preserved_rejected_latch": true,
+          "summary_sha256": "4b40431891ed01d5dbddbc53aaa6a6ea97c994d66740cdeb201c0a4ce5034dc0",
+          "tokens_before": 2521,
+          "duration_ms": 989,
+          "verification_keep_recent_tokens": 1,
+          "reason": "The deliberately tiny one-turn fixture was below the host's normal 20000-token recent-history floor, so the disposable verification overlay forced a legal manual boundary."
+        },
+        "resumed_response": {
+          "status": "PASS",
+          "exact": true,
+          "resumed_same_session": true,
+          "response_sha256": "0cca56cabb97d94878acb3d353e9a5542176aba0651b1b86fd19e0eebdb168d8"
+        },
+        "tool_loop": {
+          "provider_tool_use_responses": 2,
+          "cassi_memory_calls": 4,
+          "cause": "--no-tools suppressed built-in tools but did not suppress the CassiPi extension tool, so the second prompt generated two additional provider requests."
+        },
+        "usage": {
+          "total_tokens": 27789,
+          "total_cost_usd": 0.1039848
+        },
+        "raw_receipt_sha256": "82513069150d76b60c7f5e0db3e535f618ed1a0f01205cebdef105a720267495",
+        "session_sha256": "cb7eb3936568e6aaddad2c6d21951eae4a3077668981f88ab6311e93f7c6293d",
+        "verification_config_sha256": "70ecac51b57008541ed5d02413d11a898ee2e405b266a27e70cdbf15a3291f78",
+        "worker_shutdown": true,
+        "synthetic_cleanup": "COMPLETE_SESSION_WORKSPACE_AND_FIELD_REMOVED_OAUTH_RETAINED"
+      },
+      "default_profile_rollback_check": {
+        "status": "USABLE_WITH_BASELINE_DRIFT",
+        "command": "omp",
+        "resolved_version": "omp/18.1.13",
+        "host_binary_sha256": "5d75a584acd1d8775d2ea6a14c3ea0dbdf8eb71a54bdab6ae7f38ab971aef877",
+        "installed_plugin": "remote-pi@0.7.0",
+        "config_sha256": "49bef6d3f9a1403248c3d8f3860009a6c2aa037f9e2ec345e5be008fb609fb5c",
+        "staged_baseline": {
+          "resolved_version": "omp/18.1.10",
+          "host_binary_sha256": "00b25bb0ad2992d252326a7ecea2527cfb85019b4a6d24a67842cf3712cd6625",
+          "binary_matches": false
+        },
+        "host_modified_before_provider_verification": true,
+        "cassipi_profile_separate": true
+      }
+    }
+  },
+  "summary": {
+    "pass": 23,
+    "p12_model_scenario": 0,
+    "p12_interactive_scenario": 1,
+    "fail": 1
+  }
+}

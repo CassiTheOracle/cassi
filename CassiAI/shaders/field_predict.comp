@@ -1,0 +1,52 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// field_predict.comp — φ-damped IIR field-state predictor
+//
+// Computes a parameter-free prediction of the next field state using
+// a φ-damped 2-tap extrapolator:
+//   ψ̂_t = φ⁻¹ · ψ_{t-1} + φ⁻² · ψ_{t-2}
+//
+// This is the "free field" predictor (formalism §2.1):
+//   ψ_{t+1} = Φ_γ(ψ_t, ψ_{t-1}) where γ = φ⁻¹ ≈ 0.618
+// The poles are at z = γ·e^{±iθ} — the φ-damping guarantees
+// no rational frequency can phase-lock (de-resonance principle).
+//
+// Inputs:  psi_prev (binding 1) = ψ_{t-1}
+//          psi_t2   (binding 29) = ψ_{t-2}
+// Output:  psi_pred (binding 30) = ψ̂_t
+//
+// Self-prediction error ε = ψ_t - ψ̂_t drives Qi computation.
+// One invocation per (voxel, dim) pair — same dispatch as PDE.
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Constants ──
+#define PHI_INV      0.618033988749895
+#define PHI_INV2     0.381966011250105  // φ⁻²
+#define DIM          128
+#define N_VOXELS     4096
+#define VOXEL_STRIDE (DIM * 2)
+
+// ── Buffer bindings (std430) ──
+layout(std430, binding = 1)  buffer PsiPrevBuf  { float psi_prev[]; };
+layout(std430, binding = 29) buffer PsiT2Buf    { float psi_t2[]; };
+layout(std430, binding = 30) buffer PsiPredBuf  { float psi_pred[]; };
+
+// ── Workgroup ──
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    uint total = N_VOXELS * VOXEL_STRIDE;
+    if (idx >= total) return;
+
+    // ψ̂ = φ⁻¹ · ψ_{t-1} + φ⁻² · ψ_{t-2}
+    float p1 = psi_prev[idx];        // ψ_{t-1}
+    float p2 = psi_t2[idx];          // ψ_{t-2}
+
+    // NaN guard on uninitialized buffers (first two windows)
+    if (p1 != p1) p1 = 0.0;
+    if (p2 != p2) p2 = 0.0;
+
+    psi_pred[idx] = PHI_INV * p1 + PHI_INV2 * p2;
+}

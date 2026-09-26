@@ -1,0 +1,23 @@
+{
+  "schema": "cassi.particle-stationary-precision.manifest.v1",
+  "sha256": {
+    "computations/particle_physical_hessian_manifest.json": "f7454609672a5a660119c333a0de7461ad0fa9c7e3963bead6fd011a7f87bf8b",
+    "computations/particle_physical_hessian.py": "4a0e324142ba937388498890cb73089b677f7c3c1e9d8f6c3e3c54295b702b35",
+    "computations/particle_stationary_bvp.py": "3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1",
+    "computations/particle_stationary_precision_v3.py": "035d0d46fa15afbde5a2bcd6017c0b3c43158882cbad83233bda6041c6e5ee91",
+    "computations/particle_stationary_precision_v5.py": "ca0f824261612e007689d1be1028a33faa9edb4e55c3b6a6372731cc904749dc",
+    "computations/particle_stationary_q2_recovery_v2_prereg.md": "e9c2bf8ab3c9001fdd40297eea2d0619e6388dd6d7786d1e0711102f6c4fe264",
+    "computations/particle_stationary_q2_recovery_v2.py": "10e269fd2a669f58fbec0c20f4076d9e07f4a693de4ca40221d5bd29cca3a2a9",
+    "computations/particle-physical-hessian-prereg.md": "d09804abf666a3a888f1706f56e4ceac651ee08e20ccb7bab063564c53a69980",
+    "computations/particle-physical-hessian-report.md": "e886339179ee177fd67cc9452577568da7bd6e7f17afa28f7c269faebdc37a45",
+    "computations/particle-stationary-precision-v5-prereg.md": "b95d9f1bbf361161fcc2b1647e1ee707c1ded004be683a791748c1508b6dc0e1",
+    "computations/particle-stationary-q2-recovery-report.md": "7af4c59de3d9ee4cc10499f4f8218dbb501b0b3e436d8622a9cbe158ce2e7c94",
+    "computations/verify_particle_physical_hessian.py": "8d2386b519f602daf1ccc01bcf85e6eeb4df38aeb6d090b93b976a86bcefe3ba",
+    "computations/verify_particle_stationary_precision_v3.py": "429f33a7cc0a5a7a394fec34cb1ac7ef5b2e5fe77094a595bb5cdc9c878f4439",
+    "computations/verify_particle_stationary_precision_v5.py": "e970991cd4947bf6bc4259dec8cb5b5f1ae38546c949d68616639f733b18e87f",
+    "computations/verify_particle_stationary_q2_recovery_v2.py": "787520fcf3abb2ccbb66cc61a5ced29c39e1a9e75976468706ca58bae3de4707",
+    "runs/20260902_particle_stationary_q2_recovery_v2/fields_P_separated_core.npz": "99766cddb04107bb0c103c8f96254df651094054578867d37662ee7bff7e2550",
+    "runs/20260902_particle_stationary_q2_recovery_v2/results.json": "258ce9624c705b29af4f46b3b17500d93370a752859516129a73bc83cd6e1ea9",
+    "runs/20260902_particle_stationary_q2_recovery_v2/verification.json": "e25bf1aee5757c7a85e10c4013ffdfd0f13c0118beac64f442195c1f84964831"
+  }
+}

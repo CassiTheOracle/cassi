@@ -1,0 +1,12 @@
+{
+  "schema": "cassi.qi-native-chat-config.v2",
+  "qi_config_path": "cassi-qi-corpus-language.json",
+  "corpus_checkpoint_path": "../artifacts/cassi-qi-corpus-language/field-state.pt",
+  "state_dir": "../artifacts/cassi-qi-native/chat",
+  "session_id": "cassi-qi-native-chat",
+  "max_output_symbols": 96,
+  "device": "cpu",
+  "runtime": {
+    "max_input_bytes": 4096
+  }
+}

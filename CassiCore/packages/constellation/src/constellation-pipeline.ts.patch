@@ -1,0 +1,76 @@
+diff --git a/core/intelligence/constellation/constellation-pipeline.ts b/core/intelligence/constellation/constellation-pipeline.ts
+index abc123..def456 100644
+--- a/core/intelligence/constellation/constellation-pipeline.ts
++++ b/core/intelligence/constellation/constellation-pipeline.ts
+@@ -20,6 +20,7 @@ import type { CorpusLLM } from './corpus-types.js'
+ import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
++import type { IMemory, SearchResult } from '../../../types/intelligence.js'
+ import type {
+   FlexPosture,
+   ConstellationTemplate,
+@@ -73,6 +74,7 @@ async function runGoalDecomposition(opts: {
+   launchHelix: (goal: string, context: string | undefined, template: ConstellationTemplate | undefined, depth: number) => Promise<{ helixId: string; promise: Promise<HelixResult> }>
+   corpus: Corpus
+   log: ILogger
++  memory?: IMemory
+   readFile: (path: string) => Promise<string | null>
+ }): Promise<GoalDecomposition> {
+   const startTime = Date.now()
+@@ -85,6 +87,25 @@ async function runGoalDecomposition(opts: {
+     }
+   }
+ 
++  // Query memory for relevant context before decomposition
++  let memoryContext = ''
++  if (opts.memory) {
++    try {
++      const memoryResults = await opts.memory.search(opts.goal, { limit: 5 })
++      if (memoryResults.length > 0) {
++        memoryContext = formatMemoryResultsForPlanner(memoryResults)
++        opts.log.info('Retrieved relevant memories for goal decomposition', {
++          count: memoryResults.length,
++          topScore: memoryResults[0]?.score,
++        })
++      }
++    } catch (err) {
++      opts.log.warn('Memory query failed during goal decomposition', { error: String(err) })
++      // Continue without memory context - don't block decomposition
++    }
++  }
++
+   opts.log.info('Goal is complex, launching planning Helix for decomposition', {
+     goalLength: opts.goal.length,
+   })
+@@ -93,6 +114,9 @@ async function runGoalDecomposition(opts: {
+ 
+ ## Original Goal
+ ${opts.goal}
++${memoryContext ? `\n## Relevant Past Context (from Cassi's memory)\n${memoryContext}\n` : ''}
+ ${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
+ 
+ ## Task
+@@ -167,6 +191,25 @@ SUBTASK: <focused goal for sub-task N>
+   }
+ }
+ 
++/**
++ * Format memory search results for inclusion in the planner goal.
++ */
++function formatMemoryResultsForPlanner(results: SearchResult[]): string {
++  const formatted = results.map((r, i) => {
++    const entry = r.entry
++    const date = entry.createdAt.toLocaleDateString()
++    const type = entry.type
++    const content = entry.content.slice(0, 300)
++    return `[${i + 1}] ${type.toUpperCase()} (${date}, relevance: ${(r.score * 100).toFixed(0)}%)\n${content}${entry.content.length > 300 ? '...' : ''}`
++  }).join('\n\n')
++
++  return `The following relevant memories from past sessions may provide context for this task:\n\n${formatted}\n\n` +
++    `Consider this historical context when decomposing the goal. ` +
++    `If these memories contain relevant implementation details, file paths, or lessons learned, ` +
++    `incorporate them into your sub-task planning.`
++}
++
+ /**
+  * Parse the structured decomposition from a planning Helix result.
+  */

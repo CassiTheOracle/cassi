@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://_diag/cap_battery.gd" id="2_ver"]
+
+[node name="CapBattery" type="Node3D"]
+script = ExtResource("2_ver")
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+playing = false
+meshless_mode = false
+N_particles = 50000
+grid_N = 64
+dt = 0.01
+cluster_radius = 50.0
+source_strength = 0.0
+black_holes_enabled = false
+particle_merge = false
+bh_accretion = false
+physics_decoupled = true
+suppress_readbacks = true
+auto_frame_camera_on_start = false

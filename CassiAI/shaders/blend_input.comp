@@ -1,0 +1,40 @@
+#version 460
+
+// ─── QiCube — Blend input window with previous field state ────────────────
+// psi = (1 - gamma) * psi_prev + gamma * psi_new
+// gamma controls how much the new input window overwrites the evolved state.
+// Default: gamma = 0.15 (weak input, strong temporal continuity)
+// ──────────────────────────────────────────────────────────────────────────
+
+// ─── Constants (must match vk_qi.py) ─────────────────────────────────────
+#define D_DIM       128           // per-voxel field dimension
+#define N_VOXELS    4096          // H * W * D
+#define VOXEL_STRIDE (D_DIM * 2)  // 256 (real+imag per dim)
+
+// ─── Buffer bindings (std430) ────────────────────────────────────────────
+layout(std430, binding = 0) buffer Psi           { float psi[]; };
+layout(std430, binding = 1) buffer PsiPrev       { float psi_prev[]; };
+
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+} pc;
+
+// ─── Workgroup ────────────────────────────────────────────────────────────
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= uint(N_VOXELS * D_DIM * 2u))
+        return;
+
+    // gamma passed via breath_t push constant
+    float gamma_val = pc.breath_t;
+
+    psi[idx] = mix(psi_prev[idx], psi[idx], gamma_val);
+}

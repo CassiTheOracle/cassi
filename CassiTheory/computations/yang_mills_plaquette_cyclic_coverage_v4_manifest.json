@@ -1,0 +1,71 @@
+{
+  "schema": "yang_mills_plaquette_cyclic_coverage_manifest_v2",
+  "baseline_v3": {
+    "protocol": "computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md",
+    "primary_source": "computations/verify_yang_mills_plaquette_cyclic_coverage.py",
+    "independent_source": "computations/verify_yang_mills_plaquette_cyclic_coverage_independent.py",
+    "primary_receipt": "runs/yang_mills_plaquette_cyclic_coverage/verification-v3.json",
+    "independent_receipt": "runs/yang_mills_plaquette_cyclic_coverage/verification-independent-v3.json",
+    "hashes": {
+      "computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md": "1c3d21817f6f62870c96a2bc38e02d480449946f7da74657d852a9e9b67da6f0",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage.py": "42f7f6dc4584e15424c745fe5eb61fe8f455e3ae8911b3a1c88bbdf45a58fbdb",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage_independent.py": "02a8eed608e3c6ede449a7d02d147609e8617fe23d38ad48de87b8bd0017dccf",
+      "runs/yang_mills_plaquette_cyclic_coverage/verification-v3.json": "3eef6ca07115dba073821cb0d6140d1c5d1a86f97ea382299dda15fb2891206f",
+      "runs/yang_mills_plaquette_cyclic_coverage/verification-independent-v3.json": "60d7410695091d99d2876ebefa656612cf9e9b4badbb8636aa315ef3d2e68172"
+    },
+    "result": {
+      "status": "FAIL",
+      "classification": "PLAQUETTE_CYCLIC_COVERAGE_INCOMPLETE",
+      "checks": "32/32",
+      "independent_checks": "20/20",
+      "final_ranks": [665, 779, 804, 806],
+      "finite_deficiencies": [202, 88, 63, 61]
+    }
+  },
+  "degree_four_v4": {
+    "protocol": "computations/yang-mills-plaquette-cyclic-coverage-prereg-v4.md",
+    "primary_source": "computations/verify_yang_mills_plaquette_cyclic_coverage_v4.py",
+    "independent_source": "computations/verify_yang_mills_plaquette_cyclic_coverage_v4_independent.py",
+    "baseline_protocol": "computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md",
+    "baseline_source": "computations/verify_yang_mills_plaquette_cyclic_coverage.py",
+    "primary_receipt": "runs/yang_mills_plaquette_cyclic_coverage/verification-v4.json",
+    "independent_receipt": "runs/yang_mills_plaquette_cyclic_coverage/verification-independent-v4.json",
+    "hashes": {
+      "computations/yang-mills-plaquette-cyclic-coverage-prereg-v4.md": "70a93fb4b1eeb31d674d3c86679193f6ddd9325a42cbb8ca59af0a6c92997bd4",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage_v4.py": "a299400291e2388e46a1e1292317793b2169c2f206b5d8e45ad942759b5c4673",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage_v4_independent.py": "4c485df4ed24458e2c3701fc0c5faffe004558ed61284c92a3e4bb2680a02411",
+      "computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md": "1c3d21817f6f62870c96a2bc38e02d480449946f7da74657d852a9e9b67da6f0",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage.py": "42f7f6dc4584e15424c745fe5eb61fe8f455e3ae8911b3a1c88bbdf45a58fbdb",
+      "runs/yang_mills_plaquette_cyclic_coverage/verification-v4.json": "0e0e2c01888f9566a20fc51a060409b4052be4acc39139e00c7e06267980e151",
+      "runs/yang_mills_plaquette_cyclic_coverage/verification-independent-v4.json": "dcd7d3727fe14203ea1da2c69b46b23b801dfcb7a2484c0bbc04f6eb000398b6"
+    },
+    "result": {
+      "status": "FAIL",
+      "classification": "PLAQUETTE_CYCLIC_COVERAGE_INCOMPLETE",
+      "checks": "32/32",
+      "independent_checks": "20/20",
+      "final_ranks": [861, 863, 863, 863],
+      "finite_deficiencies": [6, 4, 4, 4],
+      "word_counts": [1, 11, 121, 1331, 14641],
+      "cumulative_word_counts": [0, 11, 132, 1463, 16104]
+    }
+  },
+  "shared_dependencies": {
+    "larger_source": "computations/verify_yang_mills_su2_larger_volume_hamiltonian.py",
+    "helper": "computations/verify_yang_mills_exact_block_spectrum.py",
+    "larger_protocol": "computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md",
+    "larger_recovery_protocol": "computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md",
+    "larger_receipt": "runs/yang_mills_su2_larger_volume_hamiltonian_recovery/current-verification.json",
+    "hashes": {
+      "computations/verify_yang_mills_su2_larger_volume_hamiltonian.py": "87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af",
+      "computations/verify_yang_mills_exact_block_spectrum.py": "b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524",
+      "computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md": "190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7",
+      "computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md": "5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821",
+      "runs/yang_mills_su2_larger_volume_hamiltonian_recovery/current-verification.json": "7bdf0c525976e6976ff4a510a429c8febc73a61278216f95cced57a7b0e7120b"
+    }
+  },
+  "scope": "finite C=1 plaquette-cyclic coverage through degree four on the recovered open 3x2x2 SU(2) graph; no all-word, continuum, thermodynamic or mass-gap claim",
+  "continuum_claim": false,
+  "thermodynamic_claim": false,
+  "mass_gap_claim": false
+}

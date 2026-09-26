@@ -1,0 +1,15 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "cassicraft:item/weatherglass",
+		"tints": [
+			{
+				"type": "minecraft:constant",
+				"value": -1
+			},
+			{
+				"type": "cassicraft:weatherglass_lume"
+			}
+		]
+	}
+}

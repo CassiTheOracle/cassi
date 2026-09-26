@@ -1,0 +1,460 @@
+{
+  "protocol": "CassiQwen L16 hidden-state field observatory",
+  "version": 1,
+  "artifacts": {
+    "capture": {
+      "path": "CassiQwen/hidden-state-capture.json",
+      "sha256": "920e1b3a645555247794a6e36acb7f918978dbb96f87ae54a43f25e577d6c805"
+    },
+    "seed": {
+      "path": "CassiCosmos/_diag/cassi_qwen_hidden_state_field_seed.json",
+      "sha256": "f9d72952de143646221b7cde895542ffa9b43ead95677c1f3ae125b0859d6326"
+    },
+    "gpu": {
+      "path": "CassiCosmos/_diag/cassi_qwen_hidden_state_field_gpu.json",
+      "sha256": "a552224bfd5eaeb3a9feb5fe08eb520f7ece4e0763883fb678f0689163b09ddb"
+    }
+  },
+  "config": {
+    "grid_n": 32,
+    "dimension": 5120,
+    "mode_count": 2560,
+    "phi": 1.618033988749895,
+    "amplitude": 1,
+    "dt": 0.005,
+    "horizons": [
+      0,
+      1,
+      4,
+      16,
+      64,
+      256,
+      1024,
+      2048
+    ],
+    "layout": "x + N*(y + N*z)",
+    "dtype": "float32-le"
+  },
+  "hidden_l2_norm": 87.89932483616994,
+  "capture_parity": {
+    "pass": true,
+    "argmax_token_id": 271,
+    "max_abs_logit_difference": 0,
+    "top16_token_ids_match": true
+  },
+  "cpu_codec_contract": {
+    "pass": true,
+    "rows": {
+      "hidden_canonical": {
+        "restored_cosine": 0.9999999999999986,
+        "restored_relative_l2_error": 1.2026532906563381e-8,
+        "direction_cosine": 0.9999999999999976,
+        "decoded_direction_norm": 0.9999999997187243,
+        "subspace_residual_energy": 8.178434102551063e-16,
+        "pass": true
+      },
+      "hidden_shuffled": {
+        "restored_cosine": 0.9999999999999999,
+        "restored_relative_l2_error": 1.2306745058146607e-8,
+        "direction_cosine": 1,
+        "decoded_direction_norm": 1.0000000006945782,
+        "subspace_residual_energy": 8.02142141110199e-16,
+        "pass": true
+      }
+    }
+  },
+  "gpu_seed_contract": {
+    "pass": true,
+    "cosine_min": 0.999999,
+    "relative_l2_max": 0.000002
+  },
+  "extended_horizon_contract": {
+    "pass": true,
+    "max_abs": 0.02008778415620327,
+    "bound": 10,
+    "zero_byte_zero": true
+  },
+  "cases": {
+    "hidden_canonical": {
+      "basis": "canonical",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.01950124092400074,
+          "ey_l2": 0.7061818544709045,
+          "ei_l2": 0.43758691360164015,
+          "epsilon_l2": 0.9999999997187333,
+          "contract_pass": true,
+          "t0": {
+            "seed_byte_identical": true,
+            "pass": true
+          },
+          "trajectory": {
+            "direction_cosine": 0.9999999999999976,
+            "restored_cosine": 0.9999999999999986,
+            "restored_relative_l2_error": 1.2026532906563381e-8,
+            "decoded_direction_norm": 0.9999999997187243,
+            "subspace_residual_energy": 8.178434102551063e-16
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.0194904375821352,
+          "ey_l2": 0.7057976537468112,
+          "ei_l2": 0.4372137585450884,
+          "epsilon_l2": 0.9986314587850705,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9999999998400576,
+            "restored_cosine": 0.9999999998400563,
+            "restored_relative_l2_error": 0.0013686579201817929,
+            "decoded_direction_norm": 0.9986314587850706,
+            "subspace_residual_energy": 1.3691959368103535e-15
+          }
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.019393421709537506,
+          "ey_l2": 0.7023559781134114,
+          "ei_l2": 0.43387636552981557,
+          "epsilon_l2": 0.986342689107644,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9999999837378736,
+            "restored_cosine": 0.999999983737873,
+            "restored_relative_l2_error": 0.013658485306624934,
+            "decoded_direction_norm": 0.9863426891076452,
+            "subspace_residual_energy": 3.059748837746283e-15
+          }
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.01807415671646595,
+          "ey_l2": 0.6572198186354281,
+          "ei_l2": 0.39123882872887716,
+          "epsilon_l2": 0.8195445830029172,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9999961177288832,
+            "restored_cosine": 0.9999961177288859,
+            "restored_relative_l2_error": 0.18047304760577967,
+            "decoded_direction_norm": 0.8195445830029134,
+            "subspace_residual_energy": 1.1418732368613051e-14
+          }
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.012048949487507343,
+          "ey_l2": 0.5048323420981156,
+          "ei_l2": 0.4496022229579269,
+          "epsilon_l2": 0.728108970502703,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": -0.9998884165232709,
+            "restored_cosine": -0.9998884165232766,
+            "restored_relative_l2_error": 1.7280619560858168,
+            "decoded_direction_norm": 0.7281089705026894,
+            "subspace_residual_energy": 3.0286200882688355e-14
+          }
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.008871249854564667,
+          "ey_l2": 0.6281269578678907,
+          "ei_l2": 0.4559627153049379,
+          "epsilon_l2": 0.9961594751930163,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": -0.9999983054589299,
+            "restored_cosine": -0.9999983054589292,
+            "restored_relative_l2_error": 1.996158629552375,
+            "decoded_direction_norm": 0.996159475192975,
+            "subspace_residual_energy": 8.392932857610452e-14
+          }
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.008836482651531696,
+          "ey_l2": 0.556050308233088,
+          "ei_l2": 0.48054712406399197,
+          "epsilon_l2": 0.9496395819578191,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9996563562844217,
+            "restored_cosine": 0.9996563562844214,
+            "restored_relative_l2_error": 0.056469877405644874,
+            "decoded_direction_norm": 0.9496395819576591,
+            "subspace_residual_energy": 3.320928553014741e-13
+          }
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.010875506326556206,
+          "ey_l2": 0.5411674414835845,
+          "ei_l2": 0.42956132462758806,
+          "epsilon_l2": 0.8155214422701239,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9932782947573974,
+            "restored_cosine": 0.9932782947574027,
+            "restored_relative_l2_error": 0.21212196437456077,
+            "decoded_direction_norm": 0.8155214422698209,
+            "subspace_residual_energy": 7.4443919642828e-13
+          }
+        }
+      ]
+    },
+    "hidden_shuffled": {
+      "basis": "shuffled",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.02008778415620327,
+          "ey_l2": 0.7077875039939288,
+          "ei_l2": 0.4365949098220914,
+          "epsilon_l2": 1.0000000006945884,
+          "contract_pass": true,
+          "t0": {
+            "seed_byte_identical": true,
+            "pass": true
+          },
+          "trajectory": {
+            "direction_cosine": 1,
+            "restored_cosine": 0.9999999999999999,
+            "restored_relative_l2_error": 1.2306745058146607e-8,
+            "decoded_direction_norm": 1.0000000006945782,
+            "subspace_residual_energy": 8.02142141110199e-16
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.020076829940080643,
+          "ey_l2": 0.7074079940412569,
+          "ei_l2": 0.4362260607171321,
+          "epsilon_l2": 0.9986440511772536,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9999999999131917,
+            "restored_cosine": 0.9999999999131955,
+            "restored_relative_l2_error": 0.001356012754441155,
+            "decoded_direction_norm": 0.9986440511772551,
+            "subspace_residual_energy": 1.323010186820763e-15
+          }
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.019978448748588562,
+          "ey_l2": 0.7040081871012235,
+          "ei_l2": 0.43292719023721954,
+          "epsilon_l2": 0.9864680744719246,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9999999911755533,
+            "restored_cosine": 0.9999999911755528,
+            "restored_relative_l2_error": 0.013532568808932303,
+            "decoded_direction_norm": 0.9864680744719241,
+            "subspace_residual_energy": 2.9958492616578792e-15
+          }
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.018640611320734024,
+          "ey_l2": 0.659392018397753,
+          "ei_l2": 0.39078508578543214,
+          "epsilon_l2": 0.8211519448427612,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9999979012188123,
+            "restored_cosine": 0.9999979012188112,
+            "restored_relative_l2_error": 0.17885769111234434,
+            "decoded_direction_norm": 0.8211519448427552,
+            "subspace_residual_energy": 1.148768921391452e-14
+          }
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.012485908344388008,
+          "ey_l2": 0.5046467663081567,
+          "ei_l2": 0.4508466746514518,
+          "epsilon_l2": 0.7205389098307768,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": -0.9999383034049492,
+            "restored_cosine": -0.9999383034049492,
+            "restored_relative_l2_error": 1.7205130719198178,
+            "decoded_direction_norm": 0.7205389098307673,
+            "subspace_residual_energy": 3.107662147001799e-14
+          }
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.008559640496969223,
+          "ey_l2": 0.6067582389851913,
+          "ei_l2": 0.4639901748343261,
+          "epsilon_l2": 0.9989048749395838,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": -0.9999979359049227,
+            "restored_cosine": -0.9999979359049251,
+            "restored_relative_l2_error": 1.998903843457156,
+            "decoded_direction_norm": 0.9989048749395397,
+            "subspace_residual_energy": 8.559071226452925e-14
+          }
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.009949568659067154,
+          "ey_l2": 0.6315062420874474,
+          "ei_l2": 0.44133908833763896,
+          "epsilon_l2": 0.9836371286508335,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9995577431635774,
+            "restored_cosine": 0.9995577431635804,
+            "restored_relative_l2_error": 0.033731054655878286,
+            "decoded_direction_norm": 0.9836371286506788,
+            "subspace_residual_energy": 3.1694816306208803e-13
+          }
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.012089152820408344,
+          "ey_l2": 0.5923810982635337,
+          "ei_l2": 0.4507878571772092,
+          "epsilon_l2": 0.9419618689961013,
+          "contract_pass": true,
+          "trajectory": {
+            "direction_cosine": 0.9930712834504198,
+            "restored_cosine": 0.9930712834504216,
+            "restored_relative_l2_error": 0.12814678393165124,
+            "decoded_direction_norm": 0.9419618689958222,
+            "subspace_residual_energy": 5.95849428140721e-13
+          }
+        }
+      ]
+    },
+    "zero": {
+      "basis": "zero",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "epsilon_l2": 0,
+          "contract_pass": true
+        }
+      ]
+    }
+  },
+  "gates": {
+    "H1": true,
+    "H2": true,
+    "H3": true
+  },
+  "verdict": "PASS"
+}

@@ -1,0 +1,1988 @@
+# Cassi Physics: The Bubble Lattice at Every Scale
+
+## Status: Synthesis—September 2026
+
+## Abstract
+
+Cassi is a proposed field framework organized around the declared scale-separation target $\varphi\approx1.618$. The canonical state uses two nonnegative density components conventionally labeled Yang ($E_Y$) and Yin ($E_I$); the canonical equations treat them as neutral components and use the **Asserted** C-class/framework convention $\lambda=0.1$ in named calculations. The implementation class default is $\lambda=0.02$ unless a caller passes a different value. The positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ supplies coordinate diagnostics. A distinct optional regulated quantum sector quantizes the finite CassiFI complex-field configuration as a linear wavefunctional. **Hypothesized** geometric and phenomenological mappings organize selected coherence patterns.
+
+---
+
+# Part I—The Substrate
+
+## 1. The Fractal Lattice
+
+Zoom into a bubble and you find the same lattice again. A bubble is not a solid object—it is one scale of a repeating structure. Inside every bubble, more bubbles: smaller lattices, the same pattern, another turn of the spiral.
+
+Zoom out, and the lattice you are inside is itself a bubble of a larger lattice. The pattern repeats at every scale, in both directions—it never bottoms out and never tops out. The framework's **Hypothesized** geometric construction treats this as a **nested lattice of bubbles**, each scale a zoom of every other; this is not a consequence of the canonical density PDE.
+
+Within that **Hypothesized** geometry, each modeled bubble carries a proposed **five-arm Fibonacci spiral** at its poles, organized by the golden angle $2\pi/\varphi^2 \approx 137.5^\circ$. Count the arms and you find consecutive Fibonacci numbers—34 one way, 55 the other—because the golden angle is the one turn that never repeats exactly, so the spiral never locks into a smaller symmetry. Sunflowers, pinecones, and nautilus shells display the same phyllotaxis at their own scale; that analogy does not establish the proposed pole geometry. A sunflower is an observed instance of phyllotaxis, not evidence for the model's source.
+
+The pattern is described by two nonnegative density components and their coherence structure. The framework conventionally labels them **Yang** ($E_Y$) and **Yin** ($E_I$). A **Hypothesized** phenomenological mapping may call Yang expansive or outward and Yin contractive or inward; the canonical PDE treats $E_Y$ and $E_I$ as neutral density components. For $\rho>0$, the optional positive-root coordinate lift $\Psi^{(+)}=(\Psi_0^{(+)},\Psi_1^{(+)})=(\sqrt{E_Y},\sqrt{E_I})$ supplies the amplitude-plane diagnostic $\theta_\Psi=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)})$ and the foundational spatial phase-current diagnostic $\mathbf{J}_\Psi=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}=\rho\nabla\theta_\Psi$. The density-plane angle $\theta_d=\operatorname{atan2}(E_I,E_Y)$ and Stokes double angle $\Theta_S=\operatorname{atan2}(2\Psi_0^{(+)}\Psi_1^{(+)},E_Y-E_I)=2\theta_\Psi\pmod{2\pi}$ are distinct coordinates. The density-lattice diagnostic $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=(E_Y^2+E_I^2)\nabla\theta_d=2\sqrt{E_YE_I}\,\mathbf{J}_\Psi$ has different units. A named spatial projection records a chosen direction; physical-current and interscale-transport interpretations require a separate constitutive map and remain **Hypothesized**.
+
+The canonical conversion relaxes the local ratio $r=E_Y/E_I$ toward $\varphi$. Spatial responses in the deviation $\varepsilon=E_Y-\varphi E_I$ can form patterns in simulations. Supplied adjacent-scale carriers have an exact phase-staggered beat envelope, while interpreting its antinodes and nodes as physical bubbles and voids remains a **Hypothesized** phenomenological mapping. The distinct default CassiCosmos second-order wave branch separates into a massless density mode and an imbalance mode with threshold $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$; a supplied drive at $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$ gives $k_\rho/k_\epsilon=\varphi$ and additively spaced layers. The current source path selects no such drive, and phase staggering alone opens no transfer gap. The independently defined Qi gate closes as $q$ increases and opens as $q$ decreases; associating high-$q$ pockets with bubbles and low-$q$ regions with voids requires the same separate physical mapping.
+
+Coherence gates conversion: at high $q$ the gate closes and at low $q$ the gate opens. Reading these gate states as a bubble holding or a void churning belongs to the **Hypothesized** phenomenological mapping above. Where a spatial solution develops a coherent filament, a **Hypothesized** geometric mapping may call it a **condensed fluid string**—the proposed spine around which bubbles condense (source: `foundations/bubble-lattice-fabric.md`).
+
+The recorded geometric bubble model has a definite shape: an **oblate triaxial spheroid** bounded along the named string, with axis ratio $\varphi$ in its Yang–Yin cross-section. Interpreting the long and short axes as Yang/outward and Yin/inward is a **Hypothesized** geometric mapping, not a canonical transport law. The named cross-section is a supplied staggered checkerboard of bubble and void sites, each bubble joined to its diagonal neighbors through saddles and separated from its axial neighbors by void barriers. Reusing this condensation field at every scale defines the nested geometric construction. The registered canonical and undriven second-order probes do not dynamically generate its multiplicative radial ring ladder.
+
+The canonical fixed-point ratio is $r=E_Y/E_I=\varphi$. In the neutral density variables this is the balance condition of the rank-one relaxation. Interpreting the ratio as relative push and pull strength, or as the unique mechanism that preserves a nested pattern, is a **Hypothesized** phenomenological mapping.
+
+The rest of this document unpacks that image into physics: the equations that govern the two fluids, the coherence gate that controls conversion, the geometric spiral used to organize the proposed scale sequence, the conditional dimensionful cascade that parameterizes scales from an external Planck anchor to an epoch-dependent horizon coordinate, and the specific phenomena to which the framework applies these constructions. Every claim carries a label: **Derived** (follows mathematically from the framework), **Calibrated** (anchored to an observation), **Mapped** (fitted or selected with ledgered provenance), **Hypothesized** (consistent and testable), or **Speculative** (framework-consistent with no test yet designed). **Creative** marks exploratory applications outside this evidence ladder.
+
+---
+
+## 2. Two Fluids and the Governing Equation
+
+The canonical state comprises continuous nonnegative density components with values at every point of space, analogous to two coupled scalar density fields. The components are conventionally labeled Yang ($E_Y$) and Yin ($E_I$); those names carry no intrinsic transport direction. Their local ratio is $r=E_Y/E_I$. A **Hypothesized** phenomenological or geometric mapping may describe the components as expansive/outward and contractive/inward when interpreting a particular solution.
+
+For a separate **Hypothesized** amplitude/action extension, the optional
+positive-root coordinate lift $\Psi_0^{(+)}=\sqrt{E_Y}$ and
+$\Psi_1^{(+)}=\sqrt{E_I}$ may be used. The attractor potential in that
+extension is
+
+$$
+V_{\mathrm{attr}}=\frac{\lambda}{2}
+\left((\Psi_0^{(+)})^2-\varphi(\Psi_1^{(+)})^2\right)^2.
+$$
+
+Here $\lambda=0.1$ is the **Asserted** C-class/framework convention used in
+named attractor calculations; the implementation class default is
+$\lambda=0.02$ unless a caller passes the named convention. This potential
+alone specifies no amplitude evolution: an amplitude equation requires a
+separately selected action or dissipative prescription. The optional action
+construction in `foundations/unified-lagrangian.md` §1.1 uses a distinct
+**Hypothesized** fourth-order coefficient $\kappa_4$; the canonical solver
+reserves $\nu$ for velocity viscosity and $D$ for scalar-density diffusion.
+Those coefficients are distinct from the canonical density conversion below.
+
+In the density form used by the solvers, the canonical conversion term is
+
+$$\boxed{\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)}$$
+
+with $q$ the Qi coherence of section 3. The gated density pair conserves
+$\rho=E_Y+E_I$ exactly and drives the local imbalance toward
+$E_Y=\varphi E_I$; the separate **Hypothesized** amplitude-level
+action/attractor representation supplies an optional field construction.
+
+Writing $\kappa=\lambda(1-q)$, the canonical density conversion is
+
+$$
+\partial_t
+\begin{pmatrix}E_Y\\E_I\end{pmatrix}_{\!\mathrm{conv}}
+=\kappa
+\begin{pmatrix}-1&\varphi\\1&-\varphi\end{pmatrix}
+\begin{pmatrix}E_Y\\E_I\end{pmatrix}.
+$$
+
+This rank-one relaxation has eigenvalues $0$ and $-\kappa(1+\varphi)=-\lambda(1-q)(1+\varphi)$. It conserves $\rho=E_Y+E_I$ while generally changing $E_Y^2+E_I^2$; the canonical conversion is a density-plane relaxation rather than a norm-preserving $SO(2)$ generator.
+
+### Why $\varphi$?
+
+$\varphi$ is, in a precise arithmetic sense, the **most irrational number**: its continued fraction has all unit entries, and its best rational approximants converge unusually slowly. Rational frequency ratios can support resonant locking in suitable dynamical systems, but irrationality alone leaves the physical frequency ratios and dynamics unspecified and gives no guarantee of multiscale survival.
+
+The **Hypothesized** de-resonance interpretation (`principles/de-resonance-principle.md`) motivates selecting $\varphi$ as the scale-separation constant. The canonical gated density equations declare the $\varphi$-line as their conversion target; convergence toward that target follows from the stated rank-one solver term and its assumptions. The discrete renormalization or physical flow interpretation remains **Hypothesized**.
+
+**Epistemic status:** the canonical gated density equations are **Derived**
+from the framework's postulate and declared solver structure. The separate
+**Hypothesized** ungated amplitude action/attractor representation supplies
+the corresponding $\varphi$-fixed-point structure. The de-resonance argument
+for a physical attractor is **Hypothesized**.
+
+---
+
+## 3. Coherence and the Qi Gate
+
+The push and pull are not balanced everywhere at every moment. Some regions are close to $\varphi$-balance; others are far from it. **Coherence** (written $q$, called **Qi** in the framework) is a bounded local diagnostic with $0\le q\le1$ under the stated normalization:
+
+- At fixed density, $\varepsilon\to0$ approaches $q_{\mathrm{eq}}(\rho)=\rho^2/(\rho^2+\varphi^{-2})<1$; $q\to1$ requires both alignment with the golden-ratio line and $\rho\gg\varphi^{-1}$. Treating high $q$ as orderly structure, or mapping it to bubbles, atoms, cells, or thoughts, is a **Hypothesized** phenomenological interpretation.
+- $q\to0$ is the low-density limit under the canonical diagnostic. The gate openness $(1-q)$ then approaches one, so the canonical conversion acts more strongly on the imbalance. Calling low-$q$ regions chaotic or voids, or saying that they cannot hold lasting structure, is a **Hypothesized** mapping, not a consequence of $q$ alone.
+
+In the canonical equations, $q$ is a dimensionless local gate diagnostic defined by a **C / Asserted** constitutive choice under the reference normalization; the rational form and bare $\varphi^{-2}$ floor are not derived from $\varphi$ and the PDE. With the default instantaneous diagnostic, set $\rho=E_Y+E_I$, $\pi=E_Y-E_I$, and $s=\pi/\rho$. Then $\varepsilon/\rho=(\varphi^2s-\varphi^{-1})/2$ and
+$$q(\rho,s)=\left[1+\left(\frac{\varphi^2s-\varphi^{-1}}{2}\right)^2+\frac{\varphi^{-2}}{\rho^2}\right]^{-1}.$$
+Thus $q$ depends on density and composition; $q$ is not an independent gate dial at fixed $s$. The optional `qi_memory` closure replaces $\varepsilon^2$ by a history-filtered value and is outside this instantaneous identity. The canonical solver fields are dimensionless/reference-normalized. If $E_Y,E_I$ denote physical energy densities, use an external reference density $\rho_*$ (equivalently $e_Y=E_Y/\rho_*$ and $e_I=E_I/\rho_*$) so that the dimensionless diagnostic is evaluated consistently; no $\rho_*$ scale is derived. The bounds and reference-state arithmetic are **Derived conditional** on that definition and normalization. The broader language of coherence as an organizing strength belongs to the named phenomenological mapping.
+
+### The gate: sign and consequences
+
+Coherence does more than measure balance: it **gates** the conversion. In the governing equation, the gate appears as the factor $(1-q)$ multiplying the imbalance:
+
+$$\text{conv} = -\lambda(1-q)\,\varepsilon, \qquad \varepsilon = E_Y - \varphi E_I$$
+
+The gate's *openness* is $(1-q)$. When $q$ is low, the gate is **open** and conversion runs hard—the region churns, converting aggressively, unable to settle. When $q$ is high, the gate is **closed** and the system rests in balance.
+
+The sign is established by the PDE tests of 2026-07-31 (`consciousness/trauma-as-frozen-gate.md` §10.4): when $q$ is low the gate is open and conversion runs hard; when $q$ is high the gate is closed. A low-coherence region is not frozen—it is unsettled.
+
+Optional extensions assign the gate roles in cosmic expansion, modified
+gravity, and human-scale phenomenology. The canonical PDE establishes the gate
+sign and openness; conversion-to-expansion dynamics, high-coherence gravity
+amplification, and the pinch-point boundary at
+$r=\varphi^{-1}\approx0.618$ (section 19) are **Hypothesized** mappings.
+
+
+### Conversion-Flow Time and Arrow
+
+The conversion itself supplies an additive internal clock. On a
+conversion-only trajectory,
+
+$$
+d\chi_F
+:=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
+=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
+=\lambda(1-q)\,dt.
+$$
+
+Two resolved nonzero field states therefore determine
+
+$$
+\boxed{
+\Delta\chi_F
+=-\frac{1}{1+\varphi}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|,
+\qquad
+\Delta\tau_F:=\frac{\Delta\chi_F}{\lambda}
+=\int(1-q)\,dt
+}
+$$
+
+for $\lambda>0$. $\tau_F$ is an openness-weighted conversion age and equals
+coordinate elapsed time only when $q=0$ throughout the interval. The relative
+rate between two regions under the same conversion law is
+$(1-q(x))/(1-q(x_0))$. The same subflow gives
+$d(\varepsilon^2/2)/dt=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0$, so the
+conversion clock has a monotone arrow.
+
+This result is **Derived conditional** for the isolated canonical conversion
+law. Interpreting the relative rate as a universal proper-time lapse remains
+**Hypothesized** until wave, particle, gravitational, and boundary dynamics
+share one reparameterization-invariant action. See
+`foundations/cassi-first-principles.md` §2.6.
+
+### Candidate Physical Time
+
+The exact relative conversion-clock rate selects a parameter-free candidate
+for physical proper time. Relative to a reference clock $x_\star$ with
+$q_\star<1$,
+
+$$
+\boxed{
+d\tau_{\mathrm{phys}}(x)
+=\frac{1-q(x)}{1-q_\star}\,d\tau_\star
+}.
+$$
+
+With an external open-gate normalization,
+$d\tau_{\mathrm{phys}}=(1-q)dt=d\tau_F$. The $q_\star=0$ case is a
+normalization limit; an active canonical conversion reference requires
+$\varepsilon_\star\neq0$. The candidate interprets the conversion gate as a
+clock lapse, making the imbalance relax at the constant
+intrinsic rate
+
+$$
+\frac{d\varepsilon}{d\tau_{\mathrm{phys}}}
+=-(1+\varphi)\lambda\varepsilon.
+$$
+
+The conversion trace alone also permits uniform physical time with
+$q$-dependent kinetics because it fixes only the product
+$K(q)N(q)=1-q$. Candidate physical time becomes a physical hypothesis when
+the same normalized rate $(1-q)/(1-q_\star)$ governs independent wave,
+particle, decay, or orbital clocks. Any resolved cross-clock disagreement
+falsifies the universal interpretation while preserving the exact
+conversion clock. The candidate is a worldline proper time, supplies no
+global synchronization rule, and requires an external reference clock to
+express seconds. The common-lapse action and status boundaries are in
+`foundations/unified-lagrangian.md` §1.7; the discriminator is CT-2 in
+`predictions/falsifiable-predictions.md`.
+
+### Density-Plane Relaxation and Parity
+
+The canonical density conversion is a rank-one relaxation toward the $\varphi$-line. It changes the density-plane angle
+
+$$
+\theta_d=\operatorname{atan2}(E_I,E_Y),
+$$
+
+while the positive-root lift's amplitude-plane phase and Stokes double angle remain distinct from the density-plane coordinate:
+
+$$
+\theta_\Psi=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)}),\qquad
+\Theta_S=\operatorname{atan2}(2\Psi_0^{(+)}\Psi_1^{(+)},E_Y-E_I)
+       =2\theta_\Psi\pmod{2\pi}.
+$$
+
+The exact density-plane drift rate is
+
+$$\boxed{\frac{d\theta_d}{dt}=\lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2+E_I^2}}$$
+
+(`foundations/cassi-first-principles.md` §2.6). Positive $\varepsilon$ gives positive $\theta_d$ drift; calling this movement toward a Yin-named axis uses the density-plane coordinate convention and does not assert a universal spatial transport direction. Negative $\varepsilon$ gives the reverse. The committed solver measures this state-function rate for four homogeneous arms at $\lambda=0.05$, $t=4$, with per-checkpoint relative error $\le2.2\times10^{-3}$ and 100% sign agreement.
+
+The exact relaxation integral gives
+
+$$\boxed{\Delta\theta_d=\operatorname{atan}\!\left(\frac{1}{\varphi}\right)-\operatorname{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)}$$
+
+If a cascade-step coordinate is assigned by $\delta n_{\mathrm{map}}\equiv\Delta\theta_d/(2\pi)$, that coordinate mapping is **Hypothesized**. The PDE supplies the relaxation angle while the scale-step offset and physical interscale flux remain open. Under this map, $|\delta n_{\mathrm{map}}|\le\operatorname{atan}(\varphi)/(2\pi)\approx0.162$; a half-step value is a separate parity structure (`foundations/rung-offset-mechanism.md` §7) and carries no accumulated-relaxation interpretation.
+
+### Memory
+
+An optional temporal-memory closure (`qi_memory`, default-off in the canonical solver) can smooth the recent history of $\varepsilon^2$ with an exponential moving average. When enabled, the convention $\tau=\varphi^{-1}\approx0.618$ sets the IIR coefficient; it is a solver timescale choice, not a derived physical cycle. The filtered diagnostic then carries history and can be analyzed as non-Markovian, while the default instantaneous $q$ diagnostic remains local to the current field state.
+
+**Epistemic status:** the gate equation and its sign are **Derived** and **Tested** in the two-fluid PDE. The mapping of $q$ to a measurable condensate fraction is **Hypothesized**.
+
+### Conditional Four-Channel Lift
+
+The four directional labels Yang/out, Yang/in, Yin/out, and Yin/in require a
+conditional four-population kinetic lift. For fixed total $N$, those
+populations occupy a $\Delta^3$ tetrahedron in operational $\mathbb{R}^4$;
+the canonical densities supply only the species marginal, leaving the
+species-direction association and dynamics nonunique. This operational lift
+adds no spacetime dimension and makes no quantum-entanglement claim. See
+`foundations/qi-flow-double-helix.md` §2.2 and
+`computations/verify_four_channel_lift.py`.
+
+**Epistemic status:** the simplex algebra is **Derived conditional** on the
+declared four-population lift; physical populations, the oriented axis, hidden
+species-direction association, and kinetics are **Hypothesized**.
+
+### Regulated CassiFI Quantum Sector
+
+The optional quantum sector starts from the finite regulated complex-field
+configuration
+
+$$
+Q^A=\{\operatorname{Re}D,\operatorname{Im}D,
+\operatorname{Re}C,\operatorname{Im}C\}_{s,j}
+$$
+
+with a positive CassiFI metric $G_{AB}$ and conservative Hamiltonian
+$H_{\mathrm{FI}}=P_AG^{AB}P_B/2+U_{\mathrm{FI}}(Q)$. Its normalized state is
+a complex wavefunctional on the full configuration space:
+
+$$
+i\hbar\partial_t\Psi[Q,t]
+=\left(-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q)\right)\Psi[Q,t].
+$$
+
+This construction gives the standard centre-of-mass Schrödinger dispersion,
+tensor-product entanglement, and no-cloning. One actual current-guided field
+configuration enters one disjoint retained topological apparatus sector. The
+declared quantum-equilibrium condition $\rho_Q=|\Psi|^2$ is equivariant and
+yields Born frequencies. Quantum record distinguishability is
+$\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$.
+
+**Epistemic status:** the regulated mathematics is **Derived conditional** on
+QF1–QF4. Quantum equilibrium is an explicit statistical postulate. The
+CassiFI physical-field identification is **Hypothesized**. The DQ1–DQ9 audit
+yields `REJECT` for promotion to Derived; reverse-Madelung linearization and
+tensor composition pass conditionally, while the canonical lift, Fisher
+bridge, guidance/equilibrium selection, physical sectors, continuum limit,
+and Cassi-specific discrimination gates fail. See
+`foundations/quantum-measurement-derivation.md` §8.1.
+
+The geometric campaign in §8.3 of the same source `ADOPT`s a
+moment-map/Kähler projection architecture as a Hypothesized research
+direction. The canonical density state fixes a Bloch latitude, with
+$n_z=\varphi^{-3}$ at the attractor, while complex phase remains in the
+microscopic fibre. GQ1 passes and GQ5 passes conditionally; the exact
+symmetry reduction, micro-to-meso projection, cotangent closure,
+physical-sector, and holonomy gates fail. The physical-identification tier
+remains Hypothesized.
+
+A shared-support loop completion supplies a finite microscopic construction
+between the canonical densities and the projective shell. Four nonnegative
+Yang/Yin direction populations on one closed support project exactly to the
+canonical PDE under common exterior transport and gate assumptions. Their
+species coherence matrix fills the affine Bloch ball, its rank-one boundary is
+the projective shell, and the frozen loop generator has an explicit Fourier
+gap controlling zero-mode coarse-graining. This is **Derived conditional** as
+a projection theorem. The microscopic identification, phase dynamics,
+QF1-to-carrier state map, quantum postulates, and physical scale law remain
+independent. See `foundations/loop-to-bubble-projection-theorem.md`.
+
+The same source develops a regulated pure-$SU(2)$ comparison. Character
+cutoffs converge on each fixed finite graph, and the normalized ground-space
+density on periodic cubic lattices has a fixed-support cutoff error bounded
+uniformly in spatial volume. An edge-disjoint loop family shows that bounded
+electric-energy density alone cannot provide a volume-uniform whole-state
+norm estimate. The fixed-support result is **Derived** at fixed coupling.
+Conditional on the finite-volume ground densities and this uniform local
+bound, trace-norm compactness and a diagonal extraction construct a
+compatible, symmetry-invariant locally normal ground-state subsequence at
+each fixed regulator and coupling. The algebraic ground inequality holds on
+the local gauge-invariant $*$-algebra whose operators have finite
+Peter–Weyl matrix support. This operator result is **Derived conditional**.
+Its 18/18 primary and 19/19 independent executable checks cover finite
+identities and implication controls; both receipts state
+that they construct no interacting $SU(2)$ ground state and retain
+`clay_verdict=NULL`.
+
+The Euclidean route gives a second fixed-regulator existence bridge. On
+reflection-compatible even four-tori, the Wilson plaquette weight has positive
+$SU(2)$ character coefficients. Taking the standard finite-lattice reflection
+positivity and positive-transfer results as explicit analytic inputs, compact
+local marginals and diagonal extraction yield a translation- and
+gauge-invariant, reflection-positive DLR subsequential limit at every fixed
+$\beta$. The fixed-lattice Osterwalder–Schrader quotient therefore supplies a
+positive transfer Hilbert space. This result is **Derived conditional** because
+the executable receipts test the finite coefficients, kernels, covariance and
+failure controls but do not construct the infinite-volume measure. The
+308/308 primary and 22/22 independent checks retain `clay_verdict=NULL`.
+Full-sequence convergence, phase uniqueness, clustering, equivalence with the
+Hamiltonian construction, weak-coupling continuum existence, continuum
+Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
+positive mass gap remain open.
+
+The separate anisotropic Wilson family has an exact fixed-graph Hamiltonian
+limit: its difference and logarithmic transfer generators converge in
+strong-resolvent sense to the Kogut–Susskind Hamiltonian, and its Chernoff
+products converge strongly to the heat semigroup. The 414/414 primary and
+24/24 independent controls pass. The universal two-loop Wilson scale then
+fixes the continuum yardstick
+$a\Lambda_L=F_W(g_0)[1+O(g_0^2)]$. A simultaneous continuum and
+thermodynamic trajectory requires $g_0\to0$ and $NF_W\to\infty$; a finite
+positive excitation requires $a\Delta_W/F_W$ bounded above and below by
+positive constants in a nonzero local channel. The two-loop asymptotic
+relation and necessary conditions are **Derived** from established
+perturbative inputs. The Osterwalder–Schrader implication is **Derived
+conditional**. The 80/80
+primary and 20/20 independent arithmetic controls pass. They compute no
+interacting gap and construct no continuum trajectory or continuum theory.
+
+The conditional RG endpoint bridge sharpens the required scale mechanism. A
+bounded cumulative two-loop scale defect, fixed positive endpoint rate, exact
+correlation-preserving blocking and complete retained physical observables
+would bound the microscopic gap in units of $F_W$; its 139/139 primary and
+32/32 independent arithmetic checks pass with synthetic endpoint witnesses.
+The finite transfer-correlation criterion then isolates the algebraic map
+boundary: for positive self-adjoint $A$ and isometric retained map $J$,
+$D_2(u)=\|QAJu\|^2$ with $Q=I-JJ^*$, so exact second-moment matching forces
+a reducing retained sector and all-moment matching. Its complete, incomplete
+and leaky fixtures pass 54/54 primary checks and 55/55 independent decisions
+with four firing mutations.
+
+The local gauge-invariant observable boundary is now explicit. On every
+finite connected $SU(2)$ graph, the unital algebra generated by fundamental
+Wilson traces over all closed words is dense in the continuous invariant
+cylinder algebra. The union over finite supports gives the local
+gauge-invariant algebra, and centered GNS vectors are dense in the
+vacuum-orthogonal subspace. The finite tree-gauge, word, character,
+orientation and mutation controls pass 36/36 primary and 41/41 independent
+decisions. This algebraic completeness statement is **Derived conditional**;
+§9.34 states the next analytic criterion: a uniform lower-form bound, strong
+recovery/form transport, physical scale matching and a continuum form core.
+Identifying the RG retained family with the full local algebra, constructing
+the exact block map, and proving the matched uniform lower spectral bound
+remain open. See `foundations/loop-to-bubble-projection-theorem.md`
+§§9.31–9.34 and `field-experience/probe-outcome-ledger.md` §§42–44.
+The next finite operator screen enumerates every canonical unoriented simple
+cycle on the recovered open $3\times2\times2$ graph: $3880$ rooted directed
+occurrences reduce to $225$ classes with length counts
+$11,36,72,84,22$. Adding their centered multiplication vectors to the
+degree-four plaquette products gives $16329$ columns. The source-bound
+calculation passes $40/40$ controls and reaches rank $865,867,867,867$ in
+$Q$ of dimension $867$, so its all-coupling classification is
+`CLOSED_WILSON_SIMPLE_CYCLE_COVERAGE_INCOMPLETE`; the independent arithmetic
+audit passes $24/24$. This closes the declared finite simple-cycle inventory,
+not all closed words, local recovery, volume-uniform control or the continuum
+mass gap. See `foundations/loop-to-bubble-projection-theorem.md` §9.43 and
+`field-experience/probe-outcome-ledger.md` §58.
+
+The finite closed-Wilson screen now includes every canonical cyclically reduced
+fundamental trace of lengths $4$, $6$ and $8$, including the $55$ length-eight
+classes with repeated edges or repeated vertices, together with the simple
+length-$10$ and length-$12$ representatives. The declared family has $280$
+classes, $792$ rooted occurrences in the repeated length-eight sector, and
+$16384$ projected columns after the degree-four plaquette products are added.
+The source-bound calculation passes all $41/41$ primary controls and returns
+`REPEATED_EDGE_CLOSED_WILSON_COVERAGE_INCOMPLETE` with ranks
+$865,867,867,867$ and finite deficiencies $2,0,0,0$ in the centered
+$Q$ space. The independent arithmetic audit passes $24/24$ checks. Repeated
+closed words therefore do not remove the finite $1/64$ deficiency in this
+declared family; the result remains a finite graph and cutoff statement, with
+local recovery, volume-uniform control, lattice-spacing control, continuum
+construction and the Yang–Mills mass gap outside its scope. See
+`computations/yang-mills-closed-wilson-repeated-edge-coverage-prereg.md`,
+`computations/yang_mills_closed_wilson_repeated_edge_coverage_manifest.json`
+and `field-experience/probe-outcome-ledger.md` §59.
+
+The corrected matter-formation tube functional now supplies the loop side of the
+scale question in the scalar sector. On the registered transverse functional
+the straight tube binds above a measured line-density threshold, its relaxed
+cross-section is a genuine minimum apart from rigid translation, bending an
+untwisted tube costs no energy exactly, and the axial winding channel is
+strictly enhanced by curvature. Closing the tube into a wound loop with
+temporal Noether charge $Q$ and longitudinal winding $w$ gives the thin-loop
+mass $M=Ne(n)+[2\pi^2k_{Cx}w^2n^2+Q^2/(4a)]/N$, whose fixed-$n$ minimum lies
+below the dilute charged threshold exactly when
+$|Q/w|^2>8\pi^2ak_{Cx}e(n)n^2/(B-e(n))$. The measured schedule threshold is
+$|Q/w|_{\rm bind}=41.1173021501$ at $n=4.3260504663$, so $Q=64,128,256$ bind
+at $w=1$, and the transported $Q=256$, $w=1$, $R=8$ trial is bound by
+$72.12081046$ with positive non-symmetry transverse modes. Its radial
+derivative $+8.6921788545$ and every reduced minimum at $R_*<1.85$ place the
+stationary loop inside core overlap. This result is **Tested** conditional on
+the auxiliary scalar sector: the carrier is neutral under $SU(2)_Q$, so a
+Wilson or electric-flux identification, charge quantization, the thick-core
+completion, continuum construction and the Clay verdict remain open. See
+`foundations/loop-to-bubble-projection-theorem.md` §9.45,
+`computations/matter-formation-wound-loop-gap-report.md` and
+`field-experience/probe-outcome-ledger.md` §74.
+
+The geometric manifold completion ansatz places these finite structures in
+one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
+canonical density pair on its diagonal, the loop coherence state in its
+normalized Bloch ball, and the projective shell on its rank-one boundary; the
+affine bubble map preserves the corresponding normalized metric. A
+cross-glued two-rail metric graph supplies one compact internal scale cycle,
+distinct from the shared carrier loop and from any spatial torus.
+
+The conservative interscale action and mesoscopic conversion remain separate
+dynamical blocks. A minimal positivity-preserving two-jump lift reproduces
+canonical population conversion exactly and conditionally gives transverse
+coherence decay at half the composition-relaxation rate. With the canonical
+state-dependent $q$, the complete conversion vector field is nonlinear; its
+trajectories reparametrize a fixed linear GKSL flow and preserve the positive
+cone.
+
+The open dynamical-geometry synthesis assembles the conservative currents,
+conversion flow, endpoint channels, declared reservoir terms, and a bounded
+two-domain source interface in one effective matrix balance. Independent finite
+checks reproduce its canonical reduction, positivity, covariance, and
+bounded-source identities (DG1–DG7; EC1–EC7). At every finite density with $\lambda>0$, undriven nonzero
+transverse coherence decays, so a stationary phase-bearing state requires an
+identified support term. The enlarged positive interior/exterior fibre derives
+one such term from cross-coherence $\mathsf C_{\rm io}$ and reciprocal coupling
+$V$.
+
+`foundations/matter-completion-boundary.md` derives the next conditional
+links. The mathematical exterior is the complementary Stinespring output of
+the selected reduced channel. The lowest-order local reciprocal interface is
+bilinear and Hermitian. For one routed forward carrier,
+$\|K_N\|_F/\|K_0\|_F=\varphi^{-N/2}$ while canonical single-mode power is
+$\varphi^{-N}$; closed forward-plus-return transport remains unitary. Fresh
+return modes give the half-rate coherence law and a maintained solution when a
+source is supplied. A local closed dilation action gives conserved total
+Hilbert stress, which consistently sources the constant-$G$
+Einstein–Hilbert branch. The Gram/Cartan map then embeds the coherence fibre in
+the local-$SU(2)_Q$ particle doublet while keeping global $Q_C$ separate.
+Independent finite checks reproduce all nine algebraic and reduced analytic requirements (MCC1–MCC9). Physical carrier selection, microscopic transfer factors,
+multimode flux normalization, reservoir action, explicit reservoir stress,
+gravity selection, and particle identity remain open. See
+`foundations/yin-yang-qi-dynamical-geometry.md`,
+`foundations/matter-completion-boundary.md`, and
+`computations/matter_completion_boundary_report.md`.
+The charged coherent endpoint action also fixes the stationary spatial boundary:
+$\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
+=-\mathcal I_{\mathrm{link},v}/2$. Every periodic, no-flux, or sufficiently
+localized endpoint domain has zero integrated $\Gamma_v$ at each scale vertex.
+For $K_v>0$ and $u_v>0$, spatial endpoint current can support compensating
+local source-and-sink conversion with a positive inverse-Laplacian gradient
+cost. A uniform nonzero circuit source requires boundary flux or additional
+endpoint transport.
+The separately declared Wilson-dressed endpoint hopping term supplies one
+conservative inter-vertex channel. It carries equal-and-opposite endpoint
+number current, closes the registered homogeneous circuit when
+$I_{-\to+}=\mathcal J_Q$, and preserves the local relative-charge ledger
+through a charge-$-g_Q$ scale-edge current. Its fixed-amplitude capacity is
+$I_c=2t_\Upsilon u_-u_+/\hbar$. Independent evaluation at one normalized point reproduces covariance, conservation, circuit closure, and capacity (IT1–IT6). The
+coupling $t_\Upsilon$, its microscopic origin, and a local scale-bulk
+completion remain Hypothesized.
+Point-core Chern flux supplies the sharp exterior coefficient
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and supports the reduced
+radius only when $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$
+branch, distinct from electroweak $SU(2)_L$, supplies a regular local core and
+matches the exterior coefficient. Its exact monopole belongs to the decoupled
+adjoint sector. Coupling the registered nonzero fundamental condensate removes
+the isolated magnetic sector, gives a positive London mass, and confines flux;
+the resulting finite pair has no finite-separation minimum in the registered
+branch. A neutral core carrier supplies an exact global $Q_C$ and a conditional
+$A_C/L$ term. The frozen-mode thin-tube branch has one stable reduced
+separation when $A_C>C_Q$, the carrier remains below its bulk threshold, and
+the root lies beyond core overlap. Direct local gauging of the first-order
+Yang/Yin time term is source-free Gauss-obstructed. The separate branch in
+`foundations/particle-stationary-action-closure.md` uses second-order temporal
+kinetics for the charged fields, supplies positive electric-curvature terms and
+Gauss's law, and defines the coupled fixed-$Q_C$ stationary functional. Its
+joint fixed-charge, gauge-quotiented energetic Hessian and mixed
+second-/first-order dynamical pencil state the full fluctuation qualification
+problem.
+
+The same charged-field vacuum retains a physical common phase. Its
+local gauge-invariant observable is
+$\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi$, whose phase is the
+relative sphere's azimuth. The full connection projection and linear
+Gauss constraint give a gapless branch; independent spectra and wave
+solutions qualify with `PASS`
+(`foundations/particle-stationary-action-closure.md` §4.3;
+`computations/matter-formation-continuum-report.md` §40).
+The temporal-support qualification closes a narrower stationary question. In the
+declared smooth finite-energy relative-equilibrium class on $\mathbb R^3$,
+with nonzero fundamental and adjoint vacuum, positive temporal coefficients,
+unit scale measure, zero boundary work and no external source or reservoir,
+the completed temporal square has $J_t>0$ and forces $\omega_N=0$. The
+homogeneous Gauss identity then forces $\mathcal A_0=0$, including when both
+charged fields vanish in a bounded core. Gauge-electric support is excluded
+only in this isolated single-frequency sector; time-dependent,
+multifrequency, externally sourced, other-vacuum and quantum sectors remain
+open (`computations/matter-formation-continuum-report.md` §41;
+`foundations/particle-stationary-action-closure.md` §4.4).
+The reconciled verdict is
+`SUPPORTS-conditional temporal support obstruction`.
+
+Transverse magnetic screening alone therefore does not determine all
+bulk excitations. These classical results leave the quantum state,
+particle statistics and a localized formation mechanism open.
+
+The conditional matter boundary is explicit through nine linked requirements.
+The mathematical exterior is the complementary Stinespring output of a chosen
+interior channel; the reciprocal interface is bilinear; one routed forward
+carrier fixes the one-sided exponent; canonical single-mode power is
+$\hbar\Omega|b|^2$; repeated interactions give a support equation; a closed
+action gives conserved total stress; constant $G$ is the compatible gravity
+branch; Gram/Cartan matrices connect the coherence fibre to the particle
+doublet; and the fixed-charge functional supplies the full energetic Hessian
+and mixed temporal qualification problem. The frozen algebraic receipt passes
+all nine checks.
+
+The reduced point-flux and neutral-carrier branches derive conditional
+inverse-length support. At the Mapped density-depletion coupling
+$h_C=2.9598260763447164$, the source-free fixed-charge action has a localized,
+nodeless, carrier-retaining stationary field on $N=17,21,25,29$ same-domain
+grids and one larger-domain comparison. Adjacent energy, carrier radius, core
+length, and frequency satisfy the frozen tolerances, while the absolute energy
+differences decrease from $0.12339$ to $0.04261$ to $0.01899$. Independent
+artifact reconstruction reports zero mismatches.
+
+The finest localized field has a $77000$-dimensional fixed-charge $C_4$
+physical quotient. Independent eigensolvers find six matched lowest eigenpairs
+containing one numerically near-zero global carrier-phase symmetry mode, no
+negative mode, and five positive modes.
+The first positive eigenvalue is $0.01527618220595$, compared with uncertainty
+$6.092903959\times10^{-4}$. The phase mode is entirely carrier-imaginary and
+has high-frequency fraction $0.8744032081$. Its frozen spatial verdict is
+`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`; the carrier-array diagnostic below
+identifies the ultraviolet obstruction to smooth interpretation.
+A different diffuse field at $h_C=1.50$ has independently matched lowest
+energetic eigenpairs containing no negative mode while failing localization and
+retention.
+
+The continuum qualification separates carrier creation from prepared
+self-binding. The first-order action preserves an exactly empty carrier
+sector. Its stored Cartesian branch has parity-concentrated ultraviolet
+structure, and the frozen smooth-carrier diagnostic returns `CONTRADICTS`.
+A continuum-consistent scalar reduction gives bound prepared populations
+at $Q_C=16$ and $256$, reproduced by independent collocation; the tested
+$Q_C=4$ profiles spread and $Q_C=64$ misses its residual tolerance.
+The smooth $Q_C=16$ spatial spectrum has no resolved negative eigenvalue on
+the tested grids, while its frozen combined stability verdict remains
+`INCONCLUSIVE` because the coarse translation eigenvalue and larger-domain
+comparison miss their thresholds. These results and physical boundaries are
+in `computations/matter-formation-continuum-report.md`.
+
+An optional positive-inertia temporal parent extends the carrier with a
+signed conserved charge and a Gaussian particle–antiparticle channel.
+Its 31 prescribed-background trajectories reproduce the exact scalar
+mass-quench correspondence under independent raw-array verification.
+The parent remains Hypothesized: its temporal coefficient and quantum
+action normalization are unselected, and the calculation leaves interacting
+backreaction, localized formation and physical particle identity open
+(`foundations/particle-stationary-action-closure.md` §8.8).
+The parent's classical potential also imposes an exact vacuum condition.
+Within its regular three-dimensional scalar ansatz, spatial dilation
+excludes an energetically stable localized single-frequency state with
+zero signed charge. Charged and more general dynamical or quantum states
+remain separate possibilities (§8.9 of the same derivation).
+At fixed signed charge, all 24 frozen parent embeddings have independently
+verified positive finite-grid radial curvature. The population-256
+domain/resolution comparisons pass; all three population-16 domain
+comparisons fail. Aggregate radial-domain qualification is `INCONCLUSIVE`,
+and this finite-grid result supplies no all-sector or real-time trajectory
+stability claim
+(`foundations/particle-stationary-action-closure.md` §8.10;
+`computations/matter-formation-continuum-report.md` §10).
+The remaining scalar angular and phase sectors support on all four
+selected population-256 grids, with 96 independently matched eigenvalues.
+Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
+its domain comparison, leaving combined scalar-parent spatial qualification
+`INCONCLUSIVE`. The continuum positivity identities are conditional on
+exact nodelessness, monotonicity and boundary assumptions; the numerical
+profiles do not establish them
+(`foundations/particle-stationary-action-closure.md` §8.11;
+`computations/matter-formation-continuum-report.md` §11).
+
+A separately supplied real scalar mass-source parent produces finite-mode
+fermion pairs with reciprocal semiclassical backreaction and independently
+matched energy accounting. Sudden-source continuum excitation diverges; the
+specified static subtraction is finite, the leading two-body Yukawa reduction
+has no bound level by a sufficient trace bound, and the specified local
+one-loop scalar energy has no global lower bound. These are restrictions on a
+conditional parent whose quantum state, dynamical renormalization and
+localized particle interpretation remain open
+(`computations/matter-formation-continuum-report.md` §§14–16).
+
+The scalar temporal parent also admits an excited periodic mediator orbit with
+exact carrier Floquet growth, a faster independently reproduced spatial
+mediator instability and local separation of prepared opposite carrier
+charge. Exactly empty carrier data remain invariant. The frozen nonlinear
+plane-symmetric comparison is `INCONCLUSIVE`; a post-hoc period-sampled
+diagnostic identifies phase aliasing in its prescribed observable and leaves
+the verdict unchanged. Scalar and Dirac parents share the measured slow
+carrier equation while carrying different spin and statistics, proving that
+the registered observables do not identify one microscopic completion.
+
+A separate supplied real-scalar Yukawa action qualifies localized radial
+capture from an existing carrier. In the spherical $\kappa=-1$ channel, a
+positive-energy packet deforms the scalar vacuum and remains localized through
+the reciprocal source. The finest recovered grid retains
+$\overline{P_4}=0.8845401877$ inside $r<4$, gives
+$\overline{R_\psi}=2.1914254435$ and
+$\overline{E_\psi}=4.9484923674<gv=6$, with relative energy drift
+$2.7164913145\times10^{-4}$. Three spatial resolutions, zero-coupling and
+zero-packet controls, and an independent DOP853 reconstruction pass. This is
+a conditional supplied-carrier mechanism witness. It does not provide
+quantum-vacuum creation, a renormalized sea force, all angular sectors,
+physical normalization or a particle discriminator; see
+`computations/matter-formation-continuum-report.md` §98.
+
+The finite-box negative-energy covariance extension returns `INCONCLUSIVE`.
+Its primary `static_vacuum` control develops a late center deficit of
+$5.9113886544$ and a late pair number of $4.1426940523$; the candidate
+resolution ladder also fails with pair-number differences of
+$8.2645614912$ (`G0`–`G1`) and $12.4301288859$ (`G1`–`G2`) at $A=1.5$.
+Independent DOP853 reconstruction confirms source identities and candidate
+scalar summaries but fails the raw-mode, static-control and resolution
+requirements
+(`computations/matter-formation-continuum-report.md` §99).
+
+The G3 finite-core continuation closes a stronger regulated radial witness.
+An incoming scalar shell and the local negative-energy covariance are evolved
+self-consistently in the spherical $\kappa=-1$ channel, with no prescribed
+background, damping or reset. The independent late-window pair numbers are
+$1.8658322$, $1.6903014$ and $1.4694810$ on G0, G1 and G2; bound occupations
+are $0.3119478$, $0.2704331$ and $0.2435462$. Pair core fractions remain
+above $0.916$ and bound core fractions above $0.982$. The source-bound
+primary and independent controls, state comparisons and resolution checks
+pass, giving `CAPTURED—conditional autonomous radial formation` at this
+finite-core radial scope. The point-core and continuum limits, all angular
+sectors, renormalized backreaction, whole-bubble preparation, physical
+normalization and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §105;
+`foundations/matter-completion-boundary.md` §32).
+
+The leading angular continuation is not qualified. Adding the
+degeneracy-weighted spherical $\kappa=+1$ channel gives independent pair
+numbers $6.7350703$, $9.2466567$ and $10.5914134$ on G0, G1 and G2, with
+bound-core fractions $0.2322196$, $0.0077431$ and $0.0002365$. The declared
+adjacent-grid occupation/RMS and finest direct-state checks fail. The frozen
+skew fourth-order spatial operator changes the values but still fails
+qualification, so the finite-core result remains a spherical
+$\kappa=-1$ conditional witness rather than an all-angular-sector mechanism
+(`computations/matter-formation-continuum-report.md` §106).
+
+A complete physical matter-formation mechanism still requires one selected
+canonical microscopic action, a regulator-compatible state rule, physical
+normalization, localized real-time forming evolution, and an observable
+particle map fixing identity, spin and statistics. The continuum theorem
+supplies infinite-domain attainment and minimizer-set stability for its exact
+supplied scalar action and energy space; physical completion and the
+radiating-cloud interpretation remain open. These
+requirements and the full evidence chain are in `foundations/matter-completion-boundary.md`,
+`foundations/particle-stationary-action-closure.md`, and
+`computations/matter-formation-continuum-report.md`.
+
+
+The compact-target extension is an explicitly supplied comparison model whose
+qualified radial result covers stationarity and energetic stability. A smooth
+pointwise map of the two canonical densities has identically zero degree
+density. In the optional phase-bearing gauge sector, fixed nonzero fundamental
+and adjoint norms leave a physical relative $S^2$ target. Joint gauge rotations
+can be screened by their connection; a nonconstant relative texture leaves a
+residual, and the displayed screening scale is comparable to the stationary
+size. The registered Hopf trial has a negative connection-amplitude direction
+in its specified shape family.
+The full spatial-variation calculation extends the boundary: every exact
+hard-norm nonzero-Hopf adjoint in the stated soft-action domain has negative
+amplitude first variation, and the included hard Finkelstein–Rubinstein loops
+contract in that domain. Amplitude-relaxed metastability, production,
+normalization, quantum identification and complete matter formation remain
+open (`computations/matter-formation-continuum-report.md` §§18–20).
+
+An added normalized complex doublet and leading compact $SU(2)$ chiral action
+extend that comparison into a conditional colour-neutral baryon benchmark.
+The finite-domain degree-one hedgehog is stationary with virial relative
+residual $1.70\times10^{-11}$. Mapping the nucleon and Delta masses fixes
+$e_B=5.416264578979231$ and
+$f_B=64.29440244394192\ \mathrm{MeV}$, so the normalization is
+**Mapped**. A broadened prepared degree-one field relaxes toward the
+stationary profile while satisfying the frozen energy, degree and attraction
+gates. Supplied Finkelstein–Rubinstein and charge rules assign the conditional
+nucleon/Delta spin and proton/neutron charge pattern. Two out-of-fit
+comparisons support their tolerances and four absolute observables contradict
+the 10-percent criterion. Independent reconstruction passes all 78 checks.
+The field, action, quantum rule and initial topological sector remain added
+inputs, so the deterministic six-requirement complete-mechanism gate returns
+`FAIL` (`foundations/particle-stationary-action-closure.md` §8.15;
+`computations/matter-formation-continuum-report.md` §§30–31).
+
+The separate massive bubble-lattice comparison in
+`computations/matter-formation-continuum-report.md` §32 and
+`foundations/matter-completion-boundary.md` §14 adds an $O(4)$ field
+$\mathbf n\in S^3$ with $\kappa=1$ on the periodic primitive geometry. The
+pion reference selects $\mu=0.5266577616452649$, while the nucleon and Delta
+targets map $e_B=4.842429173417474$ and
+$f_B=54.126511603191005\ \mathrm{MeV}$ and the length unit
+$0.7528581473116732\ \mathrm{fm}$. The stationary radial profile has
+$H=77.4452509080$ in the primary action normalization and virial relative
+residual $9.11\times10^{-12}$. All six target-bearing out-of-fit diagnostics
+contradict their inherited thresholds. Its conserved stress tensor and
+isospin current belong to the added action; no canonical Cassi stress exchange
+follows. The finite-site space
+$\mathcal Q=(S^3)^{N_s}$ is simply connected, so this regulator enforces
+neither an odd Finkelstein–Rubinstein exchange character nor continuum
+degree; a quantum state, renormalization prescription and physical particle
+identity remain open. The degree-zero excitation returns `DOES NOT EMERGE`
+through $T=4$ under the qualified signed-preimage calculation. All geometric
+controls, admissibility, net-degree conservation, time-step agreement and
+spatial pair-state agreement pass, but no retained sample contains one
+positive and one negative preimage for all 16 regular values. The verdict is
+confined to the supplied action, impulse and sampled interval. Physical matter
+formation remains Hypothesized/Open.
+
+The independently mapped step-95 QCD length
+$\ell_{95}=1.1543452099944254\ \mathrm{fm}$ fails the empirical
+$r_{\mathrm{iso}}=0.769\ \mathrm{fm}$ size discriminator by $50.1099\%$.
+When that length is imposed on the same massive chiral action, one conditional
+profile root is qualified at $\mu_*=1.0552867338537264$, but the withheld
+nucleon and Delta masses are $392.3440750614429\ \mathrm{MeV}$ and
+$685.4253210614429\ \mathrm{MeV}$, missing their observations by $58.2132\%$
+and $44.3648\%$. The frozen size-first verdict is `REJECT`; step 95 supplies
+no physical particle size or formation mechanism
+(`foundations/matter-completion-boundary.md` §22;
+`computations/matter-formation-continuum-report.md` §77).
+
+The supplied scalar interface calculation distinguishes trapping from
+interface survival. A normal-bound carrier mode grows above
+$a_{\rm wall}=0.2722637330$, below the nonnegative bulk-potential boundary
+$a_{\rm vac}=0.3142233130$. The same signed wall has an admissible
+complex-direction energetic eigenvalue $-2$, and its surface carrier growth
+is fastest at zero tangential wave number. Exact algebra and all 36
+finite-difference eigenpairs qualify these conditional statements.
+A stable finite bubble, cross-scale capture and binding between bubbles
+remain open (`foundations/matter-completion-boundary.md` §15;
+`computations/matter-formation-continuum-report.md` §33).
+
+Conserved charge also permits a populated phase to coexist with the
+vacuum in the supplied scalar parent. Independent stationary calculations
+resolve their positive-amplitude planar interface with dimensionless
+surface cost $\sigma=0.8738238914$ and qualified finite-grid scalar
+energetics. For large prescribed charge, thin-interface theory gives a
+radius proportional to its cube root and favors combining large same-sign
+droplets through reduced total surface area
+(`foundations/matter-completion-boundary.md` §16;
+`computations/matter-formation-continuum-report.md` §34).
+
+Diffuse charged clouds generate their own depleted mediator core in the
+same scalar parent. Two Gaussian widths at initial signed charge
+$\mathcal Q_a=256$ retain mean core fractions $74.77\%$ and $56.37\%$
+inside $r<8$ during $32\le t\le48$ in independent radial evolution.
+Their matched uncoupled controls retain $5.45\%$ and $15.38\%$.
+Both widths satisfy the retained-charge and mediator-depletion conditions
+at every sampled late time on all five numerical schedules, with
+qualified spatial, domain, time-step and independent-integrator comparisons.
+This is self-generated finite-time radial condensation of supplied charge.
+For the radiating formed-cloud trajectories, physical quantum creation,
+nonradial and complex-mediator-phase stability, infinite-time survival, the
+physical charge unit and particle identity remain open; the continuum theorem
+addresses minimizers rather than trajectories or capture
+(`foundations/matter-completion-boundary.md` §17;
+`computations/matter-formation-continuum-report.md` §35).
+
+The supplied scalar model also admits continuum localized energy minimizers.
+For the specified positive coefficients and real-mediator/full-complex-carrier
+energy space on $\mathbb R^3$, strict fixed-$Q$ binding
+$I(Q)<\Omega_\infty Q$ gives attainment and compactness of every minimizing
+sequence modulo translations and carrier phase, together with Lyapunov orbital
+stability of the entire fixed-$Q$ minimizer set under arbitrary small
+full-energy-space perturbations, including nonradial perturbations and nearby
+charges. The verified trial certifies this inequality for every
+$Q>Q_{\rm tr}$, where $Q_{\rm tr}\approx149.36022508149227$; at $Q=256$,
+$E_{\rm trial}/Q=8.283930463343918<\Omega_\infty=8.717797887081348$.
+Here $Q$ is the dimensionless supplied signed charge, distinct from prepared
+population $Q_C$; the coefficients are $a=1/16$, $c_\Psi=1/8$ and
+$h_C=2.9598260763447164$. This model-specific minimizer-set result does not
+prove uniqueness, stability of a selected profile, asymptotic convergence, or
+membership, capture or stability of the radiating clouds; it excludes complex
+mediator and gauge sectors. Physical action selection, quantum creation and
+state, physical normalization, spin, statistics, particle identity and
+physical completion remain open
+(`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
+
+Microscopic occupation and rotation laws constrain that remaining
+identification. The supplied two-mode Bose/Fermi transfers agree with the
+unsaturated carrier drift at one particle but change it through stimulation
+or blocking at two. A scalar half-angle phase on the whole two-component
+space also fails the spatial angular-momentum algebra. Independent exact
+calculations and finite-occupation trajectories qualify these restrictions.
+Anomaly cancellation retains multiple field-content and charge choices,
+so the physical microscopic model remains open
+(`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
+
+---
+
+## 4. The String: Spiral and Wakes
+
+The two real density channels relax toward the fixed-point ratio $\varphi$. The conversion is equal and opposite in the density channels, conserving $\rho$; when the channels are labeled Yang and Yin, an increase in $E_Y$ accompanies a decrease in $E_I$. Interpreting that anti-phase density response as expansive/contractive action is a **Hypothesized** phenomenological mapping. The Fibonacci spiral is a separate geometric construction used to organize the proposed scale sequence.
+
+Where an optional geometric string construction supports sufficient coherence, a spatial solution can develop a self-reinforcing filament. Calling that filament a **condensed fluid string**—a thread-like standing-wave structure of the conversion response—and treating it as the central axis around which bubbles condense are **Hypothesized** geometric mappings.
+
+An optional geometric string construction can leave disturbances in the deviation field. The PDE evolves spatial ripples in $\varepsilon(\mathbf{x})=E_Y-\varphi E_I$ through its advection and diffusion terms. Calling these disturbances **wake waves**, assigning them an outward direction, and describing their return as self-plucking are **Hypothesized** geometric or phenomenological mappings; the underlying spatial response remains the named PDE observable.
+
+$$r(t) \xrightarrow{\text{conversion}} \varepsilon(\mathbf{x}) \xrightarrow{\nabla^2\Phi} \nabla\Phi \xrightarrow{\mathbf{F}=\pi\nabla\Phi} \mathbf{u} \xrightarrow{-\mathbf{u}\cdot\nabla} \delta r(\mathbf{x}) \xrightarrow{\text{avg}} r(t)$$
+
+Within that optional mapping, the closed toroidal loop—string → wake pattern → gravity → flow → string—is a proposed mechanism by which the geometric spiral could imprint structure on space. The directly modeled deviation response is a PDE claim; its wake, cascade, and coherence-channel interpretations use the separate geometric construction.
+
+**Epistemic status:** density-plane relaxation and the specified spatial deviation response follow from the two-fluid PDE (**Derived**). The wake-wave name, outward/return interpretation, Fibonacci spiral, toroidal feedback, and scale-organizing role are **Hypothesized** geometric mappings; the interpretation as the substrate of consciousness is **Hypothesized** (developed in `cassi-psychology.md`).
+
+---
+
+## 5. Five Channels: The Wu Xing Closure
+
+The string's optional geometric phase pattern partitions the full circle into angular sectors where the density ratio and phase relation differ. These are the **coherence channels**—modes of the field. Describing the sectors as different kinds of push and pull is a **Hypothesized** phenomenological mapping.
+The phase-gate use of these sectors, including a compact five-channel phase and a one-step/one-turn interpretation, is **Hypothesized**; the arithmetic closure below is **Derived conditional** only under the stipulated coordinate/threshold construction.
+
+### Why five
+
+A cycle must close: the last channel must connect back to the first without a jump. Two constraints intersect at the answer:
+
+1. **Phase coherence.** The Fibonacci approximations to $\varphi$ each carry a phase error. A cycle of $w$ channels accumulates error over $w$ turns of the spiral while the signal from the inner turns fades by $\varphi$ per turn. The stipulated criterion passes only $w\in\{1,2,3,5\}$; $w=5$ is the largest passing cycle and $w=4$ fails by direct evaluation.
+2. **Geometric encoding.** The selected $\varphi$ distance ratio first appears in the pentagon: its diagonal-to-side ratio is exactly $\varphi$. Cycles with fewer than five channels cannot encode that ratio in their vertex geometry.
+
+Under the stipulated coordinate/threshold construction, the intersection is unique: **5**. The pentagon is the first selected shape that contains $\varphi$ and the largest cycle that passes the arithmetic criterion. Five arms swirl from each pole of the spiral's closure, meeting at an equatorial pentagon with five vertices. This arithmetic selection is **Derived conditional**; treating it as a physical Wu Xing phase gate remains **Hypothesized** (`foundations/wu-xing-derivation.md`).
+
+### The numbers that fall out
+
+The five-arm closure supplies the following quantities with distinct epistemic status:
+
+- **The gap** $g=1-\varphi^{-5}\approx0.910$: the five-phase Wu Xing closure's bookkeeping factor for the modeled density imbalance; it sets the depth of the cascade under that conditional construction.
+- **The primordial ratio** $r_0\approx0.047$: at the universe's birth, the component ratio was Yang-labeled $E_Y$ to Yin-labeled $E_I$ at about 1 to 21. This follows conditionally from the $w=5$ closure and the epoch calibration that places today's horizon at step 292.
+- **The conversion normalization** $\lambda=0.1$: the **Asserted** C-class/framework convention used by named calculations. The implementation class default is $\lambda=0.02$. A **Hypothesized** Wu Xing linkage writes $\lambda=1/(2w)$ at $w=5$; this linkage does not derive the rate or its units.
+
+Within that construction, 5 is fixed by the two constraints. Applying the result as a physical channel count requires the Hypothesized geometric and phenomenological mapping.
+
+**Epistemic status:** the $w=5$ selection and gap are **Derived conditional** on the phase-coherence, geometry, coordinate, and threshold assumptions; $r_0$ inherits that closure and the epoch calibration. The physical five-channel gate, compact phase, and one-step/one-turn interpretation are **Hypothesized**. The named $\lambda=0.1$ convention is **Asserted**, the implementation default is $\lambda=0.02$, and the cycle linkage is **Hypothesized**. At the human scale the five channels structure emotion; that mapping is **Hypothesized** and testable (see `consciousness/emotions-as-gate-configurations.md`).
+
+---
+
+## 6. The Bubble and the Lattice
+
+An optional geometric model assigns two transverse directions named Yang and Yin. In that model, wake-like patterns have wider spacing along the Yang-named direction and spacing tighter by a factor $\varphi$ along the Yin-named direction. Treating the resulting perpendicular patterns as physical wakes whose interference selects bubbles and voids is a **Hypothesized** phenomenological mapping.
+
+Within this optional geometric model, define the interference pattern as the **condensation field**:
+
+$$\boxed{B(x, y, z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z), \qquad \alpha = \frac{2\pi}{\Lambda_Y},\;\; \beta = \frac{2\pi}{\Lambda_I} = \varphi\alpha,\;\; \gamma = \frac{2\pi}{P_\parallel}}$$
+
+Here $\Lambda_Y$ and $\Lambda_I=\Lambda_Y/\varphi$ are the Yang- and Yin-named wavelengths, and $P_\parallel$ is the along-string bubble period. Within this model, $B>\theta_{\text{cond}}$ selects bubble sites and $B<-\theta_{\text{cond}}$ selects void sites. The boundary level $\theta_{\text{cond}}$ is conditional on a supplied proxy-to-solver constitutive map and conversion–diffusion inputs; the canonical PDE does not fix it.
+
+### The staggered checkerboard
+
+Within the named Yang-Yin plane, the model reduces to $C(x,y)=\cos(\alpha x)\cos(\beta y)$, a **staggered checkerboard**. Bubbles occupy every other grid position and voids the positions in between. Each bubble connects to four diagonal neighbors through saddles (moderate coherence) and is blocked from four face-to-face neighbors by voids (minimal coherence), giving connectable degree 4 of 8 geometric neighbors. Treating this checkerboard as the spatial realization of Yang and Yin is a **Hypothesized** geometric mapping.
+
+### The bubble's shape
+
+Within the optional geometric model, the Yang-named wavelength is $\varphi$ times the Yin-named wavelength, so the modeled bubble is stretched along the Yang-named direction: a **triaxial spheroid** with three unequal axes, longest in that direction, shortest along the string, and intermediate in the Yin-named direction. The cross-section is an ellipse of axis ratio $\varphi\approx1.618$. A numerical simulation records this shape under a structured vibrating-string seed: evolving the two-fluid equations produces a transient $\varphi$-ellipsoid bubble from that wave structure (`visual-explainers/string_bubble_cascade.py`). A smooth no-drive seed produces no spontaneous standing radial structure in the canonical first-order solver (`two-fluid/run_bubble_ring_dynamic_probe.py`, no rings in any of the four spatial-coupling arms).
+
+In the optional geometric model, the directional edge-steepness ratio at a common boundary value $C=\theta_{\text{cond}}$ is
+
+$$\boxed{\frac{|\nabla C|_{\text{axial}}}{|\nabla C|_{\text{diag}}}
+= \frac{\sqrt{1+\varphi^2}}{2}
+\sqrt{\frac{1+\theta_{\text{cond}}}{\theta_{\text{cond}}}}}$$
+
+At the phenomenologically selected level $\theta_{\text{cond}}=0.45$, this ratio is $1.7072$. It varies with the selected level and is therefore not a zero-parameter constant. The fixed-step PDE diagnostic does not retain a $C=0.45$ edge, so $1.7072$ is a conditional geometric-proxy benchmark rather than a solver output. Any test at cosmological or biological boundaries must independently specify the physical boundary and the proxy-to-observable map.
+
+### Scale covariance
+
+The optional condensation model is **scale-covariant** by construction: the same functional form $B(x,y,z)$ operates at every cascade step with wavelengths scaled to $\ell_n$. In that construction, a bubble at step $n$ contains the modeled scale layers below it and is itself a site in the lattice at step $n+1$. The bubble lattice is the proposed organizing geometry at every scale (`foundations/bubble-lattice-fabric.md`)—the cascade ladder is a 1D slice of this 3D model along the named string axis.
+
+**Epistemic status:** the density-plane relaxation and Qi gate are **Derived** from the canonical PDE. The condensation field, checkerboard, Yang/Yin axis assignment, and bubble/void interpretation are **Hypothesized** geometric constructions. The spheroid shape and edge ratio are **Derived conditional on that construction** and have the numerical support stated above; algebraic scale covariance is **Derived conditional** on the stipulated $\varphi$-rescaling construction, while its physical realization and identification are **Hypothesized**.
+
+---
+
+# Part II—The Cascade
+
+## 7. The Cascade of Scales
+
+The framework defines a proposed dimensionful cascade coordinate from the external Planck length $\ell_{\text{Pl}}=1.616\times10^{-35}$ m and a chosen factor $\varphi$ between adjacent cascade steps:
+
+$$\boxed{\ell_n=\ell_{\text{Pl}}\times\varphi^{\,n},\qquad n\in\mathbb{Z}\quad(\text{the framework's observable ladder label spans }n\in[0,292])}$$
+
+The entries below are proposed scale correspondences within this coordinate convention:
+| Step $n$ | Scale | Proposed correspondence |
+|---|---|---|
+| 0 | $1.6 \times 10^{-35}$ m | Planck length: the sole dimensionful anchor |
+| $\approx13.3$ | $\approx1.0 \times 10^{-32}$ m | GUT scale ($M_{\text{GUT}}\approx2\times10^{16}$ GeV; **Mapped** coordinate label) |
+| 20 | $2.4 \times 10^{-31}$ m | Seesaw scale: neutrino masses |
+| 40 | $3.7 \times 10^{-27}$ m | Inflationary energy scale |
+| 80 | $8.0 \times 10^{-19}$ m | Electroweak scale (246 GeV) |
+| 95 | $1.1 \times 10^{-15}$ m | QCD confinement scale ($\Lambda_{\text{QCD}}$; the proton itself sits at $n = 91.5$) |
+| 117 | $5.3 \times 10^{-11}$ m | Bohr radius: the atom |
+| 136 | $5.0 \times 10^{-7}$ m | Visible light (500 nm) |
+| 142 | $7.7 \times 10^{-6}$ m | The living cell (~8 µm) |
+| 168 | $1.7$ m | The human body |
+| 220 | $1.5 \times 10^{11}$ m | Earth–Sun distance (1 AU) |
+| 267 | $9.3 \times 10^{20}$ m | Milky Way diameter |
+| 284 | $3.6 \times 10^{24}$ m | BAO scale (118 Mpc) |
+| 285 | $5.9 \times 10^{24}$ m | Cassi bubble: our cosmic bubble |
+| 292 | $1.7 \times 10^{26}$ m | Horizon coordinate today (epoch-dependent); $\ell_{292} = 5.5$ Gpc label, $R_H = 4.44$ Gpc = 14.5 Glyr |
+
+The coordinate formula extends formally in both directions: downward into negative **microcascade** labels and upward beyond today's horizon coordinate into **megacascade** labels. Within the separate chord-lattice model, the nearest $w=5$ bubbles lie inside the horizon—$n=286$ ($\ell_{286}=309$ Mpc) and $n=287$ ($\ell_{287}=500$ Mpc). Physical fields, currents, and energy in either extension remain Hypothesized; the scale coordinate alone supplies none of them. The full catalogue is in `foundations/dimensionful-cascade.md`.
+
+A separate Hypothesized extension in
+`foundations/interscale-current-soliton.md` promotes a continuous scale label
+$\mathfrak s$ to a field coordinate and defines a distinct current
+$J_{\mathfrak s}$. Its exact window law is
+
+$$
+\partial_t\rho_{\mathrm{obs}}
++\nabla\cdot\mathbf j_{\mathrm{obs}}
+=J_{\mathfrak s}(\mathfrak s_-)-J_{\mathfrak s}(\mathfrak s_+).
+$$
+
+The candidate action derives this continuity identity and the corresponding
+Yang/Yin counterflow algebra. Mixed-curvature attraction, a finite soliton,
+compact winding, scale-metric coefficients, and particle identification remain
+conditional or open. The interscale current is separate from the canonical
+spatial diagnostic $\mathbf J_d$.
+
+The same action also constrains local dynamics through its surrounding
+field. About a uniform condensate, density fluctuations supply positive
+inertia for collective phase motion. Varying the admissible longitudinal
+connection leaves one propagating bulk mode; a finite scale-boundary
+gap depends on the imposed boundary problem and coefficients. Exact
+elimination of the exterior gives a causal memory term and forcing
+fixed by exterior initial data. These conditional results identify
+where whole-bubble dynamics and initial correlations enter the local
+problem. Physical boundary data, a formation history and microscopic
+particle selection remain open (`foundations/interscale-current-soliton.md`
+§12; `computations/matter-formation-continuum-report.md` §37).
+
+`foundations/interscale-stress-attenuation-boundary.md` introduces the separate
+spatial-momentum flux $T_{i\mathfrak s}$. The force on a finite scale window is
+the difference between this flux at its two scale boundaries. A reciprocal
+stress ladder conserves total momentum and energy; its interface coefficient
+changes traction and dispersion without producing a multiplicative transfer
+law.
+
+The bounded fluid reduction in `turbulence/cassi-fluid-feasibility.md`
+derives a conservative pressure, quantum stress and anisotropic counterflow
+momentum flux from an ungauged first-order action branch with supplied mass.
+The canonical real-density pair separately dissipates a mathematical
+relative entropy under its stated transport assumptions. These temporal
+laws supply no shared irreversible thermodynamic closure. In the actual
+projected solver, the conditional Navier–Stokes controls pass, while a
+strictly positive periodic density configuration produces nonzero mean
+self-acceleration. The study passes 246 checks across 28 native trajectories
+and rejects promotion of the supplied sectors to a closed physical fluid.
+Material normalization remains open. The separate phase-current reduction in
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives the
+Mermin–Ho vorticity of one normalized doublet, a full-doublet Hopf-helicity
+sector, and a two-scale-band periodic Beltrami field. Scalar diffusion gives
+exact viscous decay for that fixed-winding field. A nonzero commutator
+excludes the same identification for general phase geometry, and the closed
+action supplies recurrent exterior memory rather than a positive Markovian
+coefficient. The 227-check result supports a conditional rotational
+hydrodynamic class. A separate 84-check helical analysis derives a critical
+scalar-Beltrami residual criterion for Navier–Stokes and constructs a
+positive one-band doublet with bounded first-order phase energy but unbounded
+enstrophy and critical residual. Static phase-energy coercivity is therefore
+excluded; material viscosity, a whole-field dynamical concentration bound
+and arbitrary-flow closure remain open.
+
+The separate analysis in
+`turbulence/navier-stokes-adaptive-metric.md` applies CassiFI-style positive
+geometry directly to the original unforced Navier–Stokes vorticity equation.
+Scalar, material, terminal-adjoint and forward-parabolic SPD metrics cancel
+weighted vortex-stretching production exactly. The forward metric stays
+positive and its unscaled determinant is at least one through every smooth
+interval. Its two fixed symbolic schedules pass 48 checks. Fixed algebraic
+extensional and covariance controls show that positivity or determinant alone
+does not supply a uniform lower metric bound; they do not classify the
+coupled Navier–Stokes dynamics. A uniform initial-$H^3$-controlled bound on
+Euclidean enstrophy divided by active weighted enstrophy would imply
+continuation; that bound and arbitrary-data regularity remain open.
+
+The covariance-inverse refinement in
+`turbulence/navier-stokes-deformation-covariance.md` sets
+$C=\mathbb E[FF^{\mathsf T}]$ from the Constantin–Iyer forward deformation
+and $G_C=C^{-1}$. Under the stated compact-interval stochastic assumptions,
+this generated metric gives an exact covariant-square dissipation law without
+the scalar work projection. Its weighted enstrophy is the energy of the
+initial-vorticity component retained by an orthogonal stochastic-deformation
+projection, and its dissipation is the complementary endpoint regression
+residual. The audit-rechecked source-bound schedule passes 40 exact symbolic
+and fixed-control checks, including the citation-derived Stratonovich–Itô
+conversion; stochastic-flow and Navier–Stokes trajectory integration remain
+outside its executable scope. The finite-ensemble projection and
+inverse-Jensen gate is **SUPPORTS**; its two scalar endpoint-bridge checks are
+synthetic algebraic prototypes. A homogeneous extension still permits
+exponential active distortion, while periodic shear keeps all covariance in
+directions inactive on vorticity. The exact controls classify coercivity from
+positivity, determinant and cancellation alone as **CONTRADICTS**. A uniform
+bound on the resulting active Rayleigh quotient over every mean-zero,
+divergence-free initial-$H^3$ data ball would imply continuation and remains
+open.
+
+The state-conditioned refinement in
+`turbulence/navier-stokes-active-deformation-occupation.md` seeds the
+common-noise second moment with the actual initial vorticity,
+$M(0)=\omega_0\omega_0^{\mathsf T}$. Its closed law
+$\mathcal L_uM=LM+ML^{\mathsf T}$ and covariance positivity give
+$\|\omega(t)\|_2^2\le\int\operatorname{tr}M\,dx$. Volume preservation
+identifies the normalized trace with an exponential directional-strain
+occupation selected by the initial-vorticity distribution. The logarithmic
+production depends only on orientation anisotropy aligned with strain.
+Embedded two-dimensional flow and periodic shear have zero active production;
+a separate local algebraic matrix control realizes exponential production
+outside the periodic Navier–Stokes class. A reachable-direction
+Khasminskii condition and a summable positive active dose are sufficient for
+continuation. The fixed source-bound schedule has 40 general polynomial
+components, finite fixtures, local controls and exponent checks; stochastic
+flow, heat-kernel, Khasminskii and restart steps remain conditional analytical
+arguments outside executable scope. The energy-class strain norm alone and
+geometric cascade spacing alone are **CONTRADICTS** for the displayed generic
+routes. A uniform active-dose bound over every initial-$H^3$ data ball remains
+**UNRESOLVED**.
+
+The independent-replica construction in
+`turbulence/navier-stokes-replica-coherence.md` resolves the seeded moment
+into deterministic overlap and stochastic disagreement. For two independent
+stochastic Cauchy replicas, their $L^2$ overlap equals
+$W(t)=\|\omega(t)\|_2^2$, while half their mean-square difference equals
+$\mathcal V(t)=\int\operatorname{tr}R\,dx$. The centred covariance is forced
+by $2\nu Q_\omega$, making $\mathcal V$ a retarded palinstrophy occupation
+weighted by subsequent directional deformation. The coherence share
+$c=W/\mathcal E_M$ has an exact replicator-diffusion law.
+
+Volume preservation gives
+$\mathcal V(t)\ge6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds$. Applying the
+concave determinant root after all source histories accumulate defines
+$\mathcal K=3\int(\det R)^{1/3}dx$ and sharpens the enstrophy envelope to
+
+$$
+W\le\mathcal H:=\mathcal E_M-\mathcal K
+\le\mathcal G:=\mathcal E_M-6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds.
+$$
+
+An exact rank-two periodic control has zero instantaneous determinant
+functional while its accumulated covariance becomes full rank on an open set.
+Periodic shear remains rank one, excluding a uniform positive recovery floor
+over all data. The paper makes the continuation bridge
+explicit: a bounded enstrophy envelope gives $u\in L^4_tL^6_x$ through the
+periodic kinetic-energy identity and Sobolev embedding, so the velocity
+Prodi–Serrin theorem supplies the finite-endpoint step. Its indexed
+common-noise kernel diffuses only in the center coordinate; an absolute
+diagonal bound would control the active quotient, whereas increment bounds
+leave spatially constant extension unbounded. The source-bound schedule passes
+60 symbolic and exact-control checks; the separate Galerkin endpoint-control
+schedule passes 8 of 8 finite-mode checks. A production-relative recovery
+estimate or a data-controlled signed shell-stretching estimate would bound
+$\mathcal H$ and imply continuation. Both estimates and arbitrary-data
+regularity remain **UNRESOLVED**.
+
+A self-contained short-time Fourier–Galerkin trajectory probe evolves the
+same four controls at $N=2,4,8$ for $T=1/4$. The source-bound receipt at
+`runs/navier_stokes_galerkin_trajectory_probe_20260913/verification.json`
+contains 36 runs and has `PASS` status. The primary integrated endpoint
+remainders are zero for
+shear and ABC, while the rank-two and near-rank controls give
+$(8.8400763280,\ 10.3389234924,\ 10.3389341821)$ and
+$(8.8321302942,\ 10.3618043367,\ 10.3618155163)$ across the three cutoffs.
+Direct strain reconstruction agrees with the spectral production to relative
+error $1.2225\times10^{-16}$, and timestep and product-grid changes are
+$1.1841\times10^{-8}$ and $1.4079\times10^{-15}$. This qualifies a
+short-time finite-mode measurement; the cutoff-uniform time-integrated
+Galerkin bound and arbitrary-data regularity remain **UNRESOLVED**.
+
+A separate longer-horizon Fourier–Galerkin trajectory probe extends the same
+controls to $T=1/2$ and $N=2,4,8,16$. Its 48-run receipt
+`runs/navier_stokes_galerkin_long_trajectory_probe_20260914/verification.json`
+passes all eleven declared checks. The primary integrated endpoint remainders
+are zero for shear and ABC, while the rank-two and near-rank controls give
+$(15.7563048947,\ 21.7512800923,\ 21.7517444203,\ 21.7517444203)$ and
+$(15.8568941925,\ 21.9817233632,\ 21.9822233502,\ 21.9822233502)$ across
+$N=2,4,8,16$. The maximum direct-versus-spectral relative error is
+$9.1195\times10^{-17}$, and the timestep and product-grid changes are
+$1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. This remains finite-mode
+evidence; the cutoff-uniform Galerkin bound, production-relative
+compensation, and arbitrary-data regularity are **UNRESOLVED**.
+
+An independent signed-mode audit recomputes the four $N=2$ long-horizon rows
+with analytic initial coefficients and direct mode-by-mode convolution. It
+passes all ten checks, including orthogonal projection, finite-state tracking,
+divergence, energy, direct-convolution and alias-free grid agreement, production
+row reproduction, timestep refinement, and a finite $N=2$ versus $N=4$
+truncation witness. The maximum relative differences are
+$5.43\times10^{-17}$ for direct convolution,
+$3.02\times10^{-15}$ for grid products, and
+$1.34\times10^{-15}$ for reproduction of the saved production integrals.
+The receipt is classified
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`; the
+cutoff-uniform Galerkin bound, production-relative compensation, and
+arbitrary-data regularity remain **UNRESOLVED**.
+
+
+Section 7.1.1 of that paper derives a trajectory-level baseline for the
+Galerkin target. The critical Gagliardo–Nirenberg inequality reduces the
+remainder to $C_{\mathbb T}\nu^{-3}\int_0^T W_N^3dt$, while Bernstein,
+finite spectral support and the velocity-energy identity give a global
+fixed-cutoff bound proportional to
+$\nu^{-1}N^{5/2}\|u_{0,N}\|_2^3$. The order-three energy estimate supplies a
+cutoff-uniform bound proportional to $\tau R_0^3$ only on the local interval
+$\tau\le c_{\mathbb T}/R_0$. Extending this control to a prescribed horizon
+independently of $N$ remains **UNRESOLVED**.
+
+The rate-boundary supplement in
+`turbulence/navier-stokes-covariance-recovery-rate.md` quantifies the first
+instant at which the accumulated covariance can recover the missing source
+direction. For the smooth rank-deficient periodic control, the normalized
+determinant-root volume is
+$$
+\mathcal K(t)=6\nu^{4/3}\left\langle f^{1/3}\right\rangle t^{4/3}
++o(t^{4/3}),
+$$
+while seeded stretching contributes $\frac12t+O(t^2)$. The production-to-recovery
+ratio therefore grows as $t^{-1/3}$ near the initial time. A recovery-only
+coefficient cannot close this initial layer; the occupation term in a
+production-relative estimate and arbitrary-data regularity remain
+**UNRESOLVED**. The fixed integrated-rate schedule passes 6 of 6 checks.
+
+The near-rank supplement in
+`turbulence/navier-stokes-near-rank-recovery-obstruction.md` tests whether
+pointwise full rank restores uniform determinant-root recovery. The declared
+smooth periodic family adds a small ABC Beltrami field to the active
+rank-deficient control; every positive member has a full-rank initial
+vorticity-gradient source almost everywhere, while
+$A_\varepsilon\sim A_*\varepsilon^{2/3}$ and the initial seeded production stays
+exactly $1/4$. Its source-bound schedule passes 7 of 7 checks. The
+recovery-only coefficient is unbounded over the uniformly bounded $H^3$ family;
+production-relative occupation control and arbitrary-data regularity remain
+**UNRESOLVED**.
+
+The helical stress test in
+`turbulence/navier-stokes-helical-dynamic-depletion.md` evolves coherent tube
+and mode families to test whether ordered spiral geometry preserves negative
+stretching production. The exact Beltrami control preserves $P=0$ at
+roundoff, while the wide, narrow, tight-pitch, two-scale and opposite-handed
+tube families are all positive at every reported checkpoint from $t=1/8$
+onward; the
+opposite-handed pair does so with normalized helicity near $10^{-18}$, and
+the two mode families stay nonpositive over the finite horizon. The 24-run
+matrix passes every integrity and timestep-refinement check and classifies
+the universal sign statement `CONTRADICTS` for the declared families. The
+scale-uniform direction-strain estimate and arbitrary-data regularity remain
+**UNRESOLVED**.
+
+Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
+rotational velocity and temperature. Its variational stress conserves
+periodic momentum; viscous and conversion work enter the heat equation,
+closing total energy and giving nonnegative entropy production. Homogeneous
+composition follows canonical gated conversion exactly. The separate
+395-check schedule covers 27 model trajectories and an independent
+differentiation-matrix reference; capillary release from rest resolves
+composition-to-kinetic energy transfer. Continuum positivity bounds hold
+while solutions remain smooth. This is a conditional constitutive model
+with supplied transport coefficients and no physical-fluid or global
+regularity promotion.
+
+`turbulence/cassi-radiative-material-closure.md` extends the selected thermal
+fluid with established LTE photon transfer. Planck's spectrum and Kirchhoff
+detailed balance fix emissivity once a physical temperature and absorption
+coefficient are supplied. Piecewise-gray frequency groups carry radiation
+energy and flux under an M1 angular closure. A material-frame four-force adds
+the exact opposite energy and momentum increment to matter, giving total
+four-momentum conservation. The gray local source also has a nonnegative
+matter-plus-photon entropy production and a positive conservative implicit
+solve.
+
+The comprehensive verification passes 33 of 34 checks across Planck
+quadrature, emissive power, M1 realizability, exact slab transfer, thermal
+exchange, scattering, diffusion, photon entropy and moving-frame source
+projections. Its fixed $\Delta t=0.01$ endpoint-accuracy requirement fails for
+one cold relaxation state. A separate fixed qualification passes 9 of 9 checks,
+measures first-order convergence and meets the same error target at
+$\Delta t=0.001$, supporting source subcycling under the supplied
+dimensionless coefficients.
+
+The radiation construction imports $c_\gamma,h,k_B,\sigma_{\rm SB}$ and
+material response data. The canonical $(E_Y,E_I,q)$ state leaves physical
+temperature, density, opacity, ionization and electromagnetic current open.
+CassiCosmos therefore needs a declared physical unit map and material tables
+before this closure acquires an astrophysical interpretation. The existing
+Observatory emission and optical controls remain appearance parameters.
+
+`turbulence/compressible-radiative-plasma-closure.md` supplies the larger
+conditional system needed for physical gas behavior. Conservative mass,
+momentum and total-energy equations add density evolution, pressure work and
+shock jump conditions. A multilevel equation of state and finite population
+generator connect ionization and excitation to line and continuum transfer
+when evaluated atomic data are supplied. Gravitational contraction, accretion
+and nuclear mass defect enter one stellar luminosity ledger, with neutrino and
+boundary losses tracked separately.
+
+For angular structure, the extension evolves discrete intensities $I_{gm}$
+instead of reconstructing every field from $(E_g,F_g)$. Counterpropagating
+beams can therefore have $F_g=0$ while retaining an anisotropic pressure
+tensor, and intersecting beams continue on separate characteristics. Its
+fixed source-snapshotted verifier passes **70 of 70 checks** across the EOS,
+shocks, populations, line balance, energy sources, quadrature moments,
+scattering and a crossing-beam stream. A separate source-bound integrity
+qualification passes **36 of 36 checks** across the species-level mass
+constraint, defensive state construction, thermodynamic identities,
+physical-frequency Doppler normalization, rejection boundaries, exchange
+cancellation, the complete stellar ledger, nuclear conservation and
+missing-prerequisite classification. A selected chemical
+identity, atomic and nuclear tables, physical units, initial source history,
+production finite-volume solver and CassiCosmos implementation remain external
+or open.
+
+The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
+
+**Epistemic status:** the recurrence is **Derived conditional** on the supplied anchor and one-step convention. Identifying each named cascade step with a physical scale is **Hypothesized** and, where a placement is selected from measured data, **Mapped**; `foundations/dimensionful-cascade.md` records the arithmetic and provenance.
+
+---
+
+## 8. Cascade Suppression
+
+Within the proposed cascade coordinate, a signal assigned to one cascade step and evaluated at another is modeled as **multiplied by $\varphi^{-1}$ per coordinate step** in the span:
+
+$$\boxed{\text{attenuation} = \varphi^{-N}}$$
+
+Within the proposed cascade coordinate, this rule supplies a common conditional attenuation description for the hierarchy examples below, each in one line (`foundations/cascade-suppression-formula.md`):
+
+| Phenomenon | Span $N$ | Suppression | Result |
+|---|---|---|---|
+| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (Mapped GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ ($N_{\mathrm{gap}}\approx79.7$ uses $g=1-\varphi^{-5}$; direct measured-ratio placement $N_{\mathrm{raw}}\approx79.89$; both identify nearest integer step 80; exponent Mapped—`parameter-inventory.md` §10, $v_0/M_{\text{Pl}}$ entry) |
+| Strong CP ($\bar{\theta}$) | 81.4 | $\varphi^{-81.4}$ | $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ |
+| Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
+| Proton conditional cycle budget | $N_p^{\mathrm{budget}}=91.46$ | $\varphi^{-4505.5758}$ | $\sim10^{942}$ modeled cycles; physical decay rate open |
+
+The model distinguishes scale-coordinate attenuation, linear in the span ($\varphi^{-N}$), from the auxiliary coherence-budget product, quadratic in its declared endpoint. The proton row is dimensionless arithmetic under the Hypothesized independent-step profile. A lifetime additionally requires a failure law and trial-frequency map; §13 records the separate scale-current candidate.
+
+The time-completed quadratic scale action fixes the canonical boundary flux.
+For a two-lead Robin vertex, Hermitian endpoint data give a unitary scattering
+family $S_\Lambda(k)$. The registered two-rail phase gluing is a phase-only
+perfect-transfer endpoint in the wider self-adjoint family. Under the
+conditional identification of endpoint scattering ports with the Yang/Yin
+species traces in the same boundary normalization, the frozen charged endpoint
+background supplies the gauge-covariant rail-rail Hessian
+$\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$ and an exact unitary
+Cayley response. A dressed quarter-turn phase and
+$2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the declared
+golden matrix at one selected point. Requiring the unbiased proton current to
+remain below capacity with positive fixed-amplitude phase stiffness gives the
+conditional bound $k_\star>0.0964640362$.
+
+The closed-background boundary is explicit: every homogeneous conservative
+time-harmonic endpoint extremum has zero coherent conversion current. Around
+nonzero rail backgrounds, first-order source-action elimination gives the
+constant-frame-covariant Nambu Schur response
+$\mathbb\Lambda_{\mathrm{eff}}^R
+=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C
+=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$, where
+$\mathcal K^R=-\mathcal D^R$, with analytic endpoint poles. Independent
+source-action checks reproduce the covariance, pole, and Schur-response
+algebra. A separate dynamical-response implementation remains `FAIL` because its endpoint block carries the opposite source-action sign (AR1–AR6; DR5).
+At the symmetric zero background, the eliminated source action begins at quartic rail order with a
+positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical energy, stress,
+inertial mass, and stability signs remain open. The potential, nonzero-current
+background, microscopic damping channel, temporal relative-gauge connection,
+full coupled spectrum, doubled port-flux law, port map, trace normalization,
+dressed phase, and $k_\star$ remain open.
+
+With complementary return ports routed away from coherent re-entry, the
+forward quadratic flux is $\varphi^{-N}$, the retained return ledger is
+$1-\varphi^{-N}$, and the corresponding amplitude is $\varphi^{-N/2}$. Each
+coupling, phase, and mass application in the table retains its registered
+observable-specific signal map.
+
+Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer step 80.
+
+**Epistemic status: Derived conditional** for the suppression law within the proposed scale-coordinate model. Each row's identification of span $N$ with a known physics gap is **Hypothesized** or **Mapped** as indicated by its source ledger; `foundations/cascade-suppression-formula.md` records the derivation and provenance.
+
+---
+
+## 9. Conditional Geometry and Dimensionality
+
+The canonical two-density PDE takes the spatial domain as an input; its local
+conversion term does not select the number of spatial dimensions. An optional
+Frenet-Serret construction embeds a string in an assumed three-dimensional
+space and supplies three frame vectors:
+
+- **Tangent:** the string axis, used as the cascade coordinate.
+- **Normal:** a named Yang direction in the geometric construction.
+- **Binormal:** a named Yin direction in the geometric construction.
+
+Calling these vectors the physical spatial axes is a **Hypothesized** geometric
+identification, conditional on the three-dimensional embedding and a
+non-degenerate curve. The Yang/outward and Yin/inward labels are coordinate or
+phenomenological mnemonics here, not universal PDE transport laws. A
+directional population or kinetic extension requires selecting an oriented axis
+and remains conditional; it does not add canonical field components or an
+extra spacetime dimension. The construction is documented in
+`foundations/why-three-dimensions.md`.
+
+---
+
+# Part III—The Explanations
+
+## 10. Dark Energy
+
+An optional cosmological construction associates gate-modulated density
+relaxation with accelerated expansion as the system approaches
+$\varphi$-equilibrium. In the canonical variables, conversion conserves
+$\rho$; identifying the component change with Yin-to-Yang conversion and
+expansion is a **Hypothesized** phenomenological mapping. The cosmological
+rate is the separate dimensionful constant
+$\kappa_{\text{DE}}=3\varphi^2H_0$. Named calculations use the
+C-class/framework convention $\lambda=0.1$, which is **Asserted**; the
+implementation class default is $\lambda=0.02$. Dark energy is modeled here
+as a dynamical process tied to that proposed approach to the
+$\varphi$-attractor.
+
+The proposed equation of state from this gate-dynamics model is:
+
+$$w_0 = -0.87, \qquad w_a = +0.012$$
+
+with the optional Qi-gravity coupling $\xi = \varphi^6$ entering the cosmological ODE. The $w_0 = -0.87$ baseline is **Calibrated**, not a zero-parameter prediction: the ODE is calibrated to the hardcoded `TARGET_W0`, with the DESI-anchored coupling form recorded in the Fit-Status Ledger (`parameter-inventory.md` §10 row 496). The $w_a = +0.012$ value is the Yang-fraction-weighted baseline output at that Calibrated input. The pair is falsifiable with galaxy surveys: DESI DR2 finds $w_0 \approx -0.75 \pm 0.06$ [INFERENCE], $2\sigma$ from the Calibrated baseline ($3.6\sigma$ at fixed $r_0$ with the B2 coupling; $r_0$ re-tuning closed negatively under the stable realization—12); the $w_a$ deviation from $-1$ is the discriminant ($w_a = +0.012$ baseline, $2.7\sigma$; the ratified coupling's unstable B2 realization gives $-0.38$ at $1.25\sigma$; its stable realization—the C1 friction closure, 10/12—gives a pure-$\Lambda$ window fit $(w_0,w_a)=(-1,0)$—4.17$\sigma$/2.61$\sigma$ from DESI). See `cosmology/observational_constraints.md` §1, §6 for the calibration and `two-fluid/calibrate_initial_ratio_xi_v2.py` for the ODE; `cosmology/cosmology-from-phi.md` covers the surrounding machinery.
+
+**Epistemic status: Calibrated** ($w_0$ baseline anchored to DESI—ledger row 496); the mechanism (gate dynamics driving $w(a)$) is **Hypothesized** and being tested.
+
+## 11. Dark Matter
+
+Under the optional cosmological construction, a candidate dark-matter component is represented as a high-coherence two-fluid condensate whose ratio is at the $\varphi$-equilibrium. This is a **Hypothesized** physical identification; the canonical density variables alone do not establish that such a condensate is cosmic dark matter. If the identification is adopted, the optional Qi-gravity law supplies a high-$q$ coupling-magnitude factor (the $\alpha$-free $q\to1$ value $\varphi^6\approx17.94\times$ is a formal fixed-composition endpoint, not a canonical dynamic ceiling; halo-regime magnitude estimates are $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$ with $\xi=\varphi^6\approx17.9$). The displayed magnitude does not set an attractive force: the canonical sign is outward at positive fixed-point $\pi$, and an attractive galaxy-rotation interpretation belongs to a separate **Hypothesized** sign-changing branch.
+
+The defensible ratio base is **Derived conditional** on the Weinberg-angle identification: $\varphi^3 = \alpha_0^{-1} = \xi\cdot\sin^2\theta_W$, the inverse fixed-point imbalance (`cosmology/cosmology-from-phi.md` §4.2; the literal step-gap reading gives the span $\xi$ (step 6) − $\alpha_{\text{EM}}$ (10.2) = −4.2, inconsistent with 3). The component budget excludes the $+1$ capture term because captured baryons already belong to the observed $\Omega_b$ denominator (Fit-Status Ledger row 502).
+
+$$\boxed{\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.24} \qquad \text{observed: } \approx 5.39$$
+
+The optional halo model has been fitted against SPARC galaxy rotation curves (`experiments/sparc_qi/sparc_qi_analysis_v4.py`), comparing Qi profiles against NFW and Einasto with AIC. This fit is a source-specific **Hypothesized** attractive-branch comparison and does not validate the canonical outward force convention. **Epistemic status:** the ratio base is **Derived conditional** on the Weinberg-angle identification; the condensate mechanism and its identification with dark matter are **Hypothesized**; halo parameter choices and fit-dependent quantities retain their source-specific **Mapped** or **Calibrated** labels in the ledger, and the 21% ratio residual remains an open tension.
+
+## 12. Gravity and the Hierarchy Problem
+
+The canonical density PDE does not supply a metric or a universal gravitational transport law. Under the optional constitutive force closure, the displayed field-level convention is
+
+$$\mathbf f=+\pi\left[1+(\varphi^6-1)q\right]\nabla\Phi.$$
+
+For $\Phi=-GM/r$, this branch is outward at positive fixed-point $\pi$. The point-particle reduction uses the corresponding $+\nabla\Phi$ convention,
+$\ddot{\mathbf X}_j=+\alpha_j[1+(\varphi^6-1)q_j]\nabla\Phi$;
+an attractive Newtonian or GR-like branch requires a separate
+**Hypothesized** sign-changing force extension. Interpreting positive $\pi$
+as Yang/outward and negative $\pi$ as Yin/inward remains a model-specific
+phenomenological or coordinate mapping, not a universal PDE transport law
+(`hypotheses/two-strand-five-channel-matter-organization.md` §3.3, §3.5).
+
+Within the proposed cascade coordinate, the declared signal map assigns a modeled force magnitude to a cascade step and multiplies that magnitude by $\varphi^{-1}$ for each coordinate step between source and measurement labels. This is an algebraic signal-map input. The physical mixed-stress identification and measured force-transfer law remain open; `foundations/interscale-stress-attenuation-boundary.md` gives the separate conditional stress ledger. The proton's gravitational coupling satisfies the exact algebraic identity $\alpha_G=(m_p/M_{\text{Pl}})^2=\varphi^{-2n}$ once $n=\log_\varphi(M_{\text{Pl}}/m_p)\approx91.5$ is defined from the measured mass. This measured-coordinate exponent is a **Mapped** assignment recorded in Fit-Status Ledger row 506: $\varphi^{-183}\approx5.7\times10^{-39}$, 3.5% from the observed $\alpha_G\approx5.9\times10^{-39}$. The fractional coordinate $n=91.46$ is the same log map of the measured mass and carries no independent predictive content.
+
+
+Its effective-coupling expression is a magnitude diagnostic,
+$G_{\mathrm{eff}}^{\mathrm{mag}}=(\pi/\rho)
+[1+(\varphi^6-1)q]G$, with $\alpha_0=\pi/\rho=\varphi^{-3}$
+at the fixed point. At the low-density same-composition limit
+$\rho\to0$ on the $\varphi$-line, $q\to0$ and the prefactor remains
+$\varphi^{-3}$, giving the formal value $\varphi^{-3}G\approx0.236\,G$.
+At the finite reference-density fixed point,
+$q_{\mathrm{eq}}=0.872677996$ and
+$G_{\mathrm{eff}}^{\mathrm{mag}}/G=3.726779962$. In the
+high-density same-composition limit, $q\to1$ and the value tends to
+$\varphi^3G\approx4.236G$; the $\varphi^6$ factor is the formal
+fixed-$\pi/\rho$ ratio between the $q\to0$ and $q\to1$ endpoints, not a
+canonical dynamic range. Halo-regime values that vary $q$ and $\pi/\rho$
+independently are source-specific mapped inputs. These values do not
+establish an attractive force, halo interpretation, rotation-curve fit,
+clustering limit, Mercury limit, or PPN limit for the canonical branch.
+
+**Epistemic status:** the fixed-point force identity is **Derived conditional** on the optional Qi-gravity constitutive law and the stated canonical $q$; the nearest-integer $\varphi^{-183}$ receipt is **Mapped** (3.5% from the observed coupling); the $\xi=\varphi^6$ scale-coordinate identity is **Derived conditional** and its empirical pin is **Calibrated**; physical gravity amplification and any attractive halo, cosmological, rotation-curve, clustering, Mercury, or PPN interpretation are **Hypothesized**, with fit-dependent quantities retaining their source-specific **Mapped** or **Calibrated** labels.
+
+### 12.1 Quantum free-fall correspondence boundary
+
+The conditional centre-of-mass quantum sector reproduces the ideal Quantum
+Galileo Interferometer phase once a uniform Earth potential is supplied:
+
+$$
+\Delta\phi=-\frac{m_g^2g^2T^3}{3\hbar m_i},
+\qquad
+m_g=m_i=m\ \Longrightarrow\
+\Delta\phi=-\frac{mg^2T^3}{3\hbar}.
+$$
+
+This is a low-energy correspondence result. Written in terms of the same
+ballistic arm's locally calibrated acceleration
+$g_b=(m_g/m_i)g$, the phase is
+$-m_ig_b^2T^3/(3\hbar)$, which removes separate access to the source field and
+response ratio. A Cassi-specific comparison requires an independently frozen
+map from atomic preparations to $(E_Y,E_I,q)$ and a complete gravity branch.
+The published rubidium measurement
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045))
+therefore gives no numerical $q$, clock lapse, $\sigma$-regulator, or
+composite-graviton verdict. The derivation and differential response
+observable are given in `foundations/quantum-free-fall-correspondence.md`.
+
+## 13. Proton Stability
+
+The measured proton mass maps to the precise coordinate
+$\mathfrak s_p=\log_\varphi[\hbar/(m_pc\ell_{\mathrm{Pl}})]=91.4616$.
+The coherence-budget candidate uses the registered two-decimal coordinate
+$N_p^{\mathrm{budget}}=91.46$ and the Hypothesized profile
+$q_i=1-\varphi^{-i-\delta}$. Under the declared independent simultaneous
+failure model,
+
+$$
+N_{\mathrm{max}}
+=\varphi^{4505.5758}
+\approx10^{942}\ \text{cycles}.
+$$
+
+Mapping one Compton cycle to one transition trial gives the conditional
+$10^{910}$-year figure. The interscale action supplies no fluctuation law,
+transition state, or matrix element for that mapping, so the cycle count
+currently yields no physical proton lifetime.
+
+A distinct current-based candidate uses the same Mapped interval as a closed
+two-rail circuit:
+
+$$
+J_{Y,\mathfrak s}=+\mathcal J_Q,
+\qquad
+J_{I,\mathfrak s}=-\mathcal J_Q,
+\qquad
+J_{\mathfrak s}=0,
+\qquad
+\mathcal I_{\mathfrak s}=g_Q\mathcal J_Q.
+$$
+
+At the uniform $\varphi$ composition,
+$\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
+(\hbar\varphi^3\mathfrak s_p)$. Yin-to-Yang conversion at the Planck endpoint
+and Yang-to-Yin conversion at the proton endpoint close the circuit. A charged
+coherent section provides a finite-capacity vertex realization; a one-way open
+channel provides a population realization with
+$\gamma_-/\gamma_+=\varphi$ while damping endpoint coherence. The relative
+current can source the mixed-curvature pinch while total scale-number flow
+remains zero. The smooth zero-Chern endpoint sector has no finite Derrick
+radius. A point-core Chern sector gives
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
+$\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$ branch supplies a
+regular local core and matches that exterior coefficient. The registered
+nonzero fundamental condensate removes the isolated magnetic sector and
+confines flux; a finite monopole-antimonopole tube has no finite-separation
+minimum in the registered branch. A neutral fixed-$Q_C$ carrier supplies one
+conditional reduced root under its support, retention, and thin-tube matching
+inequalities. Direct first-order local gauging is source-free
+Gauss-obstructed; a separate second-order charged-field branch supplies the
+temporal action, Gauss constraint, coupled stationary equations, and
+normalization-invariant variational class. The matter-completion boundary adds
+the Gram/Cartan particle map, joint constrained energetic Hessian, and mixed
+fluctuation pencil.
+
+The endpoint dynamics now have both coherent and one-way open completions:
+
+- a charge-$-g_Q$ endpoint section closes the finite scale window coherently
+  when $|D_A\chi|^2+|D_B\chi|^2\le\rho_{\rm end}$;
+- a one-way two-level Markov channel
+  $\dot p_Y=-\Gamma p_Y$, $\dot p_I=+\Gamma p_Y$ closes populations while
+  damping endpoint coherence at $\Gamma/2$.
+
+At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
+fixed-charge branch has a matched finite-grid low spectrum but
+parity-concentrated carrier structure that fails the smooth-carrier
+diagnostic. A continuum-consistent scalar reduction at the same coefficients
+supports static binding at prepared $Q_C=16$ and $256$, reproduced by
+independent collocation. Its smooth $Q_C=16$ constrained spatial stability
+verdict is `INCONCLUSIVE`. The first-order carrier law preserves exactly
+empty data under closed boundaries; prepared binding supplies no microscopic
+production mechanism (`computations/matter-formation-continuum-report.md`).
+
+The normalization campaign in `computations/matter-formation-continuum-report.md`
+§12 imposes the same external vacuum scalar mass $0.511\ \mathrm{MeV}$,
+propagation speed $c$, and one unit of the internal scalar $U(1)$ generator
+for each of $a=1/64,1/32,1/16$. The resulting core lengths are respectively
+$2.23505\times10^{-12}$, $1.61542\times10^{-12}$, and
+$1.19022\times10^{-12}\ \mathrm m$. These numerical witnesses check
+Derived conditional one-mass normalization nonuniqueness; electron and
+electromagnetic identity remain open. The selected scalar electron-core assignment is
+`CONTRADICTS`: $\ell_Q=\lambda_*$ has no positive root, and the minimum
+allowed $\ell_Q=6.789391938\times10^{-13}\ \mathrm m$ exceeds the mapped
+cell upper endpoint $6.014112161\times10^{-13}\ \mathrm m$. The same campaign
+finds $B_R=L^\dagger R$, $B_L=R^\dagger L=B_R^*$; real nonnegative values
+therefore have equality, making a nonzero $\varphi$ ratio impossible. Scalar
+and Dirac fields retain $2\pi$ phases $+1$ and $-1$, respectively; the
+bilinears have dimension $[M]^3$ while condensate squares have $[M]^2$, and
+the displayed linear and ordinary-square projection terms are generically
+non-Hermitian. Normalization cannot repair this map. The inherited scalar
+parent spatial verdict remains `INCONCLUSIVE` with seven of eight comparisons
+passing; a common unit rescaling preserves its failed difference/tolerance
+ratio $4.96010644$.
+
+The physical endpoint section, normalized scale stiffness, proton quantum
+numbers, localized Hessian resolution, perturbations beyond $C_4$,
+continuum qualification, PA43 mixed dynamics, real-time formation, and the
+decay-rate map remain open. The campaign adds no physical $\kappa$ interaction,
+equilibration time, transport $\chi$, production prediction, or microscopic
+particle identity. See `foundations/proton-coherence-budget.md` §10,
+`foundations/interscale-current-soliton.md` §4.5,
+`foundations/particle-stationary-action-closure.md`,
+`computations/particle-carrier-resolution-recovery-report.md`,
+`computations/particle-physical-hessian-precision-v2-report.md`, and
+`computations/particle-localized-physical-hessian-report.md`.
+
+
+**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are
+**Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$
+profile. The relative-current profile, endpoint dynamics, point-flux
+coefficient, support inequality, auxiliary adjoint core,
+condensate-confinement boundary, first-order Gauss obstruction, temporal gauge
+covariance, Gauss constraint, stationary equations, Cartan convention bridge,
+and fluctuation qualification operators are **Derived conditional** on their
+declared actions and sectors. The finite algebraic and reduced analytic
+boundary passes its nine frozen checks.
+
+The density-depletion coupling $h_C=2.9598260763447164$ is **Mapped** by a
+frozen ordered numerical scan. The stored Cartesian finite-grid observables
+and constrained low spectrum are **Tested**, alongside the measured
+ultraviolet obstruction. Independently reproduced smooth scalar binding at
+prepared population is also **Tested**, with an **INCONCLUSIVE** constrained
+spatial stability verdict. The empty-sector invariant is **Derived
+conditional** on the supplied first-order action and closed boundaries.
+Physical proton identification, coefficient calibration, production, full
+continuum and temporal stability, and a decay rate remain **Hypothesized/Open**.
+
+For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
+
+## 14. Three Generations of Fermions
+
+The Fibonacci recurrence
+$$\varphi^n = \varphi^{n-1} + \varphi^{n-2}$$
+
+is an exact counting identity. Under the stated propagation-channel postulate, it partitions each cascade span into three coordinate sub-channels. The construction therefore has three channels; identifying them with the three physical fermion generations is **Hypothesized**. Within that mapping the framework supplies no fourth generation, consistent with current LHC null results. See `foundations/three-generations.md`.
+**Epistemic status:** the counting identity is **Derived conditional** on the stated channel postulate; per-sector offsets and scale-step placements are **Mapped**; the identification with the three physical fermion generations and the no-fourth-generation consequence are **Hypothesized**.
+
+## 15. Strong CP
+
+Within a **Hypothesized** particle-sector constitutive/transport extension, the CP-violating phase is assigned to the GUT-labeled scale and attenuated through the **Mapped** $\sim81$-step interval to the QCD-labeled scale:
+
+$$\bar{\theta}\approx\pi\varphi^{-83.4}\approx1.2\times10^{-17}$$
+
+Under that scale-coordinate assignment, the seed $\pi\varphi^{-2}$ at the GUT-labeled scale is attenuated by $\varphi^{-81.4}$ across the Mapped interval to QCD. The resulting estimate lies below current bounds and the next generation of neutron EDM experiments, but this comparison is conditional on the assignment and does not follow from the canonical density PDE alone. See `standard-model/cp-violation.md`.
+
+**Epistemic status:** the suppression algebra is **Derived conditional** on the declared attenuation input and Mapped span; the physical CP/chiral identification is **Hypothesized**; the strong-CP span is **Mapped**.
+
+## 16. Neutrino Masses
+
+Within the proposed seesaw/cascade assignment, the neutrino mass is placed at cascade step 20 and modeled as suppression from the electroweak-labeled scale:
+
+$$m_\nu\approx v_0\cdot\varphi^{-12}$$
+
+The mass-squared difference ratio $(\varphi^{11}-1)/(\varphi^4-1)$ and PMNS-angle candidates from the conversion Jacobian eigenvectors are algebraic outputs of that construction. The scale placements, particle-sector dictionary, and physical interpretation remain **Hypothesized** (with Mapped inputs where selected); the canonical density PDE alone does not establish a neutrino mass hierarchy. See `standard-model/neutrino-mass.md`.
+
+**Epistemic status:** **Hypothesized** (numerical predictions supplied; consistent with oscillation data within current precision), with the displayed suppression algebra conditional on the assigned scales and particle-sector extension.
+
+## 17. φ-Periodic Structure in the Universe
+
+Within the optional wake-wave/scale-coordinate map, the proposed matter-power-spectrum modulation has
+
+$$\Delta(\ln k)=\ln\varphi\approx0.4812$$
+
+This is a zero-parameter prediction **of that optional map**, orthogonal to BAO: the Cassi modulation has constant period in $\ln k$-space, where BAO has constant period in $k$-space. The search procedure is to subtract the BAO template and search the residual for $\ln\varphi$ periodicity. Current status: DESI DR2 shows a marginal 2–3$\sigma$ hint; Euclid (2027) is the definitive test (the >5$\sigma$ target is conditional on the proposed signal). Extending the same period to physiological signals along the spine, neuronal avalanche distributions, or emotional self-report factor structure is a separate **Hypothesized** cross-domain mapping, not a consequence of the cosmological modulation or of $q$ alone. See `predictions/falsifiable-predictions.md` §5.
+
+The current source is `foundations/sector-coupling-derivation.md`,
+“Conditional Sector Scale and the Dirac Density Obstruction.” It supplies
+coefficient-free scale arithmetic conditional on $\delta=3$:
+
+$$\kappa_{s,\mathrm{scale}}=\frac{\varphi^{-6}}{v_0^2}\approx0.92\ \mathrm{TeV}^{-2},
+\qquad M_{s,\mathrm{scale}}=\varphi^3v_0\approx1.04\ \mathrm{TeV}.$$
+
+The scale form and cascade-coordinate identity are **Derived conditional**
+arithmetic with a **Calibrated** electroweak anchor. The displayed
+Dirac-to-two-fluid projection is **Hypothesized** and excluded as a physical
+map: $B_R$ and $B_L$ are conjugate chiral scalars, their dimensions differ
+from condensate squares, and the displayed linear and ordinary-square terms
+are generically non-Hermitian. A dimensional bridge addresses only units;
+it selects no physical $\kappa_s$, equilibration timescale, transport
+coefficient, or interaction. The normalization evidence and its particle
+boundary are recorded in `computations/matter-formation-continuum-report.md`
+§12.
+
+The helper's separate positive component quadratics are twice the
+chiral-current number densities. Their closed Dirac dynamics depends on
+relative coherence and does not reproduce the canonical two-density
+conversion. The specified massive Dirac Hamiltonian and minimal conversion
+lift shift the stationary ratio below $\varphi$ and allow leakage from the
+positive-energy one-particle subspace. The independently verified scope is
+recorded in `foundations/sector-coupling-derivation.md` §§1.5–1.6 and
+`computations/matter-formation-continuum-report.md` §13. A physical reservoir,
+quantum-state prescription and controlled energy-density reduction remain
+open.
+
+The separately declared real scalar mass-source model has a verified
+finite-mode production mechanism: a fermionic vacuum develops matched
+particle and hole occupations, and reciprocal scalar feedback closes
+the specified energy ledger. Independent calculations pass all 1,185
+checks across 32 analytic rows and six trajectories. The finest closed
+trajectory reaches per-spin occupation $0.5729566253$ with relative
+energy error $5.6211\times10^{-5}$ and second-order time convergence.
+Its physical field identification, continuum renormalization and
+localized particle formation remain open; the source and model
+parameters are supplied assumptions
+(`computations/matter-formation-continuum-report.md` §14).
+
+The continuum restriction is also verified: sudden-source histories
+have linearly divergent pair density and quadratically divergent
+excitation energy. Static subtraction and initial-overlap identities
+pass independent quadrature, but dynamical renormalization remains
+open. At the unchanged parameters, the sufficient bound
+$B=0.00165786399054<1$ excludes two-body binding in the leading
+nonrelativistic Yukawa reduction. The collective local-density Yukawa
+functional is separately qualified to have no subthreshold bound state
+under its stated mass-depleting and vacuum-prescription assumptions.
+Relativistic and other many-body localization remain outside these
+restrictions (`computations/matter-formation-continuum-report.md`
+§§15.6–15.7).
+
+The specified local static one-loop scalar energy has positive
+reference curvature but no global lower bound. Sixteen algebraic
+checks verify a negative bulk-energy witness and a finite-energy
+spatial trial family whose energy tends to $-\infty$. The full
+nonlocal spatial quantum energy and metastable matter states remain
+open (`computations/matter-formation-continuum-report.md` §16).
+
+The compact-target calculation is an explicitly supplied comparison model
+qualified for radial stationarity and energetic stability. The canonical
+two-density bridge has identically zero degree density. The optional
+phase-bearing gauge sector supplies a physical relative $S^2$ at fixed
+nonzero norms. Joint gauge cancellation leaves the relative texture as an
+independent question, and the screening scale is comparable to the predicted
+stationary size. The registered Hopf trial has an unstable direction in its
+specified shape/connection family. Full spatial variations give a
+negative amplitude first variation for every exact hard-norm nonzero-Hopf
+adjoint in the stated soft-action domain, with the included hard FR loops
+contracting there. General amplitude-relaxed metastability, production,
+physical normalization, quantum identification and complete matter formation
+remain open (`computations/matter-formation-continuum-report.md` §§18–20).
+
+The supplied scalar temporal parent has a periodic excited mediator with an
+exact Floquet-unstable carrier mode. Independent evolution reproduces the
+linear exponent and reciprocal energy exchange for a prepared carrier seed.
+The same mediator has a faster spatial instability at the retained comparison
+wave number, and prepared complex carrier data separate opposite local signed
+densities while conserving zero total charge. The exactly empty carrier
+sector remains invariant (`computations/matter-formation-continuum-report.md`
+§§25–27).
+
+The frozen nonlinear plane-symmetric calculation returns `INCONCLUSIVE` in
+both implementations because the prescribed carrier coordinate enters before
+the mediator and the mediator slope fit fails. A post-hoc period-sampled
+diagnostic recovers the accepted carrier and mediator Floquet rates and
+identifies temporal phase aliasing in that coordinate. It supplies diagnostic
+evidence outside the frozen verdict
+(`computations/matter-formation-continuum-report.md` §28).
+
+Complex scalar and Dirac parents both yield the registered slow
+Schrödinger carrier equation, despite different spin and canonical
+statistics. The observed sector therefore defines an equivalence class of
+microscopic theories. A selected action, quantum state, physical
+normalization, continuum-localized forming evolution and particle
+discriminator are additional inputs
+(`computations/matter-formation-continuum-report.md` §29).
+
+The added compact chiral benchmark supplies a finite-domain stationary
+degree-one soliton and conservative radial attraction from broadened prepared
+$B=1$ data. A two-mass map gives
+$e_B=5.416264578979231$ and
+$f_B=64.29440244394192\ \mathrm{MeV}$, with length unit
+$0.5666480972477047\ \mathrm{fm}$. Supplied collective-coordinate rules give
+conditional nucleon/Delta spin and proton/neutron charge assignments. Two of
+six out-of-fit comparisons support their thresholds; four absolute nucleon
+observables contradict the 10-percent criterion. The independent
+implementation passes all 78 checks. The result is an adopted **Mapped
+conditional benchmark**, while its field, action, quantum rules and
+degree-one initial sector remain additional inputs
+(`computations/matter-formation-continuum-report.md` §30).
+
+Hash-checked reconciliation against the six physical requirements finds no
+single accepted construction that selects a canonical microscopic action and
+state, forms a localized degree-one particle from degree-zero data, proves
+continuum all-sector stability, closes physical normalization and interaction
+dynamics, or derives an observable particle map. The completion gate returns
+`FAIL`; physical matter formation remains **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §31).
+
+The QCD-anchored normalized-chiral quench encounters a generic continuum
+obstruction at the event required to change winding. For the local
+nondegenerate zero
+$\boldsymbol\phi_\tau=(\tau,\mathbf x)$, its normalized-Skyrme energy obeys
+$E_4(\tau,R)\sim3\pi^2/(4|\tau|)$; a punctured zero-time slice diverges as
+$2\pi/a$. Every rank-three spatial derivative has inverse-radius coefficient
+at least $2\pi$. The code's max-normalization instead produces
+$4\pi/\epsilon$, so a fixed cutoff changes the local action. Independent
+calculations pass all four numerical gates and return `CONTRADICTS` for
+finite-energy continuum topology change through a generic zero. This scoped
+result leaves QCD, prepared nonzero-degree textures and regular microscopic
+quark-bearing completions open
+(`computations/matter-formation-continuum-report.md` §78;
+`foundations/matter-completion-boundary.md` §23).
+
+The empirical two-flavour quark–meson action supplies a regular alternative
+carrier through the chiral zero. Its exact vector current transports baryon
+number, and three occupied colours form a fermionic $B=1$ sector. A
+vanishing-Wilson-regulator sequence gives
+$E_{\rm lev}=42.74439864\pm0.20\ \mathrm{MeV}$, independently reproduced by
+two-sided shooting at $42.74444857\ \mathrm{MeV}$. Within the fixed hedgehog
+family, the continuum-qualified total energy is
+$1208.1917608\ \mathrm{MeV}$, the qualified binding margin is
+$291.2082392\ \mathrm{MeV}$ and the conservative reduced barrier is
+$18.2800415\ \mathrm{MeV}$. The QCD-era initial-condition ledger identifies
+this as reorganization of inherited baryon asymmetry on a timescale far
+shorter than cosmic expansion. The qualification returns
+QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`, while the frozen QMC2
+spectral verdict remains `FAIL`.
+
+The action and parameters enter as empirical QCD inputs. A finite-cutoff
+chromodielectric completion defines the interacting two-flavour sea and
+preserves the exact baryon current, chiral-zero regularity and local
+$SU(3)_C$. Its zero-dielectric exterior gives every nonzero total Cartan charge
+an energy that diverges with volume, while the color-neutral three-arm witness
+has finite positive minimized tension. RCF1–RCF4 return `PASS` and
+RCF5=`ADOPT`, qualifying action-level confinement for this effective bridge.
+
+A joint four-coordinate valence-plus-field calculation then selects a compact
+three-colour state at $1320.592488\ \mathrm{MeV}$. Its free gradient,
+exterior field tail, virial residual and low-dielectric formation basin miss
+their frozen criteria, and a lower $957.416497\ \mathrm{MeV}$ topological
+boundary branch blocks a ground-state interpretation. ICB1=`PASS`,
+ICB2–ICB4=`FAIL`, ICB5=`CONTRADICTS`, and ICB6=`FAIL`. Independent
+reconstruction reproduces the gates and returns `PASS`.
+
+The independent-cell radial follow-up starts with one positive nodeless
+occupied level, but its first bounded trial loses every such state. QURB2 and
+QURB8 return `FAIL`, QURB7=`REJECT`, and fifteen independent source,
+spectrum and decision checks pass. This rejects the frozen unconstrained
+radial qualification without proving radial nonexistence under every method.
+The lower topological branch, unconstrained nonradial formation, physical
+spectrum and observable nucleon map, thermal production and baryogenesis from
+this microscopic action, and a Cassi derivation of QCD remain open
+(`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+A separate resolved-flavour two-singlet thermal-leptogenesis benchmark
+connects a gauge-projected thermal state to a stable late-time baryon yield
+and carries it through the QCD crossover. With $z=\pi/4+i/2$ and
+$M_2/M_1=10$ supplied, calibration to the observed magnitude gives
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$. Independent Radau
+integration agrees in the mass to $1.49\times10^{-12}$ relative and in the
+yield to $1.18\times10^{-12}$ relative. Whole-bubble abundance and
+inherited-$B-L$ arms converge within their frozen tolerances.
+
+The exact conjugate texture $z^*$ has the same masses, projectors and
+preparation data but produces the opposite signed asymmetry. A real
+coordinate scan contains positive, negative and zero yields with the same
+light spectrum. The registered Cassi state has no CP-odd datum or derived map
+from its Mapped quark-sector CKM phase to $z$. The empirical history returns
+`SUPPORTS`, CP selection returns `DOES NOT EMERGE`, and complete Cassi matter
+formation returns `FAIL`
+(`computations/matter-formation-continuum-report.md` §§83–86).
+
+The optional phase-bearing whole field contains an integrated spatial
+helicity that is $C$-even, $P$-odd and $CP$-odd. Full-doublet and
+multiple-scale-band configurations can carry either sign. The registered
+positive-coefficient action leaves those signs energetically degenerate and
+has no negative homogeneous linear mode: all eight primary and eleven
+independent checks pass, with sign selection returning `DOES NOT EMERGE`.
+Nonlinear handed-domain formation and a microscopic coupling to baryon
+production remain open.
+
+The minimal two-singlet action has one exactly massless light neutrino,
+whereas the separate Mapped Cassi spectrum has three nonzero masses. A unified
+microscopic completion must add another mass source, revise that Mapped
+spectrum or replace the minimal baryogenesis action.
+
+The unnormalized polynomial Gram stabilizer supplies a separate
+chiral-zero-regular scalar test. Exact and Cartesian controls pass, while the
+three-grid stationary solve fails to converge and its finite
+amplitude-collapse path has zero barrier. RPS6 returns `REJECT`; the
+explicit-quark carrier remains the active microscopic branch
+(`computations/matter-formation-continuum-report.md` §80;
+`foundations/matter-completion-boundary.md` §25).
+
+
+**Epistemic status:** the modulation period is **Derived conditional** on the
+optional signal map; its physical wake imprint and cross-domain extensions
+are **Hypothesized** and being tested. The sector scale is **Derived
+conditional** arithmetic on $\delta=3$ with a **Calibrated** electroweak
+anchor. The displayed projection is excluded by the stated dimensional,
+conjugacy and Hermiticity obstructions. A distinct admissible physical
+coupling remains **Hypothesized** and unselected.
+The Hill/Floquet reduction, spatial dispersion relation, signed-charge
+continuity, microscopic non-identifiability, baryon degree, collective
+identities, generic normalized-chiral zero divergence and regular quark
+baryon-current identity are **Derived conditional** on their supplied parents.
+The baryon coefficients are **Mapped** to two measured masses. The
+resolved-flavour two-singlet heavy mass is **Calibrated** to the observed
+baryon-asymmetry magnitude under its supplied texture. The linear growth
+rates, spatial instability, prepared charge separation, conditional baryon
+profile, radial relaxation, independent chiral-zero quadratures, quark–meson
+regulator extrapolation, shooting endpoint, fixed-$B$ binding, reduced
+barrier, resolved-flavour thermal evolution, whole-bubble initial-state arms,
+QCD yield transfer and phase-current homogeneous handedness boundary are
+**Tested**. The nonlinear comparison remains `INCONCLUSIVE`, the
+normalized-chiral topology-change verdict is `CONTRADICTS`, homogeneous
+handedness selection and CP selection are `DOES NOT EMERGE`, and complete
+Cassi-origin formation is `FAIL`. A connected empirical cosmological history
+is available.
+Physical Cassi matter formation requires microscopic action closure and a
+CP-odd selector and remains **Hypothesized/Open**.
+
+## 18. Quantum Gravity Without Singularities
+
+In the proposed $\sigma$-regularized extension ($\sigma=\ell_{\text{Pl}}/\varphi^3$), the classical kernel algebra is **Derived conditional** on the noise–signal identification and assumed $d=3$: the inverse-square kernel magnitude transitions to a harmonic force magnitude at short distances, with direction inherited from the displayed $+\nabla\Phi$ convention. Treating this regularized construction as physical quantum gravity, with a **flat-space** softened kernel finite at the origin and a smooth lattice-to-continuum crossover, is **Hypothesized**; no black-hole solution is derived, and an attractive GR-like limit requires a separate **Hypothesized** sign-changing extension. The quantized two-fluid extension (Hypothesized) models a composite graviton; its implemented low-energy dispersion probe is **rejected by GW170817** as an astrophysical graviton signal. See `gravity/quantum-gravity.md`.
+
+**Epistemic status:** **Derived conditional** for the stated classical regularization inputs; **Hypothesized** for the two-fluid quantization, composite graviton, and physical harmonic-core interpretation.
+
+---
+
+# Part IV—The Framework
+
+## 19. The Lattice at Human Scale
+
+The optional condensation model is scale-covariant: it uses the same field form in the human body's 26-step window (steps 142–168, from the living cell at ~8 µm to the body at ~1.7 m) as in the cosmological construction. A chosen human-scale geometry takes the along-string bubble period to be $P_\parallel=2$ steps, yielding 13 modeled maxima along the spine at steps 142, 144, …, 166. This period and the associated placements are **Hypothesized** coordinate/geometric mappings; canonical phase transport remains open. The gate's pinch point at $r=\varphi^{-1}\approx0.618$ is the framework's proposed boundary between reactive and self-aware dynamics.
+
+The human-scale consequences—consciousness, emotion, trauma, therapy—are developed in full in `cassi-psychology.md`, the psychology companion to this document. The physics presentation introduces no additional field variables; these extensions use the same proposed field form and gate at a different cascade label.
+
+**Epistemic status:** the 13-node count is **Derived conditional** on the chosen 26-step window and $P_\parallel=2$ geometric convention; its identification with the chakras and with human experience is **Hypothesized** (testable via the C-predictions; see `predictions/falsifiable-predictions.md`).
+
+## 20. Predictions
+
+| # | Prediction | Test | Status |
+|---|---|---|---|
+| 1 | $\ln\varphi$ periodicity in $P(k)$ | DESI DR2 (marginal 2–3σ); Euclid (definitive >5σ) | Being tested |
+| 2 | $w_0 = -0.87$, $w_a = +0.012$ (baseline); $w_a = -0.38$ with the ratified coupling (B2, unstable); pure-Λ $(w_0, w_a) = (-1, 0)$ (stable realization—10/12) | DESI DR2 ($w_0$: $2\sigma$ baseline; $w_a$: $2.7\sigma$ baseline; $4.17\sigma$/$2.61\sigma$ for the stable realization) | Being tested |
+| 3 | Scale-dependent $\sigma_8$ response from the optional $G_{\text{eff}}(q,\rho)$ extension (void weakening is a proposed sign) | KiDS/DESI | Being tested |
+| 4 | Directional edge-slope ratio $1.7072$ in the geometric proxy, conditional on selecting $\theta_{\text{cond}}=0.45$; no such edge survives the fixed-step PDE endpoint | Independently identified void, chakra, or fascial boundaries with a declared proxy map | Conditional; not yet tested |
+| 5 | $\varphi^2$ inter-chakra spacing ratio along spine | Anatomical measurement | Not yet tested |
+| 6 | $\ln\varphi$ periodicity in physiological signals along spine | HRV, skin conductance, EEG | Not yet tested |
+| 7 | $\varphi$-periodic modulation in neural avalanche sizes | MEA recordings, >10³ events | Not yet tested |
+| 8 | No fourth generation within the mapped three-channel construction | LHC/FCC | Consistent |
+| 9 | $\bar{\theta} \approx 1.2\times10^{-17}$ | Future neutron EDM | Not yet testable |
+| 10 | Proton stability mechanisms: conditional $\sim10^{942}$-cycle coherence budget; separate two-rail scale current; GUT-channel estimate $1.3\times10^{37}$ yr | Select a physical channel and compute its transition rate before comparison with Hyper-K | Conditional mechanisms; no Cassi rate yet |
+
+Full catalog: `predictions/falsifiable-predictions.md` (56 entries). The physics-specific entries (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.
+
+## 21. Epistemic Tiers
+
+Every claim in the framework carries one of five evidential tiers. **Creative** is reserved for exploratory applications and carries no physics-claim tier.
+
+- **Derived:** a mathematical consequence under the stated assumptions and model equations. Examples: the rank-one density-plane relaxation algebra, conserved total density, Qi definitions, the gate equation and its sign, the cascade suppression formula within its proposed coordinate model, and algebraic scale covariance under the stipulated $\varphi$-rescaling construction. Conditional results retain their assumptions.
+
+- **Calibrated:** anchored to an observation or calibration target. Examples: the DESI-anchored $w_0$ baseline and the phenomenological condensation threshold.
+
+- **Mapped:** selected or fit-dependent quantities whose assignments are recorded in the Fit-Status Ledger. Examples: cascade-step identifications with specific physics scales and fitted exponents.
+
+- **Hypothesized:** a structurally specified mapping or mechanism awaiting confirmation at the relevant physical scale. Examples: the physical condensation and edge-anisotropy interpretation, the physical realization and identification of scale covariance, the physical five-channel gate and compact phase, one-step/one-turn interpretations, dark matter as high-$q$ condensate, the chakra count and spacing, the pinch-point model of self-awareness, and the trauma gate-lock model (PDE-tested 2026-07-31: pinning null as implemented, $\varphi$-phased drive effect supported and $\varphi$-specific at the held configuration at short times (t $\lesssim$ 4 $\approx$ 0.2/\lambda, `consciousness/gender-as-qi-configuration.md` §8.3)).
+
+- **Speculative:** framework-consistent mechanisms without a current test design. Examples: physical realization of the microcascade, the gigacascade spiral, the clinical layer of the trauma model, and attachment as inter-field resonance.
+
+The framework records evidence and limitations in `audit.md`; the gate-sign convention is PDE-tested, the trauma lock model is driven-wake tested, and claims retain their assigned tier until the relevant derivation or evidence is available. This epistemic discipline is central to interpretation.
+
+## 22. Where to Go Next
+
+| If you want… | Start here |
+|---|---|
+| The compact physics reference | `foundations/cassi-theory-reference.md` |
+| The full cascade table and scale-assignment audit | `foundations/dimensionful-cascade.md` |
+| The bubble lattice as universal geometry | `foundations/bubble-lattice-fabric.md` |
+| The cascade suppression formula (one rule, every hierarchy) | `foundations/cascade-suppression-formula.md` |
+| The unified Lagrangian | `foundations/unified-lagrangian.md` |
+| The physical-becoming hierarchy—Hypothesized architecture / Derived canonical reduction; open-system and covariant-gravity completions remain Hypothesized | `foundations/physical-becoming-hierarchy.md` |
+| The Wu Xing five-phase derivation | `foundations/wu-xing-derivation.md` |
+| Why three dimensions | `foundations/why-three-dimensions.md` |
+| Dark energy and cosmology | `cosmology/cosmology-from-phi.md` |
+| Quantum gravity and black holes | `gravity/quantum-gravity.md` |
+| The mind: consciousness, emotion, trauma, therapy | `cassi-psychology.md` |
+| All predictions, numbered and sourced | `predictions/falsifiable-predictions.md` |
+| All open questions, with epistemic status | `open-questions-cassi-answers.md` |
+| Every parameter, classified by type | `parameter-inventory.md` |
+| A self-critical audit of predictions vs. data | `audit.md` |
+| Run a visual explainer figure | `visual-explainers/cascade_cosmos.py` |
+
+## 23. What We Don't Know
+
+1. **$P_\parallel(n)$: the along-string bubble period as a function of scale.** The chosen geometric constructions use one step at the cosmological scale and two steps at the human scale. These are **Hypothesized** coordinate/geometric mappings; whether the variation is continuous, discrete at octave boundaries, or assigned by the Hypothesized density-plane mapping $\delta n_{\mathrm{map}}=\Delta\theta_d/(2\pi)$ at each $n$ remains open.
+
+2. **$\theta_{\text{cond}}$ at non-cosmological scales.** The condensation threshold is calibrated to ~0.45 at step 285 using phenomenology. Its value at biological, atomic, or sub-Planckian scales requires PDE measurement at those scales.
+
+3. **The Planck crossover.** In the proposed $\sigma$-regularized model, the Planck scale is a smooth transition. How the model's discrete bubble/void lattice dissolves into the continuous harmonic regime as $n\to0$ is not yet characterized.
+
+4. **Coherence transport between bubbles.** The lattice geometry permits diagonal neighbor connectivity via saddles. Whether Qi can tunnel through these saddles is open: geometrically possible, dynamically unverified.
+
+5. **The gigacascade and beyond.** The optional scale-covariant model extends its lattice coordinate upward without bound. The chord lattice at the megacascade is hypothesized. The gigacascade (5-arm spiral of megacascade bubbles) is a structural extrapolation with no direct observational signature beyond the CMB's $\ell<5$ boundary imprint.
+
+6. **What sustains a frozen wake.** The 2026-07-31 PDE tests showed that an un-driven standing pattern decays like any other perturbation; the driver test (`consciousness/trauma-as-frozen-gate.md` §10.5) identified the sustainer as ongoing re-stimulation—a weak recurring trigger (0.005% of the event peak per step) holds the site near event intensity, and stopping the trigger releases it. The open question moves to what maintains the stimulus behaviorally (§10.4–§10.5).
+
+7. **Can $q$ be externally modulated at human scale?** Whether coherence can be deliberately increased (meditation, biofeedback) is untested, and would be the framework's most consequential practical claim.
+
+8. **What supplies the placements beyond density-plane relaxation.** The canonical drift gives $\Delta\theta_d$; if the Hypothesized coordinate map $\delta n_{\mathrm{map}}=\Delta\theta_d/(2\pi)$ is adopted, its magnitude is bounded by $\operatorname{atan}(\varphi)/(2\pi)\approx0.162$ (`foundations/cassi-first-principles.md` §2.6). The half-step placements (proton, electron, BAO) exceed that mapped range and are assigned to the parity structure of `foundations/rung-offset-mechanism.md` §7. The structural source of that parity—the boundary condition that pins a state at the half-step—is open.
+
+---
+
+## References
+
+- `foundations/cassi-theory-reference.md`—compact physics reference: governing equations, unified Lagrangian
+- `foundations/dimensionful-cascade.md`—the 292-step cascade table and scale-assignment provenance
+- `foundations/bubble-lattice-fabric.md`—the condensation field as universal organizing geometry
+- `foundations/yin-yang-qi-dynamical-geometry.md`—integrated open-system
+  geometry, finite-density support boundary, and bounded two-domain interface
+- `computations/cross_scale_coherence_interface_check.py`—deterministic
+  EC1–EC7 interface witness
+- `computations/cross_scale_coherence_interface_report.md`—positive
+  cross-domain source, exchange, attenuation, and support closure
+- `foundations/matter-completion-boundary.md`—nine-part conditional boundary
+  from complementary exterior through fixed-charge spectral qualification
+- `computations/matter_completion_boundary_report.md`—MCC1–MCC9 receipt and
+  retained physical particle verdict
+- `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation and the hierarchy resolutions
+- `foundations/wu-xing-derivation.md`—why $w = 5$
+- `foundations/wu-xing-cycle-structure.md`—the two 5-cycles, the control ring, the 5↔13 partition
+- `foundations/why-three-dimensions.md`—three dimensions from the spiral
+- `foundations/proton-coherence-budget.md`—proton stability
+- `foundations/three-generations.md`—three generations from the Fibonacci recurrence
+- `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational
+- `standard-model/cp-violation.md`—strong CP from cascade suppression
+- `standard-model/neutrino-mass.md`—neutrino masses from the seesaw at step 20
+- `cosmology/cosmology-from-phi.md`—dark energy, dark matter, structure formation
+- `cosmology/observational_constraints.md`—CMB, DESI, and rotation-curve constraints
+- `gravity/quantum-gravity.md`—$\sigma$-regularization, harmonic cores
+- `consciousness/consciousness-from-phi.md`—pinch point, wake waves, two-bubble experiment
+- `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests of the gate sign and the driven-wake mechanism
+- `cassi-psychology.md`—the psychology companion: consciousness, emotion, trauma, therapy
+- `demystifying-the-cosmos/README.md`—one Cassi analysis per observed object (lighthouse pulsar first)
+- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog
+- `open-questions-cassi-answers.md`—the epistemic registry
+- `parameter-inventory.md`—parameter classification
+- `audit.md`—self-critical prediction-vs-experiment audit
+- `visual-explainers/cascade_cosmos.py`—the three-regime cascade figure
+- `turbulence/cassi-radiative-material-closure.md`—conditional LTE emission, M1 transport, conservative material coupling and CassiCosmos implementation boundary
+- `turbulence/compressible-radiative-plasma-closure.md`—compressible shocks, species and line kinetics, stellar energy ledgers and multi-angle crossing beams
+- `turbulence/navier-stokes-replica-coherence.md`—independent-replica covariance, accumulated-rank compensation, Galerkin target, and trajectory boundary
+- `computations/navier-stokes-replica-coherence-prereg.md`—fixed replica-coherence and viscous-compensation schedule
+- `computations/verify_navier_stokes_replica_coherence.py`—60-check replica-coherence and compensation verifier
+- `computations/navier-stokes-galerkin-target-prereg.md`—frozen finite-mode endpoint target and controls
+- `computations/verify_navier_stokes_galerkin_target.py`—8-check finite-mode endpoint-control verifier
+- `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule
+- `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained trajectory and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule
+- `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent long-horizon trajectory and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-audit-prereg.md`—frozen signed-mode normalization, direct-convolution controls, and evidence boundary
+- `computations/verify_navier_stokes_galerkin_long_trajectory_audit.py`—independent signed-mode Galerkin trajectory and receipt verifier
+
+---
+
+*The Cassi framework is a personal research project. It has not been peer-reviewed or experimentally confirmed. All claims carry one of the five evidential tiers (Derived / Calibrated / Mapped / Hypothesized / Speculative); Creative marks exploratory applications.*

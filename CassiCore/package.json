@@ -1,0 +1,18 @@
+{
+  "name": "cassicore-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CassiCore modular workspace — standalone @cassicore/* packages extracted with history preservation.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@cassicore/foundation && npm run build --workspace=@cassicore/mnemic-field && npm run build --workspace=@cassicore/mini-helix && npm run build --workspace=@cassicore/helix && npm run build --workspace=@cassicore/constellation && npm run build --workspace=@cassicore/flux-team",
+    "test": "npm run test --workspaces",
+    "verify:focus": "node scripts/verify-focus-gate.mjs"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true
+  }
+}

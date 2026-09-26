@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "package": {
+    "name": "@oh-my-pi/pi-coding-agent",
+    "version": "18.1.10",
+    "repository": "https://github.com/can1357/oh-my-pi",
+    "repositoryDirectory": "packages/coding-agent",
+    "gitCommit": "f241301c83726afe75a847e919b89977a54dafbe",
+    "tarball": "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-18.1.10.tgz",
+    "tarballSha1": "3d63ff9642390851744d861ca204068aab988fc8",
+    "tarballIntegrity": "sha512-MhfVvMC8aCtt1e3cXzwDZVf+GtMmOfRUpccEjtA90PxWV9WUPT2NYUEGop5/qOnsJlx5Zf2U+LFHnHOgRI25kA==",
+    "fileCount": 3106,
+    "unpackedSize": 47958166,
+    "installedPackageJsonSha256": "fd1a43fb3e298b18b02a7ce933b48755799f91cdded697abcf1bb6a5d9d81727",
+    "attestation": "https://registry.npmjs.org/-/npm/v1/attestations/@oh-my-pi%2fpi-coding-agent@18.1.10"
+  },
+  "binary": {
+    "defaultPath": "C:/Users/Carina/.bun/bin/omp.exe",
+    "version": "18.1.10",
+    "sha256": "00b25bb0ad2992d252326a7ecea2527cfb85019b4a6d24a67842cf3712cd6625",
+    "versionOutput": "omp/18.1.10"
+  },
+  "stockProbeReceipt": "../probes/receipts/stock-18.1.10.json"
+}

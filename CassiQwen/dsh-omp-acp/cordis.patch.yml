@@ -1,0 +1,22 @@
+# Host integration: the user's own oh-my-pi sessions, driven from DeepSeek
+# Harness over the Agent Client Protocol. Model ids are omp session ids.
+#
+# `permission: ask` routes an oh-my-pi tool permission question through the
+# harness approval service, so the answer is given in the harness window. A
+# question the service cannot answer is allowed, so a session is never stuck.
+- insert:
+    - id: omp-acp
+      name: '@cassi/dsh-omp-acp'
+      config:
+        provider: omp
+        providerName: Oh My Pi
+        executable: !!js process.env.OMP_ACP_EXECUTABLE ?? 'C:/Users/Carina/.bun/bin/omp.exe'
+        maxModels: 25
+        maxLiveSessions: 4
+        idleTimeoutMs: 900000
+        permission: ask
+        auxiliary: ephemeral
+        cleanupAuxiliarySessions: true
+        toolActivity: true
+        newSession: true
+        newSessionName: New oh-my-pi session

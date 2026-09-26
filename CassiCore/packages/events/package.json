@@ -1,0 +1,36 @@
+{
+  "name": "@cassicore/events",
+  "version": "0.1.0",
+  "description": "In-memory ILogger/IEventBus runtime defaults (Logger/rootLogger, EventBus/bus) plus the event protocol/API, Cassandra client and context-window debugger. Extracted from CassiCore core/logger.ts, core/event-bus.ts and core/events/*. Resolves P1 ASK-2: foundation stays interface-only; the default impls live here. History-preserved import splice.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "ulid": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

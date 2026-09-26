@@ -1,0 +1,89 @@
+{
+  "schema": "yang_mills_simultaneous_residual_gramian_artifact_manifest_v2",
+  "status": "QUALIFIED_EXTERNAL_ARTIFACT_REQUIRED",
+  "scope": "Qualified finite C=1 source-sector residual Gramian; no continuum or mass-gap claim.",
+  "committed_sources": [
+    {
+      "role": "protocol",
+      "path": "computations/yang-mills-simultaneous-residual-gramian-prereg.md",
+      "sha256": "2ad2f0a5e67866bbea9253f14ffdd85e5e7a1f79ef816c3e654190274bbe187e",
+      "git_state": "committed"
+    },
+    {
+      "role": "primary_verifier",
+      "path": "computations/verify_yang_mills_simultaneous_residual_gramian.py",
+      "sha256": "34d952d1217cf44ccd1bba9e8f84e403e50e95ed66271b477314e7fc14f65ac2",
+      "git_state": "committed"
+    },
+    {
+      "role": "arithmetic_audit_verifier",
+      "path": "computations/verify_yang_mills_simultaneous_residual_gramian_independent.py",
+      "sha256": "ec6082eea99502043a6c584de2483c632fc292eebc7d85895eb0a47d385e57e5",
+      "git_state": "committed"
+    },
+    {
+      "role": "larger_volume_source",
+      "path": "computations/verify_yang_mills_su2_larger_volume_hamiltonian.py",
+      "sha256": "87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af",
+      "git_state": "pre-existing_source"
+    },
+    {
+      "role": "exact_helper",
+      "path": "computations/verify_yang_mills_exact_block_spectrum.py",
+      "sha256": "b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524",
+      "git_state": "pre-existing_source"
+    },
+    {
+      "role": "scientific_larger_volume_protocol",
+      "path": "computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md",
+      "sha256": "190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7",
+      "git_state": "pre-existing_protocol"
+    },
+    {
+      "role": "recovery_protocol",
+      "path": "computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md",
+      "sha256": "5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821",
+      "git_state": "pre-existing_protocol"
+    }
+  ],
+  "required_external_artifacts": [
+    {
+      "role": "selected_qualified_source_receipt",
+      "path": "runs/yang_mills_su2_larger_volume_hamiltonian_recovery/current-verification.json",
+      "sha256": "7bdf0c525976e6976ff4a510a429c8febc73a61278216f95cced57a7b0e7120b",
+      "git_state": "external_or_local_ignored_artifact",
+      "checks_passed": 234,
+      "checks_total": 238,
+      "unresolved_checks": [
+        "tail_separation_C1_x0.25",
+        "tail_separation_C2_x0.25",
+        "tail_separation_C1_x1.0",
+        "tail_separation_C2_x1.0"
+      ],
+      "preservation_rule": "Required before reproducing the v4 Gramian receipts; do not replace with the older receipt bound to recovery hash 8ca8b34e5250b798fdb2e196e68d731a2b14f6c4e2b7a0fcf89e0db29f9264e7."
+    },
+    {
+      "role": "primary_receipt",
+      "path": "runs/yang_mills_simultaneous_residual_gramian/verification-v4.json",
+      "sha256": "54bf58497458cfe59c155e4ad47e846223c5c478bec99197a7a5fd16c26aea68",
+      "git_state": "external_or_local_ignored_artifact",
+      "status": "PASS",
+      "classification": "QUALIFIED_FINITE_SOURCE_SECTOR_RECOVERY",
+      "checks_passed": 50,
+      "checks_total": 50
+    },
+    {
+      "role": "primary_receipt_arithmetic_audit",
+      "path": "runs/yang_mills_simultaneous_residual_gramian/verification-independent-v4.json",
+      "sha256": "2a6fc20fa5de2bd089ef353ba1c692c890544ad0503e14ad35a4069e41a4fb79",
+      "git_state": "external_or_local_ignored_artifact",
+      "status": "PASS",
+      "classification": "PRIMARY_RECEIPT_ARITHMETIC_AUDIT_PASS",
+      "checks_passed": 30,
+      "checks_total": 30
+    }
+  ],
+  "receipts_committed": false,
+  "reproduction_boundary": "The published source commit does not contain the generated receipts or selected source receipt. Reproduction requires preserving the hash-matched external artifacts above, then running both committed verifiers.",
+  "continuum_boundary": "UNRESOLVED_CONTINUUM_PROBLEM; Clay verdict NULL"
+}

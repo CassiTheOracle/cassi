@@ -1,0 +1,61 @@
+{
+  "schema": "cassi_native_local_junction_spec_v1",
+  "frozen_before_science_outcomes_utc": "2026-09-15T11:15:25.201Z",
+  "source_campaign": "_diag/native_sphere_20260915d",
+  "source_campaign_sha256": "ee0efbf296e6d7791c11ea3f8907355da381110c0de8a270ed93f4e2d3e2b881",
+  "source_counterflow_analysis": "_diag/native_counterflow_20260915/analysis.json",
+  "source_counterflow_analysis_sha256": "a5c4b952ef1af637ed17a15f631ec48c49f1830757661f109f96f4c3c57864ee",
+  "output": "_diag/native_local_junction_20260915",
+  "arm_ids": [
+    "r12_dynamic_s20260915",
+    "r9_dynamic_s20260915",
+    "r6_dynamic_s20260915",
+    "r12_dynamic_s20260916",
+    "r9_dynamic_s20260916",
+    "r6_dynamic_s20260916"
+  ],
+  "window": [
+    24,
+    32
+  ],
+  "interpretation": "Local paired wave-energy-current crossing or closest-approach motif; not a topological double helix, physical material intersection, or species conversion.",
+  "candidate": {
+    "sphere_radius_over_R": 1,
+    "joint_score": "sqrt((V|JY|/max(V|JY|))*(V|JI|/max(V|JI|)))",
+    "joint_score_min": 0.05,
+    "max_ranked_centers": 32,
+    "nonmaximum_suppression_radius_over_h": 2,
+    "neighborhood_radius_over_h": 2.5,
+    "minimum_sites": 12,
+    "effective_sites_min": 8,
+    "linearity_ratio_min": 1.5,
+    "current_coherence_min": 0.5,
+    "current_axis_alignment_min": 0.7,
+    "crossing_angle_min_degrees": 30,
+    "line_closest_approach_max_over_h": 0.75,
+    "closest_parameter_abs_max_over_h": 2.5,
+    "centroid_distance_max_over_h": 2.5
+  },
+  "persistence": {
+    "minimum_consecutive_saved_frames": 3,
+    "match_center_distance_max_over_h": 2,
+    "axis_cosine_abs_min": 0.8660254037844387
+  },
+  "calibration": {
+    "spacing": 0.5,
+    "radius": 6,
+    "tube_sigma_over_h": 0.6,
+    "cases": {
+      "orthogonal_crossing": true,
+      "rotated_orthogonal_crossing": true,
+      "parallel_separated": false,
+      "single_component": false,
+      "isotropic_radial": false,
+      "zero_current": false
+    }
+  },
+  "verdicts": {
+    "local_junction": "SUPPORTS only if at least one calibrated local paired-current intersection persists for >=3 consecutive saved frames in a primary arm. DOES NOT EMERGE only when native endpoint quality is valid and the detector is spatially eligible. Otherwise INCONCLUSIVE.",
+    "helix_relation": "A local intersection supports a localized paired-current motif, not a double helix. No intersection is required for two nonintersecting helical strands."
+  }
+}

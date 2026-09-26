@@ -1,0 +1,58 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// condensate_update.comp — B-field-driven condensate maintenance
+//
+// Replaces the old per-voxel |ψ|² > φ⁻² threshold with the
+// condensation field B(x,y,z) from condensate_field.comp.
+//
+// Bubble-void lattice dynamics:
+//   B[n] >  θ_cond  → blend ψ into condensate (chakra center, constructive)
+//   B[n] < -θ_cond  → decay condensate (void, destructive interference)
+//   else            → hysteresis band, leave unchanged
+//
+// θ_cond = 0.45 (from chakras-as-cascade-bubbles.md §7.2).
+// ρ = params[11] — condensate blend rate (φ⁻²-damped IIR).
+// ═══════════════════════════════════════════════════════════════════
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0)  buffer PsiBuf         { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf      { float params[]; };
+layout(std430, binding = 20) buffer SelfCondensate { float condensate[]; };
+layout(std430, binding = 28) buffer CondensateB    { float B_field[]; };   // [N_VOXELS]
+
+#define DIM         128
+#define N_VOXELS    4096
+#define VOXEL_STRIDE (DIM * 2)
+#define PHI_INV     0.618033988749895
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;  // one per (voxel, dim) pair
+    if (idx >= N_VOXELS * DIM) return;
+
+    uint n   = idx / DIM;       // voxel index
+    uint dim = idx % DIM;       // field dimension
+    uint base = n * VOXEL_STRIDE;
+
+    uint off_r = base + dim * 2;
+    uint off_i = off_r + 1;
+
+    float re = psi[off_r];
+    float im = psi[off_i];
+
+    float B = B_field[n];           // condensation field value [-1, 1]
+    float theta = 0.45;             // condensation threshold
+    float rho  = params[11];        // blend rate (from params[11])
+
+    if (B > theta) {
+        // ── Chakra center: constructive interference → accumulate ──
+        condensate[off_r] = mix(condensate[off_r], re, rho);
+        condensate[off_i] = mix(condensate[off_i], im, rho);
+    } else if (B < -theta) {
+        // ── Void between chakras: destructive → dissolve ──
+        condensate[off_r] *= (1.0 - rho);
+        condensate[off_i] *= (1.0 - rho);
+    }
+    // else: hysteresis band between ±θ — leave unchanged
+}

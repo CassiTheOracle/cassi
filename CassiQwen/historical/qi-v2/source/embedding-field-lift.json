@@ -1,0 +1,1003 @@
+{
+  "protocol": "CassiQwen L15 embedding-to-field lift",
+  "version": 1,
+  "artifacts": {
+    "seed": {
+      "path": "CassiCosmos/_diag/cassi_qwen_embedding_field_seed.json",
+      "sha256": "316919f7641e6dbd1bb947880ee514967dc23a47371837d53059c926269f7bc8"
+    },
+    "gpu": {
+      "path": "CassiCosmos/_diag/cassi_qwen_embedding_field_gpu.json",
+      "sha256": "2d5763993af2e9b1b1649ed302502005d0c925179c391a90e8c080f57e7d1b06"
+    }
+  },
+  "config": {
+    "grid_n": 32,
+    "dimension": 1536,
+    "phi": 1.618033988749895,
+    "amplitude": 1,
+    "dt": 0.005,
+    "horizons": [
+      0,
+      1,
+      4,
+      16,
+      64,
+      256,
+      1024,
+      2048
+    ],
+    "layout": "x + N*(y + N*z)",
+    "dtype": "float32-le"
+  },
+  "cpu_codec_contract": {
+    "pass": true,
+    "thresholds": {
+      "cosine_min": 0.999999,
+      "relative_l2_max": 0.000002,
+      "pairwise_cosine_error_max": 0.000002
+    },
+    "max_pairwise_cosine_error": 5.319831605733506e-10,
+    "cases": {
+      "anchor": {
+        "cosine": 0.9999999999999981,
+        "relative_l2_error": 6.749143210652746e-9,
+        "signal_l2": 0.9999999998186062,
+        "subspace_residual_energy": 9.080592918274647e-16,
+        "pass": true
+      },
+      "near": {
+        "cosine": 0.9999999999999991,
+        "relative_l2_error": 6.636893532711086e-9,
+        "signal_l2": 0.9999999998313693,
+        "subspace_residual_energy": 9.126120827722652e-16,
+        "pass": true
+      },
+      "orthogonal": {
+        "cosine": 1.000000000000001,
+        "relative_l2_error": 6.704588551288075e-9,
+        "signal_l2": 1.0000000001610765,
+        "subspace_residual_energy": 9.118813929422077e-16,
+        "pass": true
+      },
+      "opposite": {
+        "cosine": 0.9999999999999984,
+        "relative_l2_error": 6.696544010703288e-9,
+        "signal_l2": 0.9999999998186062,
+        "subspace_residual_energy": 9.067887435342486e-16,
+        "pass": true
+      },
+      "anchor_shuffled": {
+        "cosine": 0.9999999999999982,
+        "relative_l2_error": 6.716188297763414e-9,
+        "pass": true
+      },
+      "near_shuffled": {
+        "cosine": 0.9999999999999983,
+        "relative_l2_error": 6.7471295278638915e-9,
+        "pass": true
+      }
+    }
+  },
+  "gpu_seed_contract": {
+    "pass": true,
+    "max_pairwise_cosine_error": 5.319831605733506e-10
+  },
+  "extended_horizon_contract": {
+    "pass": true,
+    "max_abs": 0.025971053168177605,
+    "bound": 10,
+    "zero_byte_zero": true
+  },
+  "geometry": {
+    "verdict": "SUPPORTS",
+    "decoded_norm_floor": 0.000001,
+    "rows": [
+      {
+        "horizon": 0,
+        "near": 0.899999999891142,
+        "orthogonal": 2.117977645786575e-10,
+        "opposite": -0.9999999999999978,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.9999999999225787,
+          "near": 0.9999999999565642,
+          "orthogonal": 1.0000000001884326,
+          "opposite": 0.999999999572749
+        }
+      },
+      {
+        "horizon": 1,
+        "near": 0.9000001151379841,
+        "orthogonal": -0.0000017151647447240032,
+        "opposite": -1.0000000000000002,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.9986649041540319,
+          "near": 0.9986648077226457,
+          "orthogonal": 0.998665304453281,
+          "opposite": 0.9986649040481241
+        }
+      },
+      {
+        "horizon": 4,
+        "near": 0.9000011600274113,
+        "orthogonal": -0.00001729383040310849,
+        "opposite": -1.000000000000001,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.9866757721111928,
+          "near": 0.9866748083675382,
+          "orthogonal": 0.9866797547613321,
+          "opposite": 0.9866757719456608
+        }
+      },
+      {
+        "horizon": 16,
+        "near": 0.9000178936577404,
+        "orthogonal": -0.0002663004529628175,
+        "opposite": -0.9999999999999997,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.8238188124615721,
+          "near": 0.823806403671219,
+          "orthogonal": 0.8238699790589102,
+          "opposite": 0.8238188107678254
+        }
+      },
+      {
+        "horizon": 64,
+        "near": 0.8998982605413561,
+        "orthogonal": 0.0015128046660023238,
+        "opposite": -0.9999999999999962,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.7077050487980776,
+          "near": 0.7077656163521208,
+          "orthogonal": 0.7074555756438226,
+          "opposite": 0.7077050485496534
+        }
+      },
+      {
+        "horizon": 256,
+        "near": 0.8999624938630852,
+        "orthogonal": 0.00038998444064099533,
+        "opposite": -0.9999999999999953,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.9980498312299392,
+          "near": 0.9980782535307133,
+          "orthogonal": 0.997976767074451,
+          "opposite": 0.9980498297028164
+        }
+      },
+      {
+        "horizon": 1024,
+        "near": 0.8993296252697703,
+        "orthogonal": 0.0074235852966173,
+        "opposite": -0.9999999999999797,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.9552045732847879,
+          "near": 0.9556778390854002,
+          "orthogonal": 0.9538484210808779,
+          "opposite": 0.9552045728921016
+        }
+      },
+      {
+        "horizon": 2048,
+        "near": 0.8976090504838232,
+        "orthogonal": 0.027907707211250538,
+        "opposite": -0.9999999999999547,
+        "ordered": true,
+        "norms": {
+          "anchor": 0.834594454344791,
+          "near": 0.8358263049739099,
+          "orthogonal": 0.8304121329774151,
+          "opposite": 0.8345944451008144
+        }
+      }
+    ]
+  },
+  "shuffled_control": [
+    {
+      "horizon": 0,
+      "canonical": 0.899999999891142,
+      "shuffled": 0.8999999998555056,
+      "shuffled_minus_canonical": -3.5636382733628125e-11
+    },
+    {
+      "horizon": 1,
+      "canonical": 0.9000001151379841,
+      "shuffled": 0.900000003329136,
+      "shuffled_minus_canonical": -1.1180884806893943e-7
+    },
+    {
+      "horizon": 4,
+      "canonical": 0.9000011600274113,
+      "shuffled": 0.9000000351283035,
+      "shuffled_minus_canonical": -0.000001124899107751709
+    },
+    {
+      "horizon": 16,
+      "canonical": 0.9000178936577404,
+      "shuffled": 0.9000005209082573,
+      "shuffled_minus_canonical": -0.00001737274948310219
+    },
+    {
+      "horizon": 64,
+      "canonical": 0.8998982605413561,
+      "shuffled": 0.8999972016777147,
+      "shuffled_minus_canonical": 0.00009894113635855462
+    },
+    {
+      "horizon": 256,
+      "canonical": 0.8999624938630852,
+      "shuffled": 0.9000085758921589,
+      "shuffled_minus_canonical": 0.00004608202907363523
+    },
+    {
+      "horizon": 1024,
+      "canonical": 0.8993296252697703,
+      "shuffled": 0.9001231664185797,
+      "shuffled_minus_canonical": 0.0007935411488093624
+    },
+    {
+      "horizon": 2048,
+      "canonical": 0.8976090504838232,
+      "shuffled": 0.9003017436494961,
+      "shuffled_minus_canonical": 0.002692693165672888
+    }
+  ],
+  "cases": {
+    "anchor": {
+      "basis": "canonical",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.021620117127895355,
+          "epsilon_l2": 0.9999999999225823,
+          "ey_l2": 0.7094014684998287,
+          "ei_l2": 0.43559321232511966,
+          "decoded_norm": 0.9999999999225787,
+          "subspace_residual_energy": 9.080592918274647e-16,
+          "contract_pass": true,
+          "t0": {
+            "cosine": 0.9999999999999981,
+            "relative_l2_error": 6.749143210652746e-9,
+            "seed_byte_identical": true,
+            "pass": true
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.021608754992485046,
+          "epsilon_l2": 0.9986649041540328,
+          "ey_l2": 0.7090311528357638,
+          "ei_l2": 0.4352315386336214,
+          "decoded_norm": 0.9986649041540319,
+          "subspace_residual_energy": 1.530120986635088e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.021506719291210175,
+          "epsilon_l2": 0.9866757721111956,
+          "ey_l2": 0.7057136020124071,
+          "ei_l2": 0.43199687152928434,
+          "decoded_norm": 0.9866757721111928,
+          "subspace_residual_energy": 3.3502736467750834e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.020119434222579002,
+          "epsilon_l2": 0.8238188124615811,
+          "ey_l2": 0.6621541074955882,
+          "ei_l2": 0.3906799307547997,
+          "decoded_norm": 0.8238188124615721,
+          "subspace_residual_energy": 1.2802768268321741e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.014673388563096523,
+          "epsilon_l2": 0.7077050487980904,
+          "ey_l2": 0.5073043245428255,
+          "ei_l2": 0.4532361828911445,
+          "decoded_norm": 0.7077050487980776,
+          "subspace_residual_energy": 3.5482125862760114e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.01253066211938858,
+          "epsilon_l2": 0.9980498312299878,
+          "ey_l2": 0.5526542422356677,
+          "ei_l2": 0.4793467904345984,
+          "decoded_norm": 0.9980498312299392,
+          "subspace_residual_energy": 9.661689252371226e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.014023566618561745,
+          "epsilon_l2": 0.9552045732849712,
+          "ey_l2": 0.619470745117211,
+          "ei_l2": 0.4380029517491771,
+          "decoded_norm": 0.9552045732847879,
+          "subspace_residual_energy": 3.825898255885612e-13,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.013494080863893032,
+          "epsilon_l2": 0.8345944543451618,
+          "ey_l2": 0.5775132600450108,
+          "ei_l2": 0.41216196104677794,
+          "decoded_norm": 0.834594454344791,
+          "subspace_residual_energy": 8.840461875318271e-13,
+          "contract_pass": true
+        }
+      ]
+    },
+    "near": {
+      "basis": "canonical",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.024638693779706955,
+          "epsilon_l2": 0.9999999999565734,
+          "ey_l2": 0.7052130773922876,
+          "ei_l2": 0.4381832717024378,
+          "decoded_norm": 0.9999999999565642,
+          "subspace_residual_energy": 9.126120827722652e-16,
+          "contract_pass": true,
+          "t0": {
+            "cosine": 0.9999999999999991,
+            "relative_l2_error": 6.636893532711086e-9,
+            "seed_byte_identical": true,
+            "pass": true
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.024625761434435844,
+          "epsilon_l2": 0.9986648077226457,
+          "ey_l2": 0.7048450095323724,
+          "ei_l2": 0.43781932863884226,
+          "decoded_norm": 0.9986648077226457,
+          "subspace_residual_energy": 1.5098710080194413e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.024509621784090996,
+          "epsilon_l2": 0.9866748083675382,
+          "ey_l2": 0.7015477850019631,
+          "ei_l2": 0.4345640516451844,
+          "decoded_norm": 0.9866748083675382,
+          "subspace_residual_energy": 3.381345977880467e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.022930551320314407,
+          "epsilon_l2": 0.8238064036712255,
+          "ey_l2": 0.658291888787541,
+          "ei_l2": 0.39292156446527254,
+          "decoded_norm": 0.823806403671219,
+          "subspace_residual_energy": 1.2857215579006148e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.015582232736051083,
+          "epsilon_l2": 0.7077656163521351,
+          "ey_l2": 0.5090150467342652,
+          "ei_l2": 0.4506636074880192,
+          "decoded_norm": 0.7077656163521208,
+          "subspace_residual_energy": 3.580482419385094e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.01245430950075388,
+          "epsilon_l2": 0.9980782535307586,
+          "ey_l2": 0.5530650933950098,
+          "ei_l2": 0.4791729137855375,
+          "decoded_norm": 0.9980782535307133,
+          "subspace_residual_energy": 9.265419862479554e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.014967642724514008,
+          "epsilon_l2": 0.9556778390855821,
+          "ey_l2": 0.6157810227071057,
+          "ei_l2": 0.4410248415076663,
+          "decoded_norm": 0.9556778390854002,
+          "subspace_residual_energy": 3.7842359190241654e-13,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.012158673256635666,
+          "epsilon_l2": 0.8358263049742868,
+          "ey_l2": 0.5733423191607389,
+          "ei_l2": 0.4157428199550703,
+          "decoded_norm": 0.8358263049739099,
+          "subspace_residual_energy": 8.977426035111154e-13,
+          "contract_pass": true
+        }
+      ]
+    },
+    "orthogonal": {
+      "basis": "canonical",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.025971053168177605,
+          "epsilon_l2": 1.0000000001884435,
+          "ey_l2": 0.7132395713356895,
+          "ei_l2": 0.4331925896605812,
+          "decoded_norm": 1.0000000001884326,
+          "subspace_residual_energy": 9.118813929422077e-16,
+          "contract_pass": true,
+          "t0": {
+            "cosine": 1.000000000000001,
+            "relative_l2_error": 6.704588551288075e-9,
+            "seed_byte_identical": true,
+            "pass": true
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.02595740556716919,
+          "epsilon_l2": 0.9986653044532838,
+          "ey_l2": 0.7128676130425126,
+          "ei_l2": 0.43283296070732796,
+          "decoded_norm": 0.998665304453281,
+          "subspace_residual_energy": 1.4994946172721758e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.025834843516349792,
+          "epsilon_l2": 0.9866797547613336,
+          "ey_l2": 0.7095351761496435,
+          "ei_l2": 0.42961686700278423,
+          "decoded_norm": 0.9866797547613321,
+          "subspace_residual_energy": 3.341538065306799e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.024168455973267555,
+          "epsilon_l2": 0.8238699790589129,
+          "ey_l2": 0.6657479338748992,
+          "ei_l2": 0.38859437662321117,
+          "decoded_norm": 0.8238699790589102,
+          "subspace_residual_energy": 1.2950387158275401e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.016416197642683983,
+          "epsilon_l2": 0.707455575643835,
+          "ey_l2": 0.505861572843909,
+          "ei_l2": 0.4557822013244021,
+          "decoded_norm": 0.7074555756438226,
+          "subspace_residual_energy": 3.602179389691355e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.012838183902204037,
+          "epsilon_l2": 0.9979767670745006,
+          "ey_l2": 0.5496533705856143,
+          "ei_l2": 0.48260200741613196,
+          "decoded_norm": 0.997976767074451,
+          "subspace_residual_energy": 9.61687750704438e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.015821348875761032,
+          "epsilon_l2": 0.9538484210810605,
+          "ey_l2": 0.6169725636184773,
+          "ei_l2": 0.44058985581331855,
+          "decoded_norm": 0.9538484210808779,
+          "subspace_residual_energy": 3.879825761535175e-13,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.012032990343868732,
+          "epsilon_l2": 0.8304121329777918,
+          "ey_l2": 0.5765218621818451,
+          "ei_l2": 0.41273039156797076,
+          "decoded_norm": 0.8304121329774151,
+          "subspace_residual_energy": 9.117108663261272e-13,
+          "contract_pass": true
+        }
+      ]
+    },
+    "opposite": {
+      "basis": "canonical",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.023162297904491425,
+          "epsilon_l2": 0.9999999995727579,
+          "ey_l2": 0.7048046226632562,
+          "ei_l2": 0.43843421898780155,
+          "decoded_norm": 0.999999999572749,
+          "subspace_residual_energy": 9.067887435342486e-16,
+          "contract_pass": true,
+          "t0": {
+            "cosine": 0.9999999999999984,
+            "relative_l2_error": 6.696544010703288e-9,
+            "seed_byte_identical": true,
+            "pass": true
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.023150064051151276,
+          "epsilon_l2": 0.9986649040481219,
+          "ey_l2": 0.7044370734052827,
+          "ei_l2": 0.43806995612675315,
+          "decoded_norm": 0.9986649040481241,
+          "subspace_residual_energy": 1.5453511147740077e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.023040195927023888,
+          "epsilon_l2": 0.986675771945661,
+          "ey_l2": 0.7011445195744557,
+          "ei_l2": 0.43481178646935326,
+          "decoded_norm": 0.9866757719456608,
+          "subspace_residual_energy": 3.4552942253660447e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.02154635265469551,
+          "epsilon_l2": 0.8238188107678307,
+          "ey_l2": 0.6579548019084535,
+          "ei_l2": 0.39312577692425277,
+          "decoded_norm": 0.8238188107678254,
+          "subspace_residual_energy": 1.265301652173886e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.01467331312596798,
+          "epsilon_l2": 0.7077050485496686,
+          "ey_l2": 0.5092858774508049,
+          "ei_l2": 0.45057339191903356,
+          "decoded_norm": 0.7077050485496534,
+          "subspace_residual_energy": 3.580250672392121e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.012502070516347885,
+          "epsilon_l2": 0.9980498297028672,
+          "ey_l2": 0.5506270201373028,
+          "ei_l2": 0.4817216685132583,
+          "decoded_norm": 0.9980498297028164,
+          "subspace_residual_energy": 9.506436065719911e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.013533802703022957,
+          "epsilon_l2": 0.9552045728922887,
+          "ey_l2": 0.6090696407882538,
+          "ei_l2": 0.4464435458707602,
+          "decoded_norm": 0.9552045728921016,
+          "subspace_residual_energy": 3.825562171319396e-13,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.014064122922718525,
+          "epsilon_l2": 0.8345944451011902,
+          "ey_l2": 0.5765706879097141,
+          "ei_l2": 0.41220018497794153,
+          "decoded_norm": 0.8345944451008144,
+          "subspace_residual_energy": 8.952232678127087e-13,
+          "contract_pass": true
+        }
+      ]
+    },
+    "anchor_shuffled": {
+      "basis": "shuffled",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.021203642711043358,
+          "epsilon_l2": 1.0000000010596157,
+          "ey_l2": 0.7024474746101783,
+          "ei_l2": 0.43987678452032397,
+          "decoded_norm": 1.0000000010596122,
+          "subspace_residual_energy": 9.125506526726545e-16,
+          "contract_pass": true,
+          "t0": {
+            "cosine": 0.9999999999999982,
+            "relative_l2_error": 6.716188297763414e-9,
+            "seed_byte_identical": true,
+            "pass": true
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.021192504093050957,
+          "epsilon_l2": 0.9986647755980721,
+          "ey_l2": 0.7020810786033581,
+          "ei_l2": 0.4395112938171147,
+          "decoded_norm": 0.9986647755980694,
+          "subspace_residual_energy": 1.526337560081014e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.021092480048537254,
+          "epsilon_l2": 0.9866744772450445,
+          "ey_l2": 0.6987989636798202,
+          "ei_l2": 0.4362419706770774,
+          "decoded_norm": 0.9866744772450473,
+          "subspace_residual_energy": 3.3017462164041515e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.019732536748051643,
+          "epsilon_l2": 0.8238020490366024,
+          "ey_l2": 0.6557668306456967,
+          "ei_l2": 0.39437943121491326,
+          "decoded_norm": 0.8238020490365967,
+          "subspace_residual_energy": 1.2618408867906373e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.013454467058181763,
+          "epsilon_l2": 0.7077872721122921,
+          "ey_l2": 0.5102294255932205,
+          "ei_l2": 0.4490812265593055,
+          "decoded_norm": 0.7077872721122792,
+          "subspace_residual_energy": 3.5798860447776464e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.011261222884058952,
+          "epsilon_l2": 0.9981305103165969,
+          "ey_l2": 0.552003269059588,
+          "ei_l2": 0.4804694602140134,
+          "decoded_norm": 0.9981305103165478,
+          "subspace_residual_energy": 9.51061261555101e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.012313795275986195,
+          "epsilon_l2": 0.9564761682954402,
+          "ey_l2": 0.6096335394868773,
+          "ei_l2": 0.4449410081435242,
+          "decoded_norm": 0.9564761682952572,
+          "subspace_residual_energy": 3.762281346569774e-13,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.011211810633540154,
+          "epsilon_l2": 0.8381501744663059,
+          "ey_l2": 0.5704118783199916,
+          "ei_l2": 0.42092088377399095,
+          "decoded_norm": 0.8381501744659287,
+          "subspace_residual_energy": 8.901419229510311e-13,
+          "contract_pass": true
+        }
+      ]
+    },
+    "near_shuffled": {
+      "basis": "shuffled",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0.020918991416692734,
+          "epsilon_l2": 0.9999999998783521,
+          "ey_l2": 0.7062506143538513,
+          "ei_l2": 0.43754452463519966,
+          "decoded_norm": 0.999999999878343,
+          "subspace_residual_energy": 9.301199979660932e-16,
+          "contract_pass": true,
+          "t0": {
+            "cosine": 0.9999999999999983,
+            "relative_l2_error": 6.7471295278638915e-9,
+            "seed_byte_identical": true,
+            "pass": true
+          }
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0.020907994359731674,
+          "epsilon_l2": 0.9986644384783528,
+          "ey_l2": 0.7058820351509192,
+          "ei_l2": 0.4371808796747148,
+          "decoded_norm": 0.9986644384783498,
+          "subspace_residual_energy": 1.5624025213414777e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0.020809242501854897,
+          "epsilon_l2": 0.986671134314605,
+          "ey_l2": 0.7025801894749871,
+          "ei_l2": 0.43392834535414615,
+          "decoded_norm": 0.9866711343146013,
+          "subspace_residual_energy": 3.419093043359777e-15,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0.01946658082306385,
+          "epsilon_l2": 0.8237590721700992,
+          "ey_l2": 0.6592556197838074,
+          "ei_l2": 0.3923358449477134,
+          "decoded_norm": 0.8237590721700934,
+          "subspace_residual_energy": 1.2838791513980987e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0.013221115805208683,
+          "epsilon_l2": 0.7079968653640522,
+          "ey_l2": 0.5085633004809963,
+          "ei_l2": 0.4514094425915522,
+          "decoded_norm": 0.7079968653640382,
+          "subspace_residual_energy": 3.499084239862456e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0.010566554963588715,
+          "epsilon_l2": 0.9982084245606797,
+          "ey_l2": 0.5513679537638879,
+          "ei_l2": 0.48082742645993454,
+          "decoded_norm": 0.9982084245606286,
+          "subspace_residual_energy": 9.248780457137444e-14,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0.013707751408219337,
+          "epsilon_l2": 0.9578922156523686,
+          "ey_l2": 0.6152797813370221,
+          "ei_l2": 0.44344494152686337,
+          "decoded_norm": 0.9578922156521896,
+          "subspace_residual_energy": 3.7810201172630534e-13,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0.011788892559707165,
+          "epsilon_l2": 0.842844441132147,
+          "ey_l2": 0.577324318748128,
+          "ei_l2": 0.41872471609571316,
+          "decoded_norm": 0.8428444411317739,
+          "subspace_residual_energy": 8.84012648586531e-13,
+          "contract_pass": true
+        }
+      ]
+    },
+    "zero": {
+      "basis": "zero",
+      "checkpoints": [
+        {
+          "step": 0,
+          "t": 0,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 1,
+          "t": 0.005,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 4,
+          "t": 0.02,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 16,
+          "t": 0.08,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 64,
+          "t": 0.32,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 256,
+          "t": 1.27999999999999,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 1024,
+          "t": 5.11999999999991,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        },
+        {
+          "step": 2048,
+          "t": 10.2400000000002,
+          "finite": true,
+          "max_abs": 0,
+          "epsilon_l2": 0,
+          "ey_l2": 0,
+          "ei_l2": 0,
+          "decoded_norm": null,
+          "subspace_residual_energy": null,
+          "contract_pass": true
+        }
+      ]
+    }
+  },
+  "gates": {
+    "C1": true,
+    "C2": true,
+    "C3": true
+  },
+  "verdict": "PASS"
+}

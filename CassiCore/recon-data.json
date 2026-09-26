@@ -1,0 +1,1904 @@
+{
+  "subsystems": {
+    "core": {
+      "fileCount": 872,
+      "totalKB": 10770.9,
+      "alive": 679,
+      "dead": 100,
+      "uncertain": 39,
+      "testFiles": 54,
+      "status": "MIXED",
+      "topConsumers": [
+        "types(10)",
+        "mcp(5)",
+        "workers(5)"
+      ],
+      "topExt": [
+        "node:path(131)",
+        "node:fs(128)",
+        "better-sqlite3(73)"
+      ],
+      "runtimeSeedCount": 9,
+      "wired": "wired-entry"
+    },
+    "types": {
+      "fileCount": 25,
+      "totalKB": 254.4,
+      "alive": 19,
+      "dead": 6,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "MIXED",
+      "topConsumers": [
+        "core(731)",
+        "mcp(34)",
+        "workers(4)"
+      ],
+      "topExt": [
+        "better-sqlite3(1)",
+        "vscode-languageserver-types(1)"
+      ],
+      "runtimeSeedCount": 0,
+      "wired": "core-reached"
+    },
+    "workers": {
+      "fileCount": 8,
+      "totalKB": 87.1,
+      "alive": 8,
+      "dead": 0,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "ALIVE",
+      "topConsumers": [],
+      "topExt": [
+        "markdown-it(1)",
+        "http(1)",
+        "node:crypto(1)"
+      ],
+      "runtimeSeedCount": 1,
+      "wired": "wired-entry"
+    },
+    "mcp": {
+      "fileCount": 42,
+      "totalKB": 566.5,
+      "alive": 42,
+      "dead": 0,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "ALIVE",
+      "topConsumers": [
+        "core(3)"
+      ],
+      "topExt": [
+        "@modelcontextprotocol(6)",
+        "child_process(3)",
+        "node:child_process(1)"
+      ],
+      "runtimeSeedCount": 6,
+      "wired": "wired-entry"
+    },
+    "commands": {
+      "fileCount": 8,
+      "totalKB": 76.4,
+      "alive": 8,
+      "dead": 0,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "ALIVE",
+      "topConsumers": [
+        "core(3)"
+      ],
+      "topExt": [],
+      "runtimeSeedCount": 8,
+      "wired": "wired-entry"
+    },
+    "integrations": {
+      "fileCount": 21,
+      "totalKB": 273.9,
+      "alive": 0,
+      "dead": 14,
+      "uncertain": 7,
+      "testFiles": 0,
+      "status": "MIXED-DEAD",
+      "topConsumers": [],
+      "topExt": [
+        "node:fs(7)",
+        "node:http(5)",
+        "node:os(5)"
+      ],
+      "runtimeSeedCount": 0,
+      "wired": "not-core-reached"
+    },
+    "cassi-tui": {
+      "fileCount": 28,
+      "totalKB": 128.5,
+      "alive": 27,
+      "dead": 0,
+      "uncertain": 1,
+      "testFiles": 0,
+      "status": "MIXED",
+      "topConsumers": [],
+      "topExt": [
+        "react(21)",
+        "ink(15)",
+        "ink-spinner(3)"
+      ],
+      "runtimeSeedCount": 1,
+      "wired": "wired-entry"
+    },
+    "webui": {
+      "fileCount": 117,
+      "totalKB": 550.9,
+      "alive": 2,
+      "dead": 85,
+      "uncertain": 30,
+      "testFiles": 0,
+      "status": "MIXED",
+      "topConsumers": [],
+      "topExt": [
+        "@(126)",
+        "react(44)",
+        "next(29)"
+      ],
+      "runtimeSeedCount": 2,
+      "wired": "wired-entry"
+    },
+    "prism": {
+      "fileCount": 19,
+      "totalKB": 25.9,
+      "alive": 17,
+      "dead": 2,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "MIXED",
+      "topConsumers": [],
+      "topExt": [
+        "@react-three(7)",
+        "react(6)",
+        "three(3)"
+      ],
+      "runtimeSeedCount": 1,
+      "wired": "wired-entry"
+    },
+    "ai": {
+      "fileCount": 43,
+      "totalKB": 671.5,
+      "alive": 42,
+      "dead": 0,
+      "uncertain": 1,
+      "testFiles": 0,
+      "status": "MIXED",
+      "topConsumers": [],
+      "topExt": [
+        "openai(9)",
+        "@google(4)",
+        "@sinclair(3)"
+      ],
+      "runtimeSeedCount": 2,
+      "wired": "wired-entry"
+    },
+    "cassi-watch": {
+      "fileCount": 10,
+      "totalKB": 44.9,
+      "alive": 10,
+      "dead": 0,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "ALIVE",
+      "topConsumers": [],
+      "topExt": [
+        "react(8)",
+        "ink(8)",
+        "node:http(1)"
+      ],
+      "runtimeSeedCount": 1,
+      "wired": "wired-entry"
+    },
+    "scripts": {
+      "fileCount": 29,
+      "totalKB": 299.3,
+      "alive": 1,
+      "dead": 27,
+      "uncertain": 1,
+      "testFiles": 0,
+      "status": "MIXED",
+      "topConsumers": [
+        "core(1)"
+      ],
+      "topExt": [
+        "fs(12)",
+        "module(11)",
+        "node:fs(8)"
+      ],
+      "runtimeSeedCount": 0,
+      "wired": "core-reached"
+    },
+    "mind-plugin": {
+      "fileCount": 2,
+      "totalKB": 8.5,
+      "alive": 2,
+      "dead": 0,
+      "uncertain": 0,
+      "testFiles": 0,
+      "status": "ALIVE",
+      "topConsumers": [],
+      "topExt": [
+        "node:net(1)"
+      ],
+      "runtimeSeedCount": 2,
+      "wired": "wired-entry"
+    },
+    "extra_tests": {
+      "fileCount": 273,
+      "totalKB": 3139.2,
+      "alive": 0,
+      "dead": 15,
+      "uncertain": 5,
+      "testFiles": 253,
+      "status": "MIXED-DEAD",
+      "topConsumers": [
+        "scripts(2)"
+      ],
+      "topExt": [
+        "vitest(253)",
+        "node:path(37)",
+        "node:fs(34)"
+      ],
+      "runtimeSeedCount": 0,
+      "wired": "not-core-reached"
+    }
+  },
+  "deadFiles": [
+    {
+      "rel": "core/adapters/cli/CLIAdapter.ts",
+      "kb": 8.77
+    },
+    {
+      "rel": "core/adapters/file/FileAdapter.ts",
+      "kb": 6.6
+    },
+    {
+      "rel": "core/adapters/http/HTTPAdapter.ts",
+      "kb": 8.07
+    },
+    {
+      "rel": "core/admin-api/activity.ts",
+      "kb": 9.6
+    },
+    {
+      "rel": "core/admin-api/metrics.ts",
+      "kb": 3.21
+    },
+    {
+      "rel": "core/admin-api/team-timeline.ts",
+      "kb": 1.94
+    },
+    {
+      "rel": "core/config-validator.ts",
+      "kb": 8.94
+    },
+    {
+      "rel": "core/daemon/boot-channels.ts",
+      "kb": 2.82
+    },
+    {
+      "rel": "core/daemon/boot-providers.ts",
+      "kb": 22.47
+    },
+    {
+      "rel": "core/daemon/boot-types.ts",
+      "kb": 7.5
+    },
+    {
+      "rel": "core/daemon/channel-loader.ts",
+      "kb": 7.42
+    },
+    {
+      "rel": "core/deploy/DockerBuilder.ts",
+      "kb": 6.56
+    },
+    {
+      "rel": "core/deploy/index.ts",
+      "kb": 0.27
+    },
+    {
+      "rel": "core/deploy/K8sGenerator.ts",
+      "kb": 6.78
+    },
+    {
+      "rel": "core/hierarchy-bridge.ts",
+      "kb": 18.52
+    },
+    {
+      "rel": "core/ingestion/adapters/AdapterRegistry.ts",
+      "kb": 2.37
+    },
+    {
+      "rel": "core/ingestion/adapters/BaseAdapter.ts",
+      "kb": 2.48
+    },
+    {
+      "rel": "core/ingestion/core/PromptIngestionEngine.ts",
+      "kb": 2.51
+    },
+    {
+      "rel": "core/ingestion/core/types.ts",
+      "kb": 3.53
+    },
+    {
+      "rel": "core/ingestion/envelope/PromptEnvelope.ts",
+      "kb": 3.18
+    },
+    {
+      "rel": "core/intelligence/aurora/affect-calibration.ts",
+      "kb": 4.98
+    },
+    {
+      "rel": "core/intelligence/aurora/affect-probes/v1.ts",
+      "kb": 5.6
+    },
+    {
+      "rel": "core/intelligence/aurora/affect-signature-store.ts",
+      "kb": 6
+    },
+    {
+      "rel": "core/intelligence/aurora/claustrum-snapshot.ts",
+      "kb": 12.65
+    },
+    {
+      "rel": "core/intelligence/aurora/coherence-detector/probe-set.ts",
+      "kb": 5.27
+    },
+    {
+      "rel": "core/intelligence/aurora/fine-tune-gating.ts",
+      "kb": 1.99
+    },
+    {
+      "rel": "core/intelligence/aurora/mnemic-steering-bridge.ts",
+      "kb": 7.81
+    },
+    {
+      "rel": "core/intelligence/aurora/nla-bridge.ts",
+      "kb": 3.71
+    },
+    {
+      "rel": "core/intelligence/aurora/welfare-probe-set.ts",
+      "kb": 4.89
+    },
+    {
+      "rel": "core/intelligence/branching-conversation/decision-tree.ts",
+      "kb": 9.18
+    },
+    {
+      "rel": "core/intelligence/branching-conversation/middleware.ts",
+      "kb": 7.65
+    },
+    {
+      "rel": "core/intelligence/branching-conversation/session-store.ts",
+      "kb": 11.13
+    },
+    {
+      "rel": "core/intelligence/budget-monitor.ts",
+      "kb": 8.7
+    },
+    {
+      "rel": "core/intelligence/constellation/corpus-reflection-processor.ts",
+      "kb": 19.15
+    },
+    {
+      "rel": "core/intelligence/constellation/corpus-strategy-registry.ts",
+      "kb": 5.13
+    },
+    {
+      "rel": "core/intelligence/constellation/decomposition-workflow.ts",
+      "kb": 4.95
+    },
+    {
+      "rel": "core/intelligence/constellation/self-edit-store.ts",
+      "kb": 14.17
+    },
+    {
+      "rel": "core/intelligence/constellation/self-edit-types.ts",
+      "kb": 17.12
+    },
+    {
+      "rel": "core/intelligence/constellation/signal-pattern-digest.ts",
+      "kb": 4.06
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/cascade-recovery.ts",
+      "kb": 5.98
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/conflict-resolution.ts",
+      "kb": 7.27
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/convergence-synthesis.ts",
+      "kb": 5.15
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/divergence.ts",
+      "kb": 4.67
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/index.ts",
+      "kb": 0.62
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/redundancy.ts",
+      "kb": 5.87
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/resource-imbalance.ts",
+      "kb": 5.63
+    },
+    {
+      "rel": "core/intelligence/constellation/strategies/stuck-redecomposition.ts",
+      "kb": 8.2
+    },
+    {
+      "rel": "core/intelligence/constellation/territory-bridge.ts",
+      "kb": 9.4
+    },
+    {
+      "rel": "core/intelligence/constellation/unified-cell.ts",
+      "kb": 18.96
+    },
+    {
+      "rel": "core/intelligence/cortex/blackboard-adapter.ts",
+      "kb": 2.67
+    },
+    {
+      "rel": "core/intelligence/dialectic/parallel-processor.ts",
+      "kb": 16.25
+    },
+    {
+      "rel": "core/intelligence/goal-tree.ts",
+      "kb": 13.52
+    },
+    {
+      "rel": "core/intelligence/helix/helix-archive-promotion.ts",
+      "kb": 6.23
+    },
+    {
+      "rel": "core/intelligence/helix/helix-recovery.ts",
+      "kb": 4.27
+    },
+    {
+      "rel": "core/intelligence/helix/helix-replay.ts",
+      "kb": 5.68
+    },
+    {
+      "rel": "core/intelligence/helix/helix-validator.ts",
+      "kb": 17.26
+    },
+    {
+      "rel": "core/intelligence/helix/mentor-utils.ts",
+      "kb": 1.7
+    },
+    {
+      "rel": "core/intelligence/helix/test-mentor.ts",
+      "kb": 0.13
+    },
+    {
+      "rel": "core/intelligence/helix/unified-session.ts",
+      "kb": 22.44
+    },
+    {
+      "rel": "core/intelligence/improvement/hypothesis-scenario-bridge.ts",
+      "kb": 9.7
+    },
+    {
+      "rel": "core/intelligence/improvement/llm-scenario-generator.ts",
+      "kb": 14.25
+    },
+    {
+      "rel": "core/intelligence/memory-bridge/memory-delta-injector.ts",
+      "kb": 19.99
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/backfill-runner.ts",
+      "kb": 4.13
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/feature-backfill.ts",
+      "kb": 5.47
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/feature-migrate-to-lmdb.ts",
+      "kb": 2.92
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/segmentation.ts",
+      "kb": 0
+    },
+    {
+      "rel": "core/intelligence/pineal/projection.ts",
+      "kb": 2.47
+    },
+    {
+      "rel": "core/intelligence/session-activity-store.ts",
+      "kb": 20.87
+    },
+    {
+      "rel": "core/intelligence/session-result-store.ts",
+      "kb": 14.3
+    },
+    {
+      "rel": "core/lsp/client.ts",
+      "kb": 18.1
+    },
+    {
+      "rel": "core/lsp/index.ts",
+      "kb": 11.16
+    },
+    {
+      "rel": "core/lsp/language.ts",
+      "kb": 3.28
+    },
+    {
+      "rel": "core/lsp/launch.ts",
+      "kb": 3.63
+    },
+    {
+      "rel": "core/lsp/server.ts",
+      "kb": 6.84
+    },
+    {
+      "rel": "core/lsp/types.ts",
+      "kb": 4.4
+    },
+    {
+      "rel": "core/model-pool/templates.ts",
+      "kb": 10.63
+    },
+    {
+      "rel": "core/providers/claude-code-bridge/defer-tool-hook.mjs",
+      "kb": 1.33
+    },
+    {
+      "rel": "core/providers/claude-code-bridge/ephemeral-mcp-server.mjs",
+      "kb": 1.69
+    },
+    {
+      "rel": "core/providers/openai-compatible-base.js",
+      "kb": 29.35
+    },
+    {
+      "rel": "core/providers/pi-bridge.ts",
+      "kb": 2.95
+    },
+    {
+      "rel": "core/providers/qwen-coder.ts",
+      "kb": 9.23
+    },
+    {
+      "rel": "core/self-analysis.ts",
+      "kb": 8.8
+    },
+    {
+      "rel": "core/tools/executor.instrumented.ts",
+      "kb": 6
+    },
+    {
+      "rel": "core/tools/implementations/activity-tools.ts",
+      "kb": 14.93
+    },
+    {
+      "rel": "core/tools/implementations/edit-file.ts",
+      "kb": 5.4
+    },
+    {
+      "rel": "core/tools/implementations/read-file-benchmark.ts",
+      "kb": 5.41
+    },
+    {
+      "rel": "core/tools/implementations/skill.ts",
+      "kb": 6.42
+    },
+    {
+      "rel": "core/tools/instrumentation.ts",
+      "kb": 4.51
+    },
+    {
+      "rel": "core/tools/permission-gate.ts",
+      "kb": 3.76
+    },
+    {
+      "rel": "core/tools/resolver.ts",
+      "kb": 3.11
+    },
+    {
+      "rel": "core/tools/serena-types.ts",
+      "kb": 2.15
+    },
+    {
+      "rel": "core/tools/tool-selector.ts",
+      "kb": 4.93
+    },
+    {
+      "rel": "core/unified/types.ts",
+      "kb": 10.17
+    },
+    {
+      "rel": "core/utils/atomic-fs.ts",
+      "kb": 2.66
+    },
+    {
+      "rel": "core/utils/error-logging.ts",
+      "kb": 1.92
+    },
+    {
+      "rel": "core/utils/format.ts",
+      "kb": 0.59
+    },
+    {
+      "rel": "core/utils/parse-structured-response.ts",
+      "kb": 1.97
+    },
+    {
+      "rel": "core/utils/persistence-metrics.ts",
+      "kb": 7.37
+    },
+    {
+      "rel": "core/utils/resume-tokens.ts",
+      "kb": 5.94
+    },
+    {
+      "rel": "core/utils/truncation.ts",
+      "kb": 3.59
+    },
+    {
+      "rel": "types/log-events.ts",
+      "kb": 3.42
+    },
+    {
+      "rel": "types/lsp.ts",
+      "kb": 2.52
+    },
+    {
+      "rel": "types/metadata.ts",
+      "kb": 9.57
+    },
+    {
+      "rel": "types/reasoning-chain.ts",
+      "kb": 24.21
+    },
+    {
+      "rel": "types/team-dependencies.ts",
+      "kb": 10.25
+    },
+    {
+      "rel": "types/team.ts",
+      "kb": 10.21
+    },
+    {
+      "rel": "integrations/claude-code/src/hook-command.cjs",
+      "kb": 1.71
+    },
+    {
+      "rel": "integrations/claude-code/src/hook-server.ts",
+      "kb": 25.38
+    },
+    {
+      "rel": "integrations/claude-code/src/logger.ts",
+      "kb": 1.96
+    },
+    {
+      "rel": "integrations/claude-code/src/model-router.ts",
+      "kb": 9.78
+    },
+    {
+      "rel": "integrations/claude-code/src/proxy.ts",
+      "kb": 42.7
+    },
+    {
+      "rel": "integrations/claude-code/src/server.ts",
+      "kb": 22.12
+    },
+    {
+      "rel": "integrations/claude-code/src/settings-sync.ts",
+      "kb": 4.77
+    },
+    {
+      "rel": "integrations/hermes-agent/src/server.ts",
+      "kb": 3.6
+    },
+    {
+      "rel": "integrations/hermes-agent/src/tools/cognitive.ts",
+      "kb": 20.67
+    },
+    {
+      "rel": "integrations/hermes-agent/src/tools/curation.ts",
+      "kb": 12.22
+    },
+    {
+      "rel": "integrations/hermes-agent/src/tools/orchestration.ts",
+      "kb": 10.54
+    },
+    {
+      "rel": "integrations/hermes-agent/src/tools/routing.ts",
+      "kb": 2.32
+    },
+    {
+      "rel": "integrations/hermes-agent/src/types.ts",
+      "kb": 1.52
+    },
+    {
+      "rel": "integrations/opencode/src/cassicore.mjs",
+      "kb": 55.95
+    },
+    {
+      "rel": "webui/eslint.config.mjs",
+      "kb": 0.37
+    },
+    {
+      "rel": "webui/next-env.d.ts",
+      "kb": 0.26
+    },
+    {
+      "rel": "webui/next.config.ts",
+      "kb": 0.67
+    },
+    {
+      "rel": "webui/observatory/postcss.config.mjs",
+      "kb": 0.11
+    },
+    {
+      "rel": "webui/observatory/src/api/event-stream.ts",
+      "kb": 6.26
+    },
+    {
+      "rel": "webui/observatory/src/components/context-window-chart.ts",
+      "kb": 9.24
+    },
+    {
+      "rel": "webui/observatory/src/components/event-log.ts",
+      "kb": 5.49
+    },
+    {
+      "rel": "webui/observatory/src/components/event-rate-chart.ts",
+      "kb": 6.2
+    },
+    {
+      "rel": "webui/observatory/src/components/provider-metrics-chart.ts",
+      "kb": 8.04
+    },
+    {
+      "rel": "webui/observatory/src/components/split-pane.ts",
+      "kb": 4.52
+    },
+    {
+      "rel": "webui/observatory/src/main.ts",
+      "kb": 0.05
+    },
+    {
+      "rel": "webui/observatory/src/observatory-app.ts",
+      "kb": 12.58
+    },
+    {
+      "rel": "webui/observatory/src/panels/cognition-panel.ts",
+      "kb": 53.09
+    },
+    {
+      "rel": "webui/observatory/src/panels/event-stream-panel.ts",
+      "kb": 3.37
+    },
+    {
+      "rel": "webui/observatory/src/panels/intelligence-panel.ts",
+      "kb": 18.52
+    },
+    {
+      "rel": "webui/observatory/src/panels/memory-panel.ts",
+      "kb": 22.81
+    },
+    {
+      "rel": "webui/observatory/src/panels/providers-panel.ts",
+      "kb": 6.43
+    },
+    {
+      "rel": "webui/observatory/src/panels/sessions-panel.ts",
+      "kb": 17.77
+    },
+    {
+      "rel": "webui/observatory/src/panels/topology-panel.ts",
+      "kb": 20.34
+    },
+    {
+      "rel": "webui/observatory/vite.config.ts",
+      "kb": 0.34
+    },
+    {
+      "rel": "webui/postcss.config.mjs",
+      "kb": 0.13
+    },
+    {
+      "rel": "webui/prettier.config.cjs",
+      "kb": 0.2
+    },
+    {
+      "rel": "webui/src/api/os.ts",
+      "kb": 4.06
+    },
+    {
+      "rel": "webui/src/api/routes.ts",
+      "kb": 0.77
+    },
+    {
+      "rel": "webui/src/components/cassicore/DialecticColumn.tsx",
+      "kb": 8.88
+    },
+    {
+      "rel": "webui/src/components/cassicore/IntelligenceDrawer.tsx",
+      "kb": 32.36
+    },
+    {
+      "rel": "webui/src/components/cassicore/IntelligencePanel.tsx",
+      "kb": 19.99
+    },
+    {
+      "rel": "webui/src/components/cassicore/MemorySearch.tsx",
+      "kb": 9.39
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/ChatArea.tsx",
+      "kb": 0.38
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/ChatInput/ChatInput.tsx",
+      "kb": 4.42
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/ChatInput/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/MessageArea.tsx",
+      "kb": 0.75
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/AgentThinkingLoader.tsx",
+      "kb": 0.48
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/ChatBlankState.tsx",
+      "kb": 4.56
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Messages.tsx",
+      "kb": 8.99
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Multimedia/Audios/Audios.tsx",
+      "kb": 1.31
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Multimedia/Audios/index.ts",
+      "kb": 0.05
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Multimedia/Images/Images.tsx",
+      "kb": 1.27
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Multimedia/Images/index.ts",
+      "kb": 0.05
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Multimedia/Videos/index.ts",
+      "kb": 0.05
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/Multimedia/Videos/Videos.tsx",
+      "kb": 2.01
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/ScrollToBottom.tsx",
+      "kb": 1.13
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/AuthToken.tsx",
+      "kb": 4.59
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/EntitySelector.tsx",
+      "kb": 3.15
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/ModeSelector.tsx",
+      "kb": 1.59
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/NewChatButton.tsx",
+      "kb": 0.73
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/Sessions/DeleteSessionModal.tsx",
+      "kb": 1.29
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/Sessions/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/Sessions/SessionBlankState.tsx",
+      "kb": 5.9
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/Sessions/SessionItem.tsx",
+      "kb": 3.74
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/Sessions/Sessions.tsx",
+      "kb": 4.76
+    },
+    {
+      "rel": "webui/src/components/chat/Sidebar/Sidebar.tsx",
+      "kb": 10.58
+    },
+    {
+      "rel": "webui/src/components/ui/button.tsx",
+      "kb": 1.85
+    },
+    {
+      "rel": "webui/src/components/ui/dialog.tsx",
+      "kb": 3.87
+    },
+    {
+      "rel": "webui/src/components/ui/icon/constants.tsx",
+      "kb": 1.32
+    },
+    {
+      "rel": "webui/src/components/ui/icon/custom-icons.tsx",
+      "kb": 67.12
+    },
+    {
+      "rel": "webui/src/components/ui/icon/Icon.tsx",
+      "kb": 0.75
+    },
+    {
+      "rel": "webui/src/components/ui/icon/index.ts",
+      "kb": 0.09
+    },
+    {
+      "rel": "webui/src/components/ui/icon/types.ts",
+      "kb": 0.74
+    },
+    {
+      "rel": "webui/src/components/ui/skeleton.tsx",
+      "kb": 0.26
+    },
+    {
+      "rel": "webui/src/components/ui/textarea.tsx",
+      "kb": 2.82
+    },
+    {
+      "rel": "webui/src/components/ui/tooltip/CustomTooltip.tsx",
+      "kb": 0.65
+    },
+    {
+      "rel": "webui/src/components/ui/tooltip/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/ui/tooltip/tooltip.tsx",
+      "kb": 1.37
+    },
+    {
+      "rel": "webui/src/components/ui/tooltip/types.ts",
+      "kb": 0.24
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Heading/constants.ts",
+      "kb": 0.26
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Heading/Heading.tsx",
+      "kb": 0.56
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Heading/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Heading/types.ts",
+      "kb": 0.34
+    },
+    {
+      "rel": "webui/src/components/ui/typography/MarkdownRenderer/index.ts",
+      "kb": 0.08
+    },
+    {
+      "rel": "webui/src/components/ui/typography/MarkdownRenderer/inlineStyles.tsx",
+      "kb": 5.02
+    },
+    {
+      "rel": "webui/src/components/ui/typography/MarkdownRenderer/MarkdownRenderer.tsx",
+      "kb": 0.83
+    },
+    {
+      "rel": "webui/src/components/ui/typography/MarkdownRenderer/types.ts",
+      "kb": 2.72
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Paragraph/constants.ts",
+      "kb": 0.59
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Paragraph/index.ts",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Paragraph/Paragraph.tsx",
+      "kb": 0.37
+    },
+    {
+      "rel": "webui/src/components/ui/typography/Paragraph/types.ts",
+      "kb": 0.34
+    },
+    {
+      "rel": "webui/src/hooks/useAIResponseStream.tsx",
+      "kb": 7.47
+    },
+    {
+      "rel": "webui/src/hooks/useAIStreamHandler.tsx",
+      "kb": 16.13
+    },
+    {
+      "rel": "webui/src/hooks/useChatActions.ts",
+      "kb": 5.98
+    },
+    {
+      "rel": "webui/src/hooks/useSessionLoader.tsx",
+      "kb": 5.21
+    },
+    {
+      "rel": "webui/src/types/os.ts",
+      "kb": 6.2
+    },
+    {
+      "rel": "webui/tailwind.config.ts",
+      "kb": 0.91
+    },
+    {
+      "rel": "prism/src/vite-env.d.ts",
+      "kb": 0.27
+    },
+    {
+      "rel": "prism/vite.config.ts",
+      "kb": 0.42
+    },
+    {
+      "rel": "scripts/check-commit-msg.ts",
+      "kb": 2.98
+    },
+    {
+      "rel": "scripts/check-contributing.ts",
+      "kb": 17
+    },
+    {
+      "rel": "scripts/debug-store.ts",
+      "kb": 1.32
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-1.mjs",
+      "kb": 9.13
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-1b.mjs",
+      "kb": 18.95
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-2.mjs",
+      "kb": 18.21
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-3.mjs",
+      "kb": 18.78
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-4.mjs",
+      "kb": 13.05
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-5.mjs",
+      "kb": 18.83
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-6.mjs",
+      "kb": 17.19
+    },
+    {
+      "rel": "scripts/fluid-field/experiment-6b.mjs",
+      "kb": 18.53
+    },
+    {
+      "rel": "scripts/fluid-field/fluid-field.mjs",
+      "kb": 7.26
+    },
+    {
+      "rel": "scripts/fluid-field/test-residual-norms.mjs",
+      "kb": 3.49
+    },
+    {
+      "rel": "scripts/foreshadow-bench-text.ts",
+      "kb": 1.64
+    },
+    {
+      "rel": "scripts/foreshadow-bench.ts",
+      "kb": 5.94
+    },
+    {
+      "rel": "scripts/foreshadow-eval.ts",
+      "kb": 4.21
+    },
+    {
+      "rel": "scripts/generate-deps.ts",
+      "kb": 22.36
+    },
+    {
+      "rel": "scripts/index-messages-features.ts",
+      "kb": 3.93
+    },
+    {
+      "rel": "scripts/install-git-hooks.js",
+      "kb": 1.32
+    },
+    {
+      "rel": "scripts/migrate-dialectic.ts",
+      "kb": 3.1
+    },
+    {
+      "rel": "scripts/patch-esm-compat.cjs",
+      "kb": 1.94
+    },
+    {
+      "rel": "scripts/release.ts",
+      "kb": 19.85
+    },
+    {
+      "rel": "scripts/restructure/config-updater.ts",
+      "kb": 5.77
+    },
+    {
+      "rel": "scripts/restructure/import-rewriter.ts",
+      "kb": 10.41
+    },
+    {
+      "rel": "scripts/restructure/migrate.ts",
+      "kb": 13.43
+    },
+    {
+      "rel": "scripts/smoke-subconscious.ts",
+      "kb": 2.62
+    },
+    {
+      "rel": "scripts/test-engram-napi.ts",
+      "kb": 3.92
+    },
+    {
+      "rel": "tests/core/intelligence/branching-conversation/decision-tree.ts",
+      "kb": 9.18
+    },
+    {
+      "rel": "tests/core/intelligence/branching-conversation/middleware.ts",
+      "kb": 7.88
+    },
+    {
+      "rel": "tests/core/intelligence/branching-conversation/session-store.ts",
+      "kb": 6.78
+    },
+    {
+      "rel": "tests/core/intelligence/branching-conversation/types.ts",
+      "kb": 9.37
+    },
+    {
+      "rel": "tests/fixtures/dummy-worker.js",
+      "kb": 0.78
+    },
+    {
+      "rel": "tests/fixtures/dummy-worker.ts",
+      "kb": 0.75
+    },
+    {
+      "rel": "tests/helpers.ts",
+      "kb": 1.36
+    },
+    {
+      "rel": "tests/helpers/file-setup.ts",
+      "kb": 1.97
+    },
+    {
+      "rel": "tests/helpers/fixture-manager.ts",
+      "kb": 8.32
+    },
+    {
+      "rel": "tests/self-monitoring/scenarios/token-pressure-scenario.ts",
+      "kb": 18.97
+    },
+    {
+      "rel": "tests/self-monitoring/scenarios/tool-delay-scenario.ts",
+      "kb": 16.86
+    },
+    {
+      "rel": "tests/self-monitoring/self-monitoring-hooks.ts",
+      "kb": 9.95
+    },
+    {
+      "rel": "tests/smoke.ts",
+      "kb": 2.92
+    },
+    {
+      "rel": "tests/spike-infinite-session.ts",
+      "kb": 43.91
+    },
+    {
+      "rel": "tests/spike-warm-provider.ts",
+      "kb": 6.25
+    }
+  ],
+  "uncertainFiles": [
+    {
+      "rel": "core/admin-api/system-prompt.ts",
+      "why": "live-name-ref:1",
+      "kb": 2.97
+    },
+    {
+      "rel": "core/bridge/acp/index.ts",
+      "why": "live-name-ref:7",
+      "kb": 0.24
+    },
+    {
+      "rel": "core/context-snapshot-store.ts",
+      "why": "live-name-ref:1",
+      "kb": 12.42
+    },
+    {
+      "rel": "core/daemon/boot-configuration.ts",
+      "why": "live-name-ref:4",
+      "kb": 10.23
+    },
+    {
+      "rel": "core/daemon/boot-intelligence-pre.ts",
+      "why": "live-name-ref:1",
+      "kb": 10.98
+    },
+    {
+      "rel": "core/daemon/boot-pipeline-tools.ts",
+      "why": "live-name-ref:1",
+      "kb": 23.18
+    },
+    {
+      "rel": "core/daemon/intelligence-wiring.ts",
+      "why": "live-name-ref:2",
+      "kb": 3.97
+    },
+    {
+      "rel": "core/ingestion/core/index.ts",
+      "why": "live-name-ref:28",
+      "kb": 0.78
+    },
+    {
+      "rel": "core/ingestion/pipeline/Pipeline.ts",
+      "why": "live-name-ref:28",
+      "kb": 2.19
+    },
+    {
+      "rel": "core/intelligence/branching-conversation/index.ts",
+      "why": "live-name-ref:3",
+      "kb": 0.23
+    },
+    {
+      "rel": "core/intelligence/cassi-agent/index.ts",
+      "why": "live-name-ref:17",
+      "kb": 0.76
+    },
+    {
+      "rel": "core/intelligence/code-vault/index.ts",
+      "why": "live-name-ref:1",
+      "kb": 3.88
+    },
+    {
+      "rel": "core/intelligence/constellation/consolidation/index.ts",
+      "why": "live-name-ref:2",
+      "kb": 0.16
+    },
+    {
+      "rel": "core/intelligence/constellation/index.ts",
+      "why": "live-name-ref:78",
+      "kb": 4.25
+    },
+    {
+      "rel": "core/intelligence/constellation/topology/index.ts",
+      "why": "live-name-ref:11",
+      "kb": 1.58
+    },
+    {
+      "rel": "core/intelligence/flux-team/index.ts",
+      "why": "live-name-ref:48",
+      "kb": 1.85
+    },
+    {
+      "rel": "core/intelligence/helix/context-curator.ts",
+      "why": "live-name-ref:3",
+      "kb": 12.41
+    },
+    {
+      "rel": "core/intelligence/memory-bridge/index.ts",
+      "why": "live-name-ref:12",
+      "kb": 2.45
+    },
+    {
+      "rel": "core/intelligence/mini-helix/index.ts",
+      "why": "live-name-ref:5",
+      "kb": 0.51
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/archive-engram-mapper.ts",
+      "why": "live-name-ref:2",
+      "kb": 3.26
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/archive-ingestion-bridge.ts",
+      "why": "live-name-ref:1",
+      "kb": 8.98
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/knowledge/index.ts",
+      "why": "live-name-ref:6",
+      "kb": 0.57
+    },
+    {
+      "rel": "core/intelligence/utils/strip-artifacts.ts",
+      "why": "live-name-ref:4",
+      "kb": 1.45
+    },
+    {
+      "rel": "core/mcp/index.ts",
+      "why": "live-name-ref:4",
+      "kb": 0.18
+    },
+    {
+      "rel": "core/observability/telemetry.ts",
+      "why": "live-name-ref:26",
+      "kb": 13.09
+    },
+    {
+      "rel": "core/providers/copilot-sdk/index.ts",
+      "why": "live-name-ref:10",
+      "kb": 0.68
+    },
+    {
+      "rel": "core/providers/hermes-bridge.ts",
+      "why": "live-name-ref:1",
+      "kb": 16.48
+    },
+    {
+      "rel": "core/providers/opencode-go.js",
+      "why": "live-name-ref:2",
+      "kb": 4.6
+    },
+    {
+      "rel": "core/providers/opencode-go.ts",
+      "why": "live-name-ref:2",
+      "kb": 0.14
+    },
+    {
+      "rel": "core/testing/verification/index.ts",
+      "why": "live-name-ref:10",
+      "kb": 0.64
+    },
+    {
+      "rel": "core/tools/hermes-bridge.ts",
+      "why": "live-name-ref:1",
+      "kb": 7.21
+    },
+    {
+      "rel": "core/tools/implementations/lsp-tool.ts",
+      "why": "live-name-ref:1",
+      "kb": 6.85
+    },
+    {
+      "rel": "core/tools/implementations/peer-coordination-tools.ts",
+      "why": "live-name-ref:2",
+      "kb": 25.08
+    },
+    {
+      "rel": "core/tools/implementations/think.ts",
+      "why": "live-name-ref:1",
+      "kb": 9.27
+    },
+    {
+      "rel": "core/tools/read-tools.ts",
+      "why": "live-name-ref:2",
+      "kb": 10.12
+    },
+    {
+      "rel": "core/tools/serena-mcp-client.ts",
+      "why": "live-name-ref:1",
+      "kb": 6.47
+    },
+    {
+      "rel": "core/unified/templates.ts",
+      "why": "live-name-ref:4",
+      "kb": 12.19
+    },
+    {
+      "rel": "core/utils/backoff.ts",
+      "why": "live-name-ref:2",
+      "kb": 9.36
+    },
+    {
+      "rel": "core/utils/session-serializer.ts",
+      "why": "live-name-ref:1",
+      "kb": 4.33
+    },
+    {
+      "rel": "integrations/claude-code/src/bridge.ts",
+      "why": "live-name-ref:538",
+      "kb": 19.66
+    },
+    {
+      "rel": "integrations/claude-code/src/context-builder.ts",
+      "why": "live-name-ref:1",
+      "kb": 5.04
+    },
+    {
+      "rel": "integrations/claude-code/src/provider-registry.ts",
+      "why": "live-name-ref:18",
+      "kb": 8.69
+    },
+    {
+      "rel": "integrations/claude-code/src/state.ts",
+      "why": "live-name-ref:15",
+      "kb": 5.99
+    },
+    {
+      "rel": "integrations/hermes-agent/src/helpers.ts",
+      "why": "live-name-ref:132",
+      "kb": 1.26
+    },
+    {
+      "rel": "integrations/hermes-agent/src/state-db.ts",
+      "why": "live-name-ref:13",
+      "kb": 6.09
+    },
+    {
+      "rel": "integrations/hermes-agent/src/tools/sessions.ts",
+      "why": "live-name-ref:4",
+      "kb": 11.9
+    },
+    {
+      "rel": "cassi-tui/src/components/index.ts",
+      "why": "live-name-ref:18",
+      "kb": 0.67
+    },
+    {
+      "rel": "webui/observatory/src/api/observatory-client.ts",
+      "why": "live-name-ref:52",
+      "kb": 20.22
+    },
+    {
+      "rel": "webui/src/app/api/agents/[agentId]/runs/route.ts",
+      "why": "live-name-ref:106",
+      "kb": 12.88
+    },
+    {
+      "rel": "webui/src/app/api/agents/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 1.1
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/context/injections/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 1.37
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/dialectic/[sessionId]/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.79
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/events/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 1.5
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/info/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.67
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/intelligence/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 1.09
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/memory/recent/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.79
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/memory/search/route.ts",
+      "why": "live-name-ref:106",
+      "kb": 1.09
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/models/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.62
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/providers/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.66
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/sessions/[sessionId]/command/route.ts",
+      "why": "live-name-ref:106",
+      "kb": 1.23
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/sessions/route.ts",
+      "why": "live-name-ref:106",
+      "kb": 1.26
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/subconscious/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.68
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/system-prompt/route.ts",
+      "why": "live-name-ref:115",
+      "kb": 1.3
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/system-prompt/sections/[label]/route.ts",
+      "why": "live-name-ref:106",
+      "kb": 1.06
+    },
+    {
+      "rel": "webui/src/app/api/cassicore/thinker/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.67
+    },
+    {
+      "rel": "webui/src/app/api/health/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.52
+    },
+    {
+      "rel": "webui/src/app/api/sessions/[sessionId]/route.ts",
+      "why": "live-name-ref:54",
+      "kb": 0.72
+    },
+    {
+      "rel": "webui/src/app/api/sessions/[sessionId]/runs/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 2.02
+    },
+    {
+      "rel": "webui/src/app/api/sessions/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 2.87
+    },
+    {
+      "rel": "webui/src/app/api/teams/route.ts",
+      "why": "live-name-ref:69",
+      "kb": 0.79
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/index.ts",
+      "why": "live-name-ref:1",
+      "kb": 0.06
+    },
+    {
+      "rel": "webui/src/components/chat/ChatArea/Messages/MessageItem.tsx",
+      "why": "live-name-ref:1",
+      "kb": 2.78
+    },
+    {
+      "rel": "webui/src/components/ui/select.tsx",
+      "why": "live-name-ref:9",
+      "kb": 5.48
+    },
+    {
+      "rel": "webui/src/components/ui/sonner.tsx",
+      "why": "live-name-ref:1",
+      "kb": 0.87
+    },
+    {
+      "rel": "webui/src/components/ui/typography/MarkdownRenderer/styles.tsx",
+      "why": "live-name-ref:39",
+      "kb": 6.66
+    },
+    {
+      "rel": "webui/src/hooks/useCassiCoreData.ts",
+      "why": "live-name-ref:1",
+      "kb": 2.17
+    },
+    {
+      "rel": "webui/src/store.ts",
+      "why": "live-name-ref:8",
+      "kb": 5.84
+    },
+    {
+      "rel": "ai/src/utils/http-proxy.ts",
+      "why": "live-string-ref:2",
+      "kb": 0.5
+    },
+    {
+      "rel": "scripts/restructure/manifest.ts",
+      "why": "live-name-ref:10",
+      "kb": 29.55
+    },
+    {
+      "rel": "tests/api-spec/overseer-control-api.ts",
+      "why": "live-name-ref:1",
+      "kb": 11.56
+    },
+    {
+      "rel": "tests/core/intelligence/branching-conversation/index.ts",
+      "why": "live-name-ref:3",
+      "kb": 0.23
+    },
+    {
+      "rel": "tests/core/intelligence/branching-conversation/manager.ts",
+      "why": "live-name-ref:3",
+      "kb": 20.67
+    },
+    {
+      "rel": "tests/fixtures/read-file-tool-v2/small-files/code-example.ts",
+      "why": "live-name-ref:176",
+      "kb": 0.28
+    },
+    {
+      "rel": "tests/helpers/fixture-factories.ts",
+      "why": "live-name-ref:340",
+      "kb": 9.53
+    }
+  ],
+  "biggest": [
+    {
+      "rel": "ai/src/models.generated.ts",
+      "kb": 325.34,
+      "subsys": "ai"
+    },
+    {
+      "rel": "core/intelligence/thalamus/index.ts",
+      "kb": 184.99,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/index.ts",
+      "kb": 166.07,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/daemon.ts",
+      "kb": 158.17,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/constellation/constellation-pipeline.ts",
+      "kb": 137.1,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/constellation/corpus.ts",
+      "kb": 132.2,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/admin-api/memory.ts",
+      "kb": 124.03,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/helix/brainstem.ts",
+      "kb": 117.68,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/helix/helix-posture-runner.ts",
+      "kb": 107.04,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/aurora/index.ts",
+      "kb": 97.85,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/admin-api.ts",
+      "kb": 95.19,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/constellation/meditation/meditation-store.ts",
+      "kb": 94.1,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/consolidation.ts",
+      "kb": 76.55,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/mnemic-field/cortex.ts",
+      "kb": 74.48,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/constellation/constellation-store.ts",
+      "kb": 71.37,
+      "subsys": "core"
+    },
+    {
+      "rel": "webui/src/components/ui/icon/custom-icons.tsx",
+      "kb": 67.12,
+      "subsys": "webui"
+    },
+    {
+      "rel": "core/intelligence/flux-team/blackboard.ts",
+      "kb": 66.28,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/cognitive-feed/message-formatter.ts",
+      "kb": 65.25,
+      "subsys": "core"
+    },
+    {
+      "rel": "mcp/gateway/intelligence-tools.ts",
+      "kb": 65.19,
+      "subsys": "mcp"
+    },
+    {
+      "rel": "core/intelligence/flux-team/blackboard-tools.ts",
+      "kb": 63.07,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/aurora/larql-provider.ts",
+      "kb": 61.53,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/constellation/meditation/index.ts",
+      "kb": 57.85,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/constellation/meditation/organizing-synthesis.ts",
+      "kb": 56.89,
+      "subsys": "core"
+    },
+    {
+      "rel": "core/intelligence/shared/posture-store.ts",
+      "kb": 56.3,
+      "subsys": "core"
+    },
+    {
+      "rel": "integrations/opencode/src/cassicore.mjs",
+      "kb": 55.95,
+      "subsys": "integrations"
+    }
+  ],
+  "runtimeReachSizes": {
+    "core": 714,
+    "commands": 9,
+    "workers": 11,
+    "mcp": 70,
+    "ai": 42,
+    "cassi-tui": 27,
+    "cassi-watch": 10,
+    "webui": 2,
+    "prism": 17,
+    "mind-plugin": 2
+  },
+  "runtimeStats": {},
+  "boundaries": [
+    {
+      "subsys": "core",
+      "entries": [
+        "core/bridge/acp/client.ts",
+        "core/bridge/acp/server.ts",
+        "core/entry/daemon-main.ts",
+        "core/entry/index.ts",
+        "core/entry/vindex-loader.ts",
+        "core/events/cassandra-event-client.ts",
+        "core/hierarchy-bridge.ts",
+        "core/intelligence/aurora/index.ts"
+      ]
+    },
+    {
+      "subsys": "types",
+      "entries": []
+    },
+    {
+      "subsys": "workers",
+      "entries": []
+    },
+    {
+      "subsys": "mcp",
+      "entries": [
+        "mcp/cassicore-gateway.ts",
+        "mcp/gitnexus-server.js",
+        "mcp/scip-server.ts",
+        "mcp/serena-server.js"
+      ]
+    },
+    {
+      "subsys": "commands",
+      "entries": []
+    },
+    {
+      "subsys": "integrations",
+      "entries": [
+        "integrations/claude-code/src/bridge.ts",
+        "integrations/claude-code/src/hook-server.ts",
+        "integrations/claude-code/src/server.ts",
+        "integrations/hermes-agent/src/server.ts"
+      ]
+    },
+    {
+      "subsys": "cassi-tui",
+      "entries": [
+        "cassi-tui/src/client/daemon-client.ts"
+      ]
+    },
+    {
+      "subsys": "webui",
+      "entries": [
+        "webui/observatory/src/api/observatory-client.ts",
+        "webui/observatory/src/main.ts"
+      ]
+    },
+    {
+      "subsys": "prism",
+      "entries": [
+        "prism/src/api/client.ts"
+      ]
+    },
+    {
+      "subsys": "ai",
+      "entries": [
+        "ai/src/providers/cassicore/index.ts"
+      ]
+    },
+    {
+      "subsys": "cassi-watch",
+      "entries": [
+        "cassi-watch/src/client/watch-client.ts"
+      ]
+    },
+    {
+      "subsys": "scripts",
+      "entries": []
+    },
+    {
+      "subsys": "mind-plugin",
+      "entries": [
+        "mind-plugin/src/index.ts",
+        "mind-plugin/src/mind-client.ts"
+      ]
+    },
+    {
+      "subsys": "extra_tests",
+      "entries": []
+    }
+  ],
+  "totalDeadKB": 1900.9,
+  "totalUncertainKB": 447.4
+}

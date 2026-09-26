@@ -1,0 +1,21 @@
+{
+  "parent": "minecraft:recipes/root",
+  "display": {
+    "icon": { "id": "cassicraft:weatherglass" },
+    "title": { "text": "Craft a Weatherglass" },
+    "description": { "text": "Plain use reads the local field. Sneak-use begins a Field Expedition." },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "crafted_weatherglass": {
+      "trigger": "minecraft:recipe_crafted",
+      "conditions": {
+        "recipe_id": "cassicraft:weatherglass"
+      }
+    }
+  },
+  "requirements": [["crafted_weatherglass"]]
+}

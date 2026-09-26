@@ -1,0 +1,161 @@
+#version 460
+
+// ─── QiCube PDE — 3D Gradient + Laplacian ───────────────────────────────
+// For each (voxel, dim), reads psi (vec2 real/imag) at the voxel and 6
+// nearest neighbors (h±1, w±1, d±1) at the same dim, then writes:
+//   grad_h, grad_w, grad_d  —  central-difference (edge: forward/backward)
+//   lap                     —  7-point discrete laplacian
+//
+// All values preserve vec2 (real, imag) structure.
+// ─────────────────────────────────────────────────────────────────────────
+
+// ─── Constants ──────────────────────────────────────────────────────────
+#define PHI          1.618033988749895
+#define PHI_INV      0.618033988749895
+#define PI           3.141592653589793
+
+#define V            256           // vocabulary size
+#define BYTE_EMBED_D 128           // byte embedding dimension
+#define D            16            // spatial depth
+#define W            16            // spatial width
+#define H            16            // spatial height
+#define D_DIM       128            // per-voxel field dimension
+#define N_VOXELS    4096           // H * W * D
+
+// Layout strides (idx voxel index → h,w,d)
+#define STRIDE_W     D             // 16
+#define STRIDE_H     (D * W)       // 256
+#define VOXEL_STRIDE (D_DIM * 2)   // 256  (real+imag per dim)
+
+// ─── Buffer bindings (all std430) ───────────────────────────────────────
+layout(std430, binding = 0) buffer Psi           { float psi[]; };
+layout(std430, binding = 1) buffer PsiPrev       { float psi_prev[]; };
+layout(std430, binding = 2) buffer GradH         { float grad_h[]; };
+layout(std430, binding = 3) buffer GradW         { float grad_w[]; };
+layout(std430, binding = 4) buffer GradD         { float grad_d[]; };
+layout(std430, binding = 5) buffer Lap           { float lap[]; };
+layout(std430, binding = 6) buffer Params        { float params[]; };
+layout(std430, binding = 7) buffer ByteEmbed     { float byte_embed[]; };
+layout(std430, binding = 8) buffer EmbedProj     { float embed_proj[]; };
+layout(std430, binding =  9) buffer NeighborTable { uint neighbor_data[]; };
+layout(std430, binding = 10) buffer ByteProtos { uint byte_protos[]; };
+layout(std430, binding = 11) buffer Counters     { uint counters[]; };
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };  // [N_BANDS * 5]
+
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+} pc;
+
+// ─── Workgroup ──────────────────────────────────────────────────────────
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// ─── Helper — load a vec2 from psi at a given voxel and dimension ───────
+vec2 load_psi(uint voxel, uint dim)
+{
+    uint base = voxel * VOXEL_STRIDE;            // n * D_DIM * 2
+    uint off  = base + dim * 2u;                 // real offset
+    return vec2(psi[off], psi[off + 1u]);
+}
+
+
+// ─── Helper — write a vec2 to the laplacian buffer ──────────────────────
+void store_lap(uint voxel, uint dim, vec2 val)
+{
+    uint base = voxel * VOXEL_STRIDE;
+    uint off  = base + dim * 2u;
+    lap[off]       = val.x;
+    lap[off + 1u]  = val.y;
+}
+
+// ─── Main — Spherical Laplacian + Gradient via neighbor table ─────────────
+void main()
+{
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= uint(N_VOXELS * D_DIM))
+        return;
+
+    uint n    = idx / uint(D_DIM);               // voxel index  [0, 4095]
+    uint dim  = idx % uint(D_DIM);               // field dim    [0, 127]
+
+    // Load central voxel value
+    vec2 psi_n = load_psi(n, dim);
+
+    // ── Read neighbors from neighbor table ──
+    // Table layout: 6 entries per voxel, each (uint neighbor, uint floatBits weight)
+    // Order: [radial_in, radial_out, north, south, east, west]
+    uint nt_base = n * 12u;  // 6 pairs × 2 uints
+    uint nbr[6];
+    float wgt[6];
+    for (uint j = 0u; j < 6u; j++) {
+        nbr[j] = neighbor_data[nt_base + j * 2u];
+        wgt[j] = uintBitsToFloat(neighbor_data[nt_base + j * 2u + 1u]);
+    }
+
+    // ── Spherical Laplacian ──
+    // ∇²ψ = Σ_j w_j · (ψ[nbr_j] - ψ[center])
+    // w_j precomputed: radial = 1/Δr² ± 1/(r·Δr), angular = 1/r²
+    vec2 lap_val = vec2(0.0);
+    for (uint j = 0u; j < 6u; j++) {
+        vec2 psi_nbr = load_psi(nbr[j], dim);
+        lap_val += wgt[j] * (psi_nbr - psi_n);
+    }
+
+    // ── String-axis (H) anisotropy for wake-wave propagation ──
+    // The H axis is the cascade string/spine — faster propagation along H
+    // enables wake waves to travel preferentially along the body axis.
+    // Uses Cartesian finite-difference laplacian along H added to spherical.
+    uint h = n % 16u;  // H is fastest-varying voxel index
+    if (h > 0u && h < 15u) {
+        // Spatial chakra lookup (same as nonlinear_step/linear_step)
+        const int CHAKRA_H[13] = int[](1,2,3,4,5,7,8,9,10,11,12,14,15);
+        int band = 0;
+        int min_dist = 999;
+        for (int c = 0; c < 13; c++) {
+            int d = int(h) - CHAKRA_H[c];
+            if (d < 0) d = -d;
+            if (d < min_dist) { min_dist = d; band = c; }
+        }
+        float nu_perp   = params[0] * PHI_INV * PHI_INV;           // φ⁻²-damped perpendicular
+        float nu_string = params[0] * chakra_params[band * 5 + 4];  // along-H mobility
+        float h_aniso = (nu_string / max(nu_perp, 1e-10)) - 1.0;  // excess mobility along H
+        if (h_aniso > 0.0 || h_aniso < 0.0) {  // non-zero anisotropy
+            vec2 psi_next = load_psi(n + 1u, dim);
+            vec2 psi_prev = load_psi(n - 1u, dim);
+            vec2 lap_h = psi_next + psi_prev - 2.0 * psi_n;
+            lap_val += lap_h * h_aniso;
+        }
+    }
+
+    // ── Gradient components via finite difference ──
+    // Radial gradient: (ψ_out - ψ_in) / (Δr_out + Δr_in)
+    vec2 grad_r = vec2(0.0);
+    if (nbr[1] != n && nbr[0] != n) {  // both radial neighbors exist
+        vec2 psi_out = load_psi(nbr[1], dim);
+        vec2 psi_in  = load_psi(nbr[0], dim);
+        grad_r = (psi_out - psi_in) * 0.5;  // central difference
+    } else if (nbr[1] != n) {
+        grad_r = load_psi(nbr[1], dim) - psi_n;  // forward
+    } else if (nbr[0] != n) {
+        grad_r = psi_n - load_psi(nbr[0], dim);  // backward
+    }
+
+    // Angular gradients (θ, φ) — use the 4 angular neighbors
+    // grad_θ ≈ (ψ_north - ψ_south) / 2  scaled by 1/r
+    // grad_φ ≈ (ψ_east - ψ_west) / 2    scaled by 1/(r·sinθ)
+    // For simplicity, store the unscaled central differences and let
+    // the PDE step apply the metric scaling via the neighbor weights.
+    vec2 grad_h = (load_psi(nbr[2], dim) - load_psi(nbr[3], dim)) * 0.5;  // north-south
+    vec2 grad_w = (load_psi(nbr[4], dim) - load_psi(nbr[5], dim)) * 0.5;  // east-west
+
+    // ── Write outputs ──
+    uint _o = n * VOXEL_STRIDE + dim * 2u;
+    grad_h[_o] = grad_h.x; grad_h[_o + 1u] = grad_h.y;
+    grad_w[_o] = grad_w.x; grad_w[_o + 1u] = grad_w.y;
+    grad_d[_o] = grad_r.x; grad_d[_o + 1u] = grad_r.y;  // grad_d stores radial gradient
+    lap[_o] = lap_val.x; lap[_o + 1u] = lap_val.y;
+}

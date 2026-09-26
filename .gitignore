@@ -1,0 +1,117 @@
+# Workspace-local/generated artifacts.
+.pi/
+tmp_audit*/
+**/.cassi/
+comp.spv
+# Temp paths a shell left unexpanded, literal "%TEMP%".
+**/%TEMP%*
+**/__pycache__/
+**/_diag/
+**/.probe/
+**/.godot/
+**/*.import
+**/*.uid
+**/*.spv
+**/*.pt
+**/*.gguf
+**/runs/
+**/logs/
+
+# CassiFI generated checkpoints, receipts, and run state.
+CassiFI/**/artifacts/
+CassiFI/prototype/data/corpora/
+CassiFI/prototype/data/corpus-provenance.json
+CassiFI/prototype/evidence/external/
+CassiFI/legacy/prototype/generated-caches/
+CassiFI/**/.pytest_cache/
+CassiFI/.cassi/
+CassiFI/native/field-runtime/build*/
+# The regional computer's long-running research artifacts (tens of GB).
+/.CassiFI-research-artifacts/
+
+# CassiQwen model/runtime downloads and native build trees.
+CassiQwen/*.bin
+CassiQwen/*.ckpt
+CassiQwen/*.dll
+CassiQwen/*.exe
+CassiQwen/*.gguf
+CassiQwen/*.npz
+CassiQwen/*.npy
+CassiQwen/*.pth
+CassiQwen/*.safetensors
+CassiQwen/*.zip
+CassiQwen/*.gb
+CassiQwen/native/llama.cpp-*.tar.gz
+CassiQwen/historical/qi-v2/source/all-layer-hidden-state-capture.json
+CassiQwen/historical/qi-v2/source/hidden-state-capture.json
+CassiQwen/native/llama.cpp/build-cassi/
+CassiQwen/native/llama.cpp/models/ggml-vocab-*.gguf*
+CassiQwen/native/llama.cpp/build-qi/
+CassiQwen/native/llama.cpp/b-graph-safe/
+CassiQwen/native/llama.cpp/scratch_equiv_check/
+CassiQwen/native/llama.cpp/*.obj
+CassiQwen/node_modules/
+CassiQwen/surface/native_windows/bin/
+CassiQwen/surface/native_windows/obj/
+CassiQwen/desktop_companion_host/bin/
+CassiQwen/desktop_companion_host/obj/
+
+# CassiQwen generated captures, schema extracts, and local receipts.
+CassiQwen/all-layer-hidden-state-capture.json
+CassiQwen/cognition-schema-docs.tmp.json
+CassiQwen/cognition-schemas.tmp.json
+CassiQwen/hidden-state-capture.json
+CassiQwen/local-*.json
+CassiQwen/local-*.txt
+CassiQwen/local_*.json
+CassiQwen/local_*.txt
+CassiQwen/schema-summary.json
+CassiQwen/w12-schema-summary.txt
+CassiQwen/local/world-schema-*
+CassiQwen/local/world-schemas-*
+CassiQwen/local/cassi_qi-world-*
+CassiQwen/world-schemas-extract.json
+
+# Root scratch and planning docs stay workspace-local; the reviewed design docs
+# and the project docs remain tracked.
+/*.md
+!/README.md
+!/AGENTS.md
+!/*-DESIGN.md
+# Mid-markup scrape of one preprint section (Yang-Mills, arXiv HTML section 8):
+# no tracked file references it and no comparable extract was ever committed, so
+# it stays a workspace-local scratch file rather than tree content.
+/preprint-section8-lines.txt
+
+# Stray build outputs left at the workspace root.
+/build_log.txt
+/ResidentVulkanCommit
+/tmp/
+
+# CassiQwen native MSVC build tree (b8-server flavor).
+CassiQwen/native/llama.cpp/b8/
+
+# CassiFI field-frequency-query run outputs (build dump and stdout log).
+CassiFI/_ffq_*.txt
+
+# CassiTheory scratch transfers and temp coefficient dumps.
+CassiTheory/_tmp_incoming_*
+CassiTheory/*.tmp
+
+# The games seam's generated state: the field homes a mind plays from (hundreds
+# of MB each) and the run receipts of each life.  Both are local artifacts.
+CassiQwen/games/field-home*/
+CassiQwen/games/runs/
+
+# CassiMindField self-rewrite lab: the runtimes and the authored seeds are
+# tracked; each scenario/self-host working tree and the field state it writes
+# are local run artifacts (tens of MB each).
+CassiMindField/generations/
+CassiMindField/state/
+CassiMindField/scenario-v*/
+CassiMindField/patchset-v*/
+CassiMindField/impact-v*/
+CassiMindField/self-host-v*/
+CassiMindField/workspace-v*/
+CassiMindField/core/generations/
+CassiMindField/core/state/

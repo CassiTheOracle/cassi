@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Temporary PDE test logs
+data_*_log.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+
+# Generated figure output — visual-explainers figures are COMMITTED (2026-08-01);
+# other generated imagery stays ignored
+*.png
+*.mp4
+!visual-explainers/*.png
+
+# Generated sonification media
+*.wav
+*.raw
+
+# PDE test runs (checkpoints, logs, output dirs)
+runs/
+*.pt
+solver_patches.patch
+
+# Large external survey data (re-downloadable; scripts that use it are tracked)
+desi_lrg_n/
+dr16_pk/
+ezmock_pk/
+*.tar.gz
+sparc_rotmod.zip
+sparc_data/
+
+# Market-fold experiment sandbox (2026-08-01) — exploratory; promote to a tracked experiments/ family when it survives surrogates
+experiments/market_fold/
+experiments/gwtc4_mass_ladder/data/
+
+# Void ring-ladder data (re-downloadable; scripts are tracked)
+experiments/void_phi_rings/data/
+experiments/void_phi_rings/downloads/
+
+# DSHARP disk-gap ring-ladder data (re-downloadable; scripts are tracked)
+experiments/dsharp_phi_gaps/data/
+
+# Kepler phi-ratio multi-planet catalog data (re-downloadable; scripts are tracked)
+experiments/kepler_phi_ratios/data/

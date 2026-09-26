@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://scripts/cassi_survey.gd" id="2_sur"]
+[ext_resource type="Script" path="res://scripts/verify_survey.gd" id="3_ver"]
+
+[node name="VerifySurvey" type="Node3D"]
+script = ExtResource("3_ver")
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+playing = false
+N_particles = 4096
+grid_N = 64
+suppress_readbacks = true
+auto_frame_camera_on_start = false
+field_attractor_init = true
+source_strength = 0.0
+gravity_mode = 2
+black_holes_enabled = false
+meshless_mode = false
+meshless_gravity = false
+box_aspect = Vector3(1, 1, 1)
+dual_grid = false
+
+[node name="CassiSurvey" type="Node" parent="."]
+script = ExtResource("2_sur")
+sim_path = NodePath("../CassiSim")
+survey_interval_seconds = 0.0
+enabled = false

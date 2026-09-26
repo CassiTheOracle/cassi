@@ -1,0 +1,48 @@
+#version 460
+
+ // ─── QiCube — Blend memory buffers into psi ──────────────────────────────
+ // psi = (1 - w) * psi + w * src
+ // w passed via breath_t push constant.
+ // If pass == 0: src = field_memory (binding 19, persistent per-window copy)
+ // If pass == 1: src = self_condensate (binding 20, slow IIR attractor)
+ // Provides long-timescale feedback: the PDE sees its own history.
+
+// ─── Constants (must match vk_qi.py) ─────────────────────────────────────
+#define D_DIM       128           // per-voxel field dimension
+#define N_VOXELS    4096          // H * W * D
+#define VOXEL_STRIDE (D_DIM * 2)  // 256 (real+imag per dim)
+
+// ─── Buffer bindings (std430) ────────────────────────────────────────────
+layout(std430, binding = 0)  buffer Psi           { float psi[]; };
+layout(std430, binding = 19) buffer FieldMemory   { float field_memory[]; };
+layout(std430, binding = 20) buffer SelfCondensate { float condensate[]; };
+
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;     // blend weight w
+    uint  target_byte;
+    float lr;
+    float qi_target;
+} pc;
+
+// ─── Workgroup ────────────────────────────────────────────────────────────
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= uint(N_VOXELS * D_DIM * 2u))
+        return;
+
+    // w passed via breath_t push constant
+    float w = pc.breath_t;
+    float src;
+    if (pc.pass == 0u) {
+        src = field_memory[idx];
+    } else {
+        src = condensate[idx];
+    }
+    src = (src == src) ? src : 0.0;  // NaN guard
+    psi[idx] = mix(psi[idx], src, w);
+}

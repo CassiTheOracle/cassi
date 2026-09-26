@@ -1,0 +1,93 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// qi_transport.comp — Qi density continuity equation
+//
+// Evolves per-voxel Qi density Q[n] (binding 32) via:
+//   ∂Q/∂t = σ(ε) · |ψ|² − γ · Q
+//
+// where:
+//   σ(ε) = (1−φ⁻¹) · tanh(|ε_selfpred|² / ε₀²)   — source function
+//   γ = φ⁻¹                                        — dissipation rate
+//   ε₀² = 0.01                                     — characteristic error scale
+//
+// This closes the fluid dynamics: Qi is created where the field
+// is surprised by itself, and dissipates where prediction succeeds.
+// Trapped Qi (non-zero circulation) = standing structures = memories
+// (formalism §4.3–4.4).
+//
+// Advection term ∇·(Q·v_Q) uses the wake velocity from D1.
+//
+// Inputs:  psi          (b0):  field state → |ψ|² source term
+//          eps_memory   (b17): per-voxel |ε|² → source activation
+//          wake_field   (b33): per-voxel wake → advection velocity
+// Output:  qi_density   (b32): per-voxel Qi density Q[n]
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Constants ──
+#define PHI           1.618033988749895
+#define PHI_INV       0.618033988749895
+#define SIGMA0        0.381966011250105  // 1 − φ⁻¹
+#define GAMMA         PHI_INV            // dissipation γ = φ⁻¹
+#define EPS0_SQ       0.01               // characteristic |ε|² scale
+#define DIM           128
+#define N_VOXELS      4096
+#define VOXEL_STRIDE  (DIM * 2)          // 256
+
+// ── Buffer bindings (std430) ──
+layout(std430, binding = 0)  buffer PsiBuf        { float psi[]; };
+layout(std430, binding = 17) buffer EpsMemoryBuf  { float eps_memory[]; };
+layout(std430, binding = 32) buffer QiDensityBuf  { float qi_density[]; };
+layout(std430, binding = 33) buffer WakeField     { float wake_field[]; };
+
+// ── Workgroup: one per voxel ──
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint n = gl_GlobalInvocationID.x;
+    if (n >= N_VOXELS) return;
+
+    // ── Compute |ψ|² at this voxel (mean across all 128 dims) ──
+    uint base = n * VOXEL_STRIDE;
+    float psi2_sum = 0.0;
+    for (uint d = 0u; d < DIM; d++) {
+        uint off = base + d * 2u;
+        float re = psi[off];
+        float im = psi[off + 1u];
+        psi2_sum += re * re + im * im;
+    }
+    float psi2_mean = psi2_sum / float(DIM);
+
+    // ── Self-prediction error at this voxel ──
+    float eps2 = eps_memory[n];
+    if (eps2 != eps2) eps2 = 0.0;
+
+    // ── Source function σ(ε) = (1−φ⁻¹)·tanh(|ε|²/ε₀²) ──
+    float sigma = SIGMA0 * tanh(eps2 / EPS0_SQ);
+
+    // ── Qi continuity: ∂Q/∂t = σ·|ψ|² − γ·Q ──
+    // Semi-implicit: Q_new = Q_old + dt*(σ·|ψ|² − γ·Q_new)
+    // → Q_new = (Q_old + dt·σ·|ψ|²) / (1 + dt·γ)
+    // No dt from push constants in this shader — use dt=0.2 (matching vk_qi default)
+    float dt = 0.2;
+    float Q_old = qi_density[n];
+    if (Q_old != Q_old) Q_old = 0.0;
+
+    float source = sigma * psi2_mean;
+    float Q_new = (Q_old + dt * source) / (1.0 + dt * GAMMA);
+
+    // ── Simple advection: blend in wake-modulated neighbor Qi ──
+    // Use wake_field as a proxy for Qi transport direction
+    float wake = wake_field[n];
+    if (wake != wake) wake = 0.0;
+
+    // Weak advection: Q gets a small φ⁻¹-weighted pull from wake amplitude
+    float advection = PHI_INV * 0.01 * wake;
+    Q_new += advection;
+
+    // ── Clamp to prevent runaway ──
+    if (Q_new < 0.0) Q_new = 0.0;
+    if (Q_new > 10.0) Q_new = 10.0;
+
+    qi_density[n] = Q_new;
+}

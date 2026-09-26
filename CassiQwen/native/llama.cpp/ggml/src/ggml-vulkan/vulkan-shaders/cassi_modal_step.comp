@@ -1,0 +1,115 @@
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0) readonly buffer LayerModes {
+    float values[];
+} layer_modes;
+
+layout(binding = 1) readonly buffer State {
+    float values[];
+} state_in;
+
+layout(binding = 2) readonly buffer ModeParams {
+    float values[];
+} mode_params;
+
+layout(binding = 3) readonly buffer SequenceIds {
+    int values[];
+} sequence_ids;
+
+layout(binding = 4) writeonly buffer Output {
+    float values[];
+} output_data;
+
+layout(push_constant) uniform parameter {
+    uint mode_count;
+    uint sequence_count;
+    uint token_count;
+    uint layer_count;
+    uint steps_per_layer;
+    float retained_weight;
+    float phi;
+    float dt;
+    float omega2;
+    float coupling;
+} pc;
+
+void main() {
+    const uint mode = gl_GlobalInvocationID.x;
+    const uint sequence = gl_GlobalInvocationID.y;
+
+    if (mode >= pc.mode_count || sequence >= pc.sequence_count) {
+        return;
+    }
+
+    const uint mode_stride_layers = 2u * pc.mode_count;
+    const uint mode_stride_state = 8u * pc.mode_count;
+    const uint mode_stride_output = 2u * pc.mode_count;
+    const uint layer_token_stride = pc.layer_count * mode_stride_layers;
+    const uint state_input_offset = sequence * mode_stride_state + 8u * mode;
+    const uint state_output_base = mode_stride_output * pc.token_count + sequence * mode_stride_state + 8u * mode;
+    const float symbol = mode_params.values[mode];
+    const float incoming_weight = 1.0 - pc.retained_weight;
+
+    float ey_re = state_in.values[state_input_offset + 0u];
+    float ey_im = state_in.values[state_input_offset + 1u];
+    float ei_re = state_in.values[state_input_offset + 2u];
+    float ei_im = state_in.values[state_input_offset + 3u];
+    float vy_re = state_in.values[state_input_offset + 4u];
+    float vy_im = state_in.values[state_input_offset + 5u];
+    float vi_re = state_in.values[state_input_offset + 6u];
+    float vi_im = state_in.values[state_input_offset + 7u];
+
+    for (uint token = 0u; token < pc.token_count; ++token) {
+        if (sequence_ids.values[token] != int(sequence)) {
+            continue;
+        }
+
+        const uint layer_token_offset = token * layer_token_stride;
+        for (uint layer = 0u; layer < pc.layer_count; ++layer) {
+            const uint layer_offset = layer_token_offset + layer * mode_stride_layers + 2u * mode;
+            const float signal_re = layer_modes.values[layer_offset + 0u];
+            const float signal_im = layer_modes.values[layer_offset + 1u];
+
+            ey_re = pc.retained_weight * ey_re + incoming_weight * 0.5 * signal_re;
+            ey_im = pc.retained_weight * ey_im + incoming_weight * 0.5 * signal_im;
+            ei_re = pc.retained_weight * ei_re - incoming_weight * 0.5 / pc.phi * signal_re;
+            ei_im = pc.retained_weight * ei_im - incoming_weight * 0.5 / pc.phi * signal_im;
+
+            for (uint step = 0u; step < pc.steps_per_layer; ++step) {
+                const float diff_re = ey_re - pc.phi * ei_re;
+                const float diff_im = ey_im - pc.phi * ei_im;
+                const float acc_y_re = (symbol - pc.omega2) * ey_re + pc.omega2 * pc.phi * ei_re;
+                const float acc_y_im = (symbol - pc.omega2) * ey_im + pc.omega2 * pc.phi * ei_im;
+                const float acc_i_re = symbol * ei_re + pc.omega2 * diff_re;
+                const float acc_i_im = symbol * ei_im + pc.omega2 * diff_im;
+
+                vy_re += acc_y_re * pc.dt;
+                vy_im += acc_y_im * pc.dt;
+                vi_re += acc_i_re * pc.dt;
+                vi_im += acc_i_im * pc.dt;
+
+                ey_re += vy_re * pc.dt;
+                ey_im += vy_im * pc.dt;
+                ei_re += vi_re * pc.dt;
+                ei_im += vi_im * pc.dt;
+            }
+        }
+
+        const float correction_re = pc.coupling * (ey_re - pc.phi * ei_re);
+        const float correction_im = pc.coupling * (ey_im - pc.phi * ei_im);
+        const uint correction_offset = token * mode_stride_output + 2u * mode;
+        output_data.values[correction_offset + 0u] = correction_re;
+        output_data.values[correction_offset + 1u] = -correction_im;
+    }
+
+    output_data.values[state_output_base + 0u] = ey_re;
+    output_data.values[state_output_base + 1u] = ey_im;
+    output_data.values[state_output_base + 2u] = ei_re;
+    output_data.values[state_output_base + 3u] = ei_im;
+    output_data.values[state_output_base + 4u] = vy_re;
+    output_data.values[state_output_base + 5u] = vy_im;
+    output_data.values[state_output_base + 6u] = vi_re;
+    output_data.values[state_output_base + 7u] = vi_im;
+}

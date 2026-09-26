@@ -1,0 +1,13 @@
+{
+  "turing_machine": {
+    "alphabet_size": 2,
+    "blank": 0,
+    "start_state": 0,
+    "halt_states": [1],
+    "transitions": [
+      [0, 0, 1, 1, "S"],
+      [0, 1, 0, 1, "R"]
+    ]
+  },
+  "tape": [1, 1, 1]
+}

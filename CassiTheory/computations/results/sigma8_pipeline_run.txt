@@ -1,0 +1,72 @@
+=================================================================
+CASSI σ₈ PIPELINE
+=================================================================
+  N=32³, L=6.2832 (≈125.0 Mpc/h), dt=0.001, steps=1500
+  R₈ = 8.0 Mpc/h → 0.4021 sim-units
+  ξ = φ⁶ = 17.9443
+  Device: cpu
+  Hubble mode: stress_energy, initial_ratio (EI/EY): 3.0
+  σ₈ target: 0.8
+
+[1/5] Building Eisenstein-Hu initial conditions...
+  σ₈ of raw density contrast: 0.0962
+  σ₈ after scaling: 0.8000 (target=0.8)
+  δ_rms after scaling: 1.2468
+  q_ref: 0.4285
+  P(k) norm factor: 0.0001  (σ₈ field=0.8000, σ₈ Pk raw=89.9020)
+  σ₈(IC) from P(k) norm:  0.8000
+  σ₈(IC) from field:      0.8000
+  IC build time: 0.10s
+
+[2/5] Running PDE simulation...
+  IC (pre-step)   | a=1.000 | δ_rms=1.2468 | q_mean=0.4285
+  step    0 | t=0.000 | a=1.000 | H=0.1084 | δ_rms=0.8874 | q_mean=0.3062
+  step  100 | t=0.100 | a=1.040 | H=0.4000 | δ_rms=0.8841 | q_mean=0.3111
+  step  200 | t=0.200 | a=1.083 | H=0.4000 | δ_rms=0.8805 | q_mean=0.3162
+  step  300 | t=0.300 | a=1.126 | H=0.3884 | δ_rms=0.8769 | q_mean=0.3214
+  step  400 | t=0.400 | a=1.170 | H=0.3737 | δ_rms=0.8731 | q_mean=0.3269
+  step  500 | t=0.500 | a=1.214 | H=0.3601 | δ_rms=0.8694 | q_mean=0.3326
+  step  600 | t=0.600 | a=1.257 | H=0.3476 | δ_rms=0.8659 | q_mean=0.3382
+  step  700 | t=0.700 | a=1.301 | H=0.3360 | δ_rms=0.8626 | q_mean=0.3438
+  step  800 | t=0.800 | a=1.345 | H=0.3252 | δ_rms=0.8596 | q_mean=0.3492
+  step  900 | t=0.900 | a=1.389 | H=0.3152 | δ_rms=0.8568 | q_mean=0.3545
+  step 1000 | t=1.000 | a=1.432 | H=0.3059 | δ_rms=0.8544 | q_mean=0.3595
+  step 1100 | t=1.100 | a=1.476 | H=0.2971 | δ_rms=0.8523 | q_mean=0.3644
+  step 1200 | t=1.200 | a=1.520 | H=0.2889 | δ_rms=0.8504 | q_mean=0.3690
+  step 1300 | t=1.300 | a=1.564 | H=0.2812 | δ_rms=0.8487 | q_mean=0.3736
+  step 1400 | t=1.400 | a=1.608 | H=0.2740 | δ_rms=0.8472 | q_mean=0.3780
+  step 1499 | t=1.499 | a=1.652 | H=0.2671 | δ_rms=0.8459 | q_mean=0.3822
+  Simulation: 54.7s (0.0365s/step)
+
+[3/5] Computing G_eff(k) and Cassi P(k)...
+  q_ref (initial):    0.4285
+  q_mean (final):     0.3822
+  G_eff/G_N (abs):    7.8575
+  G_eff/G_ref factor: 0.9044
+  ΛCDM growth: D(1.652)/D(1.000) = 1.2134 / 1.0000 = 1.2134
+
+[4/5] Computing σ₈...
+  σ₈(ΛCDM):             0.9707
+  σ₈(Cassi, P(k)):     0.5482
+  σ₈(Cassi, field):    0.5816
+  σ₈(Cassi, formula):  0.8779
+  σ₈(Cassi, k-dep.):   1.0550
+  Δσ₈ (Pk):            -0.4226
+
+[5/5] Plotting results...
+  Saved C:\Users\Carina\workspaces\Cassi\CassiTheory\two-fluid\figures\sigma8_pipeline.png
+
+=================================================================
+σ₈ PIPELINE RESULTS
+=================================================================
+  σ₈(ΛCDM):             0.9707
+  σ₈(Cassi, measured):  0.5482
+  Δσ₈ = σ₈(Cassi) - σ₈(ΛCDM): -0.4226
+  q_ref (initial):      0.4285
+  q_mean (final):       0.3822
+  ξ = φ⁶:               17.9443
+  G_eff/G_N (final):    7.8575
+  Final a:              1.6516
+  Final H:              0.2671
+  Final δ_rms:          0.8459
+=================================================================

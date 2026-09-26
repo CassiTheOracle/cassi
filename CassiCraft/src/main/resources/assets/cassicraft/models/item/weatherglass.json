@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "cassicraft:item/weatherglass",
+		"layer1": "cassicraft:item/weatherglass_lume"
+	}
+}
