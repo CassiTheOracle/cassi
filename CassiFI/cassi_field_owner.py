@@ -13559,6 +13559,8 @@ class FieldIntelligenceOwner:
                 event_id=event.event_id,
             )
             self._finish_pending(operation_id)
+            # The medium, if grown, absorbs the admitted steps as it lives.
+            self._sync_temporal_medium(memory_id)
             return result
 
     def _require_temporal_idle(self, memory_id: str, participant_id: str | None) -> None:
@@ -13773,6 +13775,91 @@ class FieldIntelligenceOwner:
                     skill_id,
                 )
             return result
+
+    # -- emergent medium ------------------------------------------------------
+    # A temporal memory may grow an emergent two-fluid medium
+    # (``cassi_emergent_field.TemporalMedium``).  Its imprints are kept equal to
+    # the memory's active evidence: admitted steps are linked, revoked steps are
+    # erased by anti-phase replay.  Rest changes only how loudly it answers.
+
+    def _temporal_medium_path(self, memory_id: str) -> Path:
+        return self.data_home / "emergent-media" / f"{sha256_value({'memory_id': memory_id})}.pt"
+
+    def _temporal_medium(self, memory_id: str) -> Any | None:
+        media = self.__dict__.setdefault("_temporal_media", {})
+        if memory_id not in media:
+            path = self._temporal_medium_path(memory_id)
+            if not path.exists():
+                return None
+            import torch
+            from cassi_emergent_field import TemporalMedium
+            media[memory_id] = TemporalMedium.load(path, "cuda" if torch.cuda.is_available() else "cpu")
+        return media[memory_id]
+
+    def _sync_temporal_medium(self, memory_id: str) -> Mapping[str, Any] | None:
+        medium = self._temporal_medium(memory_id)
+        if medium is None:
+            return None
+        row = self.state.temporal(memory_id)
+        active = self.evidence.active_revision_ids()
+        episodes = [
+            self._temporal_episode(self.evidence.read(self.evidence.source(revision)))
+            for revision in row.source_revision_ids if revision in active
+        ]
+        change = medium.sync(episodes)
+        if change["linked"] or change["erased"]:
+            medium.save(self._temporal_medium_path(memory_id))
+        return change
+
+    def grow_temporal_medium(
+        self, memory_id: str, *, size: int = 64, top: int = 20, device: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Give a temporal memory an emergent medium and let it absorb every admitted episode."""
+        with self._lock:
+            memory_id = self._temporal_memory(memory_id).memory_id
+            if self._temporal_medium(memory_id) is None:
+                import torch
+                from cassi_emergent_field import EmergentProfile, SequenceMemory, TemporalMedium
+                device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+                profile = EmergentProfile(size=size, device=device)
+                medium = TemporalMedium(SequenceMemory.create(profile, top, salt=memory_id))
+                medium.save(self._temporal_medium_path(memory_id))
+                self.__dict__.setdefault("_temporal_media", {})[memory_id] = medium
+            change = self._sync_temporal_medium(memory_id)
+            medium = self._temporal_medium(memory_id)
+            return {"memory_id": memory_id, **dict(change), "notes": len(medium.memory.codec.notes),
+                    "ideas": len(medium.memory.names)}
+
+    def predict_temporal_medium(
+        self, memory_id: str, *, actions: Sequence[str], participant_id: str | None = None,
+    ) -> Mapping[str, Any]:
+        """What the medium expects each action to produce from the participant's recent history."""
+        with self._lock:
+            row = self._temporal_memory(memory_id)
+            if self._temporal_medium(row.memory_id) is None:
+                raise FieldIntelligenceError("NOT_FOUND", "temporal memory has no emergent medium")
+            self._sync_temporal_medium(row.memory_id)
+            history = self._temporal_apply(row.history, participant_id=participant_id)
+            actions = [_identifier(action, "action") for action in actions]
+            medium = self._temporal_medium(row.memory_id)
+            recognised = sum(medium.recognised.values())
+            predictions = medium.predict(history, actions)
+            if sum(medium.recognised.values()) != recognised:
+                medium.save(self._temporal_medium_path(row.memory_id))
+            return {"memory_id": row.memory_id, "history_steps": len(history), "predictions": predictions}
+
+    def rest_temporal_medium(self, memory_id: str, *, duration: float) -> Mapping[str, Any]:
+        """Let a temporal memory's medium sleep: replay what it recognised, then rest for ``duration``."""
+        with self._lock:
+            memory_id = self._temporal_memory(memory_id).memory_id
+            medium = self._temporal_medium(memory_id)
+            if medium is None:
+                raise FieldIntelligenceError("NOT_FOUND", "temporal memory has no emergent medium")
+            if not math.isfinite(duration) or duration < 0.0:
+                raise FieldIntelligenceError("INVALID_TEMPORAL", "rest duration must be finite and nonnegative")
+            receipt = medium.sleep(duration)
+            medium.save(self._temporal_medium_path(memory_id))
+            return {"memory_id": memory_id, **receipt}
 
     def select_temporal_action(
         self,
