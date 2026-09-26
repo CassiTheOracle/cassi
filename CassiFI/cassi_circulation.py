@@ -193,7 +193,7 @@ def _canonical(value: Any) -> bytes:
 
 
 def _plain(value: Any) -> Any:
-    return json.loads(_canonical(value).decode("utf-8"))
+    return value
 
 
 def _digest(value: Any) -> str:
