@@ -4,7 +4,7 @@ Governance for AI assistants working in the unified Cassi workspace: `C:/Users/C
 
 ## Project Overview
 
-The unification program: build a "field-AI" on the thesis that intelligence is steering the flow of coherence. The two-fluid Yang/Yin field **is** the computation; the AI is whatever steers it.
+The unification program: build a "field-AI" on the thesis that intelligence is guiding the flow of coherence. The two-fluid Yang/Yin field **is** the computation; the AI is whatever guides it.
 
 | Repo | Role |
 |---|---|
