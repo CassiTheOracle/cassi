@@ -282,21 +282,79 @@ def _circulation_basis(length: int) -> tuple[np.ndarray, np.ndarray]:
 
 def _circulation_frame(direction: Any) -> np.ndarray:
     """A proper rotation whose first column is the declared axial direction."""
+    import math
 
-    axis = np.asarray(direction, dtype=np.float64).reshape(3)
-    norm = float(np.linalg.norm(axis))
-    if norm <= 1e-12:
+    # Pre-allocate result array
+    result = np.empty((3, 3), dtype=np.float64)
+
+    # Extract components
+    x, y, z = direction[0], direction[1], direction[2]
+
+    # Compute norm and normalize
+    norm_sq = x*x + y*y + z*z
+    if norm_sq <= 1e-24:
         return np.eye(3)
-    axis = axis / norm
-    seed = np.eye(3)[int(np.argmin(np.abs(axis)))]
-    companion = seed - axis * float(seed @ axis)
-    length = float(np.linalg.norm(companion))
-    if length <= 1e-12:
+    inv_norm = 1.0 / math.sqrt(norm_sq)
+
+    # Normalize axis
+    ax, ay, az = x * inv_norm, y * inv_norm, z * inv_norm
+
+    # Find index of smallest component to avoid division by near-zero
+    abs_x, abs_y, abs_z = abs(ax), abs(ay), abs(az)
+    if abs_x <= abs_y and abs_x <= abs_z:
+        # x is smallest
+        # companion = seed - axis * (seed @ axis)
+        # seed = [1, 0, 0]
+        # seed @ axis = ax
+        # companion = [1-ax*ax, -ay*ax, -az*ax]
+        cx = 1.0 - ax * ax
+        cy = -ay * ax
+        cz = -az * ax
+    elif abs_y <= abs_x and abs_y <= abs_z:
+        # y is smallest
+        # seed = [0, 1, 0]
+        # seed @ axis = ay
+        # companion = [-ax*ay, 1-ay*ay, -az*ay]
+        cx = -ax * ay
+        cy = 1.0 - ay * ay
+        cz = -az * ay
+    else:
+        # z is smallest
+        # seed = [0, 0, 1]
+        # seed @ axis = az
+        # companion = [-ax*az, -ay*az, 1-az*az]
+        cx = -ax * az
+        cy = -ay * az
+        cz = 1.0 - az * az
+
+    # Compute companion norm
+    comp_norm_sq = cx*cx + cy*cy + cz*cz
+    if comp_norm_sq <= 1e-24:
         raise ResonantNumericalError("circulation frame companion is degenerate")
-    companion = companion / length
-    third = np.cross(axis, companion)
-    third = third / max(float(np.linalg.norm(third)), 1e-12)
-    return np.stack((axis, companion, third), axis=1)
+    comp_inv_norm = 1.0 / math.sqrt(comp_norm_sq)
+
+    # Normalize companion
+    bax, bay, baz = cx * comp_inv_norm, cy * comp_inv_norm, cz * comp_inv_norm
+
+    # Compute third vector via cross product manually
+    # third = axis x companion
+    # [ay*baz - az*bay, az*bax - ax*baz, ax*bay - ay*bax]
+    cax = ay * baz - az * bay
+    cay = az * bax - ax * baz
+    caz = ax * bay - ay * bax
+
+    # Normalize third vector
+    third_norm_sq = cax*cax + cay*cay + caz*caz
+    if third_norm_sq <= 1e-24:
+        third_norm_sq = 1e-24  # Fallback to prevent division by zero, matching original behavior
+    third_inv_norm = 1.0 / math.sqrt(third_norm_sq)
+
+    # Fill result matrix
+    result[0, 0], result[1, 0], result[2, 0] = ax, ay, az
+    result[0, 1], result[1, 1], result[2, 1] = bax, bay, baz
+    result[0, 2], result[1, 2], result[2, 2] = cax * third_inv_norm, cay * third_inv_norm, caz * third_inv_norm
+
+    return result
 
 
 def _block_axis(coordinates: np.ndarray, first: int, last: int) -> np.ndarray:
