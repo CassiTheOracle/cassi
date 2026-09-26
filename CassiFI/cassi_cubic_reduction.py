@@ -242,20 +242,68 @@ class _WorkLedger:
         )
 
     def observe_system(self, system: AffineBooleanSystem) -> None:
-        self.maximum_variables = max(self.maximum_variables, system.variable_count)
-        self.maximum_equations = max(self.maximum_equations, system.equation_count)
-        self.maximum_nonzero_coefficients = max(
-            self.maximum_nonzero_coefficients,
-            system.nonzero_count,
-        )
-        values = [abs(value) for row in system.coefficients for value in row]
-        values.extend(abs(value) for value in system.rhs)
-        bits = max((value.bit_length() for value in values), default=0)
-        self.maximum_integer_bit_length = max(self.maximum_integer_bit_length, bits)
-        self.maximum_system_encoding_bits = max(
-            self.maximum_system_encoding_bits,
-            8 * len(_canonical_bytes(system.as_dict())),
-        )
+        # Inline max updates to avoid repeated attribute lookups and function calls
+        if system.variable_count > self.maximum_variables:
+            self.maximum_variables = system.variable_count
+
+        if system.equation_count > self.maximum_equations:
+            self.maximum_equations = system.equation_count
+
+        # Inline nonzero_count: sum(value != 0 for row in self.coefficients for value in row)
+        # We must compute this exactly as defined to preserve observable behavior
+        current_nonzero = 0
+        for row in system.coefficients:
+            for value in row:
+                if value != 0:
+                    current_nonzero += 1
+
+        if current_nonzero > self.maximum_nonzero_coefficients:
+            self.maximum_nonzero_coefficients = current_nonzero
+
+        # Inline bit length calculation
+        # values = [abs(value) for row in system.coefficients for value in row]
+        # values.extend(abs(value) for value in system.rhs)
+        # bits = max((value.bit_length() for value in values), default=0)
+
+        max_bits = 0
+        for row in system.coefficients:
+            for value in row:
+                v = abs(value)
+                bl = v.bit_length()
+                if bl > max_bits:
+                    max_bits = bl
+
+        # Check rhs values
+        for value in system.rhs:
+            v = abs(value)
+            bl = v.bit_length()
+            if bl > max_bits:
+                max_bits = bl
+
+        if max_bits > self.maximum_integer_bit_length:
+            self.maximum_integer_bit_length = max_bits
+
+        # Inline _canonical_bytes: json.dumps(...).encode("utf-8")
+        # We must serialize exactly as defined to preserve observable behavior
+        try:
+            json_str = json.dumps(
+                system.as_dict(),
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
+            encoded_len = len(json_str.encode("utf-8"))
+        except (TypeError, ValueError):
+            # Re-raise the exact same error type and message structure if possible,
+            # but since we don't have the CubicReductionError class here, we assume
+            # the caller handles it or the system.as_dict() is always valid.
+            # Given the constraints, we assume valid input as per typical usage.
+            # If an exception occurs, it must propagate exactly as before.
+            raise
+
+        encoding_bits = 8 * encoded_len
+        if encoding_bits > self.maximum_system_encoding_bits:
+            self.maximum_system_encoding_bits = encoding_bits
 
     def as_dict(self) -> dict[str, int]:
         return {name: int(value) for name, value in asdict(self).items()}
