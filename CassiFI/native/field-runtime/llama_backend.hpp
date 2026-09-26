@@ -578,7 +578,7 @@ public:
             llama_cassi_token selected{};
             const auto status = llama_cassi_next(task.context.get(), &selected);
             const bool token_available = status == LLAMA_CASSI_TOKEN && selected.token >= 0 &&
-                static_cast<std::uint32_t>(selected.token) < llama_vocab_n_tokens(model.vocab);
+                selected.token < llama_vocab_n_tokens(model.vocab);
             llama_cassi_graph_site_candidate_receipt native_receipt{};
             if (!llama_cassi_context_graph_site_candidate_get_result(task.context.get(), &native_receipt))
                 throw_context_error(task.context.get(), "llama.cpp did not return the graph-site receipt");
