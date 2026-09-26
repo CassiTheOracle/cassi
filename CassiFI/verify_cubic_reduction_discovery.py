@@ -599,26 +599,63 @@ def canonical_system(variable_count: int, rows: Sequence[Sequence[int]], rhs: Se
     if len(rows) != len(rhs):
         fail("system row and rhs counts disagree")
     normalized: list[tuple[tuple[int, ...], int]] = []
+
     for raw_row, raw_target in zip(rows, rhs, strict=True):
         if len(raw_row) != variable_count:
             fail("system row width is invalid")
-        if any(isinstance(value, bool) or not isinstance(value, int) for value in (*raw_row, raw_target)):
+
+        # Validate integrality and collect values for GCD
+        values = []
+        is_integral = True
+        for v in raw_row:
+            if not isinstance(v, int):
+                is_integral = False
+                break
+            values.append(v)
+        if not is_integral or not isinstance(raw_target, int):
             fail("system is not integral")
-        row = tuple(raw_row)
+
+        row = tuple(values)
         target = raw_target
+
+        # Compute GCD of all coefficients and target
         divisor = 0
-        for value in (*row, target):
-            divisor = math.gcd(divisor, abs(value))
+        for v in row:
+            divisor = math.gcd(divisor, abs(v))
+        divisor = math.gcd(divisor, abs(target))
         divisor = max(1, divisor)
-        row = tuple(value // divisor for value in row)
+
+        row = tuple(v // divisor for v in row)
         target //= divisor
-        first = next((value for value in (*row, target) if value), 0)
-        if first < 0:
-            row = tuple(-value for value in row)
-            target = -target
+
+        # Determine sign: make the first non-zero element positive
+        first_nonzero = None
+        for v in row:
+            if v != 0:
+                first_nonzero = v
+                break
+        if first_nonzero is None:
+            # All row is zero
+            if target == 0:
+                continue
+            else:
+                # Non-zero target with zero row is invalid for homogeneous but valid for inhomogeneous
+                # However, the original logic treats (0, ..., 0, target) as a valid row if target != 0
+                # The original code: if not any(row) and target == 0: continue
+                # So if target != 0, it proceeds.
+                pass
+        else:
+            if first_nonzero < 0:
+                row = tuple(-v for v in row)
+                target = -target
+
+        # Check for zero row and zero target
         if not any(row) and target == 0:
             continue
+
         normalized.append((row, target))
+
+    # Sort and deduplicate
     unique = sorted(set(normalized))
     return variable_count, tuple(row for row, _ in unique), tuple(value for _, value in unique)
 
