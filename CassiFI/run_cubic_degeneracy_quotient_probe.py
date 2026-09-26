@@ -82,16 +82,162 @@ def basis_rows(vectors: tuple[Vector, ...]) -> tuple[tuple[tuple[int, ...], int]
     dimension = len(vectors[0])
     if dimension == 0:
         return ((tuple(), 0),)
+
+    n = len(vectors)
+    # Precompute ranks for all combinations to avoid repeated expensive calls
+    # We map a frozenset of indices to its rank
+    rank_cache: dict[frozenset[int], int] = {}
+
+    # Helper to get rank
+    def get_rank(indices: tuple[int, ...]) -> int:
+        key = frozenset(indices)
+        if key in rank_cache:
+            return rank_cache[key]
+        res = production._vector_rank(tuple(vectors[i] for i in indices))
+        rank_cache[key] = res
+        return res
+
+    # Precompute ranks for all combinations of size 'dimension'
+    # This is O(C(n, d) * cost_of_rank), but saves us from doing it repeatedly in the main loop
+    # Actually, we only need to do this once per call, which is what we are doing now,
+    # but the original code does it inside the loop? No, the original code calls it inside the loop.
+    # Wait, the original code calls production._vector_rank(selected_vectors) inside the loop.
+    # The loop iterates over combinations. So it calls rank once per combination.
+    # The issue is that if this function is called multiple times with the same vectors,
+    # we are recomputing everything. But the rules say "Never cache a call's result for reuse by a later call with the same arguments".
+    # This implies we cannot cache across calls to basis_rows.
+    # HOWEVER, within a single call to basis_rows, we iterate over combinations.
+    # The original code calls _vector_rank for each combination.
+    # Is there redundancy? No, each combination is unique.
+    # So the optimization must be elsewhere.
+
+    # Let's re-read the profile.
+    # Top caller: <built-in method builtins.max> (267 calls, 0.1362 s)
+    # This is strange. There are only 1588 calls to the generator.
+    # The max is called inside the width calculation.
+    # width = max(...)
+    # The generator runs 1588 times. Each time it calls max.
+    # The max iterates over 'vectors' (n vectors).
+    # So for each valid basis, we do n calls to _basis_coordinates.
+    # _basis_coordinates likely iterates over the basis vectors.
+    # The total complexity is O(C(n, d) * n * d).
+    # If n is large, C(n, d) is huge.
+    # But wait, the profile says 1588 calls to the generator.
+    # This means the loop over combinations ran 1588 times and found 1588 valid bases?
+    # Or maybe the generator is the loop itself?
+    # "run_cubic_degeneracy_quotient_probe:<genexpr>" -> 1588 calls.
+    # This suggests the generator expression inside max is being evaluated 1588 times?
+    # No, max consumes the generator. So max is called 1588 times (once per valid basis).
+    # And inside max, for each vector in 'vectors', it calls _basis_coordinates.
+    # So total calls to _basis_coordinates is 1588 * n.
+    # If n is around 20-30, that's 30k-50k calls.
+    # But the profile says max took 0.1362s.
+    # The other top caller is _vector_rank with 418 calls.
+    # This implies only 418 combinations had rank == dimension.
+    # So the loop over combinations found 418 valid bases.
+    # And for those 418 bases, it computed the width.
+    # The width calculation involves iterating over ALL vectors (n vectors).
+    # So the bottleneck is likely the width calculation: 418 * n * cost_of_basis_coord.
+    # Or maybe the combinations loop is too slow?
+    # 418 calls to _vector_rank is small.
+    # The 1588 calls to the generator (max) is the width calculation.
+    # So we have 418 valid bases. For each, we iterate n vectors.
+    # If n is large, this is the bottleneck.
+
+    # Optimization:
+    # 1. Precompute the rank check is already done once per combination.
+    # 2. The width calculation is the heavy part.
+    #    width = max( sum(coordinate != 0 for coordinate in production._basis_coordinates(selected_vectors, vector)) for vector in vectors )
+    #    This sums the number of non-zero coordinates in the expansion of 'vector' in terms of 'selected_vectors'.
+    #    This is equivalent to the L0 norm of the coordinate vector.
+    #    Can we optimize this?
+    #    _basis_coordinates likely solves a linear system or uses Gaussian elimination.
+    #    If we can precompute something, maybe?
+    #    But the rules say no caching across calls.
+    #    However, we can precompute the rank of all subsets of size < dimension? No, that's more work.
+    #    Maybe we can optimize the width calculation.
+    #    Notice that 'selected_vectors' is a basis.
+    #    The coordinates of 'vector' in this basis are unique.
+    #    We are summing the number of non-zero entries.
+    #    Is there a way to avoid calling _basis_coordinates for every vector?
+    #    Probably not, unless we have a faster way to compute the representation.
+
+    # Wait, let's look at the profile again.
+    # "cubic_kernel_decision:_vector_rank" (418 calls).
+    # This confirms only 418 combinations passed the rank check.
+    # So the loop over combinations (itertools.combinations) is fast enough (418 iterations).
+    # The bottleneck is the width calculation for these 418 bases.
+    # For each base, we iterate over ALL vectors (n vectors).
+    # If n is large, say 100, then 418 * 100 = 41800 calls to _basis_coordinates.
+    # If _basis_coordinates is expensive, this is the problem.
+
+    # How to optimize?
+    # We cannot cache across calls.
+    # But maybe we can avoid calling _basis_coordinates for vectors that are clearly dependent?
+    # No, we need the width for ALL vectors.
+    # Wait, the width is defined as the max over all vectors of the number of non-zero coordinates.
+    # This is the maximum sparsity of the representation? No, number of non-zeros.
+    # So it's the maximum "weight" of the representation.
+
+    # Is there any redundancy?
+    # If 'vector' is one of the 'selected_vectors', the representation is a unit vector, so weight is 1.
+    # So for the vectors in 'selected_vectors', the weight is 1.
+    # We only need to check vectors NOT in 'selected_vectors'.
+    # This saves n - dimension checks per base.
+    # If dimension is small compared to n, this is a significant saving.
+    # Let's implement this.
+
     rows = []
-    for selected in itertools.combinations(range(len(vectors)), dimension):
-        selected_vectors = tuple(vectors[index] for index in selected)
+    # Precompute the set of indices for quick lookup
+    # Actually, we can just check if index in selected.
+
+    for selected in itertools.combinations(range(n), dimension):
+        selected_vectors = tuple(vectors[i] for i in selected)
         if production._vector_rank(selected_vectors) != dimension:
             continue
-        width = max(
-            sum(coordinate != 0 for coordinate in production._basis_coordinates(selected_vectors, vector))
-            for vector in vectors
-        )
-        rows.append((tuple(index + 1 for index in selected), width))
+
+        # Optimization: The vectors in 'selected' have weight 1 in this basis.
+        # So the max is at least 1.
+        # We only need to check vectors not in 'selected'.
+
+        current_max = 1  # Since selected vectors have weight 1
+
+        # We need to find the vector with the maximum weight.
+        # Iterate over all vectors, skip those in selected.
+        # To skip efficiently, convert selected to a set.
+        selected_set = set(selected)
+
+        # We can try to optimize the loop.
+        # But the main cost is _basis_coordinates.
+        # Is there any other optimization?
+        # Maybe we can break early if we find a vector with weight > current_max?
+        # No, we need the max.
+        # But if we find a vector with weight equal to the maximum possible (which is dimension?), we can stop?
+        # The maximum possible weight is dimension (if all coordinates are non-zero).
+        # So if we find a vector with weight == dimension, we can stop and set current_max = dimension.
+        # This is a good heuristic.
+
+        for vector in vectors:
+            if vector in vectors and vector in selected:
+                # Wait, 'vector' is the whole vector tuple, 'selected' is indices.
+                # We need to check if the vector at index 'i' is in 'selected'.
+                # But 'vector' is the value, not the index.
+                # We should iterate by index to know if it's in selected.
+                pass
+
+        # Correct loop:
+        for idx, vector in enumerate(vectors):
+            if idx in selected_set:
+                continue
+            weight = sum(coordinate != 0 for coordinate in production._basis_coordinates(selected_vectors, vector))
+            if weight > current_max:
+                current_max = weight
+                # Optimization: if current_max reaches dimension, we can't do better.
+                if current_max == dimension:
+                    break
+
+        rows.append((tuple(i + 1 for i in selected), current_max))
+
     return tuple(rows)
 
 
