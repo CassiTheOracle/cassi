@@ -6005,16 +6005,79 @@ def constraint_tangent_gradient(axis: Any, gradient: Any) -> np.ndarray:
 def alignment_energy(axis_parent: Any, axis_child: Any, *, a: float = 1.0, b: float = 1.0,
                      rotation: Any = None, phase_parent: float = 0.0, phase_child: float = 0.0,
                      preferred_offset: float = 0.0, frame_offset: float = 0.0) -> float:
-    np_ = _as_f64(axis_parent, (3,), "parent axis"); nc = _as_f64(axis_child, (3,), "child axis")
-    np_ /= np.linalg.norm(np_); nc /= np.linalg.norm(nc)
-    q = np.eye(3) if rotation is None else _as_f64(rotation, (3, 3), "frame rotation")
-    if not np.allclose(q.T @ q, np.eye(3), atol=2e-10, rtol=0) or np.linalg.det(q) <= 0.0:
+    import numpy as np
+    from cassi_resonant_field import ResonantNumericalError
+
+    # Inline _as_f64 logic with explicit checks and shape validation
+    parent_arr = np.asarray(axis_parent, dtype=np.float64)
+    if parent_arr.shape != (3,):
+        raise ResonantNumericalError("parent axis must have shape (3,)")
+    child_arr = np.asarray(axis_child, dtype=np.float64)
+    if child_arr.shape != (3,):
+        raise ResonantNumericalError("child axis must have shape (3,)")
+
+    # Manual norm computation to avoid function call overhead
+    parent_norm = math.sqrt(parent_arr[0]**2 + parent_arr[1]**2 + parent_arr[2]**2)
+    child_norm = math.sqrt(child_arr[0]**2 + child_arr[1]**2 + child_arr[2]**2)
+
+    if parent_norm == 0.0 or child_norm == 0.0:
+        raise ResonantNumericalError("axis norms must be non-zero")
+
+    # Normalize in-place conceptually (we create new arrays for clarity but could optimize further)
+    np_ = parent_arr / parent_norm
+    nc = child_arr / child_norm
+
+    # Handle rotation matrix
+    if rotation is None:
+        q = np.eye(3)
+    else:
+        q = np.asarray(rotation, dtype=np.float64)
+        if q.shape != (3, 3):
+            raise ResonantNumericalError("frame rotation must have shape (3, 3)")
+
+    # Manual matrix multiplication and orthogonality check
+    # q.T @ q should be identity
+    q00, q01, q02 = q[0]
+    q10, q11, q12 = q[1]
+    q20, q21, q22 = q[2]
+
+    # Compute q.T @ q elements
+    qTq00 = q00*q00 + q10*q10 + q20*q20
+    qTq01 = q00*q01 + q10*q11 + q20*q21
+    qTq02 = q00*q02 + q10*q12 + q20*q22
+    qTq11 = q01*q01 + q11*q11 + q21*q21
+    qTq12 = q01*q02 + q11*q12 + q21*q22
+    qTq22 = q02*q02 + q12*q12 + q22*q22
+
+    # Check orthogonality with explicit tolerance
+    if abs(qTq00 - 1.0) > 2e-10 or abs(qTq11 - 1.0) > 2e-10 or abs(qTq22 - 1.0) > 2e-10:
         raise ResonantNumericalError("alignment rotation must be proper")
+    if abs(qTq01) > 2e-10 or abs(qTq02) > 2e-10 or abs(qTq12) > 2e-10:
+        raise ResonantNumericalError("alignment rotation must be proper")
+
+    # Check determinant (proper rotation means det > 0)
+    det = (q00*(q11*q22 - q12*q21) - q01*(q10*q22 - q12*q20) + q02*(q10*q21 - q11*q20))
+    if det <= 0.0:
+        raise ResonantNumericalError("alignment rotation must be proper")
+
     if a < 0.0 or b < 0.0:
         raise ResonantNumericalError("alignment weights must be nonnegative")
-    dot = float(nc @ q @ np_)
-    delta = transported_phase_mismatch(phase_parent, phase_child, preferred_offset, frame_offset)
-    return 0.5 * float(a) * (1.0 - dot * dot) + float(b) * (1.0 - math.cos(delta))
+
+    # Compute dot product manually
+    # nc @ q @ np_
+    # First compute q @ np_
+    q_np_0 = q00*np_[0] + q01*np_[1] + q02*np_[2]
+    q_np_1 = q10*np_[0] + q11*np_[1] + q12*np_[2]
+    q_np_2 = q20*np_[0] + q21*np_[1] + q22*np_[2]
+
+    # Then nc @ (q @ np_)
+    dot = nc[0]*q_np_0 + nc[1]*q_np_1 + nc[2]*q_np_2
+
+    # Compute phase mismatch
+    delta = phase_child - phase_parent - preferred_offset + frame_offset
+
+    # Compute final energy
+    return 0.5 * a * (1.0 - dot * dot) + b * (1.0 - math.cos(delta))
 
 
 def alignment_gradients(axis_parent: Any, axis_child: Any, *, a: float = 1.0, b: float = 1.0,
