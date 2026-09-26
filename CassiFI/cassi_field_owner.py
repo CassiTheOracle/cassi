@@ -1676,6 +1676,8 @@ class ExactEvidenceStore:
             directory.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._index_cache: dict[str, Any] = {}
+        self._physical_total: int | None = None
+        self._physical_files: dict[str, int] = {}
         if not self.index_path.exists():
             self._save_index(
                 {
@@ -1925,14 +1927,46 @@ class ExactEvidenceStore:
                 )
             self._index_cache = self._validate_index(value)
             self._validate_index_closure(self._index_cache)
+            self._physical_total = None
+            self._physical_files = {}
 
     def physical_bytes(self) -> int:
-        total = 0
-        for directory in (self.blobs, self.sources, self.events):
-            for path in directory.iterdir():
-                if path.is_file():
-                    total += path.stat().st_size
-        return total
+        """Return the bytes held by the evidence directories.
+
+        The total is maintained as this store writes and removes files, so a
+        capacity check is a lookup rather than a walk of the whole store; the
+        first call measures what is already on disk.
+        """
+        with self._lock:
+            if self._physical_total is None:
+                total = 0
+                files: dict[str, int] = {}
+                for directory in (self.blobs, self.sources, self.events):
+                    for path in directory.iterdir():
+                        if path.is_file():
+                            size = path.stat().st_size
+                            files[f"{directory.name}/{path.name}"] = size
+                            total += size
+                self._physical_files = files
+                self._physical_total = total
+            return self._physical_total
+
+    def _account_evidence_write(self, path: Path, size: int) -> None:
+        """Record a written evidence file against the maintained total."""
+        if self._physical_total is None:
+            return
+        key = f"{path.parent.name}/{path.name}"
+        self._physical_total += size - self._physical_files.get(key, 0)
+        self._physical_files[key] = size
+
+    def _account_evidence_removal(self, path: Path) -> None:
+        """Drop a removed evidence file from the maintained total."""
+        if self._physical_total is None:
+            return
+        key = f"{path.parent.name}/{path.name}"
+        size = self._physical_files.pop(key, None)
+        if size is not None:
+            self._physical_total -= size
 
     def store_source(
         self,
@@ -2023,7 +2057,8 @@ class ExactEvidenceStore:
             stored_encoded = canonical_json_bytes(stored.as_dict())
             projected = self.physical_bytes() + len(stored_encoded) + reserved
             blob_path = self.blobs / content_sha
-            if not blob_path.is_file():
+            blob_written = not blob_path.is_file()
+            if blob_written:
                 projected += len(source.content)
             previous: StoredSource | None = None
             superseded_encoded: bytes | None = None
@@ -2046,9 +2081,15 @@ class ExactEvidenceStore:
                 raise FieldIntelligenceError(
                     "PERSISTENCE_CORRUPT", "source object identity changed during storage"
                 )
+            if blob_written:
+                self._account_evidence_write(self.blobs / object_sha, len(source.content))
             _atomic_write(self.sources / revision_id, stored_encoded)
+            self._account_evidence_write(self.sources / revision_id, len(stored_encoded))
             if previous is not None and superseded_encoded is not None:
                 _atomic_write(self.sources / previous.revision_id, superseded_encoded)
+                self._account_evidence_write(
+                    self.sources / previous.revision_id, len(superseded_encoded)
+                )
             index["revision_ids"].append(revision_id)
             if head_id is not None:
                 index["active_revision_ids"].remove(head_id)
@@ -2134,9 +2175,10 @@ class ExactEvidenceStore:
                     status="deleted" if delete_bytes else "revoked",
                     revocation_generation=generation,
                 )
-                _atomic_write(
-                    self.sources / row.revision_id,
-                    canonical_json_bytes(revoked.as_dict()),
+                revoked_encoded = canonical_json_bytes(revoked.as_dict())
+                _atomic_write(self.sources / row.revision_id, revoked_encoded)
+                self._account_evidence_write(
+                    self.sources / row.revision_id, len(revoked_encoded)
                 )
                 if index["source_heads"].get(row.source_id) == row.revision_id:
                     del index["source_heads"][row.source_id]
@@ -2151,10 +2193,12 @@ class ExactEvidenceStore:
                 }
                 for row in rows:
                     if row.object_sha256 not in referenced:
+                        blob = self.blobs / row.object_sha256
                         try:
-                            (self.blobs / row.object_sha256).unlink()
+                            blob.unlink()
                         except FileNotFoundError:
-                            pass
+                            continue
+                        self._account_evidence_removal(blob)
 
     def append_event(self, event: EvidenceEvent) -> EvidenceEvent:
         with self._lock:
@@ -2175,6 +2219,7 @@ class ExactEvidenceStore:
                     "EVIDENCE_CAPACITY", "exact evidence capacity is exhausted"
                 )
             _atomic_write(self.events / event.event_id, encoded)
+            self._account_evidence_write(self.events / event.event_id, len(encoded))
             index["event_ids"].append(event.event_id)
             index["operation_events"][event.operation_id] = event.event_id
             self._save_index(index)
@@ -19951,16 +19996,13 @@ class FieldIntelligenceOwner:
                 completed_row: Any,
                 completed_cycle: Any,
                 completed_membrane: Any,
-                stage_result_sha256: str,
             ) -> tuple[Any, dict[str, Any], dict[str, Any]]:
                 """Close one token's field-owned cycle and membrane epoch.
 
                 A single-token round closes them once after the loop; a prompt
                 block closes the same cycle and epoch at every token boundary
                 inside the loop, so each block position keeps exactly the
-                records a one-token round produced for it.  The token's last
-                stage result digest is the caller's, already computed from the
-                canonical result bytes, so it is not recomputed here.
+                records a one-token round produced for it.
                 """
                 completed_row, raw_resume_receipt = completed_cycle.finish()
                 completed_receipt = {
@@ -19975,7 +20017,7 @@ class FieldIntelligenceOwner:
                 }
                 resume_receipts.append(completed_receipt)
                 completed_row, raw_membrane_receipt = completed_membrane.finish(
-                    stage_result_sha256=stage_result_sha256,
+                    stage_result_sha256=sha256_value(stage_results[-1]),
                     computer=completed_row,
                 )
                 completed_membrane_receipt = dict(raw_membrane_receipt)
@@ -20622,7 +20664,7 @@ class FieldIntelligenceOwner:
                             "resident prompt block lost its next model stage"
                         )
                     successor_row, _, _ = finish_resident_token(
-                        successor_row, model_cycle, membrane, stage_result_sha256
+                        successor_row, model_cycle, membrane
                     )
                     positions_done += 1
                     initial_position = next_position
@@ -20650,9 +20692,7 @@ class FieldIntelligenceOwner:
                             "resident token batch has no field-owned task cycle"
                         )
                     successor_row, membrane_receipt, resume_receipt = (
-                        finish_resident_token(
-                            successor_row, model_cycle, membrane, stage_result_sha256
-                        )
+                        finish_resident_token(successor_row, model_cycle, membrane)
                     )
             except LearningComputerCapacityError as exc:
                 raise FieldIntelligenceError(

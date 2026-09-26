@@ -716,11 +716,15 @@ class CanonicalOwnerAdapter:
         Reconstructing every recorded head on every save costs one full atlas
         state decode per stored source, so the verdict is kept for as long as
         the retention floor that guarantees the checkpoint's objects survive.
+        The checkpoint the owner currently holds was built and encoded by this
+        process and is already validated here, so a head that names it needs no
+        decode; a later process re-verifies it from disk.
         """
         manifest_id = _digest(manifest_sha256, label)
         if manifest_id in self._verified_control_manifests:
             return
-        self._control_checkpoint_state(manifest_id, label)
+        if manifest_id != self.owner.checkpoints.current_manifest_sha256:
+            self._control_checkpoint_state(manifest_id, label)
         self._verified_control_manifests.add(manifest_id)
 
     @staticmethod
