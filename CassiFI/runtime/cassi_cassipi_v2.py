@@ -692,7 +692,7 @@ class CanonicalOwnerAdapter:
     def _control_checkpoint_state(self, manifest_sha256: Any, label: str) -> AtlasState:
         manifest_id = _digest(manifest_sha256, label)
         manifest = self.owner.checkpoints._manifest(manifest_id)
-        return self.owner.checkpoints._load_state(manifest)
+        return self.owner.checkpoints.readable_state(manifest)
 
     @staticmethod
     def _migrate_control_v2(value: Any) -> dict[str, Any]:

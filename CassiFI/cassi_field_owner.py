@@ -381,6 +381,20 @@ def _digest(value: Any, label: str) -> str:
         )
     return value
 
+def _json_mapping(value: Any) -> Mapping[str, Any] | None:
+    """Parse canonical JSON bytes into a mapping, or nothing when it is not one."""
+
+    if isinstance(value, str):
+        value = value.encode("utf-8")
+    if not isinstance(value, (bytes, bytearray)):
+        return None
+    try:
+        parsed = json.loads(bytes(value).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return parsed if isinstance(parsed, Mapping) else None
+
+
 def _stage_request_digest(request: Mapping[str, Any]) -> str:
     """The request's own digest, computed only when the caller did not stamp it.
 
@@ -2212,23 +2226,16 @@ class AtlasCheckpointStore:
             self._initialize(initial_state or AtlasState())
         self.recover()
         self.current_manifest_sha256, self.current_manifest = self._load_current()
-        self.catalog_reidentification: dict[str, str] | None = None
+        self.descriptor_reidentification: dict[str, Any] | None = None
         try:
             self.state = self._load_state(self.current_manifest)
         except FieldIntelligenceError:
             if not accept_recorded_catalog:
                 raise
-            recorded = self._recorded_catalog_sha256()
-            running = _running_catalog_sha256()
-            if recorded is None or recorded == running:
+            reidentified = self._reidentified_state()
+            if reidentified is None:
                 raise
-            self.state = self._load_state(
-                self.current_manifest, accept_recorded_catalog=True
-            )
-            self.catalog_reidentification = {
-                "recorded_catalog_sha256": recorded,
-                "running_catalog_sha256": running,
-            }
+            self.state, self.descriptor_reidentification = reidentified
         self._validate_history_chain(self.current_manifest)
         self._validate_operation_records()
         fence = self.revocation_fence()
@@ -3895,17 +3902,181 @@ class AtlasCheckpointStore:
                 },
             )
 
-    def _recorded_catalog_sha256(self) -> str | None:
-        """Return the catalog fingerprint the retained generation declares.
+    def readable_state(self, manifest: Mapping[str, Any]) -> AtlasState:
+        """Hydrate one retained manifest, admitting a re-identifiable drift.
 
-        The value is read from the current state descriptor's computer
-        directory without hydrating a computer, so it is available exactly when
-        hydration refuses the generation.
+        Surfaces that verify a recorded checkpoint identity — the CassiPi
+        control ledger's baseline and heads — need the admission the store's own
+        open applies: a generation whose descriptor predates declared zero
+        defaults, or whose recorded catalog moved, still records the state it
+        names.  Anything else raises as it did.
         """
 
         try:
+            return self._load_state(manifest)
+        except FieldIntelligenceError:
+            reidentified = self._reidentified_state(manifest)
+            if reidentified is None:
+                raise
+            return reidentified[0]
+
+    def _reidentified_state(
+        self, manifest: Mapping[str, Any] | None = None
+    ) -> tuple[AtlasState, dict[str, Any]] | None:
+        """Re-identify a retained generation the running runtime encodes differently.
+
+        Two drifts are recoverable here and nothing else is: a recorded kernel
+        catalog fingerprint that moved while the retained words stayed valid,
+        and a retained descriptor that predates declared zero-valued defaults,
+        such as a work term added to the resonant workspace ledger.  Both leave
+        the retained words untouched, so the state hydrates from them and the
+        caller commits a canonical successor generation.
+        """
+
+        manifest = self.current_manifest if manifest is None else manifest
+        try:
+            state = self._load_state(manifest, accept_recorded_catalog=True)
+        except FieldIntelligenceError:
+            return None
+        recorded = self._recorded_catalog_sha256(manifest)
+        running = _running_catalog_sha256()
+        if recorded is not None and recorded != running:
+            return state, {
+                "kind": "catalog-reidentification",
+                "recorded_catalog_sha256": recorded,
+                "running_catalog_sha256": running,
+            }
+        added = self._added_descriptor_defaults(state, manifest)
+        if added is None:
+            return None
+        return state, {
+            "kind": "descriptor-normalization",
+            "added_defaults": added,
+            "retained_descriptor_sha256": manifest["state_descriptor_sha256"],
+        }
+
+    def _added_descriptor_defaults(
+        self, state: AtlasState, manifest: Mapping[str, Any] | None = None
+    ) -> list[str] | None:
+        """Name the declared zero defaults a retained descriptor predates.
+
+        The retained descriptor is compared with the running canonical encoding
+        of the same hydrated words.  A difference is admitted only when the two
+        agree everywhere except a resonant workspace ledger that gained entries
+        the running runtime declares as zero defaults and the packed field page
+        is unchanged: the retained state is then the running state with nothing
+        but declared defaults added, so re-encoding it drops no retained word.
+        """
+
+        manifest = self.current_manifest if manifest is None else manifest
+        try:
+            retained_root = json.loads(
+                (
+                    self.objects
+                    / _digest(
+                        manifest["state_descriptor_sha256"],
+                        "state descriptor",
+                    )
+                )
+                .read_bytes()
+                .decode("utf-8")
+            )
+            retained_state = retained_root["state"]
+            live_state = json.loads(state.encode().decode("utf-8"))
+            retained_pages = retained_state["pages"]
+            live_pages = live_state["pages"]
+            # The running descriptor is a page of the hydrated state; it is
+            # written to disk only when a generation commits.
+            live_objects = state.object_pages()
+        except (
+            FieldIntelligenceError,
+            KeyError,
+            OSError,
+            TypeError,
+            ValueError,
+            UnicodeDecodeError,
+        ):
+            return None
+        if not isinstance(retained_state, Mapping) or not isinstance(
+            live_state, Mapping
+        ):
+            return None
+        if not isinstance(retained_pages, Mapping) or not isinstance(
+            live_pages, Mapping
+        ):
+            return None
+        if set(retained_state) != set(live_state):
+            return None
+        if set(retained_pages) != set(live_pages):
+            return None
+        for name, value in retained_state.items():
+            if name != "pages" and value != live_state[name]:
+                return None
+        moved = [
+            name
+            for name in retained_pages
+            if retained_pages[name] != live_pages[name]
+        ]
+        if moved != ["resonant_workspace"]:
+            return None
+        retained_workspace = self._retained_object_json(
+            retained_pages["resonant_workspace"]
+        )
+        live_workspace = _json_mapping(
+            live_objects.get(live_pages["resonant_workspace"])
+        )
+        if retained_workspace is None or live_workspace is None:
+            return None
+        if set(retained_workspace) != set(live_workspace):
+            return None
+        # ``ledger`` and its derived ``state_sha256`` may differ; every other
+        # entry, the packed field page digest included, must agree exactly.
+        for name, value in retained_workspace.items():
+            if name not in {"ledger", "state_sha256"} and value != live_workspace[name]:
+                return None
+        retained_ledger = retained_workspace["ledger"]
+        live_ledger = live_workspace["ledger"]
+        if not isinstance(retained_ledger, Mapping) or not isinstance(
+            live_ledger, Mapping
+        ):
+            return None
+        if set(retained_ledger) - set(live_ledger):
+            return None
+        for name, value in retained_ledger.items():
+            if live_ledger[name] != value:
+                return None
+        added: list[str] = []
+        for name in set(live_ledger) - set(retained_ledger):
+            if live_ledger[name] != 0.0:
+                return None
+            added.append(name)
+        return sorted(added) or None
+
+    def _retained_object_json(self, page_sha256: Any) -> Mapping[str, Any] | None:
+        """Read one retained object page as a JSON mapping, or nothing."""
+
+        try:
+            raw = (
+                self.objects / _digest(page_sha256, "state page identity")
+            ).read_bytes()
+        except (FieldIntelligenceError, OSError, TypeError):
+            return None
+        return _json_mapping(raw)
+
+    def _recorded_catalog_sha256(
+        self, manifest: Mapping[str, Any] | None = None
+    ) -> str | None:
+        """Return the catalog fingerprint a retained generation declares.
+
+        The value is read from the named state descriptor's computer directory
+        without hydrating a computer, so it is available exactly when hydration
+        refuses the generation.
+        """
+
+        manifest = self.current_manifest if manifest is None else manifest
+        try:
             descriptor_sha = _digest(
-                self.current_manifest["state_descriptor_sha256"],
+                manifest["state_descriptor_sha256"],
                 "state descriptor",
             )
             root = json.loads(
@@ -3942,21 +4113,22 @@ class AtlasCheckpointStore:
             return None
         return recorded
 
-    def recover_recorded_catalog(self) -> CheckpointReceipt | None:
-        """Append one generation re-identified under the running catalog.
+    def recover_reidentified_descriptor(self) -> CheckpointReceipt | None:
+        """Append one generation re-encoded under the running runtime.
 
-        A generation whose recorded catalog fingerprint moved while its kernel
-        names stayed the same is re-identified when the store opens.  Committing
-        the re-identified state here makes every later open strict again; the
-        retained generation stays readable and the transition records both
-        catalog identities.
+        A generation the running runtime encodes differently from its retained
+        bytes is re-identified when the store opens: either its recorded kernel
+        catalog fingerprint moved while its kernel names stayed the same, or its
+        descriptor predates declared zero-valued defaults.  Committing the
+        re-identified state here makes every later open strict again; the
+        retained generation stays readable and the transition records the drift.
         """
 
-        drift = self.catalog_reidentification
+        drift = self.descriptor_reidentification
         if drift is None:
             return None
         with self._lock:
-            drift = self.catalog_reidentification
+            drift = self.descriptor_reidentification
             if drift is None:
                 return None
             successor = replace(
@@ -3964,22 +4136,21 @@ class AtlasCheckpointStore:
                 generation=self.state.generation + 1,
                 _page_cache={},
             )
+            identity = drift.get("recorded_catalog_sha256") or drift[
+                "retained_descriptor_sha256"
+            ]
             receipt = self.commit(
-                operation_id=(
-                    "catalog-reidentification:"
-                    + drift["recorded_catalog_sha256"][:16]
-                ),
+                operation_id=f"{drift['kind']}:{identity[:16]}",
                 successor=successor,
                 event_id=None,
                 transition={
-                    "kind": "catalog-reidentification",
                     "computers": [
                         computer.computer_id for computer in self.state.computers
                     ],
                     **drift,
                 },
             )
-            self.catalog_reidentification = None
+            self.descriptor_reidentification = None
             return receipt
 
     def refresh(self) -> AtlasState:
@@ -4802,12 +4973,12 @@ class FieldIntelligenceOwner:
                 transfer_publisher=self._publish_owner_objects,
             )
             self.state = self.checkpoints.state
-            self.catalog_migration: dict[str, Any] | None = None
-            drift = self.checkpoints.catalog_reidentification
-            receipt = self.checkpoints.recover_recorded_catalog()
+            self.descriptor_migration: dict[str, Any] | None = None
+            drift = self.checkpoints.descriptor_reidentification
+            receipt = self.checkpoints.recover_reidentified_descriptor()
             if receipt is not None and drift is not None:
                 self.state = self.checkpoints.state
-                self.catalog_migration = {
+                self.descriptor_migration = {
                     "manifest_sha256": receipt.manifest_sha256,
                     "generation": receipt.generation,
                     **drift,
