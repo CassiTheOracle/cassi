@@ -175,44 +175,14 @@ def _formula_from_cubic_matrix(matrix: Matrix) -> Formula:
     return tuple(clauses)
 
 
-def incidence_matrix(formula: Formula) -> list[list[int]]:
+def incidence_matrix(formula: Formula) -> list[list[Fraction]]:
     """Return the exact square incidence matrix of a canonical formula."""
+
     size = len(formula)
-    # Pre-allocate integer matrix to avoid Fraction overhead during construction
-    # The anchor expects list[list[Fraction]], but constructing with ints is faster
-    # and we can convert once at the end if strict typing is required at runtime.
-    # However, to ensure observable behavior is identical (returning Fractions),
-    # we will construct the int matrix and map to Fractions only once per row.
-
-    # Optimization: Use a flat list comprehension with map for O(N) fraction creation
-    # instead of O(N^2) individual Fraction object creations in a nested loop.
-
-    # We construct rows as lists of ints first, then convert to Fractions.
-    # This reduces the number of Fraction constructor calls from N^2 to N (for zeros) + N (for ones).
-    # Actually, we need N^2 Fractions in the result. The bottleneck in the original was 
-    # the nested loop calling Fraction(0) and Fraction(1) repeatedly.
-
-    # Better approach: Pre-create the Fraction instances for 0 and 1 outside loops.
-    # But the previous attempt did that and failed. The real issue is likely the 
-    # repeated list indexing and assignment in Python bytecode.
-
-    # Let's try a different algorithmic structure: build rows using list comprehensions
-    # which are faster than explicit for-loops with indexing.
-
-    # Pre-compute the Fraction constants
-    F0 = Fraction(0)
-    F1 = Fraction(1)
-
-    matrix = []
-    for clause in formula:
-        # Create a row of F0s
-        row = [F0] * size
-        # Update positions for variables in this clause
-        # Unpacking the clause to set indices directly is faster than indexing
-        for var in clause:
-            row[var - 1] = F1
-        matrix.append(row)
-
+    matrix = [[Fraction(0) for _ in range(size)] for _ in range(size)]
+    for clause_index, clause in enumerate(formula):
+        for variable in clause:
+            matrix[clause_index][variable - 1] = Fraction(1)
     return matrix
 
 
@@ -2737,23 +2707,20 @@ def _candidate_vector(
     coefficients: tuple[tuple[Fraction, ...], ...],
     free_values: tuple[Fraction, ...],
 ) -> tuple[Fraction, ...]:
-    # Initialize result with free values at their correct positions
-    # Using a list comprehension to build the initial state without pre-filling zeros
-    result = [None] * size
+    vector = [Fraction(0)] * size
     for column, value in zip(free_columns, free_values, strict=True):
-        result[column] = value
-
-    # Calculate pivot values
+        vector[column] = value
     for row, pivot_column in enumerate(pivot_columns):
-        # Compute the sum of coefficients * free_values for this row
-        # This avoids creating intermediate generator objects for the sum
-        row_coefficients = coefficients[row]
-        total = Fraction(0)
-        for coeff, free_val in zip(row_coefficients, free_values, strict=True):
-            total += coeff * free_val
-        result[pivot_column] = -total
-
-    return tuple(result)
+        vector[pivot_column] = -sum(
+            (
+                coefficient * value
+                for coefficient, value in zip(
+                    coefficients[row], free_values, strict=True
+                )
+            ),
+            start=Fraction(0),
+        )
+    return tuple(vector)
 
 def _literal_node(literal: int) -> int:
     variable = abs(literal) - 1

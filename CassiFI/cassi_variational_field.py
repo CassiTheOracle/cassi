@@ -185,8 +185,17 @@ class VariationalField:
             tolerance = 128 * torch.finfo(field.dtype).eps * size * max(1.0, upper)
             if float(eigenvalues.min()) < self.ridge - tolerance or float(eigenvalues.max()) > upper + tolerance:
                 raise ValueError("memory covariance leaves its declared spectral bounds")
-            if int(torch.linalg.cholesky_ex(covariance).info) != 0:
-                raise ValueError("memory covariance must be positive definite")
+            # A symmetric covariance is positive definite exactly when its
+            # smallest eigenvalue is positive. The bounds above already pin
+            # every eigenvalue inside [ridge - tolerance, upper + tolerance],
+            # so the factorization can only succeed, and it is kept for the
+            # band where the decomposition itself cannot resolve the sign.
+            # Outside that band the factorization adds no information and its
+            # threaded LAPACK dispatch can cost tens of milliseconds per call
+            # while the process is contended.
+            if float(eigenvalues.min()) <= tolerance:
+                if int(torch.linalg.cholesky_ex(covariance).info) != 0:
+                    raise ValueError("memory covariance must be positive definite")
 
     def initial_state(self, *, device: str | torch.device = "cpu") -> Tensor:
         field = torch.zeros(self.shape, dtype=torch.float64, device=device)

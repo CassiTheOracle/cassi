@@ -40326,27 +40326,17 @@ def _semantic_autonomous_agenda(
                 },
             }
         )
-    if eligible_work_order is not None:
-        # A field holds the obligations of every entity that published into
-        # it, so a caller's declared order is a ranking of the work it knows,
-        # and it need not enumerate the whole eligible set.  The field keeps
-        # the caller's own ordering first, then its own enumeration order for
-        # what the caller did not name, and refuses a name it does not hold.
-        declared = list(dict.fromkeys(eligible_work_order))
-        held = set(eligible_work_ids)
-        over_declared = [identity for identity in declared if identity not in held]
-        if over_declared:
-            raise FieldIntelligenceError(
-                "INVALID_SEMANTIC_OPERATION",
-                "eligible work order names items the field does not hold: "
-                f"{sorted(value[-80:] for value in over_declared)[:3]} "
-                f"(declared {len(declared)}, eligible {len(eligible_work_ids)})",
-            )
-        named = set(declared)
-        eligible_work_order = [
-            *declared,
-            *(identity for identity in eligible_work_ids if identity not in named),
-        ]
+    if (
+        eligible_work_order is not None
+        and (
+            len(eligible_work_order) != len(eligible_work_ids)
+            or set(eligible_work_order) != set(eligible_work_ids)
+        )
+    ):
+        raise FieldIntelligenceError(
+            "INVALID_SEMANTIC_OPERATION",
+            "eligible work order does not exactly match current resolve-obligation items",
+        )
     effective_work_order = (
         list(eligible_work_ids)
         if eligible_work_order is None
