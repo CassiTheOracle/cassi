@@ -210,18 +210,18 @@ def _info(machine: FieldComputer, state: Any) -> dict[str, Any]:
     if not isinstance(info, Mapping):
         raise AssertionError("inspect() did not return a mapping")
     required = ("status", "pc", "accumulator", "left", "right", "resource_ledger", "field_bytes")
-    missing = [key for key in required if key not in info]
-    if missing:
-        raise AssertionError(f"inspect() missing keys {missing}")
+    for key in required:
+        if key not in info:
+            raise AssertionError(f"inspect() missing keys {key}")
     ledger = info["resource_ledger"]
     if not isinstance(ledger, Mapping):
         raise AssertionError("resource_ledger is not a mapping")
     for key in ("transitions", "stack_reads", "stack_writes", "field_cells_copied"):
         if key not in ledger:
             raise AssertionError(f"resource ledger missing {key}")
-    if hasattr(state, "nbytes") and int(info["field_bytes"]) != int(state.nbytes):
+    if hasattr(state, "nbytes") and info["field_bytes"] != state.nbytes:
         raise AssertionError("inspect field_bytes disagrees with state.nbytes")
-    return dict(info)
+    return info
 
 
 def semantic_snapshot(info: Mapping[str, Any]) -> tuple[Any, ...]:
