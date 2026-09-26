@@ -47,6 +47,16 @@ at every neuron leaves the field, and its record, verdicts, and lineage stay
 in memory.  When no neuron owes work the brain rests: the field breathes,
 ideas fade and leave, and fired neurons recover until one wakes.
 
+A result can hold given premises.  A mathematician whose derivation needs a
+premise the question does not give proves the idea given that premise, and a
+skeptic who finds a hidden assumption lets the idea survive given it.  Each
+premise enters the field as its own idea, even when working memory is full,
+open and pressing for work, and both kinds of consolidating neuron examine it,
+told which results rest on it.  An idea is established when a mathematician
+proved it on premises that are themselves established and every hidden
+assumption a skeptic found in it is established too, so the neurons agree on
+what follows and argue about what it follows from.
+
     python cassi_thinking_brain.py think --home RUN --question "..." --acts 48
     python cassi_thinking_brain.py resume --home RUN --acts 24
     python cassi_thinking_brain.py status --home RUN
@@ -304,8 +314,8 @@ CODE_RULES = (
 ROLE = {
     "intuition": (
         "You are INTUITION, a generative neuron. You sense which direction is promising before any proof exists, "
-        "propose sharp checkable conjectures, refine ideas that were broken, promote ideas that pull, and release "
-        "ideas that no longer do."
+        "propose sharp checkable conjectures, refine ideas that were broken, look for what would establish the "
+        "premises results rest on, promote ideas that pull, and release ideas that no longer do."
     ),
     "analogist": (
         "You are the ANALOGIST, a generative neuron. You find the same structure in different fields (physics, "
@@ -323,17 +333,20 @@ ROLE = {
     ),
     "mathematician": (
         "You are a MATHEMATICIAN, a consolidating neuron. You turn a vague idea into a precise statement and decide "
-        "it by derivation and computation."
+        "it by derivation and computation. When a derivation needs a premise the question does not give, you state "
+        "that premise: the idea is proven given it."
     ),
     "skeptic": (
         "You are a SKEPTIC, a consolidating neuron. You attack a claim: counterexamples, edge cases, hidden "
         "assumptions, and conflicts with the Cassi theory registry. A claim is strong only after you tried to "
-        "break it and failed."
+        "break it and failed. A hidden assumption you find becomes a premise the claim survives given; you break a "
+        "claim only when it fails."
     ),
     "integrator": (
         "You are the INTEGRATOR, the hub every neuron exchanges with. You see the whole brain at once, decide what "
-        "it currently believes, endorse ideas the evidence supports, release ideas that are superseded or broken, "
-        "and join compatible supported ideas into one synthesis."
+        "it currently believes, separating what is established from what holds only given a premise, endorse ideas "
+        "the evidence supports, release ideas that are superseded or broken, and join compatible supported ideas "
+        "into one synthesis."
     ),
 }
 
@@ -353,6 +366,7 @@ def _object(**properties: Any) -> dict[str, Any]:
 _TEXT = {"type": "string"}
 _NUMBER = {"type": "number"}
 _IDS = {"type": "array", "items": _TEXT, "maxItems": 4}
+_GIVEN = {"type": "array", "items": _TEXT, "maxItems": 2}
 _PROPOSALS = {"type": "array", "maxItems": 2,
               "items": _object(statement=_TEXT, why=_TEXT, confidence=_NUMBER, refines=_TEXT)}
 _WEIGHTS = {"type": "array", "maxItems": 3, "items": _object(idea=_TEXT, strength=_NUMBER)}
@@ -384,8 +398,10 @@ def _evidence(run: Mapping[str, Any], hits: Sequence[Mapping[str, Any]]) -> str:
 
 
 def _verdict_line(verdict: Mapping[str, Any]) -> str:
+    premises = [*(verdict.get("given") or []), *(text[:120] for text in verdict.get("unresolved") or [])]
+    given = f" given {'; '.join(premises)}" if premises else ""
     via = f" (same claim as {verdict['via']})" if verdict.get("via") else ""
-    return f"{verdict['verdict']}{via}: {verdict['reason'][:200]}"
+    return f"{verdict['verdict']}{given}{via}: {verdict['reason'][:200]}"
 
 
 # ── the organism ────────────────────────────────────────────────────────────
@@ -452,8 +468,8 @@ class ThinkingBrain:
         return len(self.field.ideas) < MAX_IDEAS and live < MAX_ACTIVE
 
     def _new_idea(self, statement: Any, *, neuron: str, kind: str, parents: list[str], why: Any) -> str | None:
-        """Admit an idea. A judgment's correction or objection enters even when working memory is full;
-        conjectures and syntheses wait for room."""
+        """Admit an idea. A judgment's correction, objection, or premise enters even when working memory is
+        full; conjectures and syntheses wait for room."""
 
         statement = str(statement or "").strip()
         if not statement or len(self.field.ideas) >= MAX_IDEAS or (
@@ -505,15 +521,24 @@ class ThinkingBrain:
         side = _side(own["verdict"]) if own and own.get("via") else 0
         return side != 0 and any(_side(v["verdict"]) == -side for n, v in verdicts.items() if n != neuron)
 
-    def _contest_note(self, neuron: str, idea: str | None) -> str:
-        """What a neuron re-examining a contested idea is told about its own associative verdict."""
+    def _note(self, neuron: str, idea: str | None) -> str:
+        """What a consolidating neuron is told about its idea: the results resting on it as a premise, and
+        where its own verdict came from when that verdict is contested."""
 
-        verdicts = self.state["ideas"][idea]["verdicts"] if idea else {}
-        if not self._contested(neuron, verdicts):
+        if not idea:
             return ""
-        own = verdicts[neuron]
-        return (f"YOUR VERDICT SO FAR, {own['verdict']}, came only by association with {own['via']}, and other "
-                "neurons judged this idea the other way. Examine this idea itself.\n")
+        verdicts = self.state["ideas"][idea]["verdicts"]
+        rests = [other for other, meta in self.state["ideas"].items()
+                 if any(idea in (v.get("given") or []) for v in meta["verdicts"].values())]
+        unforced = "undecided" if role_of(neuron) == "mathematician" else "weakened"
+        note = (f"THIS IDEA IS A PREMISE: {', '.join(rests)} rest on it. Judge whether the question and the source "
+                f"passages establish it; a premise they leave unforced is {unforced}, however natural it looks.\n"
+                if rests else "")
+        if self._contested(neuron, verdicts):
+            own = verdicts[neuron]
+            note += (f"YOUR VERDICT SO FAR, {own['verdict']}, came only by association with {own['via']}, and "
+                     "other neurons judged this idea the other way. Examine this idea itself.\n")
+        return note
 
     def candidates(self, busy: Mapping[str, str | None] | None = None) -> list[tuple[float, str, str | None]]:
         """Every quiet neuron that owes work, with its firing potential and focus idea."""
@@ -540,7 +565,7 @@ class ThinkingBrain:
                     if rho[k, c] < PRESENT or (role, idea) in taken:
                         continue
                     if not self._contested(neuron, verdicts) and (
-                            idea in memory["judged"] or role_of(meta["by"]) == role
+                            idea in memory["judged"] or (role_of(meta["by"]) == role and meta["kind"] != "premise")
                             or any(role_of(n) == role for n in verdicts)
                             or any(v["verdict"] in NEGATIVE for v in verdicts.values())):
                         continue
@@ -628,13 +653,14 @@ class ThinkingBrain:
                          "TASK: finding: what the passages settle or open." + PROPOSE, _opening("finding"), 0.6)
             return {"calls": [first, second], "library": hits, "answer": second["answer"]}
         if role in CONSOLIDATING:
-            focus = f"\nIDEA UNDER YOUR EXAMINATION: {job['idea']}: {job['statement']}\n{job['contest']}"
+            focus = f"\nIDEA UNDER YOUR EXAMINATION: {job['idea']}: {job['statement']}\n{job['note']}"
             hits: list[dict[str, Any]] = []
             if role == "mathematician":
                 calls, runs = compute(focus + "TASK: decide this idea by derivation and computation. Open the script "
                                       "with comments stating the idea as an exact mathematical claim and how the "
                                       "script decides it.", 0.2)
-                step, rule = "", " proven only when your script ran cleanly and its output decides the claim."
+                step, rule = "", (" proven only when your script ran cleanly and its output decides the claim; a "
+                                  "derivation that needs a premise proves the idea given that premise.")
             else:
                 first = ask(focus + "TASK: attack: the strongest way this could fail. library_query: words to search "
                             "the CassiTheory registry for conflicting or supporting statements. "
@@ -646,24 +672,29 @@ class ThinkingBrain:
                 calls, runs = compute(focus + f"YOUR ATTACK: {first['answer'].get('attack')}\nTASK: hunt the "
                                       f"counterexample: {hunt}", 0.3) if hunt else ([], [{"ran": False}])
                 calls = [first] + calls
-                step, rule = f"YOUR ATTACK: {_dump(first['answer'])}\n\n", ""
+                step, rule = f"YOUR ATTACK: {_dump(first['answer'])}\n\n", (
+                    " broken only when the idea fails; when it holds only under a hidden assumption, it survives "
+                    "given that assumption.")
             verdicts = VERDICTS[role]
+            positive = " or ".join(v for v in verdicts if v in POSITIVE)
             second = ask(focus + step + _evidence(runs[-1], hits) +
                          "TASK: decide from the evidence. reason: cite the printed numbers or passages you rely on. "
-                         f"verdict: one of {list(verdicts)};{rule} strength 0..1. same_claim: ids of the other ideas "
-                         "at your site asserting this very claim, which your verdict decides too; leave out ideas "
-                         "that contradict it or only share its topic; else []. "
-                         "replacement: when the idea fails, a corrected or sharper claim, or the id of an idea at "
-                         "your site that already states it; else \"\".",
+                         f"verdict: one of {list(verdicts)};{rule} strength 0..1. given: for {positive}, the "
+                         "premises the verdict needs beyond the question and the source passages, each one "
+                         "checkable statement or the id of an idea at your site that states it; the brain judges "
+                         "them next; else []. same_claim: ids of the other ideas at your site asserting this very "
+                         "claim, which your verdict decides too; leave out ideas that contradict it or only share "
+                         "its topic; else []. replacement: when the idea fails, a corrected or sharper claim, or the "
+                         "id of an idea at your site that already states it; else \"\".",
                          _object(reason=_TEXT, verdict={"type": "string", "enum": list(verdicts)},
-                                 strength=_NUMBER, same_claim=_IDS, replacement=_TEXT), 0.1)
+                                 strength=_NUMBER, given=_GIVEN, same_claim=_IDS, replacement=_TEXT), 0.1)
             return {"calls": calls + [second], "computation": runs[-1], "earlier_attempts": runs[:-1],
                     "library": hits, "answer": second["answer"]}
-        reply = ask("\nTASK: state_of_mind: what the brain currently believes and what remains open. endorse: ideas "
-                    "the evidence supports, strength 0..1. release: ids of superseded or broken ideas. synthesis: "
-                    "when compatible supported ideas join into a claim no present idea already states, statement is "
-                    "their union as one checkable claim and combines lists their ids; otherwise leave statement "
-                    "empty.",
+        reply = ask("\nTASK: state_of_mind: what the brain currently believes, which results hold only given "
+                    "premises, and what remains open. endorse: ideas the evidence supports, strength 0..1. release: "
+                    "ids of superseded or broken ideas. synthesis: when compatible supported ideas join into a claim "
+                    "no present idea already states, statement is their union as one checkable claim and combines "
+                    "lists their ids; otherwise leave statement empty.",
                     _object(state_of_mind=_TEXT, endorse=_WEIGHTS, release=_IDS,
                             synthesis=_object(statement=_TEXT, combines=_IDS, why=_TEXT)), 0.3)
         return {"calls": [reply], "answer": reply["answer"]}
@@ -714,6 +745,40 @@ class ThinkingBrain:
         self.state["events"].append({"neuron": neuron, "idea": idea, "event": verdict})
         return {verdict: idea}
 
+    def _premises(self, neuron: str, idea: str, verdict: str, answer: Mapping[str, Any],
+                  perceived: Collection[str], effects: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
+        """The premises a positive verdict holds given, as ideas; a premise no idea can hold stays unresolved.
+
+        A premise named by id links that idea and backs it with Yang. A stated premise enters the field as a new
+        idea, open and pressing for work at the judging neuron's site, even when working memory is full.
+        """
+
+        entries = answer.get("given") if verdict in POSITIVE else None
+        given: list[str] = []
+        unresolved: list[str] = []
+        for entry in (entries if isinstance(entries, list) else [])[:2]:
+            entry = str(entry or "").strip()
+            if not entry or entry == idea or entry in given:
+                continue
+            if _IDEA_ID.fullmatch(entry):
+                if entry not in self.state["ideas"]:
+                    unresolved.append(entry)
+                    continue
+                if entry in self.field.ideas:
+                    effects.append(self._deposit(entry, neuron, "premise", yang=0.5 * self.amplitude))
+                given.append(entry)
+                continue
+            new = self._new_idea(entry, neuron=neuron, kind="premise", parents=[idea], why=answer.get("reason"))
+            if new:
+                self.field.deposit(new, neuron, yang=self.amplitude)
+                effects.append({"premise": new, "yang": round(self.amplitude, 4)})
+                given.append(new)
+            else:  # the field is full: the verdict stays conditional on the stated premise
+                unresolved.append(entry[:300])
+        if unresolved:
+            effects.append({"unresolved": unresolved})
+        return given, unresolved
+
     def _decide(self, neuron: str, idea: str, answer: Mapping[str, Any], computation: Mapping[str, Any],
                 perceived: Collection[str]) -> tuple[str | None, list[dict[str, Any]]]:
         """Apply a verdict to the examined idea and to every perceived idea making the same claim.
@@ -734,13 +799,15 @@ class ThinkingBrain:
         before = self.state["ideas"][idea]["verdicts"].get(neuron)
         if before:  # examining the idea itself replaces a verdict that came by association
             effects.append({"revises": before["verdict"]})
+        given, unresolved = self._premises(neuron, idea, verdict, answer, perceived, effects)
         record = {"verdict": verdict, **({"claimed": claimed} if claimed != verdict else {}), "strength": strength,
+                  **({"given": given} if given else {}), **({"unresolved": unresolved} if unresolved else {}),
                   "reason": str(answer.get("reason") or "")[:1200], "act": self.state["acts"] + 1,
                   **({"revises": before["verdict"]} if before else {})}
         self.state["ideas"][idea]["verdicts"][neuron] = record
         judged = self.state["neurons"][neuron]["judged"]
         replacement = str(answer.get("replacement") or "").strip()
-        same = list(dict.fromkeys(answer.get("same_claim") or []))
+        same = [other for other in dict.fromkeys(answer.get("same_claim") or []) if other not in given]
         if replacement in same:  # the better claim cannot share the failed one: the answer confused its lists
             same = []
         for other in same:
@@ -892,7 +959,7 @@ class ThinkingBrain:
                            "launched_at": round(self.field.time, 6), "seen": len(self.state["events"]),
                            "perceived": [row["id"] for row in view], "context": self._context(neuron, view),
                            "statement": self.state["ideas"][idea]["statement"] if idea else None,
-                           "contest": self._contest_note(neuron, idea)}
+                           "note": self._note(neuron, idea)}
                     busy[neuron] = idea
                     jobs[pool.submit(self._think, job)] = job
                     launched += 1
@@ -931,6 +998,26 @@ class ThinkingBrain:
         records = (json.loads(line) for line in path.read_text(encoding="utf-8").splitlines())
         return [record for record in records if record.get("kind") == "act"]
 
+    def standing(self, idea: str, path: frozenset[str] = frozenset()) -> str:
+        """Where an idea stands: established (a mathematician proved it on established premises, and every hidden
+        assumption a skeptic found in it is established too), proven-given (proven, resting on a premise that is
+        not established), disputed (proven and broken), refuted, supported, or open."""
+
+        verdicts = list(self.state["ideas"][idea]["verdicts"].values())
+        proofs = [v for v in verdicts if v["verdict"] == "proven"]
+        if any(v["verdict"] in NEGATIVE for v in verdicts):
+            return "disputed" if proofs else "refuted"
+        if not proofs:
+            return "supported" if any(v["verdict"] in POSITIVE for v in verdicts) else "open"
+        path = path | {idea}  # a circle of premises establishes nothing
+
+        def holds(verdict: Mapping[str, Any]) -> bool:
+            return not verdict.get("unresolved") and all(
+                p not in path and self.standing(p, path) == "established" for p in verdict.get("given") or [])
+
+        assumptions = [v for v in verdicts if v["verdict"] == "survives"]
+        return "established" if any(map(holds, proofs)) and all(map(holds, assumptions)) else "proven-given"
+
     def conclusion(self, top: int = 8) -> dict[str, Any]:
         resonance = self.field.resonance()
         ranked = sorted(zip(self.field.ideas, resonance.tolist()), key=lambda row: -row[1])
@@ -938,16 +1025,36 @@ class ThinkingBrain:
         second = ranked[1][1] if len(ranked) > 1 else 0.0
         leads = [max(a["field"]["resonance"].items(), key=lambda kv: kv[1])[0]
                  for a in self.acts() if a["field"]["resonance"]]
+        ideas = self.state["ideas"]
+        standing = {idea: self.standing(idea) for idea in ideas}
+        rests: dict[str, list[str]] = {}
+        for idea, meta in ideas.items():
+            for premise in dict.fromkeys(p for v in meta["verdicts"].values() for p in v.get("given") or []):
+                rests.setdefault(premise, []).append(idea)
+
+        def given(idea: str) -> dict[str, str]:
+            positive = [v for v in ideas[idea]["verdicts"].values() if v["verdict"] in POSITIVE]
+            return {**{p: standing[p] for v in positive for p in v.get("given") or []},
+                    **{text: "unresolved" for v in positive for text in v.get("unresolved") or []}}
+
         return {
             "status": self.state["status"], "acts": self.state["acts"],
             "shape": "settled" if first > 0.0 and first >= PHI * second else ("split" if first > 0.0 else "empty"),
             "lead_changes": sum(1 for a, b in zip(leads, leads[1:]) if a != b),
             "rhythm": " ".join(a["neuron"] for a in self.acts()),
             "mind": self.state["mind"],
-            "ranking": [{"idea": idea, "resonance": round(r, 4),
-                         **{k: self.state["ideas"][idea][k] for k in ("statement", "kind", "by", "parents")},
-                         "verdicts": {n: v["verdict"] for n, v in self.state["ideas"][idea]["verdicts"].items()}}
+            "ranking": [{"idea": idea, "resonance": round(r, 4), "standing": standing[idea],
+                         **{k: ideas[idea][k] for k in ("statement", "kind", "by", "parents")},
+                         "verdicts": {n: v["verdict"] for n, v in ideas[idea]["verdicts"].items()}}
                         for idea, r in ranked[:top]],
+            "established": [{"idea": idea, "statement": ideas[idea]["statement"]}
+                            for idea in ideas if standing[idea] == "established"],
+            "proven_given": [{"idea": idea, "statement": ideas[idea]["statement"], "given": given(idea)}
+                             for idea in ideas if standing[idea] == "proven-given"],
+            "open_premises": [{"idea": premise, "statement": ideas[premise]["statement"],
+                               "standing": standing[premise], "supports": supports,
+                               "verdicts": {n: v["verdict"] for n, v in ideas[premise]["verdicts"].items()}}
+                              for premise, supports in rests.items() if standing[premise] != "established"],
         }
 
 
@@ -962,7 +1069,8 @@ def _print_record(record: Mapping[str, Any]) -> None:
         print(f"[rest] {record['breaths']} breaths, faded {faded}{forgot}; {woke}  {tail}", flush=True)
         return
     flows = sum(1 for e in record["effects"] if "via" in e)
-    after = [f"{k}={e[k]}" for e in record["effects"] for k in ("revises", "new", "backed", "kept") if k in e]
+    after = [f"{k}={e[k]}" for e in record["effects"]
+             for k in ("revises", "premise", "new", "backed", "kept") if k in e]
     detail = (record["verdict"] + (f" +{flows} same claim" if flows else "") + "".join(f", {a}" for a in after)
               if record.get("verdict") else
               ", ".join(f"{k}={v}" for e in record["effects"] for k, v in e.items() if k not in ("yang", "yin", "drain")))

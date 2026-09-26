@@ -537,6 +537,20 @@ so the brain strengthens a claim it holds instead of restating it. Conjectures
 and the integrator's syntheses wait for room, and the integrator fires once at
 least two other neurons have judged since it last fired.
 
+A result can hold given premises. A mathematician whose derivation needs a
+premise the question does not give records `proven` given that premise, and a
+skeptic who finds a hidden assumption records `survives` given it, breaking a
+claim only when it fails. Each premise becomes an idea of its own: one already
+present at the judging neuron's site is linked and backed with Yang, and a new
+one enters the field even when working memory is full, open and pressing for
+work. Mathematicians and skeptics both examine premises, told which results
+rest on them, and a premise the question and the source passages leave
+unforced is judged `undecided` or `weakened`. An idea is `established` when a
+mathematician proved it on established premises and every hidden assumption a
+skeptic found in it is established too; `proven-given` when a proof rests on a
+premise that is not; `disputed` when proven and broken; otherwise `refuted`,
+`supported`, or `open`. A circle of premises establishes nothing.
+
 The field holds at most 48 ideas at once. An idea that fades below perception
 at every neuron leaves the field; its record, verdicts, and lineage stay in
 `state.json`, and new ideas take its place. When no neuron owes work, the
@@ -557,9 +571,11 @@ field and each neuron's verdict memory, so a stopped brain resumes where it left
 off. When the server stops answering for about a minute, the neurons already
 thinking finish, the run saves with status `waiting-for-brain`, and the command
 exits with code 3; `resume` continues from the last finished act. The printed
-conclusion ranks ideas by resonance, gives the firing rhythm, and calls the
-brain `settled` when its leading idea resonates at least φ times more strongly
-than the next, `split` otherwise.
+conclusion ranks ideas by resonance with their standing, lists the established
+results, the results proven given premises with each premise's standing, and
+the premises still open, gives the firing rhythm, and calls the brain `settled`
+when its leading idea resonates at least φ times more strongly than the next,
+`split` otherwise.
 
 
 ## Current operational state
