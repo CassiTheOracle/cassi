@@ -2157,7 +2157,7 @@ self-edited prompt “RSI.”
 | **L2: improvement strategy** | diagnose a weakness and choose how to improve under a fixed objective and verifier | bounded mechanisms exist for field-supported candidate choice, acquired method selection, repair, and guarded use | repeated superiority to supplied fixed strategies on unseen work |
 | **L3: experience acquisition** | decide which examples, questions, demonstrations, or experiments the next improvement needs | the fixed-tape SQLite baseline is complete; field-directed question choice remains the first direct campaign test | field-selected experience that measurably beats a matched supplied curriculum |
 | **L4: deployment adaptation** | use continuing environmental feedback to revise persistent state | the field can persist across tasks, restarts, and continuing worlds | a sustained deployment trajectory in which live outcomes produce verified, reusable gains without model fallback |
-| **L5: recursive inheritance** | revise an improver, verifier, curriculum policy, or successor procedure and pass it into later improvement rounds | a closed succession runs in `CassiFI/self_improvement/` (§31.6): the live brain writes each successor improver from its lineage ledger; \(M_0 \rightarrow M_1\) and \(M_1 \rightarrow M_2\) were each promoted by matched trials on untouched functions of Cassi's own source; each promoted improver governed the next live round; the three generations on four shared untouched function groups read 0.316, 2.374, 2.711 | succession past \(M_2\), and whether the gain keeps accumulating or saturates |
+| **L5: recursive inheritance** | revise an improver, verifier, curriculum policy, or successor procedure and pass it into later improvement rounds | a closed succession runs in `CassiFI/self_improvement/` (§31.6): the live brain writes each successor improver from its lineage ledger; \(M_0 \rightarrow M_1\), \(M_1 \rightarrow M_2\) and \(M_2 \rightarrow M_3\) were each promoted by matched trials on untouched functions of Cassi's own source; each promoted improver governed the next live round; the first three generations read 0.316, 2.374, 2.711 on four shared untouched function groups | the same shared-group reading for \(M_3\), and whether the gain keeps accumulating or saturates |
 
 The survey finds broad evidence at lower and intermediate levels, bounded
 meta-improvement at L5, and leaves statistically reliable accumulation across
@@ -2387,11 +2387,17 @@ The chain so far:
 |---|---|---|
 | \(M_0 \rightarrow M_1\) | 2.980 → 3.172 | tolerant parsing of cut replies, tighter context, retries that name the failure |
 | \(M_1 \rightarrow M_2\) | 0.269 → 0.646, both replicate groups won | retries shaped by the previous outcome (near miss, slowdown, changed output, cut reply), leaner context, cooler first attempts |
+| \(M_2 \rightarrow M_3\) | 0.204 → 1.777, one group won and one tied | reasoning mode off in the apprentice calls and temperature 0.4, both read off the ledger's verified rate per request setting |
 
 Four successors written in one step, without the diagnosis, lost to \(M_1\);
 the first diagnosed successor won with three verified functions against one
 while spending fewer calls (18 against 22) and tokens (69 k against 88 k).
-\(M_2\) governed the second live round and wrote \(M_3\).
+\(M_2\) governed the second live round and wrote \(M_3\). \(M_3\) then won on
+Cassi's own accounting: the ledger's request-setting table showed no verified
+rewrite from a reasoning-mode apprentice call and a better rate at temperature
+0.4 than 0.3, and the successor turned reasoning off and moved the
+temperature. Later successors read the same table, so each round's attempts
+are recorded in the form the next round can act on.
 
 On four held-out function groups that no generation had touched, under the
 same 12 calls and 60,000 tokens per arm, the three generations read
