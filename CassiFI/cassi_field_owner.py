@@ -15,6 +15,7 @@ import threading
 import statistics
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Mapping, NoReturn, Protocol, Sequence
 
@@ -361,13 +362,30 @@ _CONTROL_CHARACTER = re.compile(r"[\x00-\x1f]")
 _SHA256_HEX = re.compile(r"[0-9a-f]{64}")
 
 
+@lru_cache(maxsize=32768)
+def _valid_identifier_text(value: str) -> bool:
+    """Answer whether identity text is bounded and control-free, once per value.
+
+    Index validation rechecks every recorded identifier on each access, so the
+    per-value work is cached; the answer depends only on the text.
+    """
+
+    return (
+        bool(value)
+        and len(value.encode("utf-8")) <= 512
+        and _CONTROL_CHARACTER.search(value) is None
+    )
+
+
+@lru_cache(maxsize=32768)
+def _valid_digest_text(value: str) -> bool:
+    """Answer whether a value is a lowercase SHA-256 digest, once per value."""
+
+    return _SHA256_HEX.fullmatch(value) is not None
+
+
 def _identifier(value: Any, label: str) -> str:
-    if (
-        not isinstance(value, str)
-        or not value
-        or len(value.encode("utf-8")) > 512
-        or _CONTROL_CHARACTER.search(value) is not None
-    ):
+    if not isinstance(value, str) or not _valid_identifier_text(value):
         raise FieldIntelligenceError(
             "INVALID_IDENTITY", f"{label} must be bounded nonempty text"
         )
@@ -375,7 +393,7 @@ def _identifier(value: Any, label: str) -> str:
 
 
 def _digest(value: Any, label: str) -> str:
-    if not isinstance(value, str) or _SHA256_HEX.fullmatch(value) is None:
+    if not isinstance(value, str) or not _valid_digest_text(value):
         raise FieldIntelligenceError(
             "INVALID_IDENTITY", f"{label} must be a lowercase SHA-256 digest"
         )

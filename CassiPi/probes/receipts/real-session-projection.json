@@ -8,8 +8,8 @@
     "output_reserve_tokens": 8192,
     "provider_calls": 0
   },
-  "cold_start_ms": 1274.7,
-  "created_at": "2026-09-26T08:54:59Z",
+  "cold_start_ms": 1269.2,
+  "created_at": "2026-09-26T09:16:40Z",
   "mandatory_exact_recall": {
     "exact_bytes_present": true,
     "revision_id": "d5e78dbf50b343b827fc7b5970bbf55de9cddfb2ced726d223f6c752cb7f5a6d",
@@ -32,7 +32,7 @@
       "candidate_count": 154,
       "context_window_tokens": 46576,
       "evidence_cap_tokens": 16384,
-      "latency_ms": 15.9,
+      "latency_ms": 8.0,
       "previews": [
         {
           "field_score": -2.3357983217655347,
@@ -110,7 +110,7 @@
       "candidate_count": 154,
       "context_window_tokens": 79344,
       "evidence_cap_tokens": 49152,
-      "latency_ms": 30.6,
+      "latency_ms": 8.6,
       "previews": [
         {
           "field_score": -2.3375454483360287,
@@ -232,7 +232,7 @@
   "replayed_segment": {
     "byte_estimated_tokens": 260322,
     "entries": 300,
-    "observe_ms": 24374.2,
+    "observe_ms": 22128.1,
     "observed_bytes": 1041288,
     "observed_sources": 300,
     "raw_bytes": 1041288,
@@ -245,34 +245,34 @@
     "skipped_oversized_sources": [],
     "slowest_observations": [
       {
-        "bytes": 3058,
-        "entry_id": "0c8f388f",
-        "observe_ms": 153.9
+        "bytes": 4574,
+        "entry_id": "e36ebd24",
+        "observe_ms": 127.8
+      },
+      {
+        "bytes": 5963,
+        "entry_id": "edef0dad",
+        "observe_ms": 127.5
+      },
+      {
+        "bytes": 3861,
+        "entry_id": "4a78530b",
+        "observe_ms": 125.8
+      },
+      {
+        "bytes": 3099,
+        "entry_id": "ee3c7838",
+        "observe_ms": 121.3
       },
       {
         "bytes": 498,
         "entry_id": "2e4e0a05",
-        "observe_ms": 142.3
-      },
-      {
-        "bytes": 5646,
-        "entry_id": "6f2e0fa6",
-        "observe_ms": 137.1
-      },
-      {
-        "bytes": 1397,
-        "entry_id": "bdbf7b4a",
-        "observe_ms": 134.6
-      },
-      {
-        "bytes": 1312,
-        "entry_id": "f44d55c2",
-        "observe_ms": 131.3
+        "observe_ms": 119.7
       }
     ]
   },
   "runtime": {
-    "manifest_sha256": "bda7a024d05d2d2d772fe3bc0717ded60d066bedf409f8b36a9cf5402c5bdd58",
+    "manifest_sha256": "03952f498fbf87e171a06ff19b9ceeb0eaa75771c83b67a21a5b91b51e95ec6f",
     "runtime_id": "cassifi.cassipi-field-intelligence.v4"
   },
   "schema": "cassipi.real-session-projection.v1",

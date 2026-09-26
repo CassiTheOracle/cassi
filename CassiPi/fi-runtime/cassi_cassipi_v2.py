@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import struct
 import tempfile
 from pathlib import Path
@@ -35,6 +36,7 @@ COMPATIBILITY_SCHEMA = "cassifi.cassipi-compatibility.v1"
 CONTROL_SCHEMA = "cassipi.field-control.v3"
 MEMORY_SCOPES = frozenset({"profile", "project", "branch", "task"})
 ZERO_SHA256 = "0" * 64
+_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
 HOST_REPLAY_SCHEMA = "cassipi.host-message-replay.v1"
 HOST_REPLAY_VOLATILE_FIELDS = ("content[].thinkingSignature",)
 ASSISTANT_TEXT_SCHEMA = "cassipi.assistant-text.v1"
@@ -111,7 +113,7 @@ def _integer(value: Any, label: str, *, minimum: int = 0) -> int:
 
 def _digest(value: Any, label: str, *, allow_zero: bool = False) -> str:
     value = _text(value, label)
-    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+    if _SHA256_HEX.fullmatch(value) is None:
         raise OwnerAdapterError("INVALID_REQUEST", f"{label} must be a lowercase SHA-256 digest", status=400)
     if not allow_zero and value == ZERO_SHA256:
         raise OwnerAdapterError("INVALID_REQUEST", f"{label} cannot be the zero digest", status=400)
