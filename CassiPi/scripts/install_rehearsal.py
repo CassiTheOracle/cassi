@@ -193,6 +193,9 @@ def install(
         # without an error. 60000 leaves room for a pending prompt at any window size.
         "compaction.thresholdTokens": 60000,
         "compaction.reserveTokens": 4000,
+        # The owner supplies the thread: its projection carries field-selected
+        # evidence and the pending turn is protected natively, so the host keeps
+        # only a token tail of raw history verbatim.
         "compaction.keepRecentTokens": 64,
         "startup.setupWizard": False,
         "startup.showSplash": False,

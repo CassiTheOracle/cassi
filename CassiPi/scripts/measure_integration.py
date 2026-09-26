@@ -94,6 +94,8 @@ def _wait_descriptor(
 def _raw_rpc(
     descriptor: Mapping[str, Any],
     body: bytes,
+    *,
+    timeout: float = 60.0,
 ) -> tuple[int, Mapping[str, Any]]:
     request = Request(
         str(descriptor["endpoint"]),
@@ -105,7 +107,7 @@ def _raw_rpc(
         method="POST",
     )
     try:
-        with urlopen(request, timeout=60) as response:
+        with urlopen(request, timeout=timeout) as response:
             return response.status, json.loads(response.read())
     except HTTPError as error:
         try:
@@ -128,8 +130,10 @@ def _rpc(
     descriptor: Mapping[str, Any],
     operation: str,
     params: Mapping[str, Any],
+    *,
+    timeout: float = 60.0,
 ) -> Mapping[str, Any]:
-    status, response = _raw_rpc(descriptor, _canonical(_envelope(operation, params)))
+    status, response = _raw_rpc(descriptor, _canonical(_envelope(operation, params)), timeout=timeout)
     if status != 200 or response.get("ok") is not True:
         raise RuntimeError(f"{operation} failed: status={status}, response={response}")
     result = response.get("result")
@@ -138,8 +142,8 @@ def _rpc(
     return result
 
 
-def _owner_status(descriptor: Mapping[str, Any]) -> Mapping[str, Any]:
-    return _rpc(descriptor, "status", {})["owner"]
+def _owner_status(descriptor: Mapping[str, Any], *, timeout: float = 60.0) -> Mapping[str, Any]:
+    return _rpc(descriptor, "status", {}, timeout=timeout)["owner"]
 
 
 def _attach(descriptor: Mapping[str, Any], client_id: str, scope: Mapping[str, str]) -> str:
@@ -164,6 +168,8 @@ def _attached(
     client_id: str,
     scope_token: str,
     request: Mapping[str, Any],
+    *,
+    timeout: float = 60.0,
 ) -> Mapping[str, Any]:
     return _rpc(
         descriptor,
@@ -173,6 +179,7 @@ def _attached(
             "scope_token": scope_token,
             "request": dict(request),
         },
+        timeout=timeout,
     )
 def _attached_response(
     descriptor: Mapping[str, Any],
@@ -247,8 +254,10 @@ def _observe(
     client_id: str,
     scope_token: str,
     request: Mapping[str, Any],
+    *,
+    timeout: float = 60.0,
 ) -> Mapping[str, Any]:
-    return _attached(descriptor, "observe", client_id, scope_token, request)
+    return _attached(descriptor, "observe", client_id, scope_token, request, timeout=timeout)
 
 
 def _projection_scope(

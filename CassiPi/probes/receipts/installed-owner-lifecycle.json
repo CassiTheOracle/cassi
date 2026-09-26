@@ -1,66 +1,51 @@
 {
-  "schema": "cassipi.installed-owner-lifecycle-receipt.v1",
-  "release": {
-    "manifest_sha256": "065d188b1e127e8a6b1b67be6f8ab079c4d93063ecd7113e9905026003374aa8",
-    "plugin_sha256": "5c665c6cf8787d06a6b003bfb14c47ad68fc0eb98b7bd398d3f5869d95d15b16",
-    "host_binary_sha256": "fffe4f525117983255b6777cab746ef2930ffb829c8a6154bad86d375ce0fbc0",
-    "host_patch_sha256": "d627e54375b677f5760d9d798efcfebee89a54c91e9dd764086408213c8b24b1",
-    "host_patched_source_identity": "e33f7de55d2b4f3d7b291af4bfa6a856e7d28c7d009c91451cc26c75e0772ced",
-    "runtime_manifest_sha256": "78b4c09a8a5c352e5cce7b0a579b94c6bb155ce49e5ab1d8aa2c3667c8142f53",
-    "runtime_closure_sha256": "8e261581726c66c4ce3cc485915ec8f46b1ae230137e71bd62122aa2a5771790"
-  },
-  "execution": {
-    "host": "patched-oh-my-pi-18.1.10",
-    "deployment": "installed-profile",
-    "profile": "cassipi-rehearsal",
-    "provider": "local-mock-only",
-    "agent_root": "<profile-root>/agent",
-    "session_root": "<probe-root>/sessions",
-    "field_data_home": "<probe-root>/field-owner",
-    "runtime_root": "<profile-root>/local-plugins/cassipi/fi-runtime",
-    "persistent_profile_data_exercised": false
+  "schema": "cassipi.owner-host-probe.v1",
+  "host": "patched-oh-my-pi-18.1.10",
+  "deployment": "installed-profile",
+  "provider": "local-mock-only",
+  "isolation": {
+    "agentDir": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-rehearsal\\agent",
+    "sessionDir": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\.probe\\cassipi-owner-installed-cassipi-rehearsal\\sessions",
+    "dataHome": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiPi\\.probe\\cassipi-owner-installed-cassipi-rehearsal\\field-owner",
+    "runtime": "C:\\Users\\Carina\\.omp\\profiles\\cassipi-rehearsal\\local-plugins\\cassipi\\fi-runtime"
   },
   "observations": {
-    "temporal_commands": [
+    "computer_commands": [
       "configure",
-      "register-skill",
-      "learn",
-      "bind",
-      "select",
       "advance",
-      "inspect"
+      "resources"
     ],
-    "provider_requests": 2,
+    "providerRequests": 2,
     "compactions": [
       {
-        "summary_chars": 12263,
-        "evidence_count": 10,
-        "exact_count": 0,
-        "projection_count": 10,
-        "assistant_text_projection_count": 5,
-        "reference_count": 0,
-        "nested_evidence_count": 0
+        "summaryChars": 12263,
+        "evidenceCount": 10,
+        "exactCount": 0,
+        "projectionCount": 10,
+        "assistantTextProjectionCount": 5,
+        "referenceCount": 0,
+        "nestedEvidenceCount": 0
       },
       {
-        "summary_chars": 15132,
-        "evidence_count": 11,
-        "exact_count": 0,
-        "projection_count": 11,
-        "assistant_text_projection_count": 8,
-        "reference_count": 0,
-        "nested_evidence_count": 0
+        "summaryChars": 15821,
+        "evidenceCount": 12,
+        "exactCount": 0,
+        "projectionCount": 11,
+        "assistantTextProjectionCount": 8,
+        "referenceCount": 1,
+        "nestedEvidenceCount": 0
       },
       {
-        "summary_chars": 15293,
-        "evidence_count": 16,
-        "exact_count": 0,
-        "projection_count": 12,
-        "assistant_text_projection_count": 11,
-        "reference_count": 4,
-        "nested_evidence_count": 0
+        "summaryChars": 16123,
+        "evidenceCount": 14,
+        "exactCount": 0,
+        "projectionCount": 13,
+        "assistantTextProjectionCount": 11,
+        "referenceCount": 1,
+        "nestedEvidenceCount": 0
       }
     ],
-    "owner_operation_kinds": [
+    "ownerOperationKinds": [
       "handoff",
       "new",
       "resume",
@@ -74,14 +59,14 @@
       "tree",
       "tree"
     ],
-    "compaction_count": 3,
-    "tree_modes": [
+    "compactionCount": 3,
+    "treeModes": [
       "summarized",
       "unsummarized"
     ],
     "owner": {
-      "runtime_id": "cassifi.cassipi-field-intelligence.v3",
-      "generation_id": "4e494faacb6fb5514d7634e13b175902b0ce4c6ef1aa01c40b330ca4b5efc0d2",
+      "runtime_id": "cassifi.cassipi-field-intelligence.v4",
+      "generation_id": "81334ae4177e6ae65d54a76705619ef5a662b1c0355262ff3e5385d0369544bb",
       "revocation_epoch": 1,
       "persistent": true
     }

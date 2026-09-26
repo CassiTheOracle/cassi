@@ -376,6 +376,56 @@ describe("CassiPi extension boundary", () => {
     expect(collisionRequests[1]?.frozen_action_ids).toBeUndefined();
   });
 
+  test("an entry too large for one exact observation is skipped without failing the turn", async () => {
+    const model = {
+      provider: "openai-codex",
+      id: "test-model",
+      contextWindow: 32_768,
+      maxTokens: 4096,
+    };
+    const timestamp = new Date().toISOString();
+    const oversized = {
+      id: "oversized-entry",
+      parentId: null,
+      type: "message",
+      timestamp,
+      message: {
+        role: "toolResult",
+        toolCallId: "call-oversized",
+        toolName: "read",
+        content: [{ type: "text", text: "x".repeat(700_000) }],
+        isError: false,
+      },
+    };
+    const userEntry = {
+      id: "user-entry",
+      parentId: "oversized-entry",
+      type: "message",
+      timestamp,
+      message: { role: "user", content: [{ type: "text", text: "Continue the current task." }] },
+    };
+    const value = harness(false, undefined, [oversized, userEntry]);
+    Object.assign(value.context, { model });
+    const contextHandler = value.handlers.get("context")![0]!;
+    await value.handlers.get("agent_start")![0]!({}, value.context);
+    const projected = (await contextHandler({ messages: [userEntry.message] }, value.context)) as {
+      messages: unknown[];
+    };
+    expect(projected.messages.length).toBeGreaterThan(0);
+    const observed = value.operations.filter(row => row.operation === "observe");
+    expect(observed.some(row => row.request.native_entry_id === "oversized-entry")).toBe(false);
+    expect(observed.some(row => row.request.native_entry_id === "user-entry")).toBe(true);
+    expect(value.notifications.some(message => message.includes("too large"))).toBe(true);
+
+    await value.commands.get("cassi")!.handler("status", value.context);
+    const status = JSON.parse(value.notifications.at(-1)!);
+    expect(status.observation_skips).toMatchObject({
+      count: 1,
+      limit_bytes: 640 * 1024,
+      last: { native_entry_id: "oversized-entry", event_kind: "action-outcome" },
+    });
+  });
+
   test("status reports readiness, scope, recovery, and unavailability", async () => {
     const ready = harness();
     await ready.commands.get("cassi")!.handler("status", ready.context);

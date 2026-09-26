@@ -15,6 +15,8 @@ The supported host is exactly:
 
 Stock Oh My Pi 18.1.10 cannot enforce exclusive context ownership. CassiPi therefore fails closed on the stock host rather than falling back to native compaction or another context mutator. The compatible binary is built separately and never replaces the installed `omp.exe`.
 
+The context-owner patch is carried against 18.1.10 only. Upstream 18.3.2 changed the session, compaction, and provider paths the patch rewrites, so `cassipi` stays on the pinned host while ordinary `omp` keeps advancing; a later port re-derives the patch against the newer upstream and repeats the release and probe verification.
+
 The packaged host is supported and measured on Windows 11 x64. Other operating systems and host builds are not declared compatible by this release.
 
 ## What owns what
@@ -26,6 +28,12 @@ The packaged host is supported and measured on Windows 11 x64. Other operating s
 - Source bytes remain in CassiFI's bounded exact-evidence store. Atlas checkpoints contain the numeric field and source revision identities, never unbounded transcript text or a second learned text model.
 
 The worker listens only on loopback, authenticates every request with a per-launch bearer secret and a per-scope token, rejects incompatible runtime identities, and allows one process owner per data directory.
+
+Every provider request carries the host's fixed overhead (system prompt plus tool catalog, about 22k tokens), the owner's field-selected evidence, the protected pending turn, and the output reserve; native history is never sent. The evidence bound is `CASSIPI_MAX_EVIDENCE_TOKENS`, 16,384 tokens by default. Compaction rewrites the stored session to a bounded field projection (`compactionTokenBudget`, at most 4,096 tokens) instead of a provider-generated summary, so it costs no provider call and keeps the original sources exactly recallable.
+
+One entry whose canonical bytes exceed 640 KiB cannot travel inside the worker's 1 MiB request envelope as a single exact source. The extension skips that entry, warns once, and counts it under `observation_skips` in `/cassi status`; the entry stays in the Oh My Pi transcript and the turn continues. Across the two largest local sessions, 15 of 50,295 entries (0.03%) exceeded 700 KiB.
+
+Observation cost grows with the field's accumulated evidence: the owner revalidates the atlas chart that holds every admitted observation, so one observation costs roughly 9–11 ms per already-stored source. Measured on this machine against the packaged runtime: 59 ms at the first observation, 1.4 s after 150 synthetic 2 KiB observations, and 4.3 s mean over 150 replayed entries of a real session. The field-owned sync is sequential and awaited inside the provider hook, so long-lived fields add seconds per new entry. Bounding this is runtime work in `CassiFI/runtime` (incremental chart validation and checkpoint durability), not a host-side setting.
 
 The launcher overlay keeps the host's compaction threshold clear of the floor the host cannot summarize: its own system prompt and tool catalog (about 22k tokens on the pinned host) plus the field summary the owner writes (about 4k tokens). A threshold at that floor makes the host compact, find nothing left to summarize, and drop the pending turn without reporting an error, so the installer writes `compaction.thresholdTokens: 60000` and the owner probe keeps the same headroom.
 
@@ -74,7 +82,7 @@ Install against the active main profile with:
 python scripts/install_rehearsal.py --main --reuse
 ```
 
-Main-profile installation keeps the existing agent configuration and credential databases unchanged, enforces byte-identical `~/.omp/agent/config.yml` before and after installation, and records both hashes in the receipt. The `cassipi` launcher uses that configuration as its base, binds its field under `~/.omp/cassipi`, loads the pinned host and CassiPi extension explicitly, and applies the complete exclusive-owner configuration through `~/.omp/cassipi-owner.json`. That overlay turns stock memory/autolearn off and configures the owner-routed 28,000/4,000/64-token compaction boundary only inside `cassipi`. The global CassiPi registry entry remains disabled, while ordinary upstream `omp` retains the user’s Mnemopi, autolearn, compaction, and enabled `remote-pi` settings.
+Main-profile installation keeps the existing agent configuration and credential databases unchanged, enforces byte-identical `~/.omp/agent/config.yml` before and after installation, and records both hashes in the receipt. The `cassipi` launcher uses that configuration as its base, binds its field under `~/.omp/cassipi`, loads the pinned host and CassiPi extension explicitly, and applies the complete exclusive-owner configuration through `~/.omp/cassipi-owner.json`. That overlay turns stock memory/autolearn off and configures the owner-routed 60,000/4,000/64-token compaction boundary only inside `cassipi`. The global CassiPi registry entry remains disabled, while ordinary upstream `omp` retains the user’s Mnemopi, autolearn, compaction, and enabled `remote-pi…
 
 Use `--profile <name>` for another isolated named profile. Launch the rehearsal profile through its copied compatible host and profile-scoped launcher:
 
@@ -164,6 +172,8 @@ npm run probe:field-control
 npm run probe:owner
 npm run probe:ordinary
 npm run measure:integration
+python scripts/measure_real_session.py --max-messages 800
+python scripts/measure_stock_compaction.py
 python -m pytest ../CassiFI/test_field_intelligence.py ../CassiFI/runtime/test_cassipi_worker.py ../CassiFI/runtime/test_cassipi_runtime_package.py ../CassiFI/runtime/test_cassipi_forget_generation.py ../CassiFI/runtime/test_packaged_learning_computer.py ../CassiFI/runtime/test_cassipi_import.py -q
 bun test ./.host-work/patched/packages/coding-agent/test/extensions-runner.test.ts ./.host-work/patched/packages/coding-agent/test/agent-session-handoff.test.ts ./.host-work/patched/packages/coding-agent/test/agent-session-prune-persistence.test.ts
 bun --cwd=.host-work/patched/packages/coding-agent run check:types

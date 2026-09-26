@@ -225,6 +225,11 @@ function asEvidenceMessage(content: string, model: Model<Api>): AssistantMessage
   };
 }
 const MAX_SESSION_FILE_BYTES = 64 * 1024 * 1024;
+// The worker rejects any request above 1 MiB, and one observation carries the
+// entry's canonical bytes base64-encoded inside that envelope. Entries beyond
+// this bound cannot be observed as one exact source, so they are skipped with a
+// visible notice instead of failing the host turn.
+const MAX_OBSERVED_SOURCE_BYTES = 640 * 1024;
 
 function contentOf(value: unknown): unknown {
   if (value !== null && typeof value === "object" && "content" in value) return value.content;
@@ -853,6 +858,8 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
   let lastProjectionReceipt: Record<string, Json> | undefined;
   let providerTurnSelection: ProviderTurnSelection | undefined;
   const memoryObservedTimestamps = new Map<string, string>();
+  const skippedObservations: Array<{ native_entry_id: string; bytes: number; event_kind: string }> = [];
+  const skippedNativeEntries = new Map<string, number>();
   let queue: Promise<void> = Promise.resolve();
 
   const serialize = <T>(work: () => Promise<T>): Promise<T> => {
@@ -1053,6 +1060,26 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
     provisionalObservationId?: string,
   ): Promise<void> {
     const encoded = canonicalJson(message);
+    const encodedBytes = Buffer.byteLength(encoded, "utf8");
+    if (encodedBytes > MAX_OBSERVED_SOURCE_BYTES) {
+      if (skippedNativeEntries.has(nativeEntryId)) return;
+      skippedNativeEntries.set(nativeEntryId, encodedBytes);
+      const first = skippedObservations.length === 0;
+      skippedObservations.push({ native_entry_id: nativeEntryId, bytes: encodedBytes, event_kind: eventKind });
+      traceOwnerEvent("hook:observe:skipped", {
+        nativeEntryId,
+        bytes: encodedBytes,
+        limit: MAX_OBSERVED_SOURCE_BYTES,
+      });
+      if (first) {
+        context.ui.notify(
+          `CassiPi skipped an entry too large for one exact observation (${encodedBytes} bytes). `
+            + "It stays in the Oh My Pi transcript but is not field evidence.",
+          "warning",
+        );
+      }
+      return;
+    }
     const contentHash = sha256(encoded);
     const replayHash = hostReplaySha256(message);
     const cursor = await cursorFor(current);
@@ -1998,6 +2025,12 @@ export function createCassiPiExtension(options: CassiPiExtensionOptions = {}) {
           closure_sha256: status.closure_sha256,
           manifest_sha256: status.manifest_sha256,
           generation_id: status.generation_id,
+        },
+        observation_skips: {
+          count: skippedObservations.length,
+          bytes: skippedObservations.reduce((total, row) => total + row.bytes, 0),
+          limit_bytes: MAX_OBSERVED_SOURCE_BYTES,
+          last: skippedObservations.at(-1) ?? null,
         },
         capture: {
           schema: capture.schema,
