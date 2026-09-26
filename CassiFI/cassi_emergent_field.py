@@ -44,11 +44,16 @@ is the memory.
 
 To read, the brain bows a chord (a smooth swell, so the field does not ring),
 listens to the Qi wave note by note, and inverts the known physics exactly:
-it subtracts the blank response and divides by each note's own answer to the
-drive, both measured once on a blank field like tuning an instrument.
+it subtracts the response of an even medium and divides by each note's own
+answer to the drive, like tuning an instrument.  As links accumulate the
+medium thickens on average, and an even thickening slows every wave alike.
+The brain follows it: it plays at w / sqrt(1 + level), where level is the
+mean imprint, and tunes against an even medium at that same level, so what
+it subtracts is everything held evenly and what remains is the uneven imprint.
 What remains is K applied to the chord, which carries |A|^2 B = B for a
-stored link.  Random chords over N notes overlap by about 1/sqrt(N), so the
-number of links a field holds grows with N, i.e. with its number of cells.
+stored link.  Random chords over N notes overlap by about 1/sqrt(N), so a
+link's clarity falls as sqrt(N / links) and the number of links a field
+holds grows with its number of cells.
 
 Sequences.  Each idea owns two chords, one it sends with and one it receives
 with.  A step a -> b is stored by playing a's sending chord with b's receiving
@@ -111,6 +116,147 @@ def _complex(real: torch.dtype) -> torch.dtype:
     return torch.complex64 if real == torch.float32 else torch.complex128
 
 
+_WAVE_SOURCE = r"""
+extern "C" __global__ void wave_step(const float* __restrict__ S, float* __restrict__ Sn, float* __restrict__ V,
+    const float* __restrict__ rho, const float* __restrict__ Dr, const float* __restrict__ Di,
+    float* __restrict__ re, float* __restrict__ im, int n,
+    float c, float s, float keep, float dt, float ca, float sa, int acc)
+{
+    int n2 = n * n, cells = n2 * n;
+    int cell = blockIdx.x * blockDim.x + threadIdx.x;
+    if (cell >= cells) return;
+    size_t i = (size_t)blockIdx.y * cells + cell;
+    int x = cell / n2, rem = cell - x * n2, y = rem / n, z = rem - y * n;
+    float s0 = S[i], lap = 0.f;
+    if (x > 0) lap += S[i - n2] - s0;
+    if (x < n - 1) lap += S[i + n2] - s0;
+    if (y > 0) lap += S[i - n] - s0;
+    if (y < n - 1) lap += S[i + n] - s0;
+    if (z > 0) lap += S[i - 1] - s0;
+    if (z < n - 1) lap += S[i + 1] - s0;
+    float v = keep * V[i] + dt * ((lap + c * Dr[i] + s * Di[i]) / rho[cell]);
+    V[i] = v;
+    float sn = s0 + dt * v;
+    Sn[i] = sn;
+    if (acc) { re[i] += ca * sn; im[i] += sa * sn; }
+}
+
+extern "C" __global__ void imprint_step(const float* __restrict__ S, float* __restrict__ S2,
+    float* __restrict__ imprint, float* __restrict__ rho, int batch, int cells,
+    float blend, float eta, float half, float rho_max, float mu, float dt)
+{
+    int cell = blockIdx.x * blockDim.x + threadIdx.x;
+    if (cell >= cells) return;
+    float q = 0.f;
+    for (int b = 0; b < batch; ++b) { float x = S[(size_t)b * cells + cell]; q += x * x; }
+    float s2 = S2[cell] + blend * (q - S2[cell]);
+    S2[cell] = s2;
+    float m = imprint[cell];
+    m += dt * (eta * s2 / (s2 + half) * (rho_max - rho[cell]) - mu * m);
+    imprint[cell] = m;
+    rho[cell] = m + 1.f;
+}
+"""
+
+
+class _FusedWave:
+    """The same field law as ``EmergentField._sound``, one GPU kernel per step (3D, float32, ROCm).
+
+    Compiled once per process with hiprtc from the ROCm runtime torch ships
+    with.  Where that is unavailable the field steps with torch operations.
+    """
+
+    _instance: "_FusedWave | None | bool" = None
+    BLOCK = 256
+
+    def __init__(self) -> None:
+        import ctypes
+        import _rocm_sdk_core
+        self.ct = ctypes
+        bin_dir = Path(_rocm_sdk_core.__file__).parent / "bin"
+        rtc = ctypes.CDLL(str(next(bin_dir.glob("hiprtc0*.dll"))))
+        self.hip = ctypes.CDLL(str(next(bin_dir.glob("amdhip64_*.dll"))))
+        prog = ctypes.c_void_p()
+        if rtc.hiprtcCreateProgram(ctypes.byref(prog), _WAVE_SOURCE.encode(), b"cassi_wave.hip", 0, None, None):
+            raise RuntimeError("hiprtcCreateProgram failed")
+        arch = torch.cuda.get_device_properties(torch.cuda.current_device()).gcnArchName.split(":")[0]
+        options = (ctypes.c_char_p * 2)(f"--gpu-architecture={arch}".encode(), b"-O3")
+        if rtc.hiprtcCompileProgram(prog, 2, options):
+            size = ctypes.c_size_t()
+            rtc.hiprtcGetProgramLogSize(prog, ctypes.byref(size))
+            log = ctypes.create_string_buffer(size.value)
+            rtc.hiprtcGetProgramLog(prog, log)
+            raise RuntimeError(log.value.decode(errors="replace"))
+        size = ctypes.c_size_t()
+        rtc.hiprtcGetCodeSize(prog, ctypes.byref(size))
+        self._code = ctypes.create_string_buffer(size.value)
+        rtc.hiprtcGetCode(prog, self._code)
+        rtc.hiprtcDestroyProgram(ctypes.byref(prog))
+        self._module = ctypes.c_void_p()
+        if self.hip.hipModuleLoadData(ctypes.byref(self._module), self._code):
+            raise RuntimeError("hipModuleLoadData failed")
+        self.fn = {}
+        for name in ("wave_step", "imprint_step"):
+            handle = ctypes.c_void_p()
+            if self.hip.hipModuleGetFunction(ctypes.byref(handle), self._module, name.encode()):
+                raise RuntimeError(f"hipModuleGetFunction {name} failed")
+            self.fn[name] = handle
+
+    @classmethod
+    def get(cls, like: torch.Tensor) -> "_FusedWave | None":
+        if like.dim() != 3 or like.dtype != torch.float32 or not like.is_cuda or torch.version.hip is None:
+            return None
+        if cls._instance is None:
+            try:
+                cls._instance = cls()
+            except (ImportError, OSError, RuntimeError, StopIteration):
+                cls._instance = False
+        return cls._instance or None
+
+    def _launch(self, name: str, grid: tuple[int, int], args: Sequence[tuple[type, Any]]) -> None:
+        ct = self.ct
+        held = [kind(value) for kind, value in args]
+        params = (ct.c_void_p * len(held))(*[ct.cast(ct.byref(h), ct.c_void_p) for h in held])
+        stream = ct.c_void_p(torch.cuda.current_stream().cuda_stream)
+        if self.hip.hipModuleLaunchKernel(self.fn[name], grid[0], grid[1], 1, self.BLOCK, 1, 1, 0,
+                                          stream, params, None):
+            raise RuntimeError(f"{name} launch failed")
+
+    def run(self, p: EmergentProfile, drive: torch.Tensor, steps: int, rho: torch.Tensor, w: float,
+            listen_from: int | None, imprint: torch.Tensor | None) -> tuple[torch.Tensor, torch.Tensor] | None:
+        """Sound ``drive`` for ``steps``; demodulate from step ``listen_from`` and/or let ``imprint`` keep it."""
+        ct, dt, n = self.ct, p.dt, p.size
+        P, I, F = ct.c_void_p, ct.c_int, ct.c_float
+        B, cells = drive.shape[0], n ** 3
+        S = torch.zeros(drive.shape, dtype=torch.float32, device=drive.device)
+        Sn, V = torch.empty_like(S), torch.zeros_like(S)
+        Dr, Di = drive.real.contiguous(), drive.imag.contiguous()
+        re = im = S
+        if listen_from is not None:
+            re, im = torch.zeros_like(S), torch.zeros_like(S)
+        if imprint is not None:
+            S2 = torch.zeros_like(imprint)
+        rho = rho.contiguous()
+        blocks = (cells + self.BLOCK - 1) // self.BLOCK
+        keep, t = 1.0 - dt * p.gamma, 0.0
+        for i in range(steps):
+            env = _envelope(t, p.onset)
+            c, s = env * math.cos(w * t), env * math.sin(w * t)
+            t += dt
+            acc = listen_from is not None and i >= listen_from
+            self._launch("wave_step", (blocks, B), [
+                (P, S.data_ptr()), (P, Sn.data_ptr()), (P, V.data_ptr()), (P, rho.data_ptr()),
+                (P, Dr.data_ptr()), (P, Di.data_ptr()), (P, re.data_ptr()), (P, im.data_ptr()), (I, n),
+                (F, c), (F, -s), (F, keep), (F, dt), (F, math.cos(w * t)), (F, -math.sin(w * t)), (I, int(acc))])
+            S, Sn = Sn, S
+            if imprint is not None:
+                self._launch("imprint_step", (blocks, 1), [
+                    (P, S.data_ptr()), (P, S2.data_ptr()), (P, imprint.data_ptr()), (P, rho.data_ptr()),
+                    (I, B), (I, cells), (F, dt / p.intensity_tau), (F, p.eta), (F, p.intensity_half),
+                    (F, p.rho_max), (F, p.mu), (F, dt)])
+        return (re, im) if listen_from is not None else None
+
+
 class EmergentField:
     """One continuing medium; its entire adaptive state is ``imprint``.  The Qi wave is silent between plays.
 
@@ -128,15 +274,30 @@ class EmergentField:
     def rho(self) -> torch.Tensor:
         return self.imprint + 1.0
 
-    def _sound(self, drive: torch.Tensor, steps: int, rho: torch.Tensor) -> Iterator[tuple[torch.Tensor, float]]:
-        """Play a batch of Qi drives (B, *grid), each on its own quiet wave, from rest at local time 0.
+    @property
+    def level(self) -> float:
+        """The medium's mean thickening: the part of the imprint that is the same everywhere."""
+        return float(self.imprint.mean())
+
+    def pitch(self, level: float) -> float:
+        """The pitch that keeps every note in tune over a medium thickened evenly by ``level``.
+
+        An even thickening slows every wave alike, so the brain plays lower by
+        sqrt(1 + level), the way a musician retunes to a warm room, and every
+        note keeps its place relative to resonance.
+        """
+        return self.p.pitch / math.sqrt(1.0 + level)
+
+    def _sound(self, drive: torch.Tensor, steps: int, rho: torch.Tensor,
+               w: float) -> Iterator[tuple[torch.Tensor, float]]:
+        """Play a batch of Qi drives (B, *grid) at pitch ``w``, each on its own quiet wave, from rest.
 
         The physical drive is Re(D e^{i w t}) under a bowed envelope, given to
         Yang and Yin in golden proportion.  Yields the Qi wave S and the local
         time after every step; ``rho`` is read live, so a player that thickens
         it as it goes is heard.
         """
-        p, dt, w, d = self.p, self.p.dt, self.p.pitch, self.p.dims
+        p, dt, d = self.p, self.p.dt, self.p.dims
         S = torch.zeros(drive.shape, dtype=rho.dtype, device=drive.device)
         vS = torch.zeros_like(S)
         Dr, Di = drive.real.contiguous(), drive.imag.contiguous()
@@ -149,17 +310,27 @@ class EmergentField:
             t += dt
             yield S, t
 
-    def listen(self, drive: torch.Tensor, steps: int, blank: bool = False) -> torch.Tensor:
-        """Hear a batch of Qi drives over a medium that is only read (or over a blank one).
+    def listen(self, drive: torch.Tensor, steps: int, level: float | None = None) -> torch.Tensor:
+        """Hear a batch of Qi drives over the medium, which is only read.
 
-        Identical drives give identical answers.  Returns the complex Qi
-        amplitude heard over the second half of the play.
+        With ``level`` the drives sound over an even medium thickened by that
+        level instead: the reference the brain tunes against.  Either way the
+        pitch is the one in tune with the medium's mean.  Identical drives give
+        identical answers.  Returns the complex Qi amplitude heard over the
+        second half of the play.
         """
-        rho = torch.ones_like(self.imprint) if blank else self.rho
-        w, start = self.p.pitch, steps // 2
+        if level is None:
+            rho, w = self.rho, self.pitch(self.level)
+        else:
+            rho, w = torch.full_like(self.imprint, 1.0 + level), self.pitch(level)
+        start = steps // 2
+        fused = _FusedWave.get(self.imprint)
+        if fused is not None:
+            re, im = fused.run(self.p, drive, steps, rho, w, start, None)
+            return torch.complex(re, im) * (2.0 / (steps - start))
         re = torch.zeros(drive.shape, dtype=rho.dtype, device=drive.device)
         im = torch.zeros_like(re)
-        for i, (S, t) in enumerate(self._sound(drive, steps, rho)):
+        for i, (S, t) in enumerate(self._sound(drive, steps, rho, w)):
             if i >= start:
                 re.add_(S, alpha=math.cos(w * t))
                 im.add_(S, alpha=-math.sin(w * t))
@@ -173,8 +344,14 @@ class EmergentField:
         together imprint the sum of what each would alone.
         """
         p, dt, imprint = self.p, self.p.dt, self.imprint
-        rho, S2 = self.rho, torch.zeros_like(imprint)
-        for S, _ in self._sound(drive, steps, rho):
+        rho, w = self.rho, self.pitch(self.level)
+        fused = _FusedWave.get(imprint) if imprint.is_contiguous() else None
+        if fused is not None:
+            fused.run(p, drive, steps, rho, w, None, imprint)
+            self.t += steps * dt
+            return
+        S2 = torch.zeros_like(imprint)
+        for S, _ in self._sound(drive, steps, rho, w):
             S2 += (dt / p.intensity_tau) * (S.square().sum(0) - S2)
             imprint += dt * (p.eta * S2 / (S2 + p.intensity_half) * (p.rho_max - rho) - p.mu * imprint)
             torch.add(imprint, 1.0, out=rho)
@@ -239,24 +416,42 @@ class NoteCodec:
         return spec[(slice(None),) + tuple(self.index.T)]
 
     # -- tuning --------------------------------------------------------------
-    def _calibrate(self) -> None:
-        """Tune the instrument on a blank medium: every note at once, at two phases.
+    def _measure(self, level: float) -> tuple[torch.Tensor, torch.Tensor]:
+        """Every note's Qi answer over an even medium at ``level``, in phase and in quadrature.
 
-        ``G`` is each note's Qi answer to the in-phase drive and ``quad`` its
-        answer to the quadrature phase; together they give the blank response
-        to any drive exactly, leftover ringing included.
+        Together the two answers give the even medium's response to any
+        drive exactly, leftover ringing included.
         """
         ones = torch.ones((1, self.count), dtype=self.cplx, device=self.index.device)
         pattern = self.to_grid(ones) * self.volume
-        G, quad = [self.to_notes(self.field.listen(drive, self.read_steps, blank=True))[0] / self.volume
-                   for drive in (pattern, 1j * pattern)]
-        # Keep notes whose Qi answers, and whose measured answer stayed clean on the discrete lattice.
+        heard = self.to_notes(self.field.listen(torch.cat([pattern, 1j * pattern]), self.read_steps, level=level))
+        G, quad = heard / self.volume
+        return G, quad
+
+    def _calibrate(self) -> None:
+        """Tune the instrument on a blank medium and keep the notes that answer cleanly."""
+        G, quad = self._measure(0.0)
         keep = (G.abs() >= 0.1 * G.abs().median()) & (G.abs() <= 2.0 * self.field.p.clean_gain)
-        self.index, self.G, self.quad = self.index[keep], G[keep], quad[keep]
+        self.index = self.index[keep]
+        self._tuning = (0.0, G[keep], quad[keep])
+
+    def tune(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """(G, quad) in tune with the medium as it is now.
+
+        Everything the medium holds evenly only shifts every note alike; the
+        brain retunes to it and measures its answers over an even medium at
+        the same level.  What then differs from that reference is exactly the
+        uneven imprint, which is where the links are.
+        """
+        level = self.field.level
+        if abs(level - self._tuning[0]) > 1e-7:
+            self._tuning = (level, *self._measure(level))
+        return self._tuning[1], self._tuning[2]
 
     def blank(self, drive_notes: torch.Tensor) -> torch.Tensor:
-        """Exact blank-medium Qi answer (B, notes) to drives given per note."""
-        return drive_notes.real * self.G + drive_notes.imag * self.quad
+        """Exact Qi answer (B, notes) of the even reference medium to drives given per note."""
+        G, quad = self.tune()
+        return drive_notes.real * G + drive_notes.imag * quad
 
     # -- chords --------------------------------------------------------------
     def chords(self, generators: list[torch.Generator], rounds: int = 30) -> torch.Tensor:
@@ -285,7 +480,7 @@ class NoteCodec:
 
     def drive(self, chords: torch.Tensor) -> torch.Tensor:
         """Qi drive that makes the amplitude of every note equal the chord."""
-        return self.to_grid(chords / self.G) * self.volume
+        return self.to_grid(chords / self.tune()[0]) * self.volume
 
     def write(self, a: torch.Tensor, b: torch.Tensor, steps: int) -> None:
         """Play chord pairs together, row by row; the medium keeps the product of each pair's shapes."""
@@ -298,7 +493,8 @@ class NoteCodec:
         for part in chords.to(self.cplx).split(self.batch):
             heard = self.to_notes(self.field.listen(self.drive(part), self.read_steps)) / self.volume
             # What the medium scattered, as the drive that would have produced it.
-            source = (heard - self.blank(part / self.G)) / self.G
+            G = self.tune()[0]
+            source = (heard - self.blank(part / G)) / G
             own = (source * part.conj()).sum(-1, keepdim=True) / (part.abs() ** 2).sum(-1, keepdim=True)
             out.append(source - own * part)
         return torch.cat(out)
