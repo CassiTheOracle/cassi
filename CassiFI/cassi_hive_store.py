@@ -292,8 +292,19 @@ class LocalHiveStore:
                 document = json.loads(encoded.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise HiveStoreError("stored object is not valid JSON") from exc
-            if not isinstance(document, dict) or _verify_document(document) != object_id:
+            if not isinstance(document, dict):
                 raise HiveStoreError("stored object identity is corrupt")
+            # Inline _verify_document logic for speed
+            schema = document.get("schema")
+            content = document.get("content")
+            declared = document.get("content_sha256")
+            if not isinstance(schema, str) or not isinstance(content, Mapping):
+                raise HiveStoreError("stored object envelope is malformed")
+            if not isinstance(declared, str) or declared != object_id:
+                raise HiveStoreError("stored object identity is malformed")
+            from cassi_field_hive import verify_object_digest
+            if schema in {EXPERIENCE_SCHEMA, BUNDLE_SCHEMA, ADOPTION_SCHEMA} and not verify_object_digest(document):
+                raise HiveStoreError("protocol object digest verification failed")
             if canonical_json_bytes(document) != encoded:
                 raise HiveStoreError("stored object is not canonical JSON")
             return document
