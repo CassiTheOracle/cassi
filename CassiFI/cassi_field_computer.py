@@ -635,7 +635,8 @@ class ComputerState:
         if (
             not isinstance(self.profile_sha256, str)
             or len(self.profile_sha256) != 64
-            or any(character not in "0123456789abcdef" for character in self.profile_sha256)
+            or not self.profile_sha256.isalnum()
+            or not all(c in "0123456789abcdef" for c in self.profile_sha256)
         ):
             raise FieldComputerError("state profile fingerprint is invalid")
         # Arrays already backed by immutable bytes are safe to share. This
