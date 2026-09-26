@@ -2603,7 +2603,20 @@ class NativeFieldRuntimeClient:
             if last_input is not None and last_token is not None:
                 expected_tokens = tuple(last_input) + (last_token,)
                 if input_tokens != expected_tokens:
-                    raise NativeFieldRuntimeError("graph-site preflight token history is not the next accepted step")
+                    # The caller may already have advanced past the accepted
+                    # token (the ordinary step that follows the same boundary),
+                    # so the accepted history is also the same decode boundary.
+                    if (
+                        len(input_tokens) <= len(expected_tokens)
+                        or input_tokens[: len(expected_tokens)] != expected_tokens
+                    ):
+                        raise NativeFieldRuntimeError(
+                            "graph-site preflight token history is not the next accepted step"
+                        )
+                # One boundary, one accepted token: re-anchoring here keeps the
+                # following step checked against the history just verified.
+                prior["input_tokens"] = input_tokens
+                prior["accepted_token_id"] = None
         try:
             response = self._request(
                 GRAPH_SITE_PREFLIGHT,
@@ -2680,11 +2693,8 @@ class NativeFieldRuntimeClient:
         else:
             prior["model_sha256"] = preflight["model_sha256"]
             prior["tokenizer_sha256"] = preflight["tokenizer_sha256"]
-            # A ready preflight reads the decode boundary.  After an accepted
-            # token the verified history stays prior input + accepted token, so
-            # the step that follows is checked against the same boundary.
-            if prior.get("accepted_token_id") is None:
-                prior["input_tokens"] = input_tokens
+            # A ready preflight reads the decode boundary just verified above,
+            # and that boundary is the history the following step repeats.
             prior["initialized"] = True
         return preflight
 

@@ -402,3 +402,191 @@ def test_native_token_request_records_the_sampler_the_c_api_executes(
             recorded["mode"], recorded["temperature"], recorded["top_k"], draw
         )
         assert {**recorded, "draw": draw} == executed
+
+
+def _graph_site_text(value: str) -> bytes:
+    encoded = value.encode("utf-8")
+    return struct.pack("<I", len(encoded)) + encoded
+
+
+def _graph_site_preflight_wire(
+    *,
+    task_id: str,
+    sequence_id: str,
+    native_operation_id: str,
+    source_sha256: str,
+    next_position: int,
+    sampler: dict[str, Any],
+    sampler_sha256: str,
+) -> bytes:
+    context_limit = 512
+    payload = bytearray()
+    payload.extend(struct.pack("<I", native.GRAPH_SITE_WIRE_VERSION))
+    payload.extend(struct.pack("<B", 1))
+    payload.extend(struct.pack("<i", 3))
+    payload.extend(struct.pack("<i", next_position))
+    payload.extend(struct.pack("<I", context_limit))
+    payload.extend(struct.pack("<I", context_limit - next_position))
+    payload.extend(struct.pack("<I", 1024))
+    payload.extend(struct.pack("<I", 24))
+    for value in (
+        task_id,
+        sequence_id,
+        native_operation_id,
+        source_sha256,
+        "b" * 64,
+        "c" * 64,
+        "d" * 64,
+        "e" * 64,
+        "f" * 64,
+        sampler_sha256,
+    ):
+        payload.extend(_graph_site_text(value))
+    payload.extend(_graph_site_text(sampler["mode"]))
+    payload.extend(struct.pack("<d", sampler["temperature"]))
+    payload.extend(struct.pack("<I", sampler["top_k"]))
+    payload.extend(struct.pack("<d", sampler["draw"]))
+    payload.extend(_graph_site_text(""))
+    payload.extend(struct.pack("<I", 1))
+    payload.extend(struct.pack("<I", 2))
+    payload.extend(struct.pack("<B", 1))
+    payload.extend(struct.pack("<i", 3))
+    payload.extend(struct.pack("<I", 1024))
+    payload.extend(struct.pack("<I", 1024))
+    for value in ("ffn", "recurrent", "recurrent-dynamics", "input", "output", "[]", ""):
+        payload.extend(_graph_site_text(value))
+    return bytes(payload)
+
+
+def _preflight_client(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    prior_tokens: Sequence[int],
+    accepted_token: int,
+    sampler: dict[str, Any],
+    sampler_sha256: str,
+    source_sha256: str,
+    wire_for: Any,
+) -> native.NativeFieldRuntimeClient:
+    client = object.__new__(native.NativeFieldRuntimeClient)
+    client._pending_graph_site_candidates = {}
+    client._graph_site_preflights = {}
+    client._model_task_states = {
+        "task": {
+            "source_sha256": source_sha256,
+            "input_tokens": tuple(prior_tokens),
+            "accepted_token_id": accepted_token,
+            "accepted_steps": [],
+            "initialized": True,
+            "model_sha256": "b" * 64,
+            "tokenizer_sha256": "c" * 64,
+        }
+    }
+
+    def request(kind: int, fields: Sequence[tuple[int, int, bytes]]) -> dict[int, tuple[int, bytes]]:
+        assert kind == native.GRAPH_SITE_PREFLIGHT
+        tokens = native._model_token_history(
+            _decode_i32_vector(fields[2][2])
+        )[0]
+        return {
+            1: (native.WIRE_UTF8, b"graph-site-preflight"),
+            2: (
+                native.WIRE_BYTES,
+                wire_for(tuple(tokens), len(tuple(tokens)) - 1),
+            ),
+        }
+
+    monkeypatch.setattr(client, "_request", request)
+    return client
+
+
+def _decode_i32_vector(payload: bytes) -> list[int]:
+    return list(struct.unpack(f"<{len(payload) // 4}i", payload))
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native field-runtime transport is Windows-only")
+def test_graph_site_preflight_accepts_the_history_that_includes_its_accepted_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The owner submits the next decode boundary as the history that already
+    # contains the token its last step accepted, so preflight re-anchors the
+    # task to that exact history instead of demanding a longer one.
+    sampler = {"mode": "greedy", "temperature": 1.0, "top_k": 0, "draw": 0.0}
+    _, sampler_sha256 = native._normalized_graph_site_sampler(sampler)
+    source_sha256 = "a" * 64
+
+    def wire_for(tokens: Sequence[int], next_position: int) -> bytes:
+        return _graph_site_preflight_wire(
+            task_id="task",
+            sequence_id="task-seq",
+            native_operation_id="operation",
+            source_sha256=source_sha256,
+            next_position=next_position,
+            sampler=sampler,
+            sampler_sha256=sampler_sha256,
+        )
+
+    accepted = _preflight_client(
+        monkeypatch,
+        prior_tokens=[1, 2, 3],
+        accepted_token=7,
+        sampler=sampler,
+        sampler_sha256=sampler_sha256,
+        source_sha256=source_sha256,
+        wire_for=wire_for,
+    )
+    preflight = accepted.candidate_preflight(
+        "task",
+        source_sha256,
+        [1, 2, 3, 7],
+        sequence_id="task-seq",
+        sampler=sampler,
+        native_operation_id="operation",
+    )
+    assert preflight["ready"] is True
+    assert preflight["input_tokens"] == [1, 2, 3, 7]
+    assert preflight["next_position"] == 3
+    state = accepted._model_task_states["task"]
+    assert list(state["input_tokens"]) == [1, 2, 3, 7]
+    assert state["accepted_token_id"] is None
+    assert "task" in accepted._graph_site_preflights
+
+    # A step that already ran past the accepted token is the same boundary.
+    advanced = _preflight_client(
+        monkeypatch,
+        prior_tokens=[1, 2, 3],
+        accepted_token=7,
+        sampler=sampler,
+        sampler_sha256=sampler_sha256,
+        source_sha256=source_sha256,
+        wire_for=wire_for,
+    )
+    advanced.candidate_preflight(
+        "task",
+        source_sha256,
+        [1, 2, 3, 7, 11],
+        sequence_id="task-seq",
+        sampler=sampler,
+        native_operation_id="operation",
+    )
+    assert list(advanced._model_task_states["task"]["input_tokens"]) == [1, 2, 3, 7, 11]
+
+    # A history that diverges from the accepted step is still refused.
+    divergent = _preflight_client(
+        monkeypatch,
+        prior_tokens=[1, 2, 3],
+        accepted_token=7,
+        sampler=sampler,
+        sampler_sha256=sampler_sha256,
+        source_sha256=source_sha256,
+        wire_for=wire_for,
+    )
+    with pytest.raises(native.NativeFieldRuntimeError, match="not the next accepted step"):
+        divergent.candidate_preflight(
+            "task",
+            source_sha256,
+            [1, 2, 3, 9],
+            sequence_id="task-seq",
+            sampler=sampler,
+            native_operation_id="operation",
+        )

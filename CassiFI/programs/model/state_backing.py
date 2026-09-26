@@ -43,6 +43,10 @@ _CHUNKED_ARRAY_STORAGE = "chunked.v1"
 # Identities of backings flushed by this process. Eviction only costs one
 # redundant flush later, so the bound never weakens durability.
 _KNOWN_DURABLE_LIMIT = 1 << 15
+# Deferred snapshots hold the arrays no backing holds yet.  A publication
+# seals one of them, so the bound only needs to cover the stages that can
+# still be named between two seals.
+_DEFERRED_ARRAY_LIMIT = 1 << 12
 
 
 class SnapshotStoreError(ValueError):
@@ -348,7 +352,14 @@ class SnapshotStore:
             ],
         ] = {}
         self._durability_lock = threading.Lock()
+        self._deferred_lock = threading.Lock()
         self._known_durable: OrderedDict[str, None] = OrderedDict()
+        # Snapshots saved with ``defer_publication`` hold their manifest and
+        # the bytes no backing holds yet until ``make_durable`` materializes
+        # exactly the sealed one.  Manifests key by snapshot digest; arrays
+        # key by the digest of their content.
+        self._deferred_manifests: dict[str, bytes] = {}
+        self._deferred_arrays: dict[str, np.ndarray] = {}
         self.counters = {
             "backing_repairs": 0,
             "blob_cache_hits": 0,
@@ -358,6 +369,8 @@ class SnapshotStore:
             "blob_writes": 0,
             "chunk_reuses": 0,
             "chunk_writes": 0,
+            "deferred_arrays": 0,
+            "deferred_snapshots": 0,
             "durability_syncs": 0,
             "manifest_reuses": 0,
             "manifest_writes": 0,
@@ -815,6 +828,197 @@ class SnapshotStore:
             self._remember_immutable_chunked_array(array, digest, chunks, self.chunk_bytes)
         return digest, chunks, self.chunk_bytes
 
+    def _deferred_digest(self, array: np.ndarray, name: str) -> tuple[str, int]:
+        """Digest one array for a deferred snapshot without publishing bytes.
+
+        Deferred saves skip every backing write; the rendering owner seals one
+        snapshot per publication, so only that snapshot's bytes reach disk.
+        """
+        if not isinstance(array, np.ndarray):
+            raise TypeError(f"snapshot array {name!r} is not a numpy array")
+        if array.dtype.hasobject:
+            raise SnapshotStoreError("object arrays cannot be persisted")
+        if array.flags.writeable:
+            raise SnapshotStoreError("deferred snapshot arrays must be read-only")
+        nbytes = int(array.nbytes)
+        source = array if array.flags.c_contiguous else np.ascontiguousarray(array)
+        try:
+            view = memoryview(source).cast("B")
+        except (TypeError, ValueError):
+            view = memoryview(source.tobytes(order="C"))
+        digest = hashlib.sha256(view).hexdigest()
+        return digest, nbytes
+
+    def _deferred_backing_known(self, digest: str) -> bool:
+        """Report whether this process already published and verified a digest."""
+        known = str(self.blobs / f"{digest}.bin")
+        with self._durability_lock:
+            if known in self._known_durable:
+                return True
+            published = list(self._verified_blobs.values())
+        return digest in published
+
+    def _deferred_array(self, array: np.ndarray, *, purpose: str) -> tuple[str, int]:
+        """Digest one array, reserving its bytes for materialization.
+
+        A digest whose bytes this process already published needs nothing
+        further.  Every other digest records one strong reference, and that
+        reference is the bytes the manifest names when the sealed snapshot
+        materializes.
+        """
+        digest, nbytes = self._deferred_digest(array, str(purpose))
+        if nbytes > self.max_array_bytes:
+            raise SnapshotStoreError("snapshot array exceeds max_array_bytes")
+        if nbytes > self.chunk_threshold_bytes:
+            raise SnapshotStoreError(
+                "deferred snapshots do not publish chunked arrays"
+            )
+        if self._deferred_backing_known(digest):
+            return digest, nbytes
+        if self._backing_matches(self.blobs / f"{digest}.bin", digest, nbytes):
+            self.counters["blob_reuses"] += 1
+            return digest, nbytes
+        with self._deferred_lock:
+            if digest not in self._deferred_arrays:
+                self._deferred_arrays[digest] = array
+                self.counters["deferred_arrays"] += 1
+                while len(self._deferred_arrays) > _DEFERRED_ARRAY_LIMIT:
+                    self._deferred_arrays.pop(next(iter(self._deferred_arrays)))
+        return digest, nbytes
+
+    def _finalize_manifest(
+        self,
+        entries: Mapping[str, Mapping[str, Any]],
+        metadata_bytes: bytes,
+        manifest_schema: str,
+    ) -> tuple[dict[str, Any], bytes, str]:
+        core = {
+            "arrays": {name: dict(item) for name, item in entries.items()},
+            "metadata": json.loads(metadata_bytes.decode("utf-8")),
+            "schema": manifest_schema,
+        }
+        snapshot_sha256 = _sha256_bytes(_canonical_json_bytes(core))
+        manifest = {**core, "snapshot_sha256": snapshot_sha256}
+        manifest_bytes = _canonical_json_bytes(manifest) + b"\n"
+        if len(manifest_bytes) > _MAX_MANIFEST_BYTES:
+            raise SnapshotStoreError("snapshot manifest is too large")
+        return manifest, manifest_bytes, snapshot_sha256
+
+    def _materialize_deferred(self, descriptor: Mapping[str, Any]) -> dict[str, Any]:
+        """Publish one deferred snapshot: backings first, then its manifest."""
+        digest = _digest_text(descriptor.get("snapshot_sha256"), "snapshot_sha256")
+        with self._deferred_lock:
+            manifest_bytes = self._deferred_manifests.get(digest)
+            arrays = dict(self._deferred_arrays)
+        if manifest_bytes is None:
+            return dict(descriptor)
+        try:
+            manifest = json.loads(manifest_bytes.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise SnapshotStoreError("deferred snapshot manifest is unreadable") from exc
+        entries = manifest.get("arrays")
+        if not isinstance(entries, dict):
+            raise SnapshotStoreError("deferred snapshot manifest is invalid")
+        pending: list[str] = []
+        for name, item in entries.items():
+            if not isinstance(item, dict):
+                raise SnapshotStoreError("deferred snapshot entry is invalid")
+            sha = _digest_text(item.get("sha256"), f"array {name} sha256")
+            if item.get("storage") == _CHUNKED_ARRAY_STORAGE:
+                chunks = item.get("chunks")
+                if not isinstance(chunks, list):
+                    raise SnapshotStoreError("deferred snapshot chunk list is invalid")
+                for raw in chunks:
+                    if not isinstance(raw, dict):
+                        raise SnapshotStoreError("deferred snapshot chunk entry is invalid")
+                    chunk_digest = _digest_text(raw.get("sha256"), f"array {name} chunk sha256")
+                    backing = self._safe_resolved(
+                        raw.get("blob"),
+                        expected=f"chunks/{chunk_digest}.bin",
+                        label=f"array {name} chunk blob",
+                    )
+                    if not backing.exists():
+                        raise SnapshotStoreError(
+                            f"deferred snapshot chunk {chunk_digest} is not on disk"
+                        )
+                continue
+            nbytes = int(item.get("nbytes", 0))
+            array = arrays.get(sha)
+            if array is not None:
+                self._write_deferred_array(array, sha, nbytes)
+                pending.append(sha)
+                continue
+            if nbytes == 0:
+                continue
+            backing = self._safe_resolved(
+                item.get("blob"),
+                expected=f"blobs/{sha}.bin",
+                label=f"array {name} blob",
+            )
+            if not backing.exists():
+                raise SnapshotStoreError(
+                    f"deferred snapshot array {name} has no bytes to publish"
+                )
+        manifest_path = self.snapshots / f"{digest}.json"
+        if self._publish_manifest(manifest_path, manifest_bytes):
+            self.counters["manifest_writes"] += 1
+        else:
+            self.counters["manifest_reuses"] += 1
+        with self._deferred_lock:
+            self._deferred_manifests.pop(digest, None)
+            for sha in pending:
+                self._deferred_arrays.pop(sha, None)
+        return {
+            "manifest": f"snapshots/{digest}.json",
+            "schema": SNAPSHOT_DESCRIPTOR_SCHEMA,
+            "snapshot_sha256": digest,
+        }
+
+    def discard_deferred(self) -> None:
+        """Drop sealed snapshot bytes this process chooses to abandon.
+
+        An aborted transaction's unsealed snapshots never materialize, and
+        their in-memory arrays go away with them.  Sealed snapshots stay
+        loadable from the file system either way.
+        """
+
+        with self._deferred_lock:
+            self._deferred_manifests.clear()
+            self._deferred_arrays.clear()
+
+    def _write_deferred_array(
+        self,
+        array: np.ndarray,
+        digest: str,
+        nbytes: int,
+    ) -> None:
+        target = self.blobs / f"{digest}.bin"
+        if nbytes <= 0 or self._backing_matches(target, digest, nbytes):
+            return
+        source = array if array.flags.c_contiguous else np.ascontiguousarray(array)
+        if int(source.nbytes) != nbytes:
+            raise SnapshotStoreError("deferred snapshot array size changed")
+        temporary = self.blobs / f".array.{os.getpid()}.{uuid.uuid4().hex}.tmp"
+        try:
+            with temporary.open("wb") as handle:
+                view = memoryview(source).cast("B")
+                for offset in range(0, nbytes, _HASH_CHUNK_BYTES):
+                    handle.write(view[offset : offset + _HASH_CHUNK_BYTES])
+            if self._install_backing(temporary, target, digest, nbytes):
+                self.counters["blob_writes"] += 1
+            else:
+                self.counters["blob_reuses"] += 1
+            self._remember_verified_blob(target, digest, nbytes)
+        except OSError as exc:
+            raise SnapshotStoreError(
+                "deferred snapshot array could not be published"
+            ) from exc
+        finally:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
+
     def save(
         self,
         arrays: Mapping[str, np.ndarray],
@@ -822,12 +1026,16 @@ class SnapshotStore:
         *,
         reuse_immutable_arrays: bool = False,
         durable: bool = True,
+        defer_publication: bool = False,
     ) -> dict[str, Any]:
         """Persist arrays and metadata and return a deterministic snapshot descriptor.
 
         ``reuse_immutable_arrays`` is an executor-owned fast path.  Its caller
         promises that accepted array objects and their storage remain immutable
         until released; ordinary callers retain the content-verifying path.
+        ``defer_publication`` returns a descriptor that names a manifest this
+        process holds in memory; :meth:`make_durable` then materializes that
+        exact manifest, so a deferred save publishes every byte at one point.
         ``durable=False`` publishes readable, verified bytes without flushing
         them or moving ``CURRENT``; the caller must pass the descriptor to
         :meth:`make_durable` before any durable record references it.
@@ -859,6 +1067,14 @@ class SnapshotStore:
             total += nbytes
             if nbytes > self.max_array_bytes or total > self.max_total_bytes:
                 raise SnapshotStoreError("snapshot arrays exceed configured bounds")
+            if defer_publication:
+                # The owner seals exactly one snapshot per publication, so a
+                # deferred save defers every byte until that seal.
+                sha, published_nbytes = self._deferred_array(array, purpose=name)
+                if published_nbytes != nbytes:
+                    raise SnapshotStoreError("snapshot array byte count changed during publication")
+                entries[name] = _manifest_array_entry(array, sha, nbytes)
+                continue
             if nbytes > self.chunk_threshold_bytes:
                 sha, chunks, chunk_bytes = self._publish_chunked_array(
                     array,
@@ -884,26 +1100,26 @@ class SnapshotStore:
                     raise SnapshotStoreError("snapshot array byte count changed during publication")
                 backings.append(self.blobs / f"{sha}.bin")
                 entries[name] = _manifest_array_entry(array, sha, nbytes)
-        core = {
-            "arrays": entries,
-            "metadata": json.loads(metadata_bytes.decode("utf-8")),
-            "schema": manifest_schema,
-        }
-        snapshot_sha256 = _sha256_bytes(_canonical_json_bytes(core))
-        manifest = {**core, "snapshot_sha256": snapshot_sha256}
-        manifest_bytes = _canonical_json_bytes(manifest) + b"\n"
-        if len(manifest_bytes) > _MAX_MANIFEST_BYTES:
-            raise SnapshotStoreError("snapshot manifest is too large")
-        manifest_path = self.snapshots / f"{snapshot_sha256}.json"
-        if self._publish_manifest(manifest_path, manifest_bytes):
-            self.counters["manifest_writes"] += 1
-        else:
-            self.counters["manifest_reuses"] += 1
+        manifest, manifest_bytes, snapshot_sha256 = self._finalize_manifest(
+            entries,
+            metadata_bytes,
+            manifest_schema,
+        )
         descriptor = {
             "manifest": f"snapshots/{snapshot_sha256}.json",
             "schema": SNAPSHOT_DESCRIPTOR_SCHEMA,
             "snapshot_sha256": snapshot_sha256,
         }
+        if defer_publication:
+            with self._deferred_lock:
+                self._deferred_manifests[snapshot_sha256] = manifest_bytes
+            self.counters["deferred_snapshots"] += 1
+            return descriptor
+        manifest_path = self.snapshots / f"{snapshot_sha256}.json"
+        if self._publish_manifest(manifest_path, manifest_bytes):
+            self.counters["manifest_writes"] += 1
+        else:
+            self.counters["manifest_reuses"] += 1
         if durable:
             self._ensure_durable([*backings, manifest_path])
             self._publish_current(descriptor)
@@ -914,10 +1130,19 @@ class SnapshotStore:
 
         Every backing the manifest names is flushed before the pointer that
         names the manifest, so a record written after this call survives power
-        loss together with all the bytes it references.
+        loss together with all the bytes it references.  A deferred snapshot
+        materializes here: its backings and manifest are published first, so
+        the flushed bytes are exactly the ones ``save`` already committed to.
         """
 
         manifest, digest = self._read_manifest(descriptor)
+        with self._deferred_lock:
+            deferred = digest in self._deferred_manifests
+        if deferred:
+            descriptor = self._materialize_deferred(
+                {"manifest": f"snapshots/{digest}.json", "snapshot_sha256": digest}
+            )
+            manifest, digest = self._read_manifest(descriptor)
         entries = manifest.get("arrays")
         if not isinstance(entries, dict):
             raise SnapshotCorruptionError("snapshot manifest fields are invalid")
@@ -979,6 +1204,21 @@ class SnapshotStore:
             expected=f"snapshots/{digest}.json",
             label="snapshot manifest",
         )
+        with self._deferred_lock:
+            deferred_bytes = self._deferred_manifests.get(digest)
+        if deferred_bytes is not None:
+            # A sealed snapshot's manifest is content-addressed by the same
+            # digest that names it, so serving it before materialization
+            # verifies exactly the bytes the file will hold.
+            try:
+                deferred = json.loads(deferred_bytes.decode("utf-8"))
+            except (UnicodeError, json.JSONDecodeError) as exc:
+                raise SnapshotCorruptionError("snapshot manifest is unreadable JSON") from exc
+            if not isinstance(deferred, dict):
+                raise SnapshotCorruptionError("snapshot manifest is not an object")
+            if _digest_text(deferred.get("snapshot_sha256"), "manifest snapshot_sha256") != digest:
+                raise SnapshotCorruptionError("snapshot manifest digest does not match descriptor")
+            return deferred, digest
         try:
             size = manifest_path.stat().st_size
             if size <= 0 or size > _MAX_MANIFEST_BYTES:
@@ -1109,6 +1349,8 @@ class SnapshotStore:
         """Verify and load a snapshot as read-only mmap-backed arrays."""
 
         manifest, _ = self._read_manifest(descriptor)
+        with self._deferred_lock:
+            deferred_arrays = dict(self._deferred_arrays)
         manifest_schema = manifest.get("schema")
         metadata = manifest.get("metadata")
         entries = manifest.get("arrays")
@@ -1157,6 +1399,18 @@ class SnapshotStore:
             else:
                 if "storage" in item:
                     raise SnapshotCorruptionError(f"array {name} storage format is invalid")
+                deferred = deferred_arrays.get(sha)
+                if deferred is not None:
+                    # The sealed snapshot still holds this array in memory;
+                    # serving it verifies nothing because nothing changed.
+                    array = deferred
+                    if int(array.nbytes) != nbytes:
+                        raise SnapshotCorruptionError(
+                            f"array {name} byte count does not match its pending bytes"
+                        )
+                    array.setflags(write=False)
+                    arrays[name] = array
+                    continue
                 try:
                     blob_path = self._safe_resolved(
                         item.get("blob"),

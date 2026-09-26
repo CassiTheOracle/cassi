@@ -1202,6 +1202,7 @@ class ResidentQwenExecutor:
                 metadata,
                 reuse_immutable_arrays=True,
                 durable=not self._defer_snapshot_durability,
+                defer_publication=self._defer_snapshot_durability,
             )
         self._working_snapshot = _plain(dict(descriptor))
         self._working_arrays = prepared
@@ -3680,6 +3681,15 @@ class ResidentQwenExecutor:
                         self._working_metadata = transaction["working_metadata"]
                     for layer, experts in transaction["resident_experts"].items():
                         self._resident_experts.setdefault(layer, set()).update(experts)
+                else:
+                    # Unsealed stage snapshots never continue the model, so
+                    # their reserved bytes go away with the transaction.  A
+                    # concurrent transaction may still seal one, so this
+                    # releases only once the last ticket is gone.
+                    del self._stage_transactions[ticket]
+                    if not self._stage_transactions:
+                        self._snapshots.discard_deferred()
+                    return
                 del self._stage_transactions[ticket]
         finally:
             lock.release()
