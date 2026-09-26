@@ -2157,7 +2157,7 @@ self-edited prompt “RSI.”
 | **L2: improvement strategy** | diagnose a weakness and choose how to improve under a fixed objective and verifier | bounded mechanisms exist for field-supported candidate choice, acquired method selection, repair, and guarded use | repeated superiority to supplied fixed strategies on unseen work |
 | **L3: experience acquisition** | decide which examples, questions, demonstrations, or experiments the next improvement needs | the fixed-tape SQLite baseline is complete; field-directed question choice remains the first direct campaign test | field-selected experience that measurably beats a matched supplied curriculum |
 | **L4: deployment adaptation** | use continuing environmental feedback to revise persistent state | the field can persist across tasks, restarts, and continuing worlds | a sustained deployment trajectory in which live outcomes produce verified, reusable gains without model fallback |
-| **L5: recursive inheritance** | revise an improver, verifier, curriculum policy, or successor procedure and pass it into later improvement rounds | a closed succession runs in `CassiFI/self_improvement/` (§31.6): the live brain writes each successor improver from its lineage ledger; \(M_0 \rightarrow M_1\) and \(M_1 \rightarrow M_2\) were each promoted by matched trials on untouched functions of Cassi's own source, each promoted improver governed the next live round, and \(M_2\) has written \(M_3\) | the multi-generation crosscheck of \(M_0\), \(M_1\), \(M_2\) on shared untouched functions, and longer succession showing whether the gain accumulates or saturates |
+| **L5: recursive inheritance** | revise an improver, verifier, curriculum policy, or successor procedure and pass it into later improvement rounds | a closed succession runs in `CassiFI/self_improvement/` (§31.6): the live brain writes each successor improver from its lineage ledger; \(M_0 \rightarrow M_1\) and \(M_1 \rightarrow M_2\) were each promoted by matched trials on untouched functions of Cassi's own source; each promoted improver governed the next live round; the three generations on four shared untouched function groups read 0.316, 2.374, 2.711 | succession past \(M_2\), and whether the gain keeps accumulating or saturates |
 
 The survey finds broad evidence at lower and intermediate levels, bounded
 meta-improvement at L5, and leaves statistically reliable accumulation across
@@ -2391,8 +2391,24 @@ The chain so far:
 Four successors written in one step, without the diagnosis, lost to \(M_1\);
 the first diagnosed successor won with three verified functions against one
 while spending fewer calls (18 against 22) and tokens (69 k against 88 k).
-\(M_2\) governed the second live round and has written \(M_3\), whose own
-diagnosis targets prompt length and completion room.
+\(M_2\) governed the second live round and wrote \(M_3\).
+
+On four held-out function groups that no generation had touched, under the
+same 12 calls and 60,000 tokens per arm, the three generations read
+
+| group | \(M_0\) | \(M_1\) | \(M_2\) |
+|---|---|---|---|
+| 1 | 0.238 | 0.663 | 0 |
+| 2 | 0 | 0.070 | 0.147 |
+| 3 | 0 | 1.503 | 2.338 |
+| 4 | 0.078 | 0.138 | 0.226 |
+| total | 0.316 | 2.374 | 2.711 |
+
+\(M_1\) beats \(M_0\) in every group and \(M_2\) beats \(M_1\) in three of
+four, with six verified functions against seven and 120 k tokens against 132 k.
+This crosscheck ran on the 9B dense brain while the lineage was bred with the
+35B mixture-of-experts brain, so what inherited is method rather than one
+model's habits.
 
 ### 31.7 Campaign sequence
 
